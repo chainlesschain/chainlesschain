@@ -23,6 +23,14 @@ const CHANNELS = Object.freeze({
   acknowledgeAcceptance: "project:goal-acceptance-acknowledge",
   checkAcceptance: "project:goal-acceptance-check",
   completeGoal: "project:goal-complete",
+  memoryList: "project:goal-memory-list",
+  memoryCreate: "project:goal-memory-create",
+  memoryCorrect: "project:goal-memory-correct",
+  memoryDelete: "project:goal-memory-delete",
+  memoryRevoke: "project:goal-memory-revoke",
+  memoryOperations: "project:goal-memory-operations",
+  memoryRecover: "project:goal-memory-recover",
+  memoryDiscard: "project:goal-memory-discard",
 });
 function error(code) {
   return Object.assign(new Error(code), { code });
@@ -47,6 +55,8 @@ function createProjectGoalHost({
     require("../ipc/ipc-sender-guard").validateSender(event),
   monitoringController = null,
   clock = Date.now,
+  getAuthenticationGeneration = () =>
+    require("./project-goal-auth-session").getProjectGoalAuthGeneration(),
 } = {}) {
   const getElectron = () => electron || require("electron");
   const currentDatabase = () =>
@@ -215,6 +225,75 @@ function createProjectGoalHost({
     });
     return hostCompletion;
   }
+  function memoryCall(event, method, params) {
+    const parent = currentWindow(event),
+      frame = event.senderFrame,
+      url = frame?.url;
+    const db = currentDatabase();
+    const actorDid = getCurrentUserDid();
+    if (!actorDid) throw error("GOAL_IDENTITY_REQUIRED");
+    const generation = getAuthenticationGeneration();
+    const getActor = () => {
+      if (
+        currentWindow(event) !== parent ||
+        event.senderFrame !== frame ||
+        frame?.url !== url
+      )
+        throw error("GOAL_MEMORY_WINDOW_CHANGED");
+      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      const current = getCurrentUserDid();
+      if (!current) throw error("GOAL_IDENTITY_REQUIRED");
+      if (current !== actorDid || getAuthenticationGeneration() !== generation)
+        throw error("GOAL_MEMORY_AUTHENTICATION_CHANGED");
+      return current;
+    };
+    getActor();
+    const {
+      ProjectGoalMemoryService,
+    } = require("@chainlesschain/session-core/project-goal-memory");
+    const {
+      ContextMemoryKernel,
+      NativeSqliteMemoryPort,
+    } = require("@chainlesschain/context-memory-kernel");
+    const service = new ProjectGoalMemoryService({
+      db,
+      getActor,
+      clock,
+      onAuthorityChanged: () => {
+        const windows = getElectron().BrowserWindow.getAllWindows?.() ?? [
+          parent,
+        ];
+        for (const window of windows) {
+          const webContents = window.webContents;
+          if (
+            !window.isDestroyed() &&
+            webContents &&
+            !webContents.isDestroyed()
+          )
+            webContents.send("project:goal-memory-invalidated", {});
+        }
+      },
+      memoryHostFactory: ({ scope, authorize }) => {
+        const port = new NativeSqliteMemoryPort({ db, scope, authorize });
+        return {
+          port,
+          kernel: new ContextMemoryKernel({
+            memoryPort: port,
+            reconciliationPort: port,
+            clock,
+          }),
+        };
+      },
+    });
+    const result = service[method](params);
+    if (result?.then)
+      return result.then((value) => {
+        getActor();
+        return value;
+      });
+    getActor();
+    return result;
+  }
   async function monitor(event) {
     currentWindow(event);
     if (!getCurrentUserDid()) throw error("GOAL_IDENTITY_REQUIRED");
@@ -246,6 +325,15 @@ function createProjectGoalHost({
       completion(event).acknowledge(params),
     checkAcceptance: (event, params) => completion(event).inspect(params),
     completeGoal: (event, params) => completion(event).complete(params),
+    memoryList: (event, params) => memoryCall(event, "list", params),
+    memoryCreate: (event, params) => memoryCall(event, "create", params),
+    memoryCorrect: (event, params) => memoryCall(event, "correct", params),
+    memoryDelete: (event, params) => memoryCall(event, "delete", params),
+    memoryRevoke: (event, params) => memoryCall(event, "revoke", params),
+    memoryOperations: (event, params) =>
+      memoryCall(event, "operations", params),
+    memoryRecover: (event, params) => memoryCall(event, "recover", params),
+    memoryDiscard: (event, params) => memoryCall(event, "discard", params),
     initializeMonitoring: () => controller.initialize(),
     close: () => controller.close(),
   });

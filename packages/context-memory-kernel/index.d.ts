@@ -307,6 +307,65 @@ export class InMemorySessionContextPort {
 export class InMemoryMemoryPort {
   constructor(seed?: MemoryRecord[]);
 }
+/** Synchronous host adapter. Digests detect corruption, not arbitrary DB writes. */
+export class NativeSqliteMemoryPort {
+  constructor(options: {
+    db: {
+      prepare(sql: string): {
+        get(...params: unknown[]): any;
+        all(...params: unknown[]): any[];
+        run(...params: unknown[]): unknown;
+      };
+      exec(sql: string): unknown;
+      transaction<T>(body: () => T): { immediate(): T };
+    };
+    scope: { scope: Exclude<ContextScope, "global">; scopeId: string };
+    authorize(
+      request: Readonly<{
+        operation:
+          | "initialize"
+          | "read"
+          | "readEvent"
+          | "query"
+          | "getRevision"
+          | "commit"
+          | "getReconciliation"
+          | "putReconciliation";
+        scope: Readonly<{ scope: ContextScope; scopeId?: string }>;
+        memoryId?: string;
+        revision?: number;
+        requestId?: string;
+      }>,
+    ): { allowed: boolean };
+    maxQueryRecords?: number;
+  });
+  readonly name: "native-sqlite-memory-authority";
+  readonly scope: Readonly<{ scope: ContextScope; scopeId?: string }>;
+  read(memoryId: string): MemoryRecord | null;
+  /** digest binds the projection; eventDigest binds the original Kernel event. */
+  readEvent(memoryId: string, revision: number): Record<string, unknown> | null;
+  query(request?: {
+    scopeAdmissions?: Array<{ scope: ContextScope; scopeId?: string }>;
+    [key: string]: unknown;
+  }): MemoryRecord[];
+  getRevision(): number;
+  commit(
+    input: {
+      record: MemoryRecord;
+      event: Record<string, unknown>;
+      reconciliation?: Record<string, unknown>;
+    },
+    expectedRevision?: number,
+  ): {
+    ok: boolean;
+    revision?: number;
+    currentRevision?: number;
+    storeRevision: number;
+    reconciliationStored?: boolean;
+  };
+  getReconciliation(requestId: string): Record<string, unknown> | null;
+  putReconciliation(operation: Record<string, unknown>): void;
+}
 export class InMemoryContentPort {}
 export class InMemoryProjectionPurgePort {
   constructor(name: string);

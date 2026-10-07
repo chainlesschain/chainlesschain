@@ -2,7 +2,7 @@
 
 更新日期：2026-10-07。当前工作分支：`main`；原 `feature/dots-muse-mods-foundation` 已通过 `58a30cbae7` 完整合并，后续修改在主分支继续。开始实施时基线：`1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`。
 
-依据：[分析与实施计划](./chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。B0/B1 目标基础与公共持久调度模块已提交为 `f74ae00de0`，首个风险巡检宿主与目标面板为 `ae8b2c5b57`，持久建议/原生动作与恢复为 `e8b5c87951`。独立完成检查器、停止单次执行、结束跟进及桌面验收面板已进入 `5c5a742a6b`，并随功能分支合入主分支；记忆、通知、扩展及实际业务验收仍需继续交付。
+依据：[分析与实施计划](./chainlesschain-dots-muse-mods-analysis-2026-10-06.md)。B0/B1 目标基础与公共持久调度模块已提交为 `f74ae00de0`，首个风险巡检宿主与目标面板为 `ae8b2c5b57`，持久建议/原生动作与恢复为 `e8b5c87951`。独立完成检查器、停止单次执行、结束跟进及桌面验收面板已进入 `5c5a742a6b`，并随功能分支合入主分支；目标记忆原生驱动、引用/授权/恢复服务及桌面 IPC 已完成本地验证，记忆界面、通知、扩展及实际业务验收仍需继续交付。
 
 **最新验收与控制回归：30 个互不重叠的测试文件，545 项通过，0 失败、0 跳过。** 分别为 CLI 292 项、Desktop 172 项、Renderer 79 项及隔离打包 2 项；包含 34 项独立完成、69 项监控、26 项跨域 usage 和既有 13 项真实 Node 子进程恢复用例。历史动作与恢复批次为 26 个文件、453 项，监控为 36 个文件、705 项，基础为 21 个文件、412 项，共享调度器为 27 个文件、521 项；各批有重叠，不相加。Electron 窗口和对话框在宿主测试中为替身，尚未运行真实 Electron GUI、真实业务效果评测或候选提交的远端发行矩阵。
 
@@ -13,7 +13,7 @@
 | DMM-02 存储适配        | CLI 与原生项目 SQLite 基础完成           | 同一 CLI 文件、严格锁内 CAS、旧数据安全缺省值、超限旧历史兼容、原生事务内身份/归属复核、当前权限读取、IPC/preload                                                   | 用户显式导入 CLI 目标到项目的备份/映射/回退流程；进程级并发及故障恢复演练；真实 GUI 使用入口            |
 | DMM-03 持续调度        | 风险 adapter、独立停止控制与进程恢复完成 | 真实 SIGKILL、双进程抢占、迟到 fence、撤权恢复；持久停止本次执行与结束跟进；共享预算、离线合并和真实 draining 投影                                                  | 其他 adapter 和 canonical Graph 接入                                                                    |
 | DMM-04 受控动作        | 原生动作回执与独立完成复核已接通         | goal→risk review→intent/admission→ActionRun；当前版本预览、原生确认、同事务血缘与 usage；未解决动作阻止验收；暂停/修订/到期/撤权/退出阻止旧确认；未知结果不换键重放 | 真实 Electron 旅程及更完整的审计展示                                                                    |
-| DMM-05 记忆与通知      | 待实施                                   | 本轮未将目标文本自动写入长期记忆；建议按语义风险信号去重，但尚不等于通知投递                                                                                        | Memory Kernel 版本引用、修正/删除/撤权、输出复核；持久应用内通知、静默时段和已读状态                    |
+| DMM-05 记忆与通知      | 记忆原生服务与 IPC 完成，界面/通知待交付 | 现有 Kernel 原生 SQLite driver；目标仅存版本引用；显式分类、修正、单调撤权、真实删除回执、恢复/丢弃与输出前精确复核；无自动事实提升                                 | 记忆面板验证与真实 GUI；持久站内通知、静默时段、已读状态与语义去重；真实输出 adapter 接入               |
 | DMM-06 工作区闭环      | 目标/动作/验收与结束控制界面回归完成     | 建议分页、范围设置、草稿恢复、当前预览、原生确认、回执/风险证据；验收配置/检查/完成历史、停止本次与结束跟进；跨身份/版本丢弃迟到响应及失效证据                      | 真正 Electron GUI 旅程与最终产品验收                                                                    |
 | DMM-07/08 扩展与场景包 | 待实施                                   | 沿用既有插件能力，不开放新扩展执行                                                                                                                                  | 声明式事件/UI SDK、项目交付助手包、安装升级及禁用处理                                                   |
 | DMM-09/10 效果与发行   | 恢复演练已补，待业务与发行验收           | 13 项真实进程演练；CLI 默认单元/集成集合及桌面固定配置包含新回归；本批 545 项独立证据                                                                               | 实际业务样本、准确候选提交三平台 CI、默认关闭开关、灰度和迁移/回退；发行时遵守 OIDC 与子包→CLI→IDE 顺序 |
@@ -165,6 +165,22 @@ Astra 完成真实进程用例与独立复核，已修复未知时间误报零�
 本批证据：[CLI 292 项](./evidence/dmm-acceptance-2026-10-07/cli-tests.json)、[Desktop 172 项](./evidence/dmm-acceptance-2026-10-07/desktop-tests.json)、[Renderer 79 项](./evidence/dmm-acceptance-2026-10-07/renderer-tests.json)、[隔离打包 2 项](./evidence/dmm-acceptance-2026-10-07/packed-host.tap)、[来源与汇总](./evidence/dmm-acceptance-2026-10-07/summary.json)。汇总绑定报告、源码 SHA-256、具体命令与测试/替身边界；修正命令记录中相对于 cwd 的 Vitest 路径，并保留原显示记录。测试通过后的 preload 改动仅为 Prettier 格式化，不将该后置快照写成准确提交 CI 证明。
 
 Astra 独立复核并复测了到期边界、缺失 verifier usage 与完成证据版本绑定问题，均已修复。固定 IPC 清单验证通过（1250 个准确通道）；实际 Electron GUI、业务样本和远端候选提交验证仍未运行，不能用本地 545 项回归替代。
+
+## 目标记忆原生基础与桌面 IPC
+
+本批 **25 个互不重叠文件、375 项通过，0 失败、0 跳过**：目标记忆服务 29 项、既有目标/独立验收 45 项、桌面主进程 189 项、Kernel 全包 112 项（其中新增原生驱动 13 项）。与此前 545 项验收批次有重叠，不相加。记忆 renderer 面板仍在实现，本批未将其列为已验证交付，也未运行真实 Electron GUI。
+
+[共享原生 MemoryPort](../../../packages/context-memory-kernel/lib/native-sqlite-memory-port.js)实现同步精确 read/readEvent、不可扩大作用域、逐操作可信授权、原生 immediate CAS/事件血缘及永久墓碑。使用现有 Kernel reducer/propose/decide/delete/reconcile，不复制生命周期逻辑、不依赖 CLI 私有模块。记录、事件、作用域版本及删除协调操作在现有原生连接持久化；两个独立连接的 CAS 与关闭全部句柄后的删除协调恢复已有真实 SQLite 用例。
+
+[目标记忆服务](../../../packages/session-core/lib/project-goal-memory.js)由可信宿主派生 store/actor/project/goal 的散列 scope 和精确 sink。目标只存 `{kind,id,version}` 引用，version 绑定 revision/digest；权限由当前项目归属、目标引用和持久 grant/epoch 共同决定。用户明确事实、Agent 推断与执行备注保持分类，不把目标文本、progress 或执行状态自动写成长期事实。
+
+输出前同步读取精确记录并检查 active/reinforced、有效期、精确 scope/sink/revision/digest，再复核当前 Goal/grant。`revalidateOutput` 不接收缓存正文，旧 envelope 不能越过身份、版本或撤权代次。修正生成 successor 并保存 supersede 事件；删除或撤权先提交读取 denial，再恢复 Kernel 清理。操作日记不复制正文，相同请求沿原身份恢复；目标修订后的孤立 candidate 可显式丢弃。已验收目标仍可做隐私清理，不伪造替代完成证明。
+
+Astra 独立复核发现的全目标 pending/容量阻止其他记忆撤权、复用丢弃键误认另一条删除回执，以及缺失删除回执仍可回放的问题已修复并加入回归。清理身份绑定原 operation、精确 memoryId 和 discardRequestId；purged 回执复核 Kernel reconciliation 与当前墓碑 revision/digest。同步 purge target 抛错现会生成 partial 回执并保留 denial，不再跳出协调流程。
+
+桌面新增八个固定 memory 通道及 body-free invalidation 事件；preload 提供查看/创建/修正/删除/撤权/操作查询/恢复/丢弃。宿主绑定窗口、frame URL、当前认证代次/DID 与捕获的原生连接，跨 await 变化拒绝迟到结果。固定 IPC 验证通过（1259 个准确通道）。新 Kernel driver 已登记为唯一 canonical runtime 的存储适配，目标服务登记为 capability client。
+
+证据：[目标/验收 74 项](./evidence/dmm-memory-2026-10-07/core-tests.json)、[桌面 189 项](./evidence/dmm-memory-2026-10-07/desktop-tests.json)、[Kernel 112 项](./evidence/dmm-memory-2026-10-07/kernel-tests.tap)、[命令与来源汇总](./evidence/dmm-memory-2026-10-07/summary.json)。这是当前本地工作树快照；其中含并行组织权限调整，不能称为准确提交 CI 或发行门证据。`purged` 表示权威记录与注册在线清理目标的逻辑清理，不证明 SQLite WAL、备份或此前导出的物理擦除。持久通知、真实模型输出 adapter、实际业务效果和远端发行验证仍待完成。
 
 ## 上一批监控验证与证据
 

@@ -1,0 +1,15 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "packages/context-memory-kernel/test/*.test.js"
+  ],
+  "cwd": "C:\\code\\chainlesschain",
+  "startedAt": "2026-10-07T04:34:23.565Z",
+  "completedAt": "2026-10-07T04:34:34.174Z",
+  "exitCode": 0,
+  "stderr": "",
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64"
+}

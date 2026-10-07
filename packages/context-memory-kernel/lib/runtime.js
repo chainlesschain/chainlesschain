@@ -293,7 +293,7 @@ class ContextMemoryKernel {
       });
     }
     const settled = await Promise.allSettled(
-      targets.map((target) => target.run()),
+      targets.map((target) => Promise.resolve().then(() => target.run())),
     );
     return settled.map((result, index) => {
       if (result.status === "fulfilled" && result.value?.status === "purged") {

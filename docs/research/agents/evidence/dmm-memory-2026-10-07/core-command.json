@@ -1,0 +1,21 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/project-goal-memory.test.js",
+    "__tests__/unit/project-goal-service.test.js",
+    "__tests__/unit/project-goal-completion.test.js",
+    "--reporter=default",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-memory-2026-10-07\\core-tests.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+  "startedAt": "2026-10-07T04:34:03.169Z",
+  "completedAt": "2026-10-07T04:34:09.097Z",
+  "exitCode": 0,
+  "stderr": "",
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64"
+}

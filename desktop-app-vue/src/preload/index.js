@@ -910,6 +910,15 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-intent-prepare",
   "project:goal-intent-read",
   "project:goal-list",
+  "project:goal-memory-correct",
+  "project:goal-memory-create",
+  "project:goal-memory-delete",
+  "project:goal-memory-discard",
+  "project:goal-memory-invalidated",
+  "project:goal-memory-list",
+  "project:goal-memory-operations",
+  "project:goal-memory-recover",
+  "project:goal-memory-revoke",
   "project:goal-monitor-check",
   "project:goal-monitor-start",
   "project:goal-monitor-status",
@@ -2895,6 +2904,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("project:goal-acceptance-check", params),
     completeGoal: (params) =>
       ipcRenderer.invoke("project:goal-complete", params),
+    listGoalMemories: (params) =>
+      ipcRenderer.invoke("project:goal-memory-list", params),
+    createGoalMemory: (params) =>
+      ipcRenderer.invoke("project:goal-memory-create", params),
+    correctGoalMemory: (params) =>
+      ipcRenderer.invoke("project:goal-memory-correct", params),
+    deleteGoalMemory: (params) =>
+      ipcRenderer.invoke("project:goal-memory-delete", params),
+    revokeGoalMemory: (params) =>
+      ipcRenderer.invoke("project:goal-memory-revoke", params),
+    listGoalMemoryOperations: (params) =>
+      ipcRenderer.invoke("project:goal-memory-operations", params),
+    recoverGoalMemoryOperation: (params) =>
+      ipcRenderer.invoke("project:goal-memory-recover", params),
+    discardGoalMemoryOperation: (params) =>
+      ipcRenderer.invoke("project:goal-memory-discard", params),
+    onGoalMemoryInvalidated: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on("project:goal-memory-invalidated", listener);
+      return () =>
+        ipcRenderer.removeListener("project:goal-memory-invalidated", listener);
+    },
     evaluateRisk: (params) =>
       ipcRenderer.invoke("project:risk-evaluate", params),
     getRiskReview: (params) =>

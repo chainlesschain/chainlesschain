@@ -1,0 +1,301 @@
+{
+  "schema": "chainlesschain.dmm-memory-evidence/v1",
+  "recordedAt": "2026-10-07T04:37:29.090Z",
+  "baseCommitAtCapture": "2b83a1986a872bc3ed3d5c12a02fb5879d1492a3",
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64",
+  "totals": {
+    "files": 25,
+    "tests": 375,
+    "passed": 375,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reports": [
+    {
+      "report": "core-tests.json",
+      "sha256": "c62bff3341a5372d271b851de184d19506ebd2adec10f2dee5029fa933b435cf",
+      "files": 3,
+      "tests": 74,
+      "testFiles": [
+        "packages/cli/__tests__/unit/project-goal-completion.test.js",
+        "packages/cli/__tests__/unit/project-goal-memory.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js"
+      ]
+    },
+    {
+      "report": "desktop-tests.json",
+      "sha256": "a7fa3b3333d51b649e4acbd9e747a1ea9eadabd127deb9388d5e19aed0832f70",
+      "files": 10,
+      "tests": 189,
+      "testFiles": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    }
+  ],
+  "kernel": {
+    "report": "kernel-tests.tap",
+    "sha256": "c1a1bcc8eb8dbf0f3ca15160d249748c070a6be450213f2a8f1ecb5597e59fe3",
+    "files": 12,
+    "tests": 112,
+    "passed": 112
+  },
+  "sourceSha256": "a68469edd6fda1e44732a66e817d925e70cd7f6b68c7f631a6ba4f9c0b73b9a6",
+  "sourceFiles": [
+    {
+      "file": "desktop-app-vue/package-lock.json",
+      "sha256": "0f55b1b1dd39f3b5dbb63eda1e37f5c4e6330aca684d488af218a706d2515fd3"
+    },
+    {
+      "file": "desktop-app-vue/package.json",
+      "sha256": "a4fc3f45cbd35e43d9128f304f7aa85c7488575003d755a2af47d0f74511428d"
+    },
+    {
+      "file": "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+      "sha256": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+      "sha256": "59c7abaa30b7269eef17253c22a67e554d1ab2869a789f6cf631cbf3155264bd"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+      "sha256": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+      "sha256": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+      "sha256": "5995f0c98db907bf82446476fb48e4652fb5795a01530cd3efd5b4ce6d087899"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "sha256": "0fb97ec9be3480c28ee34ed81ec3ce49df7122117eacbcb6bdbc0f62d62c6600"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+      "sha256": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+      "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "sha256": "a1148b311e16a020eb86a833122a0d637be693799340ce9137e71bd0d41692ae"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+      "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/index.js",
+      "sha256": "a3031ddbe74704e79b06dea4eea337d5cd9bea5e046615c350ff1792eabf5da8"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "sha256": "69dec5c3a6d4794d991b1c8665d5936dbe72c9e0e55c386a2619243c4fc20aa4"
+    },
+    {
+      "file": "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+      "sha256": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40"
+    },
+    {
+      "file": "desktop-app-vue/vitest.business-actions.config.mjs",
+      "sha256": "427802de299f8098c3c8be10b064a25a7acff828b9ac67e358f38d72711af891"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "4ab5ba367965411e5e915137dceaad1ecfbb2f7a2af0c2785bda9e544da8d07a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-completion.test.js",
+      "sha256": "9afd111f80d4459d9fdbb9469b3cfe3048e04aa954e42f8ac39bf04302d24f39"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-memory.test.js",
+      "sha256": "2bba1f26cee764a519328938ad89b07f22f9617c2d5b2b3fc57257be6f25959f"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-service.test.js",
+      "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+    },
+    {
+      "file": "packages/context-memory-kernel/index.d.ts",
+      "sha256": "2082f6500d6a7ea49ccc4e554b84506e8dc61913b17f44b48301051705e20ff8"
+    },
+    {
+      "file": "packages/context-memory-kernel/index.mjs",
+      "sha256": "2138e5878571e58f3406800c25d34aaa8ac20ad1393347a92092ac861acd30a9"
+    },
+    {
+      "file": "packages/context-memory-kernel/inventory/writers.v1.json",
+      "sha256": "2e8bb019a70893fde9a10268ca6f2af9d594b08c61257ebd5ccea79c18d0c738"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/adapters.js",
+      "sha256": "feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/authority.js",
+      "sha256": "a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/canonical.js",
+      "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/compaction.js",
+      "sha256": "da6d2e9a43f5a414a36f346a0da697b72ad0fa36a8de72744f2c289fed0a78fb"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/conformance.js",
+      "sha256": "e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/constants.js",
+      "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/contracts.js",
+      "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/errors.js",
+      "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/index.js",
+      "sha256": "15646726869c8731906d17ca19888f30f78182807ad8a40c43c8602de998b958"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/inventory.js",
+      "sha256": "61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/memory-reducer.js",
+      "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/native-sqlite-memory-port.js",
+      "sha256": "3743c1a534acb8c556d2060b55603d3fc1d35db271c9dce92f8a04a3c8ed91c2"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/planner.js",
+      "sha256": "0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/runtime.js",
+      "sha256": "2a9d7541c0b92ca17312b8b91131a0b61acc479ed6141c12149a88d3dcab7024"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/schema-validator.js",
+      "sha256": "d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528"
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/task-checkpoint.js",
+      "sha256": "6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13"
+    },
+    {
+      "file": "packages/context-memory-kernel/package.json",
+      "sha256": "ed9671de0a12f56838858e2cc6bf38cfc335dfcd645726fec1b017f6099b3b1a"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/compaction.test.js",
+      "sha256": "766f9c5b431031b54c8be39cad13aa10d43f87bab8f332e799dacb7e17686fee"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/conformance-fixture.test.js",
+      "sha256": "c7daf152e934c5cd95f207383ea3f8affd6fe4435d6858cb2da11795575dab88"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/contracts-planner.test.js",
+      "sha256": "a7d34b44a3f3cdee3a7b82cdc01d66797a1a3d6b52b023dabd7061886bf94163"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/desktop-surface-conformance.test.js",
+      "sha256": "d02bfb73f9024b0b6f433e1aabf1caccc02b531f16711e7361abce2f9f448918"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/inventory.test.js",
+      "sha256": "3041d862c6ca2d9b9e8d33b0d4cd36f1dc44b44ffb1b0a8bfaa1d04615e6a8f6"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/lexical-retrieval-eval.test.js",
+      "sha256": "d5d8ca4fbd0193d189d5a1d8e841ecdcb9002f9024fa76496f29f4d44e17ea4d"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/memory-authority.test.js",
+      "sha256": "e91132b04b3ba0297cd509cf469dcf1e6838b9464980b369d93cee829f01e716"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/memory-lexical.test.js",
+      "sha256": "8e0cf921537e9d4561e0b94a9efa70f4331e41ca1f9ad558bf2190d236adad5a"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/native-sqlite-memory-port.test.js",
+      "sha256": "d4a0ba7af2cffa80d44eb3d3eec42484c5cf7298db204124cf1f214a940fa5cb"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/release-evidence.test.js",
+      "sha256": "23827b24af37ed90c5820522261d943628b40db4fe8dc4abb8a0569af5f59bc0"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/schema.test.js",
+      "sha256": "b94b0fb4516ceb4b1f78e44fed4e7e4248fbae1ee8e917d76e07d10e2eb24c3d"
+    },
+    {
+      "file": "packages/context-memory-kernel/test/task-checkpoint.test.js",
+      "sha256": "baf66954d0bf8f651d8d979e53d2803ea2457afcc5c4ece3ab9b6ec3c783a401"
+    },
+    {
+      "file": "packages/session-core/lib/goal-contract.js",
+      "sha256": "983bedb52e4714cb63c797e91275d38aee8cac4705db4dd8239d6fcf3c57e217"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-completion.js",
+      "sha256": "fd1de952721dcf6aa10c1b6299220514034b37042b41bf6de06b1bde1093f70a"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-memory.js",
+      "sha256": "a9dd688ec9b3f5deb3c31ba5f2a4b6bafed1d2d60d7aebdb909b24bd32e9ccaa"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-service.js",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    }
+  ],
+  "boundaries": [
+    "13 new Kernel driver cases use real native SQLite, independent connections and file reopen; 29 Goal cases use native SQLite and injected failure/identity barriers",
+    "17 new Desktop memory cases use native SQLite with mocked BrowserWindow/IPC; no real Electron GUI in this cohort",
+    "Local working-tree snapshot includes concurrent organization-authority edits; this report is not exact-commit CI or release evidence",
+    "Privacy cleanup denies future reads immediately; purged proves logical Kernel/registered-target cleanup, not physical erasure of SQLite WAL, backups or prior exports",
+    "Renderer memory panel is under implementation and is not included in this verified/committed cohort",
+    "No durable notification delivery, real model dispatch or independently labeled business sample evaluation in this cohort"
+  ],
+  "invariants": [
+    "Exact scoped ID/revision/digest/sink/expiry/state and current Goal grant are reread at output",
+    "References and bounded operation journal contain no memory body; no automatic goal/progress-to-memory promotion",
+    "Correction uses a Kernel successor and supersede event; delete/revoke first persist a denial epoch; same request resumes the durable operation",
+    "Pending purge or create-history capacity cannot block revocation/deletion of another existing grant",
+    "Discard cleanup identity binds original operation and exact memory ID, even if client discard keys repeat",
+    "Completed deletion replay requires the exact Kernel receipt/reconciliation and current purged revision/digest",
+    "IPC binds captured authenticated generation, DID, native connection, frame URL and window across asynchronous work"
+  ]
+}

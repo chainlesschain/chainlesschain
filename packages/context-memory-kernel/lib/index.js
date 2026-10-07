@@ -10,6 +10,7 @@ module.exports = {
   ...require("./compaction.js"),
   ...require("./authority.js"),
   ...require("./adapters.js"),
+  ...require("./native-sqlite-memory-port.js"),
   ...require("./schema-validator.js"),
   ...require("./inventory.js"),
   ...require("./conformance.js"),

@@ -52,6 +52,7 @@
         "packages/context-memory-kernel/lib/memory-reducer.js",
         "packages/context-memory-kernel/lib/authority.js",
         "packages/context-memory-kernel/lib/adapters.js",
+        "packages/context-memory-kernel/lib/native-sqlite-memory-port.js",
         "packages/context-memory-kernel/schema/context-memory-kernel.schema.json"
       ],
       "mutationFunctions": [
@@ -60,7 +61,9 @@
         "ContextMemoryKernel.proposeMemory",
         "ContextMemoryKernel.decideMemory",
         "ContextMemoryKernel.deleteMemory",
-        "ContextMemoryKernel.reconcile"
+        "ContextMemoryKernel.reconcile",
+        "NativeSqliteMemoryPort.commit",
+        "NativeSqliteMemoryPort.putReconciliation"
       ],
       "stores": [
         "SessionContextPort",
@@ -70,6 +73,25 @@
       ],
       "recoveryEntrypoints": ["ContextMemoryKernel.reconcile"],
       "disposition": "migrate"
+    },
+    {
+      "id": "session-core-project-goal-memory",
+      "surface": "session_core",
+      "role": "capability_client",
+      "currentStage": "canonical_default",
+      "targetAuthority": "context_memory_kernel",
+      "files": ["packages/session-core/lib/project-goal-memory.js"],
+      "mutationFunctions": [
+        "ProjectGoalMemoryService.create",
+        "ProjectGoalMemoryService.correct",
+        "ProjectGoalMemoryService.delete",
+        "ProjectGoalMemoryService.revoke",
+        "ProjectGoalMemoryService.recover",
+        "ProjectGoalMemoryService.discard"
+      ],
+      "stores": ["ProjectGoalMemoryReferences", "ProjectGoalMemoryOperations"],
+      "recoveryEntrypoints": ["ProjectGoalMemoryService.recover"],
+      "disposition": "capability_only"
     },
     {
       "id": "session-core-memory-authority",

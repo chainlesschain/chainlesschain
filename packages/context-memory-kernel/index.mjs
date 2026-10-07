@@ -67,6 +67,7 @@ export const {
   ContextMemoryAuthorityRegistry,
   InMemorySessionContextPort,
   InMemoryMemoryPort,
+  NativeSqliteMemoryPort,
   InMemoryContentPort,
   InMemoryProjectionPurgePort,
   ContextMemoryKernel,
