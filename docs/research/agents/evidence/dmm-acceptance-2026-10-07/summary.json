@@ -1,0 +1,435 @@
+{
+  "schema": "chainlesschain.dmm-local-evidence/v1",
+  "taskIds": ["DMM-01", "DMM-03", "DMM-04", "DMM-06", "DMM-09"],
+  "recordedAt": "2026-10-07T03:19:21.147Z",
+  "baseCommitAtCapture": "2afd65c12f6ec67805117ef9637a48b4b7bfdc7f",
+  "implementationCommit": "5c5a742a6b",
+  "mergeCommit": "58a30cbae7",
+  "sourceSha": "11a27ab43f8dbd0cc38ad261bd674ce7c9dda5b699aa8c75cde14bd6f324cfba",
+  "sourceFiles": [
+    {
+      "file": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "sha256": "1ec2d15c3539aa4e72d1c740867350016f7af6cce25800f5f9cf063329e1927a"
+    },
+    {
+      "file": "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+      "sha256": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+      "sha256": "59c7abaa30b7269eef17253c22a67e554d1ab2869a789f6cf631cbf3155264bd"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+      "sha256": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+      "sha256": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "sha256": "0fb97ec9be3480c28ee34ed81ec3ce49df7122117eacbcb6bdbc0f62d62c6600"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+      "sha256": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+      "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "sha256": "9ede409a8a6ffbe50ab4ee6261b76651283155fa45bdf68e54bceee90f7b102b"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "sha256": "baf0ea438b5fdedc0e16c1491e09c415080c53d1871a512e8425d165547956ac"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+      "sha256": "2561a3b10b6b613a8f575b64aef55e95e9154ba18e33f61cd0a9b9b6e4f04b95"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+      "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/index.js",
+      "sha256": "aa587a6877807723360381c3cd15c0e3fbb2fd38e4629ca5e4ab86f5e1d27f98"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "sha256": "51e3e370a837f9852701ad28b3808f055222bbc68ffdaa3ed0628079c7b96c4a"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalAcceptancePanel.vue",
+      "sha256": "5d4788b7f83a35c702fa81de64be4dd24712141cfdd62081be911b0485fe7dbb"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue",
+      "sha256": "0b3e6439925f7ed8a9d793b50a0175306295f2c52e872cb094dad931a76eeb0c"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "sha256": "fad49bb500e2aa2686fd2cd497de607383d37b5460d5e2b0eaaa99ce350725c7"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+      "sha256": "c738108d7ccbe4d6644613d48c3c9c23be0f0e2cf29dfb88790105cd11067b36"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+      "sha256": "c65f50be4b980220115926eb74a08940c829c3a44bc43321c1c05c3346a32fb6"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+      "sha256": "fe4e82f2879522155630d8c309c6fc9d979db83029a5de4481871485ff869188"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+      "sha256": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+      "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+      "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+      "sha256": "f57b13ff029ae58683af7bf11970f01d859cf3f9f50258ee656a0eb67ef5cba6"
+    },
+    {
+      "file": "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+      "sha256": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40"
+    },
+    {
+      "file": "desktop-app-vue/vitest.business-actions-renderer.config.mjs",
+      "sha256": "7a5e4612f961ac00713ffbdd749000f7b926461304d79c8c9ee72222d5c33bbb"
+    },
+    {
+      "file": "desktop-app-vue/vitest.business-actions.config.mjs",
+      "sha256": "32605fe4b5f28805fd8d2597acb92d4d64a8dea42eb9f8f7ba1960e5a2730abd"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/dmm-goal-monitoring-process.mjs",
+      "sha256": "695db3196ff72bb854b84454671723678b1c2ddf81f8f9d61cf4284bd5785993"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/dmm-goal-workflow-process.mjs",
+      "sha256": "07af5f0a6e07ed680cf0977833c7b9df8e51d0d019e4cd111718c9376c0549fd"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/project-goal-process-recovery.test.js",
+      "sha256": "73ac711c85e54d7cdb3db3c1067a2874a4114ae8722032753617bf9b5bf7cad1"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/project-goal-workflow-process-recovery.test.js",
+      "sha256": "5cb02e151a117e12ca5520466dcc023fa26178d8b5a515aa6f9f86a6cffee520"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/goal-usage-ledger.test.js",
+      "sha256": "a55774283f965bb4bf0f2b9f259e4e90c8fce92d51633dec94a6ee37a0409a0f"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-completion.test.js",
+      "sha256": "9afd111f80d4459d9fdbb9469b3cfe3048e04aa954e42f8ac39bf04302d24f39"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+      "sha256": "1fa3d9e6cc04df11daa3f1ffbf1ccbd748e765600b5af83e9c703a38b21e80e6"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-service.test.js",
+      "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+      "sha256": "030895a5cbfd95f0132666d6d808de34894ae28e193d0c2f2139be98c78ebbc7"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-risk-lineage-audit.test.js",
+      "sha256": "76e6740df6af585d07f0ccc267e38ee242d87833826ea9e569035a543075aa0b"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-risk-lineage.test.js",
+      "sha256": "acc663a83b5478f86f80fdcc82ebb95b80ab680fa94ee4b7fbac8469a8edce75"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+      "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/session-core-packed-authorization.test.js",
+      "sha256": "34e06af1e5361c21422de7c9f58973e19d3a65e48dd6d3fdf0b2507b71e738ad"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+      "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+      "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065"
+    },
+    {
+      "file": "packages/session-core/__tests__/scheduler-host-boundary.node.cjs",
+      "sha256": "ac0e08ca0f30c3c65226b4188fc58ed509409b9a667a28f028efe4fe219ba18f"
+    },
+    {
+      "file": "packages/session-core/lib/approval-gate.js",
+      "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88"
+    },
+    {
+      "file": "packages/session-core/lib/business-object-contract.js",
+      "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133"
+    },
+    {
+      "file": "packages/session-core/lib/goal-contract.js",
+      "sha256": "983bedb52e4714cb63c797e91275d38aee8cac4705db4dd8239d6fcf3c57e217"
+    },
+    {
+      "file": "packages/session-core/lib/goal-repository.js",
+      "sha256": "b80faf969b0386648dbbc4590269a2288200683d36e75dda7c04717e7801a1a7"
+    },
+    {
+      "file": "packages/session-core/lib/goal-usage-ledger.js",
+      "sha256": "be4dee1b46e6f0543a4a8fec13b8d84ba396b766dcbd8d807e45218d634ef5ac"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-completion.js",
+      "sha256": "fd1de952721dcf6aa10c1b6299220514034b37042b41bf6de06b1bde1093f70a"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-monitoring.js",
+      "sha256": "bb0554181ed8960efecef663c0a14872e06526d839f1986cb7de004fe23df87d"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-service.js",
+      "sha256": "df3a08a37a7b166c15cdb68a49239cd573df471ce5ccc1c33afbf8b38ec21bb9"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-workflow.js",
+      "sha256": "67cac96e99c31adaba63d6e7b5ab6fddc85157ba2ac7a576b43a1cf019d83aab"
+    },
+    {
+      "file": "packages/session-core/lib/project-risk-evaluation.js",
+      "sha256": "7807c05dbc90ebf097c427d6b971308a5e16cb6645626a46b1f43c50090d9ca5"
+    },
+    {
+      "file": "packages/session-core/lib/project-risk-review-service.js",
+      "sha256": "1a5d761379c966544e9959a1a43b5d31233bd2dbb6af899e26710bd7e6461db2"
+    },
+    {
+      "file": "packages/session-core/lib/scheduler-authority-resolver.js",
+      "sha256": "8c865bcc07c671fd9fa3aea8d2db3bdd7800f15c4227458de88ceb02650f311b"
+    },
+    {
+      "file": "packages/session-core/lib/scheduler-runtime.js",
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d"
+    },
+    {
+      "file": "packages/session-core/lib/scheduler-store.js",
+      "sha256": "82ab868318af766222ea215494ef0445bc760d313e9e638fb0d7fadae3a03ed5"
+    },
+    {
+      "file": "packages/session-core/lib/task-description-action-service.js",
+      "sha256": "84804f39f31e5f0b697f5048bfacce0ecc100b05f78802c35e55cdceb5a2408c"
+    },
+    {
+      "file": "packages/session-core/package.json",
+      "sha256": "97f1191026e06b2520a3d20eb48729668c369565aa998daf0f0d209053e7f413"
+    }
+  ],
+  "sourceBinding": "Post-test local source snapshot; preload goal wrappers received whitespace-only Prettier formatting after the successful runs. This is not CI evidence for the capture commit.",
+  "os": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "dependencies": {
+    "vitest": "4.1.10",
+    "sqlite": "12.11.1"
+  },
+  "totals": {
+    "files": 30,
+    "tests": 545,
+    "passed": 545,
+    "failed": 0,
+    "skipped": 0
+  },
+  "testReports": [
+    {
+      "report": "cli-tests.json",
+      "sha256": "53c41cb92d1ff78a92e8e166a4c20e4d2e7777e18c9b82be9e9a96b36619435a",
+      "files": 13,
+      "tests": 292,
+      "passed": 292,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "packages/cli/__tests__/integration/project-goal-process-recovery.test.js",
+        "packages/cli/__tests__/integration/project-goal-workflow-process-recovery.test.js",
+        "packages/cli/__tests__/unit/goal-usage-ledger.test.js",
+        "packages/cli/__tests__/unit/project-goal-completion.test.js",
+        "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js",
+        "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+        "packages/cli/__tests__/unit/project-risk-lineage-audit.test.js",
+        "packages/cli/__tests__/unit/project-risk-lineage.test.js",
+        "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+        "packages/cli/__tests__/unit/session-core-packed-authorization.test.js",
+        "packages/cli/__tests__/unit/task-create-action-service.test.js",
+        "packages/cli/__tests__/unit/task-description-action-service.test.js"
+      ]
+    },
+    {
+      "report": "desktop-tests.json",
+      "sha256": "f8ee72744bdf671c1252b7db36625e702c0adb6dacc6d69daf4bb9db2a4848a2",
+      "files": 9,
+      "tests": 172,
+      "passed": 172,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    },
+    {
+      "report": "renderer-tests.json",
+      "sha256": "b4095f029b4d79e71cb3924ce513dc060aaf79ed0b9fafa588fee4cbf22dd463",
+      "files": 7,
+      "tests": 79,
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts"
+      ]
+    }
+  ],
+  "packedHost": {
+    "report": "packed-host.tap",
+    "sha256": "180eef35ed6d54580660cb2532028aa8d190c32e1f6623b197735ab3a3e97dc1",
+    "files": 1,
+    "tests": 2,
+    "passed": 2
+  },
+  "commands": [
+    {
+      "report": "cli-command.json",
+      "sha256": "d1926a35290b40c43544a6551e5f8ab11c63f5b043f357f2aad02735a04f5da2",
+      "startedAt": "2026-10-07T02:52:00.743Z",
+      "completedAt": "2026-10-07T02:52:36.572Z",
+      "exitCode": 0
+    },
+    {
+      "report": "desktop-command.json",
+      "sha256": "1b61a690c3621eb59ca36164557a5a2286a4c9abc88025798cc75aabf991b8d7",
+      "startedAt": "2026-10-07T00:01:15.535Z",
+      "completedAt": "2026-10-07T00:01:36.898Z",
+      "exitCode": 0
+    },
+    {
+      "report": "renderer-command.json",
+      "sha256": "b1bcb0c40aef4171fc8fcc09dbf76b7792ff45b54ec1b1b11cd90324fc45021b",
+      "startedAt": "2026-10-07T03:00:51.440Z",
+      "completedAt": "2026-10-07T03:01:11.746Z",
+      "exitCode": 0
+    },
+    {
+      "report": "pack-command.json",
+      "sha256": "83465467ed5a73e0af3c8a5d53be6a12835e22e0e25a8d2b050a88c2a067ed7d",
+      "startedAt": "2026-10-07T02:51:35.790Z",
+      "completedAt": "2026-10-07T02:51:38.419Z",
+      "exitCode": 0
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "DMM-INDEPENDENT-ACCEPTANCE",
+      "result": "passed",
+      "cases": 34,
+      "environment": "Native SQLite; typed task/risk/action assertions, real persisted source evidence and usage; ApprovalGate callback is a test double"
+    },
+    {
+      "id": "DMM-DESKTOP-ACCEPTANCE",
+      "result": "passed",
+      "cases": 14,
+      "environment": "Native SQLite; trusted sender, identity, navigation, database and revision checks; Electron BrowserWindow/dialog are test doubles"
+    },
+    {
+      "id": "DMM-ACCEPTANCE-REPLAY",
+      "result": "passed",
+      "assertion": "Same request reuses a durable report; missing verifier ledger or mismatched source/report/completion digest is rejected"
+    },
+    {
+      "id": "DMM-EXPIRY-AT-COMMIT",
+      "result": "passed",
+      "assertion": "Expiry during evidence persistence retains failed evidence and actual verifier usage without completing the goal"
+    },
+    {
+      "id": "DMM-STOP-AND-END",
+      "result": "passed",
+      "assertion": "Durable single-occurrence stop is independent of future monitoring; end-follow-up advances control generation; draining and completed projections remain honest"
+    },
+    {
+      "id": "DMM-RENDERER-ACCEPTANCE",
+      "result": "passed",
+      "cases": 8,
+      "environment": "Real Vue component in Happy DOM; IPC mocked; failed authoritative reads discard old evidence"
+    },
+    {
+      "id": "DMM-RENDERER-CONTROLS",
+      "result": "passed",
+      "cases": 15,
+      "environment": "Real Vue component in Happy DOM; IPC mocked; identity/revision/fence changes invalidate old responses and requests"
+    },
+    {
+      "id": "DMM-PROCESS-MONITOR",
+      "result": "passed",
+      "cases": 10,
+      "environment": "Real Node forks, parent-confirmed SIGKILL, native SQLite WAL; controlled lease clock/barriers and test-only ACL callback"
+    },
+    {
+      "id": "DMM-PROCESS-ACTION",
+      "result": "passed",
+      "cases": 3,
+      "environment": "Real Node forks and SQLite WAL/FULL; native approval callback held at parent barrier; no Electron GUI"
+    },
+    {
+      "id": "DMM-ELECTRON-GUI",
+      "result": "not-run"
+    },
+    {
+      "id": "DMM-REAL-BUSINESS-SAMPLES",
+      "result": "not-run"
+    },
+    {
+      "id": "DMM-CANDIDATE-THREE-OS-CI",
+      "result": "not-run"
+    }
+  ],
+  "limitations": [
+    "Local engineering regression; these cases do not independently establish real business effectiveness",
+    "Acceptance uses first-party typed rules and owner confirmation; no model prose or progress=100 completion",
+    "No real model dispatch adapter, long-term-memory integration, notification delivery or scenario package in this batch",
+    "npm-cache sandbox failures were retried with approved escalation; reports are final successful reruns",
+    "Historical workflow/monitoring cohorts overlap and are retained separately; their counts are not added"
+  ]
+}

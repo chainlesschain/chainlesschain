@@ -2865,21 +2865,36 @@ contextBridge.exposeInMainWorld("electronAPI", {
     listGoals: (params) => ipcRenderer.invoke("project:goal-list", params),
     readGoal: (params) => ipcRenderer.invoke("project:goal-read", params),
     reviseGoal: (params) => ipcRenderer.invoke("project:goal-revise", params),
-    startGoalMonitoring: (params) => ipcRenderer.invoke("project:goal-monitor-start", params),
-    stopGoalMonitoring: (params) => ipcRenderer.invoke("project:goal-monitor-stop", params),
-    checkGoalNow: (params) => ipcRenderer.invoke("project:goal-monitor-check", params),
-    getGoalMonitoringStatus: (params) => ipcRenderer.invoke("project:goal-monitor-status", params),
-    listGoalProposals: (params) => ipcRenderer.invoke("project:goal-proposals", params),
-    prepareGoalIntent: (params) => ipcRenderer.invoke("project:goal-intent-prepare", params),
-    executeGoalIntent: (params) => ipcRenderer.invoke("project:goal-intent-execute", params),
-    readGoalIntent: (params) => ipcRenderer.invoke("project:goal-intent-read", params),
-    stopGoalOccurrence: (params) => ipcRenderer.invoke("project:goal-occurrence-stop", params),
-    endGoalFollowUp: (params) => ipcRenderer.invoke("project:goal-follow-up-end", params),
-    configureGoalAcceptance: (params) => ipcRenderer.invoke("project:goal-acceptance-configure", params),
-    getGoalAcceptanceStatus: (params) => ipcRenderer.invoke("project:goal-acceptance-status", params),
-    acknowledgeGoalAcceptance: (params) => ipcRenderer.invoke("project:goal-acceptance-acknowledge", params),
-    checkGoalAcceptance: (params) => ipcRenderer.invoke("project:goal-acceptance-check", params),
-    completeGoal: (params) => ipcRenderer.invoke("project:goal-complete", params),
+    startGoalMonitoring: (params) =>
+      ipcRenderer.invoke("project:goal-monitor-start", params),
+    stopGoalMonitoring: (params) =>
+      ipcRenderer.invoke("project:goal-monitor-stop", params),
+    checkGoalNow: (params) =>
+      ipcRenderer.invoke("project:goal-monitor-check", params),
+    getGoalMonitoringStatus: (params) =>
+      ipcRenderer.invoke("project:goal-monitor-status", params),
+    listGoalProposals: (params) =>
+      ipcRenderer.invoke("project:goal-proposals", params),
+    prepareGoalIntent: (params) =>
+      ipcRenderer.invoke("project:goal-intent-prepare", params),
+    executeGoalIntent: (params) =>
+      ipcRenderer.invoke("project:goal-intent-execute", params),
+    readGoalIntent: (params) =>
+      ipcRenderer.invoke("project:goal-intent-read", params),
+    stopGoalOccurrence: (params) =>
+      ipcRenderer.invoke("project:goal-occurrence-stop", params),
+    endGoalFollowUp: (params) =>
+      ipcRenderer.invoke("project:goal-follow-up-end", params),
+    configureGoalAcceptance: (params) =>
+      ipcRenderer.invoke("project:goal-acceptance-configure", params),
+    getGoalAcceptanceStatus: (params) =>
+      ipcRenderer.invoke("project:goal-acceptance-status", params),
+    acknowledgeGoalAcceptance: (params) =>
+      ipcRenderer.invoke("project:goal-acceptance-acknowledge", params),
+    checkGoalAcceptance: (params) =>
+      ipcRenderer.invoke("project:goal-acceptance-check", params),
+    completeGoal: (params) =>
+      ipcRenderer.invoke("project:goal-complete", params),
     evaluateRisk: (params) =>
       ipcRenderer.invoke("project:risk-evaluate", params),
     getRiskReview: (params) =>
