@@ -69,6 +69,7 @@ function organizationActions(Base) {
       approvals,
       approvalId = null,
       proposalGuard = null,
+      riskService = null,
       ...options
     } = {}) {
       super(options);
@@ -85,6 +86,24 @@ function organizationActions(Base) {
       if (proposalGuard !== null && typeof proposalGuard !== "function")
         fail("ORG_PROPOSAL_AUTHORITY_REQUIRED");
       this.proposalGuard = proposalGuard;
+      this.organizationRiskService = riskService;
+    }
+
+    _riskService() {
+      if (!this.organizationRiskService) {
+        const {
+          OrganizationProjectRiskReviewService,
+        } = require("./organization-project-risk-review-service");
+        this.organizationRiskService = new OrganizationProjectRiskReviewService(
+          {
+            db: this.db,
+            getActor: this.getActor,
+            authority: this.authority,
+            now: this.now,
+          },
+        );
+      }
+      return this.organizationRiskService;
     }
 
     _isReceiptScope(run, row) {
@@ -247,9 +266,14 @@ function organizationActions(Base) {
         creation
           ? ["projectId", "taskType", "description", "idempotencyKey"]
           : ["taskId", "description", "idempotencyKey"],
+        ["reviewId"],
       );
       text(input.description);
       identifier(input.idempotencyKey);
+      if (input.reviewId !== undefined) {
+        identifier(input.reviewId);
+        this._riskService();
+      }
       return this._transaction(() => {
         const actor = this._actor();
         const snapshot = creation
@@ -271,6 +295,19 @@ function organizationActions(Base) {
           input: {
             description: input.description,
             ...(creation ? { taskType: input.taskType } : {}),
+            ...(input.reviewId !== undefined
+              ? {
+                  riskReview: creation
+                    ? this._riskService().getCreateActionContext({
+                        reviewId: input.reviewId,
+                        projectId,
+                      })
+                    : this._riskService().getActionContext({
+                        reviewId: input.reviewId,
+                        taskId: input.taskId,
+                      }),
+                }
+              : {}),
           },
           idempotencyKey: input.idempotencyKey,
         });
@@ -303,7 +340,16 @@ function organizationActions(Base) {
       fields(
         request.input,
         creation ? ["description", "taskType"] : ["description"],
+        ["riskReview"],
       );
+      if (request.input.riskReview !== undefined) {
+        fields(request.input.riskReview, ["id", "contentDigest"]);
+        identifier(request.input.riskReview.id);
+        if (
+          !/^sha256:[a-f0-9]{64}$/u.test(request.input.riskReview.contentDigest)
+        )
+          fail("ACTION_INVALID_REQUEST");
+      }
       text(request.input.description);
       if (
         creation &&
@@ -433,6 +479,9 @@ function organizationActions(Base) {
         )
           fail("ACTION_RECEIPT_CORRUPT");
         const binding = JSON.parse(approval.binding_json);
+        const riskSources = result.evidence.filter(
+          (item) => item.kind === "project-risk-review",
+        );
         if (
           source.actionDigest !== result.run.actionDigest ||
           source.expectedVersion !== result.run.expectedVersion ||
@@ -441,7 +490,14 @@ function organizationActions(Base) {
           digest(binding) !== source.approvalBindingDigest ||
           binding.projectId !== source.projectId ||
           binding.invocationDigest !== result.run.invocationDigest ||
-          binding.actionDigest !== result.run.actionDigest
+          binding.actionDigest !== result.run.actionDigest ||
+          binding.expectedVersion !== result.run.expectedVersion ||
+          digest(binding.target) !== digest(result.run.target) ||
+          (binding.riskReview
+            ? riskSources.length !== 1 ||
+              binding.riskReview.id !== riskSources[0].reviewId ||
+              binding.riskReview.contentDigest !== riskSources[0].contentDigest
+            : riskSources.length !== 0)
         )
           fail("ACTION_RECEIPT_CORRUPT");
       } catch {
@@ -629,7 +685,18 @@ class OrganizationTaskCreateActionService extends organizationActions(
   TaskCreateActionService,
 ) {}
 
+// Pure durable receipt verification for risk.read histories. Constructing an
+// action executor would create tables and introduce unrelated task permissions.
+function readOrganizationTaskActionRun(db, row) {
+  const reader = Object.create(
+    OrganizationTaskDescriptionActionService.prototype,
+  );
+  reader.db = db;
+  return reader._readRun(row);
+}
+
 module.exports = {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
+  readOrganizationTaskActionRun,
 };

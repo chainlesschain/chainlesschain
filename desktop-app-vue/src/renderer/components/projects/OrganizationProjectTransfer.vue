@@ -417,6 +417,9 @@ function permissionLabel(permission: string) {
         "task.create": "创建任务",
         "task.update-description": "修改任务描述",
         "task.approve": "审批任务提议",
+        "risk.read": "查看项目风险与历史",
+        "risk.evaluate": "检查项目风险",
+        "risk.feedback": "人工核对风险",
       } as Record<string, string>
     )[permission] || "未知权限"
   );

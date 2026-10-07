@@ -160,7 +160,13 @@ function organizationProjectActionTargetVersion(
  * persisted. No transaction crosses an await. Execution owns target mutation,
  * durable action receipt and this service's consumption in one transaction. */
 class OrganizationProjectApprovalService {
-  constructor({ db, getActor, authority, now = () => Date.now() } = {}) {
+  constructor({
+    db,
+    getActor,
+    authority,
+    riskService = null,
+    now = () => Date.now(),
+  } = {}) {
     if (
       !db ||
       typeof db.transaction !== "function" ||
@@ -178,7 +184,7 @@ class OrganizationProjectApprovalService {
       ].some((key) => typeof authority?.[key] !== "function")
     )
       fail("ORG_APPROVAL_AUTHORITY_REQUIRED");
-    Object.assign(this, { db, getActor, authority, now });
+    Object.assign(this, { db, getActor, authority, riskService, now });
     this._transaction(() => {
       for (const table of [
         "approval_workflows",
@@ -271,7 +277,16 @@ class OrganizationProjectApprovalService {
       request.actionType === "task.create"
         ? ["description", "taskType"]
         : ["description"];
-    fields(request.input, keys);
+    fields(request.input, [
+      ...keys,
+      ...(Object.hasOwn(request.input, "riskReview") ? ["riskReview"] : []),
+    ]);
+    if (request.input.riskReview !== undefined) {
+      fields(request.input.riskReview, ["id", "contentDigest"]);
+      identifier(request.input.riskReview.id);
+      if (!DIGEST.test(request.input.riskReview.contentDigest))
+        fail("ORG_APPROVAL_INVALID_REQUEST");
+    }
     if (
       typeof request.input.description !== "string" ||
       Buffer.byteLength(request.input.description) > 8192
@@ -316,7 +331,7 @@ class OrganizationProjectApprovalService {
       fail("ORG_APPROVAL_AUTHORITY_CHANGED");
     return result;
   }
-  _approver(projectId, approverDid, expectedAuthority) {
+  _approver(projectId, approverDid, expectedAuthority, riskReview) {
     const result = this.authority.assertApproverInTransaction({
       projectId,
       approverDid,
@@ -324,6 +339,41 @@ class OrganizationProjectApprovalService {
     });
     if (digest(result) !== digest(expectedAuthority))
       fail("ORG_APPROVAL_AUTHORITY_CHANGED");
+    if (riskReview) {
+      if (typeof this.authority._authorization !== "function")
+        fail("ORG_APPROVAL_RISK_AUTHORITY_REQUIRED");
+      const riskAuthority = this.authority._authorization(
+        projectId,
+        approverDid,
+        "risk.read",
+        expectedAuthority,
+      );
+      if (digest(riskAuthority) !== digest(expectedAuthority))
+        fail("ORG_APPROVAL_AUTHORITY_CHANGED");
+    }
+  }
+  _risk(target, riskReview) {
+    if (riskReview === undefined) return;
+    fields(riskReview, ["id", "contentDigest"]);
+    identifier(riskReview.id);
+    if (!DIGEST.test(riskReview.contentDigest))
+      fail("ORG_APPROVAL_INVALID_REQUEST");
+    const method =
+      target.type === "Project"
+        ? "verifyCreateActionContext"
+        : "verifyActionContext";
+    if (typeof this.riskService?.[method] !== "function")
+      fail("ORG_APPROVAL_RISK_SERVICE_REQUIRED");
+    const verified = this.riskService[method]({
+      reviewId: riskReview.id,
+      contentDigest: riskReview.contentDigest,
+      ...(target.type === "Project"
+        ? { projectId: target.id }
+        : { taskId: target.id }),
+    });
+    if (digest(verified) !== digest(riskReview))
+      fail("ORG_APPROVAL_RISK_BINDING_MISMATCH");
+    return verified;
   }
   _plan(workflow, request, actor) {
     if (
@@ -392,6 +442,7 @@ class OrganizationProjectApprovalService {
         this._responses(previous);
         return this._view(previous);
       }
+      const riskReview = this._risk(request.target, request.input.riskReview);
       this._assertNoUnresolvedTarget(projectId, request.target);
       const { workflow } = this._workflow(
         projectId,
@@ -409,7 +460,7 @@ class OrganizationProjectApprovalService {
       )
         fail("ORG_APPROVAL_VERSION_CONFLICT");
       for (const did of new Set(plan.steps.flat()))
-        this._approver(projectId, did, authority);
+        this._approver(projectId, did, authority, riskReview);
       const createdAt = this._time();
       const expiresAt = createdAt + Math.ceil(workflow.timeout_hours * 3600000);
       if (!Number.isSafeInteger(expiresAt)) fail("ORG_APPROVAL_CLOCK_INVALID");
@@ -432,6 +483,7 @@ class OrganizationProjectApprovalService {
         plan,
         createdAt,
         expiresAt,
+        ...(riskReview ? { riskReview } : {}),
       };
       const bindingJson = encode(binding),
         bindingDigest = digest(binding);
@@ -564,6 +616,15 @@ class OrganizationProjectApprovalService {
   _current(binding, actor, permission) {
     this._authority(binding.projectId, actor, permission, binding.authority);
     this._authority(binding.projectId, actor, "task.read", binding.authority);
+    this._risk(binding.target, binding.riskReview);
+    if (binding.riskReview)
+      for (const did of new Set(binding.plan.steps.flat()))
+        this._approver(
+          binding.projectId,
+          did,
+          binding.authority,
+          binding.riskReview,
+        );
     const { workflow } = this._workflow(
       binding.projectId,
       actor,
@@ -665,6 +726,7 @@ class OrganizationProjectApprovalService {
             binding.projectId,
             response.approver_did,
             binding.authority,
+            binding.riskReview,
           );
         if (response.decision === "reject") rejected = true;
       }

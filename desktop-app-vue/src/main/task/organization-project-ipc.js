@@ -15,6 +15,9 @@ const {
   OrganizationProjectTransferService,
 } = require("@chainlesschain/session-core/organization-project-transfer-service");
 const {
+  OrganizationProjectRiskReviewService,
+} = require("@chainlesschain/session-core/organization-project-risk-review-service");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -51,6 +54,11 @@ const CHANNELS = Object.freeze({
   acceptTransfer: "organization-project:transfer-accept",
   cancelTransfer: "organization-project:transfer-cancel",
   rejectTransfer: "organization-project:transfer-reject",
+  evaluateRisk: "organization-project:risk-evaluate",
+  getRiskReview: "organization-project:risk-review",
+  listRiskReviews: "organization-project:risk-reviews",
+  recordRiskFeedback: "organization-project:risk-feedback",
+  getRiskLineage: "organization-project:risk-lineage",
 });
 function fail(code) {
   const error = new Error(code);
@@ -103,11 +111,18 @@ function createOrganizationProjectHost({
   function factory(event) {
     const authority = ownerHost.createAuthority(event),
       { db, getActor } = authority;
+    const risks = new OrganizationProjectRiskReviewService({
+      db,
+      getActor,
+      authority,
+      now: clock,
+    });
     const approvals = new OrganizationProjectApprovalService({
       db,
       getActor,
       authority,
       now: clock,
+      riskService: risks,
     });
     const proposals = new OrganizationProjectProposalStore({
       db,
@@ -152,6 +167,12 @@ function createOrganizationProjectHost({
               `修改后：${display(after.description)}`,
               ...(create ? [`任务类型：${display(after.taskType)}`] : []),
               `操作摘要：${request.actionDigest}`,
+              ...(request.input.riskReview
+                ? [
+                    `风险检查：${display(request.input.riskReview.id)}`,
+                    `风险来源摘要：${request.input.riskReview.contentDigest}`,
+                  ]
+                : []),
             ],
           ),
       });
@@ -183,6 +204,7 @@ function createOrganizationProjectHost({
                   fail("ORG_PROPOSAL_BINDING_MISMATCH");
                 return true;
               },
+        riskService: risks,
       });
     }
     // All tables/fences exist before a preview captures its schema revision.
@@ -195,6 +217,7 @@ function createOrganizationProjectHost({
       approvals,
       proposals,
       transfers,
+      risks,
       descriptions,
       creation,
       action,
@@ -323,30 +346,43 @@ function createOrganizationProjectHost({
           }
           let reason = null;
           try {
-            const auth = c.authority.assertAuthorizedInTransaction({
-              projectId: p.id,
-              actorDid: actor,
-              permission: "task.read",
-            });
+            let auth;
+            try {
+              auth = c.authority.assertAuthorizedInTransaction({
+                projectId: p.id,
+                actorDid: actor,
+                permission: "task.read",
+              });
+            } catch (error) {
+              if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") throw error;
+              auth = c.authority.assertAuthorizedInTransaction({
+                projectId: p.id,
+                actorDid: actor,
+                permission: "risk.read",
+              });
+            }
             const policy = c.authority._policy(auth.scope.id).policy;
             permissions =
               policy.permissions.find(
                 (grant) => grant.actorDid === actor && grant.projectId === p.id,
               )?.permissions ?? [];
-            workflows = policy.workflows
-              .map((pin) =>
-                c.db
-                  .prepare(
-                    "SELECT id,name,trigger_action FROM approval_workflows WHERE id=?",
-                  )
-                  .get(pin.workflowId),
-              )
-              .filter(Boolean)
-              .map((w) => ({
-                id: w.id,
-                name: w.name,
-                actionType: w.trigger_action,
-              }));
+            workflows =
+              auth && permissions.includes("task.read")
+                ? policy.workflows
+                    .map((pin) =>
+                      c.db
+                        .prepare(
+                          "SELECT id,name,trigger_action FROM approval_workflows WHERE id=?",
+                        )
+                        .get(pin.workflowId),
+                    )
+                    .filter(Boolean)
+                    .map((w) => ({
+                      id: w.id,
+                      name: w.name,
+                      actionType: w.trigger_action,
+                    }))
+                : [];
           } catch (error) {
             if (!canManage) throw error;
             reason = error.code;
@@ -397,6 +433,43 @@ function createOrganizationProjectHost({
       .immediate();
   }
   return Object.freeze({
+    evaluateRisk: (event, params) => factory(event).risks.evaluate(params),
+    getRiskReview: (event, params) => factory(event).risks.getReview(params),
+    listRiskReviews: (event, params) =>
+      factory(event).risks.listReviews(params),
+    getRiskLineage: (event, params) => factory(event).risks.getLineage(params),
+    async recordRiskFeedback(event, params) {
+      const value = input(
+          params,
+          ["reviewId", "taskId", "verdict", "reasonCodes"],
+          ["comment"],
+        ),
+        c = factory(event);
+      const admitted = c.db
+        .transaction(() => c.risks.prepareFeedbackInTransaction(value))
+        .immediate();
+      if (
+        !(await c.confirm(
+          "确认项目风险人工核对",
+          "保存此次人工判断？原始规则结果会保留。",
+          [
+            `项目/任务：${display(admitted.review.projectId)} / ${display(value.taskId)}`,
+            `检查记录：${display(value.reviewId)}`,
+            `风险来源摘要：${admitted.contentDigest}`,
+            `来源时间：${display(admitted.review.createdAt)}`,
+            `判断：${display(value.verdict)}`,
+            `规则信号：${display(value.reasonCodes)}`,
+            `说明：${display(value.comment || "")}`,
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      if (c.getActor() !== admitted.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      return c.risks.recordFeedback({
+        ...value,
+        expectedAuthority: admitted.authority,
+      });
+    },
     transferCatalog: (event, params) => {
       const value = input(params, ["projectId"]),
         c = factory(event);
@@ -614,7 +687,7 @@ function createOrganizationProjectHost({
           if (!proposal.bodyAvailable || !proposal.request) return result;
           const known = (error) => {
             if (
-              !/^(ORG_AUTH_(NOT_FOUND_OR_DENIED|POLICY_STALE|VERSION_CONFLICT|SCOPE_CONFLICT)|ORG_APPROVAL_(AUTHORITY_CHANGED|WORKFLOW_CHANGED|VERSION_CONFLICT|EXPIRED|NOT_PENDING|NOT_APPROVED|NOT_FOUND_OR_DENIED|ALREADY_RESPONDED|STEP_CONFLICT|ALREADY_CONSUMED))$/u.test(
+              !/^(ORG_AUTH_(NOT_FOUND_OR_DENIED|POLICY_STALE|VERSION_CONFLICT|SCOPE_CONFLICT)|ORG_APPROVAL_(AUTHORITY_CHANGED|WORKFLOW_CHANGED|VERSION_CONFLICT|EXPIRED|NOT_PENDING|NOT_APPROVED|NOT_FOUND_OR_DENIED|ALREADY_RESPONDED|STEP_CONFLICT|ALREADY_CONSUMED)|PROJECT_RISK_(REVIEW_STALE|REVIEW_CONFLICT|ACTION_SOURCE_INVALID|NOT_FOUND_OR_DENIED|REVIEW_CORRUPT|SOURCE_INVALID|READ_FAILED))$/u.test(
                 error.code || "",
               )
             )
@@ -675,6 +748,9 @@ function createOrganizationProjectHost({
         proposal.request.target.type === "Task"
           ? c.descriptions.readTask(proposal.request.target.id).description
           : "";
+      const risk = proposal.request.input.riskReview
+        ? c.risks.getReview({ reviewId: proposal.request.input.riskReview.id })
+        : null;
       if (
         !(await c.confirm(
           "确认组织任务审批",
@@ -687,6 +763,15 @@ function createOrganizationProjectHost({
             `目标：${display(proposal.request.target.id)}`,
             `操作摘要：${proposal.request.actionDigest}`,
             `审批步骤：${value.step + 1}`,
+            ...(risk
+              ? [
+                  `风险检查：${display(risk.review.id)}`,
+                  `风险来源时间：${display(risk.evaluation.asOf)}`,
+                  `规则信号：${display(risk.evaluation.tasks.map((task) => ({ taskId: task.taskRef.id, reasonCodes: task.reasonCodes })))}`,
+                  `风险来源摘要：${proposal.request.input.riskReview.contentDigest}`,
+                  "仅检查逾期与未完成的直接依赖。人工核对独立保存，模型费用未知。",
+                ]
+              : []),
           ],
         ))
       )

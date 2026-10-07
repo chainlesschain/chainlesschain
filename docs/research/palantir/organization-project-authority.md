@@ -1,12 +1,12 @@
 # 规范组织项目授权、审批与任务执行
 
-更新：2026-10-07。第八批在组织任务工作区补齐[双主体归属迁移](./organization-project-transfer.md)，由原所有者确认转出、组织所有者以自身登录确认接收。第七批的持久提议、多级审批与任务执行保持独立。完成源码与本地验证，未发布。
+更新：2026-10-07。第九批补齐[组织风险、人工核对与血缘](./organization-project-risk-review.md)，第八批完成[双主体归属迁移](./organization-project-transfer.md)。持久提议、多级审批与任务执行保持独立。完成源码与本地验证，未发布。
 
 ## 可信身份和权限来源
 
 `OrganizationProjectAuthority` 接受原生 SQLite、主进程身份和宿主确认函数。桌面 `createOrganizationProjectAuthorityHost` 默认使用已登录的 `getProjectGoalActor()`，绑定认证 generation、窗口与数据库连接。默认 DID 已加载但未登录时拒绝；退出后同 DID 重登录不能沿用先前确认。
 
-政策启用要求当前 DID 同时等于 `organization_info.owner_did`，且存在 active owner 成员行。所有者在原生确认中审核具体 actor、规范 project、权限、到期时间和选定工作流。允许的权限为 `task.read`、`task.create`、`task.update-description`、`task.approve`。未列出的权限拒绝；旧 roles、permission_grants、继承、委托及 report/off 判定不自动获得受控权限。
+政策启用要求当前 DID 同时等于 `organization_info.owner_did`，且存在 active owner 成员行。所有者在原生确认中审核具体 actor、规范 project、权限、到期时间和选定工作流。允许的权限为 `task.read`、`task.create`、`task.update-description`、`task.approve`、`risk.read`、`risk.evaluate`、`risk.feedback`。风险和任务授权互不隐含。未列出的权限拒绝；旧 roles、permission_grants、继承、委托及 report/off 判定不自动获得受控权限。
 
 政策保存单调 epoch、组织来源 revision、来源摘要、精确授权及工作流行摘要。组织根、成员及工作流变更通过 SQLite 触发器推进持久 revision；删除后恢复原内容仍使旧政策失效。规范 Project/Task 与 workspace 资源变更也推进项目来源 revision。授权快照包含数据库 schema revision，后建表和迁移不能恢复旧提议。发生这些变化后，需重新读取版本，必要时由所有者重新确认政策；不会自动重认证旧记录。
 
@@ -56,7 +56,7 @@ ActionRun 的来源证据固定准入时原项目、org 和审批摘要。确认
 
 请求者读取规范任务，准备创建或描述修改，预览后提交持久提议；审批人用自己的登录身份读取实际提议正文和多级计划，原生核对修改前后内容，再批准或拒绝。所有步骤批准后仍由请求者原生确认执行，不自动运行所创建任务。所有者可重新确认政策或明确撤销组织使用权限。
 
-主进程注册 28 个 `organization-project:*` 精确通道（第七批 20 个，第八批新增 8 个迁移通道），preload 暴露 `electronAPI.organizationProject`；生成清单没有通配授权。setup 目录限制 1,000 位成员、100 个组织项目与 20 个任务工作流；新建工作流在达到上限时于原生确认前拒绝。
+主进程注册 33 个 `organization-project:*` 精确通道（第七批 20 个，第八批新增 8 个迁移通道，第九批新增 5 个风险通道），preload 暴露 `electronAPI.organizationProject`；生成清单没有通配授权。setup 目录限制 1,000 位成员、100 个组织项目与 20 个任务工作流；新建工作流在达到上限时于原生确认前拒绝。
 
 界面在项目、身份、开关变化及当前授权无法建立时清除私有状态，丢弃迟到响应。所有者设置遇到撤权会通知父组件一并清除任务和提议正文。提议正文到期时本地定时清除，审批和执行仍以后端事务时间核验为准。提交或执行回复丢失时通过摘要或持久 ActionRun 核对，完整刷新保留当前作用域的未知提交线索，不自动重试写入。
 
@@ -75,4 +75,4 @@ ActionRun 的来源证据固定准入时原项目、org 和审批摘要。确认
 
 第六批历史验证为共享服务 8 文件、204 项，桌面宿主与旧审批/个人 IPC 3 文件、90 项通过，0 失败、0 跳过，原[第六批证据](./evidence/palantir-gap-organization-authority-2026-10-07.json)保持不变。Astra 在第七批复现 frame 替换/导航恢复和 renderer 权限清理问题，补充真实 host/SQLite 交互回归。
 
-第八批补齐当前 active 成员场景的双主体迁移，470 项本地测试通过，见[迁移说明及证据](./organization-project-transfer.md)。仍待组织风险/目标及附属/看板入口、Document/Person/Decision 操作、其他归属转换和跨服务证明。真实 Electron GUI、完整类型检查、Linux/macOS、真实租户及模型业务验收没有执行。按用户最新要求先完成源码与本地验证，将已完成内容提交主分支；保留全部后续任务，当前目标仍在进行。
+第八批补齐当前 active 成员场景的双主体迁移，470 项本地测试通过，见[迁移说明及证据](./organization-project-transfer.md)。第九批补齐独立组织风险检查、共享历史、原生人工核对及描述/创建风险血缘，545 项通过，见[风险说明及证据](./organization-project-risk-review.md)。仍待组织目标及附属/看板入口、Document/Person/Decision 操作、其他归属转换和跨服务证明。真实 Electron GUI、完整类型检查、Linux/macOS、真实租户及模型业务验收没有执行。按用户最新要求先完成源码与本地验证，将已完成内容提交主分支；保留全部后续任务，当前目标仍在进行。

@@ -21,6 +21,17 @@
       <p v-if="context?.reason">
         当前任务访问不可用，请检查组织授权或绑定状态。
       </p>
+      <OrganizationProjectRiskPanel
+        v-if="context?.permissions.includes('risk.read') && context.binding"
+        ref="riskPanel"
+        :project-id="projectId"
+        :org-id="context.binding.orgId"
+        :identity-key="identityKey"
+        :permissions="context.permissions"
+        :parent-busy="busy"
+        @review="riskChanged"
+        @authority-error="failure"
+      />
       <div v-if="context?.permissions.includes('task.read')">
         <section>
           <h3>已保存任务</h3>
@@ -81,6 +92,17 @@
             />
           </label>
           <p>{{ bytes }} / 8192 字节。创建仅保存待处理任务，不会自动执行。</p>
+          <label v-if="selectedRisk?.evaluation.status === 'evaluated'">
+            <input
+              v-model="linkRisk"
+              type="checkbox"
+              :disabled="busy || attempted"
+              data-testid="link-organization-risk"
+            />
+            关联所选风险检查：{{
+              selectedRisk.review.id
+            }}。审批与执行会重验来源和授权。
+          </label>
           <button
             :disabled="!canPreview"
             @click="preview"
@@ -173,10 +195,23 @@
               selectedProposal.request.input.description
             }}</pre>
             <p>目标：{{ selectedProposal.request.target.id }}</p>
-            <p>
-              操作摘要：{{ selectedProposal.request.actionDigest }}
-            </p></template
-          >
+            <p>操作摘要：{{ selectedProposal.request.actionDigest }}</p>
+            <button
+              v-if="
+                selectedProposal.request.input.riskReview &&
+                context?.permissions.includes('risk.read')
+              "
+              :disabled="busy"
+              data-testid="view-proposal-risk"
+              @click="
+                riskPanel?.selectReview(
+                  selectedProposal.request.input.riskReview.id,
+                )
+              "
+            >
+              查看提议关联的风险检查
+            </button>
+          </template>
           <p v-else>提议正文已不可用，历史记录仍保留。</p>
           <ol v-if="selectedProposal.approval">
             <li
@@ -273,6 +308,7 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import OrganizationProjectSetup from "./OrganizationProjectSetup.vue";
 import OrganizationProjectTransfer from "./OrganizationProjectTransfer.vue";
+import OrganizationProjectRiskPanel from "./OrganizationProjectRiskPanel.vue";
 import {
   organizationApi,
   organizationAuthorityError,
@@ -316,6 +352,19 @@ const kind = ref("description"),
   executionUnknown = ref(false);
 const transferSessionRevision = ref(0),
   transferPolicyRevision = ref(0);
+const riskPanel = ref<InstanceType<typeof OrganizationProjectRiskPanel> | null>(
+    null,
+  ),
+  selectedRisk = shallowRef<any>(null),
+  linkRisk = ref(false);
+function riskChanged(value: any) {
+  previewRevision++;
+  selectedRisk.value = value;
+  if (!attempted.value) {
+    linkRisk.value = false;
+    prepared.value = null;
+  }
+}
 const taskTypes = [
   ["query_info", "信息查询"],
   ["analyze_data", "数据分析"],
@@ -350,6 +399,7 @@ const canPreview = computed(
       : canUpdate.value && selectedTask.value?.editable === true),
 );
 let epoch = 0,
+  previewRevision = 0,
   selection = 0,
   taskListSequence = 0,
   proposalListSequence = 0,
@@ -397,6 +447,8 @@ function clear() {
   proposalListSequence++;
   activeWork = 0;
   context.value = null;
+  selectedRisk.value = null;
+  linkRisk.value = false;
   tasks.value = [];
   proposals.value = [];
   taskCursor.value = null;
@@ -533,6 +585,7 @@ function newIntent() {
 }
 async function preview() {
   const token = epoch,
+    revision = previewRevision,
     selected = selection;
   await work(async () => {
     const api = organizationApi();
@@ -544,13 +597,24 @@ async function preview() {
             taskType: taskType.value,
             description: draft.value,
             idempotencyKey: key,
+            ...(linkRisk.value && selectedRisk.value
+              ? { reviewId: selectedRisk.value.review.id }
+              : {}),
           })
         : await api.previewDescription({
             taskId: selectedTask.value.taskId,
             description: draft.value,
             idempotencyKey: key,
+            ...(linkRisk.value && selectedRisk.value
+              ? { reviewId: selectedRisk.value.review.id }
+              : {}),
           });
-    if (token !== epoch || selected !== selection) return;
+    if (
+      token !== epoch ||
+      selected !== selection ||
+      revision !== previewRevision
+    )
+      return;
     prepared.value = result;
     workflowId.value = applicableWorkflows.value[0]?.id || "";
   });
@@ -576,7 +640,9 @@ async function submit() {
       if (token !== epoch) return;
       prepared.value = null;
       if (
-        !/^(ORG_AUTH_|ORG_APPROVAL_|ORG_PROPOSAL_)/u.test(actionCode(value))
+        !/^(ORG_AUTH_|ORG_APPROVAL_|ORG_PROPOSAL_|PROJECT_RISK_)/u.test(
+          actionCode(value),
+        )
       ) {
         submissionUnknown.value = true;
         unknownDigest = digest;
@@ -653,7 +719,9 @@ async function execute() {
       if (token !== epoch || selected !== selection) return;
       if (
         !isDefiniteActionRejection(value) &&
-        !/^(ORG_AUTH_|ORG_APPROVAL_|ORG_PROPOSAL_)/u.test(actionCode(value))
+        !/^(ORG_AUTH_|ORG_APPROVAL_|ORG_PROPOSAL_|PROJECT_RISK_)/u.test(
+          actionCode(value),
+        )
       ) {
         unknownExecutions.add(p.proposalId);
         executionUnknown.value = true;
@@ -671,7 +739,7 @@ watch(
   { flush: "sync" },
 );
 watch(
-  () => [draft.value, kind.value, taskType.value],
+  () => [draft.value, kind.value, taskType.value, linkRisk.value],
   () => {
     if (!attempted.value) prepared.value = null;
   },

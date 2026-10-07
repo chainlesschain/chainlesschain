@@ -35,6 +35,7 @@
     "./organization-project-approval-service": "./lib/organization-project-approval-service.js",
     "./organization-project-proposal-store": "./lib/organization-project-proposal-store.js",
     "./organization-project-transfer-service": "./lib/organization-project-transfer-service.js",
+    "./organization-project-risk-review-service": "./lib/organization-project-risk-review-service.js",
     "./organization-task-action-service": "./lib/organization-task-action-service.js",
     "./goal-contract": "./lib/goal-contract.js",
     "./goal-repository": "./lib/goal-repository.js",

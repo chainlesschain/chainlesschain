@@ -284,6 +284,9 @@ const permissionChoices = [
   { value: "task.create", label: "提议创建任务" },
   { value: "task.update-description", label: "提议修改描述" },
   { value: "task.approve", label: "审批提议" },
+  { value: "risk.read", label: "查看项目风险与历史" },
+  { value: "risk.evaluate", label: "检查项目风险" },
+  { value: "risk.feedback", label: "人工核对风险" },
 ];
 let epoch = 0;
 function reset() {

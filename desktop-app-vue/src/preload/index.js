@@ -794,6 +794,11 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:proposal-read",
   "organization-project:proposal-respond",
   "organization-project:proposal-submit",
+  "organization-project:risk-evaluate",
+  "organization-project:risk-feedback",
+  "organization-project:risk-lineage",
+  "organization-project:risk-review",
+  "organization-project:risk-reviews",
   "organization-project:setup",
   "organization-project:task-list",
   "organization-project:task-read",
@@ -4942,6 +4947,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    evaluateRisk: (params) =>
+      ipcRenderer.invoke("organization-project:risk-evaluate", params),
+    getRiskReview: (params) =>
+      ipcRenderer.invoke("organization-project:risk-review", params),
+    listRiskReviews: (params) =>
+      ipcRenderer.invoke("organization-project:risk-reviews", params),
+    recordRiskFeedback: (params) =>
+      ipcRenderer.invoke("organization-project:risk-feedback", params),
+    getRiskLineage: (params) =>
+      ipcRenderer.invoke("organization-project:risk-lineage", params),
     transferCatalog: (params) =>
       ipcRenderer.invoke("organization-project:transfer-catalog", params),
     previewTransfer: (params) =>

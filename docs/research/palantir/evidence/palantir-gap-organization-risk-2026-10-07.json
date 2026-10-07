@@ -1,0 +1,612 @@
+{
+  "schema": "chainlesschain.palantir-organization-risk-validation/v1",
+  "capturedAt": "2026-10-07T09:01:35.973Z",
+  "sourceBaseCommit": "4d41d9c3de820817d5299a8cc7d1980b7bcc8e90",
+  "workStartedFrom": "8653b0872b0f57908d4b6682835d9fcebbfe6e4d",
+  "scope": "Explicit organization risk permissions, real canonical Project/Task snapshot evaluation, cross-member history/native feedback, immutable risk-bearing create/description approval and ActionRun lineage, fixed IPC and independent Vue UI",
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "abi": "127",
+    "vitest": "4.1.10",
+    "sqlite": {
+      "implementation": "better-sqlite3 native",
+      "version": "12.11.1"
+    },
+    "vue": "3.5.42",
+    "vueTestUtils": "2.4.11",
+    "happyDom": "20.11.2",
+    "dependencyChanges": "No production dependency or lockfile changes; existing workspace/cache/Temp dependencies reused",
+    "rendererResolver": {
+      "path": ".work/dmm-renderer-test-loader.mjs",
+      "sha256": "b7ce004fab137d885bad9611bbaeebcb0ac672afdc21a6661534b56ead0ba193",
+      "setup": "Append --import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs to NODE_OPTIONS for cache-linked Vitest fork workers"
+    }
+  },
+  "verification": {
+    "passed": 545,
+    "failed": 0,
+    "skipped": 0,
+    "files": 23,
+    "groups": [
+      {
+        "name": "shared-services",
+        "cwd": "packages/cli",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/organization-project-risk-review-service.test.js __tests__/unit/organization-project-transfer-service.test.js __tests__/unit/organization-project-proposal-store.test.js __tests__/unit/organization-project-authority.test.js __tests__/unit/organization-project-approval-service.test.js __tests__/unit/organization-task-action-service.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-description-read-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/project-goal-service.test.js --reporter=json --outputFile=../../.work/palantir-organization-risk-cli-tests.json",
+        "report": ".work/palantir-organization-risk-cli-tests.json",
+        "reportSha256": "a8ec1c424a9ce849b557c004d769227b2e6d4db818f3d56353a59dc94e0227b9",
+        "passed": 312,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0",
+            "passed": 47,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+            "snapshot": "git-index",
+            "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3",
+            "passed": 35,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+            "snapshot": "git-index",
+            "sha256": "2e6354c714edbc876b4d2d7c2814218574c90f000d7533cedd1fdbaa2669c448",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-risk-review-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "428f152e6e2b6c218257248fa2f5f0acd0e70475362e8ccafaf1314a3ae044b3",
+            "passed": 26,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-transfer-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "5a2aabc7266fd783964288c4487fdf229aae3058577c8533c95360b9a191a0e2",
+            "passed": 57,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505",
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e",
+            "passed": 44,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065",
+            "passed": 22,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+            "snapshot": "git-index",
+            "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a",
+            "passed": 19,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "desktop-host-ipc",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs --reporter=json --outputFile=../.work/palantir-organization-risk-ipc-tests.json",
+        "report": ".work/palantir-organization-risk-ipc-tests.json",
+        "reportSha256": "a10827a5458c37a3e19f0be8b5f08a1956b08a2de19a8262dd69813170933582",
+        "passed": 142,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+            "snapshot": "git-index",
+            "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb",
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+            "snapshot": "git-index",
+            "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f",
+            "passed": 50,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "snapshot": "git-index",
+            "sha256": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+            "snapshot": "git-index",
+            "sha256": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js",
+            "snapshot": "git-index",
+            "sha256": "e01b6c7fd97b51ee94418c983d65515a6ea30fe7750fe2e3d283b62ac4ca196e",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js",
+            "snapshot": "git-index",
+            "sha256": "968f048e0e19aef043f69e96336c236cceb48d048d444c1128eccfb22ef22e57",
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+            "snapshot": "git-index",
+            "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "renderer-native-journey",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-renderer.config.mjs --reporter=json --outputFile=../.work/palantir-organization-risk-renderer-tests.json",
+        "environment": {
+          "NODE_OPTIONS": "--import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs"
+        },
+        "report": ".work/palantir-organization-risk-renderer-tests.json",
+        "reportSha256": "804919ecfa5356945da1d77de041fbc0673083dc23c0bae63e795a602b45c57f",
+        "passed": 91,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-risk-panel.test.ts",
+            "snapshot": "git-index",
+            "sha256": "7ba255d1087a71c46c5a329d63a1b2d3ca2c087ce814caffd0235321f8b82d85",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-transfer.test.ts",
+            "snapshot": "git-index",
+            "sha256": "5a0fcd087f86f1e59ba018dc8d5386c30458e9014c728a658101c930b89bd07f",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+            "snapshot": "git-index",
+            "sha256": "97ef35162e51536f004fa63f466953501635168f68eadc543e8c9f449a6bf128",
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+            "snapshot": "git-index",
+            "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+            "passed": 29,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+            "snapshot": "git-index",
+            "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "snapshot": "git-index",
+      "sha256": "53014490102a73bb825e9c05fe83c0bd46be82ff42504a161e4dbbf0e50207d7"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "snapshot": "git-index",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/approval-workflow-manager.js",
+      "snapshot": "git-index",
+      "sha256": "b362e9206357e8f4e31f3f5a7ba36f10fb6df34e4a94a1ac688a774af5ff10fb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+      "snapshot": "git-index",
+      "sha256": "421b0a4e2f77da7e9461da06a689725e697cf4f33141adbccb7f07638d2d7067"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js",
+      "snapshot": "git-index",
+      "sha256": "e01b6c7fd97b51ee94418c983d65515a6ea30fe7750fe2e3d283b62ac4ca196e"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+      "snapshot": "git-index",
+      "sha256": "1db34d244847697cd0e0633f08a241e2121e59850b1a137d2a180e6d076becfe"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "9eb43d4bc025e4db508a46be440f95b11db8efbe2d29fa6042d00025ceedce92"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "snapshot": "git-index",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "54b894a64c5fa07e0b8e18684a1e055ffbf0a4b4108893124f4a167234661afd"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "snapshot": "git-index",
+      "sha256": "fc2280123f5455b4bbb45151d857ae34766e7713a305d3a0fca27a068f2db3a2"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "snapshot": "git-index",
+      "sha256": "da79d452683299272b5bd91a39a52f9f12de12532ed84ced1c0bcbd6c7b2ba4d"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectRiskPanel.vue",
+      "snapshot": "git-index",
+      "sha256": "664fa51b4242222ce031fc292e41f1c88e862ee379fef3d1f0aeea573f0e607e"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+      "snapshot": "git-index",
+      "sha256": "a16e415ccce6f112686c2bc4b4b5a31ca9a67b0b36e778c57025d66065aa3a52"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+      "snapshot": "git-index",
+      "sha256": "64e9289a7efde7fec93067bf81543460ae79b9bf49b856947f5c18d693fd246b"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+      "snapshot": "git-index",
+      "sha256": "88f60ba7373261ac4669936235cc9b0f32ede72c76740d94c2c6b8b0b2edbf2e"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectRiskReviewPanel.vue",
+      "snapshot": "git-index",
+      "sha256": "d52e623c2cc650f7be1158ba42a1f6d96883d0ba691f991c0848338eb1daa7ae"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectTaskDescriptionDrawer.vue",
+      "snapshot": "git-index",
+      "sha256": "ece038499326fd84ddfff955869024e73fa5c43adbda8df6fd232ca47dd535d7"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-risk-panel.test.ts",
+      "snapshot": "git-index",
+      "sha256": "7ba255d1087a71c46c5a329d63a1b2d3ca2c087ce814caffd0235321f8b82d85"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "8edc4237e7e30320563537a3017a28313907ccfcc2c8f11363821f48bcc34f80"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "3524819c60de86f7e5c0e6ede3e81e5c69fe50ee1d2a2fa0440c2f5b52bd0509"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+      "snapshot": "git-index",
+      "sha256": "075462a6d1b48124bbcdb557785e8e470f9b1a81dd9efab86732ff6f1f184f94"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "296a40a44f6683edcaa8aa188c6f820ff18bdffa5c6eb615395040c8b5224219"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "c29f2dfac14e83a2e98cc064f1e81388c31f0eb96a11138ce48a6674680aa2cf"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-authority.md",
+      "snapshot": "git-index",
+      "sha256": "7862324f24e68afcf55a18640a16a4770757cb0265f10a1f93d2c0abda242b3c"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-risk-review.md",
+      "snapshot": "git-index",
+      "sha256": "26a6c3f31b2db2250689f6a567f30333c2246aa262128a90e0413de9971fd895"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "snapshot": "git-index",
+      "sha256": "5a021cc00111c7501e624a1b54895ab07477682e852903e3d4ee51b8861711ec"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-risk-review-service.test.js",
+      "snapshot": "git-index",
+      "sha256": "428f152e6e2b6c218257248fa2f5f0acd0e70475362e8ccafaf1314a3ae044b3"
+    },
+    {
+      "path": "packages/session-core/lib/approval-gate.js",
+      "snapshot": "git-index",
+      "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88"
+    },
+    {
+      "path": "packages/session-core/lib/business-object-contract.js",
+      "snapshot": "git-index",
+      "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-approval-service.js",
+      "snapshot": "git-index",
+      "sha256": "92f04a3b2a0d50eb12085cc99a121b3621f3f206e4b2dbe3b6a06771863bf82a"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-authority.js",
+      "snapshot": "git-index",
+      "sha256": "6c87dda2dc603c1f6d379ffed506260b8f89571eeed8fc3ebecbc58e178907f3"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-proposal-store.js",
+      "snapshot": "git-index",
+      "sha256": "59b36c4e8a7c25770ed488449981d8f0a1b5fb96039fa0707b134ad83a9cb6d8"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-risk-review-service.js",
+      "snapshot": "git-index",
+      "sha256": "15ff556d3d1944774113fe55a34e7452dce77e47ec64a572272639ced5949321"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-transfer-service.js",
+      "snapshot": "git-index",
+      "sha256": "1eb024eadcbaf5496e38088095467a569f4c6d16fa8cdbc77e253242d3ba421a"
+    },
+    {
+      "path": "packages/session-core/lib/organization-task-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "1dd2ae11b9a2378ac0bf64e4c081497441d5a1992721ea8a4a2b16a91037c08b"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "snapshot": "git-index",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-evaluation.js",
+      "snapshot": "git-index",
+      "sha256": "7807c05dbc90ebf097c427d6b971308a5e16cb6645626a46b1f43c50090d9ca5"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-review-service.js",
+      "snapshot": "git-index",
+      "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580"
+    },
+    {
+      "path": "packages/session-core/lib/task-description-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "606d87844241928b1702a418980105258530d2c7c0d6b1e574ee7166e448d9d3"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "snapshot": "git-index",
+      "sha256": "54f8c813485f5fab6fce66cce99d5140ce3d5f06fc46d80d236d85f2a7cec00a"
+    }
+  ],
+  "concurrentInputs": [
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "snapshot": "concurrent-worktree-excluded-from-commit",
+      "sha256": "feb53ff1f2e44f2b032d7b3a8c0271aeee738eebf8221a4136a31b257518a5ef",
+      "purpose": "Existing personal renderer regression imports these components; new organization risk component does not import them"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMemoryPanel.vue",
+      "snapshot": "concurrent-worktree-excluded-from-commit",
+      "sha256": "6c59b73293e64c825b286f1b36bdff80435a414932fd31d1d91ee05824e9966d",
+      "purpose": "Existing personal renderer regression imports these components; new organization risk component does not import them"
+    }
+  ],
+  "historicalEvidencePreserved": [
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-authority-2026-10-07.json",
+      "gitBlob": "e8734483e42f34d9679affd983fa188872714b73",
+      "sha256": "aeabf5f8ebbb0b2129b345827c16ed940f773cba2aafd9f0daa2d4fbb8751dcf"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-organization-workflow-2026-10-07.json",
+      "gitBlob": "57543a5485a4d7962916a7946f5b75c625d1f304",
+      "sha256": "41b735261b41f8635b9ccf718cd31f410848e250763a84949236c005e0c3d749"
+    },
+    {
+      "path": "docs/research/palantir/evidence/palantir-gap-project-transfer-2026-10-07.json",
+      "gitBlob": "6053aa871eebc6f63b673b3789ea0a8458fede57",
+      "sha256": "b83484365afb39c4106cc8105b1e815bcfa39ae78b522582a51c13ebe8e2a846"
+    }
+  ],
+  "extraChecks": [
+    {
+      "command": "node .work/verify-organization-risk-source.mjs",
+      "result": {
+        "checks": [
+          {
+            "path": "packages/session-core/lib/organization-project-risk-review-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-approval-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-task-action-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-authority.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-risk-review-service.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/preload/index.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectRiskPanel.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          }
+        ],
+        "passed": 16
+      },
+      "report": ".work/palantir-organization-risk-source-checks.json",
+      "reportSha256": "9315c37e8e2f3f8817bb1cd27e93c77663c1b9ab0844bd4aafcc135d5126c537",
+      "helperSha256": "5d477709effc307920d5e4ee91590d80fd7c0cd34218eea24c20698f343f73c6"
+    },
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --check packages/session-core/lib/organization-project-risk-review-service.js packages/session-core/lib/organization-project-approval-service.js packages/session-core/lib/organization-task-action-service.js packages/session-core/lib/organization-project-authority.js packages/session-core/package.json packages/cli/__tests__/unit/organization-project-risk-review-service.test.js desktop-app-vue/src/main/task/organization-project-ipc.js desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs desktop-app-vue/src/main/task/__tests__/organization-project-risk-ipc.test.js desktop-app-vue/src/preload/index.js desktop-app-vue/src/preload/renderer-ipc-capabilities.json desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs desktop-app-vue/src/renderer/components/projects/OrganizationProjectRiskPanel.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-risk-panel.test.ts desktop-app-vue/vitest.organization-authority.config.mjs desktop-app-vue/vitest.organization-renderer.config.mjs docs/research/palantir/organization-project-authority.md docs/research/palantir/organization-project-risk-review.md docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "passed": true
+    },
+    {
+      "command": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs --check",
+      "passed": true,
+      "exactChannels": 1292,
+      "unregisteredRendererChannelsDenied": 156,
+      "newRiskChannels": 5,
+      "organizationChannels": 33
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "review": "Astra implemented organization risk core and 26 real SQLite tests, added 24 host/native IPC regressions and reviewed root UI/IPC integration. Root fixed dismissed feedback reason codes, invalidated late previews after risk selection changes and scoped uncertain feedback to identity/project/org/review; 25 new renderer tests use real host/SQLite.",
+  "boundaries": [
+    "risk.read/evaluate/feedback grants are explicit; risk-only UI does not load task descriptions/proposals; all named approvers of risk-bearing proposals require risk.read",
+    "Historical authorized readers share evaluator-attributed reviews; current scope/mapping/task locations and integrity remain checked. Action use additionally requires captured mapping/policy/org/project/schema/source freshness and independent full target expectedVersion",
+    "Independent immutable tables, at most 1000 tasks and 2 MiB evidence; missing schema/task limits/invalid dependencies stay insufficient or error. No fake canonical rows or automatic production schema repair",
+    "Feedback is append-only manual judgment, not rule fact mutation. Dismissal has no retained reasonCodes. Host validates before dialog and pins actor/session/frame/navigation and authority before write; maximum comment 4096 UTF-8 bytes",
+    "Review/admission/approval/receipt lineage uses verified actual organization receipt and exactly one matching risk source; receipt evidence is body/key-free. Private proposal retains body/key only under its existing separate TTL and permissions",
+    "UI keeps only review/evaluation display facts; authority failures clear drafts and facts. Delayed replies and old preview races do not repopulate cleared state; uncertain feedback does not automatically retry or cross identities",
+    "Pure local overdue/direct incomplete dependency rules only; no real models, billing, delivery prediction, tenant business outcomes or independent signature/cross-service proof",
+    "Windows selected local tests only; no full repository suite, full TypeScript check, real Electron GUI, real identity provider or exact-commit Linux/macOS release matrix. Electron window/dialog/auth-provider boundary is injected",
+    "Organization goals, ancillary/board objects/actions, other ownership transitions and remaining roadmap items are unfinished",
+    "No push/release/publication. Sixth/seventh/eighth evidence preserved. Concurrent goal-memory/RRSI/release diagnostic changes excluded; incidental personal renderer component inputs separately hashed as worktree artifacts"
+  ]
+}
