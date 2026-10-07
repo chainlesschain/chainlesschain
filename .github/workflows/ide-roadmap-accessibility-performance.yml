@@ -380,6 +380,10 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.12.0"
+      - name: Install exact-checkout verifier dependencies
+        run: >-
+          npm ci --workspace packages/cli --include-workspace-root=false
+          --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Download all producer evidence
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:

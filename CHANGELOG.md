@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.93: bounded investigations and release evidence
+
+- Bound repeated IDE evidence inspections and all phases of authenticated
+  artifact byte reads, including directory, index, identity, and history checks.
+- Publish Session Core `0.3.18` before CLI `0.166.93`, with exact dependency
+  pins and registry-only readback of the published child package.
+- Include organization goal acceptance, periodic monitoring, memory, risk
+  review, transfer, workflow, and notification services in Session Core.
+- Install exact-checkout dependencies in the accessibility/performance
+  aggregate job before verifying Linux, Windows, and macOS evidence.
+- Pair VS Code `0.37.138` and JetBrains `0.4.156` after CLI publication;
+  release desktop/mobile `v5.0.3.140` after both IDE release stages.
+
 ### Fixed - cc CLI 0.166.92: private storage and release regression repairs
 
 - Publish Session Core `0.3.17` and Context Memory Kernel `0.1.7` before CLI

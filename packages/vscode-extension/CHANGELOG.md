@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.138] - Pair with bounded investigation recovery (2026-10-08)
+
+- Recommend CLI `0.166.93` and Session Core `0.3.18` after their public
+  npm release and the extension's exact-commit release gates pass.
+- The paired CLI bounds repeated evidence inspections and authenticated
+  artifact reads, and includes organization goal and notification services.
+- Install checked-out verifier dependencies before combining accessibility
+  and performance evidence from Linux, Windows, and macOS.
+
 ## [0.37.137] - Candidate runtime and release validation fixes (2026-10-07)
 
 - Recommend CLI `0.166.92` after its public npm release and the extension's

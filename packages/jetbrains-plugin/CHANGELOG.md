@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.156] - Pair with bounded investigation recovery (2026-10-08)
+
+- Recommend CLI `0.166.93` and Session Core `0.3.18` after their public
+  npm release and the plugin's exact-commit release gates pass.
+- Refresh the compiled CLI upgrade recommendation and paired release guidance
+  for bounded evidence investigations and organization goal services.
+- Repair the dependency setup used to aggregate three-platform accessibility
+  and performance evidence without changing producer requirements.
+
 ## [0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)
 
 - Recommend CLI `0.166.92` after its public npm release and the plugin's
