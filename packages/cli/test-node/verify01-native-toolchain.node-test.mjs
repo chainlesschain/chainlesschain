@@ -29,7 +29,10 @@ function registryFixture(t, options) {
   frozen.set("package-lock.json", Buffer.from(JSON.stringify(lock)));
   write("package-lock.json", frozen.get("package-lock.json"));
   fixtureValue.options.lockDigest = evalDigest(frozen.get("package-lock.json"));
-  fixtureValue.options.registry = { root: path.join(root, "artifacts"), artifacts };
+  fixtureValue.options.registry = {
+    root: path.join(root, "artifacts"),
+    artifacts,
+  };
   return fixtureValue;
 }
 
@@ -42,32 +45,46 @@ test("complete registry bytes verify content without granting native execution",
   assert.equal(report.trusted, false);
   assert.equal(report.nativeAclAssessed, false);
   assert.equal(report.fullReviewPackReady, false);
-  assert.ok(!report.blockers.includes("REGISTRY_CONTENT_VERIFICATION_REQUIRED"));
+  assert.ok(
+    !report.blockers.includes("REGISTRY_CONTENT_VERIFICATION_REQUIRED"),
+  );
   assert.ok(report.blockers.includes("NATIVE_CAPSULE_BACKEND_NOT_IMPLEMENTED"));
 });
 
 test("tarball integrity mismatch cannot be replaced by installed file hashes", (t) => {
   const { options, write } = registryFixture(t);
   write("artifacts/vitest.tgz", "tampered");
-  assert.throws(() => inspectNativeToolchain(options), /tarball integrity differs/);
+  assert.throws(
+    () => inspectNativeToolchain(options),
+    /tarball integrity differs/,
+  );
 });
 
 test("registry verification requires the entire installed package population", (t) => {
   const { options } = registryFixture(t);
   options.registry.artifacts.pop();
-  assert.throws(() => inspectNativeToolchain(options), /every installed package/);
+  assert.throws(
+    () => inspectNativeToolchain(options),
+    /every installed package/,
+  );
 });
 
 test("repeating another package's artifact does not fill a missing package", (t) => {
   const { options } = registryFixture(t);
   options.registry.artifacts[1] = options.registry.artifacts[0];
-  assert.throws(() => inspectNativeToolchain(options), /duplicate registry package/);
+  assert.throws(
+    () => inspectNativeToolchain(options),
+    /duplicate registry package/,
+  );
 });
 
 test("installed script modification fails against verified tarball bytes", (t) => {
   const { options, write } = registryFixture(t);
   write("node_modules/vitest/index.js", "modified script");
-  assert.throws(() => inspectNativeToolchain(options), /installed file.*differs/);
+  assert.throws(
+    () => inspectNativeToolchain(options),
+    /installed file.*differs/,
+  );
 });
 
 test("derived addon is not silently exempted from registry byte verification", (t) => {
@@ -262,17 +279,41 @@ test("development dependency junction cannot redirect inventory outside its root
   assert.throws(() => inspectNativeToolchain(options), /link or path alias/);
 });
 
-test("case-alias package entries are rejected even on case-sensitive hosts", (t) => {
-  const { options, write } = fixture(t);
-  if (process.platform === "win32") {
-    write("node_modules/vitest/CON.json", "x");
-    assert.throws(
-      () => inspectNativeToolchain(options),
-      /unsafe inventory path/,
-    );
-  } else {
-    write("node_modules/vitest/Case.js", "x");
-    write("node_modules/vitest/case.js", "y");
-    assert.throws(() => inspectNativeToolchain(options), /case aliases/);
+test("case-alias package entries are rejected on every filesystem", (t) => {
+  const { options, root, write } = fixture(t);
+  const directory = path.join(root, "node_modules/vitest");
+  write("node_modules/vitest/Case.js", "x");
+  assert.doesNotThrow(() => inspectNativeToolchain(options));
+  let syntheticEnumeration = false;
+  let aliasEnumerations = 0;
+  try {
+    fs.writeFileSync(path.join(directory, "case.js"), "y", { flag: "wx" });
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    const names = fs.readdirSync(directory);
+    assert.ok(names.includes("Case.js"));
+    assert.ok(!names.includes("case.js"));
+    assert.equal(fs.readFileSync(path.join(directory, "Case.js"), "utf8"), "x");
+    // Case-folding volumes cannot hold both entries. Exercise the same
+    // enumeration guard without allowing the second write to replace bytes.
+    syntheticEnumeration = true;
+    const readDirectory = fs.readdirSync.bind(fs);
+    t.mock.method(fs, "readdirSync", (candidate, ...args) => {
+      const entries = readDirectory(candidate, ...args);
+      if (candidate !== directory) return entries;
+      aliasEnumerations += 1;
+      return [...entries, "case.js"];
+    });
   }
+  assert.throws(() => inspectNativeToolchain(options), /case aliases/);
+  if (syntheticEnumeration) assert.equal(aliasEnumerations, 1);
+  t.diagnostic(
+    `case-alias enumeration: ${syntheticEnumeration ? "case-folding volume" : "distinct physical files"}`,
+  );
+});
+
+test("reserved device package entries are rejected on every filesystem", (t) => {
+  const { options, write } = fixture(t);
+  write("node_modules/vitest/CON.json", "x");
+  assert.throws(() => inspectNativeToolchain(options), /unsafe inventory path/);
 });
