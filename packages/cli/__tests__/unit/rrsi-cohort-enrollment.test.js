@@ -172,6 +172,12 @@ describe("RRSI signed native query enrollment", () => {
     const enrolled = value.enrollAll();
     expect(enrolled).toHaveLength(12);
     const statistics = value.resolution.statisticsRegistration;
+    // Enrollment is complete and these assertions do not mutate the journal.
+    // Read its authenticated snapshot once instead of replaying it per sibling.
+    const enrollmentEvents = value.store.backend.ledger.read({
+      afterSequence: 0,
+      limit: 1000,
+    });
     for (const enrollment of enrolled) {
       expect(enrollment.evidence.plan.schema).toBe(
         "chainlesschain.rrsi-cohort-plan/v2",
@@ -183,9 +189,9 @@ describe("RRSI signed native query enrollment", () => {
         enrollment.evidence.manifest.statisticsRegistration
           .statisticsPlanDigest,
       ).toBe(statistics.statisticsPlanDigest);
-      const event = value.store.backend.ledger
-        .read({ afterSequence: 0, limit: 1000 })
-        .find((item) => item.sequence === enrollment.enrollmentSequence);
+      const event = enrollmentEvents.find(
+        (item) => item.sequence === enrollment.enrollmentSequence,
+      );
       expect(event.sourceRefs).toHaveLength(4);
       expect(event.sourceRefs.map((ref) => ref.ref)).toEqual(
         expect.arrayContaining([
