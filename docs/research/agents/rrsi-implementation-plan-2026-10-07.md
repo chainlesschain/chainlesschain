@@ -326,4 +326,4 @@ PM 试点通过后，增加 CLI 的缺陷定位、跨文件修改、取消恢复
 
 后续保持 RR-01–RR-06 完整范围，优先接入有效父版本、独立来源与运行/预算权威，再补齐可信执行和晋级必需门。真实实验须另行冻结部署、私有五池、A/B/C 全生命周期预算和统计协议；最终以未见任务成功率、完整成本和回滚证据决定是否扩大使用，不把本地 fixture 作为整项完成依据。
 
-父版本接线已增加真正 Skill Registry/预期 Ledger 的只读绑定及 PM broad 的 off/shadow 初步组装，派发前后重读当前父版本，父版本失效仍允许既有历史对账。它不认证生产 Ledger 权威或锚点稳定性，不替代原 CAS；完整生产准入、enforced 和晋级门仍待实施，详见进度第 9 节。
+父版本接线已增加真正 Skill Registry/预期 Ledger 的回读绑定及 PM broad 的 off/shadow 初步组装，并将 Registry transaction ports、实际 History、原 ArtifactPorts/resolver 与真正 v1/v2 backend 关联。预占和实际 host 调用前重读当前父版本，父版本失效仍允许既有历史对账。它不认证生产 Ledger 权威、永久来源约束或锚点稳定性，不替代原 CAS；持久 store identity、writer floor、来源 cutover、完整生产准入、enforced 和晋级门仍待实施，详见进度第 9、19 节。
