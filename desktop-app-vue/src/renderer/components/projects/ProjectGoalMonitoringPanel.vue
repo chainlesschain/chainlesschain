@@ -166,6 +166,12 @@
         @goal-changed="loadGoals()"
         @authority-error="authorityFailure"
       />
+      <ProjectGoalMemoryPanel
+        :goal="item.goal"
+        :identity-key="identityKey"
+        @goal-changed="loadGoals()"
+        @authority-error="authorityFailure"
+      />
     </article>
     <button
       v-if="afterId"
@@ -183,6 +189,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
 import ProjectGoalActionsPanel from "./ProjectGoalActionsPanel.vue";
 import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
+import ProjectGoalMemoryPanel from "./ProjectGoalMemoryPanel.vue";
 type Goal = {
   id: string;
   revision: number;

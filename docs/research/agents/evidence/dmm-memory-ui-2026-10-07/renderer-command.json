@@ -1,0 +1,20 @@
+{
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "--config",
+    "vitest.business-actions-renderer.config.mjs",
+    "--reporter=default",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-memory-ui-2026-10-07\\renderer-tests.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+  "startedAt": "2026-10-07T08:47:13.279Z",
+  "completedAt": "2026-10-07T08:47:38.626Z",
+  "exitCode": 0,
+  "node": "v22.22.2",
+  "os": "win32",
+  "environment": "Existing workspace Happy DOM resolver hook; mocked IPC, no Electron GUI",
+  "stderr": ""
+}

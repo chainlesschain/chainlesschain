@@ -1,0 +1,84 @@
+{
+  "schema": "chainlesschain.dmm-memory-ui-evidence/v1",
+  "recordedAt": "2026-10-07T08:50:42.705Z",
+  "baseCommitAtCapture": "4d41d9c3de820817d5299a8cc7d1980b7bcc8e90",
+  "totals": {
+    "files": 8,
+    "tests": 99,
+    "passed": 99,
+    "failed": 0,
+    "skipped": 0
+  },
+  "rendererReport": {
+    "file": "renderer-tests.json",
+    "sha256": "07d48fa8a83a9fe888e13be5b7ade460283a9ba3dcbb3690a454d67ffdf62c36"
+  },
+  "commandReport": "renderer-command.json",
+  "sourceSha256": "8f0ff8ec6417b1a49cac94a6e45896984a186856fc61d1357e074a1ecda3d44c",
+  "sources": [
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMemoryPanel.vue",
+      "sha256": "6c59b73293e64c825b286f1b36bdff80435a414932fd31d1d91ee05824e9966d"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "sha256": "feb53ff1f2e44f2b032d7b3a8c0271aeee738eebf8221a4136a31b257518a5ef"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+      "sha256": "c738108d7ccbe4d6644613d48c3c9c23be0f0e2cf29dfb88790105cd11067b36"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+      "sha256": "c65f50be4b980220115926eb74a08940c829c3a44bc43321c1c05c3346a32fb6"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+      "sha256": "edb568042544485f4314169f00d83726f66bc2309afd7e07840ca05190632601"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+      "sha256": "fe4e82f2879522155630d8c309c6fc9d979db83029a5de4481871485ff869188"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+      "sha256": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+      "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+      "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts",
+      "sha256": "3524819c60de86f7e5c0e6ede3e81e5c69fe50ee1d2a2fa0440c2f5b52bd0509"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+      "sha256": "f57b13ff029ae58683af7bf11970f01d859cf3f9f50258ee656a0eb67ef5cba6"
+    },
+    {
+      "file": "desktop-app-vue/vitest.business-actions-renderer.config.mjs",
+      "sha256": "00bfd457bd52f9d13272c2cfa9cd3cda48693ec4e8e31c4a5d9d5cf360717e5c"
+    }
+  ],
+  "invariants": [
+    "Only explicit user input creates or corrects memory; no automatic mount-time mutation",
+    "Revocation binds the grant version while deletion/correction bind the canonical version",
+    "Deletion requires a second user click; partial cleanup never displays completed cleanup",
+    "Authoritative reread failure, expiry, invalidation and identity change clear list bodies and copied editor bodies",
+    "Uncertain creation transport preserves request identity; copied uncertain correction becomes body-free recovery",
+    "Authoritative operation-not-found releases the editor for new input without resending hidden body text",
+    "Read generation fences both memory and history pages, including old finally callbacks",
+    "Pagination replaces cached body pages; unmount removes invalidation and expiry listeners"
+  ],
+  "boundaries": [
+    "20 memory panel cases plus existing project/action/acceptance/auth regressions; real Vue components in Happy DOM, mocked IPC",
+    "Expiry uses a deterministic window timer callback and a forward-moving mocked Date to respect Vue listener timestamps",
+    "Not a real Electron GUI journey, business-effectiveness assessment or exact-candidate remote release gate",
+    "The 375-test native-memory cohort is retained separately; cohorts overlap and are not summed"
+  ]
+}
