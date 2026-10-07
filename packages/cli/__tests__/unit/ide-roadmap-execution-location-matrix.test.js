@@ -268,9 +268,14 @@ describe("IDE roadmap execution-location matrix", () => {
     expect(workflow).toContain(
       "Strict SSH production location trajectory x100",
     );
-    expect(workflow).toContain("if: always()");
+    const aggregate = workflow.split(
+      "  trusted-execution-location-aggregate:",
+    )[1];
+    expect(aggregate).toContain("if: always() && !cancelled()");
     expect(workflow).toContain('test "$WSL_RESULT" = success');
     expect(workflow).toContain('test "$LOCAL_RESULT" = success');
+    expect(aggregate).toContain('test "$CONTAINER_RESULT" = success');
+    expect(aggregate).toContain('test "$SSH_RESULT" = success');
     expect(workflow).toContain("require all 600 trajectories");
     expect(workflow).toContain("claude-code-increment-audit-location-drain");
     expect(

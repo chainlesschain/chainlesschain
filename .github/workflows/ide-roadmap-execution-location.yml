@@ -222,7 +222,7 @@ jobs:
       - wsl-execution-location
       - container-execution-location
       - ssh-execution-location
-    if: always() && (github.event_name != 'pull_request' || !cancelled())
+    if: always() && !cancelled()
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
