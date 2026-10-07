@@ -11,6 +11,7 @@ export const EVOLUTION_LEDGER_FILE_BACKEND_SCHEMA =
   "chainlesschain.evolution-ledger-file-backend/v1";
 
 const BACKENDS = new WeakSet();
+const BACKEND_BINDINGS = new WeakMap();
 
 function requiredString(value, label) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -205,6 +206,15 @@ export function createEvolutionLedgerFileBackend({
     witness,
   });
   BACKENDS.add(backend);
+  BACKEND_BINDINGS.set(
+    backend,
+    Object.freeze({
+      matchesLedger: Object.freeze((value) => value === ledger),
+      matchesArtifactResolver: Object.freeze(
+        (value) => value === artifactResolver,
+      ),
+    }),
+  );
   return backend;
 }
 
@@ -213,4 +223,14 @@ export function captureEvolutionLedgerFileBackend(value) {
     throw new TypeError("a branded EvolutionLedger file backend is required");
   }
   return value;
+}
+
+/** Compare the original journal/resolver objects without exposing signing ports. */
+export function captureEvolutionLedgerFileBackendBinding(value) {
+  const binding = BACKEND_BINDINGS.get(value);
+  if (!binding)
+    throw new TypeError(
+      "a branded EvolutionLedger file backend binding is required",
+    );
+  return binding;
 }

@@ -2742,13 +2742,16 @@ export class SkillReleaseRegistry {
     this.#now = now;
     this.#leaseTtlMs = leaseTtlMs;
     this.#crashHook = crashHook;
-    this.#ledgerPrepare = transactionLedger.prepare.bind(transactionLedger);
-    this.#ledgerFinalize = transactionLedger.finalize.bind(transactionLedger);
-    this.#ledgerMigrate =
-      typeof transactionLedger.migrate === "function"
-        ? transactionLedger.migrate.bind(transactionLedger)
+    const captureTransactionMethod = (name) => {
+      const method = transactionLedger[name];
+      return typeof method === "function"
+        ? (...args) => Reflect.apply(method, transactionLedger, args)
         : null;
-    this.#ledgerQuery = transactionLedger.query.bind(transactionLedger);
+    };
+    this.#ledgerPrepare = captureTransactionMethod("prepare");
+    this.#ledgerFinalize = captureTransactionMethod("finalize");
+    this.#ledgerMigrate = captureTransactionMethod("migrate");
+    this.#ledgerQuery = captureTransactionMethod("query");
     Object.freeze(transactionLedger);
 
     this.tenantId = ownerTenantId;
@@ -2804,10 +2807,12 @@ export class SkillReleaseRegistry {
       this,
       Object.freeze({
         tenantId: ownerTenantId,
-        readActive: SkillReleaseRegistry.prototype.readActive.bind(this),
-        readState: SkillReleaseRegistry.prototype.readState.bind(this),
-        readRelease: SkillReleaseRegistry.prototype.readRelease.bind(this),
-        readInventory: SkillReleaseRegistry.prototype.readInventory.bind(this),
+        // Private reads never dispatch through a genuine subclass or mutable
+        // function.bind property. Constructor recovery uses these paths too.
+        readActive: (name) => this.#readActive(name),
+        readState: (name) => this.#readState(name),
+        readRelease: (value) => this.#readRelease(value),
+        readInventory: () => this.#readInventory(),
         matchesTransactionLedger: (value) => value === transactionLedger,
       }),
     );
@@ -3377,7 +3382,7 @@ export class SkillReleaseRegistry {
         this.#fs.linkSync(temporary, destination);
       } catch (error) {
         if (error?.code !== "EEXIST") throw error;
-        const existing = this.readRelease(release.releaseDigest);
+        const existing = this.#readRelease(release.releaseDigest);
         if (!serialize(existing).equals(bytes)) {
           throw failure("SKILL_RELEASE_CONFLICT", "release digest collision");
         }
@@ -3607,8 +3612,8 @@ export class SkillReleaseRegistry {
       migrationAuthority.handlerArtifactDigest,
       "stateMigrationAuthority.handlerArtifactDigest",
     );
-    const active = this.readRelease(plan.activeReleaseDigest);
-    const lastKnownGood = this.readRelease(plan.lastKnownGoodReleaseDigest);
+    const active = this.#readRelease(plan.activeReleaseDigest);
+    const lastKnownGood = this.#readRelease(plan.lastKnownGoodReleaseDigest);
     if (
       active.skillName !== plan.skillName ||
       lastKnownGood.skillName !== plan.skillName ||
@@ -3681,7 +3686,7 @@ export class SkillReleaseRegistry {
         { stateMigrationDigest: plan.stateMigrationDigest },
       );
     }
-    const existing = this.readState(plan.skillName);
+    const existing = this.#readState(plan.skillName);
     if (existing.revision > 0) {
       if (
         existing.transactionId !== plan.stateMigrationDigest ||
@@ -3783,6 +3788,10 @@ export class SkillReleaseRegistry {
   }
 
   readRelease(releaseDigest) {
+    return this.#readRelease(releaseDigest);
+  }
+
+  #readRelease(releaseDigest) {
     const expected = digest(releaseDigest, "releaseDigest");
     let value;
     try {
@@ -3888,8 +3897,8 @@ export class SkillReleaseRegistry {
         "active pointer is not finalized by the trusted transaction ledger",
       );
     }
-    const active = this.readRelease(state.activeReleaseDigest);
-    const lkg = this.readRelease(state.lastKnownGoodReleaseDigest);
+    const active = this.#readRelease(state.activeReleaseDigest);
+    const lkg = this.#readRelease(state.lastKnownGoodReleaseDigest);
     if (
       active.skillName !== state.skillName ||
       lkg.skillName !== state.skillName ||
@@ -3907,17 +3916,25 @@ export class SkillReleaseRegistry {
   }
 
   readState(name) {
+    return this.#readState(name);
+  }
+
+  #readState(name) {
     const state = this.#readStateRaw(name);
     return state.revision === 0 ? state : this.#verifyCommittedState(state);
   }
 
   readActive(name) {
-    const state = this.readState(name);
+    return this.#readActive(name);
+  }
+
+  #readActive(name) {
+    const state = this.#readState(name);
     return state.revision === 0
       ? null
       : deepFreeze({
           state,
-          release: this.readRelease(state.activeReleaseDigest),
+          release: this.#readRelease(state.activeReleaseDigest),
         });
   }
 
@@ -3981,6 +3998,10 @@ export class SkillReleaseRegistry {
   }
 
   readInventory() {
+    return this.#readInventory();
+  }
+
+  #readInventory() {
     this.#assertBoundary();
     const releasePattern = /^[a-f0-9]{64}\.json$/u;
     const statePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.json$/u;
@@ -3999,11 +4020,11 @@ export class SkillReleaseRegistry {
       );
     }
     const releases = beforeReleases.map((name) =>
-      this.readRelease(`sha256:${name.slice(0, -".json".length)}`),
+      this.#readRelease(`sha256:${name.slice(0, -".json".length)}`),
     );
     const active = beforeStates.map((name) => {
       const skill = name.slice(0, -".json".length);
-      const value = this.readActive(skill);
+      const value = this.#readActive(skill);
       if (value === null) {
         throw failure(
           "SKILL_RELEASE_STATE_CORRUPT",
@@ -4041,7 +4062,7 @@ export class SkillReleaseRegistry {
     const afterReleases = this.#readInventoryNames("artifacts", releasePattern);
     const afterStates = this.#readInventoryNames("active", statePattern);
     const afterStateDigests = afterStates.map(
-      (name) => this.readState(name.slice(0, -".json".length)).stateDigest,
+      (name) => this.#readState(name.slice(0, -".json".length)).stateDigest,
     );
     if (
       canonicalJson(beforeReleases) !== canonicalJson(afterReleases) ||
@@ -4060,7 +4081,7 @@ export class SkillReleaseRegistry {
   }
 
   pinActive(name) {
-    const active = this.readActive(name);
+    const active = this.#readActive(name);
     if (!active)
       throw failure("SKILL_RELEASE_NOT_ACTIVE", "Skill has no active release");
     const pin = Object.freeze(Object.create(null));
@@ -4094,7 +4115,7 @@ export class SkillReleaseRegistry {
         "pinned activation is not committed",
       );
     }
-    return this.readRelease(binding.releaseDigest);
+    return this.#readRelease(binding.releaseDigest);
   }
 
   #owner(kind, token, { skill = null, transactionId = null, fence = 0 } = {}) {
@@ -4350,11 +4371,11 @@ export class SkillReleaseRegistry {
     }
     const lockPath = this.#leasePath(name);
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const state = this.readState(name);
+      const state = this.#readState(name);
       const active =
         state.activeReleaseDigest === null
           ? null
-          : this.readRelease(state.activeReleaseDigest);
+          : this.#readRelease(state.activeReleaseDigest);
       const actualParent = active?.contentDigest ?? EMPTY_SKILL_ACTIVE_DIGEST;
       if (
         state.revision !== expectedRevision ||
@@ -4994,7 +5015,7 @@ export class SkillReleaseRegistry {
         );
       }
 
-      const verifiedRelease = this.readRelease(release.releaseDigest);
+      const verifiedRelease = this.#readRelease(release.releaseDigest);
       if (
         verifiedRelease.tenantId !== this.tenantId ||
         verifiedRelease.skillName !== state.skillName ||
@@ -5022,7 +5043,7 @@ export class SkillReleaseRegistry {
   #assertJournalFinalizationArtifacts(journal) {
     let release;
     try {
-      release = this.readRelease(journal.nextState.activeReleaseDigest);
+      release = this.#readRelease(journal.nextState.activeReleaseDigest);
     } catch (cause) {
       throw failure(
         "SKILL_RELEASE_FINALIZATION_INPUT_INVALID",
@@ -5222,7 +5243,7 @@ export class SkillReleaseRegistry {
         journal.state,
       );
     }
-    const release = this.readRelease(journal.state.activeReleaseDigest);
+    const release = this.#readRelease(journal.state.activeReleaseDigest);
     this.#assertFinalizationArtifacts(journal.state, release);
     this.#cleanupStateMigration(journal);
     return "committed";
@@ -5477,7 +5498,7 @@ export class SkillReleaseRegistry {
       target = created.release;
       releaseCreated = created.created;
     } else {
-      target = this.readRelease(payload.targetReleaseDigest);
+      target = this.#readRelease(payload.targetReleaseDigest);
     }
     if (
       target.skillName !== payload.skillName ||

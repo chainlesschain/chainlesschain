@@ -1,7 +1,11 @@
-/** Read-only effective Skill parent binding; never replaces mutation CAS or admission. */
+/** Effective Skill parent readback binding; never replaces mutation CAS or admission. */
 import { isProxy } from "node:util/types";
 import { captureSkillReleaseRegistryReader } from "./skill-release-registry.js";
 import { verifyRrsiCampaign } from "./rrsi-contracts.js";
+import {
+  captureRrsiRegistryHistoryBinding,
+  recheckRrsiRegistryHistoryBinding,
+} from "./rrsi-registry-history-binding.js";
 import {
   snapshotRrsiData,
   rrsiExact,
@@ -16,14 +20,19 @@ export const RRSI_PARENT_BINDING_SCHEMA =
   "chainlesschain.rrsi-effective-parent-binding/v1";
 export const RRSI_PARENT_READBACK_SCHEMA =
   "chainlesschain.rrsi-effective-parent-readback/v1";
+export const RRSI_PARENT_BINDING_V2_SCHEMA =
+  "chainlesschain.rrsi-effective-parent-binding/v2";
+export const RRSI_PARENT_READBACK_V2_SCHEMA =
+  "chainlesschain.rrsi-effective-parent-readback/v2";
 const BINDINGS = new WeakMap();
 
-function options(input) {
+function options(input, extraKeys = []) {
   const keys = [
     "campaign",
     "releaseRegistry",
     "transactionLedger",
     "expectedParent",
+    ...extraKeys,
   ];
   if (
     !input ||
@@ -164,20 +173,118 @@ export function createRrsiEffectiveParentBinding(input) {
   return binding;
 }
 
+/** Versioned storage association keeps all existing parent and anchor checks. */
+export function createRrsiEffectiveParentBindingV2(input) {
+  const value = options(input, ["registryHistoryBinding"]);
+  const storage = captureRrsiRegistryHistoryBinding(
+    value.registryHistoryBinding,
+  );
+  recheckRrsiRegistryHistoryBinding(value.registryHistoryBinding);
+  if (
+    !storage.matchesReleaseRegistry(value.releaseRegistry) ||
+    !storage.matchesTransactionLedger(value.transactionLedger)
+  )
+    rrsiFail(
+      "effective parent requires the Registry History binding's actual registry and transaction ports",
+    );
+  const campaign = verifyRrsiCampaign(value.campaign);
+  for (const [field, expected] of [
+    ["tenantId", campaign.tenantId],
+    ["skillName", campaign.goalId],
+    ["parentReleaseDigest", campaign.parentReleaseDigest],
+    ["anchorReleaseDigest", campaign.anchorReleaseDigest],
+  ])
+    if (storage.descriptor[field] !== expected)
+      rrsiFail("effective parent differs from the bound History scope");
+  const original = createRrsiEffectiveParentBinding({
+    campaign: value.campaign,
+    releaseRegistry: value.releaseRegistry,
+    transactionLedger: value.transactionLedger,
+    expectedParent: value.expectedParent,
+  });
+  const core = Object.fromEntries(
+    Object.entries(original.descriptor).filter(
+      ([name]) =>
+        ![
+          "schema",
+          "parentBindingDigest",
+          "structuralOnly",
+          "authenticated",
+          "readyForExecution",
+          "qualifiesForPromotion",
+        ].includes(name),
+    ),
+  );
+  const descriptor = rrsiEnvelope(
+    RRSI_PARENT_BINDING_V2_SCHEMA,
+    "parentBindingDigest",
+    {
+      ...core,
+      registryHistoryBindingDigest:
+        storage.descriptor.registryHistoryBindingDigest,
+      ledgerIdentity: storage.descriptor.ledgerIdentity,
+      transactionJournalObjectIdentityVerified: true,
+      backendArtifactPortsAndResolverIdentityVerified: true,
+      registryOriginCutoverAuthenticated: false,
+    },
+  );
+  recheckRrsiRegistryHistoryBinding(value.registryHistoryBinding);
+  const binding = Object.freeze({ descriptor });
+  BINDINGS.set(binding, {
+    ...BINDINGS.get(original),
+    registryHistoryBinding: value.registryHistoryBinding,
+  });
+  return binding;
+}
+
+/** The PM bridge passes its captured genuine History, never a descriptor. */
+export function assertRrsiEffectiveParentHistory(binding, history) {
+  const state = BINDINGS.get(binding);
+  if (!state?.registryHistoryBinding)
+    rrsiFail("effective parent requires a genuine Registry History binding");
+  if (
+    !captureRrsiRegistryHistoryBinding(
+      state.registryHistoryBinding,
+    ).matchesCapturedHistory(history)
+  )
+    rrsiFail(
+      "effective parent and PM bridge use different genuine History compositions",
+    );
+  recheckRrsiRegistryHistoryBinding(state.registryHistoryBinding);
+}
+
 /** A recovered JSON descriptor is not a live read capability. */
 export function recheckRrsiEffectiveParent(binding) {
   const state = BINDINGS.get(binding);
   if (!state) rrsiFail("a branded live effective-parent binding is required");
+  if (state.registryHistoryBinding)
+    recheckRrsiRegistryHistoryBinding(state.registryHistoryBinding);
   const identity = readParent(state.reader, state.campaign, state.expected);
   if (rrsiCanonical(identity) !== rrsiCanonical(state.identity))
     rrsiFail(
       "effective parent immutable identity changed",
       "CC_RRSI_PARENT_DRIFT",
     );
-  return rrsiEnvelope(RRSI_PARENT_READBACK_SCHEMA, "parentReadbackDigest", {
-    parentBindingDigest: binding.descriptor.parentBindingDigest,
-    registryReadbackVerified: true,
-    effectiveParentUnchanged: true,
-    atomicDispatchOrPromotionAuthorized: false,
-  });
+  if (state.registryHistoryBinding)
+    recheckRrsiRegistryHistoryBinding(state.registryHistoryBinding);
+  return rrsiEnvelope(
+    state.registryHistoryBinding
+      ? RRSI_PARENT_READBACK_V2_SCHEMA
+      : RRSI_PARENT_READBACK_SCHEMA,
+    "parentReadbackDigest",
+    {
+      parentBindingDigest: binding.descriptor.parentBindingDigest,
+      registryReadbackVerified: true,
+      effectiveParentUnchanged: true,
+      atomicDispatchOrPromotionAuthorized: false,
+      ...(state.registryHistoryBinding
+        ? {
+            registryHistoryBindingDigest:
+              binding.descriptor.registryHistoryBindingDigest,
+            originalStorageGraphRechecked: true,
+            registryOriginCutoverAuthenticated: false,
+          }
+        : {}),
+    },
+  );
 }

@@ -53,7 +53,7 @@
         {{ item.goal.budgetPolicy.maxRuns ?? 1000 }} 次
       </p>
       <p v-if="item.usage.totalRuns !== undefined">
-        检查与操作累计 {{ item.usage.totalRuns }} 次；预留
+        检查、操作与验收累计 {{ item.usage.totalRuns }} 次；预留
         {{ item.usage.reservedRuns ?? 0 }} 次。
       </p>
       <div class="actions">
@@ -97,6 +97,47 @@
           重新启用目标
         </button>
       </div>
+      <button
+        v-if="
+          ['active', 'paused'].includes(item.goal.status) &&
+          api()?.endGoalFollowUp
+        "
+        :disabled="busy"
+        data-testid="end-goal-follow-up"
+        @click="control(item, 'end')"
+      >
+        结束持续跟进
+      </button>
+      <div
+        v-if="item.active?.length && api()?.stopGoalOccurrence"
+        data-testid="active-goal-occurrences"
+      >
+        <p>
+          停止指定检查后，{{
+            item.monitor?.enabled ? "后续巡检仍启用" : "后续巡检尚未启用"
+          }}。
+        </p>
+        <button
+          v-for="occurrence in item.active"
+          :key="occurrence.id"
+          :disabled="busy"
+          data-testid="stop-goal-occurrence"
+          @click="stopOccurrence(item, occurrence)"
+        >
+          {{ stopPending[occurrence.id] ? "重试停止本次检查" : "停止本次检查" }}
+        </button>
+      </div>
+      <p
+        v-for="stop in item.stops ?? []"
+        :key="stop.occurrenceId"
+        data-testid="goal-occurrence-stop-state"
+      >
+        {{
+          stop.status === "stopped"
+            ? "指定检查已停止"
+            : "指定检查停止中，等待宿主确认"
+        }}； {{ item.monitor?.enabled ? "后续巡检仍启用" : "后续巡检已关闭" }}。
+      </p>
       <p v-if="pending[item.goal.id]" class="notice">
         本次检查结果待核对，重试会读取同一次检查的结果。
       </p>
@@ -116,7 +157,14 @@
         :identity-key="identityKey"
         @review-id="emit('review-id', $event)"
         @goal-changed="loadGoals()"
-        @authority-error="emit('authority-error')"
+        @authority-error="authorityFailure"
+      />
+      <ProjectGoalAcceptancePanel
+        :goal="item.goal"
+        :identity-key="identityKey"
+        @review-id="emit('review-id', $event)"
+        @goal-changed="loadGoals()"
+        @authority-error="authorityFailure"
       />
     </article>
     <button
@@ -134,6 +182,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
 import ProjectGoalActionsPanel from "./ProjectGoalActionsPanel.vue";
+import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
 type Goal = {
   id: string;
   revision: number;
@@ -141,6 +190,7 @@ type Goal = {
   objective: string;
   ownerRef: string;
   allowedActionTypes?: string[];
+  acceptanceCriteria?: Array<{ id: string; kind: string; description: string }>;
   projectRef: { id: string; scope: { kind: string; id: string } };
   budgetPolicy: { maxRuns: number | null };
 };
@@ -150,6 +200,8 @@ type Status = {
   blockedReason: string | null;
   monitor: { enabled: number } | null;
   usage: { checks: number; totalRuns?: number; reservedRuns?: number };
+  active?: Array<{ id: string; fence: number }>;
+  stops?: Array<{ occurrenceId: string; status: string }>;
   history: Array<{
     occurrenceId: string;
     reviewId: string;
@@ -157,6 +209,7 @@ type Status = {
   }>;
 };
 type Request = { id: string; expectedRevision: number; requestId: string };
+type StopRequest = Request & { occurrenceId: string; expectedFence: number };
 type GoalApi = {
   createGoal(input: {
     projectId: string;
@@ -186,6 +239,13 @@ type GoalApi = {
   checkGoalNow(
     input: Request,
   ): Promise<{ status: string; occurrenceId: string }>;
+  stopGoalOccurrence?(
+    input: StopRequest,
+  ): Promise<{ status: string; goalId: string; occurrenceId: string }>;
+  endGoalFollowUp?(input: {
+    id: string;
+    expectedRevision: number;
+  }): Promise<Status>;
 };
 const props = defineProps<{ projectId: string; identityKey?: string }>();
 const emit = defineEmits<{
@@ -208,6 +268,7 @@ const available = computed(() =>
 );
 const goals = ref<Status[]>([]),
   pending = ref<Record<string, Request>>({});
+const stopPending = ref<Record<string, StopRequest>>({});
 const objective = ref(""),
   maxRuns = ref(20),
   intervalMs = ref(3_600_000);
@@ -233,6 +294,10 @@ function stateLabel(state: string) {
         paused: "已暂停",
         "pause-requested": "暂停中，等待在途检查结束",
         blocked: "巡检暂时受限",
+        ended: "持续跟进已结束，历史证据保留",
+        "end-requested": "正在结束跟进，等待在途检查停止",
+        completed: "目标已通过独立验收",
+        "completion-draining": "目标已验收，等待在途检查结束",
       } as Record<string, string>
     )[state] ?? "状态待核对"
   );
@@ -249,6 +314,7 @@ function reasonLabel(reason: string) {
       {
         GOAL_MONITOR_BUDGET_EXHAUSTED: "检查次数或时间预算已用完。",
         GOAL_MONITOR_EXPIRED: "目标已到期。",
+        GOAL_USAGE_UNKNOWN: "存在结果未知的用量，请先核对原操作回执。",
         GOAL_PROJECT_NOT_ACTIVE: "项目当前不处于草稿或进行中。",
         scheduler_authority_budget_exhausted:
           "当前身份的巡检额度已用完，额度恢复后继续。",
@@ -272,10 +338,15 @@ function reset() {
   epoch++;
   goals.value = [];
   pending.value = {};
+  stopPending.value = {};
   objective.value = "";
   afterId.value = null;
   error.value = "";
   busy.value = false;
+}
+function authorityFailure() {
+  reset();
+  emit("authority-error");
 }
 function failure(value: unknown, message: string) {
   if (isAuthorityError(value)) {
@@ -349,7 +420,7 @@ async function createGoal() {
 }
 async function control(
   item: Status,
-  operation: "start" | "stop" | "resume" | "check",
+  operation: "start" | "stop" | "resume" | "check" | "end",
 ) {
   if (busy.value || !available.value) return;
   const stamp = epoch,
@@ -368,6 +439,9 @@ async function control(
     else if (operation === "stop") {
       state = await api()!.stopGoalMonitoring({ id, expectedRevision });
       if (current(stamp)) delete pending.value[id];
+    } else if (operation === "end") {
+      state = await api()!.endGoalFollowUp!({ id, expectedRevision });
+      if (current(stamp)) delete pending.value[id];
     } else {
       if (operation === "resume")
         await api()!.reviseGoal({
@@ -384,7 +458,15 @@ async function control(
         pending.value[id] = request;
         const outcome = await api()!.checkGoalNow(request);
         if (!current(stamp)) return;
-        if (["succeeded", "dead_letter", "cancelled"].includes(outcome.status))
+        if (
+          [
+            "succeeded",
+            "dead_letter",
+            "cancelled",
+            "stopped",
+            "already-finished",
+          ].includes(outcome.status)
+        )
           delete pending.value[id];
         if (outcome.status === "dead_letter")
           error.value = "本次检查未完成，请核对巡检状态。";
@@ -409,6 +491,54 @@ async function control(
         operation === "check"
           ? "检查结果待核对，可重试本次检查。"
           : "操作结果待核对，请刷新目标。",
+      );
+    }
+  } finally {
+    if (current(stamp)) busy.value = false;
+  }
+}
+async function stopOccurrence(
+  item: Status,
+  occurrence: { id: string; fence: number },
+) {
+  if (busy.value || !api()?.stopGoalOccurrence) return;
+  const stamp = epoch;
+  busy.value = true;
+  error.value = "";
+  const request = stopPending.value[occurrence.id] ?? {
+    id: item.goal.id,
+    expectedRevision: item.goal.revision,
+    occurrenceId: occurrence.id,
+    expectedFence: occurrence.fence,
+    requestId: crypto.randomUUID(),
+  };
+  stopPending.value[occurrence.id] = request;
+  try {
+    const result = await api()!.stopGoalOccurrence!(request);
+    if (!current(stamp)) return;
+    if (result.goalId !== item.goal.id || result.occurrenceId !== occurrence.id)
+      throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+    if (["stopped", "already-finished"].includes(result.status))
+      delete stopPending.value[occurrence.id];
+    const state = await api()!.getGoalMonitoringStatus({ id: item.goal.id });
+    if (!current(stamp)) return;
+    validateGoal(state.goal, item.goal.id);
+    goals.value = goals.value.map((old) =>
+      old.goal.id === item.goal.id ? state : old,
+    );
+    if (result.status === "already-finished")
+      error.value = "本次执行已经结束，请核对现有检查记录。";
+  } catch (value) {
+    if (current(stamp)) {
+      if (
+        ["GOAL_REVISION_CONFLICT", "GOAL_MONITOR_FENCE_CONFLICT"].includes(
+          actionCode(value),
+        )
+      )
+        delete stopPending.value[occurrence.id];
+      failure(
+        value,
+        "停止结果待核对，可沿本次请求重试；后续巡检状态以目标卡片为准。",
       );
     }
   } finally {

@@ -245,13 +245,21 @@ class SqliteProjectGoalAdapter {
     return this._transaction(() => this._read(id, this._actor()));
   }
   compareAndSwap(id, expectedRevision, transform) {
+    return this._transaction(() =>
+      this.compareAndSwapInTransaction(id, expectedRevision, transform),
+    );
+  }
+  /** Trusted domain hosts can join goal CAS to evidence in the same native tx.
+   * Identity, personal ownership and replacement invariants are still checked. */
+  compareAndSwapInTransaction(id, expectedRevision, transform) {
+    if (!this.db.inTransaction) throw goalError("GOAL_TRANSACTION_REQUIRED");
     if (
       !Number.isSafeInteger(expectedRevision) ||
       expectedRevision < 1 ||
       typeof transform !== "function"
     )
       throw goalError("GOAL_INVALID_REVISION");
-    return this._transaction(() => {
+    const apply = () => {
       const actor = this._actor();
       const current = this._read(id, actor);
       if (current === null) throw goalError("GOAL_NOT_FOUND_OR_DENIED");
@@ -276,7 +284,8 @@ class SqliteProjectGoalAdapter {
         .run(next.revision, JSON.stringify(next), id, actor, expectedRevision);
       if (result.changes !== 1) throw goalError("GOAL_REVISION_CONFLICT");
       return next;
-    });
+    };
+    return apply();
   }
   list(input) {
     options(input, ["projectId"], ["afterId", "limit"]);

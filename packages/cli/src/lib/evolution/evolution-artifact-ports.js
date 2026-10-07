@@ -359,6 +359,7 @@ const CONSTRUCTOR_REQUIRED_KEYS = new Set([
 const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
 const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
 const EVOLUTION_LEDGER_BATCH_RESOLVERS = new WeakMap();
+const EVOLUTION_LEDGER_RESOLVER_BINDINGS = new WeakMap();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
 const dateGetTime = Object.freeze(
@@ -3560,6 +3561,15 @@ export class EvolutionArtifactPorts {
     EVOLUTION_LEDGER_BATCH_RESOLVERS.set(resolveReadOnly, (requests) =>
       this.#resolveLedgerBatch(requests, normalizedPurpose),
     );
+    EVOLUTION_LEDGER_RESOLVER_BINDINGS.set(
+      resolveReadOnly,
+      Object.freeze({
+        purpose: normalizedPurpose,
+        tenantId: this.#tenantId,
+        audience: this.#audience,
+        matchesArtifactPorts: Object.freeze((value) => value === this),
+      }),
+    );
     return Object.freeze(resolveReadOnly);
   }
 }
@@ -3592,6 +3602,16 @@ export function captureEvolutionLedgerBatchResolver(value) {
   if (!resolve)
     throw new TypeError("a branded ledger artifact resolver is required");
   return resolve;
+}
+
+/** Private construction identity, independent of matching resolver descriptors. */
+export function captureEvolutionLedgerArtifactResolverBinding(value) {
+  const binding = EVOLUTION_LEDGER_RESOLVER_BINDINGS.get(value);
+  if (!binding)
+    throw new TypeError(
+      "a branded ledger artifact resolver binding is required",
+    );
+  return binding;
 }
 
 Object.freeze(EvolutionArtifactPorts.prototype);

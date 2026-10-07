@@ -16,6 +16,13 @@ const CHANNELS = Object.freeze({
   prepareIntent: "project:goal-intent-prepare",
   executeIntent: "project:goal-intent-execute",
   readIntent: "project:goal-intent-read",
+  stopOccurrence: "project:goal-occurrence-stop",
+  endFollowUp: "project:goal-follow-up-end",
+  configureAcceptance: "project:goal-acceptance-configure",
+  acceptanceStatus: "project:goal-acceptance-status",
+  acknowledgeAcceptance: "project:goal-acceptance-acknowledge",
+  checkAcceptance: "project:goal-acceptance-check",
+  completeGoal: "project:goal-complete",
 });
 function error(code) {
   return Object.assign(new Error(code), { code });
@@ -147,6 +154,67 @@ function createProjectGoalHost({
           ),
       },
     );
+  function completion(event) {
+    currentWindow(event);
+    const db = currentDatabase();
+    const getActor = () => {
+      currentWindow(event);
+      if (currentDatabase() !== db) throw error("GOAL_DATABASE_CHANGED");
+      const actor = getCurrentUserDid();
+      if (!actor) throw error("GOAL_IDENTITY_REQUIRED");
+      return actor;
+    };
+    getActor();
+    const {
+      ApprovalGate,
+    } = require("@chainlesschain/session-core/approval-gate");
+    const {
+      ProjectGoalCompletionService,
+    } = require("@chainlesschain/session-core/project-goal-completion");
+    const gate = new ApprovalGate({
+      confirm: async ({ goal, criteria, actorDid, acknowledgementId }) => {
+        const parent = currentWindow(event);
+        const current = hostCompletion.goals.get({ id: goal.id });
+        if (
+          getActor() !== actorDid ||
+          current?.revision !== goal.revision ||
+          current.controlGeneration !== goal.controlGeneration ||
+          current.status !== "active"
+        )
+          throw error("GOAL_COMPLETION_ACK_STALE");
+        const result = await getElectron().dialog.showMessageBox(parent, {
+          type: "question",
+          title: "记录目标人工验收",
+          message: "你确认已完成以下人工验收条件？",
+          detail: [
+            `目标：${display(goal.objective)}`,
+            `目标版本：${goal.revision}`,
+            `当前身份：${display(actorDid)}`,
+            ...criteria.map(
+              (criterion) => `验收条件：${display(criterion.description)}`,
+            ),
+            `验收记录：${display(acknowledgementId)}`,
+            "确认会保存你的人工验收记录；目标还需要重新检查全部业务条件。",
+          ].join("\n\n"),
+          buttons: ["取消", "确认我已验收"],
+          defaultId: 0,
+          cancelId: 0,
+          noLink: true,
+        });
+        return result?.response === 1;
+      },
+    });
+    const hostCompletion = new ProjectGoalCompletionService({
+      db,
+      getActor,
+      clock,
+      approvalGate: Object.freeze({
+        decide: (context) =>
+          gate.decide({ ...context, policy: "strict", riskLevel: "high" }),
+      }),
+    });
+    return hostCompletion;
+  }
   async function monitor(event) {
     currentWindow(event);
     if (!getCurrentUserDid()) throw error("GOAL_IDENTITY_REQUIRED");
@@ -168,6 +236,16 @@ function createProjectGoalHost({
     prepareIntent: (event, params) => workflow(event).prepare(params),
     executeIntent: (event, params) => workflow(event).execute(params),
     readIntent: (event, params) => workflow(event).getIntent(params),
+    stopOccurrence: async (event, params) =>
+      (await monitor(event)).stopOccurrence(params),
+    endFollowUp: async (event, params) =>
+      (await monitor(event)).endFollowUp(params),
+    configureAcceptance: (event, params) => completion(event).configure(params),
+    acceptanceStatus: (event, params) => completion(event).status(params),
+    acknowledgeAcceptance: (event, params) =>
+      completion(event).acknowledge(params),
+    checkAcceptance: (event, params) => completion(event).inspect(params),
+    completeGoal: (event, params) => completion(event).complete(params),
     initializeMonitoring: () => controller.initialize(),
     close: () => controller.close(),
   });

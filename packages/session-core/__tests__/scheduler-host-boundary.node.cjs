@@ -120,6 +120,7 @@ test("packed goal and scheduler entries run without CLI dependencies", () => {
       "lib/project-goal-monitoring.js",
       "lib/goal-usage-ledger.js",
       "lib/project-goal-workflow.js",
+      "lib/project-goal-completion.js",
       "lib/task-description-action-service.js",
       "lib/approval-gate.js",
       "lib/project-risk-review-service.js",
@@ -148,6 +149,7 @@ const { SchedulerRuntime } = require("@chainlesschain/session-core/scheduler-run
 const authority = require("@chainlesschain/session-core/scheduler-authority-resolver");
 const monitoring = require("@chainlesschain/session-core/project-goal-monitoring");
 const workflow = require("@chainlesschain/session-core/project-goal-workflow");
+const completion = require("@chainlesschain/session-core/project-goal-completion");
 const privateStorage = require("@chainlesschain/session-core/private-storage");
 (async () => {
   assert.equal((await import("@chainlesschain/session-core/goal-repository")).GoalRepository, GoalRepository);
@@ -169,6 +171,7 @@ const privateStorage = require("@chainlesschain/session-core/private-storage");
   assert.equal(cliAuthority.createSchedulerAuthorityResolver, authority.createSchedulerAuthorityResolver);
   assert.equal((await import("@chainlesschain/session-core/project-goal-monitoring")).ProjectGoalMonitoringEngine, monitoring.ProjectGoalMonitoringEngine);
   assert.equal((await import("@chainlesschain/session-core/project-goal-workflow")).ProjectGoalWorkflow, workflow.ProjectGoalWorkflow);
+  assert.equal((await import("@chainlesschain/session-core/project-goal-completion")).ProjectGoalCompletionService, completion.ProjectGoalCompletionService);
   assert.throws(() => new monitoring.ProjectGoalMonitoringState({db:{},getActor:()=>"did:owner"}), (error) => error.code==="GOAL_NATIVE_DATABASE_REQUIRED");
   assert.equal(cliContract.SchedulerKernelError, contract.SchedulerKernelError);
   assert.equal(cliService.SchedulerService, service.SchedulerService);

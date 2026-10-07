@@ -1,0 +1,11 @@
+{
+  "cwd": "packages/cli",
+  "command": "node node_modules/vitest/vitest.mjs run __tests__/unit/project-goal-completion.test.js __tests__/unit/project-goal-service.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/project-goal-monitoring.test.js __tests__/unit/goal-usage-ledger.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-lineage.test.js __tests__/unit/project-risk-lineage-audit.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/session-core-packed-authorization.test.js __tests__/integration/project-goal-process-recovery.test.js __tests__/integration/project-goal-workflow-process-recovery.test.js --reporter=default --reporter=json --outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-acceptance-2026-10-07\\cli-tests.json",
+  "exitCode": 0,
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64",
+  "startedAt": "2026-10-07T02:52:00.743Z",
+  "completedAt": "2026-10-07T02:52:36.572Z",
+  "environment": "Native local SQLite where applicable; host Electron APIs mocked in desktop tests"
+}

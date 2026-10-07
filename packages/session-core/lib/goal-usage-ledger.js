@@ -115,7 +115,9 @@ class GoalUsageLedger {
         record.goalRevision < 1 ||
         !Number.isSafeInteger(record.controlGeneration) ||
         record.controlGeneration < 0 ||
-        !["native-action", "model"].includes(record.domain) ||
+        !["native-action", "native-verifier", "model"].includes(
+          record.domain,
+        ) ||
         !["reserved", "settled", "released", "unknown"].includes(record.status)
       )
         throw new Error();
@@ -125,7 +127,7 @@ class GoalUsageLedger {
       quantities(record.estimate, true);
       if (record.usage !== null) quantities(record.usage, true);
       if (
-        record.domain === "native-action" &&
+        record.domain !== "model" &&
         (record.estimate.tokens !== 0 ||
           record.estimate.costUsd !== 0 ||
           (record.usage &&
@@ -346,9 +348,8 @@ class GoalUsageLedger {
     identifier(operationId);
     quantities(estimate, true);
     if (
-      !["native-action", "model"].includes(domain) ||
-      (domain === "native-action" &&
-        (estimate.tokens !== 0 || estimate.costUsd !== 0))
+      !["native-action", "native-verifier", "model"].includes(domain) ||
+      (domain !== "model" && (estimate.tokens !== 0 || estimate.costUsd !== 0))
     )
       fail("GOAL_USAGE_INVALID_REQUEST");
     const prior = this._read(
@@ -434,7 +435,7 @@ class GoalUsageLedger {
         fail("GOAL_USAGE_OPERATION_CONFLICT");
     }
     if (
-      prior.domain === "native-action" &&
+      prior.domain !== "model" &&
       usage &&
       (usage.tokens !== 0 || usage.costUsd !== 0)
     )

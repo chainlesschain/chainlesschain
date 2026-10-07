@@ -109,7 +109,7 @@ describe("project goal desktop identity and fixed IPC boundary", () => {
     });
     actor = "did:other";
     expect(handlers.get(CHANNELS.read)(event, { id: goal.id })).toBeNull();
-    expect(handlers.has("project:goal-complete")).toBe(false);
+    expect(handlers.has("project:goal-complete")).toBe(true);
     expect(handlers.has("project:goal-execute")).toBe(false);
   });
 });

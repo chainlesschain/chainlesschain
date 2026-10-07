@@ -99,17 +99,21 @@ export function openRrsiPmBridgeFixture(
     crashHook = null,
     planOverrides = {},
     campaignOverrides = {},
+    historyStore = null,
   } = {},
 ) {
-  const base = openRrsiHistoryStore(root, {
-    initialize,
-    crashHook,
-    campaignOverrides,
-  });
+  const base =
+    historyStore ??
+    openRrsiHistoryStore(root, {
+      initialize,
+      crashHook,
+      campaignOverrides,
+    });
   const data = rrsiPmBridgeData(planOverrides, campaignOverrides);
   function signer(role) {
     const file = path.join(root, "test-control", `pm-${role}.pem`);
     if (initialize) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
       const keys = generateKeyPairSync("ed25519");
       fs.writeFileSync(
         file,

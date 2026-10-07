@@ -309,7 +309,7 @@ controlledHistoryRegistrationOrderVerified:true 仅说明已认证 History 中�
 
 Astra 的治理复核确认：旧候选冻结只核验结算，不能据此认定质量通过；新预注册分支的拒绝门见第 18 节。候选来源引用与 derivationMode 参与 candidateId，contentDigest 则只由内容字节计算；改变引用、模式或包装可能产生新 ID，因此新增来源约束必须在真正 Registry 存储与写边界按内容摘要查询。来源登记本身不证明质量；旧冻结、普通 callback、相同租户或相同路径都不能授予新晋级权限。新增质量回执须保留原 Gate veto、完整分母与费用缺口，再接入 Release/Review/Pilot/恢复路径。
 
-下一增量先补 [transaction ports](../../../packages/cli/src/lib/evolution/evolution-ledger-ports.js) 对真正 v2 journal 的捕获与回执验证，再将 Registry、operation reader 和 History 与同一真正 FileBackend/Ledger/ArtifactPorts 关联。现有 `_tenant.json` 的严格 v1 校验同时用于构造、read 和 write；升级 marker 可以拒绝旧 writer，也会拒绝旧二进制的 read。因此后续须让新 reader 兼容旧 candidate/release/state 字节，并准备维护排空与跨存储恢复协议。新增可删除 sidecar、普通 migration audit 或仅凭路径相等均不能建立不可降级来源门；本批未切换任何生产存储。
+transaction ports 对真正 v2 journal 的捕获及 Registry/History/backend 关联已接线，详见第 19 节。下一增量接入持久 store identity、writer floor 和来源 cutover。现有 `_tenant.json` 的严格 v1 校验同时用于构造、read 和 write；升级 marker 可以拒绝旧 writer，也会拒绝旧二进制的 read。因此后续须让新 reader 兼容旧 candidate/release/state 字节，并准备维护排空与跨存储恢复协议。新增可删除 sidecar、普通 migration audit 或仅凭路径相等均不能建立不可降级来源门；本批未切换任何生产存储。
 
 | 必需条件            | 当前证据                                                                                | 未完成的工程或外部条件                                                      |
 | ------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -339,3 +339,19 @@ History 的 recordNativeQualityReceipt 在真正私有品牌复验后，通过�
 新预注册 scope 的旧 freezeCandidate 不再接受新的冻结请求；freezeNativeCandidateV2 复验真正 selection 回执并返回 QUALITY_HOLD，当前版本不产生质量冻结记录。新的 v2 generalization 预占和 live dispatch 必须有可验证的选择质量准入，当前拒绝。旧冻结、已预留记录、unknown 与 settlement 的历史回读和对账保持兼容；已结算成功和旧冻结意图不能自动升级为新的终评权限。本批尚未实现 Registry/Review/Pilot 的完整来源门，旧发布入口的治理接线仍属 RR-04 后续工作。
 
 本批验证已完成：新增回执 **9/9**、耐久边界 **6/6**、真实签名记录来源对抗 **3/3**，旧 History 与新增恢复联合 **64/64**，两个分支的签名库存损坏与当前过期定向复测 **4/4**，共 **86 项独立用例通过**。新增 22 项，扩展原过期用例两项；Gate 每个定向分支另有 253 项跳过，不作为新一轮完整 Gate 运行计数。首轮组合定向 run 的旧分支两项通过，预注册分支在套件级别失败而未执行目标用例；JSON reporter 未保存嵌套 hook 的错误详情。两个分支随后独立复测全部通过，未放宽验证器或任何时限。ESLint、Prettier 与 Astra 复核通过，摘要见 [必需质量回执验证记录](./evidence/rrsi-native-quality-local-controls-2026-10-07.json)。after-head 用例验证 v1 文件 Ledger 的真实已提交响应丢失；旧冻结用例追加经过认证的历史字节。它们不证明 v2 断电、实际费用/清理或运行过旧二进制。
+
+## 19 Registry、History 与真实 backend 的关联
+
+[evolution-ledger-ports.js](../../../packages/cli/src/lib/evolution/evolution-ledger-ports.js) 的 release transaction、audit 和 nonce ports 现在同时捕获原 v1 Ledger 与真正品牌化 v2 journal。所有消费端使用同一组原方法，operation reader 精确比较 journal 和 ArtifactPorts 对象，并从原 verify 取得 current context。v2 的成功仍要求完整留存回读；WAL 已提交但留存失败继续抛出 COMMIT_UNKNOWN，不能按旧 v1 响应丢失路径提前成功。旧 receipt 可以按原语义验证，已完成 cutover 的旧 writer 仍被原持久屏障拒绝。
+
+v2 journal 对真实 migration source 捕获原 Ledger 私有字段方法和物理路径 getter，避免真实子类的覆写路径、query 或 verify 替换数据。findByEventId、recoverReceipt 与 getAuthority 改用原 query/verify，消除这些原方法内部的虚调用。原 ArtifactPorts 方法和 Registry transaction 方法以 Reflect.apply 调用，不读取 caller 可修改的函数 bind/call 属性。
+
+Release Registry 的 readRelease、readState、readActive、readInventory 改为公开包装与私有实现；构造恢复、迁移、finalization、pins 及 transition 内部均走私有读取。可信 reader 继续拒绝 subclass、复制和 Proxy，不放宽原 exact prototype 边界。Astra 首次指出 subclass 能绕过父版本 freshness 的结论在复查后已纠正：原 capture 入口就拒绝 subclass；此次修复封闭的是内部恢复/原方法的虚调用与函数属性捕获。没有据此声称旧父版本绑定曾可经 subclass 绕过。
+
+[rrsi-registry-history-binding.js](../../../packages/cli/src/lib/evolution/rrsi-registry-history-binding.js) 仅从真实 backend、History、Registry 与 transaction ports 创建私有品牌。backend 和 resolver 的私有构造元数据比较原 journal、原 ArtifactPorts 和原 resolver，描述符相同或同物理路径新开的对象不能替代。绑定前后重查真实 History root、ledger identity、Registry 目录/marker 和 current head；正常无关事件推进 head 可以继续，root 或存储图改变拒绝。v2 verify 可能恢复已获授权的 WAL 后缀，因此这是可恢复的回读控制，不能宣称无写入快照或共同原子瞬间。
+
+新 effective parent binding v2 保留原 parent/content/revision、anchor 与 drift 检查，再关联上述存储图。PM runtime 绑定时比较它实际捕获的 History，拒绝另一真实 backend 上的相同 campaign；后续 reserve 和实际 host 调用前复验原存储图和父版本。Workbench 将真实 primary/verifier backend 保存在私有 WeakMap，供关联验证使用，原公开 runtimeResources 与 mutationPorts 字段不变。
+
+所有新增输出仍为 originCutoverAuthenticated:false、registryStoreIdentityAuthenticated:false、originClassificationAvailable:false、productionAuthorityVerified:false；不授予晋级或 enforced 权限。它们只证明当前组合中的对象与存储关联，尚不证明永久来源约束、受信模式登记、生产权威、旧稳定版本豁免或跨存储 cutover。后续必须在真正候选公开前按 tenant＋实际 contentDigest 登记来源，在 Release transition lease 内再次核验，并将 writer floor、prepared/markers-installed/committed 恢复与真实维护排空接入两个 Registry。可删除的 sidecar 和 quiescent:true 声明不能替代该边界。
+
+本批最终验证正在执行；完成后保存逐文件结果、源码摘要与首轮测试修正记录。

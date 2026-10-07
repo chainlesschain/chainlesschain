@@ -37,6 +37,7 @@
     "./project-goal-monitoring": "./lib/project-goal-monitoring.js",
     "./goal-usage-ledger": "./lib/goal-usage-ledger.js",
     "./project-goal-workflow": "./lib/project-goal-workflow.js",
+    "./project-goal-completion": "./lib/project-goal-completion.js",
     "./task-description-action-service": "./lib/task-description-action-service.js",
     "./project-risk-evaluation": "./lib/project-risk-evaluation.js",
     "./project-risk-review-service": "./lib/project-risk-review-service.js",

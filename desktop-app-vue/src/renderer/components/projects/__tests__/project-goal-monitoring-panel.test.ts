@@ -63,6 +63,92 @@ describe("personal project goal controls", () => {
     expect(api.startGoalMonitoring).not.toHaveBeenCalled();
     expect(api.checkGoalNow).not.toHaveBeenCalled();
   });
+  it("clears all goal metadata when a nested governed panel reports revoked authority", async () => {
+    await flushPromises();
+    expect(wrapper.find('[data-goal-id="g1"]').exists()).toBe(true);
+    wrapper
+      .findComponent({ name: "ProjectGoalAcceptancePanel" })
+      .vm.$emit("authority-error");
+    await flushPromises();
+    expect(wrapper.find('[data-goal-id="g1"]').exists()).toBe(false);
+    expect(wrapper.emitted("authority-error")).toHaveLength(1);
+  });
+  it("stops one occurrence using its current fence and keeps future monitoring visible", async () => {
+    await flushPromises();
+    api.stopGoalOccurrence = vi.fn(async () => ({
+      status: "stop-requested",
+      goalId: "g1",
+      occurrenceId: "occ1",
+    }));
+    api.getGoalMonitoringStatus.mockResolvedValue(
+      state({
+        executionState: "running",
+        monitor: { enabled: 1 },
+        active: [{ id: "occ1", fence: 7 }],
+        stops: [{ occurrenceId: "occ1", status: "stop-requested" }],
+      }),
+    );
+    await wrapper.get('[data-testid="refresh-goals"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="stop-goal-occurrence"]').trigger("click");
+    await flushPromises();
+    expect(api.stopGoalOccurrence.mock.calls[0][0]).toMatchObject({
+      id: "g1",
+      expectedRevision: 1,
+      occurrenceId: "occ1",
+      expectedFence: 7,
+    });
+    expect(api.stopGoalMonitoring).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("后续巡检仍启用");
+    expect(wrapper.text()).toContain("等待宿主确认");
+  });
+  it("retries an uncertain occurrence stop with the original request identity", async () => {
+    await flushPromises();
+    api.stopGoalOccurrence = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("timeout"))
+      .mockResolvedValue({
+        status: "stop-requested",
+        goalId: "g1",
+        occurrenceId: "occ1",
+      });
+    api.getGoalMonitoringStatus.mockResolvedValue(
+      state({
+        executionState: "running",
+        monitor: { enabled: 1 },
+        active: [{ id: "occ1", fence: 7 }],
+      }),
+    );
+    await wrapper.get('[data-testid="refresh-goals"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="stop-goal-occurrence"]').trigger("click");
+    await flushPromises();
+    const original = api.stopGoalOccurrence.mock.calls[0][0];
+    await wrapper.get('[data-testid="stop-goal-occurrence"]').trigger("click");
+    await flushPromises();
+    expect(api.stopGoalOccurrence.mock.calls[1][0]).toEqual(original);
+  });
+  it("ends long-term follow-up separately and keeps pending termination distinct from ended", async () => {
+    await flushPromises();
+    api.endGoalFollowUp = vi.fn(async () =>
+      state({
+        goal: goal({ revision: 2, status: "abandoned" }),
+        executionState: "end-requested",
+        monitor: { enabled: 0 },
+      }),
+    );
+    await wrapper.get('[data-testid="refresh-goals"]').trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-testid="end-goal-follow-up"]').trigger("click");
+    await flushPromises();
+    expect(api.endGoalFollowUp).toHaveBeenCalledWith({
+      id: "g1",
+      expectedRevision: 1,
+    });
+    expect(api.stopGoalMonitoring).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("正在结束跟进");
+    expect(wrapper.find('[data-testid="resume-goal"]').exists()).toBe(false);
+  });
   it("saves an explicitly bounded idle goal", async () => {
     await flushPromises();
     await wrapper.get('[data-testid="goal-objective"]').setValue("New goal");

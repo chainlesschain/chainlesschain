@@ -28,6 +28,24 @@ const MAX_INTERVAL_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_CHECKS = 1_000;
 const CAPABILITY = "project.risk.read";
 const MAX_CHECK_BYTES = 4_096;
+const STOP_FIELDS = [
+  "schema",
+  "occurrenceId",
+  "goalId",
+  "actorDid",
+  "storeId",
+  "goalRevision",
+  "controlGeneration",
+  "requestId",
+  "expectedFence",
+  "payload",
+  "requestedAt",
+];
+const RUNTIME_CONTROL = Object.freeze({
+  schemaVersion: 1,
+  pauseResume: "checkpoint_v1",
+  safePoints: Object.freeze(["before_execute"]),
+});
 const PAYLOAD_FIELDS = [
   "storeId",
   "goalId",
@@ -151,6 +169,10 @@ class ProjectGoalMonitoringState {
         result_json TEXT NOT NULL,result_digest TEXT NOT NULL,checked_at INTEGER NOT NULL,
         elapsed_ms INTEGER NOT NULL CHECK(elapsed_ms>=0));
       CREATE INDEX IF NOT EXISTS idx_cc_project_goal_checks_goal ON cc_project_goal_checks(goal_id,actor_did,checked_at);
+      CREATE TABLE IF NOT EXISTS cc_project_goal_occurrence_stops (
+        occurrence_id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,
+        request_id TEXT NOT NULL,record_json TEXT NOT NULL,content_digest TEXT NOT NULL,
+        UNIQUE(goal_id,actor_did,request_id));
     `),
     );
   }
@@ -265,12 +287,20 @@ class ProjectGoalMonitoringState {
     });
   }
   pause(value) {
+    return this._endMonitoring(value, "paused");
+  }
+  endFollowUp(value) {
+    return this._endMonitoring(value, "abandoned");
+  }
+  _endMonitoring(value, status) {
     input(value, ["id", "expectedRevision"]);
     // Control generation and monitoring intent change in the same CAS tx.
     return this.adapter.compareAndSwap(
       value.id,
       value.expectedRevision,
       (goal) => {
+        if (goal.status === "done")
+          throw goalError("GOAL_MONITOR_ALREADY_COMPLETED");
         const monitor = this._monitor(goal.id, goal.ownerRef);
         if (monitor?.enabled) {
           if (!Number.isSafeInteger(monitor.revision + 1))
@@ -283,10 +313,206 @@ class ProjectGoalMonitoringState {
         }
         return reviseGoalRecord(
           goal,
-          { status: "paused" },
+          { status },
           new Date(epoch(this.clock())).toISOString(),
         );
       },
+    );
+  }
+  _stop(occurrenceId, goal, actor, payload = null) {
+    const row = this.db
+      .prepare(
+        `SELECT occurrence_id,goal_id,actor_did,request_id,
+      CASE WHEN length(CAST(record_json AS BLOB))<=${MAX_CHECK_BYTES} THEN record_json ELSE NULL END AS record_json,
+      content_digest FROM cc_project_goal_occurrence_stops WHERE occurrence_id=?`,
+      )
+      .get(id(occurrenceId));
+    if (!row) return null;
+    try {
+      const record = JSON.parse(row.record_json);
+      input(record, STOP_FIELDS);
+      this._payload(record.payload);
+      id(record.requestId);
+      if (
+        record.schema !== "chainlesschain.goal-occurrence-stop/v1" ||
+        record.occurrenceId !== row.occurrence_id ||
+        record.occurrenceId !== occurrenceId ||
+        record.goalId !== row.goal_id ||
+        record.goalId !== goal.id ||
+        record.actorDid !== row.actor_did ||
+        record.actorDid !== actor ||
+        record.requestId !== row.request_id ||
+        record.storeId !== goal.storeId ||
+        digest(record) !== row.content_digest ||
+        !Number.isSafeInteger(record.goalRevision) ||
+        record.goalRevision < record.payload.goalRevision ||
+        record.goalRevision > goal.revision ||
+        !Number.isSafeInteger(record.controlGeneration) ||
+        record.controlGeneration < record.payload.controlGeneration ||
+        record.controlGeneration > goal.controlGeneration ||
+        !Number.isSafeInteger(record.expectedFence) ||
+        record.expectedFence < 0 ||
+        record.payload.goalId !== goal.id ||
+        record.payload.storeId !== goal.storeId ||
+        (payload !== null && digest(record.payload) !== digest(payload))
+      )
+        throw new Error();
+      epoch(record.requestedAt);
+      return record;
+    } catch {
+      throw goalError("GOAL_MONITOR_STOP_CORRUPT");
+    }
+  }
+  _ownedOccurrence(goal, actor, occurrence, job) {
+    if (!occurrence || !job)
+      throw goalError("GOAL_MONITOR_OCCURRENCE_NOT_FOUND");
+    this._payload(occurrence.payload);
+    const payload = occurrence.payload;
+    if (
+      job.kind !== KIND ||
+      occurrence.jobId !== job.id ||
+      job.id !== jobId(goal, payload) ||
+      occurrence.jobRevision !== job.revision ||
+      payload.storeId !== goal.storeId ||
+      payload.goalId !== goal.id ||
+      payload.goalRevision > goal.revision ||
+      payload.controlGeneration > goal.controlGeneration ||
+      occurrence.authority.principal.type !== "user" ||
+      occurrence.authority.principal.id !== actor ||
+      occurrence.authority.workspaceId !== actor ||
+      digest(occurrence.authority) !== digest(job.authority) ||
+      digest(job.payload) !==
+        digest({
+          ...payload,
+          requestId: payload.requestId === null ? null : "manual",
+        }) ||
+      parseSchedulerAuthorityPolicyReference(
+        occurrence.authority.authorizationRefs.schedulerPolicyRevision,
+      ) !== payload.schedulerPolicyRevision ||
+      JSON.stringify(occurrence.authority.requestedCapabilities) !==
+        JSON.stringify([CAPABILITY])
+    )
+      throw goalError("GOAL_MONITOR_OCCURRENCE_MISMATCH");
+    // A manual occurrence must still name the original persisted request, even
+    // when its goal generation is historical. Controls never create requests.
+    if (payload.requestId !== null) {
+      const request = this.db
+        .prepare(
+          "SELECT * FROM cc_project_goal_manual_requests WHERE goal_id=? AND actor_did=? AND request_id=?",
+        )
+        .get(goal.id, actor, payload.requestId);
+      if (
+        !request ||
+        request.goal_revision !== payload.goalRevision ||
+        request.control_generation !== payload.controlGeneration ||
+        request.scheduler_policy_revision !== payload.schedulerPolicyRevision
+      )
+        throw goalError("GOAL_MONITOR_REQUEST_REQUIRED");
+    } else {
+      const monitor = this._monitor(goal.id, actor);
+      if (!monitor || monitor.revision < payload.monitorRevision)
+        throw goalError("GOAL_MONITOR_OCCURRENCE_MISMATCH");
+    }
+  }
+  stopOccurrence(value, readOccurrence) {
+    input(value, [
+      "id",
+      "expectedRevision",
+      "occurrenceId",
+      "expectedFence",
+      "requestId",
+    ]);
+    id(value.occurrenceId);
+    id(value.requestId);
+    if (!Number.isSafeInteger(value.expectedFence) || value.expectedFence < 0)
+      throw goalError("GOAL_MONITOR_INVALID_REQUEST");
+    return this._withGoal(value.id, (goal, actor) => {
+      if (goal.revision !== value.expectedRevision)
+        throw goalError("GOAL_REVISION_CONFLICT");
+      const { occurrence, job } = readOccurrence(value.occurrenceId);
+      this._ownedOccurrence(goal, actor, occurrence, job);
+      const stop = this._stop(occurrence.id, goal, actor, occurrence.payload);
+      if (
+        stop &&
+        (stop.requestId !== value.requestId ||
+          stop.expectedFence !== value.expectedFence)
+      )
+        throw goalError("GOAL_MONITOR_STOP_CONFLICT");
+      const check = this._check(occurrence.id);
+      if (check)
+        return {
+          goal,
+          occurrence,
+          stop: null,
+          result: this._validatedCheck(check, goal, actor, occurrence.payload),
+          alreadyFinished: true,
+        };
+      if (stop)
+        return { goal, occurrence, stop, result: null, alreadyFinished: false };
+      if (["succeeded", "dead_letter"].includes(occurrence.status))
+        return {
+          goal,
+          occurrence,
+          stop: null,
+          result: null,
+          alreadyFinished: true,
+        };
+      if (occurrence.fence !== value.expectedFence)
+        throw goalError("GOAL_MONITOR_FENCE_CONFLICT");
+      const priorRequest = this.db
+        .prepare(
+          "SELECT occurrence_id FROM cc_project_goal_occurrence_stops WHERE goal_id=? AND actor_did=? AND request_id=?",
+        )
+        .get(goal.id, actor, value.requestId);
+      if (priorRequest) throw goalError("GOAL_MONITOR_STOP_CONFLICT");
+      if (
+        this.db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM cc_project_goal_occurrence_stops WHERE goal_id=? AND actor_did=?",
+          )
+          .get(goal.id, actor).n >= MAX_CHECKS
+      )
+        throw goalError("GOAL_MONITOR_REQUEST_LIMIT");
+      const record = {
+        schema: "chainlesschain.goal-occurrence-stop/v1",
+        occurrenceId: occurrence.id,
+        goalId: goal.id,
+        actorDid: actor,
+        storeId: goal.storeId,
+        goalRevision: goal.revision,
+        controlGeneration: goal.controlGeneration,
+        requestId: value.requestId,
+        expectedFence: value.expectedFence,
+        payload: occurrence.payload,
+        requestedAt: epoch(this.clock()),
+      };
+      const body = JSON.stringify(record);
+      if (Buffer.byteLength(body, "utf8") > MAX_CHECK_BYTES)
+        throw goalError("GOAL_MONITOR_INVALID_REQUEST");
+      this.db
+        .prepare(
+          "INSERT INTO cc_project_goal_occurrence_stops VALUES (?,?,?,?,?,?)",
+        )
+        .run(
+          occurrence.id,
+          goal.id,
+          actor,
+          value.requestId,
+          body,
+          digest(record),
+        );
+      return {
+        goal,
+        occurrence,
+        stop: record,
+        result: null,
+        alreadyFinished: false,
+      };
+    });
+  }
+  occurrenceStop(goalId, occurrenceId, payload = null) {
+    return this._withGoal(goalId, (goal, actor) =>
+      this._stop(occurrenceId, goal, actor, payload),
     );
   }
   binding(goalId) {
@@ -522,6 +748,11 @@ class ProjectGoalMonitoringState {
         const old = this._check(occurrence.id);
         if (old) this._validatedCheck(old, goal, actor, occurrence.payload);
         else {
+          if (this._stop(occurrence.id, goal, actor, occurrence.payload))
+            return {
+              allowed: false,
+              reason: "GOAL_MONITOR_OCCURRENCE_STOPPED",
+            };
           const blocked = this._blocked(goal, actor);
           if (blocked) return { allowed: false, reason: blocked };
         }
@@ -560,6 +791,15 @@ class ProjectGoalMonitoringState {
           actor,
           context.occurrence.payload,
         );
+      if (
+        this._stop(
+          context.occurrence.id,
+          goal,
+          actor,
+          context.occurrence.payload,
+        )
+      )
+        throw goalError("GOAL_MONITOR_OCCURRENCE_STOPPED");
       const usage = this._usage(goal, actor);
       const blocked = this._blocked(goal, actor, usage);
       if (blocked) throw goalError(blocked);
@@ -632,11 +872,18 @@ class ProjectGoalMonitoringState {
         };
       });
       const usage = this._usage(goal, actor);
+      const stops = this.db
+        .prepare(
+          "SELECT occurrence_id FROM cc_project_goal_occurrence_stops WHERE goal_id=? AND actor_did=? ORDER BY rowid DESC LIMIT 20",
+        )
+        .all(goal.id, actor)
+        .map((row) => this._stop(row.occurrence_id, goal, actor));
       return {
         goal,
         monitor,
         history,
         usage,
+        stops,
         blockedReason: this._blocked(goal, actor, usage),
       };
     });
@@ -667,6 +914,7 @@ class ProjectGoalMonitoringEngine {
       adapters: [
         {
           kind: KIND,
+          runtimeControl: RUNTIME_CONTROL,
           execute: (context) =>
             this.state.perform(context, () => {
               const current = checkSchedulerAuthorityPolicy(
@@ -795,6 +1043,85 @@ class ProjectGoalMonitoringEngine {
     // does not prove that previously claimed work has already stopped.
     return this.status({ id: goal.id });
   }
+  endFollowUp(value) {
+    this._assertOpen();
+    const goal = this.state.endFollowUp(value);
+    return this.status({ id: goal.id });
+  }
+  stopOccurrence(value) {
+    this._assertOpen();
+    // Only project intent is canonical. Scheduler controls are a separate,
+    // recoverable projection; no cross-database atomicity is implied here.
+    const decision = this.state.stopOccurrence(value, (occurrenceId) => {
+      const occurrence = this.store.getOccurrence(occurrenceId);
+      return {
+        occurrence,
+        job: occurrence ? this.store.getJob(occurrence.jobId) : null,
+      };
+    });
+    if (decision.alreadyFinished)
+      return {
+        status: "already-finished",
+        goalId: decision.goal.id,
+        occurrenceId: decision.occurrence.id,
+        result: decision.result,
+        schedulerStatus: decision.occurrence.status,
+        projectionPending: false,
+      };
+    let projectionError = null;
+    try {
+      const occurrence = this.store.getOccurrence(decision.occurrence.id);
+      if (
+        occurrence?.status === "running" &&
+        occurrence.leaseExpiresAt > epoch(this.clock())
+      ) {
+        const control = this.store.getOccurrenceControl(occurrence.id);
+        if (!control || control.state === "terminal")
+          this.store.requestOccurrencePause({
+            occurrenceId: occurrence.id,
+            expectedFence: occurrence.fence,
+            expectedRevision: control?.revision ?? 0,
+            requestId: `goal-stop-${digest([decision.stop.requestId, occurrence.id, occurrence.fence]).slice(7)}`,
+            capability: this.runtime.runtimeControlFor(KIND),
+          });
+      }
+    } catch (error) {
+      projectionError = error.code ?? "GOAL_MONITOR_STOP_PROJECTION_FAILED";
+    }
+    return {
+      ...this._stopProjection(decision.stop),
+      result: null,
+      projectionError,
+    };
+  }
+  _stopProjection(stop) {
+    let occurrence, control;
+    try {
+      occurrence = this.store.getOccurrence(stop.occurrenceId);
+      control = this.store.getOccurrenceControl(stop.occurrenceId);
+      if (!occurrence || digest(occurrence.payload) !== digest(stop.payload))
+        throw new Error();
+    } catch {
+      return {
+        status: "stop-requested",
+        goalId: stop.goalId,
+        occurrenceId: stop.occurrenceId,
+        requestId: stop.requestId,
+        schedulerStatus: null,
+        projectionPending: true,
+      };
+    }
+    const pending = occurrence.status === "running";
+    return {
+      status: pending ? "stop-requested" : "stopped",
+      goalId: stop.goalId,
+      occurrenceId: stop.occurrenceId,
+      requestId: stop.requestId,
+      schedulerStatus: occurrence.status,
+      controlState: control?.state ?? null,
+      projectionPending: pending,
+    };
+  }
   checkNow(value) {
     return this._track(async (signal) => {
       const binding = this._manualBinding(value);
@@ -811,6 +1138,29 @@ class ProjectGoalMonitoringEngine {
       const outcome = await this.runtime.runOccurrence(occurrence.id, {
         signal,
       });
+      let stop = null;
+      try {
+        stop = this.state.occurrenceStop(
+          binding.goal.id,
+          occurrence.id,
+          payload,
+        );
+      } catch (error) {
+        // Revocation during execution already produced a rejected scheduler
+        // outcome. Do not expose stop history through the now-revoked actor.
+        if (
+          ![
+            "GOAL_NOT_FOUND_OR_DENIED",
+            "GOAL_IDENTITY_REQUIRED",
+            "GOAL_IDENTITY_CHANGED",
+            "GOAL_ORGANIZATION_UNSUPPORTED",
+            "GOAL_AUTHORITY_UNAVAILABLE",
+          ].includes(error.code)
+        )
+          throw error;
+      }
+      if (stop)
+        return { ...this._stopProjection(stop), result: null, error: null };
       const result =
         outcome.status === "succeeded"
           ? this.state.readCheck(outcome.occurrence)
@@ -898,19 +1248,28 @@ class ProjectGoalMonitoringEngine {
       (authority && !authority.allowed ? authority.reason : null);
     return {
       ...status,
+      stops: status.stops.map((stop) => this._stopProjection(stop)),
       blockedReason,
       executionState:
         active.length > 0
           ? status.goal.status === "active"
             ? "running"
-            : "pause-requested"
-          : status.goal.status === "paused"
-            ? "paused"
-            : blockedReason
-              ? "blocked"
-              : status.monitor?.enabled
-                ? "waiting"
-                : "idle",
+            : status.goal.status === "abandoned"
+              ? "end-requested"
+              : status.goal.status === "done"
+                ? "completion-draining"
+                : "pause-requested"
+          : status.goal.status === "abandoned"
+            ? "ended"
+            : status.goal.status === "done"
+              ? "completed"
+              : status.goal.status === "paused"
+                ? "paused"
+                : blockedReason
+                  ? "blocked"
+                  : status.monitor?.enabled
+                    ? "waiting"
+                    : "idle",
       active,
     };
   }

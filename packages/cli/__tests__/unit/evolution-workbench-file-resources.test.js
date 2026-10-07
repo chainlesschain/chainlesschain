@@ -4,7 +4,14 @@ import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { workbenchFileResourceOptions } from "../fixtures/evolution-workbench-file-resources.js";
 import { openWorkbenchRollbackStore } from "../fixtures/evolution-workbench-rollback.js";
-import { openEvolutionWorkbenchFileResources } from "../../src/lib/evolution/evolution-workbench-file-resources.js";
+import {
+  captureWorkbenchFileBackendBinding,
+  openEvolutionWorkbenchFileResources,
+} from "../../src/lib/evolution/evolution-workbench-file-resources.js";
+import {
+  captureEvolutionLedgerFileBackend,
+  captureEvolutionLedgerFileBackendBinding,
+} from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import { createEvolutionWorkbenchRegistrySource } from "../../src/lib/evolution/evolution-workbench-registry-source.js";
 
 const roots = [];
@@ -51,17 +58,91 @@ it("opens actual independent readers on empty persistence without seeding a run,
   expect(r.ledger).not.toBe(r.verifierLedger);
   expect(r.releaseRegistry).not.toBe(r.verifierReleaseRegistry);
   expect(r.transactionLedger).not.toBe(r.verifierTransactionLedger);
+  const binding = captureWorkbenchFileBackendBinding(first);
+  expect(captureWorkbenchFileBackendBinding(first)).toBe(binding);
+  expect(Object.isFrozen(binding)).toBe(true);
+  expect(Object.keys(binding).sort()).toEqual(["backend", "verifierBackend"]);
+  expect(binding.backend).not.toBe(binding.verifierBackend);
+  for (const [backend, ledger, resolver, otherLedger, otherResolver] of [
+    [
+      binding.backend,
+      r.ledger,
+      r.ledgerArtifactResolver,
+      r.verifierLedger,
+      r.verifierLedgerArtifactResolver,
+    ],
+    [
+      binding.verifierBackend,
+      r.verifierLedger,
+      r.verifierLedgerArtifactResolver,
+      r.ledger,
+      r.ledgerArtifactResolver,
+    ],
+  ]) {
+    expect(captureEvolutionLedgerFileBackend(backend)).toBe(backend);
+    expect(backend.ledger).toBe(ledger);
+    const original = captureEvolutionLedgerFileBackendBinding(backend);
+    expect(original.matchesLedger(ledger)).toBe(true);
+    expect(original.matchesArtifactResolver(resolver)).toBe(true);
+    expect(original.matchesLedger(otherLedger)).toBe(false);
+    expect(original.matchesArtifactResolver(otherResolver)).toBe(false);
+  }
   const source = createEvolutionWorkbenchRegistrySource(r);
   expect(source.load().registry.active).toBeNull();
   expect(source.load().registry.operations).toEqual([]);
   const before = r.ledger.verify();
   const reopened = openEvolutionWorkbenchFileResources(options);
   expect(reopened.runtimeResources.ledger.verify()).toEqual(before);
+  const reopenedBinding = captureWorkbenchFileBackendBinding(reopened);
+  expect(reopenedBinding).not.toBe(binding);
+  for (const name of ["backend", "verifierBackend"]) {
+    expect(reopenedBinding[name]).not.toBe(binding[name]);
+    expect(reopenedBinding[name].descriptor).toEqual(binding[name].descriptor);
+    expect(reopenedBinding[name].ledger).not.toBe(binding[name].ledger);
+    expect(
+      captureEvolutionLedgerFileBackendBinding(binding[name]).matchesLedger(
+        reopenedBinding[name].ledger,
+      ),
+    ).toBe(false);
+  }
+  expect(
+    captureEvolutionLedgerFileBackendBinding(
+      binding.backend,
+    ).matchesArtifactResolver(reopened.runtimeResources.ledgerArtifactResolver),
+  ).toBe(false);
+  const trap = vi.fn(() => {
+    throw new Error("backend capture evaluated proxy");
+  });
+  for (const forged of [
+    { ...first },
+    Object.create(first),
+    r,
+    new Proxy(first, { get: trap, getPrototypeOf: trap, ownKeys: trap }),
+  ])
+    expect(() => captureWorkbenchFileBackendBinding(forged)).toThrow(
+      /genuine Workbench file backend bindings/,
+    );
+  expect(trap).not.toHaveBeenCalled();
   expect(Object.keys(first).sort()).toEqual([
     "mutationPorts",
     "runtimeResources",
   ]);
   expect(first).not.toHaveProperty("workbenchHost");
+  expect(Object.keys(r).sort()).toEqual(
+    [
+      "descriptor",
+      "artifactPorts",
+      "ledger",
+      "ledgerArtifactResolver",
+      "releaseRegistry",
+      "transactionLedger",
+      "verifierLedger",
+      "verifierLedgerArtifactResolver",
+      "verifierReleaseRegistry",
+      "verifierTransactionLedger",
+      "now",
+    ].sort(),
+  );
   expect(r).not.toHaveProperty("identityProvider");
   expect(r).not.toHaveProperty("rollbackProvider");
   expect(Object.isFrozen(r)).toBe(true);

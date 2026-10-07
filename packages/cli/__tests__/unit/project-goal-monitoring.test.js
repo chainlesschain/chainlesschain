@@ -133,6 +133,55 @@ describe("native personal goal monitoring with an independent scheduler ledger",
     });
     expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 0 });
   });
+  it("distinguishes an independently completed goal from a completed check and drains old claims", async () => {
+    const {
+      ProjectGoalCompletionService,
+    } = require("@chainlesschain/session-core/project-goal-completion");
+    let g = goal();
+    const completion = new ProjectGoalCompletionService({
+      db,
+      getActor: () => actor,
+      clock: () => now,
+    });
+    g = completion.configure({
+      goalId: g.id,
+      expectedRevision: g.revision,
+      acceptanceCriteria: [
+        {
+          id: "tasks",
+          kind: "business-assertion",
+          description: "All project tasks completed",
+        },
+      ],
+      assertions: [{ criterionId: "tasks", type: "all-tasks-completed" }],
+    }).goal;
+    start(g);
+    const occurrence = queue(g);
+    store.claimOccurrence({
+      occurrenceId: occurrence.id,
+      ownerId: "old-worker",
+      leaseMs: 1000,
+    });
+    db.prepare("UPDATE project_tasks SET status='completed'").run();
+    expect(
+      completion.complete({
+        goalId: g.id,
+        expectedRevision: g.revision,
+        requestId: "complete",
+      }).completed,
+    ).toBe(true);
+    expect(engine.status({ id: g.id })).toMatchObject({
+      goal: { status: "done" },
+      monitor: { enabled: 0 },
+      executionState: "completion-draining",
+    });
+    now += 1001;
+    await engine.tick();
+    expect(engine.status({ id: g.id })).toMatchObject({
+      executionState: "completed",
+    });
+    expect(counts().checks).toBe(0);
+  });
   it("retains complete risk checks when proposal generation or lifetime capacity is truncated", async () => {
     const insert = db.prepare(
       "INSERT INTO project_tasks VALUES (?,?,?,?,0,?,NULL,NULL,NULL)",
@@ -665,6 +714,396 @@ describe("native personal goal monitoring with an independent scheduler ledger",
     );
     expect(engine.status({ id: g.id })).toMatchObject({
       goal: { status: "active", revision: 1 },
+      monitor: { enabled: 1 },
+    });
+  });
+  function stopRequest(g, occurrence, requestId = "stop-one") {
+    return {
+      id: g.id,
+      expectedRevision: g.revision,
+      occurrenceId: occurrence.id,
+      expectedFence: occurrence.fence,
+      requestId,
+    };
+  }
+  it("permanently stops one queued occurrence while leaving future monitoring enabled", async () => {
+    const g = goal();
+    start(g);
+    const queued = queue(g);
+    const command = stopRequest(g, queued);
+    expect(engine.stopOccurrence(command)).toMatchObject({
+      status: "stopped",
+      occurrenceId: queued.id,
+      schedulerStatus: "queued",
+      projectionPending: false,
+    });
+    expect(engine.stopOccurrence(command).status).toBe("stopped");
+    expect(await engine.checkNow(request(g))).toMatchObject({
+      status: "stopped",
+      occurrenceId: queued.id,
+      result: null,
+    });
+    expect(counts().checks).toBe(0);
+    expect(engine.status({ id: g.id })).toMatchObject({
+      goal: {
+        status: "active",
+        revision: g.revision,
+        controlGeneration: g.controlGeneration,
+      },
+      monitor: { enabled: 1 },
+      stops: [{ status: "stopped", occurrenceId: queued.id }],
+    });
+    await engine.tick();
+    expect(counts().checks).toBe(1);
+    expect(engine.status({ id: g.id }).monitor.enabled).toBe(1);
+    expect(engine.status({ id: g.id }).usage.checks).toBe(1);
+  });
+  it("persists a one-occurrence stop across host restart without replacing the original manual request", async () => {
+    const g = goal();
+    const queued = queue(g);
+    const command = stopRequest(g, queued);
+    engine.stopOccurrence(command);
+    await reopen();
+    expect(await engine.checkNow(request(g))).toMatchObject({
+      status: "stopped",
+      occurrenceId: queued.id,
+    });
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 1 });
+    expect(count("cc_project_goal_manual_requests")).toBe(1);
+    expect(count("cc_project_goal_occurrence_stops")).toBe(1);
+    expect((await engine.checkNow(request(g, "different-check"))).status).toBe(
+      "succeeded",
+    );
+  });
+  it("uses the kernel before-execute safe point but cannot resume a domain-stopped occurrence", async () => {
+    const g = goal();
+    let release, reached;
+    const barrier = new Promise((resolve) => {
+      reached = resolve;
+    });
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const authorize = engine.runtime.authorize;
+    vi.spyOn(engine.runtime, "authorize").mockImplementationOnce(
+      async (context) => {
+        const decision = await authorize(context);
+        reached(context.occurrence);
+        await gate;
+        return decision;
+      },
+    );
+    const pending = engine.checkNow(request(g));
+    const claimed = await barrier;
+    expect(engine.stopOccurrence(stopRequest(g, claimed))).toMatchObject({
+      status: "stop-requested",
+      controlState: "pause_requested",
+      projectionPending: true,
+    });
+    release();
+    expect(await pending).toMatchObject({
+      status: "stopped",
+      controlState: "paused",
+    });
+    const control = store.getOccurrenceControl(claimed.id);
+    expect(control.checkpoint).toMatchObject({
+      safePoint: "before_execute",
+      data: { adapterStarted: false },
+    });
+    store.resumeOccurrence({
+      occurrenceId: claimed.id,
+      expectedRevision: control.revision,
+      requestId: "external-resume",
+    });
+    expect(await engine.checkNow(request(g))).toMatchObject({
+      status: "stopped",
+      occurrenceId: claimed.id,
+    });
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 1 });
+  });
+  it("recovers a durable stop after scheduler projection failure and an expired claim", async () => {
+    const g = goal();
+    const queued = queue(g);
+    const claimed = store.claimOccurrence({
+      occurrenceId: queued.id,
+      ownerId: "crashed-host",
+      leaseMs: 60_000,
+    });
+    const projection = vi
+      .spyOn(store, "requestOccurrencePause")
+      .mockImplementation(() => {
+        throw Object.assign(new Error("busy"), { code: "SQLITE_BUSY" });
+      });
+    expect(engine.stopOccurrence(stopRequest(g, claimed))).toMatchObject({
+      status: "stop-requested",
+      projectionPending: true,
+      projectionError: "SQLITE_BUSY",
+    });
+    expect(count("cc_project_goal_occurrence_stops")).toBe(1);
+    projection.mockRestore();
+    await reopen();
+    now += 60_001;
+    await engine.tick();
+    expect(store.getOccurrence(queued.id).fence).toBeGreaterThan(claimed.fence);
+    expect(engine.status({ id: g.id }).stops[0]).toMatchObject({
+      status: "stopped",
+      projectionPending: false,
+    });
+    expect(counts().checks).toBe(0);
+    expect((await engine.checkNow(request(g))).status).toBe("stopped");
+  });
+  it("rechecks a stop at the project transaction even after the adapter was dispatched", async () => {
+    const g = goal();
+    let release, reached;
+    const barrier = new Promise((resolve) => {
+      reached = resolve;
+    });
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const adapter = engine.runtime.adapters.get("project-goal-risk"),
+      perform = adapter.execute;
+    adapter.execute = async (context) => {
+      reached(context.occurrence);
+      await gate;
+      return perform(context);
+    };
+    const pending = engine.checkNow(request(g));
+    const claimed = await barrier;
+    expect(engine.stopOccurrence(stopRequest(g, claimed)).status).toBe(
+      "stop-requested",
+    );
+    release();
+    expect((await pending).status).toBe("stopped");
+    expect(counts()).toEqual({ reviews: 0, checks: 0, occurrences: 1 });
+  });
+  it("rejects stale fences and conflicting stop identities before saving intent", () => {
+    const g = goal();
+    const queued = queue(g);
+    const claimed = store.claimOccurrence({
+      occurrenceId: queued.id,
+      ownerId: "other-host",
+      leaseMs: 60_000,
+    });
+    expect(() => engine.stopOccurrence(stopRequest(g, queued))).toThrow(
+      "GOAL_MONITOR_FENCE_CONFLICT",
+    );
+    expect(count("cc_project_goal_occurrence_stops")).toBe(0);
+    engine.stopOccurrence(stopRequest(g, claimed));
+    expect(() =>
+      engine.stopOccurrence(stopRequest(g, claimed, "changed-request")),
+    ).toThrow("GOAL_MONITOR_STOP_CONFLICT");
+    expect(() => engine.stopOccurrence(stopRequest(g, queued))).toThrow(
+      "GOAL_MONITOR_STOP_CONFLICT",
+    );
+    const another = queue(g, "another");
+    expect(() => engine.stopOccurrence(stopRequest(g, another))).toThrow(
+      "GOAL_MONITOR_STOP_CONFLICT",
+    );
+    expect(count("cc_project_goal_occurrence_stops")).toBe(1);
+  });
+  it.each(["owner", "identity", "goal", "manual-request"])(
+    "rejects a stop with changed %s binding",
+    (change) => {
+      const g = goal(),
+        queued = queue(g);
+      let command = stopRequest(g, queued);
+      if (change === "owner")
+        db.prepare("UPDATE projects SET user_id='did:other'").run();
+      if (change === "identity") actor = "did:other";
+      if (change === "goal") command = { ...command, id: goal().id };
+      if (change === "manual-request")
+        db.exec("DELETE FROM cc_project_goal_manual_requests");
+      expect(() => engine.stopOccurrence(command)).toThrow();
+      expect(count("cc_project_goal_occurrence_stops")).toBe(0);
+      expect(store.getOccurrenceControl(queued.id)).toBeNull();
+    },
+  );
+  it("rolls back stop intent if the project transaction cannot persist it", () => {
+    const g = goal(),
+      queued = queue(g);
+    const claimed = store.claimOccurrence({
+      occurrenceId: queued.id,
+      ownerId: "other-host",
+      leaseMs: 60_000,
+    });
+    db.exec(
+      "CREATE TRIGGER reject_stop BEFORE INSERT ON cc_project_goal_occurrence_stops BEGIN SELECT RAISE(ABORT,'stop failed'); END",
+    );
+    expect(() => engine.stopOccurrence(stopRequest(g, claimed))).toThrow(
+      "GOAL_STORAGE_FAILED",
+    );
+    expect(store.getOccurrenceControl(queued.id)).toBeNull();
+    expect(count("cc_project_goal_occurrence_stops")).toBe(0);
+  });
+  it("rechecks identity before committing stop intent and never projects a rolled-back stop", () => {
+    const g = goal(),
+      queued = queue(g);
+    const read = store.getOccurrence.bind(store);
+    vi.spyOn(store, "getOccurrence").mockImplementationOnce((key) => {
+      const occurrence = read(key);
+      actor = "did:other";
+      return occurrence;
+    });
+    expect(() => engine.stopOccurrence(stopRequest(g, queued))).toThrow(
+      "GOAL_IDENTITY_CHANGED",
+    );
+    expect(count("cc_project_goal_occurrence_stops")).toBe(0);
+    expect(store.getOccurrenceControl(queued.id)).toBeNull();
+  });
+  it("reports already-finished after canonical commit even before scheduler settlement", async () => {
+    const g = goal();
+    let release, reached;
+    const barrier = new Promise((resolve) => {
+      reached = resolve;
+    });
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const adapter = engine.runtime.adapters.get("project-goal-risk");
+    const perform = adapter.execute;
+    adapter.execute = async (context) => {
+      const result = perform(context);
+      reached({ occurrence: context.occurrence, result });
+      await gate;
+      return result;
+    };
+    const pending = engine.checkNow(request(g));
+    const committed = await barrier;
+    expect(
+      engine.stopOccurrence(stopRequest(g, committed.occurrence)),
+    ).toMatchObject({
+      status: "already-finished",
+      schedulerStatus: "running",
+      result: committed.result,
+      projectionPending: false,
+    });
+    expect(count("cc_project_goal_occurrence_stops")).toBe(0);
+    expect(store.getOccurrenceControl(committed.occurrence.id)).toBeNull();
+    release();
+    expect((await pending).status).toBe("succeeded");
+    expect(counts().checks).toBe(1);
+  });
+  it("atomically ends follow-up with a new control generation while retaining history", async () => {
+    const g = goal();
+    start(g);
+    const completed = await engine.checkNow(request(g));
+    const queued = queue(g, "pending-check");
+    const ended = engine.endFollowUp({
+      id: g.id,
+      expectedRevision: g.revision,
+    });
+    expect(ended).toMatchObject({
+      executionState: "ended",
+      goal: {
+        status: "abandoned",
+        revision: g.revision + 1,
+        controlGeneration: g.controlGeneration + 1,
+        completion: null,
+      },
+      monitor: { enabled: 0 },
+      history: [{ reviewId: completed.result.reviewId }],
+      usage: { checks: 1 },
+    });
+    expect(() =>
+      engine.endFollowUp({ id: g.id, expectedRevision: g.revision }),
+    ).toThrow("GOAL_REVISION_CONFLICT");
+    await reopen();
+    now += 120_000;
+    await engine.tick();
+    expect(counts()).toEqual({ reviews: 1, checks: 1, occurrences: 2 });
+    expect(store.getOccurrence(queued.id).status).toBe("dead_letter");
+    expect(engine.status({ id: g.id })).toMatchObject({
+      executionState: "ended",
+      goal: { status: "abandoned" },
+      monitor: { enabled: 0 },
+      history: [{ reviewId: completed.result.reviewId }],
+    });
+    expect(() => start(ended.goal)).toThrow("GOAL_MONITOR_NOT_ACTIVE");
+  });
+  it("does not claim termination while an earlier occurrence remains claimed", () => {
+    const g = goal(),
+      queued = queue(g);
+    store.claimOccurrence({
+      occurrenceId: queued.id,
+      ownerId: "other-host",
+      leaseMs: 60_000,
+    });
+    expect(
+      engine.endFollowUp({ id: g.id, expectedRevision: g.revision }),
+    ).toMatchObject({
+      executionState: "end-requested",
+      goal: { status: "abandoned" },
+      active: [{ id: queued.id }],
+    });
+  });
+  it("invalidates previous proposals and a pending native approval when ending follow-up", async () => {
+    db.exec(
+      "ALTER TABLE project_tasks ADD COLUMN task_type TEXT; ALTER TABLE project_tasks ADD COLUMN description TEXT; ALTER TABLE project_tasks ADD COLUMN created_at INTEGER; ALTER TABLE project_tasks ADD COLUMN sync_status TEXT; UPDATE project_tasks SET task_type='query_info',description='Original',created_at=updated_at,sync_status='synced'",
+    );
+    let g = goal();
+    g = engine.state.goals.revise({
+      id: g.id,
+      expectedRevision: g.revision,
+      patch: { allowedActionTypes: ["task.create", "task.update-description"] },
+    });
+    start(g);
+    await engine.checkNow(request(g));
+    const workflow = engine.state.workflow;
+    const proposal = workflow
+      .list({ goalId: g.id })
+      .proposals.find(
+        (item) => item.proposal.actionType === "task.create",
+      ).proposal;
+    const prepared = workflow.prepare({
+      goalId: g.id,
+      proposalId: proposal.id,
+      expectedRevision: g.revision,
+      requestId: "create-before-end",
+      description: "Owner follow-up",
+      taskType: "query_info",
+    });
+    const {
+      ApprovalGate,
+    } = require("@chainlesschain/session-core/approval-gate");
+    const confirm = vi.fn(async () => {
+      engine.endFollowUp({ id: g.id, expectedRevision: g.revision });
+      return true;
+    });
+    workflow.createActions.approvalGate = new ApprovalGate({ confirm });
+    await expect(
+      workflow.execute({ intentId: prepared.intent.id }),
+    ).rejects.toThrow("ACTION_GOAL_REVISION_CONFLICT");
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(count("project_tasks")).toBe(1);
+    expect(
+      workflow.list({ goalId: g.id }).proposals.every((item) => !item.current),
+    ).toBe(true);
+    expect(workflow.getIntent({ intentId: prepared.intent.id })).toMatchObject({
+      intent: { status: "denied" },
+      receipt: { run: { status: "denied" } },
+    });
+    expect(engine.status({ id: g.id })).toMatchObject({
+      goal: { status: "abandoned" },
+      monitor: { enabled: 0 },
+      usage: { checks: 1, totalRuns: 1 },
+    });
+  });
+  it("rolls back monitoring disable and generation changes when ending cannot commit", () => {
+    const g = goal();
+    start(g);
+    db.exec(
+      "CREATE TRIGGER refuse_end BEFORE UPDATE ON cc_project_goals BEGIN SELECT RAISE(ABORT,'cannot end'); END",
+    );
+    expect(() =>
+      engine.endFollowUp({ id: g.id, expectedRevision: g.revision }),
+    ).toThrow("GOAL_STORAGE_FAILED");
+    expect(engine.status({ id: g.id })).toMatchObject({
+      goal: {
+        status: "active",
+        revision: g.revision,
+        controlGeneration: g.controlGeneration,
+      },
       monitor: { enabled: 1 },
     });
   });

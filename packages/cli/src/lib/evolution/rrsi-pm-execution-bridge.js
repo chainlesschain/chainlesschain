@@ -1,7 +1,11 @@
 /** RRSI accounting around an existing PM host. No provider or signing factory. */
 import { isProxy } from "node:util/types";
 import { captureRrsiHistoryLedgerAdapter } from "./rrsi-history-ledger-adapter.js";
-import { recheckRrsiEffectiveParent } from "./rrsi-parent-binding.js";
+import {
+  recheckRrsiEffectiveParent,
+  assertRrsiEffectiveParentHistory,
+  RRSI_PARENT_BINDING_V2_SCHEMA,
+} from "./rrsi-parent-binding.js";
 import { verifyRrsiCampaign, RRSI_BUDGET_FIELDS } from "./rrsi-contracts.js";
 import {
   RRSI_PREPARATION_RESERVATION_SCHEMA_V2,
@@ -84,6 +88,8 @@ export function bindRrsiPmRuntime(bridge, parentBinding, mode) {
   recheckRrsiEffectiveParent(parentBinding);
   if (parentBinding.descriptor.campaignDigest !== state.campaign.campaignDigest)
     rrsiFail("effective parent is bound to another campaign");
+  if (parentBinding.descriptor.schema === RRSI_PARENT_BINDING_V2_SCHEMA)
+    assertRrsiEffectiveParentHistory(parentBinding, state.history);
   if (
     state.runtimeBinding &&
     (state.runtimeBinding.parentBinding !== parentBinding ||

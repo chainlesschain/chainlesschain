@@ -97,6 +97,36 @@ describe("cross-domain personal goal usage reservations", () => {
       }),
     ).toThrow("GOAL_USAGE_OPERATION_CONFLICT");
   });
+  it("accounts for independent native verification in the same cumulative run and time limits", () => {
+    const g = goal({ maxRuns: 1, maxTimeMs: 10 });
+    reserve(g, "verify", { domain: "native-verifier" });
+    settle(g, "verify", "settled", {
+      runs: 1,
+      tokens: 0,
+      costUsd: 0,
+      elapsedMs: 3,
+    });
+    expect(summary(g)).toMatchObject({
+      totalRuns: 1,
+      elapsedMs: 3,
+      modelTokens: 0,
+      modelCostUsd: 0,
+    });
+    expect(() => reserve(g, "next")).toThrow("GOAL_USAGE_BUDGET_EXHAUSTED");
+  });
+  it.each([
+    { tokens: 1, costUsd: 0 },
+    { tokens: 0, costUsd: 1 },
+  ])("rejects model charges on a native verifier domain: %j", (charges) => {
+    const g = goal({ maxRuns: 2 });
+    expect(() =>
+      reserve(g, "verify", {
+        domain: "native-verifier",
+        estimate: { runs: 1, elapsedMs: 0, ...charges },
+      }),
+    ).toThrow("GOAL_USAGE_INVALID_REQUEST");
+    expect(summary(g).totalRuns).toBe(0);
+  });
   it("does not report unsettled model usage or cost as zero", () => {
     const g = goal({ maxRuns: 2 });
     reserve(g, "model", {
