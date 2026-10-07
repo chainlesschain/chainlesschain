@@ -2775,7 +2775,9 @@ export class SkillReleaseRegistry {
       // Authenticate the original port object before reading any caller method.
       this.#storeBinding.assertTransactionLedger(transactionLedger);
       this.#storeBinding.recheckForOpen();
-      this.#runtimeMode = "uninitialized";
+      this.#runtimeMode = this.#storeBinding.runtimeDirectories
+        ? "authenticated-empty-read-only"
+        : "uninitialized";
     } else assertOutsideRrsiRegistryNamespace(requestedBase);
     if (
       !transactionLedger ||
@@ -2832,7 +2834,8 @@ export class SkillReleaseRegistry {
         this.#rootIdentity = this.#boundaries.tenantRoot.identity;
         this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
         this.#markerIdentity = this.#storeBinding.marker.identity;
-        this.#directories = deepFreeze({});
+        this.#directories =
+          this.#storeBinding.runtimeDirectories ?? deepFreeze({});
         this.#assertBoundary();
       } else {
         const base = this.#initializeDirectory(requestedBase, {
@@ -3972,7 +3975,11 @@ export class SkillReleaseRegistry {
 
   #readRelease(releaseDigest) {
     const expected = digest(releaseDigest, "releaseDigest");
-    if (this.#runtimeMode === "uninitialized") {
+    if (
+      ["uninitialized", "authenticated-empty-read-only"].includes(
+        this.#runtimeMode,
+      )
+    ) {
       this.#assertBoundary();
       throw failure("SKILL_RELEASE_NOT_FOUND", "release was not found");
     }
@@ -4011,7 +4018,11 @@ export class SkillReleaseRegistry {
 
   #readStateRaw(name) {
     const normalizedName = skillName(name);
-    if (this.#runtimeMode === "uninitialized") {
+    if (
+      ["uninitialized", "authenticated-empty-read-only"].includes(
+        this.#runtimeMode,
+      )
+    ) {
       this.#assertBoundary();
       return initialState(normalizedName, this.tenantId);
     }
@@ -4190,7 +4201,11 @@ export class SkillReleaseRegistry {
 
   #readInventory() {
     this.#assertBoundary();
-    if (this.#runtimeMode === "uninitialized")
+    if (
+      ["uninitialized", "authenticated-empty-read-only"].includes(
+        this.#runtimeMode,
+      )
+    )
       return deepFreeze({ active: [], releases: [] });
     const releasePattern = /^[a-f0-9]{64}\.json$/u;
     const statePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.json$/u;

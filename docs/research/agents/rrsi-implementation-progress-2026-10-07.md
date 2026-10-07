@@ -411,3 +411,29 @@ Astra 参与诊断、实现复核和测试拆分。两个复合用例拆为六�
 初轮观察器错误地把原 journal 的维护锁计为 Registry 写入，结果为 10 项通过、15 项失败；随后两轮为 28/30、118/120，剩余两项同样来自观察器漏掉原 source journal 的 `ledger-v2.lock` 清理。定向诊断捕获了真实 `authority/ledger-v2.lock.release-*` 路径，最终仅精确放行同 authority 下的 source 与 manifest-cutover 锁族，没有放宽整片 authority 或 Registry/policy namespace。原生 ACL 观察同时覆盖 JSON 批量与 args 单路径 repair；Buffer 路径兼容不被宣称为上述失败的实际原因。Astra 又发现最后六个反例误放在旧测试回调内，已仅停止经 PID/命令核对的自有 runner/worker，移至 describe 层后重新收集并完整重跑，中断不计通过证据。原生预算和校验器未放宽。
 
 提交前 ESLint、Prettier 与 Astra 只读复核通过；所有先前发现已落实到代码与反例。下一批实施独立认证的运行目录初始化与 tenant＋真实 UTF-8 contentDigest 来源关联，再接候选 alias、发布事务与恢复的来源准入；本批仍不表示整个 RRSI 已完成。
+
+## 23 空运行目录的独立认证初始化
+
+[rrsi-registry-runtime-policy.js](../../../packages/cli/src/lib/evolution/rrsi-registry-runtime-policy.js) 仅接收原真正 store-policy、v2 backend、ArtifactPorts 和 resolver，关联既有 committed provisioning 摘要与同一 journal identity。专用 `skill-registry-runtime-policy` artifact 保留在原 Ledger；`rrsi.registry-runtime.initialized` 事件保存 prepared、六个依次 installed 阶段及 committed，共八条不同的确定性事件。重放检查完整连续日志、scope、顺序、前驱 ref/digest、observed head、原配对准备记录和 canonical retention 回读，拒绝额外第九条同类事件。
+
+六个 Release 运行目录由非递归 mkdir 创建，记录实际 path/dev:ino 和目录项 fsync 结果。创建和原生 ACL 修复前、artifact 发布前、事件 CAS 前均复验本次维护锁归属；权限检查前后复验目录身份。只允许已登记前缀完整有效、未登记后缀全部不存在的恢复。mkdir 已成功而 installed 尚未持久化时，目录留在原处并永久 HOLD，不扫描采纳、不删除、不用新的身份覆盖。已登记目录缺失、被替换、含未知业务或恢复内容时亦 HOLD，不补建或 cleanup。initialize/recover 的 ENOENT、ENOTDIR 映射为精确 HOLD 并保留 cause；committed 幂等恢复仍只读检查父目录、原七目录和六个运行目录的实时私有权限，不修复调用者或已登记路径。
+
+为避免每次物理检查重新解析同一完整日志，store-policy 的内部 capture 仅在本次 runtime state 生命周期内保存认证快照。其无参数 recheck 闭包固定原 head，并复验原七个目录、双 marker 字节和身份、原 journal 的完整五字段 head；调用者不能替换快照或静默重基。每次公开操作起点和每次追加后仍重新完整认证两类历史与引用产物。它不持续证明缓存期间 artifact 的实时可用性，后续完整 capture 才重新解析；也不提供跨文件原子快照。原 journal 的合法维护锁和 WAL/checkpoint 恢复继续采用既有协议。
+
+Registry 必须显式接收同原 policy 的真正 runtime attachment；复制、跨 policy、错 backend/ports/resolver 或 accessor/proxy 组合不能取得品牌。旧绑定不会自动升级，无 attachment 时仍要求 marker-only 布局。Release 的私有模式为 `authenticated-empty-read-only`，使用认证的六目录但仅返回空 inventory、revision=0 和既有 NOT_FOUND；构造仍不创建 writer control、不恢复事务、不清理现场。公开及私有业务写入、迁移、lease、finalization、来源准入和晋级继续 HOLD。
+
+既有 ORIGIN_POLICY、provisioning/marker 的不可变摘要与 writer floor 保持原值；originCutoverAuthenticated、originClassificationAvailable、legacyWriterDrainVerified、productionAuthorityVerified、业务写权限和晋级资格继续为 false。Windows 不支持的目录 fsync 如实记录 false。内部维护入口仅供模块自己的可信同步闭包使用，执行后的 Promise 检查不是外部异步代码的撤销或 sandbox 能力；已经进入原生 helper 或原 journal 的操作亦不能靠后检撤销。本层仍不证明真实断电耐久性、生产密钥保管或历史二进制全部排空。
+
+本批已取得 **248 项不同用例的通过结果**：新增 runtime 单元 **18 项**、真实子进程 **16 项**，八个既有 Registry／History／ArtifactPorts／Ledger ports 文件 **189 项**，以及 store-policy **25 项**。store-policy 的通过结果来自完整运行的 22 项、原生独立复测的 1 项和分阶段恢复复测的 2 项；不宣称旧九文件组合或最后一次 store-policy 完整文件全绿。ArtifactPorts 保留原有 Windows symlink 条件跳过 1 项；定向选择未执行的用例不算新增平台 skip。观察器最终四项复测 **4/4** 通过，其余 12 项按名称过滤；重复行为不会增加上述独立用例计数。
+
+最初 genuine ref 的自定义 prototype 导致初始化失败，改为读取原对象自己的数据描述符后保留其严格限制。随后两轮初始化 hook 的 60 秒聚合超时，11 项用例均未执行，不计通过；同 head 捕获减少重复历史解析后，八阶段完整操作仍需更长的聚合期限。后续原生组合为 29 项通过、5 项失败，包含聚合期限、冻结 prototype spy、两个合并子进程 watchdog 和 parent 权限 HOLD 诊断缺失；调整独立观察边界、真实 artifact 树断言及 cause 保留后，新两个完整文件 **34/34** 通过。初始化 hook 与进程外层为 180 秒，child watchdog 为 170 秒；单独 runtime read 仍为 60 秒，原生 ACL helper 的默认 15／30 秒预算和全部校验未改。
+
+旧九文件回归曾为 208 项通过、6 项失败和 1 项原有跳过；失败集中在 store-policy，五项为原 60 秒复合用例超时，另一个 parent 用例为原生 ACL timeout-startup，不能改称聚合超时。拆分真实 fixture、provisioning、reopen 等准备阶段后，定向结果为 6 项通过、1 项诊断字段断言失败、18 项名称过滤未执行；修正 batch 中不存在的 ownerOnly 断言后，完整 store-policy 为 **22/25**。三项失败均含原生 ACL startup 错误：phase 2 在 manifest fixture 失败，prepared response-loss 在 parent fixture 失败；phase 3 已进入 provisionFresh，报告不能排除此前写入，也未保留原错误堆栈和 fired 状态。phase 3 实际同步阻塞 323.8 秒，虽然仍配置 60 秒，测试计时器不能及时中断。
+
+三项原生独立复测取得 1 项通过、2 项失败：prepared response-loss 通过；phase 2 再次 ACL 启动失败，实际 112.8 秒；phase 3 为 60 秒聚合超时，实际 66.9 秒。最后两项仅将 fixture、预期 after-head 中断及同目录 backend reopen 分为三个独立 60 秒 hook，恢复行为仍独立 60 秒，所有原 head／fired／目录／committed／三事件／幂等断言保留；最终 **2/2** 通过。此举分开准备和行为预算，并非保留一个端到端 60 秒总期限；没有放宽原生 helper。沙箱外复测亦出现 startup 错误，不能据此确认沙箱为根因。原失败结果、实际耗时及九个最终源码／测试文件摘要见 [运行目录验证记录](./evidence/rrsi-registry-runtime-local-controls-2026-10-07.json)，原 reporter 文件继续保留在本地 .work 中。原生完整运行后的 fixture 仅改两处空值诊断访问；两项恢复测试拆分区间外的源码与前置备份逐字节一致，未重写旧通过项。提交前 ESLint、Prettier 和 Astra 复核通过；未运行 Linux/macOS 发行矩阵，亦未进行真实付费 A/B/C 实验或生产晋级。
+
+下一步仍需 tenant＋真实 UTF-8 Skill text digest 的永久来源登记，明确它与 RRSI aggregate manifest digest 的不同语义；之后接入候选 alias、发布事务与恢复、Review/Pilot/Promotion 必需来源门。完整 RRSI、真实 A/B/C 试验和生产组装尚未完成。
+
+Astra 的下一层只读设计复核确认：Registry 文本摘要不裁剪、不统一换行；新证据需区分 skillTextDigest、rrsiManifestDigest、rrsiCandidateDigest 和 candidateId。现有 native History 仍为 nativeContentDerivationVerified:false、sourceProvenanceVerified:false，不能仅凭真正 History 品牌把内容声明升级为来源证明。真实生成／准备边界、原文 UTF-8 往返一致性、BOM/CRLF/Unicode，以及登记后公开前／alias finalize 前的未知窗口，均需在后续实施中明确；本节没有实现或授予这些能力。
+
+来源文本的有界存储还需同时满足 RRSI 单字符串最多 8192 个 JavaScript code unit，以及 ArtifactPorts 整份 canonical record 最多 1 MiB 的两处独立限额。最大 1 MiB 原文直接装入 JSON/base64 artifact 会因编码与元数据开销超过后者；后续采用独立 retained text manifest 与有限数量、有限大小的 chunk 引用，并以重建的实际原文 UTF-8 bytes 计算 skillTextDigest，不提高既有限额。当前 PM 签名执行 payload 仅含 memory／trace 摘要，learning 的签名 synthesis receipt 证明评估而非 RRSI 文本生成来源；二者均不能直接升级成来源权威。

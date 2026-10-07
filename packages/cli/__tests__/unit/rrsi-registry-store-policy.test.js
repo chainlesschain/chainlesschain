@@ -447,54 +447,74 @@ describe("authenticated fresh Registry provisioning before Registry construction
     expect(policyEvents(store)).toHaveLength(0);
   }, 60_000);
 
-  it.each(["candidate", "release"])(
-    "never repairs a missing committed %s marker or accepts a same-bytes replacement",
+  describe.sequential.each(["candidate", "release"])(
+    "committed %s marker identity",
     (name) => {
-      const { root, policy, request } = fixture();
-      const result = policy.provisionFresh(request);
-      const target = markerPath(result.prepared, name);
-      const original = fs.readFileSync(target);
-      fs.renameSync(target, path.join(root, "retired-marker"));
-      expect(() => policy.read(request.operationId)).toThrow();
-      expect(() => policy.recover(request.operationId)).toThrow();
-      expect(() => policy.provisionFresh(request)).toThrow();
-      expect(fs.existsSync(target)).toBe(false);
-      fs.writeFileSync(target, original, { flag: "wx" });
-      expect(() => policy.read(request.operationId)).toThrow(
-        /physical identity/,
-      );
-      expect(fs.readFileSync(target)).toEqual(original);
+      const sharedRoots = [];
+      let root, policy, request, result;
+      beforeAll(() => {
+        ({ root, policy, request } = fixture({}, sharedRoots));
+      }, 60_000);
+      beforeAll(() => {
+        result = policy.provisionFresh(request);
+      }, 60_000);
+      afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+      it(`never repairs a missing committed ${name} marker or accepts a same-bytes replacement`, () => {
+        const target = markerPath(result.prepared, name);
+        const original = fs.readFileSync(target);
+        fs.renameSync(target, path.join(root, "retired-marker"));
+        expect(() => policy.read(request.operationId)).toThrow();
+        expect(() => policy.recover(request.operationId)).toThrow();
+        expect(() => policy.provisionFresh(request)).toThrow();
+        expect(fs.existsSync(target)).toBe(false);
+        fs.writeFileSync(target, original, { flag: "wx" });
+        expect(() => policy.read(request.operationId)).toThrow(
+          /physical identity/,
+        );
+        expect(fs.readFileSync(target)).toEqual(original);
+      }, 60_000);
     },
-    60_000,
   );
 
-  it("rejects directory replacement, lowered marker floors and unknown bootstrap files", () => {
-    const { root, policy, request } = fixture();
-    const result = policy.provisionFresh(request);
-    const target = markerPath(result.prepared, "candidate");
-    const original = fs.readFileSync(target);
-    const altered = JSON.parse(original);
-    altered.writerFloor = 1;
-    const { markerDigest: ignoredDigest, ...core } = altered;
-    fs.writeFileSync(
-      target,
-      `${rrsiCanonical({ ...core, markerDigest: rrsiHash(core.schema, core) })}\n`,
-    );
-    expect(ignoredDigest).toBeDefined();
-    expect(() => policy.read(request.operationId)).toThrow(/floor differ/);
-    fs.writeFileSync(target, original);
-    const extra = path.join(result.prepared.release.rootDir, "unexpected.tmp");
-    fs.writeFileSync(extra, "TEST ONLY debris");
-    expect(() => policy.recover(request.operationId)).toThrow(/inventory/);
-    fs.unlinkSync(extra);
-    const candidateRoot = result.prepared.candidate.rootDir;
-    fs.renameSync(candidateRoot, path.join(root, "retired-directory"));
-    fs.mkdirSync(candidateRoot);
-    fs.writeFileSync(target, original);
-    expect(() => policy.read(request.operationId)).toThrow(
-      /directory identity/,
-    );
-  }, 60_000);
+  describe.sequential("committed physical and marker tampering", () => {
+    const sharedRoots = [];
+    let root, policy, request, result;
+    beforeAll(() => {
+      ({ root, policy, request } = fixture({}, sharedRoots));
+    }, 60_000);
+    beforeAll(() => {
+      result = policy.provisionFresh(request);
+    }, 60_000);
+    afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+    it("rejects directory replacement, lowered marker floors and unknown bootstrap files", () => {
+      const target = markerPath(result.prepared, "candidate");
+      const original = fs.readFileSync(target);
+      const altered = JSON.parse(original);
+      altered.writerFloor = 1;
+      const { markerDigest: ignoredDigest, ...core } = altered;
+      fs.writeFileSync(
+        target,
+        `${rrsiCanonical({ ...core, markerDigest: rrsiHash(core.schema, core) })}\n`,
+      );
+      expect(ignoredDigest).toBeDefined();
+      expect(() => policy.read(request.operationId)).toThrow(/floor differ/);
+      fs.writeFileSync(target, original);
+      const extra = path.join(
+        result.prepared.release.rootDir,
+        "unexpected.tmp",
+      );
+      fs.writeFileSync(extra, "TEST ONLY debris");
+      expect(() => policy.recover(request.operationId)).toThrow(/inventory/);
+      fs.unlinkSync(extra);
+      const candidateRoot = result.prepared.candidate.rootDir;
+      fs.renameSync(candidateRoot, path.join(root, "retired-directory"));
+      fs.mkdirSync(candidateRoot);
+      fs.writeFileSync(target, original);
+      expect(() => policy.read(request.operationId)).toThrow(
+        /directory identity/,
+      );
+    }, 60_000);
+  });
 
   it("preserves the v2 winner and private debris when the second marker publication fails", () => {
     const { store, policy, request } = fixture();
@@ -557,88 +577,112 @@ describe("authenticated fresh Registry provisioning before Registry construction
     expect(policyEvents(store)).toHaveLength(1);
   }, 60_000);
 
-  it("recovers prepared only when both original single-link markers were fully installed", () => {
-    const { root, store, policy, request } = fixture();
-    const unlink = fs.unlinkSync;
-    let stopped = false;
-    const interruption = vi
-      .spyOn(fs, "unlinkSync")
-      .mockImplementation((target) => {
-        const result = unlink(target);
-        if (
-          !stopped &&
-          target.includes(`${path.sep}release${path.sep}`) &&
-          path.basename(target).startsWith(".rrsi-marker-")
-        ) {
-          stopped = true;
-          throw new Error("TEST ONLY stopped after second marker cleanup");
-        }
-        return result;
-      });
-    expect(() => policy.provisionFresh(request)).toThrow(
-      /second marker cleanup/,
-    );
-    interruption.mockRestore();
-    expect(policyEvents(store)).toHaveLength(1);
-    const prepared = preparedFrom(store);
-    const markers = ["candidate", "release"].map((name) =>
-      fs.readFileSync(markerPath(prepared, name)),
-    );
-    const reopenedStore = openLedgerV2Fixture(path.join(root, "store"), scope);
-    const recovered = createRrsiRegistryStorePolicy(
-      composition(reopenedStore),
-    ).recover(request.operationId);
-    expect(recovered.phase).toBe("committed");
-    expect(recovered.prepared).toEqual(prepared);
-    expect(policyEvents(reopenedStore)).toHaveLength(3);
-    expect(
-      ["candidate", "release"].map((name) =>
+  describe.sequential("prepared single-link marker recovery", () => {
+    const sharedRoots = [];
+    let root, store, policy, request, prepared, markers, reopenedStore;
+    beforeAll(() => {
+      ({ root, store, policy, request } = fixture({}, sharedRoots));
+    }, 60_000);
+    beforeAll(() => {
+      const unlink = fs.unlinkSync;
+      let stopped = false;
+      const interruption = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation((target) => {
+          const result = unlink(target);
+          if (
+            !stopped &&
+            target.includes(`${path.sep}release${path.sep}`) &&
+            path.basename(target).startsWith(".rrsi-marker-")
+          ) {
+            stopped = true;
+            throw new Error("TEST ONLY stopped after second marker cleanup");
+          }
+          return result;
+        });
+      try {
+        expect(() => policy.provisionFresh(request)).toThrow(
+          /second marker cleanup/,
+        );
+      } finally {
+        interruption.mockRestore();
+      }
+      expect(policyEvents(store)).toHaveLength(1);
+      prepared = preparedFrom(store);
+      markers = ["candidate", "release"].map((name) =>
         fs.readFileSync(markerPath(prepared, name)),
-      ),
-    ).toEqual(markers);
-  }, 60_000);
+      );
+    }, 60_000);
+    beforeAll(() => {
+      reopenedStore = openLedgerV2Fixture(path.join(root, "store"), scope);
+    }, 60_000);
+    afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+    it("recovers prepared only when both original single-link markers were fully installed", () => {
+      const recovered = createRrsiRegistryStorePolicy(
+        composition(reopenedStore),
+      ).recover(request.operationId);
+      expect(recovered.phase).toBe("committed");
+      expect(recovered.prepared).toEqual(prepared);
+      expect(policyEvents(reopenedStore)).toHaveLength(3);
+      expect(
+        ["candidate", "release"].map((name) =>
+          fs.readFileSync(markerPath(prepared, name)),
+        ),
+      ).toEqual(markers);
+    }, 60_000);
+  });
 
-  it.each([2, 3])(
-    "recovers retained phase %i after a real manifest head commit loses its response",
+  describe.sequential.each([2, 3])(
+    "staged retained response loss at phase %i",
     (phase) => {
+      const sharedRoots = [];
       let armed = false,
         fired = false,
         baseline = 0;
-      const { root, store, policy, request } = fixture({
-        fault(current, counts) {
-          if (
-            armed &&
-            !fired &&
-            current === "after-head" &&
-            counts.head === baseline + phase
-          ) {
-            fired = true;
-            throw new Error("TEST ONLY retained response lost");
-          }
-        },
-      });
-      baseline = store.manifest.counts.head;
-      armed = true;
-      expect(() => policy.provisionFresh(request)).toThrow(
-        /commit is uncertain/,
-      );
-      expect(fired).toBe(true);
-      const names = fs.readdirSync(request.parentDir);
-      const reopenedStore = openLedgerV2Fixture(
-        path.join(root, "store"),
-        scope,
-      );
-      expect(policyEvents(reopenedStore)).toHaveLength(phase);
-      const reopened = createRrsiRegistryStorePolicy(
-        composition(reopenedStore),
-      );
-      const recovered = reopened.recover(request.operationId);
-      expect(recovered.phase).toBe("committed");
-      expect(policyEvents(reopenedStore)).toHaveLength(3);
-      expect(fs.readdirSync(request.parentDir)).toEqual(names);
-      expect(reopened.recover(request.operationId)).toEqual(recovered);
+      let root, store, policy, request, names, reopenedStore;
+      beforeAll(() => {
+        ({ root, store, policy, request } = fixture(
+          {
+            fault(current, counts) {
+              if (
+                armed &&
+                !fired &&
+                current === "after-head" &&
+                counts.head === baseline + phase
+              ) {
+                fired = true;
+                throw new Error("TEST ONLY retained response lost");
+              }
+            },
+          },
+          sharedRoots,
+        ));
+      }, 60_000);
+      beforeAll(() => {
+        baseline = store.manifest.counts.head;
+        armed = true;
+        expect(() => policy.provisionFresh(request)).toThrow(
+          /commit is uncertain/,
+        );
+        expect(fired).toBe(true);
+        names = fs.readdirSync(request.parentDir);
+      }, 60_000);
+      beforeAll(() => {
+        reopenedStore = openLedgerV2Fixture(path.join(root, "store"), scope);
+      }, 60_000);
+      afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+      it(`recovers retained phase ${phase} after a real manifest head commit loses its response`, () => {
+        expect(policyEvents(reopenedStore)).toHaveLength(phase);
+        const reopened = createRrsiRegistryStorePolicy(
+          composition(reopenedStore),
+        );
+        const recovered = reopened.recover(request.operationId);
+        expect(recovered.phase).toBe("committed");
+        expect(policyEvents(reopenedStore)).toHaveLength(3);
+        expect(fs.readdirSync(request.parentDir)).toEqual(names);
+        expect(reopened.recover(request.operationId)).toEqual(recovered);
+      }, 60_000);
     },
-    60_000,
   );
 
   it("keeps a retained prepared operation without markers on HOLD after response loss", () => {
@@ -668,37 +712,51 @@ describe("authenticated fresh Registry provisioning before Registry construction
     expect(fs.readdirSync(request.parentDir)).toEqual([prepared.namespaceId]);
   }, 60_000);
 
-  it("retains orphans from failed allocation and never adopts caller-selected debris", () => {
-    const { policy, request, store } = fixture();
-    const mkdir = fs.mkdirSync;
-    let fail = true;
-    const failed = vi
-      .spyOn(fs, "mkdirSync")
-      .mockImplementation((target, options) => {
-        if (
-          fail &&
-          path.basename(target) === "candidate" &&
-          target.includes("pair.")
-        ) {
-          fail = false;
-          throw new Error("TEST ONLY allocation stopped");
-        }
-        return mkdir(target, options);
-      });
-    expect(() => policy.provisionFresh(request)).toThrow(/allocation stopped/);
-    failed.mockRestore();
-    const orphans = fs.readdirSync(request.parentDir);
-    expect(orphans).toHaveLength(1);
-    expect(policyEvents(store)).toHaveLength(0);
-    const result = policy.provisionFresh(request);
-    expect(orphans).not.toContain(result.prepared.namespaceId);
-    expect(fs.readdirSync(request.parentDir).sort()).toEqual(
-      [...orphans, result.prepared.namespaceId].sort(),
-    );
-    expect(fs.readdirSync(path.join(request.parentDir, orphans[0]))).toEqual(
-      [],
-    );
-  }, 60_000);
+  describe.sequential("failed allocation orphans", () => {
+    const sharedRoots = [];
+    let policy, request, store, orphans;
+    beforeAll(() => {
+      ({ policy, request, store } = fixture({}, sharedRoots));
+    }, 60_000);
+    beforeAll(() => {
+      const mkdir = fs.mkdirSync;
+      let fail = true;
+      const failed = vi
+        .spyOn(fs, "mkdirSync")
+        .mockImplementation((target, options) => {
+          if (
+            fail &&
+            path.basename(target) === "candidate" &&
+            target.includes("pair.")
+          ) {
+            fail = false;
+            throw new Error("TEST ONLY allocation stopped");
+          }
+          return mkdir(target, options);
+        });
+      try {
+        expect(() => policy.provisionFresh(request)).toThrow(
+          /allocation stopped/,
+        );
+      } finally {
+        failed.mockRestore();
+      }
+      orphans = fs.readdirSync(request.parentDir);
+      expect(orphans).toHaveLength(1);
+      expect(policyEvents(store)).toHaveLength(0);
+    }, 60_000);
+    afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+    it("retains orphans from failed allocation and never adopts caller-selected debris", () => {
+      const result = policy.provisionFresh(request);
+      expect(orphans).not.toContain(result.prepared.namespaceId);
+      expect(fs.readdirSync(request.parentDir).sort()).toEqual(
+        [...orphans, result.prepared.namespaceId].sort(),
+      );
+      expect(fs.readdirSync(path.join(request.parentDir, orphans[0]))).toEqual(
+        [],
+      );
+    }, 60_000);
+  });
 
   it("requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records", () => {
     const { store, policy } = fixture();
@@ -735,56 +793,81 @@ describe("authenticated fresh Registry provisioning before Registry construction
     expect(() => policy.read("test:provision:first")).toThrow();
   }, 60_000);
 
-  it("releases its operation lock after rejection and uses genuine live policy handles only", () => {
-    const { policy, request } = fixture();
-    expect(() => policy.recover(request.operationId)).toThrow(/unregistered/);
-    const result = policy.provisionFresh(request);
-    expect(
-      captureRrsiRegistryStorePolicy(policy).read(request.operationId),
-    ).toEqual(result);
-    expect(() => policy.read("test:missing")).toThrowError(
-      expect.objectContaining({ code: RRSI_REGISTRY_STORE_POLICY_HOLD_CODE }),
-    );
-    expect(policy.read(request.operationId)).toEqual(result);
-    let traps = 0;
-    expect(() =>
-      captureRrsiRegistryStorePolicy(
-        new Proxy(policy, {
-          get() {
-            traps++;
-          },
-        }),
-      ),
-    ).toThrow(/genuine/);
-    expect(traps).toBe(0);
-  }, 60_000);
+  describe.sequential("operation lock rejection and genuine handles", () => {
+    const sharedRoots = [];
+    let policy, request, result;
+    beforeAll(() => {
+      ({ policy, request } = fixture({}, sharedRoots));
+    }, 60_000);
+    beforeAll(() => {
+      expect(() => policy.recover(request.operationId)).toThrow(/unregistered/);
+      result = policy.provisionFresh(request);
+    }, 60_000);
+    afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+    it("releases its operation lock after rejection and uses genuine live policy handles only", () => {
+      expect(
+        captureRrsiRegistryStorePolicy(policy).read(request.operationId),
+      ).toEqual(result);
+      expect(() => policy.read("test:missing")).toThrowError(
+        expect.objectContaining({ code: RRSI_REGISTRY_STORE_POLICY_HOLD_CODE }),
+      );
+      expect(policy.read(request.operationId)).toEqual(result);
+      let traps = 0;
+      expect(() =>
+        captureRrsiRegistryStorePolicy(
+          new Proxy(policy, {
+            get() {
+              traps++;
+            },
+          }),
+        ),
+      ).toThrow(/genuine/);
+      expect(traps).toBe(0);
+    }, 60_000);
+  });
 
-  it("checks parent permissions before allocation and on reopen without repairing caller storage", () => {
-    const { policy, request } = fixture();
-    const broaden = () => {
-      if (process.platform === "win32") {
-        const result = spawnSync(
-          "icacls.exe",
-          [request.parentDir, "/grant", "*S-1-1-0:(OI)(CI)(F)"],
-          { encoding: "utf8", windowsHide: true, timeout: 15_000 },
-        );
-        expect(result.status, result.stderr).toBe(0);
-      } else fs.chmodSync(request.parentDir, 0o777);
+  describe.sequential("native parent permission boundary", () => {
+    const sharedRoots = [];
+    let policy, request;
+    beforeAll(() => {
+      ({ policy, request } = fixture({}, sharedRoots));
+    }, 60_000);
+    afterAll(() => cleanupFixtures(sharedRoots), 60_000);
+    it("checks parent permissions before allocation and on reopen without repairing caller storage", () => {
+      const broaden = () => {
+        if (process.platform === "win32") {
+          const result = spawnSync(
+            "icacls.exe",
+            [request.parentDir, "/grant", "*S-1-1-0:(OI)(CI)(F)"],
+            { encoding: "utf8", windowsHide: true, timeout: 15_000 },
+          );
+          expect(result.status, result.stderr).toBe(0);
+        } else fs.chmodSync(request.parentDir, 0o777);
+        const inspected = inspectPrivatePaths([request.parentDir])[0];
+        // A failed helper is not evidence that icacls changed an actual ACL.
+        expect(inspected.exists).toBe(true);
+        expect(inspected.ok).toBe(false);
+        if (process.platform === "win32")
+          expect(inspected.details).toMatchObject({
+            ok: false,
+            error: "path is not owner-only",
+            errorCode: null,
+          });
+      };
+      broaden();
+      expect(() => policy.provisionFresh(request)).toThrow(/owner-only/);
+      expect(fs.readdirSync(request.parentDir)).toEqual([]);
       expect(inspectPrivatePaths([request.parentDir])[0].ok).toBe(false);
-    };
-    broaden();
-    expect(() => policy.provisionFresh(request)).toThrow(/owner-only/);
-    expect(fs.readdirSync(request.parentDir)).toEqual([]);
-    expect(inspectPrivatePaths([request.parentDir])[0].ok).toBe(false);
-    repairPrivatePath(request.parentDir);
-    const result = policy.provisionFresh(request);
-    broaden();
-    expect(() => policy.read(request.operationId)).toThrow(/owner-only/);
-    expect(() => policy.recover(request.operationId)).toThrow(/owner-only/);
-    expect(inspectPrivatePaths([request.parentDir])[0].ok).toBe(false);
-    repairPrivatePath(request.parentDir);
-    expect(policy.read(request.operationId)).toEqual(result);
-  }, 90_000);
+      repairPrivatePath(request.parentDir);
+      const result = policy.provisionFresh(request);
+      broaden();
+      expect(() => policy.read(request.operationId)).toThrow(/owner-only/);
+      expect(() => policy.recover(request.operationId)).toThrow(/owner-only/);
+      expect(inspectPrivatePaths([request.parentDir])[0].ok).toBe(false);
+      repairPrivatePath(request.parentDir);
+      expect(policy.read(request.operationId)).toEqual(result);
+    }, 90_000);
+  });
 
   it.each([
     "before-mkdir",

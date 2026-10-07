@@ -33,6 +33,7 @@ import {
 import { deriveSkillCandidateTenantKey } from "./skill-candidate-registry.js";
 import { deriveSkillReleaseTenantKey } from "./skill-release-registry.js";
 import { captureSkillReleaseOperationReader } from "./evolution-ledger-ports.js";
+import { captureRrsiRegistryRuntimePolicy } from "./rrsi-registry-runtime-policy.js";
 import {
   snapshotRrsiData,
   rrsiExact,
@@ -127,7 +128,13 @@ function assertPrivateParent(expected) {
   assertDirectory(expected);
   const permission = inspectPrivatePath(expected.path);
   if (permission?.ok !== true || permission.exists !== true)
-    hold("provisioning parent must have verified owner-only permissions");
+    hold(
+      "provisioning parent must have verified owner-only permissions",
+      new Error(
+        permission?.error ||
+          "owner-only permission inspection was not successful",
+      ),
+    );
   assertDirectory(expected);
 }
 function syncDirectory(value) {
@@ -943,20 +950,32 @@ export function createRrsiRegistryStorePolicy(input) {
   const policy = Object.freeze({
     descriptor,
     bindComponent(input) {
-      const request = snapshotRrsiData(input);
-      rrsiExact(
-        request,
-        ["operationId", "component"],
-        "Registry component binding",
-      );
+      if (
+        !input ||
+        isProxy(input) ||
+        Object.getPrototypeOf(input) !== Object.prototype
+      )
+        hold("Registry component binding requires plain own fields");
+      const names = ["operationId", "component"];
+      if (Object.hasOwn(input ?? {}, "runtimePolicy"))
+        names.push("runtimePolicy");
+      const request = ownOptions(input, names);
       rrsiId(request.operationId, "provision operation ID");
       if (!["candidate", "release"].includes(request.component))
         rrsiFail("Registry binding component is invalid");
       // Do not take a policy operation lock or repair any Registry path. The
       // retained head and both physical markers bookend this read-only open.
-      let original;
+      let original,
+        runtime = null;
+      if (request.runtimePolicy !== undefined) {
+        runtime = captureRrsiRegistryRuntimePolicy(request.runtimePolicy);
+        if (!runtime.matchesPolicy(policy))
+          hold("runtime attachment requires the original store policy");
+      }
       try {
-        original = status(load(), request.operationId);
+        original = status(load(), request.operationId, {
+          boundaryOnly: runtime !== null,
+        });
       } catch (cause) {
         if (["ENOENT", "ENOTDIR"].includes(cause?.code))
           hold("an authenticated Registry binding boundary is missing", cause);
@@ -969,6 +988,7 @@ export function createRrsiRegistryStorePolicy(input) {
       const store = prepared[component];
       const peer =
         prepared[component === "candidate" ? "release" : "candidate"];
+      const runtimeOriginal = runtime?.read(request.operationId) ?? null;
       const componentDescriptor = freezeRrsiData({
         schema: "chainlesschain.rrsi-registry-component-binding/v1",
         operationId: request.operationId,
@@ -979,7 +999,10 @@ export function createRrsiRegistryStorePolicy(input) {
         journalIdentity: prepared.journalIdentity,
         committedRecordDigest: original.records.at(-1).recordDigest,
         writerFloor: RRSI_REGISTRY_STORE_WRITER_FLOOR,
-        registryRuntimeMode: "uninitialized-read-only",
+        registryRuntimeMode: runtime
+          ? "authenticated-empty-read-only"
+          : "uninitialized-read-only",
+        runtimeRecordDigest: runtimeOriginal?.committedRecordDigest ?? null,
         persistentStoreIdentityAuthenticated: true,
         originCutoverAuthenticated: false,
         originClassificationAvailable: false,
@@ -987,7 +1010,8 @@ export function createRrsiRegistryStorePolicy(input) {
       });
       function recheckUnchecked() {
         // Invalid existing physical state needs no journal recovery or locks.
-        assertLayout(prepared, [true, true]);
+        if (runtime) runtime.read(request.operationId);
+        else assertLayout(prepared, [true, true]);
         if (!equal(markerProof(prepared, true), original.markers))
           hold("Registry marker identity changed after capture");
         const result = status(load(), request.operationId, {
@@ -1000,9 +1024,17 @@ export function createRrsiRegistryStorePolicy(input) {
           !equal(result.records, original.records)
         )
           hold("Registry component binding changed after capture");
-        // No origin or runtime attachment exists yet. Unknown content and
-        // even empty runtime containers remain HOLD, with no adoption/cleanup.
-        assertLayout(prepared, [true, true]);
+        // An explicit runtime attachment authenticates only its empty layout.
+        // Unknown content remains HOLD, with no adoption or cleanup.
+        if (runtime) {
+          const current = runtime.read(request.operationId);
+          if (
+            !equal(current.directories, runtimeOriginal.directories) ||
+            current.committedRecordDigest !==
+              runtimeOriginal.committedRecordDigest
+          )
+            hold("runtime attachment changed after component capture");
+        } else assertLayout(prepared, [true, true]);
         if (!equal(markerProof(prepared, true), original.markers))
           hold("Registry markers changed during uninitialized inventory read");
         if (!equal(result.currentHead, headData(methods.verify())))
@@ -1040,10 +1072,15 @@ export function createRrsiRegistryStorePolicy(input) {
             identity: original.markers[component].identity,
             marker: markerFor(prepared, component),
           }),
+          runtimeDirectories:
+            component === "release"
+              ? (runtimeOriginal?.directories ?? null)
+              : null,
           recheck,
           recheckForOpen() {
             try {
               assertPrivateParent(prepared.parent);
+              runtime?.verifyPrivateDirectories(request.operationId);
               return recheck();
             } catch (cause) {
               if (["ENOENT", "ENOTDIR"].includes(cause?.code))
@@ -1077,7 +1114,7 @@ export function createRrsiRegistryStorePolicy(input) {
           },
           assertMutationAllowed() {
             hold(
-              "Registry origin admission and runtime initialization are not implemented",
+              "Registry origin admission and business mutation are not implemented",
             );
           },
         }),
@@ -1138,6 +1175,49 @@ export function createRrsiRegistryStorePolicy(input) {
       matchesArtifactPorts: (value) => value === options.artifactPorts,
       matchesArtifactResolver: (value) => value === resolver,
       read: policy.read,
+      captureCommittedBoundary(operationId) {
+        rrsiId(operationId, "provision operation ID");
+        try {
+          const state = load();
+          const result = status(state, operationId, {
+            boundaryOnly: true,
+            verifyPermissions: false,
+          });
+          if (!result.freshPhysicalPairProvisioningCommitted)
+            hold("runtime requires committed store provisioning");
+          return Object.freeze({
+            snapshot: result,
+            recheck() {
+              // Reuse only this authenticated immutable history at its exact
+              // captured head. No caller-supplied state or newer head is used.
+              try {
+                return status(state, operationId, {
+                  boundaryOnly: true,
+                  verifyPermissions: false,
+                });
+              } catch (cause) {
+                if (["ENOENT", "ENOTDIR"].includes(cause?.code))
+                  hold("an authenticated store boundary is missing", cause);
+                throw cause;
+              }
+            },
+          });
+        } catch (cause) {
+          if (["ENOENT", "ENOTDIR"].includes(cause?.code))
+            hold("an authenticated store boundary is missing", cause);
+          throw cause;
+        }
+      },
+      maintain(operation) {
+        if (typeof operation !== "function" || isProxy(operation))
+          hold("runtime maintenance requires an original synchronous callback");
+        return locked((assertOwnership) => {
+          const result = operation(assertOwnership);
+          if (result && typeof result.then === "function")
+            hold("runtime maintenance cannot return a Promise");
+          return result;
+        });
+      },
     }),
   );
   return policy;

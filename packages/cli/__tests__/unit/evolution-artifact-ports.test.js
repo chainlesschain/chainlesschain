@@ -617,6 +617,7 @@ describe("EvolutionArtifactPorts", () => {
       "evolution-run-event",
       "rrsi-history-event",
       "skill-registry-store-policy",
+      "skill-registry-runtime-policy",
       "pm-exploration-recovery-snapshot",
       "pm-exploration-provider-settlement",
       "evolution-eval-child-evidence",
