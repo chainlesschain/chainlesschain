@@ -25,8 +25,16 @@ function createProjectGoalMonitoringController({
   electron = null,
   getCurrentUserDid = () =>
     require("./project-goal-auth-session").getProjectGoalActor(),
-  protectDirectory = ensurePrivateDirectory,
-  protectFile = ensurePrivateFile,
+  protectDirectory = (target) =>
+    ensurePrivateDirectory(target, {
+      applyWindowsAcl: true,
+      failIfUnavailable: true,
+    }),
+  protectFile = (target) =>
+    ensurePrivateFile(target, {
+      applyWindowsAcl: true,
+      failIfUnavailable: true,
+    }),
   clock = Date.now,
   onError = () => {},
 } = {}) {

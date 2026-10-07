@@ -352,6 +352,13 @@ jobs:
           set -euo pipefail
           CLI_INSTALLED_ROOT="$(npm root -g)/chainlesschain"
           node packages/cli/scripts/verify-installed-evolution-runtime.mjs "$CLI_INSTALLED_ROOT"
+          CC_FIXTURE_DEPENDENCY_ROOT="$CLI_INSTALLED_ROOT" node --test scripts/__tests__/isolated-cli-fixture-storage.test.mjs
+          # Source-only test authorities import the checkout's deployment
+          # loader and secure-fs. Give them the exact shared storage package;
+          # runtime constructors still load from CLI_INSTALLED_ROOT below.
+          mkdir -p packages/cli/node_modules/@chainlesschain/session-core
+          cp packages/session-core/package.json packages/cli/node_modules/@chainlesschain/session-core/
+          cp -r packages/session-core/lib packages/cli/node_modules/@chainlesschain/session-core/
           node packages/cli/scripts/pr-recovery-smoke.mjs "$CLI_INSTALLED_ROOT"
 
   # 数据库测试（仅 Linux，需要 SQLite）
@@ -427,8 +434,13 @@ jobs:
           cp -r packages/personal-data-hub/__tests__ "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/package.json "$ROOT/packages/personal-data-hub/"
           cp packages/personal-data-hub/vitest.config.js "$ROOT/packages/personal-data-hub/"
-          cp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js (node builtins only)
+          cp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js and its path/storage helpers
           cp packages/cli/package.json "$ROOT/packages/cli/"  # package metadata read by CLI bridge tests
+          # Sibling CLI imports cannot resolve PDH's node_modules. Stage the
+          # exact checkout storage package there, including its export map.
+          mkdir -p "$ROOT/packages/cli/node_modules/@chainlesschain/session-core"
+          cp packages/session-core/package.json "$ROOT/packages/cli/node_modules/@chainlesschain/session-core/"
+          cp -r packages/session-core/lib "$ROOT/packages/cli/node_modules/@chainlesschain/session-core/"
           cp scripts/android/pdh-sqlite-leaf-salvage.js "$ROOT/scripts/android/"  # leaf-salvage test re-export target
           cp docs/internal/pdh-app-data-catalog.json "$ROOT/docs/internal/"  # catalog completeness fixture
           cd "$ROOT/packages/personal-data-hub"

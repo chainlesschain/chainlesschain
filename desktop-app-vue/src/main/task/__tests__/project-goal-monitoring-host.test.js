@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
 const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3");
@@ -314,7 +314,17 @@ describe("desktop goal monitoring native storage and lifecycle owner", () => {
     const {
       inspectPrivatePaths,
     } = require("@chainlesschain/session-core/private-storage");
-    const [inspected] = inspectPrivatePaths([engine.store.file]);
-    expect(inspected.ok).toBe(true);
+    const paths = [
+      join(directory, "app-data", "goal-monitoring"),
+      dirname(engine.store.file),
+      engine.store.file,
+      `${engine.store.file}-wal`,
+      `${engine.store.file}-shm`,
+    ].filter(existsSync);
+    const inspected = inspectPrivatePaths(paths);
+    expect(inspected.length).toBeGreaterThanOrEqual(3);
+    for (const entry of inspected) {
+      expect(entry, JSON.stringify(entry)).toMatchObject({ ok: true });
+    }
   }, 90_000);
 });

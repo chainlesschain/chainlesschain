@@ -18,7 +18,9 @@ const worker = fileURLToPath(
 const roots = [];
 const children = new Set();
 function fixture(options = {}) {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-history-process-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-history-process-"),
+  );
   roots.push(root);
   return {
     root,
@@ -92,7 +94,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-history-process-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-history-process-",
       )
     )
       throw new Error("unsafe test cleanup target");

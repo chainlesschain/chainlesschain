@@ -22,7 +22,9 @@ import {
 
 const roots = [];
 function fixture(options = {}) {
-  const root = fs.mkdtempSync(path.join(tmpdir(), "rrsi-pm-bridge-unit-"));
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(tmpdir()), "rrsi-pm-bridge-unit-"),
+  );
   roots.push(root);
   return { ...openRrsiPmBridgeFixture(root, options), root };
 }
@@ -60,7 +62,7 @@ afterEach(() => {
     const resolved = path.resolve(root);
     if (
       !resolved.startsWith(
-        path.resolve(tmpdir()) + path.sep + "rrsi-pm-bridge-unit-",
+        fs.realpathSync.native(tmpdir()) + path.sep + "rrsi-pm-bridge-unit-",
       )
     )
       throw new Error("unsafe fixture cleanup");
