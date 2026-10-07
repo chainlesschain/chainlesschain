@@ -8,7 +8,7 @@
 
 CLI 发行 SHA 为 `23afea300b`，其 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37531434920) 70 成功/1 条件跳过、[Strict](https://github.com/chainlesschain/chainlesschain/actions/runs/37531486827) 5/5、[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224)成功。子包 Session Core 0.3.16、PDH 0.4.64 先行发布，公开归档 SRI、版本、CLI 精确依赖及 provenance 声明已回读。IDE SHA `5b78b8d828` 的 [宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37537061385) 18 成功/1 条件跳过；双市场发布工作流成功，JetBrains API 确认公开批准。
 
-主线新增目标/巡检/验收和 RRSI 合同不在上述 CLI/IDE 制品内；桌面新工作区需运行源码，v5.0.3.138 安装包独立。见[目标操作](./project-goals-current)、[RRSI](./rrsi-current)及[公开回读证据](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-source-sync-20261007/docs/research/cli/evidence/documentation-release-status-2026-10-07.json)。下面的 0.166.90 段落是上一轮发布记录。
+主线新增目标/巡检/验收和 RRSI 合同不在上述 CLI/IDE 制品内；桌面新工作区需运行源码，v5.0.3.138 安装包独立。见[目标操作](./project-goals-current)、[RRSI](./rrsi-current)及[公开回读证据](https://github.com/chainlesschain/chainlesschain/blob/ba2d56a289/docs/research/cli/evidence/documentation-release-status-2026-10-07.json)。下面的 0.166.90 段落是上一轮发布记录。
 
 ## 概述
 
