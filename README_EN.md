@@ -1,6 +1,19 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-10-07 current release and source
+## 2026-10-07 current release
+
+CLI **0.166.92**, Session Core **0.3.17** and Context Memory Kernel **0.1.7** have been published through GitHub Actions OIDC in child-package → CLI order. Public archives, exact dependencies and signed provenance have been verified. Open VSX **0.37.137** and JetBrains **0.4.155** are public, with downloaded artifacts verified against the expected versions and CLI `0.166.92` pairing. All four release tags point to `e812a89952`; [product **v5.0.3.139**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) now provides Windows, macOS, Linux, Android and iOS artifacts.
+
+```bash
+npm i -g chainlesschain@0.166.92 --registry https://registry.npmjs.org
+chainlesschain --version
+```
+
+CLI aliases are `cc`, `clc` and `clchain`. Use the official registry above when a mirror has not cached new package archives. Upgrade the matching IDE extension after the CLI, restart its chat host, and use Doctor to verify the CLI path and runtime capabilities. Back up persistent application data before upgrading; close desktop clients before copying SQLite databases and retain their WAL/SHM files.
+
+The exact release passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37619216418) with 70 successful jobs and one conditional skip, [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37619282422) with 5/5 successes, and [npm OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/37626685269). [Open VSX](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727157) and [JetBrains](https://github.com/chainlesschain/chainlesschain/actions/runs/37632727660) publication and public readback succeeded. Desktop `5.0.3-alpha.139`, Android `5.0.3.139` / code `503139`, and iOS `5.0.3` / build `139` were built by the [product Release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/37637876986) and published on the [product download page](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139). Windows/macOS desktop binaries are unsigned, and macOS is not notarized. Android uses release signing. The iOS IPA uses ad hoc signing and requires a device authorized by its provisioning profile; App Store and TestFlight distribution are separate. See the [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md) and [release observations](docs/research/cli/evidence/release-publication-0.166.92-e812.json) for artifact and verification details.
+
+## CLI 0.166.91 historical release and source review (2026-10-07)
 
 Public CLI **0.166.91** is bound to `23afea300b`; Session Core **0.3.16** and Personal Data Hub **0.4.64** were published first through OIDC. Open VSX **0.37.136** and JetBrains **0.4.154** are publicly available at `5b78b8d828` and recommend CLI 0.166.91. Desktop/mobile remain a separate **v5.0.3.138** product release. Current source is reviewed at `36ca503291`.
 
@@ -16,7 +29,6 @@ Current main adds versioned personal-project goals, explicit risk monitoring, du
 RRSI source adds five-pool contracts, durable resource accounting, native batches/admission/rows/census, statistics v2, preregistration, fixed-HOLD quality receipts and Registry/History/backend binding. Real A/B/C experiments remain NOT_RUN, automatic promotion HOLD, and production origin gates incomplete. Palantir research adds controlled task creation, risk/action lineage, human review, audit governance, REST HEAD probes and projection maintenance with explicit remaining limits.
 
 See [project goals](docs-site/docs/chainlesschain/project-goals-current.md), [RRSI](docs-site/docs/chainlesschain/rrsi-current.md), [design](docs/design/project-goals-rrsi-update-2026-10-07.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical scope.
-
 
 ## October 6, 2026 release and source review
 
@@ -53,15 +65,6 @@ Open VSX **0.37.126** and JetBrains Marketplace **0.4.146** are public and recom
 Reviewed at `main@2bfaea2fa9`: strict read-only settings observations and explicit Linux settings-authority transaction foundations are present, but the transaction API is not wired into default permission admission or the official settings writer. Cross-process/Worker immediate notifications, arbitrary external edits, and legacy callbacks remain incomplete. Real PM/Pilot outcomes, complete launch coverage, and total costs are unverified; automatic active Skill promotion stays on HOLD. Linux Docker domain egress requires explicit selection, pinned images, and domain rules. Inspect side effects before retrying an unknown outcome. See the [runtime design](docs/design/agent-runtime-update-2026-09-26.md) and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical release identities.
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
-
-> **📦 CLI install**: `npm i -g chainlesschain@0.166.86` (current npm `latest`; aliases `cc` / `clc` / `clchain`).
-> **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
->
-> ```bash
-> npm i -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
-> ```
->
-> The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
 ## 2026-09-23 historical release — CLI 0.166.71 / Open VSX 0.37.113 / JetBrains 0.4.133 public
 
@@ -2595,7 +2598,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.84-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.92-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
