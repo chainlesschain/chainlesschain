@@ -309,22 +309,65 @@ describe("desktop goal monitoring native storage and lifecycle owner", () => {
     const opts = options();
     delete opts.protectDirectory;
     delete opts.protectFile;
-    controller = createProjectGoalMonitoringController(opts);
-    const engine = await controller.initialize();
     const {
       inspectPrivatePaths,
     } = require("@chainlesschain/session-core/private-storage");
-    const paths = [
-      join(directory, "app-data", "goal-monitoring"),
-      dirname(engine.store.file),
-      engine.store.file,
-      `${engine.store.file}-wal`,
-      `${engine.store.file}-shm`,
-    ].filter(existsSync);
-    const inspected = inspectPrivatePaths(paths);
-    expect(inspected.length).toBeGreaterThanOrEqual(3);
-    for (const entry of inspected) {
-      expect(entry, JSON.stringify(entry)).toMatchObject({ ok: true });
+    // The last SQLite connection removes its sidecars. Reopening the same
+    // database must secure newly created files, not rely on the prior ACLs.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      controller = createProjectGoalMonitoringController(opts);
+      const engine = await controller.initialize();
+      const paths = [
+        join(directory, "app-data", "goal-monitoring"),
+        dirname(engine.store.file),
+        engine.store.file,
+        `${engine.store.file}-wal`,
+        `${engine.store.file}-shm`,
+      ];
+      for (const path of paths) expect(existsSync(path), path).toBe(true);
+      const inspected = inspectPrivatePaths(paths);
+      expect(inspected).toHaveLength(5);
+      for (const entry of inspected) {
+        expect(entry, JSON.stringify(entry)).toMatchObject({ ok: true });
+      }
+      await controller.close();
+      expect(existsSync(`${engine.store.file}-wal`)).toBe(false);
+      expect(existsSync(`${engine.store.file}-shm`)).toBe(false);
     }
   }, 90_000);
+
+  it("materializes lazy WAL sidecars before the host's after-open protection", () => {
+    const {
+      openSchedulerStore,
+    } = require("@chainlesschain/session-core/scheduler-store");
+    const file = join(directory, "lazy-wal.sqlite");
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const phases = [];
+      let store;
+      try {
+        store = openSchedulerStore({
+          file,
+          Database,
+          protectStorage: ({ phase, files }) => {
+            phases.push(phase);
+            if (phase === "after-open") {
+              for (const required of [file, `${file}-wal`, `${file}-shm`]) {
+                expect(files).toContain(required);
+                expect(existsSync(required), `${phase}: ${required}`).toBe(
+                  true,
+                );
+              }
+            }
+            return true;
+          },
+        });
+        expect(phases).toEqual(["before-open", "after-open"]);
+        expect(store.getJob("not-created")).toBe(null);
+      } finally {
+        store?.close();
+      }
+      expect(existsSync(`${file}-wal`)).toBe(false);
+      expect(existsSync(`${file}-shm`)).toBe(false);
+    }
+  });
 });

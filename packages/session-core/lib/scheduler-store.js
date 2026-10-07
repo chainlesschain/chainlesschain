@@ -2209,7 +2209,15 @@ function openDatabase({
     db.pragma("trusted_schema = OFF");
     db.pragma(`busy_timeout = ${timeout}`);
     initializeOrVerifySchema(db, now);
-    if (target !== ":memory:") db.pragma("journal_mode = WAL");
+    if (target !== ":memory:") {
+      db.pragma("journal_mode = WAL");
+      // WAL/SHM files are created lazily by the first actual database read,
+      // not by journal_mode or statement preparation. Materialize them while
+      // the host still owns initialization so after-open protection secures
+      // their ACLs before a background reader or writer can use the store.
+      // This also covers sidecars removed by the previous connection's close.
+      db.prepare("SELECT version FROM migrations LIMIT 1").get();
+    }
     db.pragma("synchronous = FULL");
   } catch (cause) {
     try {
