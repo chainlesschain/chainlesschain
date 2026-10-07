@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-07 持久目标与 RRSI 设计",
+            link: "/project-goals-rrsi-update-2026-10-07",
+          },
+          {
             text: "2026-10-06 数据与受控动作设计",
             link: "/data-actions-update-2026-10-06",
           },

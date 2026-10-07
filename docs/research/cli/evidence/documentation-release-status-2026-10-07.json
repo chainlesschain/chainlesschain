@@ -1,0 +1,1163 @@
+{
+  "schema": "chainlesschain.documentation-release-observation/v1",
+  "checkedAt": "2026-10-07T03:29:32.115Z",
+  "sourceBaseline": "36ca503291bc218d0b5f1782eccae76eaf1a304e",
+  "packages": {
+    "chainlesschain": {
+      "version": "0.166.91",
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.91.tgz",
+      "bytes": 9259789,
+      "sha256": "3b6a35ff80767de4cd8148a0dff42bba8397821ed724521e1ba290b0dfb88e12",
+      "integrity": "sha512-iSmslbsv9diJgfXLU0Cw+SfWsl7OKXyHzBqTlWbF9dHlyd9RAOHiYI2yqVWDdGCcoMWhCPkhwpaxse8fgF8QFw==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/context-memory-kernel": "0.1.6",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/personal-data-hub": "0.4.64",
+        "@chainlesschain/session-core": "0.3.16",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@inquirer/prompts": "^7.2.0",
+        "@noble/curves": "^1.9.7",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "ajv": "^8.20.0",
+        "ajv-formats": "^3.0.1",
+        "chalk": "^5.4.1",
+        "commander": "^12.1.0",
+        "esbuild-wasm": "0.28.1",
+        "js-yaml": "^3.15.1",
+        "ora": "^8.1.1",
+        "pac-resolver": "^7.0.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.29.0",
+        "webdav": "^5.10.0",
+        "ws": "^8.14.2"
+      },
+      "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.91",
+      "provenanceStatement": {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [
+          {
+            "name": "pkg:npm/chainlesschain@0.166.91",
+            "digest": {
+              "sha512": "8929ac95bb2ff5d88981f5cb5340b0f927d6b25ece297c87cc1a939566c5f5d1e5c9df5100e1e2608db2a9558374609ca0c5a108f921c296b1b1ef1f805f1017"
+            }
+          }
+        ],
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "predicate": {
+          "buildDefinition": {
+            "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            "externalParameters": {
+              "workflow": {
+                "ref": "refs/tags/v-npm-0-166-91",
+                "repository": "https://github.com/chainlesschain/chainlesschain",
+                "path": ".github/workflows/npm-publish.yml"
+              }
+            },
+            "internalParameters": {
+              "github": {
+                "event_name": "push",
+                "repository_id": "1107348698",
+                "repository_owner_id": "247070867"
+              }
+            },
+            "resolvedDependencies": [
+              {
+                "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-91",
+                "digest": {
+                  "gitCommit": "23afea300b76a161233eac46269d74e04100a9cd"
+                }
+              }
+            ]
+          },
+          "runDetails": {
+            "builder": {
+              "id": "https://github.com/actions/runner/github-hosted"
+            },
+            "metadata": {
+              "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224/attempts/1"
+            }
+          }
+        }
+      },
+      "provenanceObserved": true
+    },
+    "@chainlesschain/session-core": {
+      "version": "0.3.16",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.16.tgz",
+      "bytes": 95831,
+      "sha256": "47f3278a10dfad294d83a76835fcf2c45269b7879ecdfc17c52395356d9fd797",
+      "integrity": "sha512-bV3xkryy9dnZj32IYrTam4fjY6qY3tIMh0d6WL3oauU+wQE3YVWMSbZTEris+iatrW9hCRhmGvUykrqUGA33NA==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "dependencies": {
+        "@noble/curves": "^1.9.7",
+        "@noble/hashes": "^2.0.1",
+        "@scure/base": "^1.2.6"
+      },
+      "exports": {
+        ".": "./lib/index.js",
+        "./session-handle": "./lib/session-handle.js",
+        "./trace-store": "./lib/trace-store.js",
+        "./agent-definition": "./lib/agent-definition.js",
+        "./session-manager": "./lib/session-manager.js",
+        "./idle-parker": "./lib/idle-parker.js",
+        "./agent-group": "./lib/agent-group.js",
+        "./shared-task-list": "./lib/shared-task-list.js",
+        "./memory-store": "./lib/memory-store.js",
+        "./memory-consolidator": "./lib/memory-consolidator.js",
+        "./approval-gate": "./lib/approval-gate.js",
+        "./beta-flags": "./lib/beta-flags.js",
+        "./stream-router": "./lib/stream-router.js",
+        "./file-adapters": "./lib/file-adapters.js",
+        "./agent-bundle-schema": "./lib/agent-bundle-schema.js",
+        "./agent-bundle-loader": "./lib/agent-bundle-loader.js",
+        "./agent-bundle-resolver": "./lib/agent-bundle-resolver.js",
+        "./mcp-policy": "./lib/mcp-policy.js",
+        "./sandbox-policy": "./lib/sandbox-policy.js",
+        "./service-envelope": "./lib/service-envelope.js",
+        "./envelope-sse": "./lib/envelope-sse.js",
+        "./quality-gate": "./lib/quality-gate.js",
+        "./runtime-claims": "./lib/runtime-claims.js",
+        "./audit-data-policy": "./lib/audit-data-policy.js",
+        "./restricted-audit-store": "./lib/restricted-audit-store.js",
+        "./business-object-contract": "./lib/business-object-contract.js",
+        "./task-description-action-service": "./lib/task-description-action-service.js",
+        "./project-risk-evaluation": "./lib/project-risk-evaluation.js",
+        "./project-risk-review-service": "./lib/project-risk-review-service.js",
+        "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
+        "./evolution-run": "./lib/evolution-run.js",
+        "./evolvable-artifact": "./lib/evolvable-artifact.js",
+        "./structured-evolution-memory": "./lib/structured-evolution-memory.js",
+        "./nostr-crypto": "./lib/nostr-crypto.js"
+      },
+      "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fsession-core@0.3.16"
+    },
+    "@chainlesschain/personal-data-hub": {
+      "version": "0.4.64",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+      "bytes": 890625,
+      "sha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "dependencies": {
+        "mailparser": "^3.7.1"
+      },
+      "exports": {
+        ".": "./lib/index.js",
+        "./constants": "./lib/constants.js",
+        "./ids": "./lib/ids.js",
+        "./schemas": "./lib/schemas.js",
+        "./batch": "./lib/batch.js",
+        "./vault": "./lib/vault.js",
+        "./migrations": "./lib/migrations.js",
+        "./key-providers": "./lib/key-providers.js",
+        "./adapter-spec": "./lib/adapter-spec.js",
+        "./account-scope": "./lib/account-scope.js",
+        "./partitioned-watermark": "./lib/partitioned-watermark.js",
+        "./categories": "./lib/categories.js",
+        "./kg-derive": "./lib/kg-derive.js",
+        "./rag-derive": "./lib/rag-derive.js",
+        "./registry": "./lib/registry.js",
+        "./mock-adapter": "./lib/mock-adapter.js",
+        "./query-parser": "./lib/query-parser.js",
+        "./prompt-builder": "./lib/prompt-builder.js",
+        "./llm-client": "./lib/llm-client.js",
+        "./model-egress-guard": "./lib/model-egress-guard.js",
+        "./analysis": "./lib/analysis.js",
+        "./bridges": "./lib/bridges/index.js",
+        "./bridges/cc-llm-adapter": "./lib/bridges/cc-llm-adapter.js",
+        "./bridges/cc-kg-sink": "./lib/bridges/cc-kg-sink.js",
+        "./bridges/cc-rag-sink": "./lib/bridges/cc-rag-sink.js",
+        "./sign-providers": "./lib/sign-providers/index.js",
+        "./adapters/email-imap": "./lib/adapters/email-imap/index.js",
+        "./adapters/alipay-bill": "./lib/adapters/alipay-bill/index.js",
+        "./adapters/system-data": "./lib/adapters/system-data/index.js",
+        "./adapters/system-data-android": "./lib/adapters/system-data-android/index.js",
+        "./adapters/browser-history-brave": "./lib/adapters/browser-history-brave/index.js",
+        "./adapters/browser-history-opera": "./lib/adapters/browser-history-opera/index.js",
+        "./adapters/browser-history-vivaldi": "./lib/adapters/browser-history-vivaldi/index.js",
+        "./adapters/browser-history-safari": "./lib/adapters/browser-history-safari/index.js",
+        "./adapters/browser-history-firefox": "./lib/adapters/browser-history-firefox/index.js",
+        "./adapters/meeting-tencent": "./lib/adapters/meeting-tencent/index.js",
+        "./entity-resolver": "./lib/entity-resolver/index.js",
+        "./analysis-skills": "./lib/analysis-skills/index.js",
+        "./mobile-extractor": "./lib/mobile-extractor/index.js",
+        "./adapters/wechat": "./lib/adapters/wechat/index.js",
+        "./adapters/ai-chat-history": "./lib/adapters/ai-chat-history/index.js",
+        "./adapters/ai-chat-history/cookie-capture-spec": "./lib/adapters/ai-chat-history/cookie-capture-spec.js",
+        "./adapters/ai-chat-history/wizard-controller": "./lib/adapters/ai-chat-history/wizard-controller.js",
+        "./adapters/ai-chat-history/health-checker": "./lib/adapters/ai-chat-history/health-checker.js",
+        "./lib/adapters/ai-chat-history/cookie-capture-spec": "./lib/adapters/ai-chat-history/cookie-capture-spec.js",
+        "./lib/adapters/ai-chat-history/wizard-controller": "./lib/adapters/ai-chat-history/wizard-controller.js",
+        "./lib/adapters/ai-chat-history/health-checker": "./lib/adapters/ai-chat-history/health-checker.js",
+        "./adapters/travel-base": "./lib/adapters/travel-base/index.js",
+        "./adapters/travel-12306": "./lib/adapters/travel-12306/index.js",
+        "./adapters/travel-ctrip": "./lib/adapters/travel-ctrip/index.js",
+        "./adapters/travel-amap": "./lib/adapters/travel-amap/index.js",
+        "./adapters/travel-baidu-map": "./lib/adapters/travel-baidu-map/index.js",
+        "./adapters/travel-tencent-map": "./lib/adapters/travel-tencent-map/index.js",
+        "./adapters/shopping-base": "./lib/adapters/shopping-base/index.js",
+        "./adapters/shopping-taobao": "./lib/adapters/shopping-taobao/index.js",
+        "./adapters/shopping-jd": "./lib/adapters/shopping-jd/index.js",
+        "./adapters/shopping-meituan": "./lib/adapters/shopping-meituan/index.js",
+        "./adapters/social-bilibili": "./lib/adapters/social-bilibili/index.js",
+        "./adapters/social-bilibili-adb": "./lib/adapters/social-bilibili-adb/index.js",
+        "./adapters/social-weibo": "./lib/adapters/social-weibo/index.js",
+        "./adapters/social-weibo-adb": "./lib/adapters/social-weibo-adb/index.js",
+        "./adapters/social-douyin": "./lib/adapters/social-douyin/index.js",
+        "./adapters/social-douyin-adb": "./lib/adapters/social-douyin-adb/index.js",
+        "./adapters/social-xiaohongshu": "./lib/adapters/social-xiaohongshu/index.js",
+        "./adapters/social-xiaohongshu-adb": "./lib/adapters/social-xiaohongshu-adb/index.js",
+        "./adapters/social-toutiao": "./lib/adapters/social-toutiao/index.js",
+        "./adapters/social-toutiao-adb": "./lib/adapters/social-toutiao-adb/index.js",
+        "./adapters/social-kuaishou": "./lib/adapters/social-kuaishou/index.js",
+        "./adapters/social-kuaishou-adb": "./lib/adapters/social-kuaishou-adb/index.js",
+        "./adapters/messaging-qq": "./lib/adapters/messaging-qq/index.js",
+        "./adapters/messaging-telegram": "./lib/adapters/messaging-telegram/index.js",
+        "./adapters/messaging-whatsapp": "./lib/adapters/messaging-whatsapp/index.js",
+        "./sidecar": "./lib/sidecar/index.js",
+        "./forensics/leaf-salvage": "./lib/forensics/leaf-salvage.js",
+        "./forensics/salvage-ingest": "./lib/forensics/salvage-ingest.js",
+        "./forensics/qq-nt-collect": "./lib/forensics/qq-nt-collect.js",
+        "./forensics/wechat-collect": "./lib/forensics/wechat-collect.js",
+        "./forensics/qzone-collect": "./lib/forensics/qzone-collect.js",
+        "./forensics/plaintext-db-collect": "./lib/forensics/plaintext-db-collect.js"
+      },
+      "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fpersonal-data-hub@0.4.64"
+    }
+  },
+  "gates": {
+    "cli": {
+      "id": 37531434920,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37531434920",
+      "headSha": "23afea300b76a161233eac46269d74e04100a9cd",
+      "event": "push",
+      "branch": "main",
+      "runAttempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "PDH native release tests (ubuntu-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:09:08Z",
+          "completedAt": "2026-10-06T21:11:08Z"
+        },
+        {
+          "name": "PDH native release tests (windows-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:07:39Z",
+          "completedAt": "2026-10-06T21:12:02Z"
+        },
+        {
+          "name": "PDH native release tests (macos-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:11:40Z",
+          "completedAt": "2026-10-06T21:14:46Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:38:51Z",
+          "completedAt": "2026-10-06T21:46:56Z"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:51:12Z",
+          "completedAt": "2026-10-06T21:54:49Z"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:10:56Z",
+          "completedAt": "2026-10-06T21:11:29Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:41:56Z",
+          "completedAt": "2026-10-06T21:49:27Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:17:17Z",
+          "completedAt": "2026-10-06T21:29:35Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:40:55Z",
+          "completedAt": "2026-10-06T21:50:36Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:37:31Z",
+          "completedAt": "2026-10-06T21:41:35Z"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:13:09Z",
+          "completedAt": "2026-10-06T21:18:58Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:47:06Z",
+          "completedAt": "2026-10-06T21:55:59Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:49:36Z",
+          "completedAt": "2026-10-06T21:52:39Z"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:05:39Z",
+          "completedAt": "2026-10-06T22:09:00Z"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:52:47Z",
+          "completedAt": "2026-10-06T21:56:13Z"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:11:11Z",
+          "completedAt": "2026-10-06T21:13:04Z"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:10:33Z",
+          "completedAt": "2026-10-06T21:11:45Z"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:23:24Z",
+          "completedAt": "2026-10-06T21:32:08Z"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:16:57Z",
+          "completedAt": "2026-10-06T21:23:20Z"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:09:55Z",
+          "completedAt": "2026-10-06T22:12:03Z"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:50:46Z",
+          "completedAt": "2026-10-06T22:02:45Z"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:14:35Z",
+          "completedAt": "2026-10-06T22:28:49Z"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:16:57Z",
+          "completedAt": "2026-10-06T21:21:20Z"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:12:11Z",
+          "completedAt": "2026-10-06T21:17:08Z"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:55:11Z",
+          "completedAt": "2026-10-06T22:05:06Z"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:06:47Z",
+          "completedAt": "2026-10-06T21:11:42Z"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:16:53Z",
+          "completedAt": "2026-10-06T22:22:00Z"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:22:30Z",
+          "completedAt": "2026-10-06T21:28:31Z"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:11:16Z",
+          "completedAt": "2026-10-06T21:12:32Z"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:23:43Z",
+          "completedAt": "2026-10-06T21:27:41Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:25:18Z",
+          "completedAt": "2026-10-06T21:41:46Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:31:50Z",
+          "completedAt": "2026-10-06T21:52:39Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:33:00Z",
+          "completedAt": "2026-10-06T21:38:09Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:25:33Z",
+          "completedAt": "2026-10-06T21:55:28Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:34:26Z",
+          "completedAt": "2026-10-06T21:54:27Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:34:29Z",
+          "completedAt": "2026-10-06T21:40:15Z"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:14:07Z",
+          "completedAt": "2026-10-06T22:22:34Z"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:08:35Z",
+          "completedAt": "2026-10-06T21:10:30Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:33:17Z",
+          "completedAt": "2026-10-06T21:51:13Z"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:31:40Z",
+          "completedAt": "2026-10-06T21:50:25Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:29:44Z",
+          "completedAt": "2026-10-06T21:38:40Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:29:41Z",
+          "completedAt": "2026-10-06T21:31:47Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:28:44Z",
+          "completedAt": "2026-10-06T21:34:14Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:29:39Z",
+          "completedAt": "2026-10-06T21:34:26Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:37:25Z",
+          "completedAt": "2026-10-06T21:43:11Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:51:17Z",
+          "completedAt": "2026-10-06T21:53:16Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:36:29Z",
+          "completedAt": "2026-10-06T21:40:45Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:50:49Z",
+          "completedAt": "2026-10-06T22:01:54Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:49:58Z",
+          "completedAt": "2026-10-06T21:59:36Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:41:38Z",
+          "completedAt": "2026-10-06T21:49:56Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:44:21Z",
+          "completedAt": "2026-10-06T21:56:39Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:37:39Z",
+          "completedAt": "2026-10-06T21:50:54Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:50:28Z",
+          "completedAt": "2026-10-06T22:03:32Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:50:09Z",
+          "completedAt": "2026-10-06T22:01:58Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:40:28Z",
+          "completedAt": "2026-10-06T21:50:46Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:40:33Z",
+          "completedAt": "2026-10-06T21:48:34Z"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:11:34Z",
+          "completedAt": "2026-10-06T21:12:08Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:47:52Z",
+          "completedAt": "2026-10-06T22:00:45Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:48:37Z",
+          "completedAt": "2026-10-06T22:02:42Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:40:18Z",
+          "completedAt": "2026-10-06T21:50:06Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:43:32Z",
+          "completedAt": "2026-10-06T21:50:54Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:40:47Z",
+          "completedAt": "2026-10-06T21:51:14Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:38:27Z",
+          "completedAt": "2026-10-06T21:47:49Z"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:50:57Z",
+          "completedAt": "2026-10-06T22:11:09Z"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:38:13Z",
+          "completedAt": "2026-10-06T21:43:29Z"
+        },
+        {
+          "name": "pack-linux-dryrun",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:53:20Z",
+          "completedAt": "2026-10-06T21:54:45Z"
+        },
+        {
+          "name": "dry-run-publish",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-06T21:53:17Z",
+          "completedAt": "2026-10-06T21:53:17Z"
+        },
+        {
+          "name": "verify-cli (windows-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:28:53Z",
+          "completedAt": "2026-10-06T22:38:11Z"
+        },
+        {
+          "name": "verify-cli (macos-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:28:59Z",
+          "completedAt": "2026-10-06T22:33:51Z"
+        },
+        {
+          "name": "verify-cli (ubuntu-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:28:53Z",
+          "completedAt": "2026-10-06T22:32:06Z"
+        },
+        {
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:38:16Z",
+          "completedAt": "2026-10-06T22:38:41Z"
+        }
+      ],
+      "successfulJobs": 70,
+      "skippedJobs": 1
+    },
+    "strict": {
+      "id": 37531486827,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37531486827",
+      "headSha": "23afea300b76a161233eac46269d74e04100a9cd",
+      "event": "workflow_dispatch",
+      "branch": "main",
+      "runAttempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "strict native boundary (windows-latest)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:17:07Z",
+          "completedAt": "2026-10-06T21:25:28Z"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:09:17Z",
+          "completedAt": "2026-10-06T21:11:39Z"
+        },
+        {
+          "name": "strict native boundary (macos-15)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:08:09Z",
+          "completedAt": "2026-10-06T21:12:59Z"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:06:41Z",
+          "completedAt": "2026-10-06T21:10:54Z"
+        },
+        {
+          "name": "macOS latest native capability",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T21:13:08Z",
+          "completedAt": "2026-10-06T21:16:07Z"
+        }
+      ],
+      "successfulJobs": 5,
+      "skippedJobs": 0
+    },
+    "npm": {
+      "id": 37545002224,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224",
+      "headSha": "23afea300b76a161233eac46269d74e04100a9cd",
+      "event": "push",
+      "branch": "v-npm-0-166-91",
+      "runAttempt": 2,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "dry-run",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:09:27Z",
+          "completedAt": "2026-10-06T23:09:57Z"
+        },
+        {
+          "name": "test",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:09:27Z",
+          "completedAt": "2026-10-06T23:09:57Z"
+        },
+        {
+          "name": "publish",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:09:31Z",
+          "completedAt": "2026-10-07T00:12:31Z"
+        },
+        {
+          "name": "package-cli",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T23:11:06Z",
+          "completedAt": "2026-10-06T23:12:59Z"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T23:10:29Z",
+          "completedAt": "2026-10-06T23:11:03Z"
+        },
+        {
+          "name": "exact-sha-gate",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T23:10:00Z",
+          "completedAt": "2026-10-06T23:10:25Z"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T23:10:31Z",
+          "completedAt": "2026-10-06T23:10:57Z"
+        }
+      ],
+      "successfulJobs": 5,
+      "skippedJobs": 2
+    },
+    "ide": {
+      "id": 37537061385,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37537061385",
+      "headSha": "5b78b8d828f9cb62eaaad9a6327ae95f0d3fe61c",
+      "event": "push",
+      "branch": "main",
+      "runAttempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:00:36Z",
+          "completedAt": "2026-10-06T22:00:58Z"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:04:34Z",
+          "completedAt": "2026-10-06T22:05:13Z"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:01:04Z",
+          "completedAt": "2026-10-06T22:17:24Z"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:06:15Z",
+          "completedAt": "2026-10-06T22:09:30Z"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:22:06Z",
+          "completedAt": "2026-10-06T22:23:51Z"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:07:24Z",
+          "completedAt": "2026-10-06T22:09:49Z"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:04:33Z",
+          "completedAt": "2026-10-06T22:14:12Z"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:19:25Z",
+          "completedAt": "2026-10-06T22:39:27Z"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:06:43Z",
+          "completedAt": "2026-10-06T22:24:33Z"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:22:42Z",
+          "completedAt": "2026-10-06T22:39:15Z"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:09:51Z",
+          "completedAt": "2026-10-06T22:21:54Z"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:09:06Z",
+          "completedAt": "2026-10-06T22:19:18Z"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:12:45Z",
+          "completedAt": "2026-10-06T22:13:52Z"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:06:42Z",
+          "completedAt": "2026-10-06T22:11:22Z"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:13:56Z",
+          "completedAt": "2026-10-06T22:14:21Z"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:23:54Z",
+          "completedAt": "2026-10-06T22:24:44Z"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:24:47Z",
+          "completedAt": "2026-10-06T22:28:01Z"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success",
+          "startedAt": "2026-10-06T22:39:31Z",
+          "completedAt": "2026-10-06T22:45:38Z"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-06T22:45:39Z",
+          "completedAt": "2026-10-06T22:45:38Z"
+        }
+      ],
+      "successfulJobs": 18,
+      "skippedJobs": 1
+    },
+    "openVsx": {
+      "id": 37552984617,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37552984617",
+      "headSha": "5b78b8d828f9cb62eaaad9a6327ae95f0d3fe61c",
+      "event": "push",
+      "branch": "ide-vscode-v0.37.136",
+      "runAttempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:06Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:31Z",
+          "completedAt": "2026-10-07T00:39:04Z"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:32Z",
+          "completedAt": "2026-10-07T00:40:38Z"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:42:02Z",
+          "completedAt": "2026-10-07T00:44:22Z"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:31Z",
+          "completedAt": "2026-10-07T00:42:29Z"
+        },
+        {
+          "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:39:06Z",
+          "completedAt": "2026-10-07T00:43:47Z"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:39:08Z",
+          "completedAt": "2026-10-07T00:40:23Z"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:44:25Z",
+          "completedAt": "2026-10-07T00:53:39Z"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:40:26Z",
+          "completedAt": "2026-10-07T00:40:47Z"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:44:24Z",
+          "completedAt": "2026-10-07T00:45:20Z"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:45:20Z",
+          "completedAt": "2026-10-07T00:45:20Z"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:45:20Z",
+          "completedAt": "2026-10-07T00:45:20Z"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:53:41Z",
+          "completedAt": "2026-10-07T01:01:34Z"
+        }
+      ],
+      "successfulJobs": 11,
+      "skippedJobs": 3
+    },
+    "jetBrains": {
+      "id": 37552986084,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37552986084",
+      "headSha": "5b78b8d828f9cb62eaaad9a6327ae95f0d3fe61c",
+      "event": "push",
+      "branch": "ide-jetbrains-v0.4.154",
+      "runAttempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:06Z",
+          "completedAt": "2026-10-07T00:38:26Z"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:29Z",
+          "completedAt": "2026-10-07T00:42:03Z"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:29Z",
+          "completedAt": "2026-10-07T00:40:24Z"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:38Z",
+          "completedAt": "2026-10-07T00:41:53Z"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:36Z",
+          "completedAt": "2026-10-07T00:55:17Z"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:30Z",
+          "completedAt": "2026-10-07T00:59:14Z"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:35Z",
+          "completedAt": "2026-10-07T00:58:08Z"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:30Z",
+          "completedAt": "2026-10-07T00:47:33Z"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:39:08Z",
+          "completedAt": "2026-10-07T00:55:56Z"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:38:31Z",
+          "completedAt": "2026-10-07T00:50:38Z"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:26Z"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:38:27Z",
+          "completedAt": "2026-10-07T00:38:27Z"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:42:06Z",
+          "completedAt": "2026-10-07T00:43:06Z"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "skipped",
+          "startedAt": "2026-10-07T00:43:07Z",
+          "completedAt": "2026-10-07T00:43:07Z"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T00:59:17Z",
+          "completedAt": "2026-10-07T01:04:46Z"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "success",
+          "startedAt": "2026-10-07T01:04:49Z",
+          "completedAt": "2026-10-07T01:07:02Z"
+        }
+      ],
+      "successfulJobs": 13,
+      "skippedJobs": 6
+    }
+  },
+  "channels": {
+    "npmLatest": "0.166.91",
+    "openVsx": {
+      "version": "0.37.136",
+      "recommendedCliVersion": "0.166.91",
+      "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.136/file/chainlesschain.chainlesschain-ide-0.37.136.vsix",
+      "timestamp": "2026-10-07T00:57:27.956065Z"
+    },
+    "jetBrains": {
+      "version": "0.4.154",
+      "approve": true,
+      "listed": true,
+      "hidden": false,
+      "download": "https://plugins.jetbrains.com/files/32208/1188343/chainlesschain-ide-bridge-0.4.154.zip",
+      "recommendedCliVersionFromReleaseNotes": "0.166.91",
+      "archiveSha256": "36fcbd7d8a05af2015ad6f09a020f5b7482549b53612cd758263f5a6962c6d7e",
+      "descriptorVerification": [
+        {
+          "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.154.jar",
+          "descriptor": "META-INF/plugin.xml",
+          "version": "0.4.154",
+          "id": "com.chainlesschain.ide"
+        },
+        {
+          "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.154.jar",
+          "properties": "META-INF/plugin.xml",
+          "pairing": [
+            "  <change-notes><![CDATA[<b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br/><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul><br/><b>[0.4.153] - Pair with CLI project and data recovery tools (2026-10-06)</b><br/><ul><li>Recommend CLI <code>0.166.90</code> after its public npm release and the plugin's exact-commit release gates pass, including upgrade guidance when npm lookup is unavailable or returns an older version.</li><li>The paired CLI persists Personal Data Hub projection recovery and provides explicit consumer retirement and bounded cleanup of historical receipts.</li><li>Use the CLI's <code>project risk-evaluate</code> and <code>project task-description-preview</code> commands with explicit offline snapshots. Risk checks distinguish incomplete source data from zero matching rule signals; description previews do not write.</li></ul><br/><b>[0.4.152] - Wire real panel capture and restart diagnostics (2026-10-05)</b><br/><ul><li>Connect opt-in protocol capture to ConversationView and preserve explicit null fields in raw records. Ordinary sessions keep capture disabled.</li><li>Add real Swing initial/restart drivers and portable diagnostic archives with bounded process cleanup. Recommend CLI <code>0.166.89</code>.</li></ul><br/><b>[0.4.151] - Capture optional raw session evidence (2026-10-05)</b><br/><ul><li>Add an optional protocol observer for input attempts, output and drained process exits, with session generations and ordered records for evaluation import.</li><li>Keep observation disabled by default; ordinary chat does not create capture files.</li><li>Recommend CLI <code>0.166.88</code>, which validates host evidence and explicit failures through the existing Eval/outcome contracts. Real GUI/provider acceptance remains open.</li></ul><br/><b>[0.4.150] - Preserve slow-start drafts and diagnose capabilities (2026-10-05)</b><br/><ul><li>Give initialization a bounded 120-second window and preserve the draft after timeout. A late initialization cannot submit the timed-out input automatically.</li><li>Reuse strict CLI identity checks during onboarding and manual updates, so gcc or clang banners cannot be mistaken for an installed ChainlessChain version.</li><li>Diagnose live input receipts and confirmed approval mode separately from the minimum bridge version. Recommend CLI <code>0.166.87</code> after its public release.</li></ul>]]></change-notes>"
+          ]
+        }
+      ],
+      "recommendedCliVersion": "0.166.91"
+    }
+  }
+}

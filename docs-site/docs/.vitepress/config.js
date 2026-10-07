@@ -180,9 +180,21 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.89（npm latest）",
+          text: "🧩 Agent Platform 0.166.91（npm latest）",
           collapsed: false,
           items: [
+            {
+              text: "项目目标、巡检与独立验收（主线）",
+              link: "/chainlesschain/project-goals-current",
+            },
+            {
+              text: "RRSI 当前实现与证据边界（主线）",
+              link: "/chainlesschain/rrsi-current",
+            },
+            {
+              text: "2026-10-07 持久目标与 RRSI 设计",
+              link: "/design/project-goals-rrsi-update-2026-10-07",
+            },
             {
               text: "CLI 当前发布、升级与证据边界",
               link: "/chainlesschain/agent-platform-release",
@@ -192,7 +204,7 @@ export default defineConfig({
               link: "/chainlesschain/pm-effect-evaluation",
             },
             {
-              text: "数据投影恢复与项目任务操作（候选）",
+              text: "数据投影恢复与项目任务操作",
               link: "/chainlesschain/data-actions-current",
             },
             {

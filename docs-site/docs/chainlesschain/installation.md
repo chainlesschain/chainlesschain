@@ -2,7 +2,7 @@
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
-> **2026-10-06 安装版本**：`npm install -g chainlesschain@0.166.90 --registry https://registry.npmjs.org`，发行提交 `28cff6adc8`。Open VSX `0.37.135` 推荐 CLI `0.166.90`；JetBrains `0.4.153` 已批准公开并推荐 `0.166.90`。执行 `cc --version` 后重启宿主；渠道状态及桌面安装边界见[发布指南](./agent-platform-release)。
+> 2026-10-07 当前公开 CLI **0.166.91**（发行提交 `23afea300b`），Open VSX **0.37.136**、JetBrains **0.4.154**（IDE 发行提交 `5b78b8d828`），均推荐 CLI 0.166.91。Session Core **0.3.16**、PDH **0.4.64** 先行 OIDC 发布并下载核验。新增桌面目标/RRSI 按 `36ca503291` 主线源码范围理解，不在公开 CLI/IDE 或 v5.0.3.138 安装包内；详见[发布指南](./agent-platform-release)。
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 
@@ -15,7 +15,7 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.86` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.91` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
 - 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
 - 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
@@ -24,7 +24,7 @@
 ```
                    安装部署架构
 ┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.166.86  │  CLI 工具
+│  npm install -g chainlesschain@0.166.91  │  CLI 工具
 │         │                               │
 │         ▼                               │
 │  chainlesschain setup (交互式向导)       │

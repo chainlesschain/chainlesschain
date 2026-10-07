@@ -1,5 +1,23 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-10-07 current release and source
+
+Public CLI **0.166.91** is bound to `23afea300b`; Session Core **0.3.16** and Personal Data Hub **0.4.64** were published first through OIDC. Open VSX **0.37.136** and JetBrains **0.4.154** are publicly available at `5b78b8d828` and recommend CLI 0.166.91. Desktop/mobile remain a separate **v5.0.3.138** product release. Current source is reviewed at `36ca503291`.
+
+```bash
+npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org
+cc --version
+```
+
+Exact CLI CI (70 successful jobs, 1 conditional skip), Strict Sandbox (5/5), OIDC publication and public package SRI/dependency/provenance-statement observations are recorded in the [release evidence](docs/research/cli/evidence/documentation-release-status-2026-10-07.json). The separate IDE commit passed its host gate (18 successful jobs, 1 conditional skip) and both publication workflows. JetBrains is approved/listed, not hidden; Microsoft Marketplace has not published this extension.
+
+Current main adds versioned personal-project goals, explicit risk monitoring, durable proposals and native actions, independent business acceptance, and separate stop/pause/end controls. These features require the reviewed desktop source and are outside the public CLI/IDE artifacts and desktop installer. The recorded acceptance batch passed 545 local checks; real Electron GUI and business outcomes remain unverified.
+
+RRSI source adds five-pool contracts, durable resource accounting, native batches/admission/rows/census, statistics v2, preregistration, fixed-HOLD quality receipts and Registry/History/backend binding. Real A/B/C experiments remain NOT_RUN, automatic promotion HOLD, and production origin gates incomplete. Palantir research adds controlled task creation, risk/action lineage, human review, audit governance, REST HEAD probes and projection maintenance with explicit remaining limits.
+
+See [project goals](docs-site/docs/chainlesschain/project-goals-current.md), [RRSI](docs-site/docs/chainlesschain/rrsi-current.md), [design](docs/design/project-goals-rrsi-update-2026-10-07.md), and [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md). Dated sections below retain their historical scope.
+
+
 ## October 6, 2026 release and source review
 
 Public npm CLI **0.166.90** and Open VSX **0.37.135** are released at `28cff6adc8`; Open VSX recommends CLI `0.166.90`. Session Core **0.3.15**, Agent SDK **0.2.13** and PDH **0.4.63** were published first through GitHub Actions OIDC and downloaded independently. JetBrains **0.4.153** is now approved and publicly listed, recommending CLI `0.166.90` at the same release commit; its tag workflow succeeded. All original CI archive file contents match the public ZIP. Reviewed source is `main@2b4de8bcd7`. Desktop/mobile **v5.0.3.138** remains a separate product release.

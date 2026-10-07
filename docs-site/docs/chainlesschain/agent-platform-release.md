@@ -1,6 +1,14 @@
 # Agent Platform 0.166.90 发布与升级指南
 
-> 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。
+> 2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 新设计见[持久目标与 RRSI 增量](/design/project-goals-rrsi-update-2026-10-07)。较早日期章节保留历史范围。
+
+## 2026-10-07 公开版升级与主线范围
+
+安装 `npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org`，核对 `cc --version`，升级 IDE 后重启聊天宿主。Open VSX 0.37.136、JetBrains 0.4.154 均推荐该版本；Microsoft Marketplace 未发行。
+
+CLI 发行 SHA 为 `23afea300b`，其 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37531434920) 70 成功/1 条件跳过、[Strict](https://github.com/chainlesschain/chainlesschain/actions/runs/37531486827) 5/5、[OIDC 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224)成功。子包 Session Core 0.3.16、PDH 0.4.64 先行发布，公开归档 SRI、版本、CLI 精确依赖及 provenance 声明已回读。IDE SHA `5b78b8d828` 的 [宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37537061385) 18 成功/1 条件跳过；双市场发布工作流成功，JetBrains API 确认公开批准。
+
+主线新增目标/巡检/验收和 RRSI 合同不在上述 CLI/IDE 制品内；桌面新工作区需运行源码，v5.0.3.138 安装包独立。见[目标操作](./project-goals-current)、[RRSI](./rrsi-current)及[公开回读证据](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-source-sync-20261007/docs/research/cli/evidence/documentation-release-status-2026-10-07.json)。下面的 0.166.90 段落是上一轮发布记录。
 
 ## 概述
 

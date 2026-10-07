@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.90 | Open VSX 0.37.135 | 桌面与移动端"
+  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.91 | Open VSX 0.37.136 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,13 +20,21 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
+  - icon: 🎯
+    title: 持久项目目标与独立验收（主线）
+    details: 个人项目显式巡检、持久建议、原生确认和独立业务验收；停止本次、暂停、结束跟进分别保留真实状态，需源码宿主。
+    link: /chainlesschain/project-goals-current
+  - icon: 🧪
+    title: RRSI 五池与质量回执（主线）
+    details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
+    link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.90
+    title: Agent Platform 0.166.91
     details: 公开 CLI 包含记忆索引与快照分页、冻结评估及 Linux cgroup2 恢复；真实模型验收和 Docker 整包验收仍开放。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.135 推荐 CLI 0.166.90；JetBrains 0.4.153 也已公开并推荐 CLI 0.166.90。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: Open VSX 0.37.136 推荐 CLI 0.166.91；JetBrains 0.4.154 也已公开并推荐 CLI 0.166.91。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -50,7 +58,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.135 已公开并推荐 CLI 0.166.90；JetBrains 0.4.153 也推荐 CLI 0.166.90；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.136 已公开并推荐 CLI 0.166.91；JetBrains 0.4.154 也推荐 CLI 0.166.91；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -60,10 +68,15 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.90@28cff6adc8；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
+    details: npm latest 为 CLI 0.166.91@23afea300b；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
 ---
 
-> **当前核对**：2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 新增投影恢复、项目任务动作与风险规则；使用[本轮指南](https://docs.chainlesschain.com/chainlesschain/data-actions-current.html)，设计见[本轮增量](/design/data-actions-update-2026-10-06)。
+> **当前核对**：2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 使用[项目目标指南](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)与[RRSI 指南](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)，设计见[本轮增量](/design/project-goals-rrsi-update-2026-10-07)。
+
+## 2026-10-07 最新增量
+
+主线项目目标与 RRSI 设计及使用说明已补齐。公开版本为 CLI 0.166.91、Open VSX 0.37.136、JetBrains 0.4.154；下方带日期内容保留历史范围。
+
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

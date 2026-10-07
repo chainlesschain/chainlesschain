@@ -1,5 +1,7 @@
 # 系统设计文档
 
+- 最新增量：[持久项目目标、受控动作与 RRSI（2026-10-07）](/design/project-goals-rrsi-update-2026-10-07)。
+
 本目录包含 ChainlessChain 系统的完整设计和架构文档，共 **70 个模块设计文档** + **9 个基础设施文档**。
 
 > **最新版本**: v5.0.1.8 Evolution Edition — Phase 1-102 全部完成，2700+ CLI 测试，4600+ 总测试

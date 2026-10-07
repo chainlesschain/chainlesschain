@@ -2,7 +2,7 @@
   "tag": "v5.0.3.138",
   "productVersion": "v5.0.3.138",
   "fetchedAt": "2026-10-06T05:28:54.953Z",
-  "cliVersion": "0.166.90",
+  "cliVersion": "0.166.91",
   "sizes": {
     "android-arm64-v8a": {
       "name": "app-arm64-v8a-release.apk",
@@ -64,5 +64,6 @@
       "bytes": 10049904,
       "label": "10 MB"
     }
-  }
+  },
+  "cliVersionCheckedAt": "2026-10-07T03:29:32.115Z"
 }

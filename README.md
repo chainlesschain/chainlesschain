@@ -1,6 +1,32 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-06 最新发布与代码核对
+## 2026-10-07 最新公开发布与主线进度
+
+2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。
+
+| 组件 | 当前公开版本 | 发行来源 |
+| --- | --- | --- |
+| npm CLI | **0.166.91** | `23afea300b`；CLI CI 70 成功、1 条件跳过；Strict 5/5 |
+| Open VSX / JetBrains | **0.37.136 / 0.4.154** | `5b78b8d828`；IDE 宿主门 18 成功、1 条件跳过；双渠道回读 |
+| Session Core / PDH | **0.3.16 / 0.4.64** | 子包先于 CLI OIDC 发布；公共归档版本与 SRI 已核验 |
+| SDK / Memory Kernel | **0.2.13 / 0.1.6** | 保持独立公开版本 |
+| Desktop / Android / iOS | **v5.0.3.138** | 独立产品包；新增桌面工作区按源码范围理解 |
+
+```bash
+npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org
+cc --version
+```
+
+发行提交的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37531434920) 和 [Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/37531486827) 覆盖 Linux、Windows、macOS，随后 [npm OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224) 成功；公开 tarball 的 SRI、精确依赖及 provenance 声明绑定已回读。IDE [宿主门](https://github.com/chainlesschain/chainlesschain/actions/runs/37537061385)、[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37552984617) 和 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/37552986084) 成功；JetBrains 公共 API 为 approve/listed=true、hidden=false。条件跳过不计为通过；Microsoft Marketplace 未发行。
+
+- **公开 CLI**：Windows 原生 evaluator 的目录身份、ACL、清理/失败证据和锁重试已加固。Linux `cc agent process-ownership` 可核验持久 cgroup 并停止/确认清理，不恢复原任务。沿用 PDH 投影恢复和离线任务预览。
+- **项目目标源码**：版本化个人目标、独立持久调度、显式风险巡检、建议→预览→原生确认→原子回执，以及当前业务条件的独立验收；“停止本次检查”“暂停目标”“结束持续跟进”分别保留真实状态。目标验收批记录 545 项通过，真实 Electron GUI 和业务效果仍待验收。
+- **RRSI 源码**：五池合同、三阶段计账、原生批次/签名/行/census、统计 v2、耐久预注册及 Registry/History/backend 关联已实现。必需质量回执固定 HOLD，新的终评派发缺选择质量准入即拒绝；真实 A/B/C 实验 NOT_RUN，生产来源与晋级门未完成。
+- **研究补齐**：Palantir 第五批覆盖受控任务创建、风险→ActionRun 血缘、人工复核、审计治理、REST HEAD 探针和 PDH 运维核查；真实连接器、向量目标、组织审批和应用部署仍开放。
+
+详见[项目目标与验收](docs-site/docs/chainlesschain/project-goals-current.md)、[RRSI 使用与边界](docs-site/docs/chainlesschain/rrsi-current.md)、[设计增量](docs/design/project-goals-rrsi-update-2026-10-07.md)、[发布指南](docs-site/docs/chainlesschain/agent-platform-release.md)与[公开回读记录](docs/research/cli/evidence/documentation-release-status-2026-10-07.json)。下方日期段落保留历史范围。
+
+## 2026-10-06 发布与代码核对（历史快照）
 
 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。
 
@@ -2891,7 +2917,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.84-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.91-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**

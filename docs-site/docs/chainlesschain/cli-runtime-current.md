@@ -1,8 +1,16 @@
 # CLI Runtime 当前实现与源码候选
 
-> 2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 投影恢复、任务动作与风险规则见[最新设计](/design/data-actions-update-2026-10-06)。较早带日期段落保留其历史范围。
+> 2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 新设计见[持久目标与 RRSI 增量](/design/project-goals-rrsi-update-2026-10-07)。较早日期章节保留历史范围。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
+
+## 2026-10-07 增量：进程清理恢复与评测准入
+
+公开 CLI 0.166.91 支持 Linux `cc agent process-ownership status --json` 与 `recover <execution-id> --timeout-ms 5000 --json`。recover 核验并停止原持久 cgroup，在真实确认清理后解除隔离，**不恢复任务执行**；Windows/macOS 拒绝该操作。重启本身不能证明清理。
+
+Windows 原生 Job wall-time、能力诊断与 review admission 保留失败/清理证据。目录身份及 ACL 在原生 API 与 CLR 宿主之间核验，协作锁释放重试不掩盖已持有锁丢失。诊断或发布矩阵通过不代表正式 native36/Vitest 业务质量通过。
+
+主线的新[项目目标](./project-goals-current)与[RRSI](./rrsi-current)分别保存业务完成证据和实验 HOLD，未进入公开 0.166.91 制品。
 
 ## 2026-09-14 源码候选：准确的请求上下文窗口
 

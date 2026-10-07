@@ -5,30 +5,30 @@ const english = lang === "en";
 const items = english
   ? [
       [
-        "Recover data projections",
-        "Published CLI/PDH persists projection intent with canonical entities, confirms KG/BM25 separately, and adds bounded retries. Current hosts rebuild in-memory indexes; unknown running deliveries remain protected.",
+        "Follow project goals",
+        "Current desktop source persists personal goals and explicit risk monitoring. Review proposals, inspect the current task version and confirm native actions, then independently check business acceptance conditions.",
       ],
       [
-        "Review project task changes",
-        "Current desktop source gives saved pending tasks in personal projects description previews, native confirmation and atomic receipts. Risk checks detect overdue tasks and unfinished direct dependencies. CLI commands only inspect offline snapshots.",
+        "Keep control of follow-up",
+        "Stop one check, pause a goal or end follow-up with separate durable states. Checks, actions and acceptance share a budget; unresolved results keep their original receipt identity. Goals require the reviewed source.",
       ],
       [
-        "Read capability status accurately",
-        "Automation distinguishes simulation from unsupported execution. Low-code publishing saves a design; outbound SCIM provider sync remains unsupported. Structured CLI audit redaction and RAG replacement are hardened.",
+        "Inspect RRSI evidence",
+        "Source adds five-pool accounting, statistics v2, preregistration and Registry/History binding. Required quality receipts remain HOLD; real experiments, production origins and promotion gates remain incomplete.",
       ],
     ]
   : [
       [
-        "数据投影恢复",
-        "公开 CLI/PDH 将投影意图与规范化实体一同保存，KG/BM25 分别确认并支持分批重试。当前宿主重建内存索引，未知运行投递继续保留。",
+        "项目目标与独立验收",
+        "主线桌面源码保存个人目标并显式开启风险巡检。建议经当前版本预览、原生确认和业务回执处理，完成时独立读取业务事实核验条件。",
       ],
       [
-        "项目任务预览与确认",
-        "本轮桌面源码中的个人项目已保存待办任务支持描述预览、原生确认和原子回执。风险只检查逾期与直接依赖阻塞；CLI 命令只读取离线快照。",
+        "持续跟进由你控制",
+        "停止本次检查、暂停目标和结束跟进分别保存真实状态。检查、动作与验收共享预算，未知结果沿原回执核对；该工作区需运行本轮源码。",
       ],
       [
-        "能力状态与审计",
-        "自动化区分模拟和不支持，低代码发布保存设计，SCIM 出站 provider 尚不执行真实同步。CLI 结构化审计脱敏和 RAG 更新顺序已加固。",
+        "RRSI 评测与证据",
+        "主线已实现五池计账、统计 v2、耐久预注册及 Registry/History 关联。必需质量回执保持 HOLD，真实实验、生产来源与晋级门仍待完成。",
       ],
     ];
 ---
@@ -39,18 +39,18 @@ const items = english
 >
   <div class="container-wide">
     <p class="font-mono text-sm text-muted">
-      2026-10-06 · {english ? "Published CLI and desktop source" : "公开 CLI 与桌面源码"} · CLI{" "}
-      {releaseStatus.sourceMainCliVersion}
+      2026-10-07 · {english ? "Public release and current source" : "公开发布与主线源码"} · CLI{" "}
+      {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
       {english
-        ? "Recover projections and review task changes"
-        : "恢复数据投影，复核项目任务修改"}
+        ? "Follow project goals and verify outcomes"
+        : "持续跟进项目目标，独立核验业务结果"}
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? `CLI ${releaseStatus.recommendedCliVersion} and PDH ${releaseStatus.personalDataHubVersion} are public after exact-commit release gates. Desktop task interactions require the reviewed source at ${releaseStatus.sourceHeadCommit.slice(0, 10)}; the separate v5.0.3.138 installer does not include the new workbench.`
-        : `CLI ${releaseStatus.recommendedCliVersion} 与 PDH ${releaseStatus.personalDataHubVersion} 已通过准确提交发布门并公开。桌面任务交互需运行核对至 ${releaseStatus.sourceHeadCommit.slice(0, 10)} 的源码；独立 v5.0.3.138 安装包尚未包含新工作区。`}
+        ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion} and JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} are public after their separate release gates. New project goals and RRSI require source reviewed at ${releaseStatus.sourceHeadCommit.slice(0, 10)}; they are outside these public artifacts and the separate v5.0.3.138 desktop installer.`
+        : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion} 与 JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 已经各自发行门并公开。新项目目标与 RRSI 需运行核对至 ${releaseStatus.sourceHeadCommit.slice(0, 10)} 的源码，尚未进入这些公开制品或独立 v5.0.3.138 桌面安装包。`}
     </p>
     <div class="mt-8 grid gap-6 md:grid-cols-3">
       {items.map(([title, description]) => (
@@ -63,13 +63,19 @@ const items = english
     <div class="mt-6 flex flex-wrap gap-4">
       <a
         class="btn-ghost"
-        href="https://docs.chainlesschain.com/chainlesschain/data-actions-current.html"
+        href="https://docs.chainlesschain.com/chainlesschain/project-goals-current.html"
       >
-        {english ? "Usage and limits ↗" : "操作与限制 ↗"}
+        {english ? "Project goal guide ↗" : "项目目标指南 ↗"}
       </a>
       <a
         class="btn-ghost"
-        href="https://design.chainlesschain.com/data-actions-update-2026-10-06.html"
+        href="https://docs.chainlesschain.com/chainlesschain/rrsi-current.html"
+      >
+        {english ? "RRSI evidence and limits ↗" : "RRSI 证据与边界 ↗"}
+      </a>
+      <a
+        class="btn-ghost"
+        href="https://design.chainlesschain.com/project-goals-rrsi-update-2026-10-07.html"
       >
         {english ? "Architecture and contracts ↗" : "架构与契约 ↗"}
       </a>

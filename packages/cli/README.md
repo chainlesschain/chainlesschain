@@ -2,22 +2,22 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-06)
+## Current release and source (2026-10-07)
 
-Public npm `latest` is **chainlesschain@0.166.90** and Open VSX **0.37.135**
-recommends that CLI, at exact release commit `28cff6adc8`. Session Core
-`0.3.15`, Agent SDK `0.2.13` and PDH `0.4.63` were published and verified first
-through GitHub Actions OIDC. JetBrains **0.4.153** is approved and publicly
-listed, recommends CLI `0.166.90`, and its tag workflow succeeded. See the
-[upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+Public npm latest is **chainlesschain@0.166.91** at `23afea300b`, pinning Session Core **0.3.16**, PDH **0.4.64** and Context/Memory Kernel **0.1.6**. Its exact Linux/Windows/macOS CLI CI and Strict Sandbox gates passed before OIDC publication. Public package versions, SRI, dependency pins and provenance statement were read back on 2026-10-07.
 
-Public CLI **0.166.90** pins Personal Data Hub **0.4.63** and Session Core
-**0.3.15** for recoverable projections, receipt retention, offline risk rules
-and task-description previews. Desktop native action execution remains a
-separate host capability outside the public v5.0.3.138 installer. This release
-passed exact-commit three-OS CI, child package and public CLI verification,
-then successful Open VSX and JetBrains publication, with public approval readback. See the
-[release progress](../../docs/research/palantir/palantir-release-progress-2026-10-06.md).
+Open VSX **0.37.136** and JetBrains **0.4.154** are public at the separate IDE commit `5b78b8d828` and recommend 0.166.91. JetBrains is approved/listed, not hidden. Microsoft Marketplace remains unpublished. See the [release observation](../../docs/research/cli/evidence/documentation-release-status-2026-10-07.json).
+
+Main source reviewed at `36ca503291` adds project-goal/scheduler modules and RRSI controls. The new project goal monitoring/actions/acceptance require the desktop source; neither these nor the new RRSI contracts are included in the public 0.166.91 artifact. Source package versions alone do not identify installed capability. See [project goals](../../docs-site/docs/chainlesschain/project-goals-current.md) and [RRSI](../../docs-site/docs/chainlesschain/rrsi-current.md).
+
+### Linux process ownership recovery (public 0.166.91)
+
+```bash
+cc agent process-ownership status --json
+cc agent process-ownership recover <execution-id> --timeout-ms 5000 --json
+```
+
+Recovery verifies the exact persisted cgroup, stops it, and clears quarantine only after confirmed cleanup. It never resumes the task; Windows/macOS reject this Linux-specific operation. Windows native evaluation keeps wall-time, capability/admission and failed-cleanup evidence; diagnostics and CLI release checks do not qualify a formal effect experiment.
 
 ### Memory pagination (public 0.166.88)
 
@@ -41,7 +41,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.88 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.91 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 
