@@ -182,9 +182,11 @@ module.exports = [
     },
   },
 
-  // Explicit CommonJS main-process fixtures retain Node globals and syntax.
+  // This CommonJS host fixture needs Node globals and require() syntax.
   {
-    files: ["src/main/**/*.cjs"],
+    files: [
+      "src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+    ],
     languageOptions: {
       sourceType: "commonjs",
       globals: { ...globals.node },
