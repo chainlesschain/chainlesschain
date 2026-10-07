@@ -11,6 +11,7 @@ import { evalDigest } from "../src/lib/eval/evidence.js";
 import { outcomeDigest } from "../src/lib/eval/outcomes.js";
 import { readNativeReviewBundle } from "./verify01-native-review-admission.mjs";
 import { validateVerify01Bundle } from "../src/lib/eval/verify01-contracts.js";
+import { verifyRegistryPackageContent } from "./verify01-registry-content.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -118,6 +119,7 @@ function plainPath(root, relative, directory = false) {
 export function inspectNativeToolchain({
   root: rootInput,
   lockDigest,
+  registry,
   bundle = readNativeReviewBundle(),
   readFrozenBlob = (commit, file) =>
     execFileSync("git", ["-C", repository, "show", `${commit}:${file}`], {
@@ -291,20 +293,54 @@ export function inspectNativeToolchain({
     support,
     totalBytes,
   };
+  let registryChecks = null;
+  if (registry !== undefined) {
+    requireCondition(
+      registry && typeof registry.root === "string" && path.isAbsolute(registry.root) &&
+        Array.isArray(registry.artifacts) && registry.artifacts.length === packages.length,
+      "one registry artifact for every installed package is required",
+    );
+    const artifactRoot = path.resolve(registry.root);
+    const artifactRootStat = fs.lstatSync(artifactRoot, { bigint: true });
+    requireCondition(artifactRootStat.isDirectory() && !artifactRootStat.isSymbolicLink() &&
+      fs.realpathSync.native(artifactRoot).toLowerCase() === artifactRoot.toLowerCase(), "plain registry artifact root required");
+    const byPackage = new Map();
+    for (const artifact of registry.artifacts) {
+      requireCondition(artifact && typeof artifact.packagePath === "string" &&
+        packages.some((entry) => entry.path === artifact.packagePath) &&
+        !byPackage.has(artifact.packagePath), "unknown or duplicate registry package binding");
+      byPackage.set(artifact.packagePath, artifact.file);
+    }
+    registryChecks = packages.map((entry) => {
+      const installedFiles = files.filter((file) => {
+        if (!file.path.startsWith(`${entry.path}/`)) return false;
+        return !packages.some((nested) => nested.path.startsWith(`${entry.path}/`) &&
+          file.path.startsWith(`${nested.path}/`));
+      }).map((file) => ({ ...file, path: file.path.slice(entry.path.length + 1) }));
+      const artifactFile = plainPath(artifactRoot, byPackage.get(entry.path));
+      const verified = verifyRegistryPackageContent({ tarball: readPlain(artifactFile),
+        integrity: entry.integrity, installedFiles, packageName: entry.name, packageVersion: entry.version });
+      return { packagePath: entry.path, artifact: byPackage.get(entry.path), ...verified };
+    });
+    const after = fs.lstatSync(artifactRoot, { bigint: true });
+    requireCondition(after.dev === artifactRootStat.dev && after.ino === artifactRootStat.ino &&
+      !after.isSymbolicLink(), "registry artifact root changed");
+    inventory.registryChecks = registryChecks;
+  }
   return {
     inventory,
     inventoryDigest: outcomeDigest(inventory),
     status: "INVENTORIED_NOT_EXECUTABLE",
     executionStatus: "NOT_RUN",
     trusted: false,
-    registryContentVerified: false,
+    registryContentVerified: registryChecks !== null,
     addonAbiVerified: false,
     nativeAclAssessed: false,
     fullReviewPackReady: false,
     formalSample: false,
     providerAssessed: false,
     blockers: [
-      "REGISTRY_CONTENT_VERIFICATION_REQUIRED",
+      ...(registryChecks === null ? ["REGISTRY_CONTENT_VERIFICATION_REQUIRED"] : []),
       "NATIVE_CAPSULE_BACKEND_NOT_IMPLEMENTED",
       "LOCKED_TEST_SUPPORT_EXECUTION_NOT_VERIFIED",
       ...(addons.length ? ["ADDON_ABI_NOT_VERIFIED"] : []),
@@ -322,6 +358,9 @@ if (
         root: { type: "string" },
         "lock-digest": { type: "string" },
         "plan-dir": { type: "string" },
+        "tarball-dir": { type: "string" },
+        "tarball-manifest": { type: "string" },
+        "tarball-manifest-digest": { type: "string" },
         help: { type: "boolean" },
       },
     });
@@ -330,12 +369,24 @@ if (
         "Read-only frozen-lock native toolchain inventory; never installs, imports or executes tools.\n--root ABSOLUTE_ISOLATED_TREE --lock-digest sha256:INDEPENDENT_DIGEST [--plan-dir DIR]\nAn inventory never grants native execution; exit 2 retains all outstanding trust/ABI/ACL requirements.",
       );
     else {
+      let registry;
+      if (["tarball-dir", "tarball-manifest", "tarball-manifest-digest"].some((key) => values[key] !== undefined)) {
+        requireCondition(values["tarball-dir"] && values["tarball-manifest"] && values["tarball-manifest-digest"],
+          "tarball directory, manifest and independent digest are all required");
+        const bytes = readPlain(path.resolve(values["tarball-manifest"]));
+        requireCondition(evalDigest(bytes) === values["tarball-manifest-digest"], "registry manifest digest differs");
+        const manifest = JSON.parse(bytes.toString("utf8"));
+        requireCondition(manifest.schema === "chainlesschain.native-review-registry-artifacts/v1" && Array.isArray(manifest.artifacts),
+          "registry manifest schema differs");
+        registry = { root: values["tarball-dir"], artifacts: manifest.artifacts };
+      }
       console.log(
         JSON.stringify(
           inspectNativeToolchain({
             root: values.root,
             lockDigest: values["lock-digest"],
             bundle: readNativeReviewBundle(values["plan-dir"]),
+            registry,
           }),
           null,
           2,
