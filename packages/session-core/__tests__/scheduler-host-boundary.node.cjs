@@ -51,6 +51,7 @@ function npmCliPath() {
 
 function tarEntry(archive, expectedName) {
   let offset = 0;
+  let contents;
   while (offset + 512 <= archive.length) {
     const header = archive.subarray(offset, offset + 512);
     if (header.every((byte) => byte === 0)) break;
@@ -64,11 +65,17 @@ function tarEntry(archive, expectedName) {
     const dataStart = offset + 512;
     assert.ok(dataStart + size <= archive.length);
     if (fullName === expectedName) {
-      return archive.subarray(dataStart, dataStart + size);
+      assert.equal(contents, undefined, `Duplicate packed file: ${fullName}`);
+      assert.ok(
+        ["", "0"].includes(field(156, 157)) && field(157, 257) === "",
+        `Packed file must be a regular file: ${fullName}`,
+      );
+      contents = archive.subarray(dataStart, dataStart + size);
     }
     offset = dataStart + Math.ceil(size / 512) * 512;
   }
-  throw new Error(`Missing packed file: ${expectedName}`);
+  assert.ok(contents, `Missing packed file: ${expectedName}`);
+  return contents;
 }
 
 test("packed goal and scheduler entries run without CLI dependencies", () => {
@@ -102,34 +109,32 @@ test("packed goal and scheduler entries run without CLI dependencies", () => {
       fixtureRoot,
       "node_modules/@chainlesschain/session-core",
     );
-    // Only the public entry points' declared dependency closure is installed.
-    // Loading index.js, a CLI module, or any optional native driver must fail.
-    for (const file of [
-      "package.json",
-      "lib/scheduler-contract.js",
-      "lib/scheduler-service.js",
-      "lib/scheduler-runtime.js",
-      "lib/scheduler-authority-resolver.js",
-      "lib/scheduler-store.js",
-      "lib/scheduler-source-path.js",
-      "lib/private-storage.js",
-      "lib/host-storage-environment.js",
-      "lib/goal-contract.js",
-      "lib/goal-repository.js",
-      "lib/project-goal-service.js",
-      "lib/project-goal-monitoring.js",
-      "lib/goal-usage-ledger.js",
-      "lib/project-goal-workflow.js",
-      "lib/project-goal-completion.js",
-      "lib/task-description-action-service.js",
-      "lib/approval-gate.js",
-      "lib/project-risk-review-service.js",
-      "lib/project-risk-evaluation.js",
-      "lib/business-object-contract.js",
-    ]) {
-      const destination = path.join(isolatedPackage, file);
+    // Install the packed lib tree so new internal dependencies are included.
+    // CLI modules and optional native drivers remain absent from this host.
+    const files = metadata[0].files
+      .map((entry) => entry.path)
+      .filter((file) => file === "package.json" || file.startsWith("lib/"));
+    assert.ok(files.includes("package.json"));
+    assert.ok(files.some((file) => file.startsWith("lib/")));
+    const installed = new Set();
+    for (const file of files) {
+      assert.ok(
+        /^[a-zA-Z0-9._/-]+$/.test(file) &&
+          file
+            .split("/")
+            .every((part) => part && part !== "." && part !== ".."),
+        `Unsafe packed path: ${file}`,
+      );
+      assert.ok(
+        !installed.has(file.toLowerCase()),
+        `Duplicate packed path: ${file}`,
+      );
+      installed.add(file.toLowerCase());
+      const destination = path.resolve(isolatedPackage, file);
+      assert.ok(destination.startsWith(`${isolatedPackage}${path.sep}`));
+      const contents = tarEntry(archive, `package/${file}`);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
-      fs.writeFileSync(destination, tarEntry(archive, `package/${file}`));
+      fs.writeFileSync(destination, contents, { flag: "wx" });
     }
     for (const name of ["contract", "service", "authority-resolver"]) {
       fs.copyFileSync(
