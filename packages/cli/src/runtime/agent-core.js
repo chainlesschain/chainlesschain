@@ -7545,10 +7545,27 @@ async function executeToolInner(
           readOnly,
         });
       }
+      if (
+        gitArgs[0] === "merge-base" &&
+        gitArgs.includes("--is-ancestor") &&
+        (res.status === 0 || res.status === 1)
+      ) {
+        return attachDescriptor({
+          success: true,
+          stdout: String(res.stdout || "").substring(0, 30000),
+          stderr: String(res.stderr || "").substring(0, 2000),
+          exitCode: res.status,
+          command: normalizedCommand,
+          readOnly: true,
+          predicateResult: res.status === 0,
+          hint: "merge-base --is-ancestor completed: predicateResult indicates whether the first commit is an ancestor of the second. Exit code 1 means false, not a tool failure; no shell echo is needed.",
+        });
+      }
       if (res.status !== 0) {
         const stderr = String(res.stderr || "").substring(0, 2000);
         return attachDescriptor({
           error: stderr || `git exited with code ${res.status}`,
+          stdout: String(res.stdout || "").substring(0, 30000),
           stderr,
           exitCode: res.status,
           command: normalizedCommand,
@@ -14684,7 +14701,7 @@ export async function* agentLoop(messages, options) {
       return;
     }
     readFileLoopGuard.finishBatch();
-    if (remoteReadLoopGuard.stalled) {
+    if (remoteReadLoopGuard.stalled && !remoteReadLoopGuard.synthesisRequired) {
       await _awaitBackgroundUsageSettlement(
         backgroundSubAgents,
         backgroundUsageFailureState,
@@ -15291,6 +15308,7 @@ export async function* agentLoop(messages, options) {
     const prInvestigationExhausted =
       prActionTask &&
       taskProgressTracker.explorationCalls >= PR_INVESTIGATION_LIMIT;
+    const inspectionSynthesisRequired = remoteReadLoopGuard.synthesisRequired;
     // Keep read_file visible during task recovery so the model can request a
     // known, explicitly bounded section. Admission below still rejects broad
     // new-file reads and repeated covered ranges.
@@ -15320,7 +15338,7 @@ export async function* agentLoop(messages, options) {
       ...(readToolRecoveryPaused ? ["read_file"] : []),
       ...(taskRecoveryTurn ? taskRecoveryTools : []),
       ...remoteRecoveryTools,
-      ...(prInvestigationExhausted
+      ...(prInvestigationExhausted || inspectionSynthesisRequired
         ? getEffectiveToolDefinitions(effectiveToolOptions).map(
             (tool) => tool.function.name,
           )
@@ -15486,10 +15504,19 @@ export async function* agentLoop(messages, options) {
       }
     }
 
-    if (prInvestigationExhausted) {
+    if (prInvestigationExhausted || inspectionSynthesisRequired) {
       callMessages = [
         ...callMessages,
-        { role: "system", content: PR_INVESTIGATION_EXIT_GUIDANCE },
+        {
+          role: "system",
+          content: inspectionSynthesisRequired
+            ? "Repeated evidence inspection continued after recovery guidance. This is the final synthesis turn; no tools may execute. " +
+              "Answer the user's actual question from the retained observations, in the user's language. " +
+              "Distinguish verified facts from unknowns and unfinished actions. A status answer may be supported even when no file was changed. " +
+              "Do not claim an issue was closed, a fix was applied, or a workflow passed without successful evidence for that exact action/workflow. " +
+              "If an authorized action remains undone, state that explicitly and name the concrete missing prerequisite; do not promise another round of the same queries."
+            : PR_INVESTIGATION_EXIT_GUIDANCE,
+        },
       ];
       contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
@@ -15730,7 +15757,7 @@ export async function* agentLoop(messages, options) {
     }
 
     const toolCalls = msg.tool_calls;
-    if (prInvestigationExhausted) {
+    if (prInvestigationExhausted || inspectionSynthesisRequired) {
       // Exactly one synthesis request, even if the provider ignores the empty
       // tool set or a Stop hook normally asks to continue. Settle usage first;
       // do not insert unexecuted calls or turn a safety stop into completion.
@@ -15741,7 +15768,9 @@ export async function* agentLoop(messages, options) {
       yield* _drainSubAgentUsage(subAgentUsageSink);
       if (toolCalls?.length) {
         const error = new Error(
-          "PR investigation stopped after repeated exploration without an actionable outcome; the task is incomplete. " +
+          (inspectionSynthesisRequired
+            ? "Evidence inspection stopped after repeated unchanged queries; the model did not produce the requested synthesis. "
+            : "PR investigation stopped after repeated exploration without an actionable outcome; the task is incomplete. ") +
             "The model requested more tools after the final synthesis instruction. Retained evidence: " +
             (
               taskProgressTracker.checkpointFor(runId) ||
@@ -15749,17 +15778,27 @@ export async function* agentLoop(messages, options) {
               "No verified findings."
             ).slice(0, 2000),
         );
-        error.code = "CC_AGENT_PR_INVESTIGATION_STALLED";
+        error.code = inspectionSynthesisRequired
+          ? "CC_AGENT_INSPECTION_STALLED"
+          : "CC_AGENT_PR_INVESTIGATION_STALLED";
         throw error;
       }
       yield {
         type: "response-complete",
         content:
-          "PR investigation stopped without completing the task.\n\n" +
+          (inspectionSynthesisRequired
+            ? ""
+            : "PR investigation stopped without completing the task.\n\n") +
           (msg.content ||
             "No actionable outcome was produced; use the retained findings to identify the missing prerequisite."),
       };
-      yield { type: "run-ended", runId, reason: "pr-investigation-stalled" };
+      yield {
+        type: "run-ended",
+        runId,
+        reason: inspectionSynthesisRequired
+          ? "inspection-synthesis"
+          : "pr-investigation-stalled",
+      };
       return;
     }
     if (Array.isArray(toolCalls) && toolCalls.length > 0) {
@@ -16069,17 +16108,19 @@ export async function* agentLoop(messages, options) {
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         const { result: toolResult, error: toolError } = await promise;
         throwIfAborted(signal);
-        remoteReadLoopGuard.record(call.function.name, toolResult, toolArgs);
-        readFileLoopGuard.record(
+        const taskAdvanced = taskProgressTracker.record(
           call.function.name,
           toolResult,
-          taskProgressTracker.record(
-            call.function.name,
-            toolResult,
-            toolArgs,
-            runId,
-          ),
+          toolArgs,
+          runId,
         );
+        remoteReadLoopGuard.record(
+          call.function.name,
+          toolResult,
+          toolArgs,
+          taskAdvanced,
+        );
+        readFileLoopGuard.record(call.function.name, toolResult, taskAdvanced);
         const failed = emitToolHookLifecycle({
           tool: call.function.name,
           args: toolArgs,
@@ -16593,15 +16634,22 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
-        remoteReadLoopGuard.record(toolName, toolResult, toolArgs);
+        const taskAdvanced = taskProgressTracker.record(
+          toolName,
+          toolResult,
+          toolArgs,
+          runId,
+        );
+        remoteReadLoopGuard.record(
+          toolName,
+          toolResult,
+          toolArgs,
+          taskAdvanced,
+        );
         explicitPrCloseActionGuard.record(toolName, toolArgs, toolResult);
         if (toolName === "edit_file_hashed")
           readFileLoopGuard.recordEditRecovery(toolResult);
-        readFileLoopGuard.record(
-          toolName,
-          toolResult,
-          taskProgressTracker.record(toolName, toolResult, toolArgs, runId),
-        );
+        readFileLoopGuard.record(toolName, toolResult, taskAdvanced);
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
           : resultStr;

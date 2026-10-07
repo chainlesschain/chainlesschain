@@ -143,7 +143,14 @@ describe("read_file offset/limit line ranges", () => {
                 return {
                   message: { role: "assistant", content: "Change written" },
                 };
-              if (options.disabledTools?.includes("list_dir")) {
+              if (
+                options.disabledTools?.includes("list_dir") ||
+                messages.some(
+                  (message) =>
+                    message.role === "system" &&
+                    message.content?.includes("Evidence inspection recovery"),
+                )
+              ) {
                 recovered = true;
                 const findings = retainedContext(
                   messages,
@@ -188,7 +195,8 @@ describe("read_file offset/limit line ranges", () => {
         }
         expect(recovered).toBe(true);
         expect(wrote).toBe(true);
-        expect(calls).toBe(26);
+        if (route === "git") expect(calls).toBeLessThan(26);
+        else expect(calls).toBe(26);
         expect(fs.readFileSync(join(dir, "gate.mjs"), "utf8")).toContain(
           "process.env.PYTHON",
         );

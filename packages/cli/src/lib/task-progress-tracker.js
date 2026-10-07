@@ -197,7 +197,9 @@ export class TaskProgressTracker {
       !!result.error ||
       result.success === false ||
       result.isError === true ||
-      (Number.isInteger(result.exitCode) && result.exitCode !== 0) ||
+      (Number.isInteger(result.exitCode) &&
+        result.exitCode !== 0 &&
+        result.predicateResult !== false) ||
       (Number.isInteger(result.exit_code) && result.exit_code !== 0);
     const noChange =
       result?.alreadyApplied === true ||
@@ -299,6 +301,9 @@ export class TaskProgressTracker {
             ? command.length > 1000
             : previous?.invocationTruncated || false,
           exitCode: result?.exitCode ?? result?.exit_code ?? null,
+          ...(typeof result?.predicateResult === "boolean"
+            ? { predicateResult: result.predicateResult }
+            : {}),
           ...(result?.code ? { code: boundedText(result.code, 120) } : {}),
           status:
             result?.status ||
