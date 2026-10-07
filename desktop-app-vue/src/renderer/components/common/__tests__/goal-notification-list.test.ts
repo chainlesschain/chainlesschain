@@ -32,16 +32,19 @@ const target = {
 };
 describe("Goal notice center navigation", () => {
   let wrapper: VueWrapper, api: any;
+  let pinia: ReturnType<typeof createPinia>;
   const render = (props = {}) =>
     mount(List, {
       props,
       global: {
+        plugins: [pinia],
         stubs: { "a-button": { template: "<button><slot /></button>" } },
       },
     });
   beforeEach(() => {
     vi.useFakeTimers();
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     api = {
       getGoals: vi

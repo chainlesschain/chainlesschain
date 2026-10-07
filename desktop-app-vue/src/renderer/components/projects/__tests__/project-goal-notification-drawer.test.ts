@@ -69,7 +69,7 @@ describe("notification deep link goal drawer", () => {
       props,
       global: {
         stubs: {
-          ADrawer: Shell,
+          "a-drawer": Shell,
           ProjectGoalMonitoringPanel: GoalPanel,
           ProjectRiskReviewPanel: RiskPanel,
         },

@@ -67,8 +67,9 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     env:
       # Unit tests use the same fail-closed ACL preflight as integration tests.
-      # Hosted Windows cold starts can exceed the production 15-second budget.
-      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
+      # Hosted Windows exhausted a 60-second PowerShell startup/ACL budget.
+      # Keep real owner-only verification mandatory with a bounded CI allowance.
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '120000' || '' }}
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -131,11 +132,11 @@ jobs:
     name: "integration (${{ inputs.runs-on }}, shard ${{ matrix.shard }}/8)"
     runs-on: ${{ inputs.runs-on }}
     env:
-      # Hosted Windows runners can take more than the production default to
-      # cold-start the fail-closed PowerShell ACL preflight under shard load.
+      # Hosted Windows runners can exceed one minute while cold-starting the
+      # fail-closed PowerShell ACL preflight under shard load.
       # secure-fs accepts this as an upper allowance and never lets it lower
       # the production timeout.
-      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '120000' || '' }}
     strategy:
       fail-fast: false
       max-parallel: 2

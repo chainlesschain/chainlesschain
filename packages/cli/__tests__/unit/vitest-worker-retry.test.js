@@ -552,7 +552,7 @@ describe("Vitest worker infrastructure retry", () => {
       workflow.indexOf("  e2e:"),
     );
     expect(integrationJob).toContain(
-      "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}",
+      "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '120000' || '' }}",
     );
     const mcpLifecycleStep = cliWorkflow.slice(
       cliWorkflow.indexOf(

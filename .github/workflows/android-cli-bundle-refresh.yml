@@ -62,7 +62,7 @@ jobs:
         env:
           BUNDLE_OUTPUT: ${{ runner.temp }}/android-cli-bundle-output
         run: |
-          node --input-type=module -e '
+          node --input-type=module <<'NODE'
             import fs from "node:fs";
             const value = JSON.parse(fs.readFileSync(process.env.BUNDLE_OUTPUT + "/android-cli-bundle.json", "utf8"));
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
@@ -71,4 +71,4 @@ jobs:
               "Retained Android Node 26.2.0 / ABI 147; PDH cipher binding 12.11.1 verified. " +
               "Ordinary SQLite and node-pty native addons are unsupported; see evidence for fallbacks. " +
               "Android device execution was not performed.\n");
-          '
+          NODE
