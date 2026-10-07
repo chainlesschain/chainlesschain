@@ -22,188 +22,53 @@ on:
         default: false
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────
-  # publish-deps — publishes 9 workspace packages (core-env … personal-data-hub)
-  # to npm BEFORE the desktop build jobs run.
-  #
-  # Why this job exists at the top of the graph: the desktop build jobs
-  # (build-windows / build-macos / build-linux) run
-  #   npm install --omit=dev --workspaces=false
-  # inside packages/cli to materialise the prod dep tree that Electron bundles
-  # via extraResources. That install resolves @chainlesschain/* from the npm
-  # REGISTRY, not the workspace — so any version bump to a workspace dep that
-  # hasn't yet been published produces:
-  #   npm error notarget No matching version found for @chainlesschain/X@Y.Z.W
-  #
-  # Before this job existed, the chain was:
-  #   build-* (incl desktop) ─→ create-release ─→ historical publish-cli
-  #                                                (which also published deps)
-  # That's a chicken-and-egg: desktop builds need PDH on npm, but PDH only
-  # gets published after they succeed. v5.0.3.79 hit this — see commit
-  # message of the fix.
-  #
-  # The CLI is no longer published anywhere in this product workflow. The
-  # workspace deps remain handled here; the post-build CLI precondition only
-  # consumes a separately authorized v-npm-* release.
-  #
-  # Risk vs. previous design: workspace deps now get published even if the
-  # desktop builds fail. That's an acceptable trade-off — npm publishes are
-  # irreversible regardless of timing (per memory `github-immutable-release-
-  # tag-burn` cousin: npm publish == permanent). Better to publish-then-fail
-  # than to never publish and block all future re-runs.
-  #
-  # workspace-npm-publish.yml is the generic OIDC publisher. This release job waits
-  # for that workflow first, while NODE_AUTH_TOKEN remains an explicit rollback
-  # path for manual releases or a failed primary publish.
+  # Product releases consume the separately authorized npm release only.
+  # Keep the job ID so existing desktop build dependencies remain unchanged.
   publish-deps:
-    name: Publish workspace deps (precondition for desktop builds)
+    name: Verify public workspace dependencies (no publishing)
+    needs: [verify-cli-release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
-      - name: Checkout code
+      - name: Checkout exact product source
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
           node-version: "22.14.0"
-          registry-url: "https://registry.npmjs.org"
 
-      - name: Enable npm Trusted Publishing support
+      - name: Fetch every exact public workspace package
+        shell: bash
         run: |
-          npm install --global npm@11.18.0
-          npm --version
-
-      - name: Install dependencies (workspaces)
-        uses: ./.github/actions/setup-node-deps
-        with:
-          install-command: npm ci
-
-      - name: "Await OIDC publish or use token fallback (workspace packages)"
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -e
-          version_is_published() {
-            npm view "$1@$2" version 2>/dev/null | grep -Fx "$2" >/dev/null
-          }
-
-          await_primary_publish() {
-            name="$1"
-            version="$2"
-
-            if version_is_published "$name" "$version"; then
-              return 0
+          set -euo pipefail
+          REGISTRY_ROOT=$(mktemp -d)
+          trap 'rm -rf "$REGISTRY_ROOT"' EXIT
+          for pkg in agent-protocol core-env shared-logger core-config core-db core-infra core-mtc core-multisig core-settlement session-core context-memory-kernel agent-sdk personal-data-hub; do
+            PACKAGE_NAME=$(node -p "require('./packages/$pkg/package.json').name")
+            PACKAGE_VERSION=$(node -p "require('./packages/$pkg/package.json').version")
+            SPEC="$PACKAGE_NAME@$PACKAGE_VERSION"
+            PACKAGE_ROOT="$REGISTRY_ROOT/$pkg"
+            mkdir -p "$PACKAGE_ROOT"
+            if ! PUBLIC_VERSION=$(npm view "$SPEC" version --registry=https://registry.npmjs.org --prefer-online); then
+              echo "::error::Cannot verify $SPEC on public npm. Complete npm-publish.yml through its immutable v-npm tag, verify the public package, and retry this product workflow. No package will be published here."
+              exit 1
             fi
-
-            # Numeric product tag pushes also start workspace-npm-publish.yml,
-            # the generic OIDC
-            # publisher. Give it time to finish its test gate before using the
-            # retained NPM_TOKEN rollback path. Manual release runs have no
-            # sibling workflow, so they fall back immediately.
-            if [ "$EVENT_NAME" != "push" ]; then
-              return 1
+            test "$PUBLIC_VERSION" = "$PACKAGE_VERSION"
+            if ! npm pack "$SPEC" --ignore-scripts --prefer-online --registry=https://registry.npmjs.org --pack-destination "$PACKAGE_ROOT" > "$PACKAGE_ROOT/pack.txt"; then
+              echo "::error::Cannot fetch $SPEC. Complete and verify the OIDC npm-publish.yml release before retrying; this product workflow never publishes packages."
+              exit 1
             fi
-
-            echo "Waiting up to 15 minutes for $name@$version from workspace-npm-publish.yml"
-            for attempt in $(seq 1 60); do
-              sleep 15
-              if version_is_published "$name" "$version"; then
-                echo "  $name@$version published by the OIDC workflow"
-                return 0
-              fi
-              echo "  attempt $attempt/60: not visible yet"
-            done
-
-            return 1
-          }
-
-          publish_with_race_guard() {
-            dir="$1"
-            name="$2"
-            version="$3"
-
-            echo "Token fallback: publishing $name@$version"
-            if (cd "$dir" && npm publish --provenance --access public); then
-              return 0
-            fi
-
-            # The OIDC workflow may have won the race after our final check.
-            if version_is_published "$name" "$version"; then
-              echo "  $name@$version is now published; accepting peer success"
-              return 0
-            fi
-
-            return 1
-          }
-
-          # Dep order matters: each package may require earlier ones at
-          # install time; npm publish itself doesn't enforce this, but
-          # downstream `npm install` does. Order mirrors the original
-          # sequence inside publish-cli before the v5.0.3.79 refactor.
-          for pkg in core-env shared-logger core-config core-db core-infra core-mtc core-multisig core-settlement session-core personal-data-hub; do
-            dir="packages/$pkg"
-            name="@chainlesschain/$pkg"
-            PKG_VER=$(node -p "require('./$dir/package.json').version")
-            if await_primary_publish "$name" "$PKG_VER"; then
-              echo "  $name@$PKG_VER already published, skip"
-            else
-              publish_with_race_guard "$dir" "$name" "$PKG_VER"
-            fi
+            mapfile -t TARBALLS < <(find "$PACKAGE_ROOT" -maxdepth 1 -name '*.tgz' -type f -print)
+            test "${#TARBALLS[@]}" -eq 1
+            tar -xOf "${TARBALLS[0]}" package/package.json > "$PACKAGE_ROOT/package.json"
+            node -e 'const p=require(process.argv[1]); if(p.name!==process.argv[2] || p.version!==process.argv[3]) throw new Error("Public package identity mismatch")' "$PACKAGE_ROOT/package.json" "$PACKAGE_NAME" "$PACKAGE_VERSION"
+            echo "Verified public archive $SPEC"
           done
 
-      - name: "Await OIDC publish or use token fallback (@chainlesschain/agent-sdk)"
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        working-directory: packages/agent-sdk
-        run: |
-          set -e
-          version_is_published() {
-            npm view "$1@$2" version 2>/dev/null | grep -Fx "$2" >/dev/null
-          }
-
-          await_primary_publish() {
-            name="$1"
-            version="$2"
-
-            if version_is_published "$name" "$version"; then
-              return 0
-            fi
-            if [ "$EVENT_NAME" != "push" ]; then
-              return 1
-            fi
-
-            echo "Waiting up to 15 minutes for $name@$version from workspace-npm-publish.yml"
-            for attempt in $(seq 1 60); do
-              sleep 15
-              if version_is_published "$name" "$version"; then
-                echo "  $name@$version published by the OIDC workflow"
-                return 0
-              fi
-              echo "  attempt $attempt/60: not visible yet"
-            done
-
-            return 1
-          }
-
-          # Not an npm workspace member — needs its own devDeps for the
-          # prepublishOnly TypeScript dual build (see workspace-npm-publish.yml twin).
-          PKG_VER=$(node -p "require('./package.json').version")
-          if await_primary_publish "@chainlesschain/agent-sdk" "$PKG_VER"; then
-            echo "  @chainlesschain/agent-sdk@$PKG_VER already published, skip"
-          else
-            npm install --no-audit --no-fund
-            echo "Token fallback: publishing @chainlesschain/agent-sdk@$PKG_VER"
-            if ! npm publish --provenance --access public; then
-              # The OIDC workflow may have won the race after our final check.
-              version_is_published "@chainlesschain/agent-sdk" "$PKG_VER"
-            fi
-          fi
 
   # Build for Windows
   build-windows:
@@ -969,6 +834,7 @@ jobs:
   # - Unsigned 路径：无 secret 时走 simulator build + zip
   # 两路径均**无 mask**：失败就真失败（前 16 iter 收口的教训）。
   build-ios:
+    needs: [publish-deps]
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -1169,6 +1035,7 @@ jobs:
 
   # Build for Android
   build-android:
+    needs: [publish-deps]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -1553,8 +1420,6 @@ jobs:
   # dedicated v-npm-* exact-SHA workflow.
   verify-cli-release:
     name: Verify authorized CLI release precondition
-    needs: [create-release]
-    if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -1601,6 +1466,12 @@ jobs:
             exit 1
           fi
 
+          # A later product workflow commit must preserve npm package source identity.
+          if ! git diff --quiet "$TAG_SHA" "$GITHUB_SHA" -- packages/cli packages/agent-protocol packages/core-env packages/shared-logger packages/core-config packages/core-db packages/core-infra packages/core-mtc packages/core-multisig packages/core-settlement packages/session-core packages/context-memory-kernel packages/agent-sdk packages/personal-data-hub; then
+            echo "::error::Product npm package sources differ from the authorized CLI release. Release changed npm packages through npm-publish.yml first."
+            exit 1
+          fi
+
           REGISTRY_ROOT=$(mktemp -d)
           AUDIT_ROOT=$(mktemp -d)
           trap 'rm -rf "$REGISTRY_ROOT" "$AUDIT_ROOT"' EXIT
@@ -1614,6 +1485,7 @@ jobs:
             npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
             npm audit signatures --include-attestations --json > npm-signatures.json
           )
+          node packages/cli/scripts/verify-cli-registry-install.mjs "$AUDIT_ROOT" packages/cli/package.json product-release-cli-child-install.json
           CC_NPM_PROVENANCE_OUTPUT=cli-npm-provenance.json \
           node packages/cli/scripts/verify-npm-release-provenance.mjs \
             "$AUDIT_ROOT/npm-signatures.json" "$VERSION" "$TAG_SHA" "refs/tags/$TAG" "$REGISTRY_SHA512"
@@ -1631,6 +1503,7 @@ jobs:
           path: |
             cli-release-gate.json
             cli-npm-provenance.json
+            product-release-cli-child-install.json
           if-no-files-found: error
           retention-days: 90
   # Generate the desktop changelog for review. The release workflow must not
