@@ -305,9 +305,11 @@ controlledHistoryRegistrationOrderVerified:true 仅说明已认证 History 中�
 
 ## 17 下一批工作及完成审计
 
-下一步接入选择/泛化的必需质量回执和正式统计校准。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+原生质量 HOLD 回执与耐久记录已接线，详见第 18 节。下一步补齐可验证的质量与统计校准供给，以及 Registry 的持久来源约束。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
 
-Astra 的治理复核确认：候选冻结目前只核验结算，不能据此认定质量通过。候选来源引用与 derivationMode 参与 candidateId，contentDigest 则只由内容字节计算；改变引用、模式或包装可能产生新 ID，因此新增来源约束必须在真正 Registry 存储与写边界按内容摘要查询。来源登记本身不证明质量；旧冻结、普通 callback、相同租户或相同路径都不能授予新晋级权限。新增质量回执须保留原 Gate veto、完整分母与费用缺口，再接入 Release/Review/Pilot/恢复路径。
+Astra 的治理复核确认：旧候选冻结只核验结算，不能据此认定质量通过；新预注册分支的拒绝门见第 18 节。候选来源引用与 derivationMode 参与 candidateId，contentDigest 则只由内容字节计算；改变引用、模式或包装可能产生新 ID，因此新增来源约束必须在真正 Registry 存储与写边界按内容摘要查询。来源登记本身不证明质量；旧冻结、普通 callback、相同租户或相同路径都不能授予新晋级权限。新增质量回执须保留原 Gate veto、完整分母与费用缺口，再接入 Release/Review/Pilot/恢复路径。
+
+下一增量先补 [transaction ports](../../../packages/cli/src/lib/evolution/evolution-ledger-ports.js) 对真正 v2 journal 的捕获与回执验证，再将 Registry、operation reader 和 History 与同一真正 FileBackend/Ledger/ArtifactPorts 关联。现有 `_tenant.json` 的严格 v1 校验同时用于构造、read 和 write；升级 marker 可以拒绝旧 writer，也会拒绝旧二进制的 read。因此后续须让新 reader 兼容旧 candidate/release/state 字节，并准备维护排空与跨存储恢复协议。新增可删除 sidecar、普通 migration audit 或仅凭路径相等均不能建立不可降级来源门；本批未切换任何生产存储。
 
 | 必需条件            | 当前证据                                                                                | 未完成的工程或外部条件                                                      |
 | ------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -316,10 +318,24 @@ Astra 的治理复核确认：候选冻结目前只核验结算，不能据此�
 | 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                                                      | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
 | 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装                                         | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
 | 五池真实派发与统计  | 原生三角计划、批次预留、签名登记/准入、cohort 行分块、完整 census、统计 v2 与耐久预注册 | 生产 launch 权威、全部扰动真实执行及正式校准                                |
-| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                                                            | 可信 receipt、逐轮停止条件和锚点回归                                        |
+| 选择/泛化必需回执   | genuine census 派生的 HOLD 回执、耐久快照及新预注册终评拒绝门                           | 真正质量 PASS 的来源/费用/校准供给、逐轮停止条件和锚点回归                  |
 | 晋级无降级绕过      | 既有发布门保持原行为                                                                    | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
 | Workbench 与回滚    | 既有底座可复用                                                                          | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
 | 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                                                    | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
 | CLI 扩展与交付      | 原发行门仍适用                                                                          | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
 
 真实父版本与数据清单的登记独立于合成例子。待受信部署和来源可核验后，以新冻结合同开启真实实验；不把示例摘要重新标为生产身份。
+
+## 18 原生必需质量回执与终评准入
+
+[rrsi-native-quality-receipt.js](../../../packages/cli/src/lib/evolution/rrsi-native-quality-receipt.js) 仅接收真正带有私有品牌的 batch census 与原统计计划，直接重新计算统计报告。selection/generalization 回执分别绑定真实 campaign、candidate/content、三组实际版本、父版本、runtime/target、生命周期、统计预注册、完整行摘要、原 Gate veto、全分母、声明费用与原 History head。外部 report、PASS 标志、verifier callback、caller clock、复制 JSON 和跨 journal 的真正回执不能授予该 live 品牌。
+
+census 新增消费时的严格复验：在同一真正 Ledger、ArtifactPorts 与 resolver 组合中创建全新的只读 audit，并为每个原 cohort authority 创建新 session。重读原始 enrollment、seal、receipt 库存及产物字节，比较原 root/batch/注册/head，前后检查真正 verifier 的有效期。原 session 内的缓存不能代替这次重读；保留原行的所有字段摘要，而非只保存数值分析所用的成功标志。
+
+回执将控制事实与未验证的生产条件分开。来源独立性、真实观察时间、实际 execution receipts、内容派生、arm lifecycle、recipe、请求费用图、完整账单、清理、校准、多轮选择错误率、人工修复和生产父版本回读仍为 false，所有必需 HOLD 原因必须保留。当前 v1 回执固定 decision:HOLD、qualityVerdictVerified:false；不能通过配置或重新计算摘要变成 PASS。
+
+History 的 recordNativeQualityReceipt 在真正私有品牌复验后，通过同步 lock/load/严格 head CAS 保存紧凑快照及真实 scope/plan/reservation 引用。发布和 append 前再次检查有效期；head 变化拒绝新写入，不自动 rebase。canonical operation ID、完整 sourceRefs、实际 applied payload 与紧邻前一 Ledger head 在重放时复验。成功提交后原 census head 已过时；仅同一已提交记录的幂等回读可以恢复，重开的 JSON 投影始终 historicalSnapshotOnly:true、currentReceiptFreshnessVerified:false，不恢复 live 品牌或执行权限。保存 report/census/完整行的摘要不代表已归档或认证所有底层生产证明。
+
+新预注册 scope 的旧 freezeCandidate 不再接受新的冻结请求；freezeNativeCandidateV2 复验真正 selection 回执并返回 QUALITY_HOLD，当前版本不产生质量冻结记录。新的 v2 generalization 预占和 live dispatch 必须有可验证的选择质量准入，当前拒绝。旧冻结、已预留记录、unknown 与 settlement 的历史回读和对账保持兼容；已结算成功和旧冻结意图不能自动升级为新的终评权限。本批尚未实现 Registry/Review/Pilot 的完整来源门，旧发布入口的治理接线仍属 RR-04 后续工作。
+
+本批验证已完成：新增回执 **9/9**、耐久边界 **6/6**、真实签名记录来源对抗 **3/3**，旧 History 与新增恢复联合 **64/64**，两个分支的签名库存损坏与当前过期定向复测 **4/4**，共 **86 项独立用例通过**。新增 22 项，扩展原过期用例两项；Gate 每个定向分支另有 253 项跳过，不作为新一轮完整 Gate 运行计数。首轮组合定向 run 的旧分支两项通过，预注册分支在套件级别失败而未执行目标用例；JSON reporter 未保存嵌套 hook 的错误详情。两个分支随后独立复测全部通过，未放宽验证器或任何时限。ESLint、Prettier 与 Astra 复核通过，摘要见 [必需质量回执验证记录](./evidence/rrsi-native-quality-local-controls-2026-10-07.json)。after-head 用例验证 v1 文件 Ledger 的真实已提交响应丢失；旧冻结用例追加经过认证的历史字节。它们不证明 v2 断电、实际费用/清理或运行过旧二进制。

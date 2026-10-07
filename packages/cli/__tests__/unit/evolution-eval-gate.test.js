@@ -1,6 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import { spawn } from "node:child_process";
 import {
+  chmodSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -45,6 +46,11 @@ import {
   buildRrsiNativeGroupStatisticsPlan,
   analyzeRrsiNativeBatchGroupStatistics,
 } from "../../src/lib/evolution/rrsi-native-group-statistics.js";
+import {
+  buildRrsiNativeQualityReceipt,
+  captureRrsiNativeQualityReceipt,
+} from "../../src/lib/evolution/rrsi-native-quality-receipt.js";
+import { EVOLUTION_EVAL_COHORT_SEAL_EVENT_TYPE } from "../../src/lib/evolution/evolution-eval-cohort-enrollment.js";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -7261,6 +7267,83 @@ function nativeSignedCohortRowCollectorSuite(statisticsPreregistered = false) {
     ).toThrow(/protocol differs/);
   }, 120000);
 
+  it("builds required-quality from genuine signed rows and rejects later retained inventory damage", async () => {
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [await mainRows()],
+    });
+    const plan = buildRrsiNativeGroupStatisticsPlan({
+      campaign: native.planContext.context.campaign,
+      batch: store.resolution.batch,
+    });
+    const receipt = await buildRrsiNativeQualityReceipt({
+      batchEvidence: census,
+      plan,
+    });
+    expect(receipt).toMatchObject({
+      observedRowClaims: 240,
+      missingActorObservations: 8400,
+      originalNativeGateVetoChildIds: expect.arrayContaining([
+        children[0].childId,
+      ]),
+      decision: "HOLD",
+      qualityVerdictVerified: false,
+      grantsFinalEvaluationAuthority: false,
+    });
+    const captured = captureRrsiNativeQualityReceipt(receipt);
+    await expect(captured.assertCurrentHistory(store.adapter)).resolves.toBe(
+      receipt,
+    );
+    const event = store.store.backend.ledger
+      .read({ afterSequence: 0, limit: 1000 })
+      .find(
+        (event) =>
+          event.type === EVOLUTION_EVAL_COHORT_SEAL_EVENT_TYPE &&
+          JSON.parse(
+            store.store
+              .resolver({
+                epoch: receipt.auditHead.epoch,
+                ledgerId: receipt.auditHead.ledgerId,
+                ref: event.subjectRef,
+                tenantId: "rrsi-artifacts",
+              })
+              .bytes.toString("utf8"),
+          ).value.cohortId === cohortId,
+      );
+    expect(event).toBeDefined();
+    const directory = join(root, "store", "artifacts"),
+      id = event.subjectRef.ref.slice("cc-evolution-artifact:".length);
+    const entry = readFileSync(join(directory, "index.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+      .find((entry) => entry.id === id);
+    if (!entry || !/^art_[a-z0-9_]+\.json$/u.test(entry.file))
+      throw new Error("unsafe retained inventory test path");
+    const target = join(directory, "files", entry.file),
+      original = readFileSync(target);
+    if (realpathSync.native(target) !== target)
+      throw new Error("unsafe retained inventory test target");
+    const head = store.store.backend.ledger.verify();
+    try {
+      chmodSync(target, 0o600);
+      writeFileSync(target, Buffer.from("damaged retained cohort inventory"));
+      await expect(
+        captured.assertCurrentHistory(store.adapter),
+      ).rejects.toThrow();
+    } finally {
+      writeFileSync(target, original);
+      chmodSync(target, 0o444);
+    }
+    expect(store.store.backend.ledger.verify().headDigest).toBe(
+      head.headDigest,
+    );
+    await expect(captured.assertCurrentHistory(store.adapter)).rejects.toThrow(
+      /invalidated/,
+    );
+  }, 180000);
+
   it("captures cohort inputs before awaiting and rejects copied or repeated capabilities without invoking getters", async () => {
     const value = await mainRows();
     const options = {
@@ -7546,7 +7629,19 @@ function nativeSignedCohortRowCollectorSuite(statisticsPreregistered = false) {
     mutable.slots[0].resultEvidence.test.candidate[0].pass = false;
     const result = await pending;
     expect(result.slots[0].status).toBe("signed-rows");
+    const qualityReceipt = await buildRrsiNativeQualityReceipt({
+      batchEvidence: census,
+      plan,
+    });
     harness.clockControl.advance(120000);
+    expect(() =>
+      captureRrsiNativeQualityReceipt(qualityReceipt).assertCurrentFreshness(),
+    ).toThrow(/stale/);
+    await expect(
+      captureRrsiNativeQualityReceipt(qualityReceipt).assertCurrentHistory(
+        store.adapter,
+      ),
+    ).rejects.toThrow(/invalidated|stale/);
     expect(() =>
       captureRrsiNativeBatchEvidence(census).assertCurrentFreshness(),
     ).toThrow(/stale/);

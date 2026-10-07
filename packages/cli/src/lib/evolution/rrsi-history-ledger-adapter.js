@@ -65,6 +65,8 @@ import {
   assertRrsiNativeStatisticsScopeBatch,
   normalizeRrsiNativeStatisticsExecutionContract,
 } from "./rrsi-native-statistics-protocol.js";
+import { verifyRecordedRrsiNativeQualityReceipt } from "./rrsi-native-quality-receipt-contracts.js";
+import { buildRrsiNativeGroupStatisticsPlan } from "./rrsi-native-group-statistics-plan.js";
 
 export const RRSI_HISTORY_EVENT_SCHEMA = "chainlesschain.rrsi-history-event/v1";
 export const RRSI_HISTORY_STATUS_SCHEMA =
@@ -79,6 +81,15 @@ const NATIVE_STATISTICS_SCOPE_OPERATION = "register.native-statistics-scope-v2";
 const NATIVE_STATISTICS_SCOPE_KIND = "register-native-statistics-scope-v2";
 const NATIVE_STATISTICS_PLAN_KIND = "register-native-statistics-plan-v2";
 const NATIVE_STATISTICS_RESERVE_KIND = "reserve-native-batch-v2";
+const NATIVE_QUALITY_RECEIPT_KIND = "record-native-quality-receipt-v1";
+const nativeQualityReceiptOperation = (digest) =>
+  `quality.${rrsiDigest(digest, "native quality receipt digest").slice(7)}`;
+const auditHead = (head) =>
+  Object.fromEntries(
+    ["ledgerId", "identityDigest", "epoch", "sequence", "headDigest"].map(
+      (field) => [field, head[field]],
+    ),
+  );
 const nativeStatisticsPlanOperation = (queryId) =>
   `statistics-plan.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", queryId).slice(7)}`;
 
@@ -632,6 +643,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
       nativeStatisticsScope: null,
       nativeStatisticsPlans: new Map(),
       nativeStatisticsBindings: new Map(),
+      nativeQualityReceipts: new Map(),
       nativeRecoveryHolds: new Map(),
       nativeInvocations: new Set(),
       nativeInvocationIds: new Set(),
@@ -845,7 +857,15 @@ export function createRrsiHistoryLedgerAdapter(input) {
   }
   function nativeStatisticsSourceRefs(state, kind, payload) {
     let refs;
-    if (kind === NATIVE_STATISTICS_SCOPE_KIND)
+    if (kind === NATIVE_QUALITY_RECEIPT_KIND) {
+      const receipt = payload.qualityReceipt;
+      refs = [receipt.reservationRecord.ref];
+      if (receipt.statisticsRegistration)
+        refs.push(
+          receipt.statisticsRegistration.scopeRegistrationRecord.ref,
+          receipt.statisticsRegistration.planRegistrationRecord.ref,
+        );
+    } else if (kind === NATIVE_STATISTICS_SCOPE_KIND)
       refs = [payload.binding.rootRegistrationRecord.ref];
     else if (kind === NATIVE_STATISTICS_PLAN_KIND)
       refs = [payload.scopeRegistrationRecord.ref];
@@ -1229,7 +1249,29 @@ export function createRrsiHistoryLedgerAdapter(input) {
     });
     return freezeRrsiData(response);
   }
-  function apply(state, kind, payload, acceptedAt, liveAdmission = false) {
+  function apply(
+    state,
+    kind,
+    payload,
+    acceptedAt,
+    liveAdmission = false,
+    previousHead = null,
+  ) {
+    if (kind === NATIVE_QUALITY_RECEIPT_KIND) {
+      rrsiExact(payload, ["qualityReceipt"], "native quality receipt record");
+      const receipt = verifyRecordedRrsiNativeQualityReceipt(
+        payload.qualityReceipt,
+        nativeQualityContext(
+          state,
+          payload.qualityReceipt.batchDigest,
+          previousHead,
+        ),
+      );
+      if (state.nativeQualityReceipts.has(receipt.qualityReceiptDigest))
+        rrsiFail("native quality receipt is already recorded");
+      state.nativeQualityReceipts.set(receipt.qualityReceiptDigest, payload);
+      return receipt;
+    }
     if (kind === "register") {
       rrsiExact(payload, ["campaign"], "campaign registration");
       const campaign = verifyRrsiCampaign(payload.campaign);
@@ -1372,6 +1414,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
       for (const name of Object.keys(binding))
         if (payload[name] !== binding[name])
           rrsiFail("native reservation replaces its statistics registration");
+      if (liveAdmission && payload.batch.stage === "generalization")
+        rrsiFail(
+          "preregistered final evaluation requires a verified native selection quality receipt",
+          "CC_RRSI_QUALITY_RECEIPT_REQUIRED",
+        );
       return reserveNativeBatch(state, { batch: payload.batch }, binding);
     }
     if (kind === "reserve-native-batch")
@@ -1382,6 +1429,16 @@ export function createRrsiHistoryLedgerAdapter(input) {
       if (!child || child.bindings.batchDigest !== payload.batchDigest)
         rrsiFail("native child binding differs");
       if (kind === "dispatch-native") {
+        if (
+          liveAdmission &&
+          state.nativeStatisticsScope &&
+          state.nativeBatches.get(payload.batchDigest)?.stage ===
+            "generalization"
+        )
+          rrsiFail(
+            "preregistered final dispatch requires a verified native selection quality receipt",
+            "CC_RRSI_QUALITY_RECEIPT_REQUIRED",
+          );
         if (state.overrun)
           rrsiFail(
             "history contains a resource overrun",
@@ -1837,6 +1894,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
         "candidate freeze",
       );
       const campaign = campaignFor(state, payload.campaignDigest);
+      if (liveAdmission && state.nativeStatisticsScope)
+        rrsiFail(
+          "preregistered native freeze requires a verified selection quality receipt",
+          "CC_RRSI_QUALITY_RECEIPT_REQUIRED",
+        );
       if (
         liveAdmission &&
         state.nativeBatches.size &&
@@ -2192,6 +2254,17 @@ export function createRrsiHistoryLedgerAdapter(input) {
         if (state.operations.has(record.operationId))
           rrsiFail("RRSI history has duplicate operations");
         if (
+          record.kind === NATIVE_QUALITY_RECEIPT_KIND &&
+          record.operationId !==
+            nativeQualityReceiptOperation(
+              record.payload.qualityReceipt?.qualityReceiptDigest,
+            )
+        )
+          rrsiFail(
+            "native quality receipt operation ID differs",
+            "CC_RRSI_HISTORY_CORRUPT",
+          );
+        if (
           record.kind === NATIVE_STATISTICS_SCOPE_KIND &&
           record.operationId !== NATIVE_STATISTICS_SCOPE_OPERATION
         )
@@ -2234,6 +2307,12 @@ export function createRrsiHistoryLedgerAdapter(input) {
           record.kind,
           record.payload,
           record.acceptedAt,
+          false,
+          auditHead({
+            ...state.identity,
+            sequence: event.sequence - 1,
+            headDigest: event.prevDigest,
+          }),
         );
         state.operations.set(record.operationId, {
           record,
@@ -2253,6 +2332,75 @@ export function createRrsiHistoryLedgerAdapter(input) {
   }
   function operationEventId(operationId) {
     return `rrsi.${rrsiHash("chainlesschain.rrsi-history-operation/v1", { scopeDigest, operationId }).slice(7)}`;
+  }
+  function nativeQualityContext(state, batchDigest, observedHead) {
+    const rootOperation = [...state.operations.values()].find(
+      (entry) =>
+        entry.record.kind === "register" &&
+        entry.record.payload.campaign.campaignDigest ===
+          state.root?.campaignDigest,
+    );
+    const batchOperation = [...state.operations.values()].find(
+      (entry) =>
+        ["reserve-native-batch", NATIVE_STATISTICS_RESERVE_KIND].includes(
+          entry.record.kind,
+        ) && entry.record.payload.batch.batchDigest === batchDigest,
+    );
+    if (!rootOperation || !batchOperation)
+      rrsiFail("native quality requires an actual registered batch");
+    const resolution = nativeBatchResolution(
+      state,
+      batchDigest,
+      historyRegistrationRecord(batchOperation),
+    );
+    const statisticsPlan =
+      resolution.statisticsRegistration?.statisticsPlan ??
+      buildRrsiNativeGroupStatisticsPlan({
+        campaign: resolution.campaign,
+        batch: resolution.batch,
+      });
+    return {
+      descriptor,
+      rootResolution: {
+        descriptor,
+        identity: state.identity,
+        campaign: state.root,
+        registrationRecord: historyRegistrationRecord(rootOperation),
+        historyAuthenticated: true,
+        productionBudgetAuthorityVerified: false,
+      },
+      batchResolution: resolution,
+      statisticsPlan,
+      observedHead,
+    };
+  }
+  function nativeQualityResolution(state, digest) {
+    const payload = state.nativeQualityReceipts.get(digest);
+    const operation = state.operations.get(
+      nativeQualityReceiptOperation(digest),
+    );
+    if (!payload || !operation)
+      rrsiFail("native quality receipt is not recorded");
+    if (
+      operation.record.kind !== NATIVE_QUALITY_RECEIPT_KIND ||
+      operation.record.payload !== payload
+    )
+      rrsiFail(
+        "native quality receipt record provenance differs",
+        "CC_RRSI_HISTORY_CORRUPT",
+      );
+    return freezeRrsiData({
+      qualityReceipt: payload.qualityReceipt,
+      registrationRecord: historyRegistrationRecord(operation),
+      identity: state.identity,
+      historyAuthenticated: true,
+      historicalSnapshotOnly: true,
+      currentReceiptFreshnessVerified: false,
+      qualityVerdictVerified: false,
+      grantsFinalEvaluationAuthority: false,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    });
   }
   function nativeBatchResolution(state, batchDigest, reservationRecord) {
     const batch = state.nativeBatches.get(batchDigest);
@@ -2342,7 +2490,13 @@ export function createRrsiHistoryLedgerAdapter(input) {
     });
     return freezeRrsiData(result);
   }
-  function commitUnlocked(kind, operationId, input) {
+  function commitUnlocked(
+    kind,
+    operationId,
+    input,
+    expectedHead = null,
+    assertFreshness = null,
+  ) {
     const payload = snapshotRrsiData(input);
     rrsiId(operationId, "operation ID");
     for (let attempt = 0; attempt < 8; attempt++) {
@@ -2359,8 +2513,20 @@ export function createRrsiHistoryLedgerAdapter(input) {
           );
         return { result: existing.result, newlyCommitted: false };
       }
+      if (expectedHead && !sameIdentity(head, expectedHead))
+        rrsiFail(
+          "native quality census head changed before commit",
+          "CC_RRSI_QUALITY_STALE",
+        );
       const acceptedAt = now();
-      const result = apply(state, kind, payload, acceptedAt, true);
+      const result = apply(
+        state,
+        kind,
+        payload,
+        acceptedAt,
+        true,
+        auditHead(head),
+      );
       if (
         (state.nativeBatches.size ||
           kind === NATIVE_STATISTICS_SCOPE_KIND ||
@@ -2395,6 +2561,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
         acceptedAt,
       });
       if (kind.includes("native")) snapshotRrsiData(record);
+      if (assertFreshness) assertFreshness();
       const published = EvolutionArtifactPorts.prototype.putCanonical.call(
         options.artifactPorts,
         ARTIFACT_TYPE,
@@ -2436,6 +2603,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
           ref: copyRetainedRef(published.ref),
           sequence: head.sequence + 1,
         });
+      if (assertFreshness) assertFreshness();
       try {
         const receipt = methods.appendDomainEvent(
           {
@@ -2460,7 +2628,14 @@ export function createRrsiHistoryLedgerAdapter(input) {
         if (receipt?.authenticated !== true || receipt.durable !== true)
           rrsiFail("RRSI append returned an uncertain receipt");
       } catch (error) {
-        if (error.code === "CC_EVOLUTION_LEDGER_HEAD_CONFLICT") continue;
+        if (error.code === "CC_EVOLUTION_LEDGER_HEAD_CONFLICT") {
+          if (expectedHead)
+            rrsiFail(
+              "native quality census head changed during commit",
+              "CC_RRSI_QUALITY_STALE",
+            );
+          continue;
+        }
         // Could have committed. Readback can recover history, never replay execution.
         rrsiFail(
           "RRSI commit outcome requires readback",
@@ -2786,6 +2961,128 @@ export function createRrsiHistoryLedgerAdapter(input) {
         `freeze.${rrsiDigest(payload.campaignDigest, "campaign digest").slice(7)}`,
         payload,
       ).newlyCommitted;
+    },
+    async recordNativeQualityReceipt(input) {
+      const { qualityReceipt } = ownOptions(input, ["qualityReceipt"]);
+      const { captureRrsiNativeQualityReceipt } =
+        await import("./rrsi-native-quality-receipt.js");
+      const captured = captureRrsiNativeQualityReceipt(qualityReceipt);
+      if (
+        captured.historyLedger !== ledger ||
+        rrsiCanonical(captured.historyDescriptor) !== rrsiCanonical(descriptor)
+      )
+        rrsiFail(
+          "native quality receipt belongs to another genuine History journal",
+        );
+      const operationId = nativeQualityReceiptOperation(
+        qualityReceipt.qualityReceiptDigest,
+      );
+      const recovered = withHistoryLock(() => {
+        const { state } = load();
+        const existing = state.operations.get(operationId);
+        if (!existing) return null;
+        if (
+          existing.record.kind !== NATIVE_QUALITY_RECEIPT_KIND ||
+          rrsiCanonical(existing.record.payload.qualityReceipt) !==
+            captured.receiptBytes
+        )
+          rrsiFail(
+            "native quality operation is bound to different data",
+            "CC_RRSI_OPERATION_CONFLICT",
+          );
+        return freezeRrsiData({
+          ...nativeQualityResolution(
+            state,
+            qualityReceipt.qualityReceiptDigest,
+          ),
+          newlyCommitted: false,
+        });
+      });
+      // A successful append makes its old census head stale. Recovery may read
+      // back this exact historical observation, never grant a new capability.
+      if (recovered) return recovered;
+      await captured.assertCurrentHistory(adapter);
+      return withHistoryLock(() => {
+        const { state, head } = load();
+        if (!sameIdentity(head, captured.auditHead))
+          rrsiFail(
+            "native quality census head changed before recording",
+            "CC_RRSI_QUALITY_STALE",
+          );
+        verifyRecordedRrsiNativeQualityReceipt(
+          qualityReceipt,
+          nativeQualityContext(
+            state,
+            captured.batch.batchDigest,
+            auditHead(head),
+          ),
+        );
+        captured.assertCurrentFreshness();
+        const committed = commitUnlocked(
+          NATIVE_QUALITY_RECEIPT_KIND,
+          operationId,
+          { qualityReceipt },
+          captured.auditHead,
+          captured.assertCurrentFreshness,
+        );
+        return freezeRrsiData({
+          ...nativeQualityResolution(
+            load().state,
+            qualityReceipt.qualityReceiptDigest,
+          ),
+          newlyCommitted: committed.newlyCommitted,
+        });
+      });
+    },
+    resolveNativeQualityReceipt(input) {
+      const lookup = snapshotRrsiData(input);
+      rrsiExact(
+        lookup,
+        ["qualityReceiptDigest"],
+        "native quality receipt lookup",
+      );
+      rrsiDigest(lookup.qualityReceiptDigest, "native quality receipt digest");
+      return withHistoryLock(() =>
+        nativeQualityResolution(load().state, lookup.qualityReceiptDigest),
+      );
+    },
+    async freezeNativeCandidateV2(input) {
+      const { qualityReceipt } = ownOptions(input, ["qualityReceipt"]);
+      const { captureRrsiNativeQualityReceipt } =
+        await import("./rrsi-native-quality-receipt.js");
+      const captured = captureRrsiNativeQualityReceipt(qualityReceipt);
+      if (
+        captured.historyLedger !== ledger ||
+        rrsiCanonical(captured.historyDescriptor) !== rrsiCanonical(descriptor)
+      )
+        rrsiFail(
+          "native quality receipt belongs to another genuine History journal",
+        );
+      if (captured.batch.stage !== "selection")
+        rrsiFail("candidate freeze requires a selection quality receipt");
+      await captured.assertCurrentHistory(adapter);
+      return withHistoryLock(() => {
+        const { state, head } = load();
+        if (!sameIdentity(head, captured.auditHead))
+          rrsiFail(
+            "native quality census head changed before freeze",
+            "CC_RRSI_QUALITY_STALE",
+          );
+        verifyRecordedRrsiNativeQualityReceipt(
+          qualityReceipt,
+          nativeQualityContext(
+            state,
+            captured.batch.batchDigest,
+            auditHead(head),
+          ),
+        );
+        captured.assertCurrentFreshness();
+        // v1 assessments cannot certify the still-unimplemented prerequisites.
+        rrsiFail(
+          "native required-quality receipt remains HOLD",
+          "CC_RRSI_QUALITY_HOLD",
+        );
+      });
     },
     settle(input) {
       const evidence = snapshotRrsiData(input);

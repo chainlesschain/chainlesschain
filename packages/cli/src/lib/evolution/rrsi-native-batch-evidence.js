@@ -445,6 +445,61 @@ export async function collectRrsiNativeBatchEvidence(input) {
       campaign,
       batch,
       statisticsRegistration: resolution.statisticsRegistration ?? null,
+      historyAdapter: options.historyAdapter,
+      async assertCurrentHistory(historyAdapter) {
+        const current = captureRrsiHistoryLedgerAdapter(historyAdapter);
+        if (
+          current.ledger !== history.ledger ||
+          current.artifactPorts !== history.artifactPorts ||
+          current.ledgerArtifactResolver !== history.ledgerArtifactResolver
+        )
+          rrsiFail("native census belongs to another genuine History journal");
+        same(
+          current.descriptor,
+          history.descriptor,
+          "native census History descriptor",
+        );
+        checkFreshness(clockGroups);
+        shared.assertUnchanged();
+        // A fresh session must reread retained bytes. The original session has
+        // immutable snapshot caches and cannot detect later artifact damage.
+        const currentAudit = createEvolutionEvalReadonlyAudit(history.ledger);
+        const currentShared = captureEvolutionEvalReadonlyAudit(
+          currentAudit,
+          history.ledger,
+        );
+        same(
+          currentShared.identity,
+          before,
+          "native census original audit head",
+        );
+        const currentSessions = new Map();
+        for (const captured of captures) {
+          if (!currentSessions.has(captured.auditKey))
+            currentSessions.set(
+              captured.auditKey,
+              captured.createReadonlyAudit(currentAudit),
+            );
+          await captured.assertCurrentInventory(
+            historyAdapter,
+            currentSessions.get(captured.auditKey),
+          );
+        }
+        same(
+          current.resolveCampaignRoot(),
+          rootResolution,
+          "native census original History root",
+        );
+        same(
+          current.resolveNativeBatch({ batchDigest: batch.batchDigest }),
+          resolution,
+          "native census original History batch",
+        );
+        checkFreshness(clockGroups);
+        currentShared.assertUnchanged();
+        shared.assertUnchanged();
+        return result;
+      },
       childEvidence(childId) {
         if (!batch.children.some((child) => child.childId === childId))
           rrsiFail("native child is outside the censused batch");
