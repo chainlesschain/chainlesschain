@@ -12,6 +12,7 @@ export default defineConfig({
     maxWorkers: 1,
     include: [
       "src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+      "src/renderer/components/projects/__tests__/organization-project-transfer.test.ts",
       "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
       "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
     ],

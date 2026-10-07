@@ -12,6 +12,9 @@ const {
   OrganizationProjectProposalStore,
 } = require("@chainlesschain/session-core/organization-project-proposal-store");
 const {
+  OrganizationProjectTransferService,
+} = require("@chainlesschain/session-core/organization-project-transfer-service");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -40,6 +43,14 @@ const CHANNELS = Object.freeze({
   executeProposal: "organization-project:proposal-execute",
   getRun: "organization-project:action-run",
   listRuns: "organization-project:action-runs",
+  transferCatalog: "organization-project:transfer-catalog",
+  previewTransfer: "organization-project:transfer-preview",
+  submitTransfer: "organization-project:transfer-submit",
+  readTransfer: "organization-project:transfer-read",
+  listTransfers: "organization-project:transfer-list",
+  acceptTransfer: "organization-project:transfer-accept",
+  cancelTransfer: "organization-project:transfer-cancel",
+  rejectTransfer: "organization-project:transfer-reject",
 });
 function fail(code) {
   const error = new Error(code);
@@ -103,6 +114,12 @@ function createOrganizationProjectHost({
       getActor,
       authority,
       approvals,
+      now: clock,
+    });
+    const transfers = new OrganizationProjectTransferService({
+      db,
+      getActor,
+      authority,
       now: clock,
     });
     async function confirm(title, message, details) {
@@ -177,6 +194,7 @@ function createOrganizationProjectHost({
       getActor,
       approvals,
       proposals,
+      transfers,
       descriptions,
       creation,
       action,
@@ -194,29 +212,20 @@ function createOrganizationProjectHost({
   function label(db, table, name = "name") {
     return columns(db, table).has(name) ? `substr(${name},1,128)` : "NULL";
   }
-  function project(db, projectId) {
-    const fields = columns(db, "projects");
-    const row = db
-      .prepare(
-        `SELECT id,user_id,status,${label(db, "projects")} AS name${fields.has("deleted") ? ",deleted" : ""} FROM projects WHERE id=?`,
-      )
-      .get(id(projectId));
-    if (!row || (row.deleted != null && row.deleted !== 0))
-      fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
-    return row;
-  }
   function setup(c, params) {
     return c.db
       .transaction(() => {
         const actor = c.getActor(),
           source = c.authority._owner(id(params.orgId), actor);
-        const p = project(c.db, params.projectId);
+        // Organization owners configure only their own directory and policy.
+        // An unbound project ID is a caller-supplied hint, not personal data.
+        const p = { id: id(params.projectId) };
         const binding = c.db
           .prepare(
             "SELECT * FROM cc_organization_project_bindings WHERE project_id=?",
           )
           .get(p.id);
-        if (p.user_id !== actor && binding?.org_id !== params.orgId)
+        if (binding && binding.org_id !== params.orgId)
           fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
         const members = c.db
           .prepare(
@@ -296,7 +305,7 @@ function createOrganizationProjectHost({
     return c.db
       .transaction(() => {
         const actor = c.getActor(),
-          p = project(c.db, params.projectId);
+          p = { id: id(params.projectId) };
         const binding = c.db
           .prepare(
             "SELECT * FROM cc_organization_project_bindings WHERE project_id=?",
@@ -359,13 +368,20 @@ function createOrganizationProjectHost({
             ownedOrganizations: [],
           };
         }
-        if (p.user_id !== actor) fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
         const organizations = c.db
           .prepare(
             `SELECT o.org_id AS id,${columns(c.db, "organization_info").has("name") ? "substr(o.name,1,128)" : "NULL"} AS name FROM organization_info o JOIN organization_members m ON m.org_id=o.org_id AND m.member_did=o.owner_did WHERE o.owner_did=? AND m.status='active' AND m.role='owner' ORDER BY o.org_id LIMIT 101`,
           )
           .all(actor);
         if (organizations.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+        const fields = columns(c.db, "projects");
+        const isProjectOwner = !!c.db
+          .prepare(
+            `SELECT 1 FROM projects WHERE id=? AND user_id=?${fields.has("deleted") ? " AND (deleted IS NULL OR deleted=0)" : ""}`,
+          )
+          .get(p.id, actor);
+        if (!isProjectOwner && !organizations.length)
+          fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
         return {
           actorDid: actor,
           projectId: p.id,
@@ -375,11 +391,58 @@ function createOrganizationProjectHost({
           permissions: [],
           workflows: [],
           ownedOrganizations: organizations,
+          isProjectOwner,
         };
       })
       .immediate();
   }
   return Object.freeze({
+    transferCatalog: (event, params) => {
+      const value = input(params, ["projectId"]),
+        c = factory(event);
+      return c.db
+        .transaction(() => {
+          const actor = c.getActor(),
+            fields = columns(c.db, "projects");
+          const personal = c.db
+            .prepare(
+              `SELECT 1 FROM projects WHERE id=? AND user_id=?${fields.has("deleted") ? " AND (deleted IS NULL OR deleted=0)" : ""}`,
+            )
+            .get(id(value.projectId), actor);
+          const bound = c.db
+            .prepare(
+              "SELECT 1 FROM cc_organization_project_bindings WHERE project_id=?",
+            )
+            .get(value.projectId);
+          if (!personal || bound)
+            return { canInitiate: false, organizations: [] };
+          const organizations = c.db
+            .prepare(
+              `SELECT o.org_id AS id,o.owner_did AS ownerDid,${columns(c.db, "organization_info").has("name") ? "substr(o.name,1,128)" : "NULL"} AS name FROM organization_info o JOIN organization_members m ON m.org_id=o.org_id AND m.member_did=? JOIN organization_members owner ON owner.org_id=o.org_id AND owner.member_did=o.owner_did AND owner.role='owner' AND owner.status='active' WHERE m.status='active' AND o.owner_did<>? ORDER BY o.org_id LIMIT 101`,
+            )
+            .all(actor, actor);
+          if (organizations.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+          for (const org of organizations) {
+            c.authority._source(org.id);
+            org.projects = c.db
+              .prepare(
+                `SELECT id,${label(c.db, "organization_projects")} AS name FROM organization_projects WHERE org_id=? ORDER BY id LIMIT 101`,
+              )
+              .all(org.id);
+            if (org.projects.length > 100) fail("ORG_AUTH_SOURCE_INVALID");
+          }
+          return { canInitiate: organizations.length > 0, organizations };
+        })
+        .immediate();
+    },
+    previewTransfer: (event, params) =>
+      factory(event).transfers.preview(params),
+    submitTransfer: (event, params) => factory(event).transfers.submit(params),
+    readTransfer: (event, params) => factory(event).transfers.get(params),
+    listTransfers: (event, params) => factory(event).transfers.list(params),
+    acceptTransfer: (event, params) => factory(event).transfers.accept(params),
+    cancelTransfer: (event, params) => factory(event).transfers.cancel(params),
+    rejectTransfer: (event, params) => factory(event).transfers.reject(params),
     context: (event, params) =>
       context(factory(event), input(params, ["projectId"])),
     setup: (event, params) =>

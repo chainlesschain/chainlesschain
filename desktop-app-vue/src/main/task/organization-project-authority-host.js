@@ -113,9 +113,17 @@ function createOrganizationProjectAuthorityHost({
             message:
               kind === "bind-project"
                 ? "将规范项目绑定到组织？绑定后个人任务、风险及目标入口将停止访问该项目。"
-                : kind === "revoke-binding"
-                  ? "撤销组织项目绑定的使用权限？此操作保留组织归属，不会恢复个人访问。"
-                  : "确认以下组织受控权限？旧角色与授权不会自动继承。",
+                : kind === "consent-project-transfer"
+                  ? "同意将此项目转入指定组织？组织所有者仍需确认接收；接收后个人任务、风险及目标入口停止访问。"
+                  : kind === "accept-project-transfer"
+                    ? "接收原所有者已同意的项目迁移？仅原确认的项目、组织和授权版本会生效。"
+                    : kind === "cancel-project-transfer"
+                      ? "撤回此迁移同意？项目归属不会改变。"
+                      : kind === "reject-project-transfer"
+                        ? "拒绝接收此项目迁移？项目归属不会改变。"
+                        : kind === "revoke-binding"
+                          ? "撤销组织项目绑定的使用权限？此操作保留组织归属，不会恢复个人访问。"
+                          : "确认以下组织受控权限？旧角色与授权不会自动继承。",
             detail: `当前身份：${display(actorDid)}\n\n操作：${display(kind)}\n\n授权内容：${display(preview)}`,
             buttons: ["取消", "确认"],
             defaultId: 0,

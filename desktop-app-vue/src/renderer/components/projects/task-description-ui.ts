@@ -79,7 +79,7 @@ export function actionCode(error: unknown): string {
   const candidate = error as { code?: unknown; message?: unknown } | null;
   if (
     typeof candidate?.code === "string" &&
-    /^(ACTION|BUSINESS_ACTION|PROJECT_RISK|GOAL|ORG_AUTH|ORG_APPROVAL|ORG_PROPOSAL)_[A-Z_]+$/.test(
+    /^(ACTION|BUSINESS_ACTION|PROJECT_RISK|GOAL|ORG_AUTH|ORG_APPROVAL|ORG_PROPOSAL|ORG_TRANSFER)_[A-Z_]+$/.test(
       candidate.code,
     )
   )
@@ -88,7 +88,7 @@ export function actionCode(error: unknown): string {
   // within its invocation error message. Never surface arbitrary raw messages.
   return typeof candidate?.message === "string"
     ? candidate.message.match(
-        /\b(?:ACTION|BUSINESS_ACTION|PROJECT_RISK|GOAL|ORG_AUTH|ORG_APPROVAL|ORG_PROPOSAL)_[A-Z_]+\b/,
+        /\b(?:ACTION|BUSINESS_ACTION|PROJECT_RISK|GOAL|ORG_AUTH|ORG_APPROVAL|ORG_PROPOSAL|ORG_TRANSFER)_[A-Z_]+\b/,
       )?.[0] || ""
     : "";
 }

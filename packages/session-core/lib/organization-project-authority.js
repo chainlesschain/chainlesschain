@@ -654,18 +654,30 @@ class OrganizationProjectAuthority {
       fail("ORG_AUTH_SCOPE_CONFLICT");
   }
 
-  _mappingPreview(input, actor) {
+  _mappingPreview(input, actor, { dualPrincipal = false } = {}) {
     fields(input, ["projectId", "organizationProjectId", "orgId"]);
     this._installWorkspaceFences();
-    const { policy, digest } = this._policy(input.orgId);
-    this._owner(input.orgId, actor);
+    const { policy, digest, source } = this._policy(input.orgId);
+    if (!dualPrincipal) this._owner(input.orgId, actor);
     const project = this._project(input.projectId);
     const organizationProject = this.db
       .prepare(
         "SELECT id,org_id,owner_did FROM organization_projects WHERE id=?",
       )
       .get(identifier(input.organizationProjectId));
-    if (project.user_id !== actor) fail("ORG_AUTH_OWNER_CONSENT_REQUIRED");
+    if (dualPrincipal) {
+      if (
+        ![project.user_id, source.organization.owner_did].includes(actor) ||
+        !source.members.some(
+          (member) =>
+            member.member_did === project.user_id && member.status === "active",
+        )
+      )
+        fail("ORG_AUTH_NOT_FOUND_OR_DENIED");
+      if (project.user_id === source.organization.owner_did)
+        fail("ORG_AUTH_OWNER_CONSENT_REQUIRED");
+    } else if (project.user_id !== actor)
+      fail("ORG_AUTH_OWNER_CONSENT_REQUIRED");
     if (!organizationProject || organizationProject.org_id !== input.orgId)
       fail("ORG_AUTH_SCOPE_CONFLICT");
     this._scope(project, input.orgId);
@@ -683,6 +695,22 @@ class OrganizationProjectAuthority {
         .get(project.id, organizationProject.id)
     )
       fail("ORG_AUTH_MAPPING_EXISTS");
+    // The original single-owner entry must not bypass another live transfer.
+    // Dual-principal admission excludes its own consent in the transfer service.
+    if (
+      !dualPrincipal &&
+      this.db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cc_organization_project_transfers'",
+        )
+        .get() &&
+      this.db
+        .prepare(
+          "SELECT 1 FROM cc_organization_project_transfers WHERE status='pending' AND expires_at>? AND (project_id=? OR organization_project_id=?) LIMIT 1",
+        )
+        .get(this._time(), project.id, organizationProject.id)
+    )
+      fail("ORG_AUTH_PENDING_ACTION");
     if (
       this.db
         .prepare(
@@ -702,7 +730,17 @@ class OrganizationProjectAuthority {
       orgId: input.orgId,
       project,
       organizationProject,
-      actorDid: actor,
+      ...(dualPrincipal
+        ? {
+            originalOwnerDid: project.user_id,
+            organizationOwnerDid: source.organization.owner_did,
+            sourceRevision: source.revision,
+            sourceDigest: policy.sourceDigest,
+            projectPermissions: policy.permissions.filter(
+              (grant) => grant.projectId === project.id,
+            ),
+          }
+        : { actorDid: actor }),
       policyDigest: digest,
       authorityEpoch: policy.epoch,
       projectSourceRevision: this.db

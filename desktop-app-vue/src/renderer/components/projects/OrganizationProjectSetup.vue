@@ -195,7 +195,7 @@
             : "绑定已撤销，个人访问不会自动恢复。"
         }}
       </p>
-      <template v-else>
+      <template v-else-if="context.isProjectOwner !== false">
         <label
           >组织项目<select
             v-model="organizationProjectId"
@@ -222,6 +222,7 @@
           预览并确认绑定
         </button>
       </template>
+      <p v-else>请先确认此项目的组织授权，再由原所有者在下方同意迁移。</p>
       <button
         v-if="data.binding?.status === 'active'"
         :disabled="busy"

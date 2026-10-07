@@ -4,6 +4,7 @@ export type OrganizationContext = {
   projectId: string;
   mode: "unbound" | "organization";
   canManage: boolean;
+  isProjectOwner?: boolean;
   permissions: string[];
   reason?: string | null;
   binding: null | {
@@ -46,7 +47,12 @@ export function organizationApi(): OrganizationApi {
   return api;
 }
 export function organizationAuthorityError(value: unknown) {
-  return /^(ORG_AUTH_(IDENTITY_|NOT_FOUND_OR_DENIED|POLICY_(STALE|REQUIRED|CORRUPT)|SCOPE_CONFLICT|SOURCE_(INVALID|INCOMPLETE)|AUTHORITY_REQUIRED|NATIVE_DATABASE_REQUIRED|CLOCK_INVALID|WINDOW_|UNTRUSTED_|DATABASE_)|ORG_(PROPOSAL|APPROVAL)_(NOT_FOUND_OR_DENIED|IDENTITY_REQUIRED)|ACTION_(AUTHORITY_|AUTHENTICATION_|NOT_FOUND_OR_DENIED))/u.test(
+  return /^(ORG_AUTH_(IDENTITY_|NOT_FOUND_OR_DENIED|POLICY_(STALE|REQUIRED|CORRUPT)|SCOPE_CONFLICT|SOURCE_(INVALID|INCOMPLETE)|AUTHORITY_REQUIRED|NATIVE_DATABASE_REQUIRED|CLOCK_INVALID|WINDOW_|UNTRUSTED_|DATABASE_)|ORG_(PROPOSAL|APPROVAL|TRANSFER)_(NOT_FOUND_OR_DENIED|IDENTITY_)|ACTION_(AUTHORITY_|AUTHENTICATION_|NOT_FOUND_OR_DENIED))/u.test(
+    actionCode(value),
+  );
+}
+export function organizationSessionError(value: unknown) {
+  return /^(ORG_AUTH_(IDENTITY_|WINDOW_|UNTRUSTED_|DATABASE_)|ORG_(TRANSFER|APPROVAL|PROPOSAL)_IDENTITY_|ACTION_(AUTHORITY_|AUTHENTICATION_))/u.test(
     actionCode(value),
   );
 }

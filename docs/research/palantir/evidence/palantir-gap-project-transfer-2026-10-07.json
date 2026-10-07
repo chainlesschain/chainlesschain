@@ -1,0 +1,505 @@
+{
+  "schema": "chainlesschain.palantir-project-transfer-validation/v1",
+  "capturedAt": "2026-10-07T08:08:44.088Z",
+  "sourceBaseCommit": "ee14ceaa5a12bb43016cc5170d61293f4320665d",
+  "workStartedFrom": "4993eca40debfc13469011007c7fd633dd1a7b3c",
+  "scope": "Dual-principal transfer of an unbound canonical project owned by an active organization member, native sender/receiver consent, atomic binding and receipt recovery, exact IPC and Vue journey",
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "abi": "127",
+    "vitest": "4.1.10",
+    "sqlite": {
+      "implementation": "better-sqlite3 native",
+      "version": "12.11.1"
+    },
+    "vue": "3.5.42",
+    "vueTestUtils": "2.4.11",
+    "happyDom": "20.11.2",
+    "dependencyChanges": "Production dependencies and lockfiles unchanged; existing workspace/cache/Temp dependencies reused",
+    "rendererResolver": {
+      "path": ".work/dmm-renderer-test-loader.mjs",
+      "sha256": "b7ce004fab137d885bad9611bbaeebcb0ac672afdc21a6661534b56ead0ba193",
+      "setup": "Append --import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs to NODE_OPTIONS for Vitest fork workers in this cache-linked local installation"
+    }
+  },
+  "verification": {
+    "passed": 470,
+    "failed": 0,
+    "skipped": 0,
+    "files": 20,
+    "groups": [
+      {
+        "name": "shared-services",
+        "cwd": "packages/cli",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/organization-project-transfer-service.test.js __tests__/unit/organization-project-proposal-store.test.js __tests__/unit/organization-project-authority.test.js __tests__/unit/organization-project-approval-service.test.js __tests__/unit/organization-task-action-service.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-description-read-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/project-goal-service.test.js --reporter=json --outputFile=../../.work/palantir-project-transfer-cli-tests.json",
+        "report": ".work/palantir-project-transfer-cli-tests.json",
+        "reportSha256": "f627af52e679e973bb536933d978c1de8f5745f1ea777e87712e6fed8d53cc2a",
+        "passed": 286,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+            "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0",
+            "passed": 47,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+            "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3",
+            "passed": 35,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-proposal-store.test.js",
+            "sha256": "2e6354c714edbc876b4d2d7c2814218574c90f000d7533cedd1fdbaa2669c448",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-transfer-service.test.js",
+            "sha256": "5a2aabc7266fd783964288c4487fdf229aae3058577c8533c95360b9a191a0e2",
+            "passed": 57,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+            "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+            "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505",
+            "passed": 11,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+            "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e",
+            "passed": 44,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+            "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+            "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065",
+            "passed": 22,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+            "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a",
+            "passed": 19,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "desktop-host-ipc",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs --reporter=json --outputFile=../.work/palantir-project-transfer-ipc-tests.json",
+        "report": ".work/palantir-project-transfer-ipc-tests.json",
+        "reportSha256": "8b06e9e3b3eb01ccc65d0d7511c94ebf36c20a03ea4c986290074a2edb5355a6",
+        "passed": 118,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+            "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb",
+            "passed": 6,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+            "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f",
+            "passed": 50,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "sha256": "82b5850b68189b462b4b16c2599252bea0ddfb30ed8533c6de184dfb5d1879f9",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-ipc.test.js",
+            "sha256": "668a717da4e695249ee7e1218e74b615aba6babe17eceea0066e8d69f3973345",
+            "passed": 14,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js",
+            "sha256": "968f048e0e19aef043f69e96336c236cceb48d048d444c1128eccfb22ef22e57",
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+            "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      {
+        "name": "renderer-native-journey",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-renderer.config.mjs --reporter=json --outputFile=../.work/palantir-project-transfer-renderer-tests.json",
+        "environment": {
+          "NODE_OPTIONS": "--import=file:///C:/code/chainlesschain/.work/dmm-renderer-test-loader.mjs"
+        },
+        "report": ".work/palantir-project-transfer-renderer-tests.json",
+        "reportSha256": "b2eecf3900de9f19ca4d04ef9664dd13808c6fa200fd398718f142dd69974917",
+        "passed": 66,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-transfer.test.ts",
+            "sha256": "5a0fcd087f86f1e59ba018dc8d5386c30458e9014c728a658101c930b89bd07f",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-workbench.test.ts",
+            "sha256": "97ef35162e51536f004fa63f466953501635168f68eadc543e8c9f449a6bf128",
+            "passed": 20,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+            "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52",
+            "passed": 29,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+            "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251",
+            "passed": 5,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "snapshot": "git-index",
+      "sha256": "a385516d084867592de2d0dc7003f53d4277f3b70376b92e97c4180f47fdab35"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "snapshot": "git-index",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/approval-workflow-manager.js",
+      "snapshot": "git-index",
+      "sha256": "b362e9206357e8f4e31f3f5a7ba36f10fb6df34e4a94a1ac688a774af5ff10fb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+      "snapshot": "git-index",
+      "sha256": "80b0734bf5e91aebda59b2c06b958d935f20fc50ca3d2b62e6e9eabdc4d2ba17"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js",
+      "snapshot": "git-index",
+      "sha256": "968f048e0e19aef043f69e96336c236cceb48d048d444c1128eccfb22ef22e57"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+      "snapshot": "git-index",
+      "sha256": "1db34d244847697cd0e0633f08a241e2121e59850b1a137d2a180e6d076becfe"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "91ab84fedd941095a4417d3063427a78419e48252c30fd5eecee5659e5abdb3b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "snapshot": "git-index",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "snapshot": "git-index",
+      "sha256": "54b894a64c5fa07e0b8e18684a1e055ffbf0a4b4108893124f4a167234661afd"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "snapshot": "git-index",
+      "sha256": "c0697b448922ebcbce09ebc7f578f16471db0765ed56733b4b58404fe1176f78"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "snapshot": "git-index",
+      "sha256": "897f709c9823c0d07f50dfa194f000b004f78a5fa18396a6a0339ef7361dcdd7"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+      "snapshot": "git-index",
+      "sha256": "f3fae1e3ac1e9d33555953916fae74454340bf851c0e37115e4aded9513b329a"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+      "snapshot": "git-index",
+      "sha256": "e33f7736a5cf615fd6b16ecd4d0c10e5907498c40d80a0512e1d8f1e9b8fa6e6"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+      "snapshot": "git-index",
+      "sha256": "6a13f228f8c431ac6d4c7d42e880bcc105ffa50097d3f35657407b5005eee403"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-transfer.test.ts",
+      "snapshot": "git-index",
+      "sha256": "5a0fcd087f86f1e59ba018dc8d5386c30458e9014c728a658101c930b89bd07f"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "a263284218cbe2fd23af8bdab9d69aae1f2ec6c8618f162a5000cd9a44419be0"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/projects/task-description-ui.ts",
+      "snapshot": "git-index",
+      "sha256": "3524819c60de86f7e5c0e6ede3e81e5c69fe50ee1d2a2fa0440c2f5b52bd0509"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+      "snapshot": "git-index",
+      "sha256": "075462a6d1b48124bbcdb557785e8e470f9b1a81dd9efab86732ff6f1f184f94"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "8ba00892badc2a5f81dddafd5e7d6a25ff6bbabbb46a7f9f6cb154e31821bc82"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "239b17e6241dc1d2b10d55ff48a4079830c75cbcc5c1670e46c2c34c2a451b10"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-authority.md",
+      "snapshot": "git-index",
+      "sha256": "8873c8fec74c581d78b59696ff647c4d9b67764e85d86244a92fb3c9f48ca258"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-transfer.md",
+      "snapshot": "git-index",
+      "sha256": "e23f544ffe5406953335e1a1bc61ad8adca531eace54b113a1d31d3d129b1330"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "snapshot": "git-index",
+      "sha256": "59d63b029e6fc3819960ef2b9b94a867a9cf9df5dcac720fadad9cb226beb0fe"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-transfer-service.test.js",
+      "snapshot": "git-index",
+      "sha256": "5a2aabc7266fd783964288c4487fdf229aae3058577c8533c95360b9a191a0e2"
+    },
+    {
+      "path": "packages/session-core/lib/approval-gate.js",
+      "snapshot": "git-index",
+      "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88"
+    },
+    {
+      "path": "packages/session-core/lib/business-object-contract.js",
+      "snapshot": "git-index",
+      "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-approval-service.js",
+      "snapshot": "git-index",
+      "sha256": "ab3a5925c303134c99e603287c3bf97df85f388012d529ebe4ab0ead2adb2821"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-authority.js",
+      "snapshot": "git-index",
+      "sha256": "5e9af113a1fce12200538e9f3a497b596553dafb46d460749ab5d8ce400c3004"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-proposal-store.js",
+      "snapshot": "git-index",
+      "sha256": "59b36c4e8a7c25770ed488449981d8f0a1b5fb96039fa0707b134ad83a9cb6d8"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-transfer-service.js",
+      "snapshot": "git-index",
+      "sha256": "1eb024eadcbaf5496e38088095467a569f4c6d16fa8cdbc77e253242d3ba421a"
+    },
+    {
+      "path": "packages/session-core/lib/organization-task-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "d56b80352f6fff40fdef170256ad4f17edc6affcd0eb6fe2f38bbe40a6ae9247"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "snapshot": "git-index",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-review-service.js",
+      "snapshot": "git-index",
+      "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580"
+    },
+    {
+      "path": "packages/session-core/lib/task-description-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "606d87844241928b1702a418980105258530d2c7c0d6b1e574ee7166e448d9d3"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "snapshot": "git-index",
+      "sha256": "6067f5d0abef802e0f733de812d75ddeebbf6dede88d1ab175e6744549b8fe91"
+    }
+  ],
+  "extraChecks": [
+    {
+      "command": "node .work/verify-project-transfer-source.mjs",
+      "result": {
+        "checks": [
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-ipc.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/preload/index.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/vitest.organization-renderer.config.mjs",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/task-description-action-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-authority.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/session-core/lib/organization-project-transfer-service.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-transfer-service.test.js",
+            "check": "node --check",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          },
+          {
+            "path": "desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue",
+            "check": "@vue/compiler-sfc script/template compilation",
+            "passed": true
+          }
+        ],
+        "passed": 15
+      },
+      "report": ".work/palantir-project-transfer-source-checks.json",
+      "reportSha256": "d659eb3bb8694c1c804dfcd334ae3b7b68a99e0cfee1fccb3e391511630eea43"
+    },
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --check packages/session-core/package.json desktop-app-vue/src/main/task/organization-project-ipc.js desktop-app-vue/src/main/task/organization-project-authority-host.js desktop-app-vue/src/main/task/__tests__/fixtures/organization-project-host-fixture.cjs desktop-app-vue/src/main/task/__tests__/organization-project-transfer-ipc.test.js desktop-app-vue/src/preload/index.js desktop-app-vue/src/preload/renderer-ipc-capabilities.json desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs desktop-app-vue/src/renderer/components/projects/organization-project-ui.ts desktop-app-vue/src/renderer/components/projects/task-description-ui.ts desktop-app-vue/src/renderer/components/projects/OrganizationProjectSetup.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectWorkbench.vue desktop-app-vue/src/renderer/components/projects/OrganizationProjectTransfer.vue desktop-app-vue/src/renderer/components/projects/__tests__/organization-project-transfer.test.ts desktop-app-vue/vitest.organization-authority.config.mjs desktop-app-vue/vitest.organization-renderer.config.mjs packages/session-core/lib/task-description-action-service.js packages/session-core/lib/organization-project-authority.js packages/session-core/lib/organization-project-transfer-service.js packages/cli/__tests__/unit/organization-project-transfer-service.test.js docs/research/palantir/organization-project-authority.md docs/research/palantir/organization-project-transfer.md docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "passed": true
+    },
+    {
+      "command": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs --check",
+      "passed": true,
+      "exactChannels": 1287,
+      "unregisteredRendererChannelsDenied": 156,
+      "newTransferChannels": 8,
+      "organizationChannels": 28
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "review": "Astra implemented transfer core and 57 real SQLite regressions, reviewed organization setup isolation and identified parent/child session invalidation and lost-accept UI synchronization; final renderer regressions cover both and policy-stale rejection recovery",
+  "boundaries": [
+    "Original owner must be an active member of the destination organization; receiver must be a distinct current active root owner; initially unbound draft/active projects only",
+    "Projects.user_id and original_owner_did stay with original owner; bound_by_did records receiving owner; no automatic task permissions or personal access restoration",
+    "Maximum 24-hour fixed consent validity and 16 KiB snapshot containing only project-specific grants/metadata; no task description or raw idempotency key; public get/list are immutable-party metadata only",
+    "Pending migration does not block personal operations; their mutations invalidate acceptance; live project/target consent locks prevent new digest and legacy binding bypass",
+    "Binding, consent consumption and both reception/binding events share one SQLite transaction; terminal receipt remains recoverable without task.read and after binding revocation",
+    "Windows local selection only; no full repository tests, full TypeScript checking, real Electron GUI, real tenants or exact-commit Linux/macOS release matrix",
+    "Electron native dialog/window/auth-provider boundary injected; actual business services, SQLite, Vue and bidirectional structuredClone run",
+    "Non-member and previously bound/revoked/inter-organization/reverse ownership conversions, organization risk/goals, ancillary/board and other objects/actions remain unfinished",
+    "No push, release or publication; sixth/seventh evidence preserved; unrelated registry/native-evaluator/goal-memory workspace changes excluded"
+  ]
+}

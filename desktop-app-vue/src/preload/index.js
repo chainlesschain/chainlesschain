@@ -797,6 +797,14 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:setup",
   "organization-project:task-list",
   "organization-project:task-read",
+  "organization-project:transfer-accept",
+  "organization-project:transfer-cancel",
+  "organization-project:transfer-catalog",
+  "organization-project:transfer-list",
+  "organization-project:transfer-preview",
+  "organization-project:transfer-read",
+  "organization-project:transfer-reject",
+  "organization-project:transfer-submit",
   "organization-project:workflow-configure",
   "organization:get-info",
   "organization:workspace:addMember",
@@ -4934,6 +4942,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    transferCatalog: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-catalog", params),
+    previewTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-preview", params),
+    submitTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-submit", params),
+    readTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-read", params),
+    listTransfers: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-list", params),
+    acceptTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-accept", params),
+    cancelTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-cancel", params),
+    rejectTransfer: (params) =>
+      ipcRenderer.invoke("organization-project:transfer-reject", params),
     context: (params) =>
       ipcRenderer.invoke("organization-project:context", params),
     setup: (params) => ipcRenderer.invoke("organization-project:setup", params),

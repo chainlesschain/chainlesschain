@@ -54,7 +54,7 @@ function organizationProjectFixture(dialog) {
     getAuthenticationGeneration: () => generation,
     validateSender: () => ({ trusted }),
   });
-  async function setup() {
+  async function setup({ bind = true } = {}) {
     host.context(event, { projectId: "p1" });
     const workflowIds = [];
     for (const actionType of ["task.update-description", "task.create"]) {
@@ -89,10 +89,11 @@ function organizationProjectFixture(dialog) {
       organizationProjectId: "op1",
       orgId: "org1",
     };
-    await host.bindProject(event, {
-      ...binding,
-      expectedDigest: host.previewBinding(event, binding).digest,
-    });
+    if (bind)
+      await host.bindProject(event, {
+        ...binding,
+        expectedDigest: host.previewBinding(event, binding).digest,
+      });
     return { workflowIds, permissions };
   }
   return {

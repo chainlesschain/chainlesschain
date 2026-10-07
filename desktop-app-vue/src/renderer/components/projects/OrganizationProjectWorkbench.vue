@@ -257,15 +257,26 @@
         @changed="reload"
         @authority-error="failure"
       />
+      <OrganizationProjectTransfer
+        :key="`transfer:${projectId}:${identityKey}`"
+        :project-id="projectId"
+        :identity-key="identityKey"
+        :session-revision="transferSessionRevision"
+        :policy-revision="transferPolicyRevision"
+        @changed="reload"
+        @authority-error="failure"
+      />
     </div>
   </a-drawer>
 </template>
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import OrganizationProjectSetup from "./OrganizationProjectSetup.vue";
+import OrganizationProjectTransfer from "./OrganizationProjectTransfer.vue";
 import {
   organizationApi,
   organizationAuthorityError,
+  organizationSessionError,
   organizationError,
   proposalStatus,
   timeLabel,
@@ -303,6 +314,8 @@ const kind = ref("description"),
   attempted = ref(false),
   submissionUnknown = ref(false),
   executionUnknown = ref(false);
+const transferSessionRevision = ref(0),
+  transferPolicyRevision = ref(0);
 const taskTypes = [
   ["query_info", "信息查询"],
   ["analyze_data", "数据分析"],
@@ -403,6 +416,9 @@ function clear() {
 }
 function failure(value: unknown) {
   if (organizationAuthorityError(value)) {
+    if (organizationSessionError(value)) {
+      transferSessionRevision.value++;
+    } else transferPolicyRevision.value++;
     clear();
     error.value = organizationError(value);
   } else error.value = organizationError(value);

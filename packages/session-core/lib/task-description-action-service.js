@@ -465,7 +465,9 @@ class TaskDescriptionActionService {
     } catch (error) {
       if (
         typeof error?.code === "string" &&
-        /^ACTION_[A-Z_]+$/u.test(error.code)
+        /^(ACTION|ORG_AUTH|ORG_APPROVAL|ORG_PROPOSAL)_[A-Z_]+$/u.test(
+          error.code,
+        )
       )
         throw error;
       fail("ACTION_READ_FAILED");
