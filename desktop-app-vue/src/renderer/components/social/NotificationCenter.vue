@@ -12,12 +12,7 @@
         >
           全部已读
         </a-button>
-        <a-button
-          type="link"
-          size="small"
-          danger
-          @click="handleClearAll"
-        >
+        <a-button type="link" size="small" danger @click="handleClearAll">
           清空
         </a-button>
       </div>
@@ -36,23 +31,19 @@
         <a-radio-button value="unread">
           未读 ({{ unreadNotifications.length }})
         </a-radio-button>
-        <a-radio-button value="friend_request">
-          好友请求
-        </a-radio-button>
-        <a-radio-button value="message">
-          消息
-        </a-radio-button>
-        <a-radio-button value="like">
-          点赞
-        </a-radio-button>
-        <a-radio-button value="comment">
-          评论
-        </a-radio-button>
+        <a-radio-button value="friend_request"> 好友请求 </a-radio-button>
+        <a-radio-button value="message"> 消息 </a-radio-button>
+        <a-radio-button value="like"> 点赞 </a-radio-button>
+        <a-radio-button value="comment"> 评论 </a-radio-button>
       </a-radio-group>
     </div>
 
     <!-- 通知列表 -->
     <div class="notification-list">
+      <GoalNotificationList
+        v-if="['all', 'unread'].includes(currentFilter)"
+        :unread-only="currentFilter === 'unread'"
+      />
       <a-spin :spinning="loading">
         <a-empty
           v-if="filteredNotifications.length === 0"
@@ -67,10 +58,7 @@
           @click="handleNotificationClick(notification)"
         >
           <!-- 通知图标 -->
-          <div
-            class="notification-icon"
-            :class="`type-${notification.type}`"
-          >
+          <div class="notification-icon" :class="`type-${notification.type}`">
             <component :is="getNotificationIcon(notification.type)" />
           </div>
 
@@ -88,18 +76,12 @@
           </div>
 
           <!-- 未读标记 -->
-          <div
-            v-if="notification.is_read === 0"
-            class="notification-badge"
-          />
+          <div v-if="notification.is_read === 0" class="notification-badge" />
 
           <!-- 操作按钮 -->
           <div class="notification-actions-btn">
             <a-dropdown :trigger="['click']">
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <template #icon>
                   <MoreOutlined />
                 </template>
@@ -130,6 +112,7 @@ import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted, watch } from "vue";
 import { useSocialStore } from "../../stores/social";
+import GoalNotificationList from "../common/GoalNotificationList.vue";
 import {
   BellOutlined,
   UserAddOutlined,

@@ -7,6 +7,7 @@ export default defineConfig({
     pool: "forks",
     maxWorkers: 1,
     include: [
+      "src/main/notification/__tests__/*.test.js",
       "src/main/task/__tests__/task-description-ipc.test.js",
       "src/main/task/__tests__/project-goal-ipc.test.js",
       "src/main/task/__tests__/project-goal-workflow-ipc.test.js",

@@ -155,6 +155,10 @@ const authority = require("@chainlesschain/session-core/scheduler-authority-reso
 const monitoring = require("@chainlesschain/session-core/project-goal-monitoring");
 const workflow = require("@chainlesschain/session-core/project-goal-workflow");
 const completion = require("@chainlesschain/session-core/project-goal-completion");
+const notificationPolicy = require("@chainlesschain/session-core/goal-notification-policy");
+const notifications = require("@chainlesschain/session-core/project-goal-notifications");
+assert.equal(typeof notificationPolicy.nextGoalNotificationDelivery, "function");
+assert.equal(typeof notifications.ProjectGoalNotificationService, "function");
 const privateStorage = require("@chainlesschain/session-core/private-storage");
 (async () => {
   assert.equal((await import("@chainlesschain/session-core/goal-repository")).GoalRepository, GoalRepository);

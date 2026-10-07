@@ -8,6 +8,21 @@ let generation = 0;
 let session = null;
 let watchedManager = null;
 const attempts = new WeakSet();
+const authChangeListeners = new Set();
+function advanceGeneration() {
+  generation++;
+  for (const listener of authChangeListeners) {
+    try {
+      listener();
+    } catch {}
+  }
+}
+function subscribeProjectGoalAuthChanges(listener) {
+  if (typeof listener !== "function")
+    throw new TypeError("Auth listener required");
+  authChangeListeners.add(listener);
+  return () => authChangeListeners.delete(listener);
+}
 const revocationEvents = [
   "locked",
   "device-disconnected",
@@ -17,8 +32,8 @@ const revocationEvents = [
 ];
 
 function clearProjectGoalAuth(mode = null) {
-  generation++;
   if (mode === null || session?.mode === mode) session = null;
+  advanceGeneration();
 }
 
 function revokeUKey() {
@@ -69,8 +84,9 @@ function configureProjectGoalAuth(options = {}) {
 
 function beginProjectGoalAuthentication() {
   const manager = currentManager();
+  advanceGeneration();
   const attempt = Object.freeze({
-    generation: ++generation,
+    generation,
     did: currentDid(),
     manager,
     driver: manager?.currentDriver ?? null,
@@ -104,13 +120,13 @@ function authenticate(mode, manager, attempt) {
       return false;
     }
   }
-  generation++;
   session = {
     mode,
     did: attempt.did,
     manager: mode === "ukey" ? manager : null,
     driver: mode === "ukey" ? attempt.driver : null,
   };
+  advanceGeneration();
   return true;
 }
 
@@ -168,4 +184,5 @@ module.exports = {
   authenticateProjectGoalUKey,
   clearProjectGoalAuth,
   disposeProjectGoalAuth,
+  subscribeProjectGoalAuthChanges,
 };

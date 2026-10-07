@@ -1,0 +1,331 @@
+{
+  "schema": "chainlesschain.dmm-notifications-evidence/v1",
+  "recordedAt": "2026-10-07T14:02:29.220Z",
+  "baseCommitAtCapture": "fa86364b23a2a1cd41927588c915cdd838142a08",
+  "totals": {
+    "files": 32,
+    "tests": 598,
+    "passed": 598,
+    "failed": 0,
+    "skipped": 0
+  },
+  "groups": [
+    {
+      "name": "cli",
+      "file": "cli-tests.json",
+      "sha256": "045ae64bc067d75a03e142aa45bb3ee5557551c5a1a1a95a51cfa65b8fcf38ea",
+      "files": 5,
+      "tests": 146,
+      "passed": 146,
+      "testFiles": [
+        "packages/cli/__tests__/unit/goal-notification-policy.test.js",
+        "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+        "packages/cli/__tests__/unit/project-goal-notifications.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js",
+        "packages/cli/__tests__/unit/project-goal-workflow.test.js"
+      ]
+    },
+    {
+      "name": "desktop",
+      "file": "desktop-tests.json",
+      "sha256": "bec44378595f035fbc9c546d6780c6c7ac0e7409a19448b85aafebc7b5295267",
+      "files": 12,
+      "tests": 231,
+      "passed": 231,
+      "testFiles": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    },
+    {
+      "name": "renderer",
+      "file": "renderer-tests.json",
+      "sha256": "fac0fdb995368fd8406191ec56bd17a3237c17cb6b9c036528e94b4b2df931ad",
+      "files": 13,
+      "tests": 201,
+      "passed": 201,
+      "testFiles": [
+        "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+        "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts"
+      ]
+    },
+    {
+      "name": "contract",
+      "file": "contract-tests.json",
+      "sha256": "f03051ecaf76c07463cb9cf0511c8fa3811f0960ea16f4119467ecb1984c22a5",
+      "files": 1,
+      "tests": 18,
+      "passed": 18,
+      "testFiles": [
+        "packages/session-core/__tests__/goal-contract.test.js"
+      ]
+    }
+  ],
+  "packedBoundary": {
+    "file": "packed-boundary.txt",
+    "tests": 2,
+    "passed": 2,
+    "sha256": "7e395695a7252c6e684d0455c5271feb5c87cd4f9726c7a7b083c709428db080"
+  },
+  "sources": [
+    {
+      "file": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "sha256": "a5f3c896e5c36ae342d9bdfc190855bba3402b8eb5c11c78516209fca607e3c0"
+    },
+    {
+      "file": "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+      "sha256": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a"
+    },
+    {
+      "file": "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+      "sha256": "a03e42189d45042df13b7f239097f47990c6fded8183800ee371b3003019714a"
+    },
+    {
+      "file": "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+      "sha256": "8428e2ae93ed185a3abc9a59ca9bf68218fe4d091d657fc4a8f5cc1ee4c57858"
+    },
+    {
+      "file": "desktop-app-vue/src/main/notification/notification-ipc.js",
+      "sha256": "c5ba00436ae4d7b29778dc57a30451f3fe70c26162de78b77e2637e6878626a9"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+      "sha256": "59c7abaa30b7269eef17253c22a67e554d1ab2869a789f6cf631cbf3155264bd"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-completion-ipc.test.js",
+      "sha256": "ab7dff2713e04f218f1bfaacbfc6adc158806e66accf92d7ea2ca48b5234c3eb"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+      "sha256": "53f157aa4eb4f5d498cb0c938e8e111fb5b4f6660080ca4a8cf048532bf49f3e"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-memory-ipc.test.js",
+      "sha256": "5995f0c98db907bf82446476fb48e4652fb5795a01530cd3efd5b4ce6d087899"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "sha256": "a3fb9a66210a83bd36231b905913a3f530a14c228a4b83344e7061c4682c9426"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+      "sha256": "a47f57851caada31f38b236b1eb2d1d9b7a0c5d43f69af5245a9dc9cf5b0b219"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+      "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+    },
+    {
+      "file": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "sha256": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+      "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/index.js",
+      "sha256": "ad3230c59df627c51e10dbb9830a8a9bbd12b28d6261803f71f2c70f28e2b576"
+    },
+    {
+      "file": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "sha256": "88be56eb58595fb7811e0e66a5891f5dcaa226afef106ec32c9b91247e57ee77"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/common/GoalNotificationList.vue",
+      "sha256": "e75d2125ca5ae1cf516f2905763d8dbc2b84545a801ac5fb29903f3c6407b132"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/common/NotificationCenter.vue",
+      "sha256": "395c9abf5a35c844c8ab5a6fffedc32eba791107c42a751f8c864c49af997f48"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+      "sha256": "0a8cfaa363ce72706c577e6472a17a442a81df85a0bb968b440d445e2b588b29"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "sha256": "5c77aaf7ec300cad1e59098a6b73e17cba75a097d57761ee276e00bb3f66195f"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalNotificationDrawer.vue",
+      "sha256": "d7b8d204285cf675c2a78e915e54d9438f4cfd1026a4d12752a60d4c448ca8dc"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/ProjectGoalNotificationPolicyPanel.vue",
+      "sha256": "cb0cd2ebbf6a4f711d2506b8e1cdce5867e7c184e61004cd74103ddc766ba30a"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-acceptance-panel.test.ts",
+      "sha256": "c738108d7ccbe4d6644613d48c3c9c23be0f0e2cf29dfb88790105cd11067b36"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+      "sha256": "c65f50be4b980220115926eb74a08940c829c3a44bc43321c1c05c3346a32fb6"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-memory-panel.test.ts",
+      "sha256": "edb568042544485f4314169f00d83726f66bc2309afd7e07840ca05190632601"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+      "sha256": "77e4f91bf600d51b5393b9cd4402206b0c286a0a99148df9567a42bb6e128111"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts",
+      "sha256": "5279cb35358e56816fbb3529743487e084e539f3522da87d477eb55117fa8c04"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts",
+      "sha256": "b953ce48f1a9fd126498a6fbe980ba26a67a307c4d1501dc86b248548dca7d8f"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",
+      "sha256": "d5e6d6dd01f2aa1abb0648c0a8a0415423ff6c662fc0ecddab5ca6c69e513ae1"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
+      "sha256": "9356de35b4d91a42664ee24d3370d8e77ec89b72730110f3d28ed66e81726a52"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
+      "sha256": "b7b275725ba7b232ef1d487794173bad1ad93b0a2c3329af7681b7c087d5e251"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/components/social/NotificationCenter.vue",
+      "sha256": "758605c8656526ccd7f1e870d68b484af979ada1ccd0d3d333aee13e07aa7398"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue",
+      "sha256": "152b8bbd4113edf9f9997b9fa5fd42f79c782e0ed6aade01ae86a8ac0fc44e72"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/__tests__/auth.test.ts",
+      "sha256": "f57b13ff029ae58683af7bf11970f01d859cf3f9f50258ee656a0eb67ef5cba6"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+      "sha256": "59359e5a98779eb0d2cdf3fbf7245c4fc95d5620e6abd3788a67f6f72414edff"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+      "sha256": "5673cc6584ce0dd08d07910af697669584014a6df785d7519d9919a1c9476e03"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/goal-notifications.ts",
+      "sha256": "bea3d36d84810cebec547e36e820afbed5276777f874fb0d9b16133d39271d0a"
+    },
+    {
+      "file": "desktop-app-vue/src/renderer/stores/social.ts",
+      "sha256": "b93f2cda9d12bbcba61f19acd42084e46540e917f0728203f67528d0248e5544"
+    },
+    {
+      "file": "desktop-app-vue/tests/unit/ukey/ukey-ipc.test.js",
+      "sha256": "1e1e368aadcb6a99bd03345b83e76a1be9866d5b0e3b41341570007f5df85d40"
+    },
+    {
+      "file": "desktop-app-vue/vitest.business-actions.config.mjs",
+      "sha256": "106344fe968ba078bd1ac4f56aec16357fddb6bdf1bc02bcdcce80f32a8b26c6"
+    },
+    {
+      "file": "desktop-app-vue/vitest.goal-notifications-renderer.config.mjs",
+      "sha256": "8cfc634345c49cec71e7b8c9055a436db3ad31b19b359290ccaa6e23a253fff0"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/goal-notification-policy.test.js",
+      "sha256": "0009b1e7c52992163fc3e7a27e7887996a568b6b9ab46d1578345c54920bd9b6"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+      "sha256": "1fa3d9e6cc04df11daa3f1ffbf1ccbd748e765600b5af83e9c703a38b21e80e6"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-notifications.test.js",
+      "sha256": "c2ed0b23ad5c7dc4602dfd69eb55f05c74502d097ed83a269dc7529173e0dcc2"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-service.test.js",
+      "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+      "sha256": "030895a5cbfd95f0132666d6d808de34894ae28e193d0c2f2139be98c78ebbc7"
+    },
+    {
+      "file": "packages/session-core/__tests__/goal-contract.test.js",
+      "sha256": "9789c589e851401fb6c66a62a7c417bdd035b24d78665cf65e66f697eba2cf0f"
+    },
+    {
+      "file": "packages/session-core/__tests__/scheduler-host-boundary.node.cjs",
+      "sha256": "fc99603f085ef30c5bbb30c3433e2912cefc5d74c2662b2abfed3756ad5bd29c"
+    },
+    {
+      "file": "packages/session-core/lib/goal-contract.js",
+      "sha256": "a04e9f78a83924ee79065189fb2f7633468947a94ac265d80a6c86101296127e"
+    },
+    {
+      "file": "packages/session-core/lib/goal-notification-policy.js",
+      "sha256": "766a97a315a77871930899c0071849c369f8d1a22732d74c2542b8f1cd439376"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-monitoring.js",
+      "sha256": "5236ca2809d35f0ac05ad98a121946589d25e3848951de83a0d373400867e663"
+    },
+    {
+      "file": "packages/session-core/lib/project-goal-notifications.js",
+      "sha256": "5710e5d7db368ab7f62207ad55e187aa0076798488dc0de4c6655f79c5b1bd25"
+    },
+    {
+      "file": "packages/session-core/package.json",
+      "sha256": "5bb85ed26f0f67df132863d10533ab0f5889f931fa90e5493ff41c1453a1df37"
+    }
+  ],
+  "sourceSha256": "63c3de66e7e3d11cc47af61f10672ea1ab50bc6b39203353d892f183b74cfd65",
+  "commands": {
+    "cli": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/goal-notification-policy.test.js __tests__/unit/project-goal-notifications.test.js __tests__/unit/project-goal-service.test.js __tests__/unit/project-goal-monitoring.test.js __tests__/unit/project-goal-workflow.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-notifications-2026-10-07/cli-tests.json",
+    "desktop": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-notifications-2026-10-07/desktop-tests.json",
+    "renderer": "node .work/dmm-run-notification-renderer.cjs --reporter=json --outputFile=../docs/research/agents/evidence/dmm-notifications-2026-10-07/renderer-tests.json",
+    "contract": "node ../../node_modules/vitest/vitest.mjs run __tests__/goal-contract.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-notifications-2026-10-07/contract-tests.json",
+    "pack": "node --test packages/session-core/__tests__/scheduler-host-boundary.node.cjs (npm_config_cache in writable Temp)",
+    "ipc": "node desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"
+  },
+  "invariants": [
+    "Native monitoring check, usage, proposal observation and notification projection share one SQLite transaction",
+    "Semantic risk dedup ignores check time and preserves read state while advancing the source reference",
+    "Quiet hours use named time zones and actual UTC minutes including DST; no OS delivery",
+    "Every list, count, open and read mutation rechecks actor, login generation, window, frame, database and canonical source",
+    "No Goal objective, task or memory body is copied to notification projections or renderer localStorage",
+    "Host invalidation and Pinia synchronous auth subscription fence same-user relogin and late list/read/open results",
+    "Navigation uses a freshly authorized minimal target and focused Goal reread, never a cached reference as authority"
+  ],
+  "boundaries": [
+    "Engineering fixtures with real SQLite and isolated packed public entry closure; trusted test storage opener is not a production ACL claim",
+    "Vue components run in Happy DOM; Electron/window/dialog, IPC and router boundaries are simulated, not a real Electron GUI journey",
+    "Prepared workspace lacks UI dependencies; renderer uses isolated Temp vue-router/ant-design-vue/icons dependencies and a Happy DOM resolver, without modifying repository dependencies or lockfiles",
+    "Delivered authorized notifications describe historical checks; paused, ended, expired or revised Goals do not erase delivered history; pending delivery remains strictly controlled",
+    "Only the latest 50 authorized Goal notices are shown; unread badge is scoped to that loaded page",
+    "No migration replay of old checks; model output-time memory integration, business effectiveness samples and exact-candidate remote release matrices remain outstanding"
+  ]
+}

@@ -3,6 +3,9 @@
 /** Pure, bounded goal records. Valid records describe intent, never authority. */
 const { randomUUID } = require("node:crypto");
 const {
+  normalizeGoalNotificationPolicy,
+} = require("./goal-notification-policy.js");
+const {
   digestBusinessObjectContent,
   validateBusinessObjectRef,
 } = require("./business-object-contract.js");
@@ -254,12 +257,7 @@ function validateGoalRecord(input) {
     )
       fail("GOAL_INVALID_ACTION_TYPE");
   });
-  fields(value.notificationPolicy, ["channel", "mode"]);
-  if (
-    value.notificationPolicy.channel !== "in-app" ||
-    !["changes-only", "silent"].includes(value.notificationPolicy.mode)
-  )
-    fail("GOAL_INVALID_NOTIFICATION");
+  normalizeGoalNotificationPolicy(value.notificationPolicy);
   if (value.waitingReason !== null) text(value.waitingReason, 128);
   if (
     ![

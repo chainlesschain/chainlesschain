@@ -723,8 +723,11 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "nostr:publish-event",
   "nostr:publish-reaction",
   "notification:get-all",
+  "notification:get-goals",
+  "notification:invalidated",
   "notification:mark-all-read",
   "notification:mark-read",
+  "notification:open-goal",
   "notification:send-desktop",
   "ops:acknowledge",
   "ops:configure-alerts",
@@ -4300,6 +4303,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // 通知系统 (Notification)
   notification: {
+    getGoals: (options) =>
+      ipcRenderer.invoke("notification:get-goals", options),
+    openGoal: (id) => ipcRenderer.invoke("notification:open-goal", id),
+    onInvalidated: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on("notification:invalidated", listener);
+      return () =>
+        ipcRenderer.removeListener("notification:invalidated", listener);
+    },
     markRead: (id) => ipcRenderer.invoke("notification:mark-read", id),
     markAllRead: () => ipcRenderer.invoke("notification:mark-all-read"),
     getAll: (options) => ipcRenderer.invoke("notification:get-all", options),

@@ -41,10 +41,10 @@
         <a-space>
           <a-button
             size="small"
-            :disabled="unreadCount === 0"
+            :disabled="ordinaryUnreadCount === 0"
             @click="markAllAsRead"
           >
-            全部已读
+            普通通知全部已读
           </a-button>
           <a-button size="small" danger @click="clearRead"> 清空已读 </a-button>
         </a-space>
@@ -52,6 +52,7 @@
 
       <!-- 通知列表 -->
       <div class="notification-list">
+        <GoalNotificationList :unread-only="filter === 'unread'" />
         <a-empty
           v-if="filteredNotifications.length === 0"
           description="暂无通知"
@@ -144,16 +145,22 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons-vue";
 import { useNotifications } from "@/utils/notificationManager";
+import GoalNotificationList from "./GoalNotificationList.vue";
+import { useGoalNotificationsStore } from "../../stores/goal-notifications";
 
 // 使用通知管理器
 const {
   notifications,
-  unreadCount,
+  unreadCount: ordinaryUnreadCount,
   markAsRead,
   markAllAsRead,
   remove,
   clearRead,
 } = useNotifications();
+const goalNotifications = useGoalNotificationsStore();
+const unreadCount = computed(
+  () => ordinaryUnreadCount.value + goalNotifications.unreadCount,
+);
 
 // 面板状态
 const panelVisible = ref(false);

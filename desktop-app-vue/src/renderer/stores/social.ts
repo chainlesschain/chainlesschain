@@ -7,6 +7,17 @@ import { logger } from "@/utils/logger";
 import { defineStore } from "pinia";
 import { createRetryableIPC } from "../utils/ipc";
 
+function isGoalNotification(data: unknown): boolean {
+  try {
+    return (
+      (typeof data === "string" ? JSON.parse(data) : data)?.schema ===
+      "chainlesschain.goal-notice-ref/v1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ==================== 类型定义 ====================
 
 /**
@@ -119,11 +130,7 @@ export interface Post {
  * 通知类型
  */
 export type NotificationType =
-  | "system"
-  | "message"
-  | "friend_request"
-  | "like"
-  | "comment";
+  "system" | "message" | "friend_request" | "like" | "comment";
 
 /**
  * 通知
@@ -837,8 +844,11 @@ export const useSocialStore = defineStore("social", {
           ? result
           : result?.notifications || result?.data || [];
 
-        this.notifications = notifications;
-        this.unreadNotifications = notifications.filter(
+        // Goal references have a separate, identity-fenced authoritative panel.
+        this.notifications = notifications.filter(
+          (item) => !isGoalNotification(item.data),
+        );
+        this.unreadNotifications = this.notifications.filter(
           (n) => n.is_read === 0,
         ).length;
       } catch (error) {
@@ -886,6 +896,7 @@ export const useSocialStore = defineStore("social", {
      * 添加通知
      */
     addNotification(notification: AddNotificationParams): void {
+      if (isGoalNotification(notification.data)) return;
       const notificationData: Notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: notification.type,

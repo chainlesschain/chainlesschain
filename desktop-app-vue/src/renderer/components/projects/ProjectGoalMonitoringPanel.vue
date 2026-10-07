@@ -10,7 +10,11 @@
       巡检在应用运行且身份解锁时检查逾期和依赖信号；重新打开后补做一次到期检查。
     </p>
     <p v-if="error" role="alert">{{ error }}</p>
-    <form data-testid="create-goal" @submit.prevent="createGoal">
+    <form
+      v-if="!focused"
+      data-testid="create-goal"
+      @submit.prevent="createGoal"
+    >
       <label
         >目标说明<input
           v-model="objective"
@@ -34,7 +38,13 @@
         保存目标
       </button>
     </form>
-    <p v-if="!goals.length && !busy">保存目标后，可立即检查或开启巡检。</p>
+    <p v-if="!goals.length && !busy && !error">
+      {{
+        focused
+          ? "暂未读取到此目标，请刷新核对。"
+          : "保存目标后，可立即检查或开启巡检。"
+      }}
+    </p>
     <article
       v-for="item in goals"
       :key="item.goal.id"
@@ -172,9 +182,15 @@
         @goal-changed="loadGoals()"
         @authority-error="authorityFailure"
       />
+      <ProjectGoalNotificationPolicyPanel
+        :goal="item.goal"
+        :identity-key="identityKey"
+        @goal-changed="loadGoals()"
+        @authority-error="authorityFailure"
+      />
     </article>
     <button
-      v-if="afterId"
+      v-if="!focused && afterId"
       :disabled="busy"
       data-testid="more-goals"
       @click="loadGoals(true)"
@@ -190,6 +206,7 @@ import { actionCode, isAuthorityError } from "./task-description-ui";
 import ProjectGoalActionsPanel from "./ProjectGoalActionsPanel.vue";
 import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
 import ProjectGoalMemoryPanel from "./ProjectGoalMemoryPanel.vue";
+import ProjectGoalNotificationPolicyPanel from "./ProjectGoalNotificationPolicyPanel.vue";
 type Goal = {
   id: string;
   revision: number;
@@ -197,6 +214,15 @@ type Goal = {
   objective: string;
   ownerRef: string;
   allowedActionTypes?: string[];
+  notificationPolicy?: {
+    channel: "in-app";
+    mode: "changes-only" | "silent";
+    quietHours?: {
+      timeZone: string;
+      startMinute: number;
+      endMinute: number;
+    } | null;
+  };
   acceptanceCriteria?: Array<{ id: string; kind: string; description: string }>;
   projectRef: { id: string; scope: { kind: string; id: string } };
   budgetPolicy: { maxRuns: number | null };
@@ -254,7 +280,11 @@ type GoalApi = {
     expectedRevision: number;
   }): Promise<Status>;
 };
-const props = defineProps<{ projectId: string; identityKey?: string }>();
+const props = defineProps<{
+  projectId: string;
+  identityKey?: string;
+  focusGoalId?: string;
+}>();
 const emit = defineEmits<{
   (event: "review-id", id: string): void;
   (event: "authority-error"): void;
@@ -262,10 +292,10 @@ const emit = defineEmits<{
 const api = () =>
   (window as unknown as { electronAPI?: { project?: GoalApi } }).electronAPI
     ?.project;
+const focused = computed(() => props.focusGoalId !== undefined);
 const available = computed(() =>
   [
-    "createGoal",
-    "listGoals",
+    ...(focused.value ? [] : ["createGoal", "listGoals"]),
     "reviseGoal",
     "getGoalMonitoringStatus",
     "startGoalMonitoring",
@@ -335,7 +365,7 @@ function reasonLabel(reason: string) {
 function validateGoal(goal: Goal, expectedId?: string) {
   if (
     goal?.projectRef?.id !== props.projectId ||
-    goal.projectRef.scope.kind !== "personal" ||
+    goal.projectRef.scope?.kind !== "personal" ||
     goal.projectRef.scope.id !== goal.ownerRef ||
     (expectedId && goal.id !== expectedId)
   )
@@ -372,6 +402,23 @@ async function loadGoals(more = false) {
   busy.value = true;
   error.value = "";
   try {
+    if (focused.value) {
+      goals.value = [];
+      const goalId = props.focusGoalId;
+      if (
+        typeof goalId !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$/u.test(goalId)
+      )
+        throw new Error("GOAL_NOT_FOUND_OR_DENIED");
+      // Route identifiers select a read; only the host-authorized status may
+      // supply goal content, and its project/personal binding is checked again.
+      const state = await api()!.getGoalMonitoringStatus({ id: goalId });
+      if (!current(stamp)) return;
+      validateGoal(state.goal, goalId);
+      goals.value = [state];
+      afterId.value = null;
+      return;
+    }
     const page = await api()!.listGoals({
       projectId: props.projectId,
       limit: 20,
@@ -398,6 +445,7 @@ async function loadGoals(more = false) {
 async function createGoal() {
   if (
     busy.value ||
+    focused.value ||
     !available.value ||
     !objective.value.trim() ||
     !validBudget.value
@@ -553,12 +601,12 @@ async function stopOccurrence(
   }
 }
 watch(
-  () => [props.projectId, props.identityKey],
+  () => [props.projectId, props.identityKey, props.focusGoalId],
   () => {
     reset();
     void loadGoals();
   },
-  { immediate: true },
+  { immediate: true, flush: "sync" },
 );
 onBeforeUnmount(() => {
   mounted = false;

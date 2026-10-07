@@ -63,6 +63,43 @@ describe("personal project goal controls", () => {
     expect(api.startGoalMonitoring).not.toHaveBeenCalled();
     expect(api.checkGoalNow).not.toHaveBeenCalled();
   });
+  it("refreshes goal state after explicitly saving its notification policy", async () => {
+    await flushPromises();
+    api.reviseGoal.mockImplementation(async (input) =>
+      goal({ revision: 2, notificationPolicy: input.patch.notificationPolicy }),
+    );
+    const policy = wrapper.findComponent({
+      name: "ProjectGoalNotificationPolicyPanel",
+    });
+    expect(policy.props("identityKey")).toBe("owner");
+    await policy
+      .get('[data-testid="goal-notification-mode"]')
+      .setValue("silent");
+    expect(api.reviseGoal).not.toHaveBeenCalled();
+    await policy.get("form").trigger("submit");
+    await flushPromises();
+    expect(api.reviseGoal).toHaveBeenCalledWith({
+      id: "g1",
+      expectedRevision: 1,
+      patch: {
+        notificationPolicy: {
+          channel: "in-app",
+          mode: "silent",
+          quietHours: null,
+        },
+      },
+    });
+    expect(api.listGoals).toHaveBeenCalledTimes(2);
+  });
+  it("clears goal data when notification policy editing loses authority", async () => {
+    await flushPromises();
+    wrapper
+      .findComponent({ name: "ProjectGoalNotificationPolicyPanel" })
+      .vm.$emit("authority-error");
+    await flushPromises();
+    expect(wrapper.find('[data-goal-id="g1"]').exists()).toBe(false);
+    expect(wrapper.emitted("authority-error")).toHaveLength(1);
+  });
   it("clears all goal metadata when a nested governed panel reports revoked authority", async () => {
     await flushPromises();
     expect(wrapper.find('[data-goal-id="g1"]').exists()).toBe(true);
@@ -315,5 +352,75 @@ describe("personal project goal controls", () => {
     release([goal()]);
     await flushPromises();
     expect(wrapper.text()).not.toContain("Follow risk");
+  });
+  it("opens a directly referenced goal without reading or paginating the first 20 goals", async () => {
+    await flushPromises();
+    api.listGoals.mockClear();
+    api.getGoalMonitoringStatus.mockClear();
+    api.getGoalMonitoringStatus.mockResolvedValue(
+      state({ goal: goal({ id: "g-outside-first-page" }) }),
+    );
+    await wrapper.setProps({ focusGoalId: "g-outside-first-page" });
+    await flushPromises();
+    expect(api.listGoals).not.toHaveBeenCalled();
+    expect(api.getGoalMonitoringStatus).toHaveBeenCalledExactlyOnceWith({
+      id: "g-outside-first-page",
+    });
+    expect(wrapper.find('[data-goal-id="g-outside-first-page"]').exists()).toBe(
+      true,
+    );
+    expect(wrapper.find('[data-testid="create-goal"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="more-goals"]').exists()).toBe(false);
+  });
+  it.each(["mismatched-id", "other-project", "organization", "wrong-owner"])(
+    "rejects a focused goal with %s binding",
+    async (mismatch) => {
+      await flushPromises();
+      const returned = goal({ id: "focused" });
+      if (mismatch === "mismatched-id") returned.id = "different";
+      if (mismatch === "other-project") returned.projectRef.id = "p2";
+      if (mismatch === "organization")
+        returned.projectRef.scope.kind = "organization";
+      if (mismatch === "wrong-owner")
+        returned.projectRef.scope.id = "did:other";
+      api.getGoalMonitoringStatus.mockResolvedValue(state({ goal: returned }));
+      await wrapper.setProps({ focusGoalId: "focused" });
+      await flushPromises();
+      expect(wrapper.find('[data-goal-id="focused"]').exists()).toBe(false);
+      expect(wrapper.text()).not.toContain("Follow risk");
+      expect(wrapper.emitted("authority-error")).toHaveLength(1);
+    },
+  );
+  it("discards a late direct status after changing the focused goal", async () => {
+    await flushPromises();
+    let resolve!: (value: unknown) => void;
+    api.getGoalMonitoringStatus.mockImplementationOnce(
+      () =>
+        new Promise((yes) => {
+          resolve = yes;
+        }),
+    );
+    await wrapper.setProps({ focusGoalId: "old-goal" });
+    api.getGoalMonitoringStatus.mockResolvedValue(
+      state({ goal: goal({ id: "new-goal", objective: "Current goal" }) }),
+    );
+    await wrapper.setProps({ focusGoalId: "new-goal" });
+    await flushPromises();
+    resolve(
+      state({ goal: goal({ id: "old-goal", objective: "Old secret goal" }) }),
+    );
+    await flushPromises();
+    expect(wrapper.text()).toContain("Current goal");
+    expect(wrapper.text()).not.toContain("Old secret goal");
+  });
+  it("refuses malformed focused identifiers without falling back to a goal list", async () => {
+    await flushPromises();
+    api.listGoals.mockClear();
+    api.getGoalMonitoringStatus.mockClear();
+    await wrapper.setProps({ focusGoalId: "../other" });
+    await flushPromises();
+    expect(api.getGoalMonitoringStatus).not.toHaveBeenCalled();
+    expect(api.listGoals).not.toHaveBeenCalled();
+    expect(wrapper.emitted("authority-error")).toHaveLength(1);
   });
 });

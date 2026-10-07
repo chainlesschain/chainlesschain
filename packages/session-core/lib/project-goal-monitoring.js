@@ -13,6 +13,9 @@ const {
 const { SchedulerRuntime } = require("./scheduler-runtime.js");
 const { normalizeAuthorityEnvelope } = require("./scheduler-contract.js");
 const { ProjectGoalWorkflow } = require("./project-goal-workflow.js");
+const {
+  ProjectGoalNotificationService,
+} = require("./project-goal-notifications.js");
 const { createSchedulerService } = require("./scheduler-service.js");
 const {
   bindSchedulerAuthorityPolicy,
@@ -175,6 +178,13 @@ class ProjectGoalMonitoringState {
         UNIQUE(goal_id,actor_did,request_id));
     `),
     );
+    this.notifications = new ProjectGoalNotificationService({
+      db,
+      getActor,
+      clock,
+      goals: this.goals,
+      risk: this.risk,
+    });
   }
   _withGoal(goalId, operation) {
     return this.adapter._transaction(() => {
@@ -841,6 +851,10 @@ class ProjectGoalMonitoringState {
           Date.parse(result.checkedAt),
           finished - started,
         );
+      this.notifications.observeInTransaction({
+        goalId: goal.id,
+        occurrenceId: context.occurrence.id,
+      });
       renew();
       return result;
     });
@@ -1182,6 +1196,16 @@ class ProjectGoalMonitoringEngine {
     if (typeof actor !== "string" || !actor.startsWith("did:"))
       return { status: "waiting", reason: "identity-locked" };
     const incidents = [];
+    try {
+      this.state.notifications.flushDue({ limit: 100 });
+    } catch (error) {
+      // A damaged pending notice cannot stop unrelated authorized monitoring.
+      // The flush transaction still rolls back, so no partial delivery occurs.
+      incidents.push({
+        goalId: null,
+        code: error.code ?? "GOAL_NOTICE_FAILED",
+      });
+    }
     let due = this.state.due(this.dueCursor);
     if (due.length === 0 && this.dueCursor) {
       this.dueCursor = null;

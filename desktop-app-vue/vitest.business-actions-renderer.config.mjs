@@ -12,6 +12,11 @@ export default defineConfig({
     pool: "forks",
     maxWorkers: 1,
     include: [
+      "src/renderer/stores/__tests__/goal-notifications.test.ts",
+      "src/renderer/stores/__tests__/social.test.ts",
+      "src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-notification-policy-panel.test.ts",
+      "src/renderer/components/projects/__tests__/project-goal-notification-drawer.test.ts",
       "src/renderer/components/projects/__tests__/project-task-description-drawer.test.ts",
       "src/renderer/components/projects/__tests__/project-task-description-journey.test.ts",
       "src/renderer/components/projects/__tests__/project-risk-review-panel.test.ts",

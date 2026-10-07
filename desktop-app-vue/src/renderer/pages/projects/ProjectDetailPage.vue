@@ -492,6 +492,14 @@
         :project-id="String(projectId)"
         :identity-key="`${taskIdentityStore.primaryDID || ''}:${taskIdentityStore.currentContext}:${taskAppStore.isAuthenticated}`"
       />
+      <ProjectGoalNotificationDrawer
+        :project-id="String(projectId)"
+        :goal-id="route.query.goalId"
+        :notice-id="route.query.goalNoticeId"
+        :authenticated="taskAppStore.isAuthenticated"
+        :identity-key="`${taskIdentityStore.primaryDID || ''}:${taskIdentityStore.currentContext}:${taskIdentityStore.currentIdentity.localDB}:${taskAppStore.deviceId || ''}:${taskAppStore.isAuthenticated}`"
+        @close="closeGoalNotification"
+      />
 
       <ProjectShareDialog
         v-model:open="showShareModal"
@@ -540,6 +548,7 @@ import { useActiveContextStore } from "@/stores/activeContext";
 import { useIdentityStore } from "@/stores/identity";
 import { useAppStore } from "@/stores/app";
 import ProjectTaskDescriptionDrawer from "@/components/projects/ProjectTaskDescriptionDrawer.vue";
+import ProjectGoalNotificationDrawer from "@/components/projects/ProjectGoalNotificationDrawer.vue";
 import OrganizationProjectWorkbench from "@/components/projects/OrganizationProjectWorkbench.vue";
 import {
   getProjectTypeColor,
@@ -679,6 +688,12 @@ const showControlledTasks = ref(false);
 const showOrganizationTasks = ref(false);
 const taskIdentityStore = useIdentityStore();
 const taskAppStore = useAppStore();
+function closeGoalNotification() {
+  const query = { ...route.query };
+  delete query.goalId;
+  delete query.goalNoticeId;
+  void router.replace({ query });
+}
 const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）- 已启用
 
 // 计算属性

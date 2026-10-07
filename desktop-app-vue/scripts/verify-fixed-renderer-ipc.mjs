@@ -27,6 +27,9 @@ const ignoredDirectories = new Set([
 // Preserve these fixed governed capabilities even when their callers are
 // composed dynamically. They still require an exact main registration.
 const retainedGovernedChannels = [
+  "notification:open-goal",
+  "notification:get-goals",
+  "notification:invalidated",
   "project:goal-create",
   "project:goal-list",
   "project:goal-read",
