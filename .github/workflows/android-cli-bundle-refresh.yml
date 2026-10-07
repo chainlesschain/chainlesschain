@@ -1,0 +1,74 @@
+name: Android published CLI bundle refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: "Exact public npm CLI version (publish children and CLI first)"
+        required: true
+        type: string
+      expected_cli_sha:
+        description: "Full source SHA of the immutable v-npm tag and npm provenance"
+        required: true
+        type: string
+      from_binaries_version:
+        description: "Reviewed retained Android runtime and native binding release"
+        required: true
+        default: "20260711"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-cli-refresh-${{ inputs.cli_version }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout packaging tools and immutable npm tags
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up npm signature verification
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install npm attestation support
+        run: npm install --global npm@11.18.0
+      - name: Verify offline packaging boundaries
+        run: node --test .github/scripts/refresh-android-cli-bundle.test.mjs
+      - name: Hydrate public CLI and retain the verified Android binding
+        env:
+          CLI_VERSION: ${{ inputs.cli_version }}
+          EXPECTED_CLI_SHA: ${{ inputs.expected_cli_sha }}
+          FROM_BINARIES_VERSION: ${{ inputs.from_binaries_version }}
+          BUNDLE_OUTPUT: ${{ runner.temp }}/android-cli-bundle-output
+        run: node .github/scripts/refresh-android-cli-bundle.mjs
+      - name: Upload verified bundle for immutable binaries rollover
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cc-cli-tgz
+          path: ${{ runner.temp }}/android-cli-bundle-output/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Record artifact identity and native support boundary
+        env:
+          BUNDLE_OUTPUT: ${{ runner.temp }}/android-cli-bundle-output
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const value = JSON.parse(fs.readFileSync(process.env.BUNDLE_OUTPUT + "/android-cli-bundle.json", "utf8"));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              "CLI " + value.cliVersion + " from " + value.expectedCliSha + "\n\n" +
+              "cc-cli.tgz SHA-256: `" + value.artifact.sha256 + "`\n\n" +
+              "Retained Android Node 26.2.0 / ABI 147; PDH cipher binding 12.11.1 verified. " +
+              "Ordinary SQLite and node-pty native addons are unsupported; see evidence for fallbacks. " +
+              "Android device execution was not performed.\n");
+          '

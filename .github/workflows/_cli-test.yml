@@ -71,6 +71,7 @@ jobs:
       CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         # Four Windows shards can keep a two-fork Vitest worker alive for more
         # than 17 minutes. On hosted Windows runners that has repeatedly ended
@@ -137,6 +138,7 @@ jobs:
       CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: ${{ startsWith(inputs.runs-on, 'windows') && '60000' || '' }}
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
@@ -175,6 +177,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         shard: [1, 2, 3, 4]
     steps:

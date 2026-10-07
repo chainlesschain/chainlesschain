@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.93",
+      "cliVersions": ["0.166.93"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.93: bounded investigations and release evidence",
+          "body": "- Bound repeated IDE evidence inspections and all phases of authenticated\n  artifact byte reads, including directory, index, identity, and history checks.\n- Publish Session Core `0.3.18` and Context Memory Kernel `0.1.8` before CLI\n  `0.166.93`, with exact dependency\n  pins and registry-only readback of the published child package.\n- Include organization goal acceptance, periodic monitoring, memory, risk\n  review, transfer, workflow, and notification services in Session Core.\n- Register the organization goal memory adapter as a Kernel capability client,\n  preserving the single canonical memory writer in the published inventory.\n- Support immediate transactions and nested savepoints in desktop SQLite\n  compatibility adapters, and verify notification reads after login and denial\n  after logout with a real Electron session.\n- Correct browser timer and synchronous subscription types in goal memory\n  panels and retain their disposal behavior.\n- Install exact-checkout dependencies in the accessibility/performance\n  aggregate job before verifying Linux, Windows, and macOS evidence.\n- Pair VS Code `0.37.138` and JetBrains `0.4.156` after CLI publication;\n  release desktop/mobile `v5.0.3.140` after both IDE release stages."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.92",
       "cliVersions": ["0.166.92"],
       "date": null,
