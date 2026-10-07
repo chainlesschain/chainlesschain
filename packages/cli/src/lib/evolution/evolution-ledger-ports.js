@@ -1236,6 +1236,14 @@ class EvolutionLedgerDomainPorts {
     Object.freeze(this);
   }
 
+  readArtifactScope() {
+    return deepFreeze({
+      artifactTenantId: this.#artifactTenantId,
+      audience: this.#audience,
+      purpose: this.#purpose,
+    });
+  }
+
   #assertAudience(value, label, { nullable = false } = {}) {
     if (value === null && nullable) return null;
     const normalized = identifier(value, label);
@@ -4175,6 +4183,7 @@ export function createEvolutionLedgerPorts(options = {}) {
   RELEASE_OPERATION_READERS.set(
     transactionLedger,
     Object.freeze({
+      scope: adapter.readArtifactScope(),
       currentContext: Object.freeze(() => {
         const head = readCurrentHead();
         return deepFreeze({

@@ -380,7 +380,7 @@ Release Registry 的 readRelease、readState、readActive、readInventory 改为
 
 调用者仅提供已有绝对父目录和 operation ID；创建前及恢复时只读检查父目录身份和 owner-only 权限，不自动修复调用者目录。模块生成随机 namespace 与两个 store ID，通过非递归 mkdir 创建全新候选、发布目录；拒绝嵌套进已知 Ledger、Registry 或 pair namespace。既有根、空目录声明、quiescent:true、caller RNG 或旧存储升级均不是入口。准备记录固定物理目录身份和来源策略，两个 v2 marker 绑定 tenant、store/peer、原 journal identity、operation、epoch、writer floor=2、策略与准备摘要，通过单次原子 hardlink 公开，不覆盖旧初始化器抢先安装的 v1 marker。mkdir、ACL 修改、临时文件写入、link 和 unlink 前均复验实际锁及目录身份；失锁后保留 debris，不修改新 owner 的文件。
 
-committed 仅表示新物理存储配对创建已认证，并不表示来源切换或业务准入完成。当前 Registry 的 v1 marker 构造入口拒绝这些 v2 marker；尚未接入可用的 v2 Registry reader/writer、永久 tenant＋contentDigest 来源索引、候选 alias finalize、晋级 lease 内来源复验或 Review/Pilot/Promotion 必需门。模块外的旧构造入口尚不能仅凭这一层阻止“删除 marker 后尝试 v1 初始化”；下一批必须为保留 namespace 加入不可省略的真正 policy binding，再衔接实际业务读写。
+committed 仅表示新物理存储配对创建已认证，并不表示来源切换或业务准入完成。本节提交时，Registry 的 v1 marker 构造入口拒绝这些 v2 marker，尚未接入可用的 v2 Registry reader/writer、永久 tenant＋contentDigest 来源索引、候选 alias finalize、晋级 lease 内来源复验或 Review/Pilot/Promotion 必需门。仅凭这一层不能阻止“删除 marker 后尝试 v1 初始化”；后续第 22 节已接入当前构造入口的保留 namespace 与真正 policy binding，业务准入仍待完成。
 
 恢复只认同一准备记录、原目录及预期 marker 字节。prepared-only 时两端预期 v2 marker 均以单链接存在，可建立首次 marker 身份证明并补记后续阶段；这不能证明首次身份登记前未发生同字节替换。已有 markers-installed 认证身份后，同字节 marker 更换 inode 亦 HOLD。任一 marker 缺失、未知临时文件、双链接残留或目录身份变化都拒绝恢复，不重新生成 ID、不修复缺失 marker、不删除另一端。准备记录之前失败的目录保留为 orphan，不扫描接管或递归清理。提交响应丢失仅允许按原操作回读恢复；off 或换 backend 不产生来源豁免。
 
@@ -391,3 +391,23 @@ bootstrapDirectoryFsyncVerified 仅记录创建目录项时的实际刷新结果
 初轮新单元 **15/15**；既有回归曾为 69 项通过、1 项失败及 1 项原有跳过，失败来自固定 retention 白名单期望缺少本批合法类型，补上精确一项后完整文件 **42/42** 通过。后续原生组合 **16/23** 通过：包含 helper 启动失败、未保留原生细节的 parent HOLD、三个原 60 秒超时被 Vitest 的 STACK_TRACE_ERROR 报告问题掩盖，以及 v1 竞争断言吞掉前置错误后的次生异常。加强 ownership 观察的定向 run 为 3 项通过、1 项 fixture 初始化失败。串行受影响用例 6/8 通过，剩余两个复合用例仅超原时限；去重后的复测亦有这两个超时，未放宽检查或时限。
 
 Astra 参与诊断、实现复核和测试拆分。两个复合用例拆为六项独立行为，保留全部断言；真实 backend 初始化、真实 provisioning 两个准备操作各自保持 60 秒预算，回读用例也各 60 秒。共享 fixture 生命周期明确，不依赖某个测试先执行。先前合并 setup 的 beforeAll 超时使五项未执行，不算通过；拆分后五项回读全部通过。新 ancestry 回归在真正权限检查之后、同 inode 下插入 Registry 标记，确认没有 namespace 或日志写入。v1 竞争现在要求真实 EEXIST 和已注入的 winner；ownership 观察原生权限修改调用，失锁后为零。提交前 ESLint、Prettier 与 Astra 复核通过，六个改动源码/测试文件的摘要和逐次结果见 [新存储初始化验证记录](./evidence/rrsi-registry-store-policy-local-controls-2026-10-07.json)。这些证据不替代生产来源、旧写者排空、真实效果试验或发行矩阵。
+
+## 22 真正 v2 Registry 绑定与未初始化回读
+
+[rrsi-registry-store-policy.js](../../../packages/cli/src/lib/evolution/rrsi-registry-store-policy.js) 增加只由原 policy 对象签发的 component binding，固定 operation、component、tenant、store/peer、物理根、原 journal identity 和 committed record。Registry 通过 WeakMap 捕获真正绑定，拒绝复制、序列化、proxy、accessor、错组件、错 tenant、错路径、自定义 filesystem、非 secure 选项和 subclass。Release 在访问调用方 transaction 方法之前验证真正的 operation reader，要求同一原 journal 和 ArtifactPorts，并精确比较 adapter 私有字段导出的 artifact tenant、显式 audience 和 purpose；同对象但错 scope 或省略 audience 的真正端口亦 HOLD。仅摘要相同、复制方法或调用方自报 scope 不是原对象。
+
+当前 [候选 Registry](../../../packages/cli/src/lib/evolution/skill-candidate-registry.js) 和 [发布 Registry](../../../packages/cli/src/lib/evolution/skill-release-registry.js) 在任何 mkdir、ACL 修复、marker 初始化和 writer lock 之前拒绝无绑定的 `pair.<UUID>` 保留路径，也检查已有父路径的原生 realpath，关闭删除 marker 后从物理别名尝试 v1 初始化的入口。bound 模式使用已认证的七个目录和两枚 v2 marker，构造不创建缺失路径、不修复权限、不创建 Release 的六个运行目录、不执行事务恢复或残留清理。重新打开还会实时原生检查 provisioning parent 的 owner-only 权限，不把旧绑定当作权限缓存。此限制约束本版入口，不表示所有历史 CLI、desktop 或已继承句柄的旧写者已排空。
+
+无绑定的目录 helper 在修改前捕获最近已有祖先及剩余路径的 canonical 目标，mkdir 前复验、得到真实 canonical 后再次拒绝保留 namespace 并核对原目标；捕获 base 后及私有 marker／写入／恢复入口继续复验。当前 v1 实例的公开目录 helper、subclass 返回保留 canonical base，以及前检后将已有／缺失 base 的祖先换成指向 pair 的 junction/symlink 均被拒绝；反例确认注入确实发生、未执行 Registry mkdir，配对树身份和字节不变。它不承诺在任意外部修改时刻提供跨目录原子保护。
+
+空布局与不可变目录／marker 边界已分开校验；由于尚无来源或运行目录认证关联，本批回读仍要求两端完整 marker-only 布局。候选返回真实空 inventory 或既有 NOT_FOUND；Release 私有模式固定为未初始化，返回空 inventory、revision=0 的初始 state、无 active release。它不会把任意 ENOENT、部分运行目录或未知 JSON 当成正常空存储。读取时重新验证完整 policy 历史、原目录及两端 marker；认证边界缺失和同内容 inode 替换均为 HOLD，并保留原 cause，不包装成普通候选不存在。出现业务内容、运行目录、待恢复 journal 或 debris 均保留现场且 HOLD，不自动切换运行模式。
+
+公开 create、transition 和所有 legacy migration 在获取 writer lock、执行准入回调或消费一次性 transition capability 之前 HOLD，私有写入、发布、lease、prepare/finalize、pointer、恢复和 cleanup 入口再次阻断。公开 candidate bootstrap helper 只验证已有绑定路径，不能补建 v1 marker 或新目录；真正只读实例不提供 writer control。这些控制不伪造来源分类，writer floor=2 也不代表业务写权限。
+
+绑定回读不使用 store-policy operation lock，不产生 Registry/policy namespace 写入；原 v2 journal 的 verify/read 仍按既有协议获取自身维护锁并可能恢复已授权 WAL。manifest backend 的 read/readEvents 本身亦可能修复 checkpoint，因此没有将它们改作未经设计的“无恢复快照”。本批不承诺整个 backend 读取零写入。provisioning policy v1 和 marker 摘要保持原值；originCutoverAuthenticated、originClassificationAvailable、生产权威、写权限与晋级资格继续为 false。
+
+本批最终共有 **152 项不同用例通过**：新增单元 **34 项**、真实子进程 **4 项**，完整 Candidate **31 项**、Release **44 项**、Registry/History **14 项**，Ledger ports v1 **12 项**、v2 **8 项**，以及 store-policy containment 定向 **5 项**。最终 namespace／Registry 组合 **127/127** 通过，随后 ports **20/20**、containment **5/5** 通过；containment 的其余 20 项按名称过滤未执行，不算新的平台 skip。九个源码／测试文件及其摘要、逐次结果见 [v2 Registry 只读接入验证记录](./evidence/rrsi-registry-read-only-local-controls-2026-10-07.json)。未运行 Linux/macOS 的工作流矩阵，不把这些本地控制作为正式效果试验或发行验证。
+
+初轮观察器错误地把原 journal 的维护锁计为 Registry 写入，结果为 10 项通过、15 项失败；随后两轮为 28/30、118/120，剩余两项同样来自观察器漏掉原 source journal 的 `ledger-v2.lock` 清理。定向诊断捕获了真实 `authority/ledger-v2.lock.release-*` 路径，最终仅精确放行同 authority 下的 source 与 manifest-cutover 锁族，没有放宽整片 authority 或 Registry/policy namespace。原生 ACL 观察同时覆盖 JSON 批量与 args 单路径 repair；Buffer 路径兼容不被宣称为上述失败的实际原因。Astra 又发现最后六个反例误放在旧测试回调内，已仅停止经 PID/命令核对的自有 runner/worker，移至 describe 层后重新收集并完整重跑，中断不计通过证据。原生预算和校验器未放宽。
+
+提交前 ESLint、Prettier 与 Astra 只读复核通过；所有先前发现已落实到代码与反例。下一批实施独立认证的运行目录初始化与 tenant＋真实 UTF-8 contentDigest 来源关联，再接候选 alias、发布事务与恢复的来源准入；本批仍不表示整个 RRSI 已完成。

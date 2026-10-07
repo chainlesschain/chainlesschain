@@ -7,6 +7,11 @@ import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { createSkillRegistryWriterControl } from "./skill-registry-writer-control.js";
 import {
+  captureRrsiRegistryComponentBinding,
+  assertOutsideRrsiRegistryNamespace,
+  RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+} from "./rrsi-registry-store-policy.js";
+import {
   verifySkillDependencyLock,
   verifySkillRuntimeManifest,
   verifySkillTargetMatrix,
@@ -172,6 +177,7 @@ const REGISTRY_OPTION_KEYS = new Set([
   "randomToken",
   "rootDir",
   "secure",
+  "storePolicyBinding",
   "tenantId",
   "targetMatrixAdmissionAuthority",
 ]);
@@ -1520,6 +1526,11 @@ function normalizeRegistryOptions(options) {
     randomToken,
     rootDir,
     secure,
+    storePolicyBinding: ownData(
+      options,
+      "storePolicyBinding",
+      "candidate registry options",
+    ),
     targetMatrixAdmissionAuthority,
     tenantId,
   };
@@ -1557,15 +1568,36 @@ export function captureSkillCandidateRegistryWriterControl(registry) {
 
 export class SkillCandidateRegistry {
   #writerControl;
+  #storeBinding;
   constructor(options) {
     const {
       fsImpl,
       randomToken,
       rootDir,
       secure,
+      storePolicyBinding,
       targetMatrixAdmissionAuthority,
       tenantId,
     } = normalizeRegistryOptions(options);
+    const requestedBase = path.resolve(rootDir);
+    if (storePolicyBinding !== undefined) {
+      this.#storeBinding =
+        captureRrsiRegistryComponentBinding(storePolicyBinding);
+      const descriptor = this.#storeBinding.descriptor;
+      if (
+        new.target !== SkillCandidateRegistry ||
+        fsImpl !== fs ||
+        secure !== true ||
+        descriptor.component !== TENANT_MARKER_COMPONENT ||
+        descriptor.tenantId !== tenantId ||
+        !samePath(descriptor.baseDir, requestedBase)
+      )
+        throw registryError(
+          RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+          "candidate v2 binding or native storage options differ",
+        );
+      this.#storeBinding.recheckForOpen();
+    } else assertOutsideRrsiRegistryNamespace(requestedBase);
     this._fs = fsImpl;
     this._secure = secure;
     this._randomToken = randomToken;
@@ -1574,59 +1606,72 @@ export class SkillCandidateRegistry {
       targetMatrixAdmissionAuthority.descriptor;
     this.tenantId = tenantId;
     this.tenantKey = deriveSkillCandidateTenantKey(tenantId);
-    const requestedBase = path.resolve(rootDir);
     try {
-      const base = this._initializeDirectory(requestedBase, {
-        recursive: true,
-        harden: false,
-      });
-      this.baseDir = base.path;
-      this._assertNoLegacyBaseLayout();
-      const tenants = this._initializeDirectory(
-        path.join(this.baseDir, "tenants"),
-        { parent: base, harden: false },
-      );
-      const tenantRoot = this._initializeDirectory(
-        path.join(tenants.path, this.tenantKey),
-        { parent: tenants, harden: false },
-      );
-      this.rootDir = tenantRoot.path;
-      this._directories = deepFreeze({ base, tenantRoot, tenants });
-      this._assertDirectories();
-      this._markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
-      this.#writerControl = createSkillRegistryWriterControl({
-        rootDir: this.rootDir,
-        tenantId: this.tenantId,
-        component: TENANT_MARKER_COMPONENT,
-        fsImpl: this._fs,
-      });
-      this.#writerControl.runSync(() => {
-        // Bootstrap may create missing directories; existing-path ACL repair
-        // waits for writer exclusion and must preserve the captured identities.
-        if (this._secure) {
-          for (const [entry, parent] of [
-            [base, null],
-            [tenants, base],
-            [tenantRoot, tenants],
-          ]) {
-            this.#writerControl.assertIfWriting();
-            const hardened = this._initializeDirectory(entry.path, { parent });
-            if (
-              hardened.identity !== entry.identity ||
-              !samePath(hardened.path, entry.path)
-            )
-              throw registryError(
-                "SKILL_CANDIDATE_STORE_UNSAFE",
-                "candidate bootstrap identity changed before permission hardening",
-              );
-          }
-        }
-        this.#writerControl.assertIfWriting();
-        this._initializeTenantMarker();
+      if (this.#storeBinding) {
+        this._directories = this.#storeBinding.boundaries;
+        this.baseDir = this._directories.base.path;
+        this.rootDir = this._directories.tenantRoot.path;
+        this._markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+        this._markerIdentity = this.#storeBinding.marker.identity;
         this._assertBoundary();
-        this._assertNoMixedTenantArtifacts();
-      });
+      } else {
+        const base = this._initializeDirectory(requestedBase, {
+          recursive: true,
+          harden: false,
+        });
+        this.baseDir = base.path;
+        this.#assertUnboundNamespace();
+        this._assertNoLegacyBaseLayout();
+        const tenants = this._initializeDirectory(
+          path.join(this.baseDir, "tenants"),
+          { parent: base, harden: false },
+        );
+        const tenantRoot = this._initializeDirectory(
+          path.join(tenants.path, this.tenantKey),
+          { parent: tenants, harden: false },
+        );
+        this.rootDir = tenantRoot.path;
+        this.#assertUnboundNamespace();
+        this._directories = deepFreeze({ base, tenantRoot, tenants });
+        this._assertDirectories();
+        this._markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+        this.#writerControl = createSkillRegistryWriterControl({
+          rootDir: this.rootDir,
+          tenantId: this.tenantId,
+          component: TENANT_MARKER_COMPONENT,
+          fsImpl: this._fs,
+        });
+        this.#writerControl.runSync(() => {
+          // Bootstrap may create missing directories; existing-path ACL repair
+          // waits for writer exclusion and must preserve the captured identities.
+          if (this._secure) {
+            for (const [entry, parent] of [
+              [base, null],
+              [tenants, base],
+              [tenantRoot, tenants],
+            ]) {
+              this.#writerControl.assertIfWriting();
+              const hardened = this._initializeDirectory(entry.path, {
+                parent,
+              });
+              if (
+                hardened.identity !== entry.identity ||
+                !samePath(hardened.path, entry.path)
+              )
+                throw registryError(
+                  "SKILL_CANDIDATE_STORE_UNSAFE",
+                  "candidate bootstrap identity changed before permission hardening",
+                );
+            }
+          }
+          this.#writerControl.assertIfWriting();
+          this._initializeTenantMarker();
+          this._assertBoundary();
+          this._assertNoMixedTenantArtifacts();
+        });
+      }
     } catch (error) {
+      if (error?.code === RRSI_REGISTRY_STORE_POLICY_HOLD_CODE) throw error;
       if (error instanceof SkillCandidateRegistryError) throw error;
       throw registryError(
         "SKILL_CANDIDATE_STORE_UNSAFE",
@@ -1639,6 +1684,11 @@ export class SkillCandidateRegistry {
       this,
       Object.freeze({
         tenantId,
+        storePolicyDescriptor: this.#storeBinding?.descriptor ?? null,
+        matchesStorePolicyBinding: Object.freeze(
+          (value) =>
+            value === storePolicyBinding && this.#storeBinding !== undefined,
+        ),
         read: Object.freeze((value) => this.#read(value)),
         readInventory: Object.freeze(() => this.#readInventory()),
       }),
@@ -1650,6 +1700,15 @@ export class SkillCandidateRegistry {
     requestedPath,
     { parent = null, recursive = false, harden = true } = {},
   ) {
+    if (this.#storeBinding) {
+      this.#storeBinding.recheck();
+      const entry = Object.values(this.#storeBinding.boundaries).find((value) =>
+        samePath(value.path, path.resolve(requestedPath)),
+      );
+      if (!entry) this.#storeBinding.assertMutationAllowed();
+      return entry;
+    }
+    const namespaceTarget = assertOutsideRrsiRegistryNamespace(requestedPath);
     const before = lstatOrNull(this._fs, requestedPath);
     if (before && (!before.isDirectory() || before.isSymbolicLink())) {
       throw registryError(
@@ -1658,6 +1717,16 @@ export class SkillCandidateRegistry {
       );
     }
     if (!before) {
+      if (
+        !samePath(
+          assertOutsideRrsiRegistryNamespace(requestedPath),
+          namespaceTarget,
+        )
+      )
+        throw registryError(
+          RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+          "candidate initialization ancestor changed",
+        );
       this._fs.mkdirSync(requestedPath, { recursive, mode: 0o700 });
     }
     let stat = this._fs.lstatSync(requestedPath);
@@ -1669,6 +1738,12 @@ export class SkillCandidateRegistry {
     }
     const capturedIdentity = entryIdentity(stat);
     const canonical = realpath(this._fs, requestedPath);
+    assertOutsideRrsiRegistryNamespace(canonical);
+    if (!samePath(canonical, namespaceTarget))
+      throw registryError(
+        RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+        "candidate canonical initialization target changed",
+      );
     const canonicalStat = this._fs.lstatSync(canonical);
     const canonicalParent = realpath(this._fs, path.dirname(requestedPath));
     const expectedCanonical = path.join(
@@ -1708,6 +1783,18 @@ export class SkillCandidateRegistry {
       }
     }
     return deepFreeze({ path: canonical, identity: capturedIdentity });
+  }
+
+  #assertUnboundNamespace() {
+    if (this.#storeBinding) return;
+    for (const directory of [this.baseDir, this.rootDir])
+      if (directory !== undefined)
+        assertOutsideRrsiRegistryNamespace(directory);
+  }
+
+  #assertMutationNamespace() {
+    this.#storeBinding?.assertMutationAllowed();
+    this.#assertUnboundNamespace();
   }
 
   _assertNoLegacyBaseLayout() {
@@ -1836,6 +1923,8 @@ export class SkillCandidateRegistry {
   }
 
   _initializeTenantMarker() {
+    if (this.#storeBinding) return this._readAndVerifyTenantMarker();
+    this.#assertUnboundNamespace();
     return withEvolutionFileIdentity(
       this._fs,
       this._markerPath,
@@ -1845,6 +1934,7 @@ export class SkillCandidateRegistry {
   }
 
   #initializeTenantMarkerWithIdentity(sameStable) {
+    this.#assertMutationNamespace();
     const existing = lstatOrNull(this._fs, this._markerPath);
     if (existing) {
       const verified = this._readAndVerifyTenantMarker();
@@ -2022,6 +2112,10 @@ export class SkillCandidateRegistry {
   }
 
   _readAndVerifyTenantMarker() {
+    if (this.#storeBinding) {
+      this.#storeBinding.recheck();
+      return this.#storeBinding.marker;
+    }
     let stored;
     try {
       stored = this._readBoundedRegularFile(
@@ -2056,6 +2150,11 @@ export class SkillCandidateRegistry {
   }
 
   _assertBoundary() {
+    if (this.#storeBinding) {
+      this.#storeBinding.recheck();
+      return;
+    }
+    this.#assertUnboundNamespace();
     this.#writerControl?.assertIfWriting();
     this._assertDirectories();
     const verified = this._readAndVerifyTenantMarker();
@@ -2222,6 +2321,7 @@ export class SkillCandidateRegistry {
   }
 
   migrateLegacy(legacyCandidate, executionArtifacts, migrationAuthority) {
+    this.#assertMutationNamespace();
     if (arguments.length !== 3) {
       throw migrationRequired(
         "legacy migration requires candidate, execution artifacts, and a durable audit authority",
@@ -2237,6 +2337,7 @@ export class SkillCandidateRegistry {
   }
 
   #migrateLegacy(legacyCandidate, executionArtifacts, migrationAuthority) {
+    this.#assertMutationNamespace();
     const legacy = verifyLegacySkillCandidateDraft(legacyCandidate);
     assertDataRecord(
       executionArtifacts,
@@ -2460,6 +2561,7 @@ export class SkillCandidateRegistry {
     resolveExecutionArtifacts,
     migrationAuthority,
   ) {
+    this.#assertMutationNamespace();
     if (
       arguments.length !== 3 ||
       typeof resolveExecutionArtifacts !== "function"
@@ -2482,6 +2584,7 @@ export class SkillCandidateRegistry {
     resolveExecutionArtifacts,
     migrationAuthority,
   ) {
+    this.#assertMutationNamespace();
     assertDataRecord(
       migrationAuthority,
       MIGRATION_AUTHORITY_KEYS,
@@ -2725,6 +2828,7 @@ export class SkillCandidateRegistry {
   }
 
   create(input) {
+    this.#assertMutationNamespace();
     if (arguments.length !== 1) {
       throw registryError(
         "SKILL_CANDIDATE_INVALID",
@@ -2735,6 +2839,7 @@ export class SkillCandidateRegistry {
   }
 
   #create(input) {
+    this.#assertMutationNamespace();
     return withEvolutionFileIdentity(
       this._fs,
       this._markerPath,
@@ -2743,6 +2848,7 @@ export class SkillCandidateRegistry {
   }
 
   #createWithIdentity(input, sameStable) {
+    this.#assertMutationNamespace();
     this._assertNoMixedTenantArtifacts();
     const verificationContext = this._resolveAdmissionContext(input);
     const candidate = buildSkillCandidateDraft(input, verificationContext);
@@ -2955,11 +3061,13 @@ export class SkillCandidateRegistry {
 
   #read(candidateId) {
     const normalizedId = normalizeCandidateId(candidateId);
+    this.#storeBinding?.recheck();
     const filePath = this._candidatePath(normalizedId);
     let bytes;
     try {
       bytes = this._readBytes(filePath);
     } catch (error) {
+      if (error?.code === RRSI_REGISTRY_STORE_POLICY_HOLD_CODE) throw error;
       if (error instanceof SkillCandidateRegistryError) throw error;
       if (error?.code === "ENOENT") {
         throw registryError(

@@ -208,7 +208,7 @@ describe("authenticated fresh Registry provisioning before Registry construction
       );
     }, 60_000);
 
-    it("verifies native private permissions and rejects the unchanged v1 constructors", () => {
+    it("verifies native private permissions and rejects current unbound constructors before initialization", () => {
       const { store, policy, request } = shared;
       expect(
         inspectPrivatePaths(
@@ -220,8 +220,8 @@ describe("authenticated fresh Registry provisioning before Registry construction
           { failIfUnavailable: true },
         ).every((entry) => entry.ok),
       ).toBe(true);
-      // These are the actual unchanged v1-marker constructors, not a fabricated
-      // legacy-drain receipt or a claim of running every historical binary.
+      // Current constructors reject the reserved namespace before a v1
+      // bootstrap. This does not claim to execute historical binary writers.
       expect(
         () =>
           new SkillCandidateRegistry({
@@ -231,7 +231,9 @@ describe("authenticated fresh Registry provisioning before Registry construction
             targetMatrixAdmissionAuthority: admission(),
             fsImpl: store.fsImpl,
           }),
-      ).toThrow(/marker/);
+      ).toThrow(
+        expect.objectContaining({ code: RRSI_REGISTRY_STORE_POLICY_HOLD_CODE }),
+      );
       const never = () => {
         throw new Error("transaction port must never be reached");
       };
@@ -248,9 +250,10 @@ describe("authenticated fresh Registry provisioning before Registry construction
               query: never,
             },
           }),
-      ).toThrow(/marker/);
-      // The participating v1 constructor lock is a sibling in tenants, and does
-      // not leave a file behind after rejecting the marker.
+      ).toThrow(
+        expect.objectContaining({ code: RRSI_REGISTRY_STORE_POLICY_HOLD_CODE }),
+      );
+      // Rejection precedes even the participating writer's sibling lock.
       expect(policy.read(request.operationId)).toEqual(result);
     }, 60_000);
 

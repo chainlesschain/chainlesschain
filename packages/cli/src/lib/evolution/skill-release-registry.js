@@ -8,6 +8,11 @@ import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { createSkillRegistryWriterControl } from "./skill-registry-writer-control.js";
 import {
+  captureRrsiRegistryComponentBinding,
+  assertOutsideRrsiRegistryNamespace,
+  RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+} from "./rrsi-registry-store-policy.js";
+import {
   SKILL_CANDIDATE_MIGRATION_RECEIPT_SCHEMA,
   SKILL_CANDIDATE_MIGRATION_RECORD_SCHEMA,
   verifySkillCandidateDraft,
@@ -2507,6 +2512,7 @@ const REGISTRY_OPTION_KEYS = new Set([
   "randomToken",
   "rootDir",
   "secure",
+  "storePolicyBinding",
   "tenantId",
   "transactionLedger",
 ]);
@@ -2694,6 +2700,7 @@ function normalizeRegistryOptions(options) {
       data.rootDir ??
       path.join(getHomeDir(), "evolution", "registry", "releases"),
     secure: data.secure ?? true,
+    storePolicyBinding: data.storePolicyBinding,
     tenantId: tenantId(data.tenantId),
     transactionLedger: data.transactionLedger,
   };
@@ -2732,6 +2739,8 @@ export class SkillReleaseRegistry {
 
   #pins = new WeakMap();
   #writerControl;
+  #storeBinding;
+  #runtimeMode = "initialized";
 
   constructor(options) {
     const {
@@ -2742,9 +2751,32 @@ export class SkillReleaseRegistry {
       randomToken,
       rootDir,
       secure,
+      storePolicyBinding,
       tenantId: ownerTenantId,
       transactionLedger,
     } = normalizeRegistryOptions(options);
+    const requestedBase = path.resolve(rootDir);
+    if (storePolicyBinding !== undefined) {
+      this.#storeBinding =
+        captureRrsiRegistryComponentBinding(storePolicyBinding);
+      const descriptor = this.#storeBinding.descriptor;
+      if (
+        new.target !== SkillReleaseRegistry ||
+        fsImpl !== fs ||
+        secure !== true ||
+        descriptor.component !== TENANT_MARKER_COMPONENT ||
+        descriptor.tenantId !== ownerTenantId ||
+        !samePath(descriptor.baseDir, requestedBase)
+      )
+        throw failure(
+          RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+          "release v2 binding or native storage options differ",
+        );
+      // Authenticate the original port object before reading any caller method.
+      this.#storeBinding.assertTransactionLedger(transactionLedger);
+      this.#storeBinding.recheckForOpen();
+      this.#runtimeMode = "uninitialized";
+    } else assertOutsideRrsiRegistryNamespace(requestedBase);
     if (
       !transactionLedger ||
       typeof transactionLedger.prepare !== "function" ||
@@ -2792,74 +2824,89 @@ export class SkillReleaseRegistry {
 
     this.tenantId = ownerTenantId;
     this.tenantKey = deriveSkillReleaseTenantKey(ownerTenantId);
-    const requestedBase = path.resolve(rootDir);
     try {
-      const base = this.#initializeDirectory(requestedBase, {
-        recursive: true,
-        harden: false,
-      });
-      this.baseDir = base.path;
-      this.#assertNoLegacyBaseLayout();
-      const tenants = this.#initializeDirectory(
-        path.join(this.baseDir, "tenants"),
-        { parent: base, harden: false },
-      );
-      const tenantRoot = this.#initializeDirectory(
-        path.join(tenants.path, this.tenantKey),
-        { parent: tenants, harden: false },
-      );
-      this.rootDir = tenantRoot.path;
-      this.#boundaries = deepFreeze({ base, tenantRoot, tenants });
-      this.#rootIdentity = tenantRoot.identity;
-      this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
-      this.#writerControl = createSkillRegistryWriterControl({
-        rootDir: this.rootDir,
-        tenantId: this.tenantId,
-        component: TENANT_MARKER_COMPONENT,
-        fsImpl: this.#fs,
-      });
-      this.#writerControl.runSync(() => {
-        if (this.#secure) {
-          for (const [entry, parent] of [
-            [base, null],
-            [tenants, base],
-            [tenantRoot, tenants],
-          ]) {
-            this.#writerControl.assertIfWriting();
-            const hardened = this.#initializeDirectory(entry.path, { parent });
-            if (
-              hardened.identity !== entry.identity ||
-              !samePath(hardened.path, entry.path)
-            )
-              throw failure(
-                "SKILL_RELEASE_STORE_UNSAFE",
-                "release bootstrap identity changed before permission hardening",
-              );
-          }
-        }
-        this.#writerControl.assertIfWriting();
-        this.#initializeTenantMarker();
-        this.#directories = {};
-        for (const name of [
-          "artifacts",
-          "active",
-          "journals",
-          "locks",
-          "state-migrations",
-          "staging",
-        ]) {
-          const directory = path.join(this.rootDir, name);
-          this.#directories[name] = this.#initializeDirectory(directory, {
-            parent: tenantRoot,
-          });
-        }
-        this.#directories = deepFreeze(this.#directories);
+      if (this.#storeBinding) {
+        this.#boundaries = this.#storeBinding.boundaries;
+        this.baseDir = this.#boundaries.base.path;
+        this.rootDir = this.#boundaries.tenantRoot.path;
+        this.#rootIdentity = this.#boundaries.tenantRoot.identity;
+        this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+        this.#markerIdentity = this.#storeBinding.marker.identity;
+        this.#directories = deepFreeze({});
         this.#assertBoundary();
-        this.#assertNoLegacyTenantSchemas();
-        this.#recoverAll();
-        this.#cleanupDebris();
-      });
+      } else {
+        const base = this.#initializeDirectory(requestedBase, {
+          recursive: true,
+          harden: false,
+        });
+        this.baseDir = base.path;
+        this.#assertUnboundNamespace();
+        this.#assertNoLegacyBaseLayout();
+        const tenants = this.#initializeDirectory(
+          path.join(this.baseDir, "tenants"),
+          { parent: base, harden: false },
+        );
+        const tenantRoot = this.#initializeDirectory(
+          path.join(tenants.path, this.tenantKey),
+          { parent: tenants, harden: false },
+        );
+        this.rootDir = tenantRoot.path;
+        this.#assertUnboundNamespace();
+        this.#boundaries = deepFreeze({ base, tenantRoot, tenants });
+        this.#rootIdentity = tenantRoot.identity;
+        this.#markerPath = path.join(this.rootDir, TENANT_MARKER_FILE);
+        this.#writerControl = createSkillRegistryWriterControl({
+          rootDir: this.rootDir,
+          tenantId: this.tenantId,
+          component: TENANT_MARKER_COMPONENT,
+          fsImpl: this.#fs,
+        });
+        this.#writerControl.runSync(() => {
+          if (this.#secure) {
+            for (const [entry, parent] of [
+              [base, null],
+              [tenants, base],
+              [tenantRoot, tenants],
+            ]) {
+              this.#writerControl.assertIfWriting();
+              const hardened = this.#initializeDirectory(entry.path, {
+                parent,
+              });
+              if (
+                hardened.identity !== entry.identity ||
+                !samePath(hardened.path, entry.path)
+              )
+                throw failure(
+                  "SKILL_RELEASE_STORE_UNSAFE",
+                  "release bootstrap identity changed before permission hardening",
+                );
+            }
+          }
+          this.#writerControl.assertIfWriting();
+          this.#initializeTenantMarker();
+          this.#directories = {};
+          for (const name of [
+            "artifacts",
+            "active",
+            "journals",
+            "locks",
+            "state-migrations",
+            "staging",
+          ]) {
+            const directory = path.join(this.rootDir, name);
+            this.#directories[name] = this.#initializeDirectory(directory, {
+              parent: tenantRoot,
+            });
+          }
+          this.#directories = deepFreeze(this.#directories);
+          this.#assertBoundary();
+          this.#assertNoLegacyTenantSchemas();
+          this.#recoverAll();
+          this.#cleanupDebris();
+        });
+      }
     } catch (cause) {
+      if (cause?.code === RRSI_REGISTRY_STORE_POLICY_HOLD_CODE) throw cause;
       if (cause instanceof SkillReleaseRegistryError) throw cause;
       throw failure(
         "SKILL_RELEASE_STORE_UNSAFE",
@@ -2871,6 +2918,9 @@ export class SkillReleaseRegistry {
       this,
       Object.freeze({
         tenantId: ownerTenantId,
+        storePolicyDescriptor: this.#storeBinding?.descriptor ?? null,
+        matchesStorePolicyBinding: (value) =>
+          value === storePolicyBinding && this.#storeBinding !== undefined,
         // Private reads never dispatch through a genuine subclass or mutable
         // function.bind property. Constructor recovery uses these paths too.
         readActive: (name) => this.#readActive(name),
@@ -2888,6 +2938,8 @@ export class SkillReleaseRegistry {
     requestedPath,
     { parent = null, recursive = false, harden = true } = {},
   ) {
+    this.#assertMutationNamespace();
+    const namespaceTarget = assertOutsideRrsiRegistryNamespace(requestedPath);
     const before = lstatOrNull(this.#fs, requestedPath);
     if (before && (!before.isDirectory() || before.isSymbolicLink())) {
       throw failure(
@@ -2896,6 +2948,16 @@ export class SkillReleaseRegistry {
       );
     }
     if (!before) {
+      if (
+        !samePath(
+          assertOutsideRrsiRegistryNamespace(requestedPath),
+          namespaceTarget,
+        )
+      )
+        throw failure(
+          RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+          "release initialization ancestor changed",
+        );
       this.#fs.mkdirSync(requestedPath, { recursive, mode: 0o700 });
     }
     let stat = this.#fs.lstatSync(requestedPath);
@@ -2907,6 +2969,12 @@ export class SkillReleaseRegistry {
     }
     const capturedIdentity = identity(stat);
     const canonical = realpath(this.#fs, requestedPath);
+    assertOutsideRrsiRegistryNamespace(canonical);
+    if (!samePath(canonical, namespaceTarget))
+      throw failure(
+        RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+        "release canonical initialization target changed",
+      );
     const canonicalStat = this.#fs.lstatSync(canonical);
     const canonicalParent = realpath(this.#fs, path.dirname(requestedPath));
     const expectedCanonical = path.join(
@@ -2948,6 +3016,18 @@ export class SkillReleaseRegistry {
     return deepFreeze({ path: canonical, identity: capturedIdentity });
   }
 
+  #assertUnboundNamespace() {
+    if (this.#storeBinding) return;
+    for (const directory of [this.baseDir, this.rootDir])
+      if (directory !== undefined)
+        assertOutsideRrsiRegistryNamespace(directory);
+  }
+
+  #assertMutationNamespace() {
+    this.#storeBinding?.assertMutationAllowed();
+    this.#assertUnboundNamespace();
+  }
+
   #assertNoLegacyBaseLayout() {
     for (const entry of this.#fs.readdirSync(this.baseDir)) {
       if (entry !== "tenants") {
@@ -2960,6 +3040,7 @@ export class SkillReleaseRegistry {
   }
 
   #initializeTenantMarker() {
+    this.#assertMutationNamespace();
     return withEvolutionFileIdentity(
       this.#fs,
       this.#markerPath,
@@ -2969,6 +3050,7 @@ export class SkillReleaseRegistry {
   }
 
   #initializeTenantMarkerWithIdentity(sameStable) {
+    this.#assertMutationNamespace();
     const existing = lstatOrNull(this.#fs, this.#markerPath);
     if (existing) {
       const verified = this.#readAndVerifyTenantMarker();
@@ -3072,6 +3154,10 @@ export class SkillReleaseRegistry {
   }
 
   #readAndVerifyTenantMarker() {
+    if (this.#storeBinding) {
+      this.#storeBinding.recheck();
+      return this.#storeBinding.marker;
+    }
     try {
       const stored = readBoundedSingleLinkFile(
         this.#fs,
@@ -3123,6 +3209,11 @@ export class SkillReleaseRegistry {
   }
 
   #assertBoundary() {
+    if (this.#storeBinding) {
+      this.#storeBinding.recheck();
+      return;
+    }
+    this.#assertUnboundNamespace();
     this.#writerControl?.assertIfWriting();
     for (const entry of [
       ...Object.values(this.#boundaries),
@@ -3324,6 +3415,7 @@ export class SkillReleaseRegistry {
   }
 
   #writeTemporary(fileName, value) {
+    this.#assertMutationNamespace();
     if (!TEMP_PATTERN.test(fileName)) {
       throw failure("SKILL_RELEASE_STORE_UNSAFE", "temporary name is invalid");
     }
@@ -3334,6 +3426,7 @@ export class SkillReleaseRegistry {
   }
 
   #writeTemporaryWithIdentity(filePath, value, sameStable) {
+    this.#assertMutationNamespace();
     const bytes = serialize(value);
     let descriptor = null;
     let writtenIdentity = null;
@@ -3383,6 +3476,7 @@ export class SkillReleaseRegistry {
   }
 
   #atomicWrite(area, destination, value) {
+    this.#assertMutationNamespace();
     const expectedBytes = serialize(value);
     const name = `.write-${process.pid}-${this.#token()}.tmp`;
     const temporary = this.#writeTemporary(name, value);
@@ -3428,6 +3522,7 @@ export class SkillReleaseRegistry {
   }
 
   #unlink(filePath, directory) {
+    this.#assertMutationNamespace();
     try {
       this.#fs.unlinkSync(filePath);
       fsyncDirectory(this.#fs, directory);
@@ -3437,6 +3532,7 @@ export class SkillReleaseRegistry {
   }
 
   #publishRelease(release) {
+    this.#assertMutationNamespace();
     const destination = this.#releasePath(release.releaseDigest);
     const name = `.release-${process.pid}-${this.#token()}.tmp`;
     const temporary = this.#writeTemporary(name, release);
@@ -3499,12 +3595,14 @@ export class SkillReleaseRegistry {
   }
 
   #createRelease(input) {
+    this.#assertMutationNamespace();
     const release = buildSkillRelease(input);
     const created = this.#publishRelease(release);
     return deepFreeze({ release, created });
   }
 
   migrateLegacyRelease(input, migrationAuthority) {
+    this.#assertMutationNamespace();
     if (arguments.length !== 2) {
       throw migrationRequired(
         "legacy release migration requires input and a durable audit authority",
@@ -3516,6 +3614,7 @@ export class SkillReleaseRegistry {
   }
 
   #migrateLegacyRelease(input, migrationAuthority) {
+    this.#assertMutationNamespace();
     assertExactKeys(
       migrationAuthority,
       RELEASE_MIGRATION_AUTHORITY_KEYS,
@@ -3652,6 +3751,7 @@ export class SkillReleaseRegistry {
   }
 
   migrateLegacyState(planInput, migrationAuthority) {
+    this.#assertMutationNamespace();
     if (arguments.length !== 2 || this.#ledgerMigrate === null) {
       throw migrationRequired(
         "legacy state migration requires a plan, durable authority, and authenticated ledger migration port",
@@ -3663,6 +3763,7 @@ export class SkillReleaseRegistry {
   }
 
   #migrateLegacyState(planInput, migrationAuthority) {
+    this.#assertMutationNamespace();
     const plan = verifySkillReleaseStateMigrationPlan(planInput);
     if (plan.tenantId !== this.tenantId) {
       throw migrationRequired("state migration plan belongs to another tenant");
@@ -3871,6 +3972,10 @@ export class SkillReleaseRegistry {
 
   #readRelease(releaseDigest) {
     const expected = digest(releaseDigest, "releaseDigest");
+    if (this.#runtimeMode === "uninitialized") {
+      this.#assertBoundary();
+      throw failure("SKILL_RELEASE_NOT_FOUND", "release was not found");
+    }
     let value;
     try {
       value = this.#readJson(
@@ -3906,6 +4011,10 @@ export class SkillReleaseRegistry {
 
   #readStateRaw(name) {
     const normalizedName = skillName(name);
+    if (this.#runtimeMode === "uninitialized") {
+      this.#assertBoundary();
+      return initialState(normalizedName, this.tenantId);
+    }
     try {
       const state = verifySkillReleaseState(
         this.#readJson(
@@ -4081,6 +4190,8 @@ export class SkillReleaseRegistry {
 
   #readInventory() {
     this.#assertBoundary();
+    if (this.#runtimeMode === "uninitialized")
+      return deepFreeze({ active: [], releases: [] });
     const releasePattern = /^[a-f0-9]{64}\.json$/u;
     const statePattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.json$/u;
     const beforeReleases = this.#readInventoryNames(
@@ -4309,6 +4420,7 @@ export class SkillReleaseRegistry {
   }
 
   #createLock(lockPath, owner) {
+    this.#assertMutationNamespace();
     this.#fs.mkdirSync(lockPath, { mode: 0o700 });
     let descriptor = null;
     try {
@@ -4338,6 +4450,7 @@ export class SkillReleaseRegistry {
   }
 
   #removeLock(lockPath, expectedToken = null) {
+    this.#assertMutationNamespace();
     let owner;
     try {
       owner = this.#readOwner(lockPath);
@@ -4399,6 +4512,7 @@ export class SkillReleaseRegistry {
   }
 
   #renewLease(lease) {
+    this.#assertMutationNamespace();
     const current = this.#readOwner(lease.lockPath);
     if (
       current.token !== lease.token ||
@@ -4437,6 +4551,7 @@ export class SkillReleaseRegistry {
   }
 
   #acquireLease(name, transactionId, expectedRevision, expectedParentDigest) {
+    this.#assertMutationNamespace();
     const journalPath = this.#journalPath(name);
     if (this.#exists(journalPath)) {
       this.#withRecoveryLock(() => this.#recoverSkill(name));
@@ -4904,6 +5019,7 @@ export class SkillReleaseRegistry {
   }
 
   #prepare(intent, targetRelease) {
+    this.#assertMutationNamespace();
     let projection;
     try {
       projection = this.#ledgerPrepare(intent, targetRelease);
@@ -4935,6 +5051,7 @@ export class SkillReleaseRegistry {
   }
 
   #finalize(journal, prepareReceipt) {
+    this.#assertMutationNamespace();
     const request = deepFreeze({
       authorityReceiptDigest: journal.intent.authorityReceiptDigest,
       expectedPrepareReceiptDigest: prepareReceipt.receiptDigest,
@@ -4981,6 +5098,7 @@ export class SkillReleaseRegistry {
   }
 
   #writePointer(state, stagedFile) {
+    this.#assertMutationNamespace();
     const stagedPath = this.#path("staging", stagedFile);
     if (!this.#exists(stagedPath)) this.#writeTemporary(stagedFile, state);
     const expectedBytes = serialize(state);
@@ -5190,6 +5308,7 @@ export class SkillReleaseRegistry {
   }
 
   #recoverJournal(journal) {
+    this.#assertMutationNamespace();
     const expected = {
       authorityReceiptDigest: journal.intent.authorityReceiptDigest,
       intentDigest: journal.intent.intentDigest,
@@ -5231,6 +5350,7 @@ export class SkillReleaseRegistry {
   }
 
   #recoverSkill(name, { force = false } = {}) {
+    this.#assertMutationNamespace();
     const journalPath = this.#journalPath(name);
     const lockPath = this.#leasePath(name);
     if (!this.#exists(journalPath)) {
@@ -5273,6 +5393,7 @@ export class SkillReleaseRegistry {
   }
 
   #recoverStateMigration(journal, { force = false } = {}) {
+    this.#assertMutationNamespace();
     const lockPath = this.#leasePath(journal.skillName);
     if (this.#exists(lockPath)) {
       const owner = this.#readOwner(lockPath);
@@ -5328,6 +5449,7 @@ export class SkillReleaseRegistry {
   }
 
   #recoverAll() {
+    this.#assertMutationNamespace();
     this.#withRecoveryLock(() => {
       for (const name of this.#fs.readdirSync(
         this.#directories["state-migrations"].path,
@@ -5374,6 +5496,7 @@ export class SkillReleaseRegistry {
   }
 
   #cleanupDebris() {
+    this.#assertMutationNamespace();
     const referenced = new Set();
     for (const name of this.#fs.readdirSync(this.#directories.journals.path)) {
       if (name.endsWith(".json")) {
@@ -5562,12 +5685,14 @@ export class SkillReleaseRegistry {
   }
 
   async applyTransition(capability) {
+    this.#assertMutationNamespace();
     return this.#writerControl.runAsync(() =>
       this.#applyTransition(capability),
     );
   }
 
   async #applyTransition(capability) {
+    this.#assertMutationNamespace();
     const payload = this.#validateTransitionPayload(
       consumeRegistryTransitionCapability(capability, this),
     );
