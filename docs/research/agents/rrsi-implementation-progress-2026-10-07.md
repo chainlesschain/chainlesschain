@@ -555,3 +555,25 @@ v2 verify／read 会采用既有维护锁并可能恢复已获授权的迁移或
 开发阶段两份诊断 reporter 保留：首版单元把 EOF 后 rename 的错误预期写成最后路径检查，真实 fd ctime 已先改变而正确提前拒绝；随后将注入移到最终 fd stat 采样后，精确验证最后路径分支。初版集成误写 nested observed HOLD 名称，改为导入真实常量。Astra 复核后还固定纳秒故障模型并增加 uid／gid、构造最终复查及 fd 长度边界反例；这些早期通过项不重复计入最终 179 项。生产源码从首版诊断运行后未再改，未放宽既有 ACL helper 或回归预算。
 
 最终 27 个相关源码／测试在 Windows 与 WSL 启动前保留同一摘要检查点，完成后逐一核对未变；逐文件／逐项 reporter、两份诊断失败记录、WSL 场景与模型范围见 [可信 index 本地控制验证记录](./evidence/rrsi-artifact-index-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 和 Astra 收尾复核通过；新集成准备阶段及历史行为各 60 秒。本批仍未认证完整产物清单／v2／retention 图、独立卷／安装根、受保护 pin／高水位、producer、alias 或发布准入；真实费用／模型实验和生产晋级未执行，完整 RRSI 继续实施。
+
+## 31 默认三阶段产物字节的有界回读
+
+[bounded-artifact-file-read.js](../../../packages/cli/src/lib/bounded-artifact-file-read.js) 新增只读的单文件窗口检查，要求规范绝对物理路径、regular 单链接和实际 BigInt dev／ino／mode／uid／gid／nlink／size／mtimeNs／ctimeNs。path→fd 继续使用原第一个完整比较器及 Windows 窄 device 兼容，额外比较 uid／gid 和原 birthtime 身份规则；同 API 逐字段精确复查。实际 path 与 fd size 均须等于 expectedSize 且不超过 maximumBytes，检查后才分配 Buffer／转 Number，以最多 64 KiB 读取已检查长度并探测一个 EOF 字节，最后复查 descriptor、pathname 与 realpath，失败仍关闭本次 fd。叶节点使用 NONBLOCK／NOFOLLOW，私有目录 fs 适配只加固共享 identity helper 的目录打开。birthtime 保持原 Number／WSL1 规则，不能称全部时间戳都是纳秒身份。
+
+[artifact-store.js](../../../packages/cli/src/lib/artifact-store.js) 的 verifyIntegrity 新增严格可选的两字段 bounds。显式 undefined、缺字段、多字段、getter、Proxy、伪装普通对象的 callable、非法长度、超过普通交付物上限或额外 context 在 id lookup 前拒绝，不静默退回整文件读取。有效模式使用新 reader，仍返回原四字段完整性结果；reader 失败折叠为 artifact-bytes-unavailable。无 bounds 的原普通交付物验证保留整文件读取语义，新正对照实际验证 2 MiB 交付物，不声称实测了完整 100 MiB 上限。即使有 bounds，传入 id 的 get／list 仍可读取整个索引，新增控制只约束产物字节。
+
+[evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js) 的前 verifyIntegrity、中间读取、后 verifyIntegrity 共用新 reader；两个 captured hook 接收同一个冻结的 expectedSize／maximumBytes，大小来自既有严格条目校验，最大值仍为 1 MiB。中间回读独立复算原 signed recordDigest 并保留 canonical record 检查；原 root／files 复验继续执行，旧 Number 文件变更比较器和三处整文件产物读取已从默认路径移除。base 前后失败仍折叠为 ArtifactStore integrity verification failed，中间 reader 错误才保留具体 cause，不把三个阶段的错误链描述为相同。
+
+新正常用例回读真实签名产物，分别统计产物和 index fd：恰有三次产物打开，实际返回字节为 3×entry.size，三个 EOF probe 各返回零，未调用整文件产物读取。每次最多读取 expectedSize＋1 个实际字节；partial read 重试可能重复请求剩余区间，不能把请求长度之和当作实际读取字节。前／中／后三阶段分别实际扩文件到 expectedSize＋1 与 1 MiB＋1，失败阶段在内容读取前拒绝并关闭 fd。实际 RRSI retained chunk 扩大后 history HOLD，原索引字节保留，恢复原 chunk 字节后再核对原 journal head 和目录摘要。
+
+独立 reader 反例覆盖九字段 Number 回退、Number 投影碰撞的不同完整 inode、固定大整数的 mtimeNs／ctimeNs 读后变化、open 时 uid／gid 差异、读后权限／owner 漂移，以及真实 open／最终 pathname 交换、hardlink、junction／symlink 别名、增长、截断、partial read 和 I/O 异常关闭。精度 stat 注入只发生在真实产物 path／handle 上，不证明原生 NTFS 同投影替换。旧 DescriptorOnlyStore 回归只增加 bounds 参数转发，真实 index 故障、fired 检查与精确拒绝保持；新专用用例也证明合作 hook 的实际 index 修改仍可被回读拒绝。任意 override 若忽略参数或自行执行 I/O，仍不受本 reader 的读取上界约束。
+
+每次读取只认证当次稳定窗口的字节。专用同字节新 inode 正对照仍能在下一次独立读取通过原签名摘要，不能称已建立 artifact 生命周期 pin、持久产物清单、三次原子快照或任意 ABA 防御。原两目录 descriptor 的 index／inventory／full graph／root／tenant／generation／grant false 标志、原摘要域、持久 observed 记录和 localCompositionDigest 均未改变。
+
+最终 Windows **16 文件一次完整运行 254 项通过、6 项条件跳过**，零失败；新增 reader 单元 **40**、三阶段单元 **10**、集成 **2**，旧回归 **202**。跳过为原 index symlink 一项、上批 index FIFO 两项及新增 artifact FIFO 三项，Windows 条件跳过原样保留。原 ArtifactStore **15** 与交付证据 **8** 也纳入最终运行，验证无参数的既有接口、实际跨进程 index owner 等行为未被改写；不重复累计初轮通过项。
+
+WSL Ubuntu 补充执行 **3/3** 个真正 FIFO 场景，分别在前校验、中间读取、后校验的实际产物 open 前 rename 原文件并 mkfifo。child 明确返回匹配阶段的错误、注入 phase 和 open 次数，确认目标确为 FIFO、原文件长度保留、raw artifact read 计数为零、已打开产物 fd 全部关闭；故障前成功阶段的实际读取量分别为 0／entry.size／2×entry.size，未被 15 秒 watchdog 杀死。前后校验按原返回语义折叠原因，中间阶段保留 bounded helper cause。复用已有临时 Linux Node v22.22.2，无新下载或 npm 安装；该定向验证不是完整 Linux Vitest、macOS、parent-directory FIFO 或发行矩阵。
+
+初轮真实 reader 与旧回归已通过，但新测试有 **12 项 fixture／调用格式错误**：两处 publishData 使用位置参数而非原对象 API，十项从不存在的 ref.artifactId 查条目而非解析原短 ref。纠正后新单元 **50/50**、集成 **2 项通过／3 项 Windows 跳过**；最终 retained chunk 又收紧为匹配原 nested artifact INTEGRITY。生产源码自首轮控制运行后未再改，诊断 reporter 保留，既有时限／ACL helper 预算与行为断言未放宽。
+
+最终 35 个源码／测试有 Windows 与 WSL 启动前的同一摘要检查点，完成后逐一核对未变；完整逐项结果、诊断失败、真实 FIFO 与合成模型边界见 [产物字节本地控制验证记录](./evidence/rrsi-artifact-bytes-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 只读复核通过。原 list／get、source publish、无 bounds verify 与任意 override 的 I/O 仍非全路径有界；完整 v2／retention 图、独立安装根／持久 pin／高水位、producer、alias 和发布准入尚未闭合，完整 RRSI 继续实施。
