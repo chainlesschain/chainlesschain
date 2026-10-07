@@ -9,7 +9,7 @@
       <p v-if="error" role="alert">{{ error }}</p>
       <button
         :disabled="busy"
-        @click="reload"
+        @click="reload()"
         data-testid="refresh-organization"
       >
         刷新组织状态

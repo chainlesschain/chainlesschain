@@ -182,6 +182,18 @@ module.exports = [
     },
   },
 
+  // Explicit CommonJS main-process fixtures retain Node globals and syntax.
+  {
+    files: ["src/main/**/*.cjs"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: { ...globals.node },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+
   // Preload 文件特殊配置（CJS require）
   {
     files: ["src/preload/**/*.js"],
