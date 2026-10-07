@@ -43,6 +43,38 @@ function projectGoal() {
 }
 
 describe("versioned long-lived goal contract", () => {
+  it("accepts explicitly typed organization intent while keeping creator attribution separate from scope", () => {
+    const projectRef = business.createBusinessObjectRef({
+      type: "Project",
+      id: "p1",
+      sourceKind: "desktop.organization-project-goals",
+      scope: { kind: "organization", id: "org1" },
+      version: 1,
+    });
+    const record = goal({ ownerRef: actor, projectRef });
+    expect(validateGoalRecord(record).ownerRef).toBe(actor);
+    expect(
+      reviseGoalRecord(record, { title: "Shared intent" }, later).projectRef,
+    ).toEqual(projectRef);
+    expect(() =>
+      goal({
+        ownerRef: actor,
+        projectRef: { ...projectRef, sourceKind: "desktop.project-goals" },
+      }),
+    ).toThrow("GOAL_INVALID_PROJECT_SCOPE");
+    expect(() => goal({ ownerRef: null, projectRef })).toThrow(
+      "GOAL_INVALID_PROJECT_SCOPE",
+    );
+    expect(() =>
+      goal({
+        ownerRef: actor,
+        projectRef: {
+          ...projectRef,
+          scope: { kind: "personal", id: "did:other" },
+        },
+      }),
+    ).toThrow("GOAL_INVALID_PROJECT_SCOPE");
+  });
   it("creates immutable intent with no authorization or scheduled work", () => {
     const record = goal();
     expect(record).toMatchObject({

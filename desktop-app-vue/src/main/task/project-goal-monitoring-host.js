@@ -37,7 +37,18 @@ function createProjectGoalMonitoringController({
     }),
   clock = Date.now,
   onError = () => {},
+  engineFactory = (options) => new ProjectGoalMonitoringEngine(options),
+  storageDirectory = "goal-monitoring",
+  autoStart = true,
 } = {}) {
+  if (
+    typeof engineFactory !== "function" ||
+    typeof autoStart !== "boolean" ||
+    !["goal-monitoring", "organization-goal-monitoring"].includes(
+      storageDirectory,
+    )
+  )
+    fail("GOAL_MONITOR_INVALID_HOST");
   let engine = null,
     sourceDb = null,
     opening = null,
@@ -75,7 +86,7 @@ function createProjectGoalMonitoringController({
       const namespace = createHash("sha256")
         .update(realpathSync(native.name))
         .digest("hex");
-      const root = join(userData, "goal-monitoring");
+      const root = join(userData, storageDirectory);
       const file = join(root, namespace, "scheduler.sqlite");
       const store = openSchedulerStore({
         file,
@@ -97,7 +108,7 @@ function createProjectGoalMonitoringController({
       });
       try {
         const captured = native;
-        engine = new ProjectGoalMonitoringEngine({
+        engine = engineFactory({
           db: native,
           store,
           clock,
@@ -112,11 +123,12 @@ function createProjectGoalMonitoringController({
           },
         });
         sourceDb = native;
-        engine.startBackground().catch((error) => {
-          try {
-            onError(error);
-          } catch {}
-        });
+        if (autoStart)
+          engine.startBackground().catch((error) => {
+            try {
+              onError(error);
+            } catch {}
+          });
         return engine;
       } catch (error) {
         store.close();

@@ -60,9 +60,10 @@ function registerTaskIPC(database) {
   require("./task-description-ipc").registerTaskDescriptionIPC(
     resolveDatabase(database),
   );
-  require("./organization-project-ipc").registerOrganizationProjectIPC(
-    resolveDatabase(database),
-  );
+  const organizationProjectHost =
+    require("./organization-project-ipc").registerOrganizationProjectIPC(
+      resolveDatabase(database),
+    );
   const projectGoalHost = require("./project-goal-ipc").registerProjectGoalIPC(
     resolveDatabase(database),
   );
@@ -922,7 +923,17 @@ function registerTaskIPC(database) {
   });
 
   logger.info("[IPC] 团队任务管理IPC处理器注册完成 (49个handlers)");
-  return projectGoalHost;
+  return Object.freeze({
+    ...projectGoalHost,
+    async close() {
+      const results = await Promise.allSettled([
+        projectGoalHost.close(),
+        organizationProjectHost.close(),
+      ]);
+      const failure = results.find((result) => result.status === "rejected");
+      if (failure) throw failure.reason;
+    },
+  });
 }
 
 module.exports = {

@@ -18,6 +18,9 @@ const {
   OrganizationProjectRiskReviewService,
 } = require("@chainlesschain/session-core/organization-project-risk-review-service");
 const {
+  OrganizationProjectGoalService,
+} = require("@chainlesschain/session-core/organization-project-goal-service");
+const {
   OrganizationTaskDescriptionActionService,
   OrganizationTaskCreateActionService,
 } = require("@chainlesschain/session-core/organization-task-action-service");
@@ -59,6 +62,14 @@ const CHANNELS = Object.freeze({
   listRiskReviews: "organization-project:risk-reviews",
   recordRiskFeedback: "organization-project:risk-feedback",
   getRiskLineage: "organization-project:risk-lineage",
+  createGoal: "organization-project:goal-create",
+  getGoal: "organization-project:goal-read",
+  listGoals: "organization-project:goal-list",
+  reviseGoal: "organization-project:goal-revise",
+  checkGoalNow: "organization-project:goal-check",
+  getGoalStatus: "organization-project:goal-status",
+  listGoalChecks: "organization-project:goal-checks",
+  getGoalCheck: "organization-project:goal-check-read",
 });
 function fail(code) {
   const error = new Error(code);
@@ -99,6 +110,7 @@ function createOrganizationProjectHost({
   database,
   electron = null,
   clock = Date.now,
+  goalMonitoringController = null,
   ...dependencies
 } = {}) {
   const getElectron = () => electron || require("electron");
@@ -108,6 +120,11 @@ function createOrganizationProjectHost({
     electron,
     clock,
   });
+  const goalController =
+    goalMonitoringController ||
+    require("./organization-project-goal-host").createOrganizationProjectGoalController(
+      { ...dependencies, database, electron: getElectron(), clock },
+    );
   function factory(event) {
     const authority = ownerHost.createAuthority(event),
       { db, getActor } = authority;
@@ -116,6 +133,12 @@ function createOrganizationProjectHost({
       getActor,
       authority,
       now: clock,
+    });
+    const goals = new OrganizationProjectGoalService({
+      db,
+      getActor,
+      authority,
+      clock,
     });
     const approvals = new OrganizationProjectApprovalService({
       db,
@@ -218,6 +241,7 @@ function createOrganizationProjectHost({
       proposals,
       transfers,
       risks,
+      goals,
       descriptions,
       creation,
       action,
@@ -355,11 +379,21 @@ function createOrganizationProjectHost({
               });
             } catch (error) {
               if (error.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED") throw error;
-              auth = c.authority.assertAuthorizedInTransaction({
-                projectId: p.id,
-                actorDid: actor,
-                permission: "risk.read",
-              });
+              try {
+                auth = c.authority.assertAuthorizedInTransaction({
+                  projectId: p.id,
+                  actorDid: actor,
+                  permission: "risk.read",
+                });
+              } catch (riskError) {
+                if (riskError.code !== "ORG_AUTH_NOT_FOUND_OR_DENIED")
+                  throw riskError;
+                auth = c.authority.assertAuthorizedInTransaction({
+                  projectId: p.id,
+                  actorDid: actor,
+                  permission: "goal.read",
+                });
+              }
             }
             const policy = c.authority._policy(auth.scope.id).policy;
             permissions =
@@ -433,6 +467,98 @@ function createOrganizationProjectHost({
       .immediate();
   }
   return Object.freeze({
+    getGoal: (event, params) => factory(event).goals.get(params),
+    listGoals: (event, params) => factory(event).goals.list(params),
+    async createGoal(event, params) {
+      const c = factory(event),
+        prepared = c.goals.prepareCreate(params);
+      if (prepared.replayed) return c.goals.create(params);
+      if (
+        !(await c.confirm(
+          "确认创建组织目标",
+          "保存共享目标？目前支持手动风险检查，不会自动执行任务。",
+          [
+            `目标：${display(prepared.goal.objective)}`,
+            `标题：${display(prepared.goal.title)}`,
+            `项目：${display(prepared.goal.projectRef.id)}`,
+            `组织：${display(prepared.goal.projectRef.scope.id)}`,
+            `预算：${display(prepared.goal.budgetPolicy)}`,
+            `到期时间：${display(prepared.goal.expiresAt)}`,
+            `创建请求：${display(params.requestId)}`,
+            `确认摘要：${prepared.requestDigest}`,
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      return c.goals.create(params, { expectedAuthority: prepared.authority });
+    },
+    async reviseGoal(event, params) {
+      const c = factory(event),
+        prepared = c.goals.prepareRevise(params);
+      if (prepared.replayed) return c.goals.revise(params);
+      if (
+        !(await c.confirm(
+          "确认更新组织目标",
+          "按以下内容更新目标？结束跟进会保留历史，不代表目标通过验收。",
+          [
+            `修改前：${display({ title: prepared.previous.title, objective: prepared.previous.objective, status: prepared.previous.status, budgetPolicy: prepared.previous.budgetPolicy, expiresAt: prepared.previous.expiresAt })}`,
+            `修改后：${display({ title: prepared.goal.title, objective: prepared.goal.objective, status: prepared.goal.status, budgetPolicy: prepared.goal.budgetPolicy, expiresAt: prepared.goal.expiresAt })}`,
+            `目标版本：${prepared.previous.revision}`,
+            `项目/组织：${display(prepared.goal.projectRef.id)} / ${display(prepared.goal.projectRef.scope.id)}`,
+            `确认摘要：${prepared.requestDigest}`,
+          ],
+        ))
+      )
+        return { status: "cancelled" };
+      if (c.getActor() !== prepared.actorDid) fail("ORG_AUTH_IDENTITY_CHANGED");
+      return c.goals.revise(params, { expectedAuthority: prepared.authority });
+    },
+    async checkGoalNow(event, params) {
+      const value = input(params, ["id", "expectedRevision", "requestId"]),
+        c = factory(event);
+      // Authorization is checked before opening protected scheduler storage.
+      const goal = c.goals.get({ id: value.id });
+      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const result = await engine.checkNow(value, { guard: c.getActor });
+      c.getActor();
+      return result;
+    },
+    async getGoalStatus(event, params) {
+      const c = factory(event),
+        goal = c.goals.get(params);
+      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const result = engine.status(params);
+      c.getActor();
+      return result;
+    },
+    async listGoalChecks(event, params) {
+      const c = factory(event),
+        value = input(params, ["id"], ["beforeId", "limit"]),
+        goal = c.goals.get({ id: value.id });
+      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const result = engine.history(value);
+      c.getActor();
+      return result;
+    },
+    async getGoalCheck(event, params) {
+      const c = factory(event),
+        value = input(params, ["id", "occurrenceId"]),
+        goal = c.goals.get({ id: value.id });
+      if (!goal) fail("GOAL_NOT_FOUND_OR_DENIED");
+      const engine = await goalController.initialize();
+      c.getActor();
+      const result = engine.getCheck(value);
+      c.getActor();
+      return result;
+    },
+    close: () => goalController.close(),
     evaluateRisk: (event, params) => factory(event).risks.evaluate(params),
     getRiskReview: (event, params) => factory(event).risks.getReview(params),
     listRiskReviews: (event, params) =>

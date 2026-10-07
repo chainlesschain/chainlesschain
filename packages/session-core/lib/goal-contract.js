@@ -187,8 +187,13 @@ function validateGoalRecord(input) {
     const ref = validateBusinessObjectRef(value.projectRef);
     if (
       ref.type !== "Project" ||
-      ref.scope.kind !== "personal" ||
-      ref.scope.id !== value.ownerRef
+      !(
+        (ref.scope.kind === "personal" && ref.scope.id === value.ownerRef) ||
+        (ref.scope.kind === "organization" &&
+          ref.sourceKind === "desktop.organization-project-goals" &&
+          typeof value.ownerRef === "string" &&
+          value.ownerRef.startsWith("did:"))
+      )
     )
       fail("GOAL_INVALID_PROJECT_SCOPE");
   }

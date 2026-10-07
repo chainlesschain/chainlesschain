@@ -287,6 +287,10 @@ const permissionChoices = [
   { value: "risk.read", label: "查看项目风险与历史" },
   { value: "risk.evaluate", label: "检查项目风险" },
   { value: "risk.feedback", label: "人工核对风险" },
+  { value: "goal.read", label: "查看组织目标" },
+  { value: "goal.create", label: "创建组织目标" },
+  { value: "goal.update", label: "更新、暂停或结束组织目标" },
+  { value: "goal.check", label: "手动检查组织目标风险" },
 ];
 let epoch = 0;
 function reset() {

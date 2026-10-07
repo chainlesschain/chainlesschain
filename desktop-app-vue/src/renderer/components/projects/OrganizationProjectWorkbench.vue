@@ -32,6 +32,20 @@
         @review="riskChanged"
         @authority-error="failure"
       />
+      <OrganizationProjectGoalPanel
+        v-if="
+          goalContext?.permissions.includes('goal.read') && goalContext.binding
+        "
+        v-show="context?.permissions.includes('goal.read')"
+        :project-id="projectId"
+        :org-id="goalContext.binding.orgId"
+        :identity-key="identityKey"
+        :permissions="goalContext.permissions"
+        :refresh-revision="goalRefreshRevision"
+        :parent-busy="busy"
+        @review-id="riskPanel?.selectReview($event)"
+        @authority-error="failure"
+      />
       <div v-if="context?.permissions.includes('task.read')">
         <section>
           <h3>已保存任务</h3>
@@ -309,6 +323,7 @@ import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import OrganizationProjectSetup from "./OrganizationProjectSetup.vue";
 import OrganizationProjectTransfer from "./OrganizationProjectTransfer.vue";
 import OrganizationProjectRiskPanel from "./OrganizationProjectRiskPanel.vue";
+import OrganizationProjectGoalPanel from "./OrganizationProjectGoalPanel.vue";
 import {
   organizationApi,
   organizationAuthorityError,
@@ -333,6 +348,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ (event: "update:open", value: boolean): void }>();
 const context = shallowRef<OrganizationContext | null>(null),
+  goalContext = shallowRef<OrganizationContext | null>(null),
   selectedTask = shallowRef<any>(null),
   prepared = shallowRef<any>(null),
   selectedProposal = shallowRef<OrganizationProposal | null>(null),
@@ -351,7 +367,8 @@ const kind = ref("description"),
   submissionUnknown = ref(false),
   executionUnknown = ref(false);
 const transferSessionRevision = ref(0),
-  transferPolicyRevision = ref(0);
+  transferPolicyRevision = ref(0),
+  goalRefreshRevision = ref(0);
 const riskPanel = ref<InstanceType<typeof OrganizationProjectRiskPanel> | null>(
     null,
   ),
@@ -439,7 +456,7 @@ function expireBody(proposal: OrganizationProposal) {
     eligibilityReason: "ORG_PROPOSAL_BODY_UNAVAILABLE",
   };
 }
-function clear() {
+function clear(preserveGoalRecovery = false) {
   stopExpiryTimer();
   epoch++;
   selection++;
@@ -447,6 +464,8 @@ function clear() {
   proposalListSequence++;
   activeWork = 0;
   context.value = null;
+  if (preserveGoalRecovery) goalRefreshRevision.value++;
+  else goalContext.value = null;
   selectedRisk.value = null;
   linkRisk.value = false;
   tasks.value = [];
@@ -491,7 +510,7 @@ async function work(fn: (token: number) => Promise<void>) {
 async function reload(preserveRecovery = true) {
   const recovery =
     preserveRecovery && submissionUnknown.value ? unknownDigest : "";
-  clear();
+  clear(preserveRecovery);
   if (!props.open) return;
   if (recovery) {
     unknownDigest = recovery;
@@ -504,6 +523,7 @@ async function reload(preserveRecovery = true) {
     });
     if (token !== epoch) return;
     context.value = result;
+    goalContext.value = result;
     if (!canUpdate.value && canCreate.value) kind.value = "create";
     if (result.permissions.includes("task.read")) {
       await loadTasks();
@@ -751,7 +771,7 @@ watch(
   },
   { immediate: true },
 );
-onBeforeUnmount(clear);
+onBeforeUnmount(() => clear());
 </script>
 <style scoped>
 section {

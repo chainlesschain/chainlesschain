@@ -786,6 +786,14 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "organization-project:context",
   "organization-project:create-preview",
   "organization-project:description-preview",
+  "organization-project:goal-check",
+  "organization-project:goal-check-read",
+  "organization-project:goal-checks",
+  "organization-project:goal-create",
+  "organization-project:goal-list",
+  "organization-project:goal-read",
+  "organization-project:goal-revise",
+  "organization-project:goal-status",
   "organization-project:policy-attest",
   "organization-project:policy-preview",
   "organization-project:proposal-cancel",
@@ -4947,6 +4955,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   organizationProject: {
+    createGoal: (params) =>
+      ipcRenderer.invoke("organization-project:goal-create", params),
+    getGoal: (params) =>
+      ipcRenderer.invoke("organization-project:goal-read", params),
+    listGoals: (params) =>
+      ipcRenderer.invoke("organization-project:goal-list", params),
+    reviseGoal: (params) =>
+      ipcRenderer.invoke("organization-project:goal-revise", params),
+    checkGoalNow: (params) =>
+      ipcRenderer.invoke("organization-project:goal-check", params),
+    getGoalStatus: (params) =>
+      ipcRenderer.invoke("organization-project:goal-status", params),
+    listGoalChecks: (params) =>
+      ipcRenderer.invoke("organization-project:goal-checks", params),
+    getGoalCheck: (params) =>
+      ipcRenderer.invoke("organization-project:goal-check-read", params),
     evaluateRisk: (params) =>
       ipcRenderer.invoke("organization-project:risk-evaluate", params),
     getRiskReview: (params) =>

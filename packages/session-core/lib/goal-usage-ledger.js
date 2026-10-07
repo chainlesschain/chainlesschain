@@ -57,7 +57,12 @@ function quantities(value, nullable) {
  * This ledger grants no authority and performs no model/network calls. Existing
  * risk-check evidence remains the canonical source for that domain's usage. */
 class GoalUsageLedger {
-  constructor({ db }) {
+  constructor({
+    db,
+    namespace = "personal",
+    scopeAuthorizer = null,
+    sharedBudget = false,
+  }) {
     if (
       !db ||
       typeof db.inTransaction !== "boolean" ||
@@ -66,18 +71,50 @@ class GoalUsageLedger {
     )
       fail("GOAL_NATIVE_DATABASE_REQUIRED");
     this.db = db;
+    if (
+      !["personal", "organization"].includes(namespace) ||
+      (namespace === "personal" &&
+        (scopeAuthorizer !== null || sharedBudget !== false)) ||
+      (namespace === "organization" &&
+        (typeof scopeAuthorizer !== "function" || sharedBudget !== true))
+    )
+      fail("GOAL_USAGE_SCOPE_DENIED");
+    this.namespace = namespace;
+    this.scopeAuthorizer = scopeAuthorizer;
+    this.sharedBudget = sharedBudget;
+    this.table =
+      namespace === "organization"
+        ? "cc_organization_project_goal_usage"
+        : "cc_project_goal_usage";
+    this.checksTable =
+      namespace === "organization"
+        ? "cc_organization_project_goal_checks"
+        : "cc_project_goal_checks";
     if (db.inTransaction) fail("GOAL_USAGE_TRANSACTION_REQUIRED");
     db.transaction(() =>
-      db.exec(`CREATE TABLE IF NOT EXISTS cc_project_goal_usage (
+      db.exec(`CREATE TABLE IF NOT EXISTS ${this.table} (
       operation_id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,
       record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS idx_cc_project_goal_usage_goal ON cc_project_goal_usage(goal_id,actor_did);`),
+      CREATE INDEX IF NOT EXISTS idx_${this.table}_goal ON ${this.table}(goal_id,actor_did);`),
     ).immediate();
   }
   _transaction() {
     if (!this.db.inTransaction) fail("GOAL_USAGE_TRANSACTION_REQUIRED");
   }
   _scope(goal, actor) {
+    if (this.namespace === "organization") {
+      if (
+        goal?.projectRef?.scope?.kind !== "organization" ||
+        goal.projectRef.sourceKind !== "desktop.organization-project-goals"
+      )
+        fail("GOAL_USAGE_SCOPE_DENIED");
+      identifier(goal.id);
+      identifier(actor);
+      validateGoalRecord(goal);
+      const authorized = this.scopeAuthorizer(goal, actor);
+      if (authorized !== true) fail("GOAL_USAGE_SCOPE_DENIED");
+      return;
+    }
     if (
       goal?.ownerRef !== actor ||
       goal?.projectRef?.scope?.kind !== "personal" ||
@@ -159,7 +196,7 @@ class GoalUsageLedger {
     });
     this.db
       .prepare(
-        `INSERT INTO cc_project_goal_usage VALUES (?,?,?,?,?) ON CONFLICT(operation_id)
+        `INSERT INTO ${this.table} VALUES (?,?,?,?,?) ON CONFLICT(operation_id)
       DO UPDATE SET record_json=excluded.record_json,content_digest=excluded.content_digest`,
       )
       .run(
@@ -175,17 +212,19 @@ class GoalUsageLedger {
     this._transaction();
     this._scope(goal, actor);
     const hasChecks = this.db
-      .prepare(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cc_project_goal_checks'",
-      )
-      .get();
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")
+      .get(this.checksTable);
     const checkRows = hasChecks
       ? this.db
           .prepare(
             `SELECT CASE WHEN typeof(elapsed_ms)='integer' THEN elapsed_ms ELSE NULL END AS elapsedMs
-      FROM cc_project_goal_checks WHERE goal_id=? AND actor_did=? LIMIT ?`,
+      FROM ${this.checksTable} WHERE goal_id=? ${this.sharedBudget ? "" : "AND actor_did=?"} LIMIT ?`,
           )
-          .all(goal.id, actor, MAX_OPERATIONS + 1)
+          .all(
+            goal.id,
+            ...(this.sharedBudget ? [] : [actor]),
+            MAX_OPERATIONS + 1,
+          )
       : [];
     const checks = { checks: checkRows.length, elapsedMs: 0 };
     for (const row of checkRows) {
@@ -202,9 +241,9 @@ class GoalUsageLedger {
       fail("GOAL_USAGE_RECORD_CORRUPT");
     const rows = this.db
       .prepare(
-        `SELECT ${RECORD_COLUMNS} FROM cc_project_goal_usage WHERE goal_id=? AND actor_did=? LIMIT ?`,
+        `SELECT ${RECORD_COLUMNS} FROM ${this.table} WHERE goal_id=? ${this.sharedBudget ? "" : "AND actor_did=?"} LIMIT ?`,
       )
-      .all(goal.id, actor, MAX_OPERATIONS + 1);
+      .all(goal.id, ...(this.sharedBudget ? [] : [actor]), MAX_OPERATIONS + 1);
     if (rows.length > MAX_OPERATIONS) fail("GOAL_USAGE_RECORD_CORRUPT");
     const records = rows.map((row) => this._read(row));
     let totalRuns = checks.checks,
@@ -355,7 +394,7 @@ class GoalUsageLedger {
     const prior = this._read(
       this.db
         .prepare(
-          `SELECT ${RECORD_COLUMNS} FROM cc_project_goal_usage WHERE operation_id=?`,
+          `SELECT ${RECORD_COLUMNS} FROM ${this.table} WHERE operation_id=?`,
         )
         .get(operationId),
     );
@@ -375,9 +414,9 @@ class GoalUsageLedger {
     if (
       this.db
         .prepare(
-          "SELECT COUNT(*) AS n FROM cc_project_goal_usage WHERE goal_id=? AND actor_did=?",
+          `SELECT COUNT(*) AS n FROM ${this.table} WHERE goal_id=? ${this.sharedBudget ? "" : "AND actor_did=?"}`,
         )
-        .get(goal.id, actor).n >= MAX_OPERATIONS
+        .get(goal.id, ...(this.sharedBudget ? [] : [actor])).n >= MAX_OPERATIONS
     )
       fail("GOAL_USAGE_OPERATION_LIMIT");
     this.assertAvailable(goal, actor, estimate);
@@ -405,7 +444,7 @@ class GoalUsageLedger {
     const prior = this._read(
       this.db
         .prepare(
-          `SELECT ${RECORD_COLUMNS} FROM cc_project_goal_usage WHERE operation_id=?`,
+          `SELECT ${RECORD_COLUMNS} FROM ${this.table} WHERE operation_id=?`,
         )
         .get(operationId),
     );

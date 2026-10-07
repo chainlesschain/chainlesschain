@@ -6,6 +6,10 @@ export default defineConfig({
     pool: "forks",
     maxWorkers: 1,
     include: [
+      "src/main/task/__tests__/organization-project-goal-ipc.test.js",
+      "src/main/task/__tests__/organization-project-goal-host.test.js",
+      "src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "src/main/task/__tests__/project-goal-ipc.test.js",
       "src/main/task/__tests__/organization-project-risk-ipc.test.js",
       "src/main/task/__tests__/organization-project-authority-host.test.js",
       "src/main/task/__tests__/organization-project-ipc.test.js",

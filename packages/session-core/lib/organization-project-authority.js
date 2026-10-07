@@ -13,6 +13,10 @@ const PERMISSIONS = Object.freeze([
   "risk.read",
   "risk.evaluate",
   "risk.feedback",
+  "goal.read",
+  "goal.create",
+  "goal.update",
+  "goal.check",
 ]);
 const BINDINGS_TABLE = "cc_organization_project_bindings";
 

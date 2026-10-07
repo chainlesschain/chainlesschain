@@ -9,7 +9,7 @@ const identities = {
   first: "did:first",
   second: "did:second",
 };
-function organizationProjectFixture(dialog) {
+function organizationProjectFixture(dialog, overrides = {}) {
   const db = new Database(":memory:");
   db.pragma("foreign_keys=ON");
   db.exec(`
@@ -53,6 +53,7 @@ function organizationProjectFixture(dialog) {
     getCurrentUserDid: () => actor,
     getAuthenticationGeneration: () => generation,
     validateSender: () => ({ trusted }),
+    ...overrides,
   });
   async function setup({ bind = true } = {}) {
     host.context(event, { projectId: "p1" });

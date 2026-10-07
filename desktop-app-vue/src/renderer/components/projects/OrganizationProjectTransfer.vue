@@ -420,6 +420,10 @@ function permissionLabel(permission: string) {
         "risk.read": "查看项目风险与历史",
         "risk.evaluate": "检查项目风险",
         "risk.feedback": "人工核对风险",
+        "goal.read": "查看组织目标",
+        "goal.create": "创建组织目标",
+        "goal.update": "更新、暂停或结束组织目标",
+        "goal.check": "手动检查组织目标风险",
       } as Record<string, string>
     )[permission] || "未知权限"
   );
