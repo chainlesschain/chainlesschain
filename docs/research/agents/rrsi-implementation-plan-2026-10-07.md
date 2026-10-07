@@ -322,7 +322,11 @@ PM 试点通过后，增加 CLI 的缺陷定位、跨文件修改、取消恢复
 
 ## 11 交付状态与近期优先项
 
-进度第 24 节已增加确切 UTF-8 文本的有限分块留存、真实 preparation 声明关联，以及固定存储图内 tenant＋skillTextDigest 的单调限制日志。它只认证 retained readback，生成因果来源、全租户唯一索引与业务准入保持未认证；不同真正 backend 的查询继续 unknown/HOLD。下一层必须接入可信部署锚和实际 producer 回执，再实现 candidate alias preparation／finalization 与 Release lease／恢复的来源复验；不能用调用者文本或新的 WeakMap 品牌代替这些权威。
+进度第 24 节已增加确切 UTF-8 文本的有限分块留存、真实 preparation 声明关联，以及固定存储图内 tenant＋skillTextDigest 的单调限制日志。第 25 节修复 runtime 子目录文件身份的 Number 舍入问题；第 26 节新增部署锚的纯声明与 Ed25519 签名契约，只验证相对于显式公钥的签名，不建立可信根、持久 pin 或租户权威。生成因果来源、全租户唯一索引与业务准入保持未认证；不同真正 backend 的查询继续 unknown/HOLD。下一层须提供独立可信宿主根、持久路由绑定与高水位／撤销，以及实际 producer 回执，再实现 candidate alias preparation／finalization 与 Release lease／恢复的来源复验；不能用调用者自签、配置中的可替换根、调用者文本或新的 WeakMap 品牌代替这些权威。
+
+当前安装内的首版路由按三个边界实施：安装根 reader 只读取得管理主体预置的 installationId、根指纹、允许 tenant 和固定状态位置；pin store 固定 installation＋tenant 到唯一原存储图；observed-text router 在宿主启动时捕获原组合，业务请求不再选择 backend／root／pin 路径。首次认可必须来自独立安装管理入口；普通打开遇到根、pin、历史或高水位缺失一律 HOLD，不自动 bootstrap。高水位除 revision／sequence 外还须核对同序号摘要、原 checkpoint 前缀和限制历史完整性；首版拒绝迁移，未知提交保持 HOLD。
+
+现有普通配置与 user-local security anchor 均不足以隔离拥有同账户文件权限的任意代码：前者受 home／profile 环境覆盖，后者亦有可配置位置。若该代码在威胁范围内，安装状态必须由它无权改写的管理主体／服务账户或实际执行的隔离边界保护；如果根、pin、高水位与 witness 全可被同一主体删除或回滚，本地文件不能证明未发生重置。重新安装须走保留旧安装／租户恢复或撤销关系的管理流程。后续可先实施纯状态转换与严格 open-only 控制，未经实际宿主授权与存储边界验证时继续保留所有生产权威 false。
 
 已交付严格数据合同、五池来源关系校验、冻结三组预算、合成筛选回放、RR-02 的耐久控制和 PM broad 桥接，以及 RR-03 的五池 Eval 映射、签名行验证、完整分母描述统计和有限合成模拟，详见 [实施进度](./rrsi-implementation-progress-2026-10-07.md)。完整方法与辅助网格均保留 HOLD，不能据此宣称统计协议通过。真实父版本与来源登记、实验组/扰动/launch/预占可信绑定、提议/蒸馏完整成本、统计质量准入、正式三组实验、晋级必需门和生产组装仍待实施。现有 RSI 的真实效果缺口、CLI 正式 36+9、账户账单及平台边界继续按各自记录跟踪。
 

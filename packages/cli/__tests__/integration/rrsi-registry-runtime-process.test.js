@@ -36,7 +36,7 @@ function child(root, mode, phase = "") {
 function inventory(root) {
   const entries = [];
   function visit(target) {
-    const stat = fs.lstatSync(target);
+    const stat = fs.lstatSync(target, { bigint: true });
     entries.push({
       path: path.relative(root, target),
       identity: `${stat.dev}:${stat.ino}`,

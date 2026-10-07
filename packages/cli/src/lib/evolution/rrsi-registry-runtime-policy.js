@@ -92,7 +92,10 @@ function own(input, names) {
   );
 }
 function directory(target) {
-  const stat = fs.lstatSync(target);
+  // NTFS IDs can exceed Number precision; never round or adopt old projections.
+  const stat = fs.lstatSync(target, { bigint: true });
+  if (typeof stat.dev !== "bigint" || typeof stat.ino !== "bigint")
+    hold("runtime directory identity requires full-precision stat fields");
   const canonical = fs.realpathSync.native(target);
   const equalPath = (left, right) =>
     process.platform === "win32"

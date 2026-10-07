@@ -457,3 +457,23 @@ observedBytesAuthenticated:true 的含义固定为 authenticated-retained-readba
 该组合终态后，仅增加新 index 的分配前大小检查、一个 Buffer 分配边界反例，并将三个畸形内容用例收紧为精确 base64／长度错误或 ERR_ENCODING_INVALID_ENCODED_DATA cause。最终两个新文件完整 **24/24** 通过；四个旧回归文件不导入新 index，原 111 项继续计为独立证据，不宣称最后一次精确源码同时完整运行过六个文件。八个最终源码／测试摘要、两次保留的源码快照、三处严格限定的修改区间及各轮 reporter 结果见 [文本观察与限制验证记录](./evidence/rrsi-observed-text-local-controls-2026-10-07.json)。失锁注入在首次 owner 文件读取处，证明真实产物树身份和字节保持不变，但不单独定位最后发布前检查；signed association 反例为内部 goal 元数据不一致，并非完整自洽的伪造 History 链。独立 writer 改 head 的专用故障注入仍待扩展。
 
 ESLint、Prettier 和 Astra 只读复核通过。原生权限 helper 预算未改；真实进程重开使用本地测试 HMAC／manifest replicas，不认证生产密钥、外部 WORM、付费实验或 Linux/macOS 发行矩阵。当前新增来源层仍是固定存储图内的禁止性控制，完整 RRSI、部署锚、producer 来源证明、alias 与业务准入尚未完成。
+
+## 25 运行子目录的完整文件身份
+
+[rrsi-registry-runtime-policy.js](../../../packages/cli/src/lib/evolution/rrsi-registry-runtime-policy.js) 的 directory 检查改为 `lstatSync(target, { bigint: true })`，同时要求 dev 与 ino 实际为 BigInt。NTFS 文件 ID 可超过 Number 精度；不同实际目录可能具有相同 Number 投影，不能用舍入后的值认证目录。既有十进制字符串身份格式、runtime schema、原认证摘要与严格比较保持不变。旧舍入记录若与当前完整 ID 不同，read／recover 均 HOLD，不重新认领、不重算旧记录、不迁移或补建目录。store-policy 原七目录已有 BigInt 检查，本次修复的是 runtime 六子目录。
+
+新增四项身份故障模型使用真实目录、原 v2 Ledger 与认证的八阶段日志，仅在六个 runtime 路径注入合成 inode。六个完整 ID 不同而 Number 全部碰撞仍能完成登记；随后换为相同 Number 投影的另一完整 ID 必须 HOLD；不返回请求的 BigInt 字段亦 HOLD。另一真实 fixture 留存模拟旧模板字符串的舍入身份，切回完整值后拒绝 read／recover，保持原 head、事件和目录。权限、其余目录、marker、Ledger、ArtifactPorts 与锁均不 mock；这些反例不宣称原生 NTFS 上已经实际完成同投影目录替换。原 runtime 单元与子进程 inventory 也改用 BigInt 观察，八阶段正常用例逐目录核对真实 dev／ino。
+
+## 26 部署锚的声明与签名契约
+
+[rrsi-tenant-index-anchor-contracts.js](../../../packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-contracts.js) 新增严格、冻结的 anchor envelope，声明绑定 deployment、tenant、installation／shared-tenant-authority routing scope、确定性 tenant index ID、原 journal identity、artifact scope、storage graph、root 公钥摘要、revision／前驱、checkpoint 和限制历史摘要。Ledger ID／epoch 采用真正 Ledger 的字符串规则；checkpoint 必须与所声明 journal 相同，限制数量不超过 256 或 checkpoint sequence。revision 大于 1 仅声明前驱关系，不认证迁移、历史承接或限制未被删除。
+
+签名消息为独立 `chainlesschain.rrsi-tenant-index-anchor-signature/v1` 域、NUL 和完整 canonical anchor，包含 schema、摘要与所有 false 标志。外部 signer 可取得确切字节；验签只接受显式给出的规范 base64url Ed25519 DER SPKI（44 bytes）与签名（64 bytes），公钥摘要必须等于 anchor 声明。成功仅返回 signatureVerifiedRelativeToKey:true；rootAuthorityVerified、routingPinVerified、historyTransferVerified、tenantWideIndexAuthorityVerified、generationProvenanceVerified 和 mutation／promotion grant 全部 false，decision:HOLD、authenticated:false、执行与晋级资格 false。模块无 I/O、默认 signer、持久 pin 或可信品牌，不改变现有 observed-text descriptor、marker、Registry 空只读模式与业务写入 HOLD。
+
+Astra 查阅既有 deployment loader／config／profile 与 operator registry 后确认，它们的根仍相对于调用者或可修改配置：descriptor 与 root 可同时提供，显式路径可绕过 profile 路径校验，active root 可由写入 API 更换，operator genesis 由 caller 提供。它们不能直接证明根有权代表 tenant，本批没有借用这些品牌授予新权威。先按当前安装内固定路由准备契约；跨宿主 scope 即使由调用者成功自签也不取得租户权威。实际独立宿主根预置、持久路由 pin、高水位／撤销、强制路由、删除后重建防护与跨部署租户唯一性均未闭合。
+
+最终锚契约完整 **30/30** 通过，首版 **23/23** reporter 保留但不重复计数。合法重建后沿用旧签名的反例涵盖 deployment／tenant、routing／artifact scope、journal／checkpoint、限制 tail／集合摘要及 revision／前驱；rootDigest 变化精确拒绝公钥摘要不符，其余签名篡改精确拒绝原签名。同密钥、同 canonical payload 只改变 domain 的反例验证域隔离；伪造权限标志即使重算结构摘要也拒绝。还覆盖错误 signer、非规范编码、边界、空历史声明、合法后继仍不认证迁移，以及 getter／proxy／额外 verifier callback 的拒绝。
+
+两部分合计 **68 项不同用例通过**，零失败、零跳过：三个原生／故障模型文件完整 **38/38**（既有 runtime 单元 **18**、真实子进程 **16**、新增精度反例 **4**），锚契约 **30/30**。原生串行运行耗时约 28 分钟，所有既有行为时限、child watchdog 和 ACL helper 预算保持不变；新增精度 fixture 的两项准备 hook 各 60 秒，八阶段初始化 180 秒，行为各 60 秒。ESLint、Prettier、diff check 与 Astra 只读复核通过，六个源码／测试摘要及三个 reporter 的逐项结果见 [身份与锚契约验证记录](./evidence/rrsi-runtime-identity-anchor-local-controls-2026-10-07.json)。源码摘要检查点在原生回归运行期间、锚测试之后建立，后续未变；没有记录启动前快照，不将最终摘要独立当作每个 worker 所加载字节的证明。未进行 Linux／macOS 发行矩阵、真实模型／费用实验或生产晋级。
+
+后续须先闭合可信根与实际持久路由，再把真实 producer 输入／输出回执、限制历史完整承接与原 backend 回读接入部署锚；随后处理 candidate alias 和发布 lease／恢复的来源门。本批的签名契约不能解除索引与 Registry 的现有 HOLD，完整 RRSI 仍在实施。

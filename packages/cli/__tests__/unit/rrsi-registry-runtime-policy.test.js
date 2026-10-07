@@ -79,7 +79,7 @@ function hold(operation) {
 function artifactSnapshot(target) {
   const entries = [];
   function visit(current) {
-    const stat = fs.lstatSync(current);
+    const stat = fs.lstatSync(current, { bigint: true });
     entries.push({
       path: path.relative(target, current),
       identity: `${stat.dev}:${stat.ino}`,
@@ -176,6 +176,8 @@ describe.sequential(
           path.join(provision.prepared.release.rootDir, name),
         );
         expect(fs.readdirSync(entry.path)).toEqual([]);
+        const stat = fs.lstatSync(entry.path, { bigint: true });
+        expect(entry.identity).toBe(`${stat.dev}:${stat.ino}`);
       }
     }, 60_000);
     it("idempotently recovers the same runtime without directory creation or cleanup", () => {
@@ -361,7 +363,7 @@ describe.sequential(
           "_tenant.json",
         ),
         bytes = fs.readFileSync(marker);
-      const stat = fs.lstatSync(marker),
+      const stat = fs.lstatSync(marker, { bigint: true }),
         opendir = fs.opendirSync;
       let fired = false;
       vi.spyOn(fs, "opendirSync").mockImplementation((target, ...args) => {
@@ -385,7 +387,7 @@ describe.sequential(
       try {
         hold(() => runtime.read(operationId));
         expect(fired).toBe(true);
-        expect(fs.lstatSync(marker).ino).toBe(stat.ino);
+        expect(fs.lstatSync(marker, { bigint: true }).ino).toBe(stat.ino);
       } finally {
         fs.writeFileSync(marker, bytes);
       }

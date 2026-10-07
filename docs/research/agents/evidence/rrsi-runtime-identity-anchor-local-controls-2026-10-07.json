@@ -1,0 +1,748 @@
+{
+  "schema": "chainlesschain.rrsi-runtime-identity-anchor-local-controls/v1",
+  "recordedAt": "2026-10-07T12:29:31.427Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "scope": "BigInt runtime directory identity and pure signed anchor declarations",
+  "evidenceKind": "local-control-tests-not-production-authority",
+  "uniquePassedCases": 68,
+  "newPassedCases": 34,
+  "existingRuntimePassedCases": 34,
+  "failedFinalCases": 0,
+  "skippedFinalCases": 0,
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-registry-runtime-policy.js",
+      "sha256": "0e3bf84d7e02b41412e046eba73dcec024dc291f196be1162579d03645b64073"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-registry-runtime-policy.test.js",
+      "sha256": "f09c40894c8fe2bfbbd9ab8b3af3dae1ac16d858d5798a21931c89a94d28fcc5"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-registry-runtime-process.test.js",
+      "sha256": "fa401ee3acf0a6eae78cba2acafae1eafa1f628ec4e799209a976c3d279a2b39"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-registry-runtime-identity.test.js",
+      "sha256": "26d7babd9aeeae987360062fd8176e2eeabf6919bed0bd35a7657318ab0c7f63"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-contracts.js",
+      "sha256": "5cdbfc8f4e873fc1754289bf2e65d90bb6b63b343e8fac49f187a173ec56ffe3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+      "sha256": "333db00378c29b59d027afa7be817dd90d1ac9b2118367e0ac3a74ca9d1436a6"
+    }
+  ],
+  "sourceSnapshot": {
+    "localPath": ".work/rrsi-runtime-anchor-source-sha.json",
+    "sha256": "e675084e2d2e5a96c578901a01bcf0ff6aab3a950b4a91a3b848a93395be25b4",
+    "recordedAt": "2026-10-07T12:17:31.941Z",
+    "timing": "During native regression, after both anchor runs; not a pre-run source snapshot",
+    "unchangedFromSnapshot": true,
+    "limitation": "No pre-run snapshot was recorded; final file hashes and the in-run checkpoint do not independently prove the exact bytes loaded by every worker"
+  },
+  "runs": [
+    {
+      "localReporterPath": ".work/rrsi-anchor-contracts-first.json",
+      "reporterSha256": "05b9f04f1d821797632f167cefe1e1dc13419fab76f83767dd1d1ec261b3d225",
+      "reproductionCommand": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-tenant-index-anchor-contracts.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-anchor-contracts-first.json",
+      "invocationNote": "Historical first-version contract run; reproduction command refers to current source, not retained initial source bytes",
+      "cwd": "packages/cli",
+      "success": true,
+      "total": 23,
+      "passed": 23,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791374935420,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791374937419,
+          "endTime": 1791374937528.3782,
+          "assertions": [
+            {
+              "name": "signed tenant index anchor declarations without root authority detaches and freezes the exact declaration without authenticating its checkpoint or pin",
+              "status": "passed",
+              "durationMs": 22.27870000000007,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into installation authority",
+              "status": "passed",
+              "durationMs": 12.1246000000001,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into shared-tenant-authority authority",
+              "status": "passed",
+              "durationMs": 6.183099999999968,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed deploymentId exactly",
+              "status": "passed",
+              "durationMs": 10.68769999999995,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed tenantId exactly",
+              "status": "passed",
+              "durationMs": 5.93730000000005,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed storageGraphDigest exactly",
+              "status": "passed",
+              "durationMs": 8.880300000000034,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed rootPublicKeyDigest exactly",
+              "status": "passed",
+              "durationMs": 3.3018999999999323,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged authenticated even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.0921000000000731,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged readyForExecution even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 1.4488000000001193,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged qualifiesForPromotion even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 3.3458999999998014,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects a different signer and a signature from another domain",
+              "status": "passed",
+              "durationMs": 8.196500000000015,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical publicKeySpki encodings",
+              "status": "passed",
+              "durationMs": 1.6106999999999516,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical signature encodings",
+              "status": "passed",
+              "durationMs": 1.6750999999999294,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 0",
+              "status": "passed",
+              "durationMs": 0.5945999999999003,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 1",
+              "status": "passed",
+              "durationMs": 0.5177000000001044,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 2",
+              "status": "passed",
+              "durationMs": 0.5323000000000775,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 3",
+              "status": "passed",
+              "durationMs": 0.9067000000000007,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 4",
+              "status": "passed",
+              "durationMs": 1.2972999999999502,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 5",
+              "status": "passed",
+              "durationMs": 2.1110000000001037,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 6",
+              "status": "passed",
+              "durationMs": 1.3877999999999702,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority permits a declared successor but does not certify migration or preserved restrictions",
+              "status": "passed",
+              "durationMs": 4.384200000000192,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority accepts an explicit empty history only as an unverified declaration",
+              "status": "passed",
+              "durationMs": 3.554300000000012,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects getters, proxy traps and arbitrary verifier callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 6.378200000000106,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localReporterPath": ".work/rrsi-anchor-contracts-final.json",
+      "reporterSha256": "5f88a6093130acdb9fff4e96e45b40f8b224ecea942ca97caf91d5152f1337c0",
+      "reproductionCommand": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-tenant-index-anchor-contracts.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-anchor-contracts-final.json",
+      "invocationNote": "Reproduction command; reporter itself does not retain CLI invocation flags",
+      "cwd": "packages/cli",
+      "success": true,
+      "total": 30,
+      "passed": 30,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791375208221,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-contracts.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791375210141,
+          "endTime": 1791375210358.5063,
+          "assertions": [
+            {
+              "name": "signed tenant index anchor declarations without root authority detaches and freezes the exact declaration without authenticating its checkpoint or pin",
+              "status": "passed",
+              "durationMs": 20.4384,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into installation authority",
+              "status": "passed",
+              "durationMs": 12.55749999999989,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority never converts caller self-signing into shared-tenant-authority authority",
+              "status": "passed",
+              "durationMs": 7.244900000000143,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed deploymentId exactly",
+              "status": "passed",
+              "durationMs": 11.196899999999914,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed tenantId exactly",
+              "status": "passed",
+              "durationMs": 7.042799999999943,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed storageGraphDigest exactly",
+              "status": "passed",
+              "durationMs": 12.165700000000015,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed rootPublicKeyDigest exactly",
+              "status": "passed",
+              "durationMs": 9.121200000000044,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed routingScope exactly",
+              "status": "passed",
+              "durationMs": 8.845000000000027,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed artifactScope exactly",
+              "status": "passed",
+              "durationMs": 11.924399999999878,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed ledgerIdentity exactly",
+              "status": "passed",
+              "durationMs": 6.955799999999954,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed checkpoint exactly",
+              "status": "passed",
+              "durationMs": 6.649499999999989,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.tailRecordDigest exactly",
+              "status": "passed",
+              "durationMs": 18.782500000000027,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed restrictionHistory.restrictionsDigest exactly",
+              "status": "passed",
+              "durationMs": 6.181299999999965,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority binds signed revision exactly",
+              "status": "passed",
+              "durationMs": 9.29060000000004,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged authenticated even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 2.942500000000109,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged readyForExecution even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 4.0012000000001535,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects forged qualifiesForPromotion even with a recomputed structural digest",
+              "status": "passed",
+              "durationMs": 3.603900000000067,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects a different signer and a signature from another domain",
+              "status": "passed",
+              "durationMs": 14.510099999999966,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical publicKeySpki encodings",
+              "status": "passed",
+              "durationMs": 6.23940000000016,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects noncanonical signature encodings",
+              "status": "passed",
+              "durationMs": 3.9043000000001484,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 0",
+              "status": "passed",
+              "durationMs": 1.4694999999999254,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 1",
+              "status": "passed",
+              "durationMs": 1.1767999999999574,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 2",
+              "status": "passed",
+              "durationMs": 1.5338999999999032,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 3",
+              "status": "passed",
+              "durationMs": 1.5467999999998483,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 4",
+              "status": "passed",
+              "durationMs": 1.2678000000000793,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 5",
+              "status": "passed",
+              "durationMs": 1.3337999999998829,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects inconsistent anchor bounds or scope 6",
+              "status": "passed",
+              "durationMs": 1.47849999999994,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority permits a declared successor but does not certify migration or preserved restrictions",
+              "status": "passed",
+              "durationMs": 5.8016999999999825,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority accepts an explicit empty history only as an unverified declaration",
+              "status": "passed",
+              "durationMs": 5.349999999999909,
+              "failures": []
+            },
+            {
+              "name": "signed tenant index anchor declarations without root authority rejects getters, proxy traps and arbitrary verifier callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 7.506399999999985,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localReporterPath": ".work/rrsi-runtime-bigint-native.json",
+      "reporterSha256": "133a2bc4aad40c18ed069359f9e7a43a6a34edd60a7c7f95f12d8e822dfa0144",
+      "reproductionCommand": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/rrsi-registry-runtime-policy.test.js __tests__/unit/rrsi-registry-runtime-identity.test.js __tests__/integration/rrsi-registry-runtime-process.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-runtime-bigint-native.json",
+      "invocationNote": "Reproduction command; reporter itself does not retain CLI invocation flags",
+      "cwd": "packages/cli",
+      "success": true,
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "startTime": 1791374468655,
+      "suites": [
+        {
+          "name": "packages/cli/__tests__/integration/rrsi-registry-runtime-process.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791374932340,
+          "endTime": 1791375934787.7993,
+          "assertions": [
+            {
+              "name": "runtime restart after retained phase 1 interrupts exactly after the committed journal head and keeps the persisted prefix",
+              "status": "passed",
+              "durationMs": 12710.6783,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 1 continues only the missing suffix with eight distinct events and unchanged registered identities",
+              "status": "passed",
+              "durationMs": 116168.87700000001,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 1 recaptures the attachment in another process with no Registry mutation",
+              "status": "passed",
+              "durationMs": 89139.8102,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 4 interrupts exactly after the committed journal head and keeps the persisted prefix",
+              "status": "passed",
+              "durationMs": 56023.90989999997,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 4 continues only the missing suffix with eight distinct events and unchanged registered identities",
+              "status": "passed",
+              "durationMs": 45245.9596,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 4 recaptures the attachment in another process with no Registry mutation",
+              "status": "passed",
+              "durationMs": 70338.99310000002,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 7 interrupts exactly after the committed journal head and keeps the persisted prefix",
+              "status": "passed",
+              "durationMs": 62333.949100000085,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 7 continues only the missing suffix with eight distinct events and unchanged registered identities",
+              "status": "passed",
+              "durationMs": 11757.898600000073,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 7 recaptures the attachment in another process with no Registry mutation",
+              "status": "passed",
+              "durationMs": 60088.26039999991,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 8 interrupts exactly after the committed journal head and keeps the persisted prefix",
+              "status": "passed",
+              "durationMs": 71736.21640000003,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 8 continues only the missing suffix with eight distinct events and unchanged registered identities",
+              "status": "passed",
+              "durationMs": 7122.97929999989,
+              "failures": []
+            },
+            {
+              "name": "runtime restart after retained phase 8 recaptures the attachment in another process with no Registry mutation",
+              "status": "passed",
+              "durationMs": 61618.64130000002,
+              "failures": []
+            },
+            {
+              "name": "unregistered mkdir survives restart as HOLD leaves the third created directory without claiming an installed record",
+              "status": "passed",
+              "durationMs": 25384.96730000002,
+              "failures": []
+            },
+            {
+              "name": "unregistered mkdir survives restart as HOLD preserves the unregistered directory and stops before suffix creation or cleanup",
+              "status": "passed",
+              "durationMs": 2715.818800000008,
+              "failures": []
+            },
+            {
+              "name": "registered prefix missing after interruption holds in the new process without adopting, repairing or creating a suffix",
+              "status": "passed",
+              "durationMs": 3386.1473000000697,
+              "failures": []
+            },
+            {
+              "name": "registered prefix replaced after interruption holds in the new process without adopting, repairing or creating a suffix",
+              "status": "passed",
+              "durationMs": 2813.7992999998387,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-registry-runtime-identity.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791376039900,
+          "endTime": 1791376150879.2317,
+          "assertions": [
+            {
+              "name": "runtime directory precision full initializes six distinct full IDs even when all six Number projections collide",
+              "status": "passed",
+              "durationMs": 1542.1603999999934,
+              "failures": []
+            },
+            {
+              "name": "runtime directory precision full holds a distinct replacement whose Number projection matches without rewriting history or paths",
+              "status": "passed",
+              "durationMs": 2814.1687999999995,
+              "failures": []
+            },
+            {
+              "name": "runtime directory precision full refuses a stat provider that loses requested BigInt precision",
+              "status": "passed",
+              "durationMs": 1258.7900999999983,
+              "failures": []
+            },
+            {
+              "name": "runtime directory precision rounded-staging keeps authenticated old rounded records on HOLD instead of adopting exact current IDs",
+              "status": "passed",
+              "durationMs": 2929.231599999999,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "packages/cli/__tests__/unit/rrsi-registry-runtime-policy.test.js",
+          "status": "passed",
+          "message": "",
+          "startTime": 1791374707408,
+          "endTime": 1791374868958.3013,
+          "assertions": [
+            {
+              "name": "authenticated empty Registry runtime directory initialization retains eight distinct ordered phases bound to original provisioning and six independent real directory identities",
+              "status": "passed",
+              "durationMs": 250.51289999997243,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization idempotently recovers the same runtime without directory creation or cleanup",
+              "status": "passed",
+              "durationMs": 10970.372299999988,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization opens genuine Registry empty readers only with the explicit authenticated attachment and keeps every writer held",
+              "status": "passed",
+              "durationMs": 47872.65960000001,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered artifacts without recreating it",
+              "status": "passed",
+              "durationMs": 4119.463199999998,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered active without recreating it",
+              "status": "passed",
+              "durationMs": 4279.998800000001,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered journals without recreating it",
+              "status": "passed",
+              "durationMs": 5121.915799999959,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered locks without recreating it",
+              "status": "passed",
+              "durationMs": 5371.695799999987,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered state-migrations without recreating it",
+              "status": "passed",
+              "durationMs": 5144.950500000035,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization holds missing or replaced registered staging without recreating it",
+              "status": "passed",
+              "durationMs": 9482.900499999989,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization never adopts business content or cleans recovery evidence in authenticated containers",
+              "status": "passed",
+              "durationMs": 17172.7978,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization rejects copied attachments and altered original composition",
+              "status": "passed",
+              "durationMs": 6.58029999997234,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization rechecks the final runtime identity after staging enumeration (missing)",
+              "status": "passed",
+              "durationMs": 5789.026699999988,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization rechecks the final runtime identity after staging enumeration (replaced)",
+              "status": "passed",
+              "durationMs": 3552.538500000024,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization rechecks same-inode marker bytes after the last inventory enumeration",
+              "status": "passed",
+              "durationMs": 1338.7530999999726,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization idempotent recovery refuses broadened parent permissions without repairing them",
+              "status": "passed",
+              "durationMs": 14117.53019999998,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization idempotent recovery refuses broadened staging permissions without repairing them",
+              "status": "passed",
+              "durationMs": 13008.989100000006,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization stops artifact publication if operation ownership is lost during the pre-publication layout",
+              "status": "passed",
+              "durationMs": 9133.777199999953,
+              "failures": []
+            },
+            {
+              "name": "authenticated empty Registry runtime directory initialization rejects a ninth authenticated runtime event inserted after snapshot capture instead of rebasing the old state",
+              "status": "passed",
+              "durationMs": 4815.301299999992,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "eslint": "passed for all six source/test files, max-warnings=0",
+    "prettier": "passed",
+    "gitDiffCheck": "passed",
+    "astraReview": "completed; explicit-key signature semantics, all authority false flags, exact tamper matrix/domain separation, and synthetic stat fault-model boundaries verified",
+    "coverage": "38 native/runtime cases plus 30 final pure-contract cases; earlier 23 anchor cases are retained but not double-counted"
+  },
+  "identityBoundary": {
+    "statFields": "BigInt dev and ino; decimal strings remain in the existing schema",
+    "syntheticRuntimeDirectoryPaths": 6,
+    "collisionModel": "Distinct IDs above Number precision with identical Number projections",
+    "nativeNtfsReplacementProven": false,
+    "oldRoundedRecordMigrationEnabled": false,
+    "oldRoundedRecordBehavior": "HOLD when full current identity differs; no adoption, rewrite or directory creation"
+  },
+  "anchorBoundary": {
+    "io": false,
+    "trustedRootBrand": false,
+    "persistentPin": false,
+    "signatureAlgorithm": "Ed25519",
+    "signatureDomain": "chainlesschain.rrsi-tenant-index-anchor-signature/v1",
+    "signatureMessage": "domain + NUL + canonical complete anchor envelope",
+    "publicKeyEncoding": "canonical base64url of exact 44-byte DER Ed25519 SPKI",
+    "signatureEncoding": "canonical base64url of exact 64-byte signature",
+    "signatureVerifiedRelativeToExplicitKeyOnSuccessfulCheck": true,
+    "successorSemantics": "Declared revision and predecessor only; migration and preserved history remain unverified"
+  },
+  "bounds": {
+    "nativeAclBudgetsChanged": false,
+    "nativeAclTimeoutOverride": null,
+    "existingRuntimeTestBudgetsChanged": false,
+    "identityFixtureSetupStageMs": 60000,
+    "identityFixtureInitializeMs": 180000,
+    "identityBehaviorMs": 60000,
+    "existingProcessChildWatchdogMs": 170000,
+    "existingProcessOuterMs": 180000,
+    "maximumDeclaredRevision": 2147483647,
+    "maximumDeclaredRestrictionRecords": 256
+  },
+  "limitations": [
+    "Synthetic inode collisions do not prove an actual NTFS same-projection replacement; other directory metadata and native ACL checks remain real",
+    "The signed anchor only proves a signature relative to an explicitly supplied key; caller self-signing cannot establish root or tenant authority",
+    "Existing deployment loader/config/profile and operator registry roots remain caller/configuration-relative and are not reused as independently trusted tenant authority",
+    "Independent host root provisioning, durable routing pins, root/revision high-water and revocation, forced routing, and cross-host tenant uniqueness are not implemented",
+    "Checkpoint, restriction history, predecessor and storage graph fields are signed declarations; no runtime History replay or history-transfer proof is performed by these pure contracts",
+    "No authenticated RRSI producer, candidate alias preparation/finalization, Registry business writer or release source gate was enabled",
+    "Local HMAC/manifest fixtures, native permission checks and process recovery do not prove production key custody, external WORM or physical power-loss durability",
+    "No Linux/macOS release matrix, actual model/cost experiment or production promotion was run"
+  ],
+  "rootAuthorityVerified": false,
+  "routingPinVerified": false,
+  "historyTransferVerified": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "originCutoverAuthenticated": false,
+  "legacyWriterDrainVerified": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}
