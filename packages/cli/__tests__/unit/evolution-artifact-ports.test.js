@@ -1047,8 +1047,8 @@ describe("EvolutionArtifactPorts", () => {
         if (denyIndexMethods) throw new Error("ledger resolution invoked get");
         return super.get(id);
       }
-      verifyIntegrity(entry) {
-        const result = super.verifyIntegrity(entry);
+      verifyIntegrity(entry, bounds) {
+        const result = super.verifyIntegrity(entry, bounds);
         if (changeDuringRead) {
           changeDuringRead = false;
           writeIndex(
