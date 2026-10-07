@@ -89,6 +89,72 @@ function preparedFrom(store) {
 function markerPath(prepared, name) {
   return path.join(prepared[name].rootDir, "_tenant.json");
 }
+function emulateLargeFileIds(parentDir, collision = null) {
+  const lstat = fs.lstatSync;
+  const fstat = fs.fstatSync;
+  const open = fs.openSync;
+  const close = fs.closeSync;
+  const descriptors = new Map();
+  const identities = new Map();
+  const base = 1n << 60n;
+  const contains = (target) =>
+    typeof target === "string" &&
+    (target === parentDir || target.startsWith(`${parentDir}${path.sep}`));
+  const remap = (stat, original) => {
+    // This fixture stays on one volume. Key by the real BigInt inode, never
+    // its rounded Number or libuv's differing path/handle device projection.
+    const key = String(original.ino);
+    if (!identities.has(key)) {
+      identities.set(key, {
+        inode: base + BigInt(identities.size + 1),
+        directory: original.isDirectory(),
+      });
+    }
+    const entry = identities.get(key);
+    const inode =
+      (collision === "directory" && entry.directory) ||
+      (collision === "marker" && !entry.directory)
+        ? base + 32n
+        : entry.inode;
+    return Object.defineProperty(stat, "ino", {
+      value: typeof stat.ino === "bigint" ? inode : Number(inode),
+      enumerable: true,
+      configurable: true,
+    });
+  };
+  vi.spyOn(fs, "lstatSync").mockImplementation((target, ...args) => {
+    const stat = lstat(target, ...args);
+    return contains(target)
+      ? remap(
+          stat,
+          typeof stat.ino === "bigint" ? stat : lstat(target, { bigint: true }),
+        )
+      : stat;
+  });
+  vi.spyOn(fs, "openSync").mockImplementation((target, ...args) => {
+    const fd = open(target, ...args);
+    if (contains(target)) descriptors.set(fd, target);
+    return fd;
+  });
+  vi.spyOn(fs, "fstatSync").mockImplementation((fd, ...args) => {
+    const stat = fstat(fd, ...args);
+    // The staging file's first identity read is fstat, before any lstat.
+    return descriptors.has(fd)
+      ? remap(
+          stat,
+          typeof stat.ino === "bigint" ? stat : fstat(fd, { bigint: true }),
+        )
+      : stat;
+  });
+  vi.spyOn(fs, "closeSync").mockImplementation((fd) => {
+    try {
+      return close(fd);
+    } finally {
+      descriptors.delete(fd);
+    }
+  });
+  return identities;
+}
 function admission() {
   return {
     schema: SKILL_CANDIDATE_TARGET_MATRIX_ADMISSION_AUTHORITY_SCHEMA,
@@ -128,6 +194,71 @@ afterEach(() => {
 });
 
 describe("authenticated fresh Registry provisioning before Registry construction", () => {
+  describe("64-bit provisioning identities", () => {
+    const largeRoots = [];
+    let largeFixture;
+    beforeAll(() => {
+      largeFixture = fixture({}, largeRoots);
+    }, 60_000);
+    afterAll(() => cleanupFixtures(largeRoots), 60_000);
+
+    it("commits and reopens distinct 64-bit file IDs that collide as Numbers", () => {
+      const { root, store, policy, request } = largeFixture;
+      const identities = emulateLargeFileIds(request.parentDir);
+      const result = policy.provisionFresh(request);
+      expect(result.phase).toBe("committed");
+      expect(policy.read(request.operationId)).toEqual(result);
+      const reopenedStore = openLedgerV2Fixture(
+        path.join(root, "store"),
+        scope,
+      );
+      const reopened = createRrsiRegistryStorePolicy(
+        composition(reopenedStore),
+      );
+      expect(reopened.read(request.operationId)).toEqual(result);
+      expect(policyEvents(store)).toHaveLength(3);
+
+      const entries = [...identities.values()];
+      expect(entries.filter((entry) => entry.directory)).toHaveLength(8);
+      expect(entries.filter((entry) => !entry.directory)).toHaveLength(2);
+      expect(new Set(entries.map((entry) => entry.inode)).size).toBe(10);
+      expect(new Set(entries.map((entry) => Number(entry.inode))).size).toBe(1);
+      expect([
+        result.prepared.parent.identity,
+        ...result.prepared.directories.map((entry) => entry.identity),
+      ]).toEqual(
+        expect.arrayContaining(
+          entries
+            .filter((entry) => entry.directory)
+            .map((entry) =>
+              expect.stringMatching(new RegExp(`:${entry.inode}$`)),
+            ),
+        ),
+      );
+    }, 60_000);
+  });
+
+  it.each(["directory", "marker"])(
+    "keeps genuinely identical 64-bit %s identities on HOLD",
+    (collision) => {
+      const { store, policy, request } = fixture();
+      emulateLargeFileIds(request.parentDir, collision);
+      expect(() => policy.provisionFresh(request)).toThrowError(
+        expect.objectContaining({
+          code: RRSI_REGISTRY_STORE_POLICY_HOLD_CODE,
+          message:
+            collision === "directory"
+              ? "prepared directories are not independent"
+              : "marker files must be independent",
+        }),
+      );
+      expect(policyEvents(store)).toHaveLength(
+        collision === "directory" ? 0 : 2,
+      );
+    },
+    60_000,
+  );
+
   describe.sequential("committed fresh pair readback and containment", () => {
     const sharedRoots = [];
     let shared, before, result;
