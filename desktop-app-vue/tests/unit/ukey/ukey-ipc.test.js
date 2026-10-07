@@ -116,8 +116,8 @@ describe("U-Key IPC 处理器", () => {
   // =====================================================================
 
   describe("基本功能测试", () => {
-    it("should register exactly 25 U-Key IPC handlers", () => {
-      expect(Object.keys(handlers).length).toBe(25);
+    it("should register exactly 26 U-Key IPC handlers", () => {
+      expect(Object.keys(handlers).length).toBe(26);
     });
 
     it("should include all required handler channels", () => {
@@ -131,6 +131,7 @@ describe("U-Key IPC 处理器", () => {
         "ukey:lock",
         "ukey:get-public-key",
         "auth:verify-password",
+        "auth:logout",
         // Phase 45: Unified Key + FIDO2
         "ukey:derive-key",
         "ukey:list-keys",
@@ -422,8 +423,8 @@ describe("U-Key IPC 处理器", () => {
   // =====================================================================
 
   describe("总体验证", () => {
-    it("should register all 25 U-Key IPC handlers", () => {
-      expect(Object.keys(handlers).length).toBe(25);
+    it("should register all 26 U-Key IPC handlers", () => {
+      expect(Object.keys(handlers).length).toBe(26);
     });
 
     it("should have all required handler channels", () => {
@@ -481,7 +482,7 @@ describe("U-Key IPC 处理器", () => {
         ipcMain: mockIpcMain2,
         ipcGuard: mockIpcGuard2,
       });
-      expect(Object.keys(handlers2).length).toBe(25);
+      expect(Object.keys(handlers2).length).toBe(26);
     });
   });
 });

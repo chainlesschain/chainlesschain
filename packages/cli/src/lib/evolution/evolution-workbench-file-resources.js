@@ -13,11 +13,20 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const STORAGE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 const FILE_RESOURCES = new WeakSet();
+const FILE_BACKEND_BINDINGS = new WeakMap();
 
 export function captureWorkbenchFileResources(value) {
   if (!FILE_RESOURCES.has(value))
     throw new TypeError("genuine Workbench file resources are required");
   return value;
+}
+
+/** Root composition retains the exact backends; public resource bytes stay compatible. */
+export function captureWorkbenchFileBackendBinding(value) {
+  const binding = FILE_BACKEND_BINDINGS.get(value);
+  if (!binding)
+    throw new TypeError("genuine Workbench file backend bindings are required");
+  return binding;
 }
 const DESCRIPTOR_KEYS = [
   "tenantId",
@@ -327,7 +336,7 @@ export function openEvolutionWorkbenchFileResources(input) {
       artifactPorts.createEvolutionLedgerArtifactResolver({
         purpose: descriptor.purpose,
       });
-    const { ledger } = createEvolutionLedgerFileBackend({
+    const backend = createEvolutionLedgerFileBackend({
       rootDir: storage.ledgerRootDir,
       authorityRootDir: storage.ledgerAuthorityRootDir,
       witnessFilePath: storage.witnessFilePath,
@@ -339,6 +348,7 @@ export function openEvolutionWorkbenchFileResources(input) {
       fsImpl: io,
       clock: now,
     });
+    const { ledger } = backend;
     const ports = createEvolutionLedgerPorts({
       artifactPorts,
       ledger,
@@ -356,6 +366,7 @@ export function openEvolutionWorkbenchFileResources(input) {
       fsImpl: io,
     });
     return {
+      backend,
       artifactPorts,
       ledger,
       ledgerArtifactResolver,
@@ -399,5 +410,12 @@ export function openEvolutionWorkbenchFileResources(input) {
     }),
   });
   FILE_RESOURCES.add(result);
+  FILE_BACKEND_BINDINGS.set(
+    result,
+    Object.freeze({
+      backend: primary.backend,
+      verifierBackend: verifier.backend,
+    }),
+  );
   return result;
 }

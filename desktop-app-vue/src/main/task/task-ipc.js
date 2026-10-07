@@ -60,6 +60,9 @@ function registerTaskIPC(database) {
   require("./task-description-ipc").registerTaskDescriptionIPC(
     resolveDatabase(database),
   );
+  const projectGoalHost = require("./project-goal-ipc").registerProjectGoalIPC(
+    resolveDatabase(database),
+  );
 
   // ========================================
   // Board Management (8 handlers)
@@ -916,6 +919,7 @@ function registerTaskIPC(database) {
   });
 
   logger.info("[IPC] 团队任务管理IPC处理器注册完成 (49个handlers)");
+  return projectGoalHost;
 }
 
 module.exports = {

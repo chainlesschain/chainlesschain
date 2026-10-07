@@ -818,7 +818,7 @@ const handleNavClick = (item) => {
 };
 
 // 处理用户操作
-const handleUserAction = (action) => {
+const handleUserAction = async (action) => {
   switch (action) {
     case "profile":
       router.push("/profile");
@@ -827,8 +827,12 @@ const handleUserAction = (action) => {
       router.push("/settings");
       break;
     case "logout":
-      authStore.logout();
-      router.push("/login");
+      try {
+        await authStore.logout();
+        router.push("/login");
+      } catch {
+        message.error("退出登录未完成，请重试。");
+      }
       break;
   }
 };

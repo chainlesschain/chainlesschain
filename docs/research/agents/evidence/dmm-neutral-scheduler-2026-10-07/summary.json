@@ -1,0 +1,331 @@
+{
+  "schema": "chainlesschain.dmm-neutral-scheduler-evidence/v1",
+  "createdAt": "2026-10-06T19:58:26.306Z",
+  "sourceState": "uncommitted-worktree",
+  "baseCommit": "c885bd7cb6fd1203c16b84d1b73766c94080880d",
+  "branch": "feature/dots-muse-mods-foundation",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "vitestVersion": "4.1.10",
+  "testReports": [
+    {
+      "report": "cli-tests.json",
+      "files": 20,
+      "passed": 362,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "packages/cli/__tests__/unit/agent-goal-binding.test.js",
+        "packages/cli/__tests__/unit/claude-project-storage.test.js",
+        "packages/cli/__tests__/unit/config-security.test.js",
+        "packages/cli/__tests__/unit/goal-assess.test.js",
+        "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+        "packages/cli/__tests__/unit/goal-context.test.js",
+        "packages/cli/__tests__/unit/goal-repository.test.js",
+        "packages/cli/__tests__/unit/goal-store.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js",
+        "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+        "packages/cli/__tests__/unit/scheduler-graph-authority-adapter.test.js",
+        "packages/cli/__tests__/unit/scheduler-kernel-authority-resolver.test.js",
+        "packages/cli/__tests__/unit/scheduler-kernel-runtime.test.js",
+        "packages/cli/__tests__/unit/scheduler-kernel-service.test.js",
+        "packages/cli/__tests__/unit/scheduler-kernel-store.test.js",
+        "packages/cli/__tests__/unit/scheduler-runtime-control-capabilities.test.js",
+        "packages/cli/__tests__/unit/scheduler-runtime-host-boundary.test.js",
+        "packages/cli/__tests__/unit/scheduler-source-locator-path.test.js",
+        "packages/cli/__tests__/unit/task-create-action-service.test.js",
+        "packages/cli/__tests__/unit/task-description-action-service.test.js"
+      ]
+    },
+    {
+      "report": "session-core-tests.json",
+      "files": 2,
+      "passed": 91,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "packages/session-core/__tests__/business-object-contract.test.js",
+        "packages/session-core/__tests__/goal-contract.test.js"
+      ]
+    },
+    {
+      "report": "desktop-tests.json",
+      "files": 4,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "testFiles": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js"
+      ]
+    }
+  ],
+  "packedHost": {
+    "report": "packed-host.tap",
+    "files": 1,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "totalFiles": 27,
+  "totalPassed": 521,
+  "totalFailed": 0,
+  "totalSkipped": 0,
+  "scope": [
+    "shared-scheduler-contract-service",
+    "versioned-goal-contract",
+    "legacy-cli-file-cas",
+    "native-personal-project-storage",
+    "injected-electron-ipc-boundary",
+    "isolated-npm-pack-loading",
+    "shared-native-scheduler-runtime-store",
+    "host-storage-protection",
+    "live-authorization-and-explicit-graph-mode",
+    "windows-acl-regression"
+  ],
+  "notRun": [
+    "real-electron-gui-journey",
+    "process-crash-recovery-drill",
+    "real-business-outcomes",
+    "remote-exact-commit-release-matrix"
+  ],
+  "draftExcludedFromCommit": [
+    "packages/session-core/lib/project-goal-monitoring.js",
+    "packages/session-core/lib/project-risk-review-service.js"
+  ],
+  "draftRegressionNote": "Risk review existing API regressions ran with the uncommitted transaction composition draft. Monitoring behavior and composition were not validated by these reports.",
+  "sourceDigests": [
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "sha256": "6e403c48f228ca1e39e0d31ea1a8ebc14d7df1720bebc27f71d938638db89056"
+    },
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "sha256": "819b1ffb34c3644058709193ef952aabe7630c9edbf52ae69fd6bb81255445b5"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+      "sha256": "d488ee962ad990bd2a29d3c746539f8d5d3a5900fda14662aab887b0d778358a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+      "sha256": "a6bcb10ae9d0daa66f9efa9a095b2319e4418095dbcfd17aa6bb5d5f8bfb3f75"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+      "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "sha256": "6d5a252a00c994f10946acfe0cbb3ac3c9b2ddf0edf173a810853a65ec0e05e1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "sha256": "d119f137e812a70d75fcee77590dfbf6cc609d003d44ca85bcf180b8f2c1a6cf"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+      "sha256": "e9aad0a9b9272863b100de5ae494252d641e0b853af3a017a74fe0146c5530fb"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "sha256": "5c84705a8675084df5dd984a3a0c9bd2f41c2df3cfc6ce07928b8b320618f346"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "sha256": "3ce4f1ac2e785bcdb8b5b1d9f9b3f0940a43f293505a405831599ed493259f49"
+    },
+    {
+      "path": "desktop-app-vue/vitest.business-actions.config.mjs",
+      "sha256": "de724968eb6fa614aae60f4160e9efe345de18ebd14c34fcad4a96a8611868a8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-goal-binding.test.js",
+      "sha256": "3103a3e3bbdabbe144dcc5ab351b7ea0de41d4f673d7dd2048d2ef594d86e6af"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/claude-project-storage.test.js",
+      "sha256": "a34f60f9737228fffedc6864faadf92ef56c129db486612d444b51e1e67c25ae"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/config-security.test.js",
+      "sha256": "474cd66d53f68617142439b2156f5cd42ae5551af31476f8ea2efcd6cbf7e093"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-assess.test.js",
+      "sha256": "aef084e75c48fb5b3944c3f72206f504bd8d97dcb5d83c109c0b92a3ddbded8a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+      "sha256": "17d98bc055758ba220a335cd2fb35f23145bd4d46b40991f2733101e00dfd48a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-context.test.js",
+      "sha256": "65a490a7853803d69667d3538f55a5a67cb6244bf96c6e93b2d3228e68529ec3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-repository.test.js",
+      "sha256": "1ab81be325e5e16544aa02c2f9be066a058197bc43756e241b0f15ae331337c7"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-store.test.js",
+      "sha256": "7e4b9ef4cf6ebacd8f67d40a0b88636bbe4e095059626a123e7dcf698dec7a1e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+      "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+      "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-graph-authority-adapter.test.js",
+      "sha256": "e5d0bbd7158d3ee1fbc533cf34afbae57381f3234f0be26f826702aa7f72e77c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-kernel-authority-resolver.test.js",
+      "sha256": "bfa2b4690ef59ee964957bf87a3e77fcd6fa8015f736593bc6a30d680cf88622"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-kernel-runtime.test.js",
+      "sha256": "215c1c329e49d9c52e497e9aac046840d3b096012d62310362907c08455a60f4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-kernel-service.test.js",
+      "sha256": "ae90f9a930c9a6484892150c247ac5727d917d2f8d818cae5aec2e1c2594f7b0"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-kernel-store.test.js",
+      "sha256": "6d6f838424967ae6735a800a87e18ba65d1c2651594cacedf64d3a9fca448bac"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-runtime-control-capabilities.test.js",
+      "sha256": "bd8b7105a49c33b642ab022f5d8ed0a08db9ad7f7cbae27bac09789ddf1331ba"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-runtime-host-boundary.test.js",
+      "sha256": "0cec4cccab5348a9327c884919de816fd4c79421f15978ec18db3931c0d4b177"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/scheduler-source-locator-path.test.js",
+      "sha256": "28901a387a73bae9e573741fac43de271b2752b8ee87ecf79eedfbedf2521e62"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+      "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+      "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-quality-eval-runtime.js",
+      "sha256": "3f7952c8baca95d3fc8337f31e48c5301c971471d898db53ee1bd7373d05f200"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-store.js",
+      "sha256": "f5872c071b3cb77ea562a809148c7b50dcc4dc1eb71a33f900d3677c1a2da5eb"
+    },
+    {
+      "path": "packages/cli/src/lib/scheduler-kernel/contract.js",
+      "sha256": "e5976948a5b00ae7dea2ff4f8c09e86b0eb9c804d5a46a1a053230fd0c5cab0c"
+    },
+    {
+      "path": "packages/cli/src/lib/scheduler-kernel/runtime.js",
+      "sha256": "ce247edfabad8b63aaa6064bbf94f26aa204be2424887b60aa5787f9f41c2077"
+    },
+    {
+      "path": "packages/cli/src/lib/scheduler-kernel/service.js",
+      "sha256": "f17e067c120f919111845cb00f19a47363bc31aaa915f5c5ea6f3596ddf0e105"
+    },
+    {
+      "path": "packages/cli/src/lib/scheduler-kernel/source-locator-path.js",
+      "sha256": "2854e1841fa4520d7133e3ca4806fde8a4f77dbcf5af38b841e8b146c637ca4d"
+    },
+    {
+      "path": "packages/cli/src/lib/scheduler-kernel/store.js",
+      "sha256": "5739dba39da8234e65fd0f63608e5e504d228651f5ddda0b20193eea0aa7bc27"
+    },
+    {
+      "path": "packages/cli/src/lib/secure-fs.js",
+      "sha256": "40b027bf8ea3e249432f03d60db872e781d25233f7da92c3865f4fa98960a112"
+    },
+    {
+      "path": "packages/session-core/__tests__/business-object-contract.test.js",
+      "sha256": "eeeeb71f5c75edc7ee6ffd96b8de27f12de6b8147a92316dd77708f6978bf57a"
+    },
+    {
+      "path": "packages/session-core/__tests__/goal-contract.test.js",
+      "sha256": "185721f24f73204d1de166206c894eb85f4814f9874ed67eb3a62c1c8ecc35f2"
+    },
+    {
+      "path": "packages/session-core/__tests__/scheduler-host-boundary.node.cjs",
+      "sha256": "40a0b00288116de1145b1e9cb2b2459e8926fa8feaed54037b30f803857e0b3b"
+    },
+    {
+      "path": "packages/session-core/lib/goal-contract.js",
+      "sha256": "983bedb52e4714cb63c797e91275d38aee8cac4705db4dd8239d6fcf3c57e217"
+    },
+    {
+      "path": "packages/session-core/lib/goal-repository.js",
+      "sha256": "b80faf969b0386648dbbc4590269a2288200683d36e75dda7c04717e7801a1a7"
+    },
+    {
+      "path": "packages/session-core/lib/host-storage-environment.js",
+      "sha256": "c2b89a0c02d1ea505b67fdd78c02d24ecbd9b238cf82b08c24d1a63e2d76e53a"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage.js",
+      "sha256": "60a942d42cb6a2cdf58dff124ee2ab133fd92e8b165c43bc00edcb4e8bfde5b3"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "sha256": "5bd1ff6652fd5d336430e5bcc8e246dfe89aeacbafb081113479029c1083a153"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-contract.js",
+      "sha256": "68d06ffd85884ef493f72d0773ef91e64de054f79c8bc00b32cc8010af849738"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-runtime.js",
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-service.js",
+      "sha256": "2ab4c6089dd0ba45fc972b4c9ba00b348aa3ba858399e6afda89faa7d22a0232"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-source-path.js",
+      "sha256": "f9668eb254546ec671845d3cf1889bed2df86a78c40d2006429f4931a46e1628"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-store.js",
+      "sha256": "faebc8af8d13dc69dfc09df537c5a816d0dc65ea0372bd331872c832edbf2d80"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "sha256": "6e61c093efe577e3fcf79c87ee57aec309c8909bbdabd237c20b61eaab7360c5"
+    }
+  ],
+  "reportDigests": [
+    {
+      "path": "cli-tests.json",
+      "sha256": "0343b09c8ffe124de51f36e6e9de4b3b0e1974ef441d5fbffb8a3ebd77270699"
+    },
+    {
+      "path": "session-core-tests.json",
+      "sha256": "c1d0b73fcc1596d6adbecd8d82828ebab9277eae9d7dd3c14b8f279cc9d472ee"
+    },
+    {
+      "path": "desktop-tests.json",
+      "sha256": "b88d2ea53508fdd30193990da8a78d5b7d344a5b1f01312a21fc1f5e4ce8a71b"
+    },
+    {
+      "path": "packed-host.tap",
+      "sha256": "49daf93ac2070ad0e0e11f736be198c346ffb0dcd14940604a3c350f076aad34"
+    }
+  ]
+}

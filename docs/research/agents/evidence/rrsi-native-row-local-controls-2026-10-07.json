@@ -1,0 +1,128 @@
+{
+  "schema": "chainlesschain.rrsi-native-row-local-controls/v1",
+  "recordedAt": "2026-10-06T23:54:24.736Z",
+  "baseCommit": "6ed173c65f28d84f5faada59364eabc159e54aee",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-eval-row-collector.js",
+      "digest": "sha256:88558a8a1906893c4a0048d28c5c4ec572ca2ca51d763cfcfc7a8edcdabbb3af"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-eval-gate.js",
+      "digest": "sha256:c179d4574535ed37342f606fa165d6e3cbae17a4230bcfc9e403f868a6b1de8a"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-cohort-store.js",
+      "digest": "sha256:909e3b012b04103ac3a559452eaa309c86ecb9cea00dbf7d27f5a620ed5b1a76"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-evaluation.js",
+      "digest": "sha256:73bee3520c2743d88590b5861b24a9edb6b382d65d4d614baa5405c4f6d62128"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-batch.js",
+      "digest": "sha256:9abab8d879affdef0c9e7177c60cf8d604645f3fa6a3b9729840491278edd711"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "digest": "sha256:fc9250d20d64eddb952004130930114a83e6669a09a1dc24ead3365f85ab0324"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-native-row-final-tests.json",
+      "digest": "sha256:bb755598323dd96e4070c18ec4771f28b01d8418876ed23671d31b074e75b16a"
+    }
+  ],
+  "files": [
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "passed": 214,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-adapter.test.js",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-evaluation-variants.test.js",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-group-statistics.test.js",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-evaluation-plan.test.js",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 6,
+    "passed": 291,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": 23,
+  "lint": "ESLint passed for both source files, all three fixtures, and the changed Gate test file",
+  "formatting": "Prettier passed for source/tests/fixtures/docs/evidence",
+  "independentReadOnlyReview": "Astra reviewed genuine RRSI v2 enrollment/native plan and variant binding, sealed admission-derived run identity, per-child bounds, preserved original Gate veto, five-kind execution claim uniqueness, receipt-only denominator bindings, final synchronous captured-clock freshness and 64-target window capture. Reviewer did not run tests or modify files.",
+  "controls": {
+    "genuineNativeCohortEnrollmentV2Required": true,
+    "originalNativePlanAndAllExpectedContextFieldsPreserved": true,
+    "suitePolicyVariantAndTrainingSourcesFromFrozenContext": true,
+    "runIdNonceFromActualSealedAdmissions": true,
+    "allCohortSlotsRetained": true,
+    "perChildRowChunksAndBrandedReadonlyAccess": true,
+    "missingAdmissionReceiptRowsAndTerminalNoRowsDistinguished": true,
+    "originalGateRejectionsReasonCodesAndUsagePreserved": true,
+    "sameCohortExecutionGradeSafetyAndSubjectClaimsUnique": true,
+    "identicalOutputArtifactsAllowed": true,
+    "receiptOnlySplitCountsConfidenceAndTrainingBound": true,
+    "finalReceiptSetFreshnessUsesVerifierCapturedClock": true,
+    "sixtyFourIndependentValidityWindowsSupported": true,
+    "jsonCopiesCannotSelfAuthenticate": true
+  },
+  "collectionScope": "one-complete-cohort-only; allCohortIds retained for future batch census",
+  "validityScope": "fresh at publication under the verifier captured clock; live capture exposes read-only recheck; exports retain issuedAt/expiresAt",
+  "localOnly": true,
+  "rrsiEnrollmentV2Implemented": true,
+  "nativeSignedRowCollectorImplemented": true,
+  "fullNativeBatchRowCollectorImplemented": false,
+  "crossCohortExecutionClaimsVerified": false,
+  "nativeStatisticsV2Implemented": false,
+  "nativeLaunchRuntimeImplemented": false,
+  "armLifecycleVerified": false,
+  "recipeExecutionVerified": false,
+  "sourceProvenanceVerified": false,
+  "underlyingExecutionReceiptsReverified": false,
+  "completeLifecycleCostVerified": false,
+  "cleanupReverified": false,
+  "statisticalProtocolValidated": false,
+  "paidProviderRequestsExecuted": false,
+  "actualRequestCostGraphVerified": false,
+  "nativeContentDerivationVerified": false,
+  "nativeExecutionDenominatorVerified": false,
+  "productionBudgetAuthorityVerified": false,
+  "productionLatencyValidated": false,
+  "billingComplete": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

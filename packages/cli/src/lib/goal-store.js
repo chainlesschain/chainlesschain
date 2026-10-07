@@ -18,8 +18,15 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { getHomeDir } from "./paths.js";
 import { withFileLock } from "./with-file-lock.js";
+import {
+  createGoalRecord,
+  validateGoalRecord,
+  upgradeLegacyGoal,
+  goalError,
+} from "@chainlesschain/session-core/goal-contract";
 
 /** Valid goal lifecycle states. `active` goals are the ones injected. */
 export const GOAL_STATUS = Object.freeze({
@@ -33,6 +40,25 @@ const STATUS_VALUES = new Set(Object.values(GOAL_STATUS));
 
 function defaultRoot() {
   return path.join(getHomeDir(), "goals");
+}
+
+/** Store identity is path-bound metadata, not filesystem authorization. */
+export function goalFileStoreId(root = defaultRoot()) {
+  const resolved = path.resolve(root);
+  const canonical =
+    process.platform === "win32" ? resolved.toLowerCase() : resolved;
+  return `cli-goals-${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+function fileRecord(value, root) {
+  const record = upgradeLegacyGoal(value, goalFileStoreId(root));
+  if (record.storeId !== goalFileStoreId(root))
+    throw goalError("GOAL_STORE_MISMATCH");
+  // Files are the legacy standalone CLI store. Project authority lives in the
+  // host database and must not be acquired by copying a record into this dir.
+  if (record.ownerRef !== null || record.projectRef !== null)
+    throw goalError("GOAL_PROJECT_STORE_REQUIRED");
+  return record;
 }
 
 function ensureDir(dir) {
@@ -83,6 +109,7 @@ function isUnsafeGoalId(id) {
     id == null ||
     id === "" ||
     typeof id !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/u.test(id) ||
     id.includes("/") ||
     id.includes("\\") ||
     id.includes("..")
@@ -133,17 +160,15 @@ export function createGoal(input = {}, opts = {}) {
   }
   const keyResults = (input.keyResults || []).map((kr) => normalizeKr(kr));
   const goal = {
-    id,
-    title: String(input.title || objective).trim(),
-    objective,
-    keyResults,
-    status: GOAL_STATUS.ACTIVE,
+    ...createGoalRecord({
+      id,
+      storeId: goalFileStoreId(root),
+      title: String(input.title || objective).trim(),
+      objective,
+      keyResults,
+      createdAt: nowIso(),
+    }),
     progress: derivedProgress(keyResults) ?? 0,
-    linkedSessions: [],
-    notes: [],
-    drift: { lastProgressAt: null, flags: [] },
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
   };
   ensureDir(root);
   const file = goalFile(root, id);
@@ -186,21 +211,42 @@ export function getGoal(id, opts = {}) {
   const file = goalFile(root, id);
   if (!fs.existsSync(file)) return null;
   try {
-    return JSON.parse(fs.readFileSync(file, "utf-8"));
+    const value = JSON.parse(fs.readFileSync(file, "utf-8"));
+    if (value?.id !== id) return null;
+    if (Object.hasOwn(value, "schema") || Object.hasOwn(value, "schemaVersion"))
+      fileRecord(value, root);
+    return value;
   } catch {
     return null;
   }
 }
 
-function saveGoal(goal, opts = {}) {
+function saveGoal(goal, opts = {}, before = null) {
   if (isUnsafeGoalId(goal && goal.id)) {
     throw new Error(`非法 goal id: ${String(goal && goal.id).slice(0, 60)}`);
   }
   const root = opts.root || defaultRoot();
   ensureDir(root);
-  goal.updatedAt = nowIso();
-  atomicWriteFileSync(goalFile(root, goal.id), JSON.stringify(goal, null, 2));
-  return goal;
+  const previous = before || fileRecord(goal, root);
+  const migrated = goal.schema ? goal : { ...fileRecord(goal, root) };
+  if (previous.completion !== null && migrated.status === "done")
+    throw goalError("GOAL_TERMINAL_REVISION_DENIED");
+  const controls = ["status", "objective", "keyResults"];
+  const changedControl = controls.some(
+    (key) => JSON.stringify(previous[key]) !== JSON.stringify(migrated[key]),
+  );
+  const saved = fileRecord(
+    {
+      ...migrated,
+      revision: previous.revision + 1,
+      controlGeneration: previous.controlGeneration + (changedControl ? 1 : 0),
+      completion: null,
+      updatedAt: nowIso(),
+    },
+    root,
+  );
+  atomicWriteFileSync(goalFile(root, goal.id), JSON.stringify(saved, null, 2));
+  return saved;
 }
 
 /** List goals, newest first. Optionally filter by status. */
@@ -233,8 +279,64 @@ function mutate(id, fn, opts = {}) {
     () => {
       const goal = getGoal(id, opts);
       if (!goal) throw new Error(`no such goal: ${id}`);
+      let before;
+      try {
+        before = fileRecord(goal, root);
+      } catch (error) {
+        // Older CLI records had unbounded notes/strings. Preserve their full
+        // history and existing controls if the bounded contract cannot accept
+        // them. This fallback is never available to a versioned record.
+        if (
+          Object.hasOwn(goal, "schema") ||
+          Object.hasOwn(goal, "schemaVersion") ||
+          ![
+            "GOAL_INVALID_ARRAY",
+            "GOAL_INVALID_TEXT",
+            "GOAL_INVALID_JSON",
+          ].includes(error.code)
+        )
+          throw error;
+        const revision = goal.revision ?? 1;
+        const generation = goal.controlGeneration ?? 0;
+        if (
+          !Number.isSafeInteger(revision) ||
+          revision < 1 ||
+          !Number.isSafeInteger(generation) ||
+          generation < 0 ||
+          !Number.isSafeInteger(revision + 1) ||
+          !Number.isSafeInteger(generation + 1)
+        )
+          throw goalError("GOAL_INVALID_REVISION");
+        if (
+          opts.expectedRevision !== undefined &&
+          opts.expectedRevision !== revision
+        )
+          throw goalError("GOAL_REVISION_CONFLICT");
+        const controls = JSON.stringify([
+          goal.status,
+          goal.objective,
+          goal.keyResults,
+        ]);
+        fn(goal);
+        goal.revision = revision + 1;
+        goal.controlGeneration =
+          generation +
+          (controls !==
+          JSON.stringify([goal.status, goal.objective, goal.keyResults])
+            ? 1
+            : 0);
+        goal.updatedAt = nowIso();
+        atomicWriteFileSync(goalFile(root, id), JSON.stringify(goal, null, 2));
+        return goal;
+      }
+      if (
+        opts.expectedRevision !== undefined &&
+        (!Number.isSafeInteger(opts.expectedRevision) ||
+          opts.expectedRevision !== before.revision)
+      )
+        throw goalError("GOAL_REVISION_CONFLICT");
       fn(goal);
-      return saveGoal(goal, opts);
+      return saveGoal(goal, opts, before);
     },
     { failIfUnavailable: true },
   );
@@ -385,6 +487,15 @@ export function deleteGoal(id, opts = {}) {
     file,
     () => {
       if (!fs.existsSync(file)) return false;
+      if (opts.expectedRevision !== undefined) {
+        const current = getGoal(id, { root });
+        if (
+          !current ||
+          !Number.isSafeInteger(opts.expectedRevision) ||
+          opts.expectedRevision !== (current.revision ?? 1)
+        )
+          throw goalError("GOAL_REVISION_CONFLICT");
+      }
       fs.rmSync(file);
       return true;
     },
@@ -418,4 +529,102 @@ export function resolveActiveGoal(sel = {}, opts = {}) {
   if (active.length === 1) return active[0];
   // Ambiguous (multiple active, none linked) — caller must pick explicitly.
   return null;
+}
+
+/** Injectable repository adapter using the same files/strict locks as cc goal.
+ * Reading a legacy file upgrades the returned view only; it never rewrites the
+ * file, binds an owner or enables scheduling. */
+export function createGoalFileAdapter(opts = {}) {
+  const root = opts.root || defaultRoot();
+  const storeId = goalFileStoreId(root);
+  function read(id) {
+    if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
+    const file = goalFile(root, id);
+    if (!fs.existsSync(file)) return null;
+    let value;
+    try {
+      value = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      throw goalError("GOAL_RECORD_CORRUPT");
+    }
+    const record = fileRecord(value, root);
+    if (record.id !== id) throw goalError("GOAL_RECORD_CORRUPT");
+    return record;
+  }
+  return Object.freeze({
+    storeId,
+    get: read,
+    create(value) {
+      const record = fileRecord(value, root);
+      if (isUnsafeGoalId(record.id)) throw goalError("GOAL_INVALID_ID");
+      if (
+        record.revision !== 1 ||
+        record.controlGeneration !== 0 ||
+        record.status !== "active"
+      )
+        throw goalError("GOAL_INVALID_INITIAL_STATE");
+      ensureDir(root);
+      return withFileLock(
+        goalFile(root, record.id),
+        () => {
+          if (fs.existsSync(goalFile(root, record.id)))
+            throw goalError("GOAL_ALREADY_EXISTS");
+          atomicWriteFileSync(
+            goalFile(root, record.id),
+            JSON.stringify(record, null, 2),
+          );
+          return record;
+        },
+        { failIfUnavailable: true },
+      );
+    },
+    compareAndSwap(id, expectedRevision, transform) {
+      if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
+      if (
+        !Number.isSafeInteger(expectedRevision) ||
+        expectedRevision < 1 ||
+        typeof transform !== "function"
+      )
+        throw goalError("GOAL_INVALID_REVISION");
+      if (!fs.existsSync(goalFile(root, id)))
+        throw goalError("GOAL_NOT_FOUND_OR_DENIED");
+      return withFileLock(
+        goalFile(root, id),
+        () => {
+          const current = read(id);
+          if (current === null) throw goalError("GOAL_NOT_FOUND_OR_DENIED");
+          if (current.revision !== expectedRevision)
+            throw goalError("GOAL_REVISION_CONFLICT");
+          const next = fileRecord(validateGoalRecord(transform(current)), root);
+          if (
+            next.id !== id ||
+            next.revision !== current.revision + 1 ||
+            next.controlGeneration < current.controlGeneration
+          )
+            throw goalError("GOAL_INVALID_REPLACEMENT");
+          atomicWriteFileSync(
+            goalFile(root, id),
+            JSON.stringify(next, null, 2),
+          );
+          return next;
+        },
+        { failIfUnavailable: true },
+      );
+    },
+    list({ status } = {}) {
+      if (status !== undefined && !STATUS_VALUES.has(status))
+        throw goalError("GOAL_INVALID_STATUS");
+      if (!fs.existsSync(root)) return [];
+      return fs
+        .readdirSync(root)
+        .filter((name) => name.endsWith(".json"))
+        .map((name) => read(name.slice(0, -5)))
+        .filter(
+          (record) =>
+            record !== null &&
+            (status === undefined || record.status === status),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+  });
 }

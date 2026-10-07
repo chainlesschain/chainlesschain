@@ -1966,7 +1966,7 @@ const handleNavClick = (item) => {
 };
 
 // 用户操作
-const handleUserAction = (key) => {
+const handleUserAction = async (key) => {
   logger.info("用户操作:", key);
   // 处理用户操作
   switch (key) {
@@ -1977,8 +1977,12 @@ const handleUserAction = (key) => {
       window.location.hash = "#/profile";
       break;
     case "logout":
-      authStore.logout();
-      window.location.hash = "#/login";
+      try {
+        await authStore.logout();
+        window.location.hash = "#/login";
+      } catch {
+        antMessage.error("退出登录未完成，请重试。");
+      }
       break;
     case "help":
       window.location.hash = "#/help";

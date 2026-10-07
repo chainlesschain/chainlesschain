@@ -22,6 +22,7 @@ import {
   EVOLUTION_LEDGER_QUERY_SCHEMA,
   EvolutionLedger,
 } from "./evolution-ledger.js";
+import { isEvolutionLedgerV2Journal } from "./evolution-ledger-v2-journal.js";
 import {
   SKILL_MUTATION_NONCE_ACK_SCHEMA,
   SKILL_MUTATION_OPERATIONS,
@@ -697,6 +698,37 @@ function requireStableInstance(value, prototype, label) {
   throw new TypeError(`${label} instance is required`);
 }
 
+// A migrated journal must execute its own recovery and retained-payload checks.
+// Never unwrap it to the source Ledger or accept matching ordinary callbacks.
+function captureLedgerJournal(ledger) {
+  rejectProxy(ledger, "EvolutionLedger journal");
+  const v2 = isEvolutionLedgerV2Journal(ledger);
+  if (!v2)
+    requireStableInstance(ledger, EvolutionLedger.prototype, "EvolutionLedger");
+  const methods = {};
+  for (const name of [
+    "appendDomainEvent",
+    "query",
+    "read",
+    "verify",
+    "verifyReceipt",
+  ]) {
+    const owner = v2 ? ledger : EvolutionLedger.prototype;
+    const field = Object.getOwnPropertyDescriptor(owner, name);
+    const method = field?.value;
+    if (typeof method !== "function" || utilTypes.isProxy(method))
+      throw portsError(
+        EVOLUTION_LEDGER_PORTS_INVALID_CODE,
+        "genuine Ledger journal method is missing",
+      );
+    // Do not invoke caller-editable function properties such as method.bind.
+    methods[name] = Object.freeze((...args) =>
+      Reflect.apply(method, ledger, args),
+    );
+  }
+  return Object.freeze({ ledger, methods: Object.freeze(methods) });
+}
+
 function captureDurabilityAuthority(value) {
   assertAllExactRecord(
     value,
@@ -1174,7 +1206,7 @@ class EvolutionLedgerDomainPorts {
     artifactPorts,
     artifactTenantId,
     audience,
-    ledger,
+    ledgerMethods,
     purpose,
   }) {
     this.#artifactTenantId = identifier(artifactTenantId, "artifactTenantId");
@@ -1184,29 +1216,20 @@ class EvolutionLedgerDomainPorts {
     this.#durabilityAuthority = artifactDurabilityAuthority;
     this.#durabilityAuthorityId = artifactDurabilityAuthority.id;
     this.#durabilityRetain = artifactDurabilityAuthority.retain;
-    this.#appendDomainEvent = Object.freeze(
-      EvolutionLedger.prototype.appendDomainEvent.bind(ledger),
+    this.#appendDomainEvent = ledgerMethods.appendDomainEvent;
+    this.#ledgerQuery = ledgerMethods.query;
+    this.#ledgerRead = ledgerMethods.read;
+    this.#ledgerVerify = ledgerMethods.verify;
+    this.#ledgerVerifyReceipt = ledgerMethods.verifyReceipt;
+    const putCanonical = EvolutionArtifactPorts.prototype.putCanonical;
+    this.#artifactPut = Object.freeze((...args) =>
+      Reflect.apply(putCanonical, artifactPorts, args),
     );
-    this.#ledgerQuery = Object.freeze(
-      EvolutionLedger.prototype.query.bind(ledger),
+    this.#artifactResolve = Reflect.apply(
+      EvolutionArtifactPorts.prototype.createEvolutionLedgerArtifactResolver,
+      artifactPorts,
+      [Object.freeze({ purpose: this.#purpose })],
     );
-    this.#ledgerRead = Object.freeze(
-      EvolutionLedger.prototype.read.bind(ledger),
-    );
-    this.#ledgerVerify = Object.freeze(
-      EvolutionLedger.prototype.verify.bind(ledger),
-    );
-    this.#ledgerVerifyReceipt = Object.freeze(
-      EvolutionLedger.prototype.verifyReceipt.bind(ledger),
-    );
-    this.#artifactPut = Object.freeze(
-      EvolutionArtifactPorts.prototype.putCanonical.bind(artifactPorts),
-    );
-    this.#artifactResolve =
-      EvolutionArtifactPorts.prototype.createEvolutionLedgerArtifactResolver.call(
-        artifactPorts,
-        Object.freeze({ purpose: this.#purpose }),
-      );
     this.#artifactResolveBatch = captureEvolutionLedgerBatchResolver(
       this.#artifactResolve,
     );
@@ -4078,16 +4101,15 @@ export function createEvolutionLedgerPorts(options = {}) {
     FACTORY_REQUIRED_KEYS,
     "evolution ledger ports options",
   );
-  const ledger = requireStableInstance(
+  const capturedLedger = captureLedgerJournal(
     ownData(
       options,
       "ledger",
       "evolution ledger ports options",
       EVOLUTION_LEDGER_PORTS_INVALID_CODE,
     ),
-    EvolutionLedger.prototype,
-    "EvolutionLedger",
   );
+  const { ledger, methods: ledgerMethods } = capturedLedger;
   const artifactPorts = requireStableInstance(
     ownData(
       options,
@@ -4123,7 +4145,7 @@ export function createEvolutionLedgerPorts(options = {}) {
           EVOLUTION_LEDGER_PORTS_INVALID_CODE,
         )
       : undefined,
-    ledger,
+    ledgerMethods,
     purpose: Object.hasOwn(options, "purpose")
       ? ownData(
           options,
@@ -4149,7 +4171,7 @@ export function createEvolutionLedgerPorts(options = {}) {
     prepare,
     query,
   });
-  const readCurrentHead = ledger.verify.bind(ledger);
+  const readCurrentHead = ledgerMethods.verify;
   RELEASE_OPERATION_READERS.set(
     transactionLedger,
     Object.freeze({
@@ -4172,6 +4194,7 @@ export function createEvolutionLedgerPorts(options = {}) {
         captureWikiRevisionReader(wikiAdapter).matchesLedger(ledger),
       ),
       matchesLedger: Object.freeze((value) => value === ledger),
+      matchesArtifactPorts: Object.freeze((value) => value === artifactPorts),
       resolveOperation: Object.freeze((input) =>
         adapter.resolveReleaseOperation(input),
       ),

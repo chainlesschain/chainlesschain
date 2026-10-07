@@ -1,0 +1,237 @@
+{
+  "schema": "chainlesschain.rrsi-native-quality-local-controls/v1",
+  "recordedAt": "2026-10-07T02:32:21.889Z",
+  "baseCommit": "e43e0b82219222c81e2083c82dc19aa2e05c97fd",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "digest": "sha256:8de467def1a2b910512fc5266c8b4a70e6d61021dac6b3a6875cc2503e2d298f"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-batch-evidence.js",
+      "digest": "sha256:0167df10811fd0cbd1b68a1e1ec29883b1e701b7def4c73d9021860b372e0d51"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-quality-receipt.js",
+      "digest": "sha256:99c7607dd8043a3b11122fe49ce622569f2a0ef5836ec2a9e72a736be0c5ff84"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-quality-receipt-contracts.js",
+      "digest": "sha256:e7065e1d7516eb1a7b5b74fc63f5a056ceca21c6bdb17f6378b0441367971c76"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "digest": "sha256:e7c64fd13ed72f9445cc7bd68d604de429df955bbafbe5587e9076df1c470ca0"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-receipt.test.js",
+      "digest": "sha256:d4a5f5a0c86482345e96b20a505488acbf31ee589278920833bf1b98e21bfb2f"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-history.test.js",
+      "digest": "sha256:20f513da79ff7deb6d37c25c078689d5daa804b9cf8470388284791d33ea26aa"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-provenance.test.js",
+      "digest": "sha256:b61b88bfb7832c8a9035fdeb90f4b336eb7b3403a1d703b0228462011867da57"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-recovery.test.js",
+      "digest": "sha256:f50b09497b4eafce701c9a5711f8e3d7eae836d8431171b786971942ee90a0b5"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-quality-store.js",
+      "digest": "sha256:c1cd0f9b2a5fe68ca1be4690e15030f717d10348def7dcf94a320ccbdb17a81a"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-native-quality-receipt-final-tests.json",
+      "digest": "sha256:647300fa720980965c0c789b79ef05cae862b3f7cd2efd590e24ec5bdbdb3a0f"
+    },
+    {
+      "file": ".work/rrsi-native-quality-history-final-tests.json",
+      "digest": "sha256:a7ca08e524cb05426a9155b570182ca9ee5f5c25b28bf0d295fa24233905e855"
+    },
+    {
+      "file": ".work/rrsi-native-quality-provenance-final-tests.json",
+      "digest": "sha256:2ade52712291a133921c75dce794b607aefe94247de4e5aa1277c3e4d16bb7f8"
+    },
+    {
+      "file": ".work/rrsi-native-quality-history-regression-tests.json",
+      "digest": "sha256:adb8f51e26bbfe42282ef9ee855e0e8a3c9a7e67fbb3ec0a086af6ceabf034b4"
+    },
+    {
+      "file": ".work/rrsi-native-quality-signed-preregistered-recheck.json",
+      "digest": "sha256:2c2882ca2fdb2cb5a667d0edf2fd5a2b6aa44b19a1ac52423fd032714f3e524e"
+    },
+    {
+      "file": ".work/rrsi-native-quality-signed-legacy-recheck.json",
+      "digest": "sha256:f6d00f47b95293ac073170fa2e4e0b99014faf85b806725c6eabfa2727e3a8fa"
+    }
+  ],
+  "suites": [
+    {
+      "report": ".work/rrsi-native-quality-receipt-final-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-receipt.test.js",
+      "passed": 9,
+      "skipped": 0,
+      "durationMs": 110809.41162109375
+    },
+    {
+      "report": ".work/rrsi-native-quality-history-final-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-history.test.js",
+      "passed": 6,
+      "skipped": 0,
+      "durationMs": 480219.5095214844
+    },
+    {
+      "report": ".work/rrsi-native-quality-provenance-final-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-provenance.test.js",
+      "passed": 3,
+      "skipped": 0,
+      "durationMs": 188592.85424804688
+    },
+    {
+      "report": ".work/rrsi-native-quality-history-regression-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+      "passed": 25,
+      "skipped": 0,
+      "durationMs": 80077.13403320312
+    },
+    {
+      "report": ".work/rrsi-native-quality-history-regression-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "passed": 24,
+      "skipped": 0,
+      "durationMs": 375883.2468261719
+    },
+    {
+      "report": ".work/rrsi-native-quality-history-regression-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-quality-recovery.test.js",
+      "passed": 2,
+      "skipped": 0,
+      "durationMs": 135302.1357421875
+    },
+    {
+      "report": ".work/rrsi-native-quality-history-regression-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-history.test.js",
+      "passed": 13,
+      "skipped": 0,
+      "durationMs": 267142.7053222656
+    },
+    {
+      "report": ".work/rrsi-native-quality-signed-preregistered-recheck.json",
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "passed": 2,
+      "skipped": 253,
+      "durationMs": 39949.237548828125
+    },
+    {
+      "report": ".work/rrsi-native-quality-signed-legacy-recheck.json",
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "passed": 2,
+      "skipped": 253,
+      "durationMs": 21334.394775390625
+    }
+  ],
+  "postValidationFormatting": {
+    "file": "packages/cli/__tests__/unit/rrsi-native-quality-history.test.js",
+    "before": {
+      "file": ".work/rrsi-quality-history-format-before.js",
+      "digest": "sha256:ed089f0d2682f41d72404f592b3ba12681150e2ec695a00154a515688f3368fb"
+    },
+    "note": "Prettier collapsed only line breaks in two method chains; production code, test logic and assertions are unchanged."
+  },
+  "totals": {
+    "uniqueFiles": 8,
+    "uniquePassedTests": 86,
+    "failed": 0,
+    "fullFileTestsPassed": 82,
+    "targetedSignedCasesPassed": 4
+  },
+  "newCasesInIncrement": 22,
+  "expandedExistingExpiryCases": 2,
+  "targetedGateScope": "Two independent namespace rechecks each ran both selected cases; 253 other cases skipped in each report. These are four distinct cases, not another full 255-case Gate run.",
+  "earlierCompletePreregistrationGate": {
+    "commit": "e43e0b8221",
+    "testsPassed": 441,
+    "evidence": {
+      "file": "docs/research/agents/evidence/rrsi-native-preregistration-local-controls-2026-10-07.json",
+      "digest": "sha256:a85939826129d2e647b2d2a51432f2e642bbb2318e11e17878503a0ee6155546"
+    },
+    "countedInCurrentTotals": false
+  },
+  "initialCombinedSignedRun": {
+    "report": {
+      "file": ".work/rrsi-native-quality-signed-controls-tests.json",
+      "digest": "sha256:fbbbd998400ec881af72238e84332d51537194ac4edc4c45bfea5daafff4896c"
+    },
+    "success": false,
+    "passed": 2,
+    "failedAssertions": 0,
+    "failedSuites": 2,
+    "note": "The legacy namespace completed two cases; the preregistered suite did not execute its selected cases. The JSON reporter does not retain nested hook errors. Both namespaces were rechecked independently and passed; no timeout limit or source validator was relaxed."
+  },
+  "lint": "ESLint passed for four source files, five test files and one fixture",
+  "formatting": "Prettier passed for all increment source/tests/fixture/docs/evidence",
+  "independentReview": "Astra implemented the live receipt, reusable genuine v2 fixture and nine controls; independently ran the three signed-record provenance controls; reviewed the pure historical verifier, root CAS/census wiring and recovery semantics. A publish-time freshness gap was fixed, retaining the append-time recheck. No remaining blocking finding.",
+  "controls": {
+    "receiptOnlyFromGenuineBrandedCensusAndOriginalPlan": true,
+    "noCallerReportPassFlagsClockOrVerifierCallbacks": true,
+    "actualParentRuntimeTargetsVersionsLifecycleAndContentBound": true,
+    "allOriginalRowFieldsAndWholeDenominatorRetained": true,
+    "originalNativeGateVetoAndBudgetHoldsPreserved": true,
+    "freshGenuineAuditAndNewPerAuthoritySessionsReReadRetainedBytes": true,
+    "originalBackendPrivateObjectIdentityAndDescriptorRequired": true,
+    "originalRootBatchRegistrationHeadAndReceiptFreshnessRechecked": true,
+    "compactHistoricalHoldDoesNotRestoreLiveBrand": true,
+    "fixedHeadCASWithoutAutomaticRebase": true,
+    "receiptFreshnessBeforeArtifactPublicationAndAppend": true,
+    "canonicalOperationIdsRealSourceRefsAndExactAppliedPayloadVerified": true,
+    "actualPriorLedgerHeadBoundDuringReplay": true,
+    "correctlyAuthenticatedRehashedPassClaimsRejected": true,
+    "copiedForeignAndStaleReceiptsRejected": true,
+    "committedResponseLossRecoversExactHistoricalRecordOnly": true,
+    "scopedLegacyFreezeCannotCreateNewQualityAuthority": true,
+    "newV2FinalReservationAndLiveDispatchRequireVerifiedSelectionQuality": true,
+    "oldFreezeReadbackAndBudgetSettlementRemainCompatible": true,
+    "settledSuccessDoesNotAuthorizeNewFinalQuery": true,
+    "noQualityPassBranchUntilProductionPrerequisitesAreImplemented": true
+  },
+  "implementedAPIs": [
+    "buildRrsiNativeQualityReceipt",
+    "captureRrsiNativeQualityReceipt",
+    "verifyRecordedRrsiNativeQualityReceipt",
+    "recordNativeQualityReceipt",
+    "resolveNativeQualityReceipt",
+    "freezeNativeCandidateV2"
+  ],
+  "crashEvidenceScope": "V1 file Ledger real after-head append-response loss and same-process idempotent readback; reopened storage yields a historical snapshot. No v2 power-loss or SIGKILL claim.",
+  "olderFreezeEvidenceScope": "Actual settled test-signed native rows plus an authenticated pre-quality freeze record; no old binary execution claim.",
+  "compactAssessmentDoesNotArchiveEveryUnderlyingProductionProof": true,
+  "sourceIndependenceVerified": false,
+  "underlyingObservationTimeVerified": false,
+  "underlyingExecutionReceiptsReverified": false,
+  "completeLifecycleCostVerified": false,
+  "cleanupVerified": false,
+  "statisticalProtocolValidated": false,
+  "calibrationVerified": false,
+  "crossSelectionQueryErrorRateControlled": false,
+  "productionParentReadbackVerified": false,
+  "qualityVerdictVerified": false,
+  "fullRegistryOriginReviewPilotPromotionGateImplemented": false,
+  "localOnly": true,
+  "paidProviderRequestsExecuted": false,
+  "productionLatencyValidated": false,
+  "productionBudgetAuthorityVerified": false,
+  "billingComplete": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false,
+  "grantsFinalEvaluationAuthority": false
+}

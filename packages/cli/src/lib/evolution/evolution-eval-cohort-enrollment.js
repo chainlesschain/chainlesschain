@@ -9,9 +9,9 @@ import {
   isEvolutionLedgerArtifactResolver,
 } from "./evolution-artifact-ports.js";
 import {
-  EvolutionLedger,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  EVOLUTION_LEDGER_MAX_EVENTS,
 } from "./evolution-ledger.js";
 import {
   verifyPmExplorationEffectPlan,
@@ -20,11 +20,37 @@ import {
 import {
   createEvolutionEvalLaunchAdmissionAuthority,
   resolveEvolutionEvalLaunch,
+  resolveEvolutionEvalLaunchFromReadonlyAudit,
   EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE,
 } from "./evolution-eval-launch-admission.js";
+import {
+  captureEvolutionEvalLedger,
+  readEvolutionEvalLedger,
+} from "./evolution-eval-ledger-capture.js";
+import {
+  createEvolutionEvalReadonlyAudit,
+  captureEvolutionEvalReadonlyAudit,
+} from "./evolution-eval-readonly-audit.js";
+import { captureRrsiHistoryLedgerAdapter } from "./rrsi-history-ledger-adapter.js";
+import { snapshotRrsiData } from "./rrsi-data.js";
+import {
+  RRSI_COHORT_REGISTRATION_SCHEMA,
+  RRSI_COHORT_PLAN_SCHEMA,
+  RRSI_COHORT_PLAN_V2_SCHEMA,
+  buildRrsiEvalCampaignPlan,
+  buildRrsiCohortRegistration,
+  prepareRrsiCohortRegistration,
+  normalizeRrsiCohortLookup,
+} from "./rrsi-cohort-registration.js";
 
 export const EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA =
   "chainlesschain.evolution-eval-cohort-enrollment/v1";
+export const RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA =
+  "chainlesschain.evolution-eval-cohort-enrollment/v2";
+export const RRSI_EVAL_CAMPAIGN_ENROLLMENT_SCHEMA =
+  "chainlesschain.rrsi-eval-campaign-enrollment/v1";
+export const RRSI_EVAL_CAMPAIGN_ENROLLMENT_EVENT_TYPE =
+  "evolution.rrsi-campaign.enrolled";
 export const EVOLUTION_EVAL_COHORT_SEAL_SCHEMA =
   "chainlesschain.evolution-eval-cohort-seal/v1";
 export const EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE =
@@ -163,32 +189,106 @@ function scopeId(input) {
   );
 }
 function allEvents(state) {
-  return EvolutionLedger.prototype.read.call(state.ledger);
+  return readEvolutionEvalLedger(state.ledgerMethods);
 }
 function head(state) {
-  return EvolutionLedger.prototype.verify.call(state.ledger);
+  return state.ledgerMethods.verify();
 }
 function eventId(state, cohortId, type) {
   return `${type}.${hash("eval-cohort-identity/v1", { tenantId: state.descriptor.tenantId, streamId: state.descriptor.streamId, cohortId }).slice(7)}`;
 }
-function matching(state, cohortId, type) {
-  return allEvents(state).filter(
+function matching(state, cohortId, type, census = null) {
+  return (census ?? allEvents(state)).filter(
     (event) =>
       event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
       event.eventId === eventId(state, cohortId, type),
   );
 }
-function admissions(state) {
-  return allEvents(state).filter(
+const READONLY_COHORT_AUDITS = new WeakMap();
+
+function nativeAuditContext(state, ledgerAudit) {
+  if (!state.rrsiHistory)
+    fail("native audit requires genuine RRSI History composition");
+  const shared = captureEvolutionEvalReadonlyAudit(ledgerAudit, state.ledger);
+  const context = {
+    ledgerAudit,
+    shared,
+    census: shared.events,
+    identity: shared.identity,
+    historyRoot: state.rrsiHistory.resolveCampaignRoot(),
+    resolutions: new Map(),
+    registrations: new Map(),
+    enrollments: new Map(),
+    reconciliations: new Map(),
+    verifiedAdmissions: new Map(),
+  };
+  context.campaign = resolveRrsiCampaign(state, context);
+  return context;
+}
+
+/** Read-only session caches are private, authority-bound and scoped to one journal snapshot. */
+export function createRrsiEvalCohortReadonlyAudit(
+  authority,
+  ledgerAudit = null,
+) {
+  const state = stateOf(authority);
+  const context = nativeAuditContext(
+    state,
+    ledgerAudit ?? createEvolutionEvalReadonlyAudit(state.ledger),
+  );
+  const session = Object.freeze({
+    schema: "chainlesschain.rrsi-cohort-readonly-audit/v1",
+  });
+  READONLY_COHORT_AUDITS.set(session, { state, context });
+  return session;
+}
+
+export function assertRrsiEvalCohortReadonlyAuditUnchanged(session) {
+  const captured = READONLY_COHORT_AUDITS.get(session);
+  if (!captured) fail("a branded native cohort audit is required");
+  return captured.context.shared.assertUnchanged();
+}
+
+export async function resolveRrsiEvalCohortFromReadonlyAudit(
+  authority,
+  input,
+  session,
+) {
+  const state = stateOf(authority);
+  const captured = READONLY_COHORT_AUDITS.get(session);
+  if (!captured || captured.state !== state)
+    fail("a matching branded native cohort audit is required");
+  captureEvolutionEvalReadonlyAudit(captured.context.ledgerAudit, state.ledger);
+  const cohortId = scopeId(input);
+  const reconciliation = await reconcileCohort(
+    state,
+    cohortId,
+    captured.context,
+  );
+  return frozen({
+    enrollment: captured.context.enrollments.get(cohortId),
+    reconciliation,
+    auditHead: captured.context.identity,
+    historicalSnapshotOnly: true,
+    requiresFinalAuditHeadCheck: true,
+    readyForExecution: false,
+  });
+}
+
+function admissions(state, nativeContext = null) {
+  if (nativeContext?.streamAdmissions) return nativeContext.streamAdmissions;
+  const result = (nativeContext?.census ?? allEvents(state)).filter(
     (event) =>
       event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA &&
       event.type === EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE &&
       event.tenantId === state.descriptor.tenantId &&
       event.correlationId === state.descriptor.streamId,
   );
+  if (nativeContext?.ledgerAudit) nativeContext.streamAdmissions = result;
+  return result;
 }
-function readArtifact(state, event) {
-  const identity = head(state);
+function readArtifact(state, event, wrapper = false, capturedIdentity = null) {
+  const identity = capturedIdentity ?? head(state);
   const result = state.resolveArtifact({
     epoch: identity.epoch,
     ledgerId: identity.ledgerId,
@@ -219,7 +319,7 @@ function readArtifact(state, event) {
     stored.type !== ARTIFACT_TYPE
   )
     fail("cohort durable artifact scope differs");
-  return stored.value;
+  return wrapper ? stored : stored.value;
 }
 function signatureMessage(core) {
   return Buffer.from(`${core.schema}\0${canonical(core)}`, "utf8");
@@ -285,9 +385,66 @@ function issuedAt(state) {
   if (!Number.isFinite(now)) fail("cohort clock is invalid");
   return new Date(now).toISOString();
 }
-function validateRegistration(input) {
+function validateRegistration(input, state, nativeContext = null) {
+  const nativeSource = snapshot(input);
+  if (
+    nativeSource.schema === RRSI_COHORT_REGISTRATION_SCHEMA ||
+    [RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+      nativeSource.plan?.schema,
+    )
+  ) {
+    if (!state?.rrsiHistory)
+      fail("native enrollment requires genuine RRSI History composition");
+    const source =
+      nativeSource.schema === RRSI_COHORT_REGISTRATION_SCHEMA
+        ? normalizeRrsiCohortLookup(nativeSource)
+        : record(
+            nativeSource,
+            ["plan", "manifest", "slots"],
+            "native cohort declaration",
+          );
+    const campaign = nativeContext?.campaign ?? resolveRrsiCampaign(state);
+    const batchDigest = source.batchDigest ?? source.plan.batchDigest;
+    if (
+      nativeContext?.expectedBatchDigest &&
+      nativeContext.expectedBatchDigest !== batchDigest
+    )
+      fail("native audit belongs to another batch");
+    const resolution =
+      nativeContext?.resolution ??
+      nativeContext?.resolutions?.get(batchDigest) ??
+      state.rrsiHistory.resolveNativeBatch({ batchDigest });
+    if (nativeContext?.resolutions)
+      nativeContext.resolutions.set(batchDigest, resolution);
+    if (resolution.batch.batchDigest !== batchDigest)
+      fail("native registration snapshot belongs to another batch");
+    const cohortId = source.cohortId ?? source.manifest.cohortId;
+    let prepared = nativeContext?.registrations?.get(batchDigest);
+    if (!prepared && nativeContext?.registrations) {
+      prepared = prepareRrsiCohortRegistration(
+        campaign.evidence.plan,
+        resolution,
+      );
+      nativeContext.registrations.set(batchDigest, prepared);
+    }
+    const derived = prepared
+      ? prepared.build(cohortId)
+      : buildRrsiCohortRegistration(
+          campaign.evidence.plan,
+          resolution,
+          cohortId,
+        );
+    if (state.descriptor.streamId !== derived.plan.queryStreamId)
+      fail("native cohort must use its global History query stream");
+    if (
+      nativeSource.schema !== RRSI_COHORT_REGISTRATION_SCHEMA &&
+      canonical(nativeSource) !== canonical(derived)
+    )
+      fail("native cohort declaration differs from committed History");
+    return frozen(derived);
+  }
   const source = record(
-    snapshot(input),
+    nativeSource,
     ["plan", "manifest", "slots"],
     "cohort registration",
   );
@@ -312,6 +469,19 @@ function validateRegistration(input) {
   return frozen({ plan, manifest, slots });
 }
 const ENROLL_FIELDS = ["cohortId", "plan", "manifest", "slots", "issuedAt"];
+function nativeRegistrationSourceRefs(campaign, registration) {
+  const statistics = registration.manifest.statisticsRegistration;
+  return [
+    campaign.enrollmentRef,
+    registration.manifest.reservationRecord.ref,
+    ...(statistics
+      ? [
+          statistics.scopeRegistrationRecord.ref,
+          statistics.planRegistrationRecord.ref,
+        ]
+      : []),
+  ];
+}
 const SEAL_FIELDS = [
   "cohortId",
   "enrollmentDigest",
@@ -320,6 +490,17 @@ const SEAL_FIELDS = [
   "issuedAt",
 ];
 function checkEvent(state, event, cohortId, type, evidence, sourceRefs) {
+  const expectedRefs = [...sourceRefs].sort((left, right) =>
+    left.ref < right.ref
+      ? -1
+      : left.ref > right.ref
+        ? 1
+        : left.digest < right.digest
+          ? -1
+          : left.digest > right.digest
+            ? 1
+            : 0,
+  );
   if (
     event.eventId !== eventId(state, cohortId, type) ||
     event.type !== type ||
@@ -329,29 +510,38 @@ function checkEvent(state, event, cohortId, type, evidence, sourceRefs) {
     event.decision !== "accepted" ||
     event.skillName !== "evolution-eval" ||
     event.timestamp !== evidence.issuedAt ||
-    canonical(event.sourceRefs) !== canonical(sourceRefs)
+    canonical(event.sourceRefs) !== canonical(expectedRefs)
   )
     fail("cohort Ledger event differs from signed evidence");
 }
-function resolveEnrollment(state, cohortId) {
+function resolveEnrollment(state, cohortId, nativeContext = null) {
+  if (nativeContext?.enrollments?.has(cohortId))
+    return nativeContext.enrollments.get(cohortId);
   const found = matching(
     state,
     cohortId,
     EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE,
+    nativeContext?.census ?? null,
   );
   if (found.length !== 1) fail("cohort enrollment is absent or ambiguous");
   const event = found[0];
   const evidence = verifySigned(
     state,
-    readArtifact(state, event),
-    EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
+    readArtifact(state, event, false, nativeContext?.identity ?? null),
+    state.rrsiHistory
+      ? RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA
+      : EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
     ENROLL_FIELDS,
   );
-  const registration = validateRegistration({
-    plan: evidence.plan,
-    manifest: evidence.manifest,
-    slots: evidence.slots,
-  });
+  const registration = validateRegistration(
+    {
+      plan: evidence.plan,
+      manifest: evidence.manifest,
+      slots: evidence.slots,
+    },
+    state,
+    nativeContext,
+  );
   if (
     evidence.cohortId !== cohortId ||
     registration.manifest.cohortId !== cohortId
@@ -363,9 +553,14 @@ function resolveEnrollment(state, cohortId) {
     cohortId,
     EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE,
     evidence,
-    [],
+    state.rrsiHistory
+      ? nativeRegistrationSourceRefs(
+          nativeContext?.campaign ?? resolveRrsiCampaign(state),
+          registration,
+        )
+      : [],
   );
-  return frozen({
+  const result = frozen({
     schema: "chainlesschain.evolution-eval-cohort-enrollment-resolution/v1",
     enrollmentDigest: hash(evidence.schema, evidence),
     evidence,
@@ -375,8 +570,20 @@ function resolveEnrollment(state, cohortId) {
     durable: true,
     ...LIMITS,
   });
+  if (nativeContext?.enrollments)
+    nativeContext.enrollments.set(cohortId, result);
+  return result;
 }
 function publish(state, cohortId, type, evidence, sourceRefs, expectedHead) {
+  if (state.rrsiHistory) snapshotRrsiData(evidence);
+  if (
+    state.rrsiHistory &&
+    expectedHead.sequence +
+      1 +
+      (state.rrsiHistory.inspect().nativeRecoveryEventHolds ?? 0) >
+      EVOLUTION_LEDGER_MAX_EVENTS
+  )
+    fail("cohort must preserve native History recovery capacity");
   const published = EvolutionArtifactPorts.prototype.putCanonical.call(
     state.artifactPorts,
     ARTIFACT_TYPE,
@@ -394,8 +601,9 @@ function publish(state, cohortId, type, evidence, sourceRefs, expectedHead) {
     published.receipt.retention !== "ledger"
   )
     fail("cohort artifact persistence failed");
-  const receipt = EvolutionLedger.prototype.appendDomainEvent.call(
-    state.ledger,
+  if (state.rrsiHistory)
+    snapshotRrsiData(readArtifact(state, { subjectRef: published.ref }, true));
+  const receipt = state.ledgerMethods.appendDomainEvent(
     {
       type,
       eventId: eventId(state, cohortId, type),
@@ -419,6 +627,109 @@ function publish(state, cohortId, type, evidence, sourceRefs, expectedHead) {
     fail("cohort Ledger persistence failed");
 }
 
+function rrsiCampaignState(state, historyRoot = null) {
+  if (!state.rrsiHistory)
+    fail("RRSI campaign needs genuine History composition");
+  const plan = buildRrsiEvalCampaignPlan(
+    historyRoot ?? state.rrsiHistory.resolveCampaignRoot(),
+  );
+  return {
+    ...state,
+    descriptor: frozen({
+      ...state.descriptor,
+      streamId: `rrsi-root.${plan.campaignRootDigest.slice(7)}`,
+    }),
+    campaignPlan: plan,
+  };
+}
+
+function resolveRrsiCampaign(state, nativeContext = null) {
+  const root = rrsiCampaignState(state, nativeContext?.historyRoot ?? null);
+  const cohortId = root.campaignPlan.campaignRootDigest;
+  const matches = matching(
+    root,
+    cohortId,
+    RRSI_EVAL_CAMPAIGN_ENROLLMENT_EVENT_TYPE,
+    nativeContext?.census ?? null,
+  );
+  if (matches.length !== 1) fail("RRSI campaign root is absent or ambiguous");
+  const event = matches[0];
+  const evidence = verifySigned(
+    root,
+    readArtifact(root, event, false, nativeContext?.identity ?? null),
+    RRSI_EVAL_CAMPAIGN_ENROLLMENT_SCHEMA,
+    ["cohortId", "plan", "issuedAt"],
+  );
+  if (
+    evidence.cohortId !== cohortId ||
+    canonical(evidence.plan) !== canonical(root.campaignPlan)
+  )
+    fail("RRSI signed campaign root differs from durable History");
+  checkEvent(
+    root,
+    event,
+    cohortId,
+    RRSI_EVAL_CAMPAIGN_ENROLLMENT_EVENT_TYPE,
+    evidence,
+    [root.campaignPlan.rootRegistrationRecord.ref],
+  );
+  return frozen({
+    enrollmentDigest: hash(evidence.schema, evidence),
+    enrollmentRef: event.subjectRef,
+    enrollmentSequence: event.sequence,
+    evidence,
+    authenticated: true,
+    durable: true,
+    productionAdmissionVerified: false,
+    promotionAuthority: false,
+  });
+}
+
+/** Freeze the shared History quota root before any native child dispatch. */
+export function enrollRrsiEvalCampaign(authority) {
+  const state = stateOf(authority);
+  const expectedHead = head(state);
+  const root = rrsiCampaignState(state);
+  const cohortId = root.campaignPlan.campaignRootDigest;
+  if (matching(root, cohortId, RRSI_EVAL_CAMPAIGN_ENROLLMENT_EVENT_TYPE).length)
+    fail("RRSI campaign root is already enrolled");
+  if (
+    state.rrsiHistory
+      .inspect()
+      .executions.some(
+        (entry) =>
+          entry.reservation.schema ===
+            "chainlesschain.rrsi-native-reservation/v1" && entry.dispatched,
+      )
+  )
+    fail("RRSI campaign root must precede native dispatch");
+  const evidence = verifySigned(
+    root,
+    sign(root, {
+      schema: RRSI_EVAL_CAMPAIGN_ENROLLMENT_SCHEMA,
+      descriptor: root.descriptor,
+      cohortId,
+      plan: root.campaignPlan,
+      issuedAt: issuedAt(root),
+    }),
+    RRSI_EVAL_CAMPAIGN_ENROLLMENT_SCHEMA,
+    ["cohortId", "plan", "issuedAt"],
+  );
+  publish(
+    root,
+    cohortId,
+    RRSI_EVAL_CAMPAIGN_ENROLLMENT_EVENT_TYPE,
+    evidence,
+    [root.campaignPlan.rootRegistrationRecord.ref],
+    expectedHead,
+  );
+  return resolveRrsiCampaign(state);
+}
+
+export function resolveRrsiEvalCampaign(authority) {
+  return resolveRrsiCampaign(stateOf(authority));
+}
+
 export function createEvolutionEvalCohortEnrollmentAuthority({
   descriptor,
   publicKey,
@@ -427,6 +738,7 @@ export function createEvolutionEvalCohortEnrollmentAuthority({
   ledger,
   ledgerArtifactResolver,
   now = Date.now,
+  rrsiHistoryAdapter = null,
 } = {}) {
   const scope = record(
     descriptor,
@@ -440,11 +752,30 @@ export function createEvolutionEvalCohortEnrollmentAuthority({
   if (
     !(artifactPorts instanceof EvolutionArtifactPorts) ||
     isProxy(artifactPorts) ||
-    !(ledger instanceof EvolutionLedger) ||
     isProxy(ledger) ||
     !isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)
   )
     fail("cohort requires real artifact ports, Ledger and branded resolver");
+  let ledgerMethods;
+  try {
+    ledgerMethods = captureEvolutionEvalLedger(ledger);
+  } catch {
+    fail("cohort requires real artifact ports, Ledger and branded resolver");
+  }
+  const rrsiHistory =
+    rrsiHistoryAdapter === null
+      ? null
+      : captureRrsiHistoryLedgerAdapter(rrsiHistoryAdapter);
+  if (
+    rrsiHistory &&
+    (rrsiHistory.ledger !== ledger ||
+      rrsiHistory.artifactPorts !== artifactPorts ||
+      rrsiHistory.ledgerArtifactResolver !== ledgerArtifactResolver ||
+      ["tenantId", "artifactTenantId", "audience", "purpose"].some(
+        (name) => rrsiHistory.descriptor[name] !== scope[name],
+      ))
+  )
+    fail("native cohort must use the same History storage and scope");
   if (!signer || isProxy(signer) || typeof now !== "function" || isProxy(now))
     fail("cohort signer and clock are required");
   const signing = Object.getOwnPropertyDescriptor(signer, "sign")?.value;
@@ -463,6 +794,8 @@ export function createEvolutionEvalCohortEnrollmentAuthority({
     sign: signing.bind(signer),
     artifactPorts,
     ledger,
+    ledgerMethods,
+    rrsiHistory,
     resolveArtifact: ledgerArtifactResolver,
     now,
   });
@@ -471,7 +804,14 @@ export function createEvolutionEvalCohortEnrollmentAuthority({
 
 export function enrollEvolutionEvalCohort(authority, input) {
   const state = stateOf(authority);
-  const registration = validateRegistration(input);
+  const registration = validateRegistration(input, state);
+  if (
+    state.rrsiHistory &&
+    ![RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+      registration.plan.schema,
+    )
+  )
+    fail("native authority cannot downgrade to PM enrollment");
   const cohortId = registration.manifest.cohortId;
   const expectedHead = head(state);
   if (
@@ -484,16 +824,32 @@ export function enrollEvolutionEvalCohort(authority, input) {
   // Legacy admissions cannot establish a trustworthy cohort identity.
   if (admissions(state).length)
     fail("stream admission already exists before enrollment");
+  if (state.rrsiHistory) {
+    const resolution = state.rrsiHistory.resolveNativeBatch({
+      batchDigest: registration.plan.batchDigest,
+    });
+    if (
+      resolution.budgetOverrun ||
+      resolution.children.some((child) =>
+        child.states.some((arm) => arm.status !== "reserved" || arm.dispatched),
+      )
+    )
+      fail("native enrollment must precede every paired dispatch in its query");
+  }
   const evidence = verifySigned(
     state,
     sign(state, {
-      schema: EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
+      schema: state.rrsiHistory
+        ? RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA
+        : EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
       descriptor: state.descriptor,
       cohortId,
       ...registration,
       issuedAt: issuedAt(state),
     }),
-    EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
+    state.rrsiHistory
+      ? RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA
+      : EVOLUTION_EVAL_COHORT_ENROLLMENT_SCHEMA,
     ENROLL_FIELDS,
   );
   publish(
@@ -501,7 +857,9 @@ export function enrollEvolutionEvalCohort(authority, input) {
     cohortId,
     EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE,
     evidence,
-    [],
+    state.rrsiHistory
+      ? nativeRegistrationSourceRefs(resolveRrsiCampaign(state), registration)
+      : [],
     expectedHead,
   );
   const result = resolveEnrollment(state, cohortId);
@@ -514,6 +872,22 @@ export function resolveEvolutionEvalCohortEnrollment(authority, input) {
   return resolveEnrollment(stateOf(authority), scopeId(input));
 }
 
+/** Read-only identity check, never an admission or dispatch capability. */
+export function assertRrsiEvalCohortHistoryComposition(authority, adapter) {
+  const state = stateOf(authority);
+  const history = captureRrsiHistoryLedgerAdapter(adapter);
+  if (
+    !state.rrsiHistory ||
+    state.rrsiHistory.ledger !== history.ledger ||
+    state.rrsiHistory.artifactPorts !== history.artifactPorts ||
+    state.rrsiHistory.ledgerArtifactResolver !==
+      history.ledgerArtifactResolver ||
+    canonical(state.rrsiHistory.descriptor) !== canonical(history.descriptor)
+  )
+    fail("native cohort census requires the same History storage and scope");
+  return true;
+}
+
 function slotDescriptor(state, enrollment, slot) {
   return frozen({
     ...state.descriptor,
@@ -523,7 +897,55 @@ function slotDescriptor(state, enrollment, slot) {
     slotId: slot.slotId,
   });
 }
-function deriveSlot(state, enrollment, slot) {
+function assertNativeQueryReady(state, enrollment) {
+  const campaign = resolveRrsiCampaign(state);
+  const resolution = state.rrsiHistory.resolveNativeBatch({
+    batchDigest: enrollment.evidence.plan.batchDigest,
+  });
+  if (resolution.budgetOverrun) fail("native History has a resource overrun");
+  if (
+    head(state).sequence + 1 + resolution.recoveryEventsHeld >
+    EVOLUTION_LEDGER_MAX_EVENTS
+  )
+    fail("admission must preserve native History recovery capacity");
+  const identity = head(state);
+  const census = allEvents(state);
+  for (const cohortId of enrollment.evidence.manifest.allCohortIds) {
+    const sibling = resolveEnrollment(state, cohortId, {
+      campaign,
+      resolution,
+      census,
+      identity,
+    });
+    if (
+      ![RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+        sibling.evidence.plan.schema,
+      ) ||
+      sibling.evidence.plan.schema !== enrollment.evidence.plan.schema ||
+      canonical(sibling.evidence.manifest.statisticsRegistration ?? null) !==
+        canonical(
+          enrollment.evidence.manifest.statisticsRegistration ?? null,
+        ) ||
+      sibling.evidence.plan.batchDigest !==
+        enrollment.evidence.plan.batchDigest ||
+      sibling.evidence.manifest.queryOrdinal !==
+        enrollment.evidence.manifest.queryOrdinal ||
+      canonical(sibling.evidence.manifest.reservationRecord) !==
+        canonical(enrollment.evidence.manifest.reservationRecord)
+    )
+      fail("native query enrollment barrier is incomplete or substituted");
+  }
+  const current = head(state);
+  if (
+    ["ledgerId", "identityDigest", "epoch", "headDigest", "sequence"].some(
+      (name) => current[name] !== identity[name],
+    )
+  )
+    fail("Ledger changed during native query barrier; retry audit");
+  return resolution;
+}
+
+function deriveSlot(state, enrollment, slot, freshChild = null) {
   const descriptor = slotDescriptor(state, enrollment, slot);
   const expectedRequest = frozen({
     requestDigest: slot.requestDigest,
@@ -531,12 +953,95 @@ function deriveSlot(state, enrollment, slot) {
     evaluationAuthorityRoot: slot.evaluationAuthorityRoot,
   });
   const binding = Object.freeze({});
+  const nativeChild = state.rrsiHistory
+    ? enrollment.evidence.manifest.childBindings.find(
+        (child) => child.slotId === slot.slotId,
+      )
+    : null;
+  let preparedAttempt = false;
+  let livePermit = null;
+  const recordNativeFailure = () => {
+    const resolution = state.rrsiHistory.resolveNativeBatch({
+      batchDigest: enrollment.evidence.plan.batchDigest,
+    });
+    const child = resolution.children.find(
+      (child) => child.bindings.childId === nativeChild.childId,
+    );
+    if (
+      child?.states.some(
+        (arm) => arm.dispatched && arm.status === "dispatch-intent",
+      )
+    )
+      state.rrsiHistory.markNativeUnknown({
+        childId: nativeChild.childId,
+        batchDigest: enrollment.evidence.plan.batchDigest,
+      });
+  };
   SLOT_BINDINGS.set(binding, {
     state,
     descriptor,
     enrollmentDigest: enrollment.enrollmentDigest,
     enrollmentRef: enrollment.enrollmentRef,
     expectedRequest,
+    ...(state.rrsiHistory
+      ? {
+          registrationKind: "rrsi-native",
+          historyBinding: {
+            campaignRootDigest: enrollment.evidence.plan.campaignRootDigest,
+            batchDigest: enrollment.evidence.plan.batchDigest,
+            childId: nativeChild.childId,
+            queryOrdinal: enrollment.evidence.manifest.queryOrdinal,
+          },
+          prepare(input) {
+            if (preparedAttempt)
+              fail("native admission permit has already been consumed");
+            preparedAttempt = true;
+            if (!freshChild)
+              fail("native admission requires a fresh paired child capability");
+            for (const key of Object.keys(expectedRequest))
+              if (input[key] !== expectedRequest[key])
+                fail("native admission request differs from enrolled child");
+            state.rrsiHistory.assertNativeFreshChild(
+              freshChild,
+              nativeChild.bindings,
+            );
+            const resolution = assertNativeQueryReady(state, enrollment);
+            const child = resolution.children.find(
+              (child) => child.bindings.childId === nativeChild.childId,
+            );
+            if (
+              !child ||
+              child.states.some(
+                (arm) => arm.status !== "reserved" || arm.dispatched,
+              )
+            )
+              fail("native child is not fresh and reserved");
+            if (
+              matching(
+                state,
+                descriptor.cohortId,
+                EVOLUTION_EVAL_COHORT_SEAL_EVENT_TYPE,
+              ).length
+            )
+              fail("cohort is sealed");
+            try {
+              const dispatch =
+                state.rrsiHistory.recordNativeDispatch(freshChild);
+              if (!dispatch.newlyCommitted)
+                fail("native dispatch outcome is not fresh");
+              livePermit = frozen(snapshot(input));
+            } catch (error) {
+              try {
+                recordNativeFailure();
+              } catch {
+                /* Admission is unavailable; intent remains held. */
+              }
+              throw error;
+            }
+          },
+          recordFailure: recordNativeFailure,
+        }
+      : {}),
     assertOpen(input) {
       const current = resolveEnrollment(state, descriptor.cohortId);
       if (current.enrollmentDigest !== enrollment.enrollmentDigest)
@@ -552,6 +1057,21 @@ function deriveSlot(state, enrollment, slot) {
       for (const key of Object.keys(expectedRequest))
         if (input[key] !== expectedRequest[key])
           fail("admission request differs from enrolled slot");
+      if (state.rrsiHistory) {
+        if (!livePermit || canonical(input) !== canonical(livePermit))
+          fail("native admission has no matching live run permit");
+        const resolution = assertNativeQueryReady(state, enrollment);
+        const child = resolution.children.find(
+          (child) => child.bindings.childId === nativeChild.childId,
+        );
+        if (
+          !child ||
+          child.states.some(
+            (arm) => !arm.dispatched || arm.status !== "dispatch-intent",
+          )
+        )
+          fail("native child dispatch intent is stale or unresolved");
+      }
     },
   });
   return createEvolutionEvalLaunchAdmissionAuthority({
@@ -583,6 +1103,14 @@ export function captureEvolutionEvalCohortSlotBinding(binding, expected) {
     enrollmentRef: captured.enrollmentRef,
     expectedRequest: captured.expectedRequest,
     assertOpen: captured.assertOpen,
+    ...(captured.registrationKind
+      ? {
+          registrationKind: captured.registrationKind,
+          historyBinding: captured.historyBinding,
+          prepare: captured.prepare,
+          recordFailure: captured.recordFailure,
+        }
+      : {}),
   });
 }
 
@@ -591,7 +1119,21 @@ export function createEvolutionEvalCohortSlotAdmissionAuthority(
   input,
 ) {
   const state = stateOf(authority);
-  const lookup = record(input, ["cohortId", "slotId"], "cohort slot lookup");
+  const lookup = record(
+    input,
+    [
+      "cohortId",
+      "slotId",
+      ...(state.rrsiHistory &&
+      input &&
+      typeof input === "object" &&
+      !isProxy(input) &&
+      Object.hasOwn(input, "freshChild")
+        ? ["freshChild"]
+        : []),
+    ],
+    "cohort slot lookup",
+  );
   text(lookup.cohortId, "cohortId");
   text(lookup.slotId, "slotId");
   const enrollment = resolveEnrollment(state, lookup.cohortId);
@@ -599,15 +1141,105 @@ export function createEvolutionEvalCohortSlotAdmissionAuthority(
     (item) => item.slotId === lookup.slotId,
   );
   if (!slot) fail("slot is not in the enrolled manifest");
-  return deriveSlot(state, enrollment, slot);
+  return deriveSlot(state, enrollment, slot, lookup.freshChild ?? null);
 }
 
-async function inventory(state, enrollment, sealSequence = Infinity) {
+async function inventory(
+  state,
+  enrollment,
+  sealSequence = Infinity,
+  nativeContext = null,
+) {
+  if (!nativeContext) return legacyInventory(state, enrollment, sealSequence);
+  const result = [];
+  const used = new Set();
+  for (const event of admissions(state, nativeContext)) {
+    let checked = nativeContext?.verifiedAdmissions?.get(event.eventId);
+    let value, registered, slot, resolution;
+    if (checked) ({ value, registered, slot, resolution } = checked);
+    else {
+      value = readArtifact(
+        state,
+        event,
+        false,
+        nativeContext?.identity ?? null,
+      );
+      // Reject ambiguous legacy entries instead of accepting a caller-selected subset.
+      if (!value.descriptor)
+        fail("legacy admission prevents complete cohort inventory");
+      registered =
+        value.descriptor.cohortId === enrollment.evidence.cohortId
+          ? enrollment
+          : resolveEnrollment(
+              state,
+              text(value.descriptor.cohortId, "admission cohortId"),
+              nativeContext,
+            );
+      slot = registered.evidence.slots.find(
+        (item) => item.slotId === value.descriptor.slotId,
+      );
+      if (!slot) fail("unknown cohort admission slot");
+      const authority = deriveSlot(state, registered, slot);
+      const lookup = {
+        runId: value.runId,
+        runNonce: value.runNonce,
+        requestDigest: value.requestDigest,
+      };
+      resolution = nativeContext?.ledgerAudit
+        ? await resolveEvolutionEvalLaunchFromReadonlyAudit(
+            authority,
+            lookup,
+            nativeContext.ledgerAudit,
+          )
+        : await resolveEvolutionEvalLaunch(authority, lookup);
+      if (
+        resolution.eventId !== event.eventId ||
+        resolution.eventSequence !== event.sequence ||
+        canonical(resolution.evidence) !== canonical(value)
+      )
+        fail("cohort admission event substitution");
+      if (nativeContext?.verifiedAdmissions)
+        nativeContext.verifiedAdmissions.set(event.eventId, {
+          value,
+          registered,
+          slot,
+          resolution,
+        });
+    }
+    const ownCohort =
+      value.descriptor.cohortId === enrollment.evidence.cohortId;
+    if (
+      event.sequence <= registered.enrollmentSequence ||
+      (ownCohort && event.sequence >= sealSequence)
+    )
+      fail("admission lies outside cohort enrollment/seal boundary");
+    if (!slot || (ownCohort && used.has(slot.slotId)))
+      fail("unknown or duplicate cohort admission slot");
+    if (!ownCohort) continue;
+    used.add(slot.slotId);
+    result.push({
+      slotId: slot.slotId,
+      eventId: event.eventId,
+      sequence: event.sequence,
+      admissionDigest: resolution.admissionDigest,
+      runId: value.runId,
+      runNonce: value.runNonce,
+      requestDigest: value.requestDigest,
+    });
+  }
+  return frozen({
+    admissions: result,
+    unadmittedSlotIds: enrollment.evidence.slots
+      .filter((slot) => !used.has(slot.slotId))
+      .map((slot) => slot.slotId),
+  });
+}
+
+async function legacyInventory(state, enrollment, sealSequence = Infinity) {
   const result = [];
   const used = new Set();
   for (const event of admissions(state)) {
     const value = readArtifact(state, event);
-    // Reject ambiguous legacy entries instead of accepting a caller-selected subset.
     if (!value.descriptor)
       fail("legacy admission prevents complete cohort inventory");
     const ownCohort =
@@ -667,10 +1299,14 @@ export async function sealEvolutionEvalCohort(authority, input) {
   const state = stateOf(authority);
   const cohortId = scopeId(input);
   const expectedHead = head(state);
-  const enrollment = resolveEnrollment(state, cohortId);
+  const context = state.rrsiHistory
+    ? nativeAuditContext(state, createEvolutionEvalReadonlyAudit(state.ledger))
+    : null;
+  const enrollment = resolveEnrollment(state, cohortId, context);
   if (matching(state, cohortId, EVOLUTION_EVAL_COHORT_SEAL_EVENT_TYPE).length)
     fail("cohort is already sealed");
-  const contents = await inventory(state, enrollment);
+  const contents = await inventory(state, enrollment, Infinity, context);
+  if (context) context.shared.assertUnchanged();
   const evidence = verifySigned(
     state,
     sign(state, {
@@ -706,18 +1342,30 @@ export async function resolveEvolutionEvalCohortReconciliation(
 ) {
   const state = stateOf(authority);
   const cohortId = scopeId(input);
-  const expectedHead = head(state);
-  const enrollment = resolveEnrollment(state, cohortId);
+  const context = state.rrsiHistory
+    ? nativeAuditContext(state, createEvolutionEvalReadonlyAudit(state.ledger))
+    : null;
+  const result = await reconcileCohort(state, cohortId, context);
+  if (context) context.shared.assertUnchanged();
+  return result;
+}
+
+async function reconcileCohort(state, cohortId, nativeContext = null) {
+  if (nativeContext?.reconciliations?.has(cohortId))
+    return nativeContext.reconciliations.get(cohortId);
+  const expectedHead = nativeContext?.identity ?? head(state);
+  const enrollment = resolveEnrollment(state, cohortId, nativeContext);
   const matches = matching(
     state,
     cohortId,
     EVOLUTION_EVAL_COHORT_SEAL_EVENT_TYPE,
+    nativeContext?.census ?? null,
   );
   if (matches.length !== 1) fail("cohort seal is absent or ambiguous");
   const event = matches[0];
   const evidence = verifySigned(
     state,
-    readArtifact(state, event),
+    readArtifact(state, event, false, nativeContext?.identity ?? null),
     EVOLUTION_EVAL_COHORT_SEAL_SCHEMA,
     SEAL_FIELDS,
   );
@@ -729,7 +1377,7 @@ export async function resolveEvolutionEvalCohortReconciliation(
     evidence,
     [enrollment.enrollmentRef],
   );
-  const previous = allEvents(state).find(
+  const previous = (nativeContext?.census ?? allEvents(state)).find(
     (item) => item.sequence === event.sequence - 1,
   );
   if (
@@ -743,28 +1391,46 @@ export async function resolveEvolutionEvalCohortReconciliation(
       })
   )
     fail("cohort seal boundary differs");
-  const contents = await inventory(state, enrollment, event.sequence);
+  const contents = await inventory(
+    state,
+    enrollment,
+    event.sequence,
+    nativeContext,
+  );
   if (canonical(contents) !== canonical(evidence.inventory))
     fail("sealed cohort inventory differs from complete Ledger events");
-  const currentHead = head(state);
+  const currentHead = nativeContext?.identity ?? head(state);
   if (
     currentHead.headDigest !== expectedHead.headDigest ||
     currentHead.sequence !== expectedHead.sequence
   )
     fail("Ledger changed during cohort reconciliation; retry audit");
-  return frozen({
-    schema: "chainlesschain.evolution-eval-cohort-reconciliation/v1",
+  const result = frozen({
+    schema: state.rrsiHistory
+      ? "chainlesschain.evolution-eval-cohort-reconciliation/v2"
+      : "chainlesschain.evolution-eval-cohort-reconciliation/v1",
     cohortId,
     enrollmentDigest: enrollment.enrollmentDigest,
     sealDigest: hash(evidence.schema, evidence),
     sealSequence: event.sequence,
     inventory: contents,
-    plannedTestObservationsPerArm:
-      enrollment.evidence.manifest.plannedTestObservationsPerArm,
+    ...(state.rrsiHistory
+      ? {
+          plannedObservationsPerArmByPartition:
+            enrollment.evidence.manifest.plannedObservationsPerArmByPartition,
+          nativeExecutionDenominatorVerified: false,
+        }
+      : {
+          plannedTestObservationsPerArm:
+            enrollment.evidence.manifest.plannedTestObservationsPerArm,
+        }),
     admissionInventoryAuthenticated: true,
     executionCoverageAuthenticated: false,
     authenticated: true,
     durable: true,
     ...LIMITS,
   });
+  if (nativeContext?.reconciliations)
+    nativeContext.reconciliations.set(cohortId, result);
+  return result;
 }

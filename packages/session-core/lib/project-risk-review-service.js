@@ -4,6 +4,7 @@ const { createHash, randomUUID } = require("node:crypto");
 const {
   digestBusinessObjectContent,
   validateBusinessActionRun,
+  validateBusinessObjectRef,
 } = require("./business-object-contract");
 const { evaluateProjectRiskSnapshot } = require("./project-risk-evaluation");
 
@@ -367,50 +368,66 @@ class ProjectRiskReviewService {
 
   evaluate(input) {
     const projectId = inputId(input, "projectId");
-    return this._transaction(() => {
-      const actor = this._actor();
-      const project = this._ownedProject(projectId, actor);
-      const columns = this._taskColumns();
-      this._checkProjectTaskScope(projectId, columns);
-      const at = this.now();
-      if (!Number.isSafeInteger(at) || at < 0 || at > 253402300799999)
-        fail("PROJECT_RISK_INVALID_CLOCK");
-      const createdAt = new Date(at).toISOString();
-      const sourceSnapshot = this._snapshot(project, actor, createdAt, columns);
-      const sourceJson = JSON.stringify(sourceSnapshot);
-      if (Buffer.byteLength(sourceJson, "utf8") > MAX_PROJECT_RISK_REVIEW_BYTES)
-        fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
-      const evaluation = deriveReviewEvaluation(sourceSnapshot);
-      const review = {
-        id: randomUUID(),
-        projectId,
-        actorDid: actor,
-        createdAt,
-      };
-      const result = { review, sourceSnapshot, evaluation };
-      const evaluationJson = JSON.stringify(evaluation);
-      if (
-        Buffer.byteLength(JSON.stringify(result), "utf8") >
-        MAX_PROJECT_RISK_REVIEW_BYTES
-      )
-        fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
-      this.db
-        .prepare(
-          `INSERT INTO cc_project_risk_reviews
+    return this._transaction(() => this._evaluateProject(projectId));
+  }
+
+  /** Trusted native-domain composition only. The caller owns the surrounding
+   * immediate transaction; project ownership and source validation still run. */
+  evaluateInTransaction(input) {
+    const projectId = inputId(input, "projectId");
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    return this._evaluateProject(projectId);
+  }
+
+  getReviewInTransaction(input) {
+    const reviewId = inputId(input, "reviewId");
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    return this._readReview(reviewId, this._actor());
+  }
+
+  _evaluateProject(projectId) {
+    const actor = this._actor();
+    const project = this._ownedProject(projectId, actor);
+    const columns = this._taskColumns();
+    this._checkProjectTaskScope(projectId, columns);
+    const at = this.now();
+    if (!Number.isSafeInteger(at) || at < 0 || at > 253402300799999)
+      fail("PROJECT_RISK_INVALID_CLOCK");
+    const createdAt = new Date(at).toISOString();
+    const sourceSnapshot = this._snapshot(project, actor, createdAt, columns);
+    const sourceJson = JSON.stringify(sourceSnapshot);
+    if (Buffer.byteLength(sourceJson, "utf8") > MAX_PROJECT_RISK_REVIEW_BYTES)
+      fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
+    const evaluation = deriveReviewEvaluation(sourceSnapshot);
+    const review = {
+      id: randomUUID(),
+      projectId,
+      actorDid: actor,
+      createdAt,
+    };
+    const result = { review, sourceSnapshot, evaluation };
+    const evaluationJson = JSON.stringify(evaluation);
+    if (
+      Buffer.byteLength(JSON.stringify(result), "utf8") >
+      MAX_PROJECT_RISK_REVIEW_BYTES
+    )
+      fail("PROJECT_RISK_EVIDENCE_TOO_LARGE");
+    this.db
+      .prepare(
+        `INSERT INTO cc_project_risk_reviews
         (id,actor_did,project_id,created_at,source_json,evaluation_json,content_digest)
         VALUES (?,?,?,?,?,?,?)`,
-        )
-        .run(
-          review.id,
-          actor,
-          projectId,
-          createdAt,
-          sourceJson,
-          evaluationJson,
-          digest(result),
-        );
-      return immutable(result);
-    });
+      )
+      .run(
+        review.id,
+        actor,
+        projectId,
+        createdAt,
+        sourceJson,
+        evaluationJson,
+        digest(result),
+      );
+    return immutable(result);
   }
 
   _checkHistoricalTasks(snapshot, columns) {
@@ -563,7 +580,9 @@ class ProjectRiskReviewService {
       fail("PROJECT_RISK_REVIEW_CONFLICT");
     if (
       result.evaluation.status !== "evaluated" ||
-      !result.sourceSnapshot.tasks.some((task) => task.id === value.taskId)
+      (value.projectId === undefined
+        ? !result.sourceSnapshot.tasks.some((task) => task.id === value.taskId)
+        : result.review.projectId !== value.projectId)
     )
       fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
     if (requireFresh) {
@@ -599,6 +618,22 @@ class ProjectRiskReviewService {
     return this._actionContext(value, this._actor());
   }
 
+  getCreateActionContext(input) {
+    const value = options(input, ["reviewId", "projectId"]);
+    identifier(value.reviewId);
+    identifier(value.projectId);
+    if (this.db.inTransaction) return this._actionContext(value, this._actor());
+    return this._transaction(() => this._actionContext(value, this._actor()));
+  }
+
+  verifyCreateActionContext(input) {
+    if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
+    const value = options(input, ["reviewId", "projectId", "contentDigest"]);
+    identifier(value.reviewId);
+    identifier(value.projectId);
+    return this._actionContext(value, this._actor());
+  }
+
   bindActionRun(input) {
     if (!this.db.inTransaction) fail("PROJECT_RISK_TRANSACTION_REQUIRED");
     const value = options(input, ["reviewId", "run", "contentDigest"]);
@@ -610,13 +645,23 @@ class ProjectRiskReviewService {
       fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
     }
     if (
-      run.actionType !== "task.update-description" ||
-      run.target.type !== "Task" ||
+      !["task.update-description", "task.create"].includes(run.actionType) ||
+      run.target.type !==
+        (run.actionType === "task.create" ? "Project" : "Task") ||
       run.target.scope.kind !== "personal" ||
       run.target.scope.id !== actor
     )
       fail("PROJECT_RISK_ACTION_SOURCE_INVALID");
-    this._actionContext({ ...value, taskId: run.target.id }, actor, false);
+    this._actionContext(
+      {
+        ...value,
+        ...(run.actionType === "task.create"
+          ? { projectId: run.target.id }
+          : { taskId: run.target.id }),
+      },
+      actor,
+      false,
+    );
     const row = this.db
       .prepare(
         "SELECT actor_did,invocation_digest,run_json FROM cc_business_action_runs WHERE id=?",
@@ -722,7 +767,10 @@ class ProjectRiskReviewService {
         row.actor_did !== actor ||
         run.target.scope.id !== actor ||
         run.target.scope.kind !== "personal" ||
-        run.target.sourceKind !== "desktop.project-task" ||
+        run.target.sourceKind !==
+          (run.actionType === "task.create"
+            ? "desktop.project-task-owner"
+            : "desktop.project-task") ||
         row.receipt_actor !== actor ||
         row.receipt_target !== run.target.id ||
         row.receipt_idempotency !== run.idempotencyDigest ||
@@ -753,9 +801,14 @@ class ProjectRiskReviewService {
         source[0].actionDigest !== run.actionDigest ||
         source[0].expectedVersion !== run.expectedVersion ||
         row.content_digest !== digest(context) ||
-        run.actionType !== "task.update-description" ||
-        run.target.type !== "Task" ||
-        !context.sourceSnapshot.tasks.some((task) => task.id === run.target.id)
+        !["task.update-description", "task.create"].includes(run.actionType) ||
+        run.target.type !==
+          (run.actionType === "task.create" ? "Project" : "Task") ||
+        (run.actionType === "task.create"
+          ? run.target.id !== context.review.projectId
+          : !context.sourceSnapshot.tasks.some(
+              (task) => task.id === run.target.id,
+            ))
       )
         throw new Error();
       const approval = evidence.find((item) => item.id === run.approvalRef?.id);
@@ -777,12 +830,33 @@ class ProjectRiskReviewService {
           approval.via !== "user-confirm" ||
           approval.policy !== "strict" ||
           approval.riskLevel !== "high" ||
-          execution?.kind !== "sqlite-task-description-update" ||
+          execution?.kind !==
+            (run.actionType === "task.create"
+              ? "sqlite-task-create"
+              : "sqlite-task-description-update") ||
           execution.affectedRows !== 1 ||
           execution.beforeVersion !== run.expectedVersion ||
           execution.afterVersion !== run.afterVersion)
       )
         throw new Error();
+      if (run.status === "succeeded" && run.actionType === "task.create") {
+        const created = validateBusinessObjectRef(execution?.createdTaskRef);
+        if (
+          created?.type !== "Task" ||
+          created.sourceKind !== "desktop.project-task" ||
+          created.scope?.kind !== "personal" ||
+          created.scope.id !== actor
+        )
+          throw new Error();
+        const columns = this._taskColumns();
+        this._checkHistoricalTasks(
+          {
+            project: context.sourceSnapshot.project,
+            tasks: [{ id: created.id }],
+          },
+          columns,
+        );
+      }
       return { run, evidence };
     } catch {
       fail("PROJECT_RISK_LINEAGE_CORRUPT");

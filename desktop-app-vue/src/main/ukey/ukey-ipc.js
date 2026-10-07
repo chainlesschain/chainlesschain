@@ -4,6 +4,17 @@ import { ipcMain as electronIpcMain } from 'electron';
 import ipcGuardModule from '../ipc/ipc-guard.js';
 
 const require = createRequire(import.meta.url);
+const goalAuth = require('../task/project-goal-auth-session.js');
+const { validateSender } = require('../ipc/ipc-sender-guard.js');
+
+function trustedAuthenticationSender(event) {
+  try {
+    return validateSender(event)?.trusted === true &&
+      event?.sender?.isDestroyed?.() !== true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * U-Key 硬件 IPC 处理器
@@ -32,6 +43,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
   // 防止重复注册 - 但始终先尝试清理可能存在的旧handler
   if (ipcGuard.isModuleRegistered('ukey-ipc')) {
     logger.info('[UKey IPC] Module already registered, checking handlers...');
+    goalAuth.clearProjectGoalAuth();
 
     // 尝试清理可能存在的旧handler
     try {
@@ -44,6 +56,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
       ipcMain.removeHandler('ukey:lock');
       ipcMain.removeHandler('ukey:get-public-key');
       ipcMain.removeHandler('auth:verify-password');
+      ipcMain.removeHandler('auth:logout');
       // Phase 45 handlers
       ipcMain.removeHandler('ukey:derive-key');
       ipcMain.removeHandler('ukey:list-keys');
@@ -120,6 +133,8 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
    */
   ipcMain.handle('ukey:verify-pin', async (_event, pin) => {
     try {
+      const attempt = trustedAuthenticationSender(_event)
+        ? goalAuth.beginProjectGoalAuthentication() : null;
       if (!ukeyManager) {
         return {
           success: false,
@@ -127,7 +142,11 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
         };
       }
 
-      return await ukeyManager.verifyPIN(pin);
+      const result = await ukeyManager.verifyPIN(pin);
+      if (result?.success === true && trustedAuthenticationSender(_event)) {
+        goalAuth.authenticateProjectGoalUKey(ukeyManager, attempt);
+      }
+      return result;
     } catch (error) {
       logger.error('[UKey IPC] PIN验证失败:', error);
       return {
@@ -216,6 +235,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
       }
 
       ukeyManager.lock();
+      goalAuth.clearProjectGoalAuth('ukey');
       return true;
     } catch (error) {
       logger.error('[UKey IPC] 锁定失败:', error);
@@ -250,21 +270,18 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
    */
   ipcMain.handle('auth:verify-password', async (_event, username, password) => {
     try {
+      const attempt = trustedAuthenticationSender(_event)
+        ? goalAuth.beginProjectGoalAuthentication() : null;
       // 开发模式：默认用户名和密码
       const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'admin';
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
 
-      logger.info('[UKey IPC] ========================================');
-      logger.info('[UKey IPC] 收到登录请求');
-      logger.info('[UKey IPC] 接收到的用户名:', JSON.stringify(username), '类型:', typeof username);
-      logger.info('[UKey IPC] 接收到的密码:', JSON.stringify(password), '类型:', typeof password, '长度:', password?.length);
-      logger.info('[UKey IPC] 期望用户名:', JSON.stringify(DEFAULT_USERNAME), '类型:', typeof DEFAULT_USERNAME);
-      logger.info('[UKey IPC] 期望密码:', JSON.stringify(DEFAULT_PASSWORD), '类型:', typeof DEFAULT_PASSWORD);
-      logger.info('[UKey IPC] ========================================');
-
       // 简单的密码验证（生产环境应使用加密存储）
       if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
         logger.info('[UKey IPC] ✅ 密码验证成功');
+        if (trustedAuthenticationSender(_event)) {
+          goalAuth.authenticateProjectGoalPassword(attempt);
+        }
         return {
           success: true,
           userId: 'local-user',
@@ -288,6 +305,15 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
         error: error.message,
       };
     }
+  });
+
+  ipcMain.handle('auth:logout', async (event) => {
+    if (!trustedAuthenticationSender(event)) {
+      throw Object.assign(new Error('GOAL_UNTRUSTED_SENDER'), {
+        code: 'GOAL_UNTRUSTED_SENDER',
+      });
+    }
+    goalAuth.clearProjectGoalAuth();
   });
 
   // ============================================================
@@ -527,7 +553,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('ukey-ipc');
 
-  logger.info('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (25 handlers)');
+  logger.info('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (26 handlers)');
 }
 
 export {

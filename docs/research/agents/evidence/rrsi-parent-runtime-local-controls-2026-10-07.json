@@ -1,0 +1,103 @@
+{
+  "schema": "chainlesschain.rrsi-parent-runtime-local-controls/v1",
+  "recordedAt": "2026-10-06T21:34:27.868Z",
+  "baseCommit": "4abe03f44d1180523f61b7839725f550b4f7a949",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-parent-binding.js",
+      "digest": "sha256:6571134fea07cd2be3051f1ea3d1aafb208d09d720c39bc2af363c64a31bd4c0"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-runtime-composition.js",
+      "digest": "sha256:c8725ac47f960cd04d5e0e1cd3ff7273f1b41fb4dfe2e8324275d09a530b4ae2"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-pm-execution-bridge.js",
+      "digest": "sha256:d55114c587336d4a044194c96a71762387b015b7b45c81c4fe92ab69ae99ad8a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "digest": "sha256:f777ab9aeb52c642339c6b76e483e6cae7a4b6d8815a4dbf64dc1e4b1ee4d0e8"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-history-store.js",
+      "digest": "sha256:1a6d5ffc15c40831c86de52bdcd94a6791bbb48b145a2698d0fd62c6e87ddd13"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-pm-bridge.js",
+      "digest": "sha256:206bc070433ad61ef08ddc1e0c6e55d7d50a351c69407e0addc63247c61f79fc"
+    }
+  ],
+  "sourceReport": ".work/rrsi-parent-runtime-full-tests.json",
+  "sourceReportDigest": "sha256:f85f656b30f5be8fddc9dbe54fbd8c69578b5f5df7ebb05e9937f7e3f456eeef",
+  "files": [
+    {
+      "file": "packages/cli/__tests__/integration/rrsi-history-process.test.js",
+      "passed": 10,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/integration/rrsi-pm-bridge-process.test.js",
+      "passed": 3,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+      "passed": 25,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-pm-execution-bridge.test.js",
+      "passed": 16,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-preparation-history.test.js",
+      "passed": 30,
+      "skipped": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "passed": 44,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "files": 6,
+    "passed": 128,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": [
+    "RRSI parent binds committed release/content/revision without certifying deployment or stable quality",
+    "RRSI parent rejects replaced frozen revision",
+    "RRSI parent rejects replaced frozen stateDigest",
+    "RRSI parent rejects replaced frozen contentDigest",
+    "RRSI parent refuses another tenant, Memory-policy and an absent active release",
+    "RRSI parent detects a real committed transition and preserves the original captured reader",
+    "RRSI parent preserves the initial frozen anchor when the registry LKG moves",
+    "RRSI parent rejects accessor and Proxy composition before evaluating them",
+    "RRSI runtime shadow composes the existing host and keeps promotion and full admission unavailable",
+    "RRSI runtime off denies direct bridge calls and enforced mode cannot fall back",
+    "RRSI runtime rechecks the live parent before reservation and keeps history readable",
+    "RRSI runtime consumes a stale dispatch capability without reexecution or blocking independent reconciliation",
+    "RRSI runtime rechecks parent integrity after durable dispatch before invoking the host"
+  ],
+  "independentReadOnlyReview": "Astra reviewed Registry/Ledger identity, immutable live parent capability, artifact-only anchor claims, off/shadow modes, before/after dispatch readback and unknown reconciliation",
+  "lint": "ESLint passed on all six changed source/fixture/test files",
+  "formatting": "Prettier passed on source/tests/docs",
+  "localOnly": true,
+  "supportedOperation": "broad-round-without-curriculum",
+  "supportedModes": ["off", "shadow"],
+  "registrySnapshotDoesNotReplaceAtomicCAS": true,
+  "transactionLedgerAuthorityVerified": false,
+  "anchorStabilityVerified": false,
+  "productionAdmissionVerified": false,
+  "monetaryAdmissionVerified": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "legacyPromotionFallbackProtectionImplemented": false,
+  "completeRuntimeRecoveryImplemented": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

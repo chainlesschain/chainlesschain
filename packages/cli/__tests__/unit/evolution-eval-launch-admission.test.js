@@ -19,6 +19,28 @@ afterEach(cleanupEvalLaunchAdmissionFixtures);
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 describe("Eval launch admission authority", () => {
+  it("rejects implicit digest/time coercion without executing input hooks or occupying the slot", async () => {
+    const { options, input } = setup();
+    const authority = createEvolutionEvalLaunchAdmissionAuthority(options);
+    let conversions = 0;
+    const value = {
+      [Symbol.toPrimitive]() {
+        conversions++;
+        return input.deadlineAt;
+      },
+    };
+    await expect(
+      admitEvolutionEvalLaunch(authority, { ...input, deadlineAt: value }),
+    ).rejects.toThrow(/deadlineAt is invalid/);
+    await expect(
+      admitEvolutionEvalLaunch(authority, { ...input, requestDigest: value }),
+    ).rejects.toThrow(/sha256 digest/);
+    expect(conversions).toBe(0);
+    expect(options.ledger.verify().sequence).toBe(0);
+    await expect(
+      admitEvolutionEvalLaunch(authority, input),
+    ).resolves.toMatchObject({ authenticated: true });
+  });
   it("verifies real Ed25519 evidence from independent retained artifacts after reopening", async () => {
     const { resources, backend, options, input } = setup();
     const authority = createEvolutionEvalLaunchAdmissionAuthority(options);

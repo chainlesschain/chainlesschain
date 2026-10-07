@@ -152,6 +152,74 @@ describe("packed session-core authorization boundary", () => {
       const { ApprovalGate } = require(
         path.join(extractedPackage, "lib", "approval-gate.js"),
       );
+      // Resolve the published subpath from an isolated package scope. None of
+      // the ledger's own modules may fall back to the repository workspace.
+      for (const name of [
+        "goal-usage-ledger",
+        "goal-contract",
+        "business-object-contract",
+        "goal-repository",
+        "project-goal-service",
+      ]) {
+        fs.writeFileSync(
+          path.join(extractedPackage, "lib", `${name}.js`),
+          tarEntry(sessionTarball, `package/lib/${name}.js`),
+        );
+      }
+      const isolatedRequire = createRequire(
+        path.join(extractedPackage, "probe.cjs"),
+      );
+      expect(
+        isolatedRequire.resolve(
+          "@chainlesschain/session-core/goal-usage-ledger",
+        ),
+      ).toBe(path.join(extractedPackage, "lib", "goal-usage-ledger.js"));
+      const { GoalUsageLedger } = isolatedRequire(
+        "@chainlesschain/session-core/goal-usage-ledger",
+      );
+      const { PersonalProjectGoalService } = isolatedRequire(
+        "@chainlesschain/session-core/project-goal-service",
+      );
+      const Database = require("better-sqlite3");
+      const db = new Database(":memory:");
+      try {
+        db.exec(
+          "CREATE TABLE projects(id TEXT PRIMARY KEY,user_id TEXT,status TEXT,updated_at INTEGER); INSERT INTO projects VALUES ('p1','did:packed','active',1)",
+        );
+        const goals = new PersonalProjectGoalService({
+          db,
+          getActor: () => "did:packed",
+        });
+        const goal = goals.create({
+          projectId: "p1",
+          objective: "Packed ledger",
+          budgetPolicy: { maxRuns: 1 },
+        });
+        const ledger = new GoalUsageLedger({ db });
+        db.transaction(() => {
+          ledger.reserve({
+            goal,
+            actor: "did:packed",
+            operationId: "packed-action",
+          });
+          ledger.settle({
+            goalId: goal.id,
+            actor: "did:packed",
+            operationId: "packed-action",
+            status: "settled",
+            usage: { runs: 1, tokens: 0, costUsd: 0, elapsedMs: 2 },
+          });
+          expect(ledger.summary(goal, "did:packed")).toMatchObject({
+            totalRuns: 1,
+            elapsedMs: 2,
+          });
+          expect(() =>
+            ledger.reserve({ goal, actor: "did:packed", operationId: "next" }),
+          ).toThrow("GOAL_USAGE_BUDGET_EXHAUSTED");
+        }).immediate();
+      } finally {
+        db.close();
+      }
 
       const rawAuthorization = Object.freeze({ leaseId: "lease-packed" });
       const withoutConsumer = new ApprovalGate({

@@ -5,6 +5,23 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildRrsiCampaign } from "../../src/lib/evolution/rrsi-contracts.js";
+import { rrsiCampaignInput } from "../fixtures/rrsi-shadow-fixture.js";
+import {
+  createRrsiEffectiveParentBinding,
+  recheckRrsiEffectiveParent,
+} from "../../src/lib/evolution/rrsi-parent-binding.js";
+import { openRrsiPmBridgeFixture } from "../fixtures/rrsi-pm-bridge.js";
+import {
+  reserveRrsiPmBroadRound,
+  executeRrsiPmBroadRound,
+} from "../../src/lib/evolution/rrsi-pm-execution-bridge.js";
+import {
+  createRrsiRuntimeComposition,
+  reserveRrsiRuntimePmBroadRound,
+  executeRrsiRuntimePmBroadRound,
+  inspectRrsiRuntimeHistory,
+} from "../../src/lib/evolution/rrsi-runtime-composition.js";
 
 import {
   SKILL_CANDIDATE_MIGRATION_AUTHORITY_SCHEMA,
@@ -1277,6 +1294,440 @@ describe("SkillReleaseRegistry authenticated transaction recovery", () => {
       authorization: { capability, request },
     });
   }
+
+  async function rrsiParentOptions() {
+    const candidate = candidates.create(candidateInput(execution)).candidate;
+    const promoted = await promote(
+      candidate,
+      0,
+      EMPTY_SKILL_ACTIVE_DIGEST,
+      "promotion:rrsi-parent",
+    );
+    const current = releases.readActive(candidate.skillName);
+    return {
+      campaign: buildRrsiCampaign({
+        ...rrsiCampaignInput(),
+        tenantId: TENANT_ID,
+        goalId: candidate.skillName,
+        parentReleaseDigest: promoted.release.releaseDigest,
+        anchorReleaseDigest: current.state.lastKnownGoodReleaseDigest,
+      }),
+      releaseRegistry: releases,
+      expectedParent: {
+        // The captured reader must belong to the host's expected Ledger.
+        revision: current.state.revision,
+        stateDigest: current.state.stateDigest,
+        contentDigest: promoted.release.contentDigest,
+      },
+      transactionLedger: ledger,
+    };
+  }
+
+  it("RRSI parent binds committed release/content/revision without certifying deployment or stable quality", async () => {
+    const input = await rrsiParentOptions();
+    const binding = createRrsiEffectiveParentBinding(input);
+    expect(binding.descriptor).toMatchObject({
+      parentReleaseDigest: input.campaign.parentReleaseDigest,
+      parentContentDigest: input.expectedParent.contentDigest,
+      activeRevision: 1,
+      registryReadbackVerified: true,
+      anchorArtifactIntegrityVerified: true,
+      anchorHistoricalActivationVerified: false,
+      anchorStabilityVerified: false,
+      deploymentAdmissionVerified: false,
+      grantsMutationOrDispatchAuthority: false,
+      qualifiesForPromotion: false,
+    });
+    expect(binding.descriptor.parentReleaseDigest).not.toBe(
+      binding.descriptor.parentContentDigest,
+    );
+    expect(recheckRrsiEffectiveParent(binding)).toMatchObject({
+      registryReadbackVerified: true,
+      effectiveParentUnchanged: true,
+      atomicDispatchOrPromotionAuthorized: false,
+    });
+    expect(() => recheckRrsiEffectiveParent(structuredClone(binding))).toThrow(
+      /branded live/,
+    );
+    expect(() =>
+      createRrsiEffectiveParentBinding({
+        ...input,
+        releaseRegistry: {
+          readActive: () => releases.readActive(input.campaign.goalId),
+        },
+      }),
+    ).toThrow(/genuine SkillReleaseRegistry/);
+    expect(() =>
+      createRrsiEffectiveParentBinding({ ...input, transactionLedger: {} }),
+    ).toThrow(/another transaction Ledger/);
+  });
+
+  it.each(["revision", "stateDigest", "contentDigest"])(
+    "RRSI parent rejects replaced frozen %s",
+    async (field) => {
+      const input = await rrsiParentOptions();
+      input.expectedParent[field] =
+        field === "revision" ? 2 : digest("replaced effective parent");
+      expect(() => createRrsiEffectiveParentBinding(input)).toThrow(
+        /frozen active release, content or revision/,
+      );
+    },
+  );
+
+  it("RRSI parent refuses another tenant, Memory-policy and an absent active release", async () => {
+    const input = await rrsiParentOptions();
+    for (const changed of [
+      { tenantId: OTHER_TENANT_ID },
+      { candidateKind: "memory-policy" },
+      { goalId: "no-effective-release" },
+    ]) {
+      const campaign = buildRrsiCampaign({
+        ...rrsiCampaignInput(),
+        tenantId: TENANT_ID,
+        goalId: input.campaign.goalId,
+        parentReleaseDigest: input.campaign.parentReleaseDigest,
+        anchorReleaseDigest: input.campaign.anchorReleaseDigest,
+        ...changed,
+      });
+      expect(() =>
+        createRrsiEffectiveParentBinding({ ...input, campaign }),
+      ).toThrow();
+    }
+  });
+
+  it("RRSI parent detects a real committed transition and preserves the original captured reader", async () => {
+    const input = await rrsiParentOptions();
+    const binding = createRrsiEffectiveParentBinding(input);
+    input.expectedParent.revision = 99;
+    expect(recheckRrsiEffectiveParent(binding).effectiveParentUnchanged).toBe(
+      true,
+    );
+    const successor = candidates.create(
+      candidateInput(
+        execution,
+        input.expectedParent.contentDigest,
+        "rrsi-successor",
+      ),
+    ).candidate;
+    await promote(
+      successor,
+      1,
+      input.expectedParent.contentDigest,
+      "promotion:rrsi-successor",
+    );
+    expect(() => recheckRrsiEffectiveParent(binding)).toThrow(
+      /frozen active release, content or revision/,
+    );
+  });
+
+  it("RRSI parent preserves the initial frozen anchor when the registry LKG moves", async () => {
+    const input = await rrsiParentOptions();
+    let current = releases.readActive(input.campaign.goalId);
+    for (const suffix of ["two", "three"]) {
+      const candidate = candidates.create(
+        candidateInput(
+          execution,
+          current.release.contentDigest,
+          `rrsi-${suffix}`,
+        ),
+      ).candidate;
+      await promote(
+        candidate,
+        current.state.revision,
+        current.release.contentDigest,
+        `promotion:rrsi-${suffix}`,
+      );
+      current = releases.readActive(input.campaign.goalId);
+    }
+    expect(current.state.lastKnownGoodReleaseDigest).not.toBe(
+      input.campaign.anchorReleaseDigest,
+    );
+    const binding = createRrsiEffectiveParentBinding({
+      ...input,
+      campaign: buildRrsiCampaign({
+        ...rrsiCampaignInput(),
+        tenantId: TENANT_ID,
+        goalId: input.campaign.goalId,
+        parentReleaseDigest: current.release.releaseDigest,
+        anchorReleaseDigest: input.campaign.anchorReleaseDigest,
+      }),
+      expectedParent: {
+        revision: current.state.revision,
+        stateDigest: current.state.stateDigest,
+        contentDigest: current.release.contentDigest,
+      },
+    });
+    expect(binding.descriptor.anchorReleaseDigest).toBe(
+      input.campaign.anchorReleaseDigest,
+    );
+    expect(binding.descriptor.anchorStabilityVerified).toBe(false);
+    expect(recheckRrsiEffectiveParent(binding).effectiveParentUnchanged).toBe(
+      true,
+    );
+  });
+
+  it("RRSI parent rejects accessor and Proxy composition before evaluating them", async () => {
+    const input = await rrsiParentOptions();
+    const getter = vi.fn(() => releases);
+    Object.defineProperty(input, "releaseRegistry", {
+      get: getter,
+      enumerable: true,
+    });
+    expect(() => createRrsiEffectiveParentBinding(input)).toThrow(/accessors/);
+    expect(getter).not.toHaveBeenCalled();
+    expect(() => createRrsiEffectiveParentBinding(new Proxy({}, {}))).toThrow(
+      /plain own/,
+    );
+  });
+
+  async function rrsiRuntimeFixture(mode = "shadow", bridgeOptions = {}) {
+    const parent = await rrsiParentOptions();
+    const value = openRrsiPmBridgeFixture(
+      path.join(tempRoot, "rrsi-pm-runtime"),
+      {
+        ...bridgeOptions,
+        campaignOverrides: {
+          tenantId: parent.campaign.tenantId,
+          goalId: parent.campaign.goalId,
+          parentReleaseDigest: parent.campaign.parentReleaseDigest,
+          anchorReleaseDigest: parent.campaign.anchorReleaseDigest,
+        },
+      },
+    );
+    const parentBinding = createRrsiEffectiveParentBinding({
+      ...parent,
+      campaign: value.campaign,
+    });
+    const compositionInput = {
+      campaign: value.campaign,
+      pmBridge: value.bridge,
+      parentBinding,
+      mode,
+    };
+    return {
+      ...value,
+      parent,
+      parentBinding,
+      compositionInput,
+      runtime: createRrsiRuntimeComposition(compositionInput),
+    };
+  }
+
+  async function advanceRrsiParent(value) {
+    const current = releases.readActive(value.campaign.goalId);
+    const successor = candidates.create(
+      candidateInput(
+        execution,
+        current.release.contentDigest,
+        "runtime-successor",
+      ),
+    ).candidate;
+    await promote(
+      successor,
+      current.state.revision,
+      current.release.contentDigest,
+      "promotion:runtime-successor",
+    );
+  }
+
+  it("RRSI runtime shadow composes the existing host and keeps promotion and full admission unavailable", async () => {
+    const value = await rrsiRuntimeFixture();
+    const response = reserveRrsiRuntimePmBroadRound(
+      value.runtime,
+      value.journal,
+      value.roundInput(),
+    );
+    const result = await executeRrsiRuntimePmBroadRound(
+      value.runtime,
+      response,
+    );
+    expect(value.calls).toEqual({ run: 1, grade: 1, tool: 1 });
+    expect(result).toMatchObject({
+      hostInvoked: true,
+      dispatchCommitted: true,
+      qualityVerdictVerified: false,
+    });
+    expect(value.runtime.descriptor).toMatchObject({
+      mode: "shadow",
+      effectiveParentRecheckedBeforeReservationAndDispatch: true,
+      fullProductionAdmissionVerified: false,
+      supportsPromotion: false,
+      supportsEnforcedMode: false,
+      qualifiesForPromotion: false,
+    });
+    expect(() =>
+      inspectRrsiRuntimeHistory(structuredClone(value.runtime)),
+    ).toThrow(/branded live/);
+    expect(inspectRrsiRuntimeHistory(value.runtime).preparationAttempts).toBe(
+      1,
+    );
+  });
+
+  it("RRSI runtime off denies direct bridge calls and enforced mode cannot fall back", async () => {
+    const value = await rrsiRuntimeFixture("off");
+    expect(() =>
+      reserveRrsiRuntimePmBroadRound(
+        value.runtime,
+        value.journal,
+        value.roundInput(),
+      ),
+    ).toThrow(/runtime is off/);
+    expect(() =>
+      reserveRrsiPmBroadRound(value.bridge, value.journal, value.roundInput()),
+    ).toThrow(/runtime is off/);
+    expect(() =>
+      createRrsiRuntimeComposition({
+        ...value.compositionInput,
+        mode: "enforced",
+      }),
+    ).toThrow(/complete production admission/);
+    expect(() =>
+      createRrsiRuntimeComposition({
+        ...value.compositionInput,
+        mode: "shadow",
+      }),
+    ).toThrow(/binding is immutable/);
+    expect(inspectRrsiRuntimeHistory(value.runtime).preparationAttempts).toBe(
+      0,
+    );
+    expect(value.calls.run).toBe(0);
+  });
+
+  it("RRSI runtime rechecks the live parent before reservation and keeps history readable", async () => {
+    const value = await rrsiRuntimeFixture();
+    await advanceRrsiParent(value);
+    expect(() =>
+      reserveRrsiRuntimePmBroadRound(
+        value.runtime,
+        value.journal,
+        value.roundInput(),
+      ),
+    ).toThrow(/frozen active release/);
+    expect(() =>
+      reserveRrsiPmBroadRound(value.bridge, value.journal, value.roundInput()),
+    ).toThrow(/frozen active release/);
+    expect(inspectRrsiRuntimeHistory(value.runtime).preparationAttempts).toBe(
+      0,
+    );
+    expect(value.calls.run).toBe(0);
+  });
+
+  it("RRSI runtime consumes a stale dispatch capability without reexecution or blocking independent reconciliation", async () => {
+    const value = await rrsiRuntimeFixture();
+    const response = reserveRrsiRuntimePmBroadRound(
+      value.runtime,
+      value.journal,
+      value.roundInput(),
+    );
+    await advanceRrsiParent(value);
+    const result = await executeRrsiPmBroadRound(value.bridge, response);
+    expect(result).toMatchObject({
+      hostInvoked: false,
+      dispatchPersistence: "not-attempted",
+      failureCode: "cc_rrsi_parent_drift",
+    });
+    expect(inspectRrsiRuntimeHistory(value.runtime)).toMatchObject({
+      preparationAttempts: 1,
+      chargedResources: { maxExecutions: "2", maxCostMicrounits: "100000" },
+      executions: [
+        { status: "unknown", dispatched: false, costEvidenceVerified: false },
+      ],
+    });
+    await expect(
+      executeRrsiRuntimePmBroadRound(value.runtime, response),
+    ).rejects.toThrow(/fresh round/);
+    value.adapter.settle(
+      value.signSettlement(response.reservation, {
+        status: "not-started",
+        usage: {
+          tokens: 0,
+          toolCalls: 0,
+          wallClockMs: 0,
+          costMicrounits: 0,
+          executions: 0,
+        },
+      }),
+    );
+    expect(inspectRrsiRuntimeHistory(value.runtime)).toMatchObject({
+      preparationAttempts: 1,
+      executions: [{ status: "settled", costEvidenceVerified: true }],
+    });
+    expect(value.calls.run).toBe(0);
+  });
+
+  it("RRSI runtime rechecks parent integrity after durable dispatch before invoking the host", async () => {
+    let corruptParent = null;
+    const value = await rrsiRuntimeFixture("shadow", {
+      crashHook: (phase) => {
+        if (corruptParent && phase === "after-head") {
+          const action = corruptParent;
+          corruptParent = null;
+          action();
+        }
+      },
+    });
+    const response = reserveRrsiRuntimePmBroadRound(
+      value.runtime,
+      value.journal,
+      value.roundInput(),
+    );
+    corruptParent = () =>
+      fs.writeFileSync(
+        path.join(
+          registryRoot,
+          "artifacts",
+          `${value.campaign.parentReleaseDigest.slice(7)}.json`,
+        ),
+        "corrupted during dispatch",
+      );
+    const result = await executeRrsiRuntimePmBroadRound(
+      value.runtime,
+      response,
+    );
+    expect(result).toMatchObject({
+      dispatchPersistence: "persisted",
+      hostInvoked: false,
+      observationPersistence: "persisted",
+      pmResult: null,
+      independentSettlementRequired: true,
+    });
+    expect(inspectRrsiRuntimeHistory(value.runtime)).toMatchObject({
+      chargedResources: { maxCostMicrounits: "100000" },
+      executions: [
+        { status: "unknown", dispatched: true, costEvidenceVerified: false },
+      ],
+    });
+    expect(() =>
+      value.adapter.settle(
+        value.signSettlement(response.reservation, {
+          status: "not-started",
+          usage: {
+            tokens: 0,
+            toolCalls: 0,
+            wallClockMs: 0,
+            costMicrounits: 0,
+            executions: 0,
+          },
+        }),
+      ),
+    ).toThrow(/contradicts dispatch/);
+    value.adapter.settle(
+      value.signSettlement(response.reservation, {
+        status: "cancelled",
+        usage: {
+          tokens: 0,
+          toolCalls: 0,
+          wallClockMs: 0,
+          costMicrounits: 0,
+          executions: 0,
+        },
+      }),
+    );
+    expect(inspectRrsiRuntimeHistory(value.runtime).executions[0].status).toBe(
+      "settled",
+    );
+    expect(value.calls.run).toBe(0);
+  });
 
   it("captures all releases and active pointers and rejects enumeration drift", async () => {
     const fsImpl = Object.create(fs);

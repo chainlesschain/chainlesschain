@@ -1,0 +1,11 @@
+{
+  "cwd": "desktop-app-vue",
+  "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs --reporter=default --reporter=json --outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-workflow-2026-10-07\\desktop-tests.json",
+  "exitCode": 0,
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64",
+  "startedAt": "2026-10-06T23:25:04.494Z",
+  "completedAt": "2026-10-06T23:25:34.962Z",
+  "environment": "Native local SQLite where applicable; host Electron APIs mocked in desktop tests"
+}

@@ -1,0 +1,11 @@
+{
+  "cwd": ".",
+  "command": "node --test packages/session-core/__tests__/scheduler-host-boundary.node.cjs",
+  "exitCode": 0,
+  "node": "v22.22.2",
+  "os": "win32",
+  "arch": "x64",
+  "startedAt": "2026-10-07T02:51:35.790Z",
+  "completedAt": "2026-10-07T02:51:38.419Z",
+  "environment": "Native local SQLite where applicable; host Electron APIs mocked in desktop tests"
+}

@@ -1,0 +1,144 @@
+﻿{
+    "schema":  "chainlesschain.dmm-foundation-evidence/v1",
+    "createdAt":  "2026-10-06T19:05:18.8004436Z",
+    "sourceState":  "uncommitted-worktree",
+    "baseCommit":  "1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b",
+    "branch":  "feature/dots-muse-mods-foundation",
+    "platform":  "Windows",
+    "nodeVersion":  "22.22.2",
+    "vitestVersion":  "4.1.10",
+    "testReports":  [
+                        {
+                            "report":  "cli-tests.json",
+                            "files":  14,
+                            "passed":  253,
+                            "failed":  0,
+                            "skipped":  0
+                        },
+                        {
+                            "report":  "session-core-tests.json",
+                            "files":  2,
+                            "passed":  91,
+                            "failed":  0,
+                            "skipped":  0
+                        },
+                        {
+                            "report":  "desktop-tests.json",
+                            "files":  4,
+                            "passed":  66,
+                            "failed":  0,
+                            "skipped":  0
+                        }
+                    ],
+    "packedHost":  {
+                       "report":  "packed-host.tap",
+                       "files":  1,
+                       "passed":  2,
+                       "failed":  0,
+                       "skipped":  0
+                   },
+    "totalFiles":  21,
+    "totalPassed":  412,
+    "totalFailed":  0,
+    "totalSkipped":  0,
+    "scope":  [
+                  "shared-scheduler-contract-service",
+                  "versioned-goal-contract",
+                  "legacy-cli-file-cas",
+                  "native-personal-project-storage",
+                  "injected-electron-ipc-boundary",
+                  "isolated-npm-pack-loading"
+              ],
+    "notRun":  [
+                   "real-electron-gui-journey",
+                   "process-crash-recovery-drill",
+                   "real-business-outcomes",
+                   "remote-exact-commit-release-matrix"
+               ],
+    "sourceDigests":  [
+                          {
+                              "path":  ".github/workflows/cli-ci.yml",
+                              "sha256":  "6e403c48f228ca1e39e0d31ea1a8ebc14d7df1720bebc27f71d938638db89056"
+                          },
+                          {
+                              "path":  "packages/session-core/package.json",
+                              "sha256":  "b19900e19b32bd7af4663b4714dc58b64c3d46d229e42e372bb01a27bf8e15c4"
+                          },
+                          {
+                              "path":  "packages/session-core/lib/goal-contract.js",
+                              "sha256":  "983bedb52e4714cb63c797e91275d38aee8cac4705db4dd8239d6fcf3c57e217"
+                          },
+                          {
+                              "path":  "packages/session-core/lib/goal-repository.js",
+                              "sha256":  "b80faf969b0386648dbbc4590269a2288200683d36e75dda7c04717e7801a1a7"
+                          },
+                          {
+                              "path":  "packages/session-core/lib/project-goal-service.js",
+                              "sha256":  "5bd1ff6652fd5d336430e5bcc8e246dfe89aeacbafb081113479029c1083a153"
+                          },
+                          {
+                              "path":  "packages/session-core/lib/scheduler-contract.js",
+                              "sha256":  "68d06ffd85884ef493f72d0773ef91e64de054f79c8bc00b32cc8010af849738"
+                          },
+                          {
+                              "path":  "packages/session-core/lib/scheduler-service.js",
+                              "sha256":  "2ab4c6089dd0ba45fc972b4c9ba00b348aa3ba858399e6afda89faa7d22a0232"
+                          },
+                          {
+                              "path":  "packages/session-core/__tests__/goal-contract.test.js",
+                              "sha256":  "185721f24f73204d1de166206c894eb85f4814f9874ed67eb3a62c1c8ecc35f2"
+                          },
+                          {
+                              "path":  "packages/session-core/__tests__/scheduler-host-boundary.node.cjs",
+                              "sha256":  "e8ff7415c006b8197cea96543342a0cf5fb9a8ba5911698da785a1bcda26b03f"
+                          },
+                          {
+                              "path":  "packages/cli/src/lib/goal-store.js",
+                              "sha256":  "f5872c071b3cb77ea562a809148c7b50dcc4dc1eb71a33f900d3677c1a2da5eb"
+                          },
+                          {
+                              "path":  "packages/cli/src/lib/scheduler-kernel/contract.js",
+                              "sha256":  "e5976948a5b00ae7dea2ff4f8c09e86b0eb9c804d5a46a1a053230fd0c5cab0c"
+                          },
+                          {
+                              "path":  "packages/cli/src/lib/scheduler-kernel/service.js",
+                              "sha256":  "f17e067c120f919111845cb00f19a47363bc31aaa915f5c5ea6f3596ddf0e105"
+                          },
+                          {
+                              "path":  "packages/cli/__tests__/unit/goal-repository.test.js",
+                              "sha256":  "1ab81be325e5e16544aa02c2f9be066a058197bc43756e241b0f15ae331337c7"
+                          },
+                          {
+                              "path":  "packages/cli/__tests__/unit/project-goal-service.test.js",
+                              "sha256":  "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+                          },
+                          {
+                              "path":  "desktop-app-vue/src/main/task/project-goal-ipc.js",
+                              "sha256":  "6d5a252a00c994f10946acfe0cbb3ac3c9b2ddf0edf173a810853a65ec0e05e1"
+                          },
+                          {
+                              "path":  "desktop-app-vue/src/main/task/task-ipc.js",
+                              "sha256":  "d119f137e812a70d75fcee77590dfbf6cc609d003d44ca85bcf180b8f2c1a6cf"
+                          },
+                          {
+                              "path":  "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+                              "sha256":  "a6bcb10ae9d0daa66f9efa9a095b2319e4418095dbcfd17aa6bb5d5f8bfb3f75"
+                          },
+                          {
+                              "path":  "desktop-app-vue/src/preload/index.js",
+                              "sha256":  "5c84705a8675084df5dd984a3a0c9bd2f41c2df3cfc6ce07928b8b320618f346"
+                          },
+                          {
+                              "path":  "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+                              "sha256":  "3ce4f1ac2e785bcdb8b5b1d9f9b3f0940a43f293505a405831599ed493259f49"
+                          },
+                          {
+                              "path":  "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+                              "sha256":  "819b1ffb34c3644058709193ef952aabe7630c9edbf52ae69fd6bb81255445b5"
+                          },
+                          {
+                              "path":  "desktop-app-vue/vitest.business-actions.config.mjs",
+                              "sha256":  "de724968eb6fa614aae60f4160e9efe345de18ebd14c34fcad4a96a8611868a8"
+                          }
+                      ]
+}

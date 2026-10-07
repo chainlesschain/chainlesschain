@@ -106,7 +106,7 @@ function validateRequest(value) {
     request.target.sourceKind !== SOURCE_KIND ||
     request.target.scope.kind !== "personal" ||
     Object.keys(request.input).some(
-      (key) => !["description", "riskReview"].includes(key),
+      (key) => !["description", "riskReview", "goalIntent"].includes(key),
     ) ||
     !Object.hasOwn(request.input, "description")
   ) {
@@ -119,7 +119,33 @@ function validateRequest(value) {
     if (!/^sha256:[a-f0-9]{64}$/.test(request.input.riskReview.contentDigest))
       fail("ACTION_INVALID_REQUEST");
   }
+  if (Object.hasOwn(request.input, "goalIntent"))
+    validateGoalIntent(request.input.goalIntent);
   return request;
+}
+
+function validateGoalIntent(value) {
+  readOptions(
+    value,
+    [
+      "id",
+      "goalId",
+      "storeId",
+      "goalRevision",
+      "controlGeneration",
+      "proposalId",
+    ],
+    [],
+  );
+  for (const key of ["id", "goalId", "storeId", "proposalId"]) id(value[key]);
+  if (
+    !Number.isSafeInteger(value.goalRevision) ||
+    value.goalRevision < 1 ||
+    !Number.isSafeInteger(value.controlGeneration) ||
+    value.controlGeneration < 0
+  )
+    fail("ACTION_INVALID_REQUEST");
+  return value;
 }
 
 function snapshotReferences(task, project) {
@@ -226,7 +252,13 @@ function createTaskDescriptionPreview(input) {
  * one immediate transaction. Interrupted running receipts are never replayed.
  */
 class TaskDescriptionActionService {
-  constructor({ db, getActor, approvalGate, now = () => Date.now() } = {}) {
+  constructor({
+    db,
+    getActor,
+    approvalGate,
+    now = () => Date.now(),
+    contextAdapter = null,
+  } = {}) {
     if (
       !db ||
       typeof db.transaction !== "function" ||
@@ -243,6 +275,13 @@ class TaskDescriptionActionService {
     this.getActor = getActor;
     this.approvalGate = approvalGate;
     this.now = now;
+    if (
+      contextAdapter !== null &&
+      (typeof contextAdapter?.verify !== "function" ||
+        typeof contextAdapter?.record !== "function")
+    )
+      fail("ACTION_GOAL_AUTHORITY_REQUIRED");
+    this.contextAdapter = contextAdapter;
     this._transaction(() =>
       db.exec(`CREATE TABLE IF NOT EXISTS cc_business_action_runs (
       id TEXT PRIMARY KEY,
@@ -659,14 +698,19 @@ class TaskDescriptionActionService {
       ) ||
       Object.keys(input).some(
         (key) =>
-          !["description", "idempotencyKey", "taskId", "reviewId"].includes(
-            key,
-          ),
+          ![
+            "description",
+            "idempotencyKey",
+            "taskId",
+            "reviewId",
+            "goalIntent",
+          ].includes(key),
       )
     )
       fail("ACTION_INVALID_REQUEST");
     description(input.description);
     id(input.idempotencyKey);
+    if (input.goalIntent !== undefined) validateGoalIntent(input.goalIntent);
     const riskContext =
       input.reviewId === undefined
         ? null
@@ -693,6 +737,7 @@ class TaskDescriptionActionService {
         expectedVersion: snapshot.ref.version,
         input: {
           description: input.description,
+          ...(input.goalIntent ? { goalIntent: input.goalIntent } : {}),
           ...(riskReview
             ? {
                 riskReview: {
@@ -704,6 +749,7 @@ class TaskDescriptionActionService {
         },
         idempotencyKey: input.idempotencyKey,
       });
+      this._verifyGoalContext(request, actor, "preview");
       return Object.freeze({
         request,
         before: Object.freeze({ description: snapshot.task.description }),
@@ -777,12 +823,26 @@ class TaskDescriptionActionService {
         sources.length > 1 ||
         sources.some(
           (item) =>
-            run.actionType !== ACTION_TYPE ||
+            ![ACTION_TYPE, "task.create"].includes(run.actionType) ||
             item.actionDigest !== run.actionDigest ||
             item.expectedVersion !== run.expectedVersion ||
             typeof item.reviewId !== "string" ||
             !/^sha256:[a-f0-9]{64}$/.test(item.contentDigest),
         )
+      )
+        fail("ACTION_RECEIPT_CORRUPT");
+      const goals = evidence.filter(
+        (item) => item.kind === "project-goal-intent",
+      );
+      if (
+        goals.length > 1 ||
+        goals.some((item) => {
+          validateGoalIntent(item.reference);
+          return (
+            item.actionDigest !== run.actionDigest ||
+            item.expectedVersion !== run.expectedVersion
+          );
+        })
       )
         fail("ACTION_RECEIPT_CORRUPT");
       if (run.status === "succeeded" && run.actionType === "task.create") {
@@ -840,7 +900,7 @@ class TaskDescriptionActionService {
     });
   }
 
-  _save(run, evidence, actor, insert = false) {
+  _save(run, evidence, actor, insert = false, request = null) {
     if (insert) {
       this.db
         .prepare(
@@ -880,6 +940,18 @@ class TaskDescriptionActionService {
         run,
       });
     }
+    if (request?.input.goalIntent) {
+      if (!this.contextAdapter) fail("ACTION_GOAL_AUTHORITY_REQUIRED");
+      const recorded = this.contextAdapter.record({
+        request,
+        run,
+        evidence,
+        actor,
+      });
+      if (recorded && typeof recorded.then === "function")
+        fail("ACTION_GOAL_ASYNC_CONTEXT_DENIED");
+      if (recorded?.recorded !== true) fail("ACTION_GOAL_CONTEXT_REJECTED");
+    }
   }
 
   _riskService() {
@@ -895,6 +967,22 @@ class TaskDescriptionActionService {
 
   _validateRequest(input) {
     return validateRequest(input);
+  }
+  _verifyRiskContext(request) {
+    if (request.input.riskReview)
+      this._riskService().verifyActionContext({
+        reviewId: request.input.riskReview.id,
+        contentDigest: request.input.riskReview.contentDigest,
+        taskId: request.target.id,
+      });
+  }
+  _verifyGoalContext(request, actor, phase) {
+    if (!request.input.goalIntent) return;
+    if (!this.contextAdapter) fail("ACTION_GOAL_AUTHORITY_REQUIRED");
+    const verified = this.contextAdapter.verify({ request, actor, phase });
+    if (verified && typeof verified.then === "function")
+      fail("ACTION_GOAL_ASYNC_CONTEXT_DENIED");
+    if (verified?.allowed !== true) fail("ACTION_GOAL_CONTEXT_REJECTED");
   }
   _authorizeRequest(request, actor) {
     this._ownedTask(request.target.id, actor, { metadataOnly: true });
@@ -945,17 +1033,14 @@ class TaskDescriptionActionService {
           previous.invocation_digest !== request.invocationDigest
         )
           fail("ACTION_IDEMPOTENCY_CONFLICT");
+        this._verifyGoalContext(request, actor, "replay");
         return { previous: this._readRun(previous) };
       }
       this._assertNoUnresolvedTask(request.target.id);
       const current = this._requestSnapshot(request, actor);
       const riskContext = request.input.riskReview;
-      if (riskContext)
-        this._riskService().verifyActionContext({
-          reviewId: riskContext.id,
-          contentDigest: riskContext.contentDigest,
-          taskId: request.target.id,
-        });
+      this._verifyRiskContext(request);
+      this._verifyGoalContext(request, actor, "admission");
       if (current.ref.version !== request.expectedVersion)
         fail("ACTION_VERSION_CONFLICT");
       const startedAt = new Date(this.now()).toISOString();
@@ -973,6 +1058,16 @@ class TaskDescriptionActionService {
             },
           ]
         : [];
+      if (request.input.goalIntent)
+        sourceEvidence.push({
+          id: randomUUID(),
+          kind: "project-goal-intent",
+          reference: request.input.goalIntent,
+          actorDid: actor,
+          invocationDigest: request.invocationDigest,
+          actionDigest: request.actionDigest,
+          expectedVersion: request.expectedVersion,
+        });
       const sourceRefs = sourceEvidence.map((item) => ({
         id: item.id,
         digest: digestBusinessObjectContent(item),
@@ -984,7 +1079,7 @@ class TaskDescriptionActionService {
         startedAt,
         evidenceRefs: sourceRefs,
       });
-      this._save(run, sourceEvidence, actor, true);
+      this._save(run, sourceEvidence, actor, true, request);
       return {
         actor,
         current,
@@ -1078,12 +1173,8 @@ class TaskDescriptionActionService {
         const currentActor = this._actor();
         if (currentActor !== actor) fail("ACTION_AUTHORITY_CHANGED");
         const latest = this._requestSnapshot(request, actor);
-        if (request.input.riskReview)
-          this._riskService().verifyActionContext({
-            reviewId: request.input.riskReview.id,
-            contentDigest: request.input.riskReview.contentDigest,
-            taskId: request.target.id,
-          });
+        this._verifyRiskContext(request);
+        this._verifyGoalContext(request, actor, "before-write");
         if (latest.ref.version !== request.expectedVersion)
           fail("ACTION_VERSION_CONFLICT");
         const row = this.db
@@ -1129,14 +1220,14 @@ class TaskDescriptionActionService {
           executionRef,
           evidenceRefs,
         });
-        this._save(run, evidence, actor);
+        this._save(run, evidence, actor, false, request);
         return { run, evidence, replayed: false };
       });
     } catch (error) {
       // A changed identity/version is a known precondition failure before any
       // write. Other DB/commit errors retain running (unknown) and are not retried.
       if (
-        /^PROJECT_RISK_/.test(error.code || "") ||
+        /^(PROJECT_RISK_|ACTION_GOAL_)/.test(error.code || "") ||
         [
           "ACTION_AUTHORITY_CHANGED",
           "ACTION_VERSION_CONFLICT",
@@ -1144,6 +1235,7 @@ class TaskDescriptionActionService {
           "ACTION_TARGET_NOT_EDITABLE",
           "ACTION_ORGANIZATION_UNSUPPORTED",
           "ACTION_AUTHENTICATION_REQUIRED",
+          "ACTION_AUTHORITY_UNAVAILABLE",
         ].includes(error.code)
       ) {
         this._transaction(() => {
@@ -1160,7 +1252,13 @@ class TaskDescriptionActionService {
             approvalRef,
             evidenceRefs: [...sourceRefs, approvalRef],
           });
-          this._save(denied, [...sourceEvidence, approval], actor);
+          this._save(
+            denied,
+            [...sourceEvidence, approval],
+            actor,
+            false,
+            request,
+          );
         });
         throw error;
       }
@@ -1192,10 +1290,18 @@ class TaskCreateActionService extends TaskDescriptionActionService {
     readOptions(
       input,
       ["projectId", "taskType", "description", "idempotencyKey"],
-      [],
+      ["reviewId", "goalIntent"],
     );
     description(input.description);
     id(input.idempotencyKey);
+    if (input.goalIntent !== undefined) validateGoalIntent(input.goalIntent);
+    const riskReview =
+      input.reviewId === undefined
+        ? null
+        : this._riskService().getCreateActionContext({
+            reviewId: input.reviewId,
+            projectId: input.projectId,
+          });
     if (
       ![
         "create_file",
@@ -1208,16 +1314,24 @@ class TaskCreateActionService extends TaskDescriptionActionService {
     )
       fail("ACTION_INVALID_TASK_TYPE");
     return this._transaction(() => {
-      const snapshot = this._projectSnapshot(input.projectId, this._actor());
+      const actor = this._actor();
+      const snapshot = this._projectSnapshot(input.projectId, actor);
       this._assertNoUnresolvedTask(input.projectId);
       const request = createBusinessActionRequest({
         actionType: "task.create",
         actionVersion: 1,
         target: snapshot.ref,
         expectedVersion: snapshot.ref.version,
-        input: { taskType: input.taskType, description: input.description },
+        input: {
+          taskType: input.taskType,
+          description: input.description,
+          ...(riskReview ? { riskReview } : {}),
+          ...(input.goalIntent ? { goalIntent: input.goalIntent } : {}),
+        },
         idempotencyKey: input.idempotencyKey,
       });
+      this._verifyRiskContext(request);
+      this._verifyGoalContext(request, actor, "preview");
       return { request, before: { description: "" }, after: request.input };
     });
   }
@@ -1237,7 +1351,18 @@ class TaskCreateActionService extends TaskDescriptionActionService {
       request.target.scope.kind !== "personal"
     )
       fail("ACTION_UNSUPPORTED_REQUEST");
-    readOptions(request.input, ["taskType", "description"], []);
+    readOptions(
+      request.input,
+      ["taskType", "description"],
+      ["riskReview", "goalIntent"],
+    );
+    if (request.input.riskReview) {
+      readOptions(request.input.riskReview, ["id", "contentDigest"], []);
+      id(request.input.riskReview.id);
+      if (!/^sha256:[a-f0-9]{64}$/.test(request.input.riskReview.contentDigest))
+        fail("ACTION_INVALID_REQUEST");
+    }
+    if (request.input.goalIntent) validateGoalIntent(request.input.goalIntent);
     description(request.input.description);
     if (
       ![
@@ -1255,6 +1380,14 @@ class TaskCreateActionService extends TaskDescriptionActionService {
 
   _authorizeRequest(request, actor) {
     this._ownedProject(request.target.id, actor);
+  }
+  _verifyRiskContext(request) {
+    if (request.input.riskReview)
+      this._riskService().verifyCreateActionContext({
+        reviewId: request.input.riskReview.id,
+        contentDigest: request.input.riskReview.contentDigest,
+        projectId: request.target.id,
+      });
   }
   _requestSnapshot(request, actor) {
     return this._projectSnapshot(request.target.id, actor);

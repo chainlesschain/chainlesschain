@@ -4,6 +4,7 @@ import { types as utilTypes } from "node:util";
 import { withFileLock } from "../with-file-lock.js";
 import { EvolutionArtifactPorts } from "./evolution-artifact-ports.js";
 import {
+  EvolutionLedger,
   captureEvolutionLedgerMigrationSource,
   EVOLUTION_LEDGER_MAX_EVENTS,
   EVOLUTION_LEDGER_V2_MIGRATION_INTENT,
@@ -105,6 +106,38 @@ export function createEvolutionLedgerV2Journal(options) {
   });
   const source = captureEvolutionLedgerMigrationSource(config.sourceLedger);
   const ledger = source.ledger;
+  // Genuine subclasses also own migration capabilities. Capture original
+  // private-field operations and physical paths rather than virtual overrides.
+  const original = Object.fromEntries(
+    [
+      "read",
+      "query",
+      "queryMany",
+      "verifyReceipt",
+      "verify",
+      "checkpointState",
+      "exportAuditBundle",
+    ].map((name) => {
+      const method = Object.getOwnPropertyDescriptor(
+        EvolutionLedger.prototype,
+        name,
+      ).value;
+      return [name, (...args) => Reflect.apply(method, ledger, args)];
+    }),
+  );
+  const rootDir = Reflect.apply(
+    Object.getOwnPropertyDescriptor(EvolutionLedger.prototype, "rootDir").get,
+    ledger,
+    [],
+  );
+  const authorityRootDir = Reflect.apply(
+    Object.getOwnPropertyDescriptor(
+      EvolutionLedger.prototype,
+      "authorityRootDir",
+    ).get,
+    ledger,
+    [],
+  );
   const backend = captureEvolutionLedgerV2ManifestBackend(config.backend);
   const retention = config.minimumRetainedUntil;
   if (
@@ -120,7 +153,8 @@ export function createEvolutionLedgerV2Journal(options) {
   )
     fail("constructed EvolutionArtifactPorts are required");
   // Calling the original private-field method also rejects prototype forgeries.
-  const put = EvolutionArtifactPorts.prototype.putCanonical.bind(artifactPorts);
+  const putCanonical = EvolutionArtifactPorts.prototype.putCanonical;
+  const put = (...args) => Reflect.apply(putCanonical, artifactPorts, args);
   const lock = config.lock ?? withFileLock;
   if (typeof lock !== "function" || utilTypes.isProxy(lock))
     fail("synchronous journal lock is required");
@@ -134,7 +168,7 @@ export function createEvolutionLedgerV2Journal(options) {
   const locked = (operation) => {
     let calls = 0;
     const result = lock(
-      path.join(ledger.authorityRootDir, "manifest-cutover-v2"),
+      path.join(authorityRootDir, "manifest-cutover-v2"),
       (context) => {
         if (++calls !== 1)
           fail("journal lock callback must execute exactly once");
@@ -149,7 +183,7 @@ export function createEvolutionLedgerV2Journal(options) {
     return result;
   };
   const sourceEvents = () =>
-    ledger.read({ limit: EVOLUTION_LEDGER_MAX_EVENTS });
+    original.read({ limit: EVOLUTION_LEDGER_MAX_EVENTS });
 
   function binding(authority) {
     if (
@@ -252,7 +286,7 @@ export function createEvolutionLedgerV2Journal(options) {
     return receipt;
   }
   function recover() {
-    const authority = ledger.verify();
+    const authority = original.verify();
     const expectedBinding = binding(authority);
     let events = sourceEvents();
     let intents = events.filter(
@@ -416,8 +450,8 @@ export function createEvolutionLedgerV2Journal(options) {
   }
   const journal = Object.freeze({
     descriptor,
-    rootDir: ledger.rootDir,
-    authorityRootDir: ledger.authorityRootDir,
+    rootDir,
+    authorityRootDir,
     append: (input, options = {}) =>
       append("append", input, options, false, false),
     appendBatch: (inputs, options = {}) =>
@@ -433,14 +467,14 @@ export function createEvolutionLedgerV2Journal(options) {
     read: (options = {}) =>
       readOperation(({ events }) => {
         // Preserve exact v1 read validation and return events recovered from v2.
-        const selected = ledger.read(options);
+        const selected = original.read(options);
         return Object.freeze(
           selected.map((event) => events[event.sequence - 1]),
         );
       }),
     query: (selector, options = {}) =>
       readOperation(({ events }) => {
-        const result = ledger.query(selector, options);
+        const result = original.query(selector, options);
         return result
           ? Object.freeze({
               ...result,
@@ -451,7 +485,7 @@ export function createEvolutionLedgerV2Journal(options) {
     queryMany: (selectors, options = {}) =>
       readOperation(({ events }) =>
         Object.freeze(
-          ledger.queryMany(selectors, options).map((result) =>
+          original.queryMany(selectors, options).map((result) =>
             result
               ? Object.freeze({
                   ...result,
@@ -463,17 +497,20 @@ export function createEvolutionLedgerV2Journal(options) {
       ),
     findByEventId: (eventId) =>
       readOperation(({ events }) => {
-        const event = ledger.findByEventId(eventId);
+        const event =
+          original.query({ eventId }, { issueReceipt: false })?.event ?? null;
         return event ? events[event.sequence - 1] : null;
       }),
     recoverReceipt: (selector) =>
-      readOperation(() => ledger.recoverReceipt(selector)),
+      readOperation(
+        () => original.query(selector, { issueReceipt: true })?.receipt ?? null,
+      ),
     verifyReceipt: (receipt, options = {}) =>
-      readOperation(() => ledger.verifyReceipt(receipt, options)),
-    verify: () => readOperation(() => ledger.verify()),
-    getAuthority: () => readOperation(() => ledger.getAuthority()),
-    checkpointState: () => readOperation(() => ledger.checkpointState()),
-    exportAuditBundle: () => readOperation(() => ledger.exportAuditBundle()),
+      readOperation(() => original.verifyReceipt(receipt, options)),
+    verify: () => readOperation(() => original.verify()),
+    getAuthority: () => readOperation(() => original.verify()),
+    checkpointState: () => readOperation(() => original.checkpointState()),
+    exportAuditBundle: () => readOperation(() => original.exportAuditBundle()),
     recover: () =>
       readOperation(({ checkpoint, intent, completed }) =>
         Object.freeze({ checkpoint, intent, completed }),
@@ -506,8 +543,8 @@ export function createEvolutionLedgerV2JournalFromFactory(
     utilTypes.isProxy(config.createBackend)
   )
     fail("explicit manifest backend construction authority is required");
-  const authority =
-    captureEvolutionLedgerMigrationSource(sourceLedger).ledger.getAuthority();
+  const ledger = captureEvolutionLedgerMigrationSource(sourceLedger).ledger;
+  const authority = Reflect.apply(EvolutionLedger.prototype.verify, ledger, []);
   const scope = Object.freeze({
     ...record(config.descriptor, ["tenantId", "artifactTenantId", "audience"]),
   });

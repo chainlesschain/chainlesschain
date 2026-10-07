@@ -1,0 +1,263 @@
+{
+  "schema": "chainlesschain.rrsi-native-preregistration-local-controls/v1",
+  "recordedAt": "2026-10-07T02:07:24.237Z",
+  "baseCommit": "a5c8fc25b7691a96af63de9e97ad36dcbef698dc",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-history-ledger-adapter.js",
+      "digest": "sha256:1f9d2a55c8649a6fe8894854e60e08e43df51884f15fb36b829b1d4cee7acc1b"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-cohort-registration.js",
+      "digest": "sha256:0843601876b3c1b46c7dd5023d56818f439ddb4fc92a8ea424ebf9796c110624"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-eval-cohort-enrollment.js",
+      "digest": "sha256:c190ca8c58740cca603084b771e46e664e3eff39b74325264186cdfe1824661a"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-eval-row-collector.js",
+      "digest": "sha256:139cf7f005d1576e9396b31a527c6dbefde468cc2e2be8d318464745676b709d"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-batch-evidence.js",
+      "digest": "sha256:3afa52091c886e5c50ca1b6ef93d716d6046381da6cbcba6c7708d62e0ac6129"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-group-statistics.js",
+      "digest": "sha256:13b17d857a176acfa844e196a37f09a8b5ec873fe07731055da52653183ab2ae"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-group-statistics-plan.js",
+      "digest": "sha256:86184a7178ed0bedaafb95f2168cb8b677685be7ae6176c315f0aed3d6279e54"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-native-statistics-protocol.js",
+      "digest": "sha256:d2eeeeb7fcdd2af499e9206f7af8e3e809a7e94deded9b88eac7769aedc62a99"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-group-statistics.js",
+      "digest": "sha256:ba1478d3a33f47c855b4ecb36628a06345f9aff329bfd397513d3689c480d7c6"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "digest": "sha256:8af16d030f1e0dbc2ed13417dc469e772b8c26640da17eadce2cc6a94dd41a19"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-cohort-enrollment.test.js",
+      "digest": "sha256:0eb06069871b1306a2c530b561f41a2ff74707bcfc0640111979f6e3292c3714"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-history.test.js",
+      "digest": "sha256:7c01bc406a10ed6913c00d77c9dc334938e7ffb4f12ceafc955454f521788434"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-protocol.test.js",
+      "digest": "sha256:cc1041ad50ab30f3a7651260e942b54027521cfe606e7e7164af711f0aee84e1"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-provenance.test.js",
+      "digest": "sha256:d771a33493a4b0f48c928936a20a9f1a754522f5a81c7473465aa69ceaa16983"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-native-cohort-store.js",
+      "digest": "sha256:3a873776b6c26a5c3f9217f6b37fc51a25937c75757becc99381141f68f15390"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-native-preregistration-final-tests.json",
+      "digest": "sha256:1d16260b5c8a066f2089a30c112fc3218370b15e905f1ed44705a5b0147f55ff"
+    }
+  ],
+  "supportingReports": [
+    {
+      "file": ".work/rrsi-native-statistics-protocol-final-tests.json",
+      "digest": "sha256:db940234a566ee488c5505e514ac0ac5a8dac98d8573562535d314485962b401"
+    },
+    {
+      "file": ".work/rrsi-native-statistics-provenance-final-tests.json",
+      "digest": "sha256:c3cd178c9333480522ea10f4788216f07f546d696d679f3ca5b46b3d9b14940b"
+    },
+    {
+      "file": ".work/rrsi-statistics-extraction-regression.json",
+      "digest": "sha256:93868ff2ee4b79db2e261a04e87ead2bd316d474206cefbd230a947e27812b03"
+    },
+    {
+      "file": ".work/rrsi-preregistered-signed-row-smoke-tests.json",
+      "digest": "sha256:493a0a050dcacfb545421f54c763d478c176073fe571eb6495818c209ba99432"
+    },
+    {
+      "file": ".work/rrsi-preregistered-enrollment-smoke-tests.json",
+      "digest": "sha256:94ab35ea85e85f8e29c19de9ad338bf55af9cad6ede307da77ebb99468857177"
+    },
+    {
+      "file": ".work/rrsi-native-statistics-history-campaign-smoke-tests.json",
+      "digest": "sha256:df746e3551a0c22ec21c5b4c8f1b2cb76c09233b6229fff90c10f3a47ea65b6d"
+    }
+  ],
+  "canonicalGoldenBaseline": {
+    "file": ".work/rrsi-statistics-golden-before.json",
+    "digest": "sha256:2002f5e38964e88da031d352d1a65ebe02b376ad4e56dce62be8e20211021a65"
+  },
+  "canonicalGoldenCases": 8,
+  "canonicalGoldenPreservation": "The protocol tests compare eight pre-extraction v1/v2 plan/report canonical SHA digests; Astra also compared full before/after canonical bytes without change.",
+  "files": [
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-cohort-enrollment.test.js",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 32592.677978515625
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-gate.test.js",
+      "passed": 253,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 941871.6716308594
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-launch-admission.test.js",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 5971.071044921875
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-ledger-capture.test.js",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 11.049072265625
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 73966.59057617188
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-cohort-enrollment.test.js",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 796698.0065917969
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-group-statistics.test.js",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 3680.97265625
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-history-ledger-adapter.test.js",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 84151.36108398438
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-batch-history.test.js",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 296550.875
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-evaluation-plan.test.js",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 73467.59790039062
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-group-statistics.test.js",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 280892.01513671875
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-history.test.js",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 192545.36352539062
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-protocol.test.js",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 40059.912353515625
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-native-statistics-provenance.test.js",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 222978.2041015625
+    }
+  ],
+  "totals": {
+    "files": 14,
+    "passed": 441,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newCasesInIncrement": 71,
+  "lint": "ESLint passed for all nine changed source files, five test files and the changed fixture",
+  "formatting": "Prettier passed for source/tests/fixture/docs/evidence",
+  "independentReview": "Astra implemented pure protocol/plan extraction and separate genuine v2 provenance tests, then reviewed root History/enrollment/row/census/report wiring. Two findings were fixed: valid null-prototype Skill outputs now use descriptor-safe original validators and trusted normalization; canonical operation IDs plus exact applied-record kind/payload identity prevent provenance aliases. No remaining blocking finding.",
+  "controls": {
+    "candidateIndependentScopeBeforeEveryExecutionReservation": true,
+    "fixedScopeIdentityAcrossCampaignAndCandidateChanges": true,
+    "fullAllStagePopulationTargetFamilyMethodsAndCapsFrozen": true,
+    "originalSkillManifestValidatorsBeforePlainNormalization": true,
+    "independentOriginalV2PlanBytesPreserved": true,
+    "genuineHistoryReconstructsQueryPlanBeforeReservation": true,
+    "strictRootScopePlanReservationSequenceAndActualArtifactReferences": true,
+    "canonicalOperationIdsAndExactAppliedRecordProvenance": true,
+    "sourceRefsAndCrossJournalBindingsVerified": true,
+    "legacyReservationCannotDowngradeFrozenScope": true,
+    "legacyHistoryReplayAndSettlementPathsPreserved": true,
+    "registrationDoesNotResetQueryQuotaOrResourceBudget": true,
+    "committedResponseLossAndIdempotentReadbackDoNotGrantFreshExecution": true,
+    "copiedCapabilitiesNeverGrantDispatch": true,
+    "nestedCohortPlanAndManifestV2FromActualReservation": true,
+    "signedEnrollmentSourceRefsAndAllSiblingBarrierPreserved": true,
+    "admissionEnrollmentDigestCarriesStatisticalBinding": true,
+    "signedRowCohortAndBatchEvidenceV2BoundToSameRegistration": true,
+    "finalGenuineJournalClosureAndReceiptTimeChecksPreserved": true,
+    "newReportV3RemovesOnlyMissingPreregistrationReason": true,
+    "originalNativeGateVetoAndBudgetHoldRemain": true,
+    "original5000OperationJournalAndNativeRecoveryBoundsRemain": true
+  },
+  "implementedAPIs": [
+    "registerNativeStatisticsScope",
+    "registerNativeStatisticsPlan",
+    "reserveNativeBatchV2"
+  ],
+  "purePlanPreObservationRegistrationVerified": false,
+  "controlledHistoryRegistrationOrderVerified": true,
+  "underlyingObservationTimeVerified": false,
+  "crossSelectionQueryErrorRateControlled": false,
+  "statisticalProtocolValidated": false,
+  "sourceIndependenceVerified": false,
+  "underlyingExecutionReceiptsReverified": false,
+  "completeLifecycleCostVerified": false,
+  "cleanupReverified": false,
+  "qualityVerdictVerified": false,
+  "localOnly": true,
+  "paidProviderRequestsExecuted": false,
+  "productionLatencyValidated": false,
+  "productionBudgetAuthorityVerified": false,
+  "billingComplete": false,
+  "exactCommitCrossPlatformCIValidated": false,
+  "actualABCExperimentExecuted": false,
+  "fullGoalCompleted": false,
+  "qualifiesForPromotion": false
+}

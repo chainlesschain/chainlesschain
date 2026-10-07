@@ -1,0 +1,181 @@
+{
+  "schema": "chainlesschain.rrsi-offline-evidence/v1",
+  "baselineCommit": "1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b",
+  "sourceTreeDirty": true,
+  "sourceFileDigests": {
+    "packages/cli/src/lib/evolution/rrsi-data.js": "sha256:06226d8c01c0d3496aeb8e4327ac03fcf00140bb1ce488a77ad1a9b0818e6d1b",
+    "packages/cli/src/lib/evolution/rrsi-contracts.js": "sha256:a47bd5fc175f212759f98357de386508e2a93a633e25371fb8bc511feed1cbcc",
+    "packages/cli/src/lib/evolution/rrsi-selector.js": "sha256:b6ef95ea481559a8b0be83a52c54608ce091819b2ef564801050fba688079ba9",
+    "packages/cli/__tests__/fixtures/rrsi-shadow-fixture.js": "sha256:03b66ab63caca675b45aa5a4d4ce19a8af74a0a360ee421b66446e78f610eb00",
+    "packages/cli/__tests__/unit/rrsi-contracts.test.js": "sha256:7ffc360599f2932a3339614b07f95f4fd71cf3a85ba5a57135618011e02089c5",
+    "packages/cli/__tests__/unit/rrsi-selector.test.js": "sha256:cbaffb440acd265310a22c9714cceed5c8a602b06fef34124010806476c1b072",
+    "packages/cli/__tests__/integration/rrsi-offline-replay.test.js": "sha256:5d87c8d4011fb11c2b61bd9286a88e692ca203530eb8d1e5843df5e580cf886e",
+    "packages/cli/scripts/rrsi-offline-replay.mjs": "sha256:508e786198f8fc32874101c0704a75e160f7a744524496af9ee8166ee0e85fa4"
+  },
+  "localValidation": {
+    "newTestsPassed": 85,
+    "existingTestsPassed": 117,
+    "totalTestsPassed": 202,
+    "testFiles": 6,
+    "eslint": "passed",
+    "prettier": "passed",
+    "authority": "local-supplementary-only"
+  },
+  "formalExperimentStatus": "NOT_RUN",
+  "authenticated": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false,
+  "replay": {
+    "schema": "chainlesschain.rrsi-selection-replay/v1",
+    "campaignDigest": "sha256:b7bf86d0ccf1d926856ac4c3177daf08b989fb6b87884a77cb6b9bc21eee7121",
+    "evidenceKind": "synthetic-offline",
+    "statisticalProtocolValidated": false,
+    "budgetCoverage": "synthetic-all-five-resource-aggregates",
+    "blockingReasons": [],
+    "status": "shadow-selected",
+    "selectedCandidateDigest": "sha256:25ad4831f7dd35f1c973ec72587589eac4afe579ba79b8cf29e201af4d32e29a",
+    "decisions": [
+      {
+        "candidateDigest": "sha256:25ad4831f7dd35f1c973ec72587589eac4afe579ba79b8cf29e201af4d32e29a",
+        "contentDigest": "sha256:9a3becf6ad6e623a6b2f3f6b11bfe6147918d48e5bb15f631d366009781f0350",
+        "status": "shadow-eligible",
+        "reasons": [],
+        "rawMetrics": {
+          "candidateDigest": "sha256:25ad4831f7dd35f1c973ec72587589eac4afe579ba79b8cf29e201af4d32e29a",
+          "trainDelta": 0.12,
+          "selectionDelta": {
+            "mean": 0.1,
+            "lower": 0.07,
+            "upper": 0.13
+          },
+          "baselineCostMicrounits": 100000,
+          "candidateCostMicrounits": 95000,
+          "baselineP95LatencyMs": 1000,
+          "candidateP95LatencyMs": 950,
+          "baselineTokens": 10000,
+          "candidateTokens": 9000,
+          "baselineToolCalls": 100,
+          "candidateToolCalls": 90,
+          "wallClockMs": 60000,
+          "executions": 960,
+          "plannedSlots": 480,
+          "completedSlots": 480,
+          "independentGroups": 40,
+          "safetyViolations": 0,
+          "permissionViolations": 0,
+          "dataLeakage": false,
+          "environmentMatches": true,
+          "cleanupConfirmed": true,
+          "costComplete": true,
+          "ancestorPassed": true,
+          "history": {
+            "oscillations": 0,
+            "repeatedFailures": 0
+          },
+          "perturbationDeltas": [
+            {
+              "id": "paraphrase",
+              "mean": 0.09
+            },
+            {
+              "id": "tool-delay",
+              "mean": 0.09
+            },
+            {
+              "id": "tool-order",
+              "mean": 0.09
+            }
+          ]
+        },
+        "penalties": {
+          "generalization": 0.01999999999999999,
+          "cost": 0,
+          "noise": 0.010000000000000009,
+          "history": 0,
+          "complexity": 0
+        },
+        "contributions": {
+          "generalization": 0.0049999999999999975,
+          "cost": 0,
+          "noise": 0.0025000000000000022,
+          "history": 0,
+          "complexity": 0
+        },
+        "score": 0.0625
+      },
+      {
+        "candidateDigest": "sha256:9a2eb76a834317a184837febc25cc0cdc60a267e4160d32fced009421f2a5ac9",
+        "contentDigest": "sha256:513601f39e5197b24410ccc9dac2943ae1405191094a2ea8decf81da478a0b2f",
+        "status": "rejected",
+        "reasons": ["NO_ROBUST_GAIN", "REGULARIZED_GAIN_NOT_MET"],
+        "rawMetrics": {
+          "candidateDigest": "sha256:9a2eb76a834317a184837febc25cc0cdc60a267e4160d32fced009421f2a5ac9",
+          "trainDelta": 0.5,
+          "selectionDelta": {
+            "mean": -0.04,
+            "lower": -0.1,
+            "upper": 0.02
+          },
+          "baselineCostMicrounits": 100000,
+          "candidateCostMicrounits": 95000,
+          "baselineP95LatencyMs": 1000,
+          "candidateP95LatencyMs": 950,
+          "baselineTokens": 10000,
+          "candidateTokens": 9000,
+          "baselineToolCalls": 100,
+          "candidateToolCalls": 90,
+          "wallClockMs": 60000,
+          "executions": 960,
+          "plannedSlots": 480,
+          "completedSlots": 480,
+          "independentGroups": 40,
+          "safetyViolations": 0,
+          "permissionViolations": 0,
+          "dataLeakage": false,
+          "environmentMatches": true,
+          "cleanupConfirmed": true,
+          "costComplete": true,
+          "ancestorPassed": true,
+          "history": {
+            "oscillations": 0,
+            "repeatedFailures": 0
+          },
+          "perturbationDeltas": [
+            {
+              "id": "paraphrase",
+              "mean": -0.05
+            },
+            {
+              "id": "tool-delay",
+              "mean": -0.05
+            },
+            {
+              "id": "tool-order",
+              "mean": -0.05
+            }
+          ]
+        },
+        "penalties": {
+          "generalization": 0.54,
+          "cost": 0,
+          "noise": 0.010000000000000002,
+          "history": 0,
+          "complexity": 0
+        },
+        "contributions": {
+          "generalization": 0.135,
+          "cost": 0,
+          "noise": 0.0025000000000000005,
+          "history": 0,
+          "complexity": 0
+        },
+        "score": -0.23750000000000002
+      }
+    ],
+    "structuralOnly": true,
+    "authenticated": false,
+    "readyForExecution": false,
+    "qualifiesForPromotion": false,
+    "replayDigest": "sha256:3d19d5384b50b90a6598c816d0e35426f0a8b369278425c7e864d20140479132"
+  }
+}
