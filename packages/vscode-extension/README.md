@@ -18,7 +18,7 @@ remain required.
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.137** candidate; runtime and packaging fixes       |
+| VS Code extension         | **0.37.137**; candidate runtime and packaging fixes       |
 | Recommended CLI           | **`chainlesschain@0.166.92`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
