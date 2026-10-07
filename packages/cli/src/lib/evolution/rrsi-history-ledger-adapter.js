@@ -59,6 +59,12 @@ import {
   buildRrsiNativeEvaluationBatch,
   normalizeRrsiNativeEvaluationBatch,
 } from "./rrsi-native-evaluation-batch.js";
+import {
+  buildRrsiNativeStatisticsScopeProtocol,
+  verifyRrsiNativeStatisticsScopeProtocol,
+  assertRrsiNativeStatisticsScopeBatch,
+  normalizeRrsiNativeStatisticsExecutionContract,
+} from "./rrsi-native-statistics-protocol.js";
 
 export const RRSI_HISTORY_EVENT_SCHEMA = "chainlesschain.rrsi-history-event/v1";
 export const RRSI_HISTORY_STATUS_SCHEMA =
@@ -69,6 +75,12 @@ export const RRSI_HISTORY_EVENT_TYPE = "rrsi.history.committed";
 const ARTIFACT_TYPE = "rrsi-history-event";
 const VERIFIERS = new WeakMap();
 const ADAPTERS = new WeakMap();
+const NATIVE_STATISTICS_SCOPE_OPERATION = "register.native-statistics-scope-v2";
+const NATIVE_STATISTICS_SCOPE_KIND = "register-native-statistics-scope-v2";
+const NATIVE_STATISTICS_PLAN_KIND = "register-native-statistics-plan-v2";
+const NATIVE_STATISTICS_RESERVE_KIND = "reserve-native-batch-v2";
+const nativeStatisticsPlanOperation = (queryId) =>
+  `statistics-plan.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", queryId).slice(7)}`;
 
 /** Capture only methods of an already composed, genuine history adapter. */
 export function captureRrsiHistoryLedgerAdapter(value) {
@@ -617,6 +629,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
       nativeBatches: new Map(),
       nativeChildren: new Map(),
       nativeControls: null,
+      nativeStatisticsScope: null,
+      nativeStatisticsPlans: new Map(),
+      nativeStatisticsBindings: new Map(),
       nativeRecoveryHolds: new Map(),
       nativeInvocations: new Set(),
       nativeInvocationIds: new Set(),
@@ -735,8 +750,126 @@ export function createRrsiHistoryLedgerAdapter(input) {
         "CC_RRSI_HISTORY_HOLD",
       );
   }
-  function reserveNativeBatch(state, payload) {
+  function historyRegistrationRecord(operation) {
+    if (!operation)
+      rrsiFail(
+        "required statistics registration is absent",
+        "CC_RRSI_PREREGISTRATION_REQUIRED",
+      );
+    return freezeRrsiData({
+      recordDigest: operation.record.recordDigest,
+      ref: operation.ref,
+      sequence: operation.sequence,
+    });
+  }
+  function rootRegistrationOperation(state) {
+    return [...state.operations.values()].find(
+      (entry) =>
+        entry.record.kind === "register" &&
+        entry.record.payload.campaign.campaignDigest ===
+          state.root?.campaignDigest,
+    );
+  }
+  function nativeStatisticsScopeBinding(state) {
+    return freezeRrsiData({
+      historyScopeId: descriptor.scopeId,
+      historyDescriptorDigest: scopeDigest,
+      ledgerIdentity: state.identity,
+      rootRegistrationRecord: historyRegistrationRecord(
+        rootRegistrationOperation(state),
+      ),
+    });
+  }
+  function assertNativeStatisticsCampaign(state, campaign) {
+    if (state.nativeStatisticsScope)
+      verifyRrsiNativeStatisticsScopeProtocol(
+        state.nativeStatisticsScope.protocol,
+        {
+          campaign,
+          execution: state.nativeStatisticsScope.execution,
+        },
+      );
+  }
+  function nativeStatisticsScopeResolution(state) {
+    if (!state.nativeStatisticsScope)
+      rrsiFail(
+        "native statistics scope is not preregistered",
+        "CC_RRSI_PREREGISTRATION_REQUIRED",
+      );
+    const operation = state.operations.get(NATIVE_STATISTICS_SCOPE_OPERATION);
+    if (
+      operation?.record.kind !== NATIVE_STATISTICS_SCOPE_KIND ||
+      operation.record.payload !== state.nativeStatisticsScope
+    )
+      rrsiFail(
+        "native statistics scope provenance is substituted",
+        "CC_RRSI_HISTORY_CORRUPT",
+      );
+    return freezeRrsiData({
+      schema: "chainlesschain.rrsi-native-statistics-scope-resolution/v1",
+      protocol: state.nativeStatisticsScope.protocol,
+      binding: state.nativeStatisticsScope.binding,
+      registrationRecord: historyRegistrationRecord(operation),
+      historyAuthenticated: true,
+      preObservationRegistrationVerified: true,
+      statisticalProtocolValidated: false,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    });
+  }
+  function nativeStatisticsReserveBinding(state, batch) {
+    const scope = nativeStatisticsScopeResolution(state);
+    const registered = state.nativeStatisticsPlans.get(batch.queryId);
+    if (!registered || rrsiCanonical(registered.batch) !== rrsiCanonical(batch))
+      rrsiFail(
+        "native batch has no matching observation-before-reservation plan",
+        "CC_RRSI_PREREGISTRATION_REQUIRED",
+      );
+    const planOperation = state.operations.get(
+      nativeStatisticsPlanOperation(batch.queryId),
+    );
+    if (
+      planOperation?.record.kind !== NATIVE_STATISTICS_PLAN_KIND ||
+      planOperation.record.payload !== registered
+    )
+      rrsiFail(
+        "native statistics plan provenance is substituted",
+        "CC_RRSI_HISTORY_CORRUPT",
+      );
+    return {
+      scopeStatisticsRegistrationDigest: scope.registrationRecord.recordDigest,
+      batchStatisticsRegistrationDigest:
+        historyRegistrationRecord(planOperation).recordDigest,
+      statisticsPlanDigest: registered.statisticsPlan.statisticsPlanDigest,
+    };
+  }
+  function nativeStatisticsSourceRefs(state, kind, payload) {
+    let refs;
+    if (kind === NATIVE_STATISTICS_SCOPE_KIND)
+      refs = [payload.binding.rootRegistrationRecord.ref];
+    else if (kind === NATIVE_STATISTICS_PLAN_KIND)
+      refs = [payload.scopeRegistrationRecord.ref];
+    else if (kind === NATIVE_STATISTICS_RESERVE_KIND)
+      refs = [
+        historyRegistrationRecord(
+          state.operations.get(NATIVE_STATISTICS_SCOPE_OPERATION),
+        ).ref,
+        historyRegistrationRecord(
+          state.operations.get(
+            nativeStatisticsPlanOperation(payload.batch.queryId),
+          ),
+        ).ref,
+      ];
+    else return null;
+    return refs.sort((a, b) => (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0));
+  }
+  function reserveNativeBatch(state, payload, statisticsBinding = null) {
     rrsiExact(payload, ["batch"], "native batch reservation");
+    if (state.nativeStatisticsScope && !statisticsBinding)
+      rrsiFail(
+        "a frozen statistics scope prohibits legacy native reservation",
+        "CC_RRSI_PREREGISTRATION_REQUIRED",
+      );
     const campaign = campaignFor(state, payload.batch?.campaignDigest);
     const batch = normalizeRrsiNativeEvaluationBatch(payload.batch, campaign);
     if (state.finalCandidates.size > 1)
@@ -1054,6 +1187,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
     }
     state.nativeControls ??= controls;
     state.nativeBatches.set(batch.batchDigest, batch);
+    if (statisticsBinding)
+      state.nativeStatisticsBindings.set(
+        batch.batchDigest,
+        freezeRrsiData(statisticsBinding),
+      );
     state.candidates.set(candidate.contentDigest, candidate);
     if (stage === "selection") state.selectionQueries++;
     state.nativeQueryOrdinals.set(
@@ -1124,6 +1262,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
           rrsiCanonical(campaign.budget) !== rrsiCanonical(state.root.budget))
       )
         rrsiFail("history policy, model, or budget cannot be reset");
+      assertNativeStatisticsCampaign(state, campaign);
       const trainingKeys = sourceKeys(campaign, "train");
       for (const key of trainingKeys) {
         const previous = state.sources.get(key);
@@ -1143,6 +1282,98 @@ export function createRrsiHistoryLedgerAdapter(input) {
       return campaign;
     }
     if (!state.root) rrsiFail("RRSI history has no registered root campaign");
+    if (kind === NATIVE_STATISTICS_SCOPE_KIND) {
+      rrsiExact(
+        payload,
+        ["execution", "protocol", "binding"],
+        "native statistics scope registration",
+      );
+      if (
+        state.nativeStatisticsScope ||
+        state.reservations.size ||
+        state.nativeBatches.size ||
+        state.preparationAttempts ||
+        state.selectionQueries
+      )
+        rrsiFail(
+          "native statistics scope must freeze before any execution reservation",
+          "CC_RRSI_PREREGISTRATION_TOO_LATE",
+        );
+      if (
+        rrsiCanonical(payload.binding) !==
+        rrsiCanonical(nativeStatisticsScopeBinding(state))
+      )
+        rrsiFail(
+          "native statistics scope belongs to another History root or journal",
+        );
+      verifyRrsiNativeStatisticsScopeProtocol(payload.protocol, {
+        campaign: state.root,
+        execution: payload.execution,
+      });
+      for (const campaign of state.campaigns.values())
+        verifyRrsiNativeStatisticsScopeProtocol(payload.protocol, {
+          campaign,
+          execution: payload.execution,
+        });
+      state.nativeStatisticsScope = freezeRrsiData(payload);
+      return payload.protocol;
+    }
+    if (kind === NATIVE_STATISTICS_PLAN_KIND) {
+      rrsiExact(
+        payload,
+        ["batch", "statisticsPlan", "scopeRegistrationRecord"],
+        "native statistics batch preregistration",
+      );
+      const scope = nativeStatisticsScopeResolution(state);
+      const campaign = campaignFor(state, payload.batch?.campaignDigest);
+      const batch = normalizeRrsiNativeEvaluationBatch(payload.batch, campaign);
+      if (
+        [...state.nativeBatches.values()].some(
+          (entry) =>
+            entry.queryId === batch.queryId ||
+            entry.batchDigest === batch.batchDigest,
+        )
+      )
+        rrsiFail(
+          "an already reserved batch cannot be retrospectively preregistered",
+          "CC_RRSI_PREREGISTRATION_TOO_LATE",
+        );
+      if (state.nativeStatisticsPlans.has(batch.queryId))
+        rrsiFail(
+          "native statistics query is already registered",
+          "CC_RRSI_OPERATION_CONFLICT",
+        );
+      if (
+        rrsiCanonical(payload.scopeRegistrationRecord) !==
+        rrsiCanonical(scope.registrationRecord)
+      )
+        rrsiFail("native statistics plan replaces its scope registration");
+      const rebuilt = assertRrsiNativeStatisticsScopeBatch(scope.protocol, {
+        campaign,
+        batch,
+      });
+      if (rrsiCanonical(rebuilt) !== rrsiCanonical(payload.statisticsPlan))
+        rrsiFail("native statistics plan differs from the frozen protocol");
+      state.nativeStatisticsPlans.set(batch.queryId, freezeRrsiData(payload));
+      return payload.statisticsPlan;
+    }
+    if (kind === NATIVE_STATISTICS_RESERVE_KIND) {
+      rrsiExact(
+        payload,
+        [
+          "batch",
+          "scopeStatisticsRegistrationDigest",
+          "batchStatisticsRegistrationDigest",
+          "statisticsPlanDigest",
+        ],
+        "preregistered native batch reservation",
+      );
+      const binding = nativeStatisticsReserveBinding(state, payload.batch);
+      for (const name of Object.keys(binding))
+        if (payload[name] !== binding[name])
+          rrsiFail("native reservation replaces its statistics registration");
+      return reserveNativeBatch(state, { batch: payload.batch }, binding);
+    }
     if (kind === "reserve-native-batch")
       return reserveNativeBatch(state, payload);
     if (kind === "dispatch-native" || kind === "unknown-native") {
@@ -1424,6 +1655,11 @@ export function createRrsiHistoryLedgerAdapter(input) {
       return reservation;
     }
     if (kind === "reserve") {
+      if (state.nativeStatisticsScope)
+        rrsiFail(
+          "a frozen statistics scope prohibits legacy evaluation reservation",
+          "CC_RRSI_PREREGISTRATION_REQUIRED",
+        );
       rrsiExact(
         payload,
         [
@@ -1955,6 +2191,44 @@ export function createRrsiHistoryLedgerAdapter(input) {
           );
         if (state.operations.has(record.operationId))
           rrsiFail("RRSI history has duplicate operations");
+        if (
+          record.kind === NATIVE_STATISTICS_SCOPE_KIND &&
+          record.operationId !== NATIVE_STATISTICS_SCOPE_OPERATION
+        )
+          rrsiFail(
+            "native statistics scope operation ID differs",
+            "CC_RRSI_HISTORY_CORRUPT",
+          );
+        if (
+          [
+            NATIVE_STATISTICS_PLAN_KIND,
+            NATIVE_STATISTICS_RESERVE_KIND,
+          ].includes(record.kind)
+        ) {
+          rrsiId(record.payload.batch?.queryId, "native statistics query ID");
+          const expectedOperationId =
+            record.kind === NATIVE_STATISTICS_PLAN_KIND
+              ? nativeStatisticsPlanOperation(record.payload.batch.queryId)
+              : `reserve-native.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", record.payload.batch.queryId).slice(7)}`;
+          if (record.operationId !== expectedOperationId)
+            rrsiFail(
+              "native statistics query operation ID differs",
+              "CC_RRSI_HISTORY_CORRUPT",
+            );
+        }
+        const statisticsRefs = nativeStatisticsSourceRefs(
+          state,
+          record.kind,
+          record.payload,
+        );
+        if (
+          statisticsRefs &&
+          rrsiCanonical(event.sourceRefs) !== rrsiCanonical(statisticsRefs)
+        )
+          rrsiFail(
+            "native statistics History source references differ",
+            "CC_RRSI_HISTORY_CORRUPT",
+          );
         const result = apply(
           state,
           record.kind,
@@ -2014,6 +2288,46 @@ export function createRrsiHistoryLedgerAdapter(input) {
       readyForExecution: false,
       qualifiesForPromotion: false,
     };
+    const binding = state.nativeStatisticsBindings.get(batchDigest);
+    if (binding) {
+      const scope = nativeStatisticsScopeResolution(state);
+      const planOperation = state.operations.get(
+        nativeStatisticsPlanOperation(batch.queryId),
+      );
+      const planRegistrationRecord = historyRegistrationRecord(planOperation);
+      const registered = state.nativeStatisticsPlans.get(batch.queryId);
+      const expected = nativeStatisticsReserveBinding(state, batch);
+      if (
+        rrsiCanonical(expected) !== rrsiCanonical(binding) ||
+        !(
+          scope.binding.rootRegistrationRecord.sequence <
+            scope.registrationRecord.sequence &&
+          scope.registrationRecord.sequence < planRegistrationRecord.sequence &&
+          planRegistrationRecord.sequence < reservationRecord.sequence
+        )
+      )
+        rrsiFail(
+          "native statistics registration sequence or reservation binding differs",
+          "CC_RRSI_HISTORY_CORRUPT",
+        );
+      result.statisticsRegistration = freezeRrsiData({
+        schema:
+          "chainlesschain.rrsi-native-statistics-registration-resolution/v1",
+        binding: scope.binding,
+        protocolDigest: scope.protocol.protocolDigest,
+        statisticsPlanDigest: registered.statisticsPlan.statisticsPlanDigest,
+        statisticsPlan: registered.statisticsPlan,
+        scopeRegistrationRecord: scope.registrationRecord,
+        planRegistrationRecord,
+        reservationRecord,
+        reservationKind: NATIVE_STATISTICS_RESERVE_KIND,
+        historyAuthenticated: true,
+        preObservationRegistrationVerified: true,
+        statisticalProtocolValidated: false,
+        readyForExecution: false,
+        qualifiesForPromotion: false,
+      });
+    }
     // Reserve enough byte/node space for the longest later status as well as
     // the actual retained event reference. Do not admit an unreadable batch.
     snapshotRrsiData({
@@ -2048,7 +2362,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
       const acceptedAt = now();
       const result = apply(state, kind, payload, acceptedAt, true);
       if (
-        state.nativeBatches.size &&
+        (state.nativeBatches.size ||
+          kind === NATIVE_STATISTICS_SCOPE_KIND ||
+          kind === NATIVE_STATISTICS_PLAN_KIND) &&
         (state.operations.size +
           1 +
           [...state.nativeRecoveryHolds.values()].reduce(
@@ -2111,7 +2427,10 @@ export function createRrsiHistoryLedgerAdapter(input) {
           ),
         );
       }
-      if (kind === "reserve-native-batch")
+      if (
+        kind === "reserve-native-batch" ||
+        kind === NATIVE_STATISTICS_RESERVE_KIND
+      )
         nativeBatchResolution(state, payload.batch.batchDigest, {
           recordDigest: record.recordDigest,
           ref: copyRetainedRef(published.ref),
@@ -2129,7 +2448,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
             decision: "accepted",
             reason:
               "RRSI durable control history; independent execution admission remains required",
-            sourceRefs: [],
+            sourceRefs: nativeStatisticsSourceRefs(state, kind, payload) ?? [],
             subjectRef: published.ref,
             timestamp: acceptedAt,
           },
@@ -2181,6 +2500,27 @@ export function createRrsiHistoryLedgerAdapter(input) {
     if (result.newlyCommitted) freshReservations.set(response, result.result);
     return response;
   }
+  function nativeReservationResponse(result) {
+    return freezeRrsiData({
+      batchDigest: result.result.batchDigest,
+      children: result.result.children.map((child) => {
+        const value = freezeRrsiData({
+          ...child,
+          newlyCommitted: result.newlyCommitted,
+          historyAuthenticated: true,
+          readyForExecution: false,
+          qualifiesForPromotion: false,
+        });
+        if (result.newlyCommitted)
+          freshNativeChildren.set(value, child.bindings);
+        return value;
+      }),
+      newlyCommitted: result.newlyCommitted,
+      historyAuthenticated: true,
+      readyForExecution: false,
+      qualifiesForPromotion: false,
+    });
+  }
 
   const adapter = Object.freeze({
     descriptor,
@@ -2218,8 +2558,9 @@ export function createRrsiHistoryLedgerAdapter(input) {
         if (!batch) rrsiFail("native batch is not registered");
         const operation = [...state.operations.values()].find(
           (entry) =>
-            entry.record.kind === "reserve-native-batch" &&
-            entry.record.payload.batch.batchDigest === batch.batchDigest,
+            ["reserve-native-batch", NATIVE_STATISTICS_RESERVE_KIND].includes(
+              entry.record.kind,
+            ) && entry.record.payload.batch.batchDigest === batch.batchDigest,
         );
         return nativeBatchResolution(state, batch.batchDigest, {
           recordDigest: operation.record.recordDigest,
@@ -2244,6 +2585,74 @@ export function createRrsiHistoryLedgerAdapter(input) {
         qualifiesForPromotion: false,
       });
     },
+    registerNativeStatisticsScope(input) {
+      const value = ownOptions(input, ["execution"]);
+      return withHistoryLock(() => {
+        const { state } = load();
+        if (!state.root) rrsiFail("RRSI root campaign is not registered");
+        const execution = normalizeRrsiNativeStatisticsExecutionContract({
+          campaign: state.root,
+          execution: value.execution,
+        });
+        const payload = {
+          execution,
+          protocol: buildRrsiNativeStatisticsScopeProtocol({
+            campaign: state.root,
+            execution,
+          }),
+          binding: nativeStatisticsScopeBinding(state),
+        };
+        const committed = commitUnlocked(
+          NATIVE_STATISTICS_SCOPE_KIND,
+          NATIVE_STATISTICS_SCOPE_OPERATION,
+          payload,
+        );
+        return freezeRrsiData({
+          ...nativeStatisticsScopeResolution(load().state),
+          newlyCommitted: committed.newlyCommitted,
+        });
+      });
+    },
+    resolveNativeStatisticsScope() {
+      return withHistoryLock(() =>
+        nativeStatisticsScopeResolution(load().state),
+      );
+    },
+    registerNativeStatisticsPlan(input) {
+      const batch = buildRrsiNativeEvaluationBatch(input);
+      return withHistoryLock(() => {
+        const { state } = load();
+        const scope = nativeStatisticsScopeResolution(state);
+        const campaign = campaignFor(state, batch.campaignDigest);
+        const statisticsPlan = assertRrsiNativeStatisticsScopeBatch(
+          scope.protocol,
+          { campaign, batch },
+        );
+        const result = commitUnlocked(
+          NATIVE_STATISTICS_PLAN_KIND,
+          nativeStatisticsPlanOperation(batch.queryId),
+          {
+            batch,
+            statisticsPlan,
+            scopeRegistrationRecord: scope.registrationRecord,
+          },
+        );
+        const operation = load().state.operations.get(
+          nativeStatisticsPlanOperation(batch.queryId),
+        );
+        return freezeRrsiData({
+          statisticsPlan: result.result,
+          scopeRegistrationRecord: scope.registrationRecord,
+          registrationRecord: historyRegistrationRecord(operation),
+          newlyCommitted: result.newlyCommitted,
+          historyAuthenticated: true,
+          preObservationRegistrationVerified: true,
+          statisticalProtocolValidated: false,
+          readyForExecution: false,
+          qualifiesForPromotion: false,
+        });
+      });
+    },
     reserve(input) {
       const value = snapshotRrsiData(input);
       const result = commit(
@@ -2260,26 +2669,21 @@ export function createRrsiHistoryLedgerAdapter(input) {
         `reserve-native.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", batch.queryId).slice(7)}`,
         { batch },
       );
-      const response = freezeRrsiData({
-        batchDigest: result.result.batchDigest,
-        children: result.result.children.map((child) => {
-          const value = freezeRrsiData({
-            ...child,
-            newlyCommitted: result.newlyCommitted,
-            historyAuthenticated: true,
-            readyForExecution: false,
-            qualifiesForPromotion: false,
-          });
-          if (result.newlyCommitted)
-            freshNativeChildren.set(value, child.bindings);
-          return value;
-        }),
-        newlyCommitted: result.newlyCommitted,
-        historyAuthenticated: true,
-        readyForExecution: false,
-        qualifiesForPromotion: false,
+      return nativeReservationResponse(result);
+    },
+    reserveNativeBatchV2(input) {
+      const batch = buildRrsiNativeEvaluationBatch(input);
+      return withHistoryLock(() => {
+        const { state } = load();
+        const binding = nativeStatisticsReserveBinding(state, batch);
+        return nativeReservationResponse(
+          commitUnlocked(
+            NATIVE_STATISTICS_RESERVE_KIND,
+            `reserve-native.${rrsiHash("chainlesschain.rrsi-native-query-operation/v1", batch.queryId).slice(7)}`,
+            { batch, ...binding },
+          ),
+        );
       });
-      return response;
     },
     recordNativeDispatch(response) {
       const bindings = freshNativeChildren.get(response);
@@ -2530,6 +2934,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
       ledgerArtifactResolver: options.ledgerArtifactResolver,
       resolveCampaignRoot: adapter.resolveCampaignRoot,
       resolveNativeBatch: adapter.resolveNativeBatch,
+      resolveNativeStatisticsScope: adapter.resolveNativeStatisticsScope,
       assertNativeFreshChild(response, expectedBindings) {
         const bindings = freshNativeChildren.get(response);
         if (!bindings)
@@ -2547,6 +2952,7 @@ export function createRrsiHistoryLedgerAdapter(input) {
       inspect: adapter.inspect,
       reservePreparation: adapter.reservePreparation,
       reserveNativeBatch: adapter.reserveNativeBatch,
+      reserveNativeBatchV2: adapter.reserveNativeBatchV2,
       recordNativeDispatch: adapter.recordNativeDispatch,
       markNativeUnknown: adapter.markNativeUnknown,
       recordDispatch: adapter.recordDispatch,

@@ -5,7 +5,10 @@ import {
   createEvolutionEvalReadonlyAudit,
   captureEvolutionEvalReadonlyAudit,
 } from "./evolution-eval-readonly-audit.js";
-import { buildRrsiEvalCampaignPlan } from "./rrsi-cohort-registration.js";
+import {
+  buildRrsiEvalCampaignPlan,
+  buildRrsiNativeStatisticsRegistrationBindings,
+} from "./rrsi-cohort-registration.js";
 import {
   captureRrsiNativeEvalCohortEvidence,
   RRSI_NATIVE_ROW_CLAIM_FIELDS,
@@ -21,6 +24,8 @@ import {
 
 export const RRSI_NATIVE_BATCH_EVIDENCE_SCHEMA =
   "chainlesschain.rrsi-native-batch-evidence/v1";
+export const RRSI_NATIVE_BATCH_EVIDENCE_V2_SCHEMA =
+  "chainlesschain.rrsi-native-batch-evidence/v2";
 const BATCHES = new WeakMap();
 const same = (a, b, label) => {
   if (rrsiCanonical(a) !== rrsiCanonical(b)) rrsiFail(`${label} differs`);
@@ -70,7 +75,19 @@ function claim(value, used, label) {
   used.add(value);
 }
 
-function checkBlock(block, child, reservation, batch, root) {
+function checkBlock(
+  block,
+  child,
+  reservation,
+  batch,
+  root,
+  statisticsRegistration,
+) {
+  same(
+    block.statisticsRegistration ?? null,
+    statisticsRegistration,
+    "native child statistics registration",
+  );
   for (const field of [
     "childId",
     "cohortId",
@@ -148,6 +165,12 @@ export async function collectRrsiNativeBatchEvidence(input) {
     batchDigest: options.batchDigest,
   });
   const { batch, campaign } = resolution;
+  const statisticsRegistration = resolution.statisticsRegistration
+    ? buildRrsiNativeStatisticsRegistrationBindings(
+        resolution.statisticsRegistration,
+        resolution.reservationRecord,
+      )
+    : null;
   const cohortIds = [
     ...new Set(batch.children.map((child) => child.cohortId)),
   ].sort();
@@ -155,6 +178,11 @@ export async function collectRrsiNativeBatchEvidence(input) {
   const presented = new Map();
   for (const captured of captures) {
     const evidence = captured.evidence;
+    same(
+      evidence.statisticsRegistration ?? null,
+      statisticsRegistration,
+      "cohort statistics registration",
+    );
     if (
       !cohortIds.includes(evidence.cohortId) ||
       presented.has(evidence.cohortId)
@@ -223,7 +251,14 @@ export async function collectRrsiNativeBatchEvidence(input) {
     const captured = presented.get(child.cohortId);
     const block = captured ? captured.childEvidence(child.slotId) : null;
     if (block) {
-      checkBlock(block, child, reservations.get(child.childId), batch, root);
+      checkBlock(
+        block,
+        child,
+        reservations.get(child.childId),
+        batch,
+        root,
+        statisticsRegistration,
+      );
       claim(block.runId, runIds, "runId");
       claim(block.runNonce, runNonces, "runNonce");
       claim(block.finalReceiptDigest, receiptDigests, "final receipt");
@@ -342,7 +377,9 @@ export async function collectRrsiNativeBatchEvidence(input) {
     "History batch during census",
   );
   const result = rrsiEnvelope(
-    RRSI_NATIVE_BATCH_EVIDENCE_SCHEMA,
+    statisticsRegistration
+      ? RRSI_NATIVE_BATCH_EVIDENCE_V2_SCHEMA
+      : RRSI_NATIVE_BATCH_EVIDENCE_SCHEMA,
     "batchEvidenceDigest",
     {
       batchDigest: batch.batchDigest,
@@ -387,6 +424,14 @@ export async function collectRrsiNativeBatchEvidence(input) {
       completeLifecycleCostVerified: false,
       statisticalProtocolValidated: false,
       qualityVerdictVerified: false,
+      ...(statisticsRegistration
+        ? {
+            statisticsRegistration,
+            preObservationRegistrationVerified: true,
+            controlledHistoryRegistrationOrderVerified: true,
+            underlyingObservationTimeVerified: false,
+          }
+        : {}),
     },
   );
   snapshotRrsiData(result);
@@ -399,6 +444,7 @@ export async function collectRrsiNativeBatchEvidence(input) {
       freshness,
       campaign,
       batch,
+      statisticsRegistration: resolution.statisticsRegistration ?? null,
       childEvidence(childId) {
         if (!batch.children.some((child) => child.childId === childId))
           rrsiFail("native child is outside the censused batch");

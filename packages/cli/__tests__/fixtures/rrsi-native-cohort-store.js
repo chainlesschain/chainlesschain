@@ -13,13 +13,23 @@ import {
   enrollEvolutionEvalCohort,
 } from "../../src/lib/evolution/evolution-eval-cohort-enrollment.js";
 
-export function openRrsiNativeCohortStore(root, input) {
+export function openRrsiNativeCohortStore(
+  root,
+  input,
+  { statisticsPreregistered = false } = {},
+) {
   const campaign = input.planContext.context.campaign;
   const value = openRrsiHistoryStore(root, {
     initialize: true,
     campaignOverrides: { tenantId: campaign.tenantId, goalId: campaign.goalId },
   });
   value.adapter.registerCampaign(campaign);
+  if (statisticsPreregistered) {
+    value.adapter.registerNativeStatisticsScope({
+      execution: input.planContext.executionContract,
+    });
+    value.adapter.registerNativeStatisticsPlan(input);
+  }
   const keys = generateKeyPairSync("ed25519");
   const rootPlan = buildRrsiEvalCampaignPlan(
     value.adapter.resolveCampaignRoot(),
@@ -50,7 +60,9 @@ export function openRrsiNativeCohortStore(root, input) {
     rrsiHistoryAdapter: value.adapter,
   });
   enrollRrsiEvalCampaign(authority);
-  const batch = value.adapter.reserveNativeBatch(input);
+  const batch = statisticsPreregistered
+    ? value.adapter.reserveNativeBatchV2(input)
+    : value.adapter.reserveNativeBatch(input);
   const resolution = value.adapter.resolveNativeBatch({
     batchDigest: batch.batchDigest,
   });

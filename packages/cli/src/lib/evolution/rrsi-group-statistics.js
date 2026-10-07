@@ -31,7 +31,8 @@ const STAGES = {
 const MAX_RESAMPLE_OPERATIONS = 50_000_000;
 const OUTCOMES = ["succeeded", "failed", "cancelled", "not-started", "unknown"];
 
-function components(campaign, partition) {
+/** Pure component projection; callers verify their campaign first. */
+export function buildRrsiGroupStatisticsSourceComponents(campaign, partition) {
   const tasks = campaign.dataset.tasks.filter(
     (task) => task.partition === partition,
   );
@@ -121,7 +122,7 @@ export function buildRrsiGroupStatisticsPlan(input) {
     partition,
     partitionDigest: campaign.dataset.pools[partition].partitionDigest,
     taskCount: campaign.dataset.pools[partition].taskCount,
-    components: components(campaign, partition),
+    components: buildRrsiGroupStatisticsSourceComponents(campaign, partition),
   }));
   const hypothesisCount =
     comparisons.length * partitions.length * variants.length;

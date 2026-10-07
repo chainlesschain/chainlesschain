@@ -283,23 +283,43 @@ targets、seeds 和 replicas 均不增加独立来源组。完整单批、单阶
 
 本批结果见 [原生统计验证记录](./evidence/rrsi-native-statistics-local-controls-2026-10-07.json)：两个完整统计文件 **37/37**，真实签名行接线与当前过期拒绝的定向 Gate 用例 **2/2**，合计 **39 项通过**。新增 17 项，并扩展原过期用例；Gate 本次其余 220 项按筛选条件跳过，不作为第二次完整 Gate 运行计数。原 Gate 221 项及 native/legacy source 已在前批 **353/353** 中完整验证，本批未改动这些生产源码。首轮统计专项有一项因测试配置的空扰动列表不符合合同而失败；修正测试配置后完整复测通过，生产校验未放宽。ESLint、Prettier 和 Astra 统计只读复核通过。未进行真实模型调用或 A/B/C 效果实验。
 
-## 16 下一批工作及完成审计
+## 16 观察前的耐久统计协议与逐批绑定
 
-下一步接入统计 v2 的观察前耐久预注册，再接入选择/泛化回执。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+[rrsi-native-statistics-protocol.js](../../../packages/cli/src/lib/evolution/rrsi-native-statistics-protocol.js) 将 scope 协议独立于 candidate，直接校验原 dependency lock、runtime manifest 和完整 target matrix。协议冻结整个 campaign scope 投影、三阶段 population/source components/任务权重、targets、方法、两份固定 replicas、alpha/family、bootstrap/随机承诺、minimum groups、stopping rule 和显式 kernel/总操作 cap。原 manifest 的合法 null-prototype 输出先经原校验器生成独立可信副本，再转为可持久化 plain data；未校验的 caller 不经 JSON 序列化，不调用 getter、toJSON 或 Proxy trap。
 
-Astra 的下一层只读设计复核确认：v1 区间 kernel 可复用，原分析器的 slot key 没有 target/replica，不能直接消费三角行。v2 须先对每 task/seed/arm 的两份固定 pair 观察求均值，再对 seeds 求均值，然后按原来源 component 和原任务权重求差；重复和目标数不增加独立来源组。完整 family 为 comparison × partition × variant × target，默认 10,000 次 bootstrap 在 24 项最终假设时每尾约 10.42，未达到原要求 25，应 HOLD。新协议须在观察前绑定新版预注册/批次记录，并预检 kernel 的次数与完整操作上限；不能事后增加重采样次数或删掉失败比较。现有批次不能被重新声明为已完成统计预注册。
+新增 [rrsi-native-group-statistics-plan.js](../../../packages/cli/src/lib/evolution/rrsi-native-group-statistics-plan.js) 作为无 History/census 依赖的纯 plan 层，避免预注册导入形成循环。原 native statistics 重新导出相同 API。Astra 在搬移前保存八组 v1/v2 plan/report canonical 快照，搬移后逐字节对比一致；原数值方法与 pure plan 的 preObservationRegistrationVerified:false 不变。
 
-| 必需条件            | 当前证据                                                                    | 未完成的工程或外部条件                                                      |
-| ------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现                          | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
-| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                                             | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
-| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                                          | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
-| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装                             | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
-| 五池真实派发与统计  | 原生三角计划、批次预留、签名登记/准入、cohort 行分块和完整 census、描述统计 | 生产 launch 权威、统计 v2 预注册、全部扰动执行及正式校准                    |
-| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                                                | 可信 receipt、逐轮停止条件和锚点回归                                        |
-| 晋级无降级绕过      | 既有发布门保持原行为                                                        | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
-| Workbench 与回滚    | 既有底座可复用                                                              | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
-| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                                        | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
-| CLI 扩展与交付      | 原发行门仍适用                                                              | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
+真实 History 新增三步：registerNativeStatisticsScope({execution}) → registerNativeStatisticsPlan(nativeBatchInput) → reserveNativeBatchV2(nativeBatchInput)。scope 固定 operation ID 由租户/目标 authority 约束，首次必须在整个作用域任何执行 reservation 之前；已有准备、旧 native、unknown 或零用量结算均不能事后补注册。scope 绑定真实 ledger identity、descriptor 与原 root registration。新 campaign 必须保持同一协议投影，不能更换数据、方法、targets、随机承诺或预算来重置实验。
+
+逐 query 的 registration 自行编译完整 native batch，保留原样 v2 statistics plan，绑定 scope record。新 reservation 在同一次 lock/load/apply/CAS 中复验两个注册，要求真实序列 root < scope < plan < reservation。同内容幂等读取不会重新产生 fresh child；append 已提交但响应丢失仍要求回读，不能重新执行。新 scope 内拒绝旧评测 reservation 降级；旧 scope 的 records、settlement 和恢复路径保持。新记录计入原 5,000-operation、journal 和 native recovery capacity 限额，不增加数据库。
+
+三个新 kind 必须使用各自 canonical operation ID，resolution 取出的 kind/payload 必须就是建立对应状态的记录。新 domain event 的 sourceRefs 与完整引用链复验；仅有正确 Ledger HMAC、recordDigest 或排序不够。真实 v2 backend 的畸形记录测试覆盖非 canonical ID、无关记录占位、重哈希的替换 plan、缺失/替换 sourceRefs 和移植的跨 journal artifact，不能据此生成错误 provenance。
+
+旧 campaign root plan 和 query stream 身份保持；新 reservation 派生 nested cohort plan/manifest v2，加入紧凑注册绑定，逐 cohort 不复制完整统计 population。原 enrollment 外层签名字节仍用现有 v2 域；签名 synopsis、完整声明重建、额外 scope/plan sourceRefs、全部 sibling barrier 和 enrollmentDigest 传递绑定。底层 native request、arm reservation、final receipt 和 settlement 域不变。
+
+原生 row/cohort/batch evidence 使用新的 v2 输出，品牌化 capture 只从 genuine History 取得注册证据；每个已呈交 cohort/child 与同一 scope/plan/reservation 比较，最终 shared head 封口和 receipt 有效期检查保留。live statistics 对新 evidence 输出 report v3，只消除 STATISTICAL_PROTOCOL_NOT_PREREGISTERED；缺行、原 C–A/C–B Gate veto、未知费用、超支和 STATISTICAL_PROTOCOL_UNVALIDATED 均保留。旧 evidence/report 的输出分支与 HOLD 不被回写升级。
+
+controlledHistoryRegistrationOrderVerified:true 仅说明已认证 History 中的注册早于受控 reservation/dispatch；underlyingObservationTimeVerified:false 明确不证明外部实际观察时间。单 batch/stage 的 family 不证明多轮 selection 整体错误率。真实来源、Actor/recipe/lifecycle、生产签发、统计校准、完整费用与清理仍未通过，因此实际实验为 NOT_RUN，qualityVerdictVerified 与晋级权限保持 false。
+
+联合验证已完成：14 个文件 **441/441** 通过，零失败、零跳过；本批新增 71 项，并完整执行原 Gate 与新增预注册分支。逐文件结果与源码摘要见 [耐久预注册验证记录](./evidence/rrsi-native-preregistration-local-controls-2026-10-07.json)。ESLint、Prettier 和 Astra 独立复核通过；原八组 canonical 快照保持一致。验证仅涵盖本地控制与历史接线，不证明真实五池来源、质量、账单或跨平台发行准入。
+
+## 17 下一批工作及完成审计
+
+下一步接入选择/泛化的必需质量回执和正式统计校准。继续完善真实运行权威、全分类硬预算、其他准备操作、实际模型/价格和完整费用证据，以及 Release Train/Review/Pilot/Promotion 的新增必需门。逐轮无收益停止条件须由真实质量回执触发，不能只据结算成功或当前合成分数宣布质量改善。
+
+Astra 的治理复核确认：候选冻结目前只核验结算，不能据此认定质量通过。候选来源引用与 derivationMode 参与 candidateId，contentDigest 则只由内容字节计算；改变引用、模式或包装可能产生新 ID，因此新增来源约束必须在真正 Registry 存储与写边界按内容摘要查询。来源登记本身不证明质量；旧冻结、普通 callback、相同租户或相同路径都不能授予新晋级权限。新增质量回执须保留原 Gate veto、完整分母与费用缺口，再接入 Release/Review/Pilot/恢复路径。
+
+| 必需条件            | 当前证据                                                                                | 未完成的工程或外部条件                                                      |
+| ------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 有效父版本与锚点    | live Registry/预期 Ledger 绑定及 PM 派发重查已实现                                      | 生产权威、锚点稳定/撤销/适用性、晋级 CAS 接线和真实版本清单                 |
+| 私有五池与来源      | 内容/声明来源的隔离及双射已实现                                                         | 独立来源审查、权限/缓存隔离、来源权威和真实任务                             |
+| 模型/价格/环境/预算 | 冻结合同、预占和签名结算结构已实现                                                      | 目标部署准入、端点/账户/模型认证、官方账单、人工成本                        |
+| 全准备操作与恢复    | 六阶段耐久控制，PM broad 和 off/shadow 初步组装                                         | 课程、提议、蒸馏、retry/reset host 接线、受信模式登记和完整账单             |
+| 五池真实派发与统计  | 原生三角计划、批次预留、签名登记/准入、cohort 行分块、完整 census、统计 v2 与耐久预注册 | 生产 launch 权威、全部扰动真实执行及正式校准                                |
+| 选择/泛化必需回执   | 离线 selector 和历史冻结控制                                                            | 可信 receipt、逐轮停止条件和锚点回归                                        |
+| 晋级无降级绕过      | 既有发布门保持原行为                                                                    | RRSI 来源不可剥离、off/shadow/enforced、Review/Pilot/Promotion 必需门及恢复 |
+| Workbench 与回滚    | 既有底座可复用                                                                          | RRSI 收益/费用/HOLD 投影、在途终止与清理、有效版本恢复                      |
+| 真实 A/B/C 与审计   | 无真实 RRSI 效果样本                                                                    | 新冻结实验、等预算请求全分母、独立未见集、人工审阅和真实观察窗口            |
+| CLI 扩展与交付      | 原发行门仍适用                                                                          | PM 达标后的新任务/宿主范围；准确提交跨平台 CI、OIDC 发行与公开回读          |
 
 真实父版本与数据清单的登记独立于合成例子。待受信部署和来源可核验后，以新冻结合同开启真实实验；不把示例摘要重新标为生产身份。

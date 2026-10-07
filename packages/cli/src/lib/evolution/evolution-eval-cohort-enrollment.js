@@ -36,6 +36,7 @@ import { snapshotRrsiData } from "./rrsi-data.js";
 import {
   RRSI_COHORT_REGISTRATION_SCHEMA,
   RRSI_COHORT_PLAN_SCHEMA,
+  RRSI_COHORT_PLAN_V2_SCHEMA,
   buildRrsiEvalCampaignPlan,
   buildRrsiCohortRegistration,
   prepareRrsiCohortRegistration,
@@ -388,7 +389,9 @@ function validateRegistration(input, state, nativeContext = null) {
   const nativeSource = snapshot(input);
   if (
     nativeSource.schema === RRSI_COHORT_REGISTRATION_SCHEMA ||
-    nativeSource.plan?.schema === RRSI_COHORT_PLAN_SCHEMA
+    [RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+      nativeSource.plan?.schema,
+    )
   ) {
     if (!state?.rrsiHistory)
       fail("native enrollment requires genuine RRSI History composition");
@@ -466,6 +469,19 @@ function validateRegistration(input, state, nativeContext = null) {
   return frozen({ plan, manifest, slots });
 }
 const ENROLL_FIELDS = ["cohortId", "plan", "manifest", "slots", "issuedAt"];
+function nativeRegistrationSourceRefs(campaign, registration) {
+  const statistics = registration.manifest.statisticsRegistration;
+  return [
+    campaign.enrollmentRef,
+    registration.manifest.reservationRecord.ref,
+    ...(statistics
+      ? [
+          statistics.scopeRegistrationRecord.ref,
+          statistics.planRegistrationRecord.ref,
+        ]
+      : []),
+  ];
+}
 const SEAL_FIELDS = [
   "cohortId",
   "enrollmentDigest",
@@ -538,10 +554,10 @@ function resolveEnrollment(state, cohortId, nativeContext = null) {
     EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE,
     evidence,
     state.rrsiHistory
-      ? [
-          (nativeContext?.campaign ?? resolveRrsiCampaign(state)).enrollmentRef,
-          registration.manifest.reservationRecord.ref,
-        ]
+      ? nativeRegistrationSourceRefs(
+          nativeContext?.campaign ?? resolveRrsiCampaign(state),
+          registration,
+        )
       : [],
   );
   const result = frozen({
@@ -789,7 +805,12 @@ export function createEvolutionEvalCohortEnrollmentAuthority({
 export function enrollEvolutionEvalCohort(authority, input) {
   const state = stateOf(authority);
   const registration = validateRegistration(input, state);
-  if (state.rrsiHistory && registration.plan.schema !== RRSI_COHORT_PLAN_SCHEMA)
+  if (
+    state.rrsiHistory &&
+    ![RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+      registration.plan.schema,
+    )
+  )
     fail("native authority cannot downgrade to PM enrollment");
   const cohortId = registration.manifest.cohortId;
   const expectedHead = head(state);
@@ -837,10 +858,7 @@ export function enrollEvolutionEvalCohort(authority, input) {
     EVOLUTION_EVAL_COHORT_ENROLLMENT_EVENT_TYPE,
     evidence,
     state.rrsiHistory
-      ? [
-          resolveRrsiCampaign(state).enrollmentRef,
-          registration.manifest.reservationRecord.ref,
-        ]
+      ? nativeRegistrationSourceRefs(resolveRrsiCampaign(state), registration)
       : [],
     expectedHead,
   );
@@ -900,7 +918,14 @@ function assertNativeQueryReady(state, enrollment) {
       identity,
     });
     if (
-      sibling.evidence.plan.schema !== RRSI_COHORT_PLAN_SCHEMA ||
+      ![RRSI_COHORT_PLAN_SCHEMA, RRSI_COHORT_PLAN_V2_SCHEMA].includes(
+        sibling.evidence.plan.schema,
+      ) ||
+      sibling.evidence.plan.schema !== enrollment.evidence.plan.schema ||
+      canonical(sibling.evidence.manifest.statisticsRegistration ?? null) !==
+        canonical(
+          enrollment.evidence.manifest.statisticsRegistration ?? null,
+        ) ||
       sibling.evidence.plan.batchDigest !==
         enrollment.evidence.plan.batchDigest ||
       sibling.evidence.manifest.queryOrdinal !==

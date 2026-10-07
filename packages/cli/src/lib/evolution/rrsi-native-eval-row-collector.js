@@ -31,8 +31,12 @@ import {
 
 export const RRSI_NATIVE_ROW_EVIDENCE_SCHEMA =
   "chainlesschain.rrsi-native-eval-row-evidence/v1";
+export const RRSI_NATIVE_ROW_EVIDENCE_V2_SCHEMA =
+  "chainlesschain.rrsi-native-eval-row-evidence/v2";
 export const RRSI_NATIVE_COHORT_ROWS_SCHEMA =
   "chainlesschain.rrsi-native-eval-cohort-rows/v1";
+export const RRSI_NATIVE_COHORT_ROWS_V2_SCHEMA =
+  "chainlesschain.rrsi-native-eval-cohort-rows/v2";
 const COLLECTORS = new WeakMap();
 const COHORTS = new WeakMap();
 const AUDIT_KEYS = new WeakMap();
@@ -76,6 +80,13 @@ export function createRrsiNativeEvalRowCollector(input) {
   );
   if (enrollment.evidence.schema !== RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA)
     rrsiFail("native rows require RRSI cohort enrollment v2");
+  const statisticsRegistration =
+    enrollment.evidence.manifest.statisticsRegistration ?? null;
+  same(
+    enrollment.evidence.plan.statisticsRegistration ?? null,
+    statisticsRegistration,
+    "native enrollment statistics bindings",
+  );
   const plan = buildRrsiNativeEvaluationPlan(options.planContext);
   if (
     plan.nativeEvaluationPlanDigest !==
@@ -125,6 +136,7 @@ export function createRrsiNativeEvalRowCollector(input) {
     verifier: options.receiptVerifier,
     lookup,
     enrollment,
+    statisticsRegistration,
     plan,
     evaluationCase,
     role,
@@ -321,7 +333,9 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
             : "signed-receipt-rows-unavailable"
           : "signed-rows";
     const block = rrsiEnvelope(
-      RRSI_NATIVE_ROW_EVIDENCE_SCHEMA,
+      state.statisticsRegistration
+        ? RRSI_NATIVE_ROW_EVIDENCE_V2_SCHEMA
+        : RRSI_NATIVE_ROW_EVIDENCE_SCHEMA,
       "rowEvidenceDigest",
       {
         campaignRootDigest: enrollment.evidence.plan.campaignRootDigest,
@@ -369,6 +383,14 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
         completeLifecycleCostVerified: false,
         cleanupReverified: false,
         qualityVerdictVerified: false,
+        ...(state.statisticsRegistration
+          ? {
+              statisticsRegistration: state.statisticsRegistration,
+              preObservationRegistrationVerified: true,
+              controlledHistoryRegistrationOrderVerified: true,
+              underlyingObservationTimeVerified: false,
+            }
+          : {}),
       },
     );
     snapshotRrsiData(block);
@@ -395,7 +417,9 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
     "sealed native inventory during signature verification",
   );
   const result = rrsiEnvelope(
-    RRSI_NATIVE_COHORT_ROWS_SCHEMA,
+    state.statisticsRegistration
+      ? RRSI_NATIVE_COHORT_ROWS_V2_SCHEMA
+      : RRSI_NATIVE_COHORT_ROWS_SCHEMA,
     "cohortRowsDigest",
     {
       cohortId: state.lookup.cohortId,
@@ -422,6 +446,14 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
       sourceProvenanceVerified: false,
       statisticalProtocolValidated: false,
       qualityVerdictVerified: false,
+      ...(state.statisticsRegistration
+        ? {
+            statisticsRegistration: state.statisticsRegistration,
+            preObservationRegistrationVerified: true,
+            controlledHistoryRegistrationOrderVerified: true,
+            underlyingObservationTimeVerified: false,
+          }
+        : {}),
     },
   );
   snapshotRrsiData(result);

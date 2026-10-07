@@ -6568,7 +6568,7 @@ describe("RRSI signed Eval row adapter", () => {
   });
 });
 
-describe("RRSI native signed cohort row collector", () => {
+function nativeSignedCohortRowCollectorSuite(statisticsPreregistered = false) {
   let root,
     native,
     store,
@@ -6641,7 +6641,9 @@ describe("RRSI native signed cohort row collector", () => {
         cohortId: slot.cohortId,
         slotId: slot.slotId,
       }));
-    store = openRrsiNativeCohortStore(root, native);
+    store = openRrsiNativeCohortStore(root, native, {
+      statisticsPreregistered,
+    });
     store.enrollAll();
     const selected = updated.cases.find(
       (entry) =>
@@ -7219,7 +7221,7 @@ describe("RRSI native signed cohort row collector", () => {
       presentedFinalReceiptRowsAuthenticated: true,
       resultAuthenticityVerified: false,
       underlyingExecutionReceiptsReverified: false,
-      preObservationRegistrationVerified: false,
+      preObservationRegistrationVerified: statisticsPreregistered,
       statisticalProtocolValidated: false,
       qualityVerdictVerified: false,
       qualifiesForPromotion: false,
@@ -7231,7 +7233,9 @@ describe("RRSI native signed cohort row collector", () => {
     expect(report.blockingReasons).toEqual(
       expect.arrayContaining([
         "NATIVE_GATE_VETO",
-        "STATISTICAL_PROTOCOL_NOT_PREREGISTERED",
+        statisticsPreregistered
+          ? "STATISTICAL_PROTOCOL_UNVALIDATED"
+          : "STATISTICAL_PROTOCOL_NOT_PREREGISTERED",
         "INCOMPLETE_TRIANGLE_DENOMINATOR",
       ]),
     );
@@ -7553,4 +7557,9 @@ describe("RRSI native signed cohort row collector", () => {
       collectRrsiNativeEvalCohortEvidence(collector, source()),
     ).rejects.toThrow(/expired|expiration|stale/);
   }, 120000);
-});
+}
+
+describe("RRSI native signed cohort row collector", () =>
+  nativeSignedCohortRowCollectorSuite());
+describe("RRSI preregistered native signed cohort row collector", () =>
+  nativeSignedCohortRowCollectorSuite(true));
