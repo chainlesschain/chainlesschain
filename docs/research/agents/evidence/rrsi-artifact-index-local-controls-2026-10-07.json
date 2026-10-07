@@ -1,0 +1,1639 @@
+{
+  "schema": "chainlesschain.rrsi-artifact-index-local-controls/v1",
+  "recordedAt": "2026-10-07T14:48:14.697Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "evidenceKind": "existing-trusted-index-snapshot-precision-and-bounded-leaf-read-not-full-artifact-or-routing-authority",
+  "uniqueWindowsPassedCases": 179,
+  "newWindowsPassedCases": 46,
+  "existingWindowsPassedCases": 133,
+  "failedFinalWindowsCases": 0,
+  "skippedFinalWindowsCases": 3,
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "fbafd4de6d18d30314a91ac3114381cf4f5a1a45ada07289e0f30643a8746ac6"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+      "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+      "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+      "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+      "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "d7795aabf5983a631e55e51afa949098d271d149f77fb7e0e336b0a981bf0286"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+      "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+      "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+      "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+      "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+    },
+    {
+      "path": "packages/cli/src/lib/secure-file-identity.js",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+    },
+    {
+      "path": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "7184d6998f629ccb46bc40172e52a98825da1ab9b05a3d19b37c6c30edbb35d0"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+      "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+      "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+      "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+      "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+      "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+      "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+    }
+  ],
+  "sourceCheckpoints": [
+    {
+      "localPath": ".work/rrsi-artifact-index-final-source-sha.json",
+      "sha256": "6935b338e0eabfa0cdb1ea9740c4caa5a09b96ba15b6e29debb66a52bdd73447",
+      "recordedAt": "2026-10-07T14:41:35.852Z",
+      "timing": "Recorded before final Windows eleven-file run and Linux FIFO invocation; all enumerated final sources unchanged"
+    }
+  ],
+  "preliminaryDiagnosticRuns": [
+    {
+      "localPath": ".work/rrsi-artifact-index-first-unit.json",
+      "sha256": "90ac7e46afc463c112722e49f1a39b0847fba017ab1e4a4e46665ef5de22aaac",
+      "success": false,
+      "passedTests": 38,
+      "failedTests": 1,
+      "skippedTests": 0,
+      "failedCases": [
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+          "name": "original ArtifactPorts index snapshot precision and read bounds holds a real pathname copy replacement after the EOF probe and closes the original descriptor",
+          "status": "failed",
+          "durationMs": 53.28240000000005,
+          "failures": [
+            "AssertionError: expected EvolutionArtifactPortError: ArtifactStore… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js:42:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js:194:5\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        }
+      ]
+    },
+    {
+      "localPath": ".work/rrsi-artifact-index-initial-controls.json",
+      "sha256": "4345678373af227567282f0e46492a7f4b71d69e24ddc8d914e57bbb8fd6261d",
+      "success": false,
+      "passedTests": 40,
+      "failedTests": 1,
+      "skippedTests": 2,
+      "failedCases": [
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+          "name": "real retained RRSI history requires its original index inode holds a same-byte index clone, preserves original history and leaves the directory digest unchanged",
+          "status": "failed",
+          "durationMs": 353.3644999999997,
+          "failures": [
+            "AssertionError: expected error to match asymmetric matcher\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js:134:9\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ]
+    }
+  ],
+  "preliminaryCorrectionScope": [
+    "First unit draft expected the final path error from rename immediately after EOF; actual rename first changes old fd ctime and correctly holds earlier. Injection moved after capturing the final fd stat value to isolate actual final pathname replacement, retaining exact diagnostics",
+    "Initial integration assertion named the wrong nested observed HOLD constant; changed to the real exported RRSI_OBSERVED_TEXT_HOLD_CODE",
+    "Astra found real v/v+1n nanosecond Number projections may differ at rounding boundaries; changed only the time fault model to a fixed (1n<<60n)+1n base on both APIs, with fd+1n after read",
+    "Added dedicated uid/gid open-window drift, actual constructor final-path replacement and negative/oversized fd length controls before final snapshot",
+    "No production source change or timeout/helper-budget relaxation after the first diagnostic unit run"
+  ],
+  "runs": [
+    {
+      "localReporterPath": ".work/rrsi-artifact-index-final-controls.json",
+      "reporterSha256": "70a50b28d31e720be8cf1b8e2d70f93fa5fa005d7f42a27942496de3de3aa2f2",
+      "success": true,
+      "startTime": 1791384129241,
+      "totalTests": 182,
+      "passedTests": 179,
+      "failedTests": 0,
+      "pendingTests": 3,
+      "todoTests": 0,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+          "status": "passed",
+          "startTime": 1791384460573,
+          "endTime": 1791384464507.882,
+          "cases": [
+            {
+              "name": "genuine RRSI index retains its original artifact directory boundary adds the exact directory-only digest without changing persisted index descriptors or composition semantics",
+              "status": "passed",
+              "durationMs": 5.58980000000156,
+              "failures": []
+            },
+            {
+              "name": "genuine RRSI index retains its original artifact directory boundary holds a same-byte physical root clone while original journal identity/history is unchanged",
+              "status": "passed",
+              "durationMs": 846.1630000000005,
+              "failures": []
+            },
+            {
+              "name": "genuine RRSI index retains its original artifact directory boundary holds a same-byte physical files clone while original journal identity/history is unchanged",
+              "status": "passed",
+              "durationMs": 913.9552000000003,
+              "failures": []
+            },
+            {
+              "name": "genuine RRSI index retains its original artifact directory boundary refuses another genuine ports/resolver mixed into the original policy/backend",
+              "status": "passed",
+              "durationMs": 11.631199999999808,
+              "failures": []
+            },
+            {
+              "name": "genuine RRSI index retains its original artifact directory boundary reopens the same original physical directories with the same digest and no tenant authority",
+              "status": "passed",
+              "durationMs": 2156.8822,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+          "status": "passed",
+          "startTime": 1791384134136,
+          "endTime": 1791384152041.206,
+          "cases": [
+            {
+              "name": "genuine index in a new process and actual POSIX FIFO open races opens and reads a real empty index without granting authority in a new process",
+              "status": "passed",
+              "durationMs": 248.52239999999983,
+              "failures": []
+            },
+            {
+              "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-constructor leaf replacement without waiting for a FIFO writer",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-snapshot leaf replacement without waiting for a FIFO writer",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "real retained RRSI history requires its original index inode holds a same-byte index clone, preserves original history and leaves the directory digest unchanged",
+              "status": "passed",
+              "durationMs": 1574.2060999999994,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+          "status": "passed",
+          "startTime": 1791384169869,
+          "endTime": 1791384252702.1257,
+          "cases": [
+            {
+              "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+              "status": "passed",
+              "durationMs": 3819.6120999999985,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+              "status": "passed",
+              "durationMs": 5202.1986,
+              "failures": []
+            },
+            {
+              "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+              "status": "passed",
+              "durationMs": 1025.2752,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 3121.255400000002,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2067.8174,
+              "failures": []
+            },
+            {
+              "name": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+              "status": "passed",
+              "durationMs": 2053.1919999999955,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+              "status": "passed",
+              "durationMs": 10759.447,
+              "failures": []
+            },
+            {
+              "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+              "status": "passed",
+              "durationMs": 2190.125700000004,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+          "status": "passed",
+          "startTime": 1791384377306,
+          "endTime": 1791384388566.5361,
+          "cases": [
+            {
+              "name": "signed local anchor prefix across original v2 processes reconstructs genuine local prefixes in a new process while preserving artifacts and denying external authority",
+              "status": "passed",
+              "durationMs": 3557.743699999999,
+              "failures": []
+            },
+            {
+              "name": "signed local anchor prefix across original v2 processes holds a captured proof after another real process authenticates a new event",
+              "status": "passed",
+              "durationMs": 4045.5645000000004,
+              "failures": []
+            },
+            {
+              "name": "signed local anchor prefix across original v2 processes rejects a fresh, valid signature that erases retained restrictions without appending or publishing",
+              "status": "passed",
+              "durationMs": 3656.5361999999986,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+          "status": "passed",
+          "startTime": 1791384465182,
+          "endTime": 1791384465836.7158,
+          "cases": [
+            {
+              "name": "original ArtifactPorts root/files directory boundary exports constructor-captured exact BigInt IDs and only the declared directory scope",
+              "status": "passed",
+              "durationMs": 29.598299999999995,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary keeps the same boundary after normal artifact publication and new ports reopening the original directories",
+              "status": "passed",
+              "durationMs": 175.92110000000002,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of root without adopting new IDs",
+              "status": "passed",
+              "durationMs": 164.39869999999996,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of files without adopting new IDs",
+              "status": "passed",
+              "durationMs": 150.9011999999999,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary holds missing root and never calls the layout initializer",
+              "status": "passed",
+              "durationMs": 12.809999999999945,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary holds missing files and never calls the layout initializer",
+              "status": "passed",
+              "durationMs": 13.55230000000006,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary explicitly leaves index file identity and bytes outside directory-only verification",
+              "status": "passed",
+              "durationMs": 11.731999999999971,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary rejects copied, prototype-forged, subclass and proxy handles without reading caller getters",
+              "status": "passed",
+              "durationMs": 16.0304000000001,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary refuses caller paths/callbacks and retains the immutable original ArtifactStore path",
+              "status": "passed",
+              "durationMs": 10.14020000000005,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary does not silently recapture a changed root before the first exported boundary query",
+              "status": "passed",
+              "durationMs": 14.889200000000073,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary refuses a real directory junction/symlink replacing the files root",
+              "status": "passed",
+              "durationMs": 12.362100000000055,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts root/files directory boundary detects a real files directory replacement during the root recheck",
+              "status": "passed",
+              "durationMs": 14.016500000000178,
+              "failures": []
+            },
+            {
+              "name": "synthetic full-precision directory IDs on real local files keeps different full IDs whose Number projections collide",
+              "status": "passed",
+              "durationMs": 9.596000000000004,
+              "failures": []
+            },
+            {
+              "name": "synthetic full-precision directory IDs on real local files holds a different full ID even when its Number projection remains the same",
+              "status": "passed",
+              "durationMs": 9.240599999999858,
+              "failures": []
+            },
+            {
+              "name": "synthetic full-precision directory IDs on real local files rejects a provider returning Number for the requested BigInt directory stat",
+              "status": "passed",
+              "durationMs": 8.71569999999997,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+          "status": "passed",
+          "startTime": 1791384467591,
+          "endTime": 1791384467598.2388,
+          "cases": [
+            {
+              "name": "WSL1 ctime fallback can change without changing device/inode identity",
+              "status": "passed",
+              "durationMs": 4.6848999999999705,
+              "failures": []
+            },
+            {
+              "name": "retains birthtime outside the observed WSL1 fallback ('linux' '6.6.87.2-microsoft-standard-WSL2')",
+              "status": "passed",
+              "durationMs": 0.6434000000000424,
+              "failures": []
+            },
+            {
+              "name": "retains birthtime outside the observed WSL1 fallback ('linux' '6.8.0-71-generic')",
+              "status": "passed",
+              "durationMs": 0.2931000000000381,
+              "failures": []
+            },
+            {
+              "name": "retains birthtime outside the observed WSL1 fallback ('win32' '10.0.26100')",
+              "status": "passed",
+              "durationMs": 0.5491000000000099,
+              "failures": []
+            },
+            {
+              "name": "retains birthtime outside the observed WSL1 fallback ('darwin' '24.0.0')",
+              "status": "passed",
+              "durationMs": 0.5217000000000098,
+              "failures": []
+            },
+            {
+              "name": "retains an independently reported creation time even on WSL1",
+              "status": "passed",
+              "durationMs": 0.23869999999999436,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+          "status": "passed",
+          "startTime": 1791384466486,
+          "endTime": 1791384467125.092,
+          "cases": [
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds reads an empty index and genuine appended artifacts without freezing mutable index bytes",
+              "status": "passed",
+              "durationMs": 190.44759999999997,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds an actual same-byte index inode replacement while the directory-only boundary stays in scope",
+              "status": "passed",
+              "durationMs": 23.42360000000008,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor path capture and closes every opened index fd",
+              "status": "passed",
+              "durationMs": 10.52800000000002,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor fd capture and closes every opened index fd",
+              "status": "passed",
+              "durationMs": 8.76380000000006,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path dev before reading",
+              "status": "passed",
+              "durationMs": 10.503299999999967,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ino before reading",
+              "status": "passed",
+              "durationMs": 10.158999999999992,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mode before reading",
+              "status": "passed",
+              "durationMs": 8.956000000000017,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path uid before reading",
+              "status": "passed",
+              "durationMs": 9.922799999999938,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path gid before reading",
+              "status": "passed",
+              "durationMs": 9.445299999999975,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path nlink before reading",
+              "status": "passed",
+              "durationMs": 9.57370000000003,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path size before reading",
+              "status": "passed",
+              "durationMs": 10.315799999999967,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mtimeNs before reading",
+              "status": "passed",
+              "durationMs": 10.378600000000006,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ctimeNs before reading",
+              "status": "passed",
+              "durationMs": 9.369699999999966,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd dev before reading",
+              "status": "passed",
+              "durationMs": 9.35590000000002,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ino before reading",
+              "status": "passed",
+              "durationMs": 9.163499999999999,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mode before reading",
+              "status": "passed",
+              "durationMs": 9.439599999999928,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd uid before reading",
+              "status": "passed",
+              "durationMs": 8.343899999999962,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd gid before reading",
+              "status": "passed",
+              "durationMs": 8.501899999999978,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd nlink before reading",
+              "status": "passed",
+              "durationMs": 8.902299999999968,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd size before reading",
+              "status": "passed",
+              "durationMs": 8.537499999999909,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mtimeNs before reading",
+              "status": "passed",
+              "durationMs": 9.66980000000001,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ctimeNs before reading",
+              "status": "passed",
+              "durationMs": 9.049499999999966,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds retains a full index inode and rejects a different ID with the same Number projection",
+              "status": "passed",
+              "durationMs": 12.377399999999966,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects different path and fd full inodes even when their Number projections agree",
+              "status": "passed",
+              "durationMs": 10.668800000000033,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds mtimeNs drift on the opened descriptor and closes it",
+              "status": "passed",
+              "durationMs": 10.17060000000015,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds ctimeNs drift on the opened descriptor and closes it",
+              "status": "passed",
+              "durationMs": 8.977599999999939,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds uid drift on the opened descriptor and closes it",
+              "status": "passed",
+              "durationMs": 9.382800000000088,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds gid drift on the opened descriptor and closes it",
+              "status": "passed",
+              "durationMs": 9.767799999999852,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds mode drift on the opened descriptor and closes it",
+              "status": "passed",
+              "durationMs": 9.49720000000002,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects actual same-inode growth between path stat and fd stat before reading",
+              "status": "passed",
+              "durationMs": 9.580199999999877,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds a real pathname copy replacement after final descriptor stat and closes the original descriptor",
+              "status": "passed",
+              "durationMs": 13.939499999999953,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects declared size -1n before buffer allocation or read",
+              "status": "passed",
+              "durationMs": 8.663300000000163,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects declared size 67108865n before buffer allocation or read",
+              "status": "passed",
+              "durationMs": 8.935000000000173,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects a real oversized index before opening it or allocating its contents",
+              "status": "passed",
+              "durationMs": 9.229299999999967,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds reads partial chunks to the checked length using descriptor reads and one EOF probe",
+              "status": "passed",
+              "durationMs": 13.532999999999902,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds caps each descriptor read at 64 KiB even for a larger admitted JSONL snapshot",
+              "status": "passed",
+              "durationMs": 21.135700000000043,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds detects actual growth with exactly one extra byte instead of reading the enlarged file",
+              "status": "passed",
+              "durationMs": 11.68060000000014,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds actual truncation during a bounded read and closes the fd",
+              "status": "passed",
+              "durationMs": 9.20699999999988,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds closes the actual index fd when readSync throws",
+              "status": "passed",
+              "durationMs": 9.060999999999922,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects only uid changing between path and opened fd before any bytes are read",
+              "status": "passed",
+              "durationMs": 9.08789999999999,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects only gid changing between path and opened fd before any bytes are read",
+              "status": "passed",
+              "durationMs": 10.062599999999975,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds holds an actual constructor pathname replacement after its first fd stat and closes all index fds",
+              "status": "passed",
+              "durationMs": 11.17100000000005,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size -1n before allocation/read and closes it",
+              "status": "passed",
+              "durationMs": 9.092499999999973,
+              "failures": []
+            },
+            {
+              "name": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size 67108865n before allocation/read and closes it",
+              "status": "passed",
+              "durationMs": 9.092099999999846,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+          "status": "passed",
+          "startTime": 1791384389369,
+          "endTime": 1791384416737.194,
+          "cases": [
+            {
+              "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+              "status": "passed",
+              "durationMs": 289.69819999999993,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+              "status": "passed",
+              "durationMs": 348.93139999999994,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+              "status": "passed",
+              "durationMs": 240.41259999999988,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+              "status": "passed",
+              "durationMs": 13.745099999999866,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+              "status": "passed",
+              "durationMs": 12.019799999999805,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+              "status": "passed",
+              "durationMs": 296.2162000000001,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+              "status": "passed",
+              "durationMs": 156.85240000000022,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+              "status": "passed",
+              "durationMs": 166.38139999999976,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+              "status": "passed",
+              "durationMs": 153.5250000000001,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+              "status": "passed",
+              "durationMs": 20926.307800000002,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+              "status": "passed",
+              "durationMs": 221.4877000000015,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+              "status": "passed",
+              "durationMs": 16.226399999999558,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+              "status": "passed",
+              "durationMs": 17.95480000000316,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+              "status": "passed",
+              "durationMs": 128.98509999999806,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+              "status": "passed",
+              "durationMs": 185.7536,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+              "status": "passed",
+              "durationMs": 134.16909999999916,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+              "status": "passed",
+              "durationMs": 133.52759999999762,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+              "status": "passed",
+              "durationMs": 127.60989999999947,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+              "status": "skipped",
+              "durationMs": null,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+              "status": "passed",
+              "durationMs": 130.67640000000029,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+              "status": "passed",
+              "durationMs": 132.41430000000037,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+              "status": "passed",
+              "durationMs": 135.84870000000228,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+              "status": "passed",
+              "durationMs": 157.1961999999985,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+              "status": "passed",
+              "durationMs": 148.40459999999803,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+              "status": "passed",
+              "durationMs": 294.84979999999996,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+              "status": "passed",
+              "durationMs": 269.6811000000016,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+              "status": "passed",
+              "durationMs": 146.6862000000001,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+              "status": "passed",
+              "durationMs": 139.82359999999971,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 137.73029999999926,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 137.92469999999958,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 136.04260000000068,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 139.5001000000011,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 141.24319999999716,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 128.76120000000083,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 131.14129999999932,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 136.0668000000005,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 137.85239999999976,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 134.00210000000152,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 134.69260000000213,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 131.09479999999894,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+              "status": "passed",
+              "durationMs": 304.7465999999986,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+              "status": "passed",
+              "durationMs": 216.9200000000019,
+              "failures": []
+            },
+            {
+              "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+              "status": "passed",
+              "durationMs": 94.19419999999809,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+          "status": "passed",
+          "startTime": 1791384418198,
+          "endTime": 1791384442328.9373,
+          "cases": [
+            {
+              "name": "evolution path/handle identity accepts affected path-device projection only against the held volume",
+              "status": "passed",
+              "durationMs": 10.623999999999796,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity shares one held parent authority across multiple child checks",
+              "status": "passed",
+              "durationMs": 7.9085999999999785,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"win32\",\"uvVersion\":\"1.51.0\"}",
+              "status": "passed",
+              "durationMs": 3.7789999999999964,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"linux\",\"uvVersion\":\"1.49.1\"}",
+              "status": "passed",
+              "durationMs": 3.4794999999999163,
+              "failures": []
+            },
+            {
+              "name": "evolution path/handle identity reopens a real Workbench ledger under the affected Windows projection",
+              "status": "passed",
+              "durationMs": 24103.9372,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+          "status": "passed",
+          "startTime": 1791384254137,
+          "endTime": 1791384303530.622,
+          "cases": [
+            {
+              "name": "exact UTF-8 Skill text encoding rejects oversized code units and UTF-8 bytes before allocating a Buffer",
+              "status": "passed",
+              "durationMs": 6.20270000000005,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+              "status": "passed",
+              "durationMs": 2.727999999999838,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+              "status": "passed",
+              "durationMs": 0.5295000000000982,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+              "status": "passed",
+              "durationMs": 0.5462999999999738,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+              "status": "passed",
+              "durationMs": 0.42889999999988504,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+              "status": "passed",
+              "durationMs": 0.39009999999984757,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+              "status": "passed",
+              "durationMs": 0.22450000000003456,
+              "failures": []
+            },
+            {
+              "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+              "status": "passed",
+              "durationMs": 3.2538999999999305,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+              "status": "passed",
+              "durationMs": 995.8823999999986,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+              "status": "passed",
+              "durationMs": 1938.711800000001,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+              "status": "passed",
+              "durationMs": 5291.600700000003,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+              "status": "passed",
+              "durationMs": 126.50530000000435,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+              "status": "passed",
+              "durationMs": 1649.5132999999987,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+              "status": "passed",
+              "durationMs": 5538.765999999996,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+              "status": "passed",
+              "durationMs": 2947.502999999997,
+              "failures": []
+            },
+            {
+              "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+              "status": "passed",
+              "durationMs": 1021.6221000000005,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+          "status": "passed",
+          "startTime": 1791384339207,
+          "endTime": 1791384354311.531,
+          "cases": [
+            {
+              "name": "real captured observed-text history and signed anchor prefixes includes real migration events in an empty restriction prefix without inventing genesis digests",
+              "status": "passed",
+              "durationMs": 980.5823000000019,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates both prefixes from real retained readback while all external authority stays HOLD",
+              "status": "passed",
+              "durationMs": 1104.593399999998,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes keeps non-restriction events in the journal without changing restriction count or union",
+              "status": "passed",
+              "durationMs": 736.1935999999987,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes counts three actual restriction records while unioning two exact text keys deterministically",
+              "status": "passed",
+              "durationMs": 0.5754999999990105,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes accepts exact signed anchor idempotence only at the actual current head",
+              "status": "passed",
+              "durationMs": 1428.5734000000011,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-count",
+              "status": "passed",
+              "durationMs": 624.658199999998,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-tail",
+              "status": "passed",
+              "durationMs": 636.9858000000022,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-set",
+              "status": "passed",
+              "durationMs": 652.1595000000016,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-count",
+              "status": "passed",
+              "durationMs": 619.0538000000015,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-tail",
+              "status": "passed",
+              "durationMs": 617.3339999999953,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-set",
+              "status": "passed",
+              "durationMs": 634.1713999999993,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over wrong-sequence checkpoint",
+              "status": "passed",
+              "durationMs": 510.72639999999956,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over other-event-digest checkpoint",
+              "status": "passed",
+              "durationMs": 651.2945000000036,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over record-digest checkpoint",
+              "status": "passed",
+              "durationMs": 599.4816999999966,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over zero checkpoint",
+              "status": "passed",
+              "durationMs": 532.1600000000035,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over stale-current checkpoint",
+              "status": "passed",
+              "durationMs": 618.1949999999997,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation jump",
+              "status": "passed",
+              "durationMs": 4.140999999995984,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation wrong-predecessor",
+              "status": "passed",
+              "durationMs": 3.220000000001164,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation same-revision-conflict",
+              "status": "passed",
+              "durationMs": 3.4675999999963096,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation backward-checkpoint",
+              "status": "passed",
+              "durationMs": 3.157599999998638,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-graph",
+              "status": "passed",
+              "durationMs": 3.149199999999837,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-deployment",
+              "status": "passed",
+              "durationMs": 3.6080999999976484,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation shared-scope",
+              "status": "passed",
+              "durationMs": 3.8945000000021537,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not authenticate a caller graph digest even when both signed anchors repeat it",
+              "status": "passed",
+              "durationMs": 700.2880000000005,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes refuses another genuine backend and index rather than treating tenant equality as global authority",
+              "status": "passed",
+              "durationMs": 3.3694000000032247,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong tenant",
+              "status": "passed",
+              "durationMs": 3.914700000001176,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong journal",
+              "status": "passed",
+              "durationMs": 3.6805999999996857,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong artifact-scope",
+              "status": "passed",
+              "durationMs": 3.68130000000383,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects a genuine signature from another root key rather than adopting a replacement root",
+              "status": "passed",
+              "durationMs": 5.189699999995355,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes does not accept caller prefix results, excess checkpoints or accessor callbacks in the internal capture",
+              "status": "passed",
+              "durationMs": 2.56069999999454,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rejects forged index handles, getters, proxies and supplied prefix callbacks without invoking them",
+              "status": "passed",
+              "durationMs": 2.0236000000004424,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes authenticates the entire current suffix even when the requested previous prefix has no text records",
+              "status": "passed",
+              "durationMs": 630.1998999999996,
+              "failures": []
+            },
+            {
+              "name": "real captured observed-text history and signed anchor prefixes rechecks a captured head instead of caching success after a new authentic event",
+              "status": "passed",
+              "durationMs": 2777.5311,
+              "failures": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "posixFifoProbes": {
+    "localPath": ".work/rrsi-artifact-index-fifo-linux.json",
+    "sha256": "ea6eea22294c4ddceba344811ab3cd23b69ffe43beafb7c92cc3ed3c8123c2a6",
+    "schema": "chainlesschain.rrsi-artifact-index-posix-fifo-probes/v1",
+    "recordedAt": "2026-10-07T14:41:51.209Z",
+    "platform": "linux",
+    "nodeVersion": "v22.22.2",
+    "uvVersion": "1.51.0",
+    "kind": "WSL targeted standalone leaf-open probes; not a Linux Vitest or release matrix run",
+    "runnerSha256": "dcd83a4e94f3b057a9a6f5f57d6275d315af49b2935a068260adbb1d33903347",
+    "sourceCheckpointSha256": "6935b338e0eabfa0cdb1ea9740c4caa5a09b96ba15b6e29debb66a52bdd73447",
+    "sourceDigests": [
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "sha256": "fbafd4de6d18d30314a91ac3114381cf4f5a1a45ada07289e0f30643a8746ac6"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+        "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+        "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+        "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+        "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+        "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+        "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "sha256": "d7795aabf5983a631e55e51afa949098d271d149f77fb7e0e336b0a981bf0286"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+        "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+        "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+        "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+        "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+        "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+        "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+        "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+        "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+        "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+      },
+      {
+        "path": "packages/cli/src/lib/secure-file-identity.js",
+        "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+      },
+      {
+        "path": "packages/cli/src/lib/artifact-store.js",
+        "sha256": "7184d6998f629ccb46bc40172e52a98825da1ab9b05a3d19b37c6c30edbb35d0"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+        "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+        "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+        "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+        "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+        "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+        "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+      }
+    ],
+    "passedScenarios": 2,
+    "failures": 0,
+    "results": [
+      {
+        "mode": "fifo-constructor",
+        "status": "passed",
+        "durationMs": 385,
+        "faultInjected": true,
+        "actualFifoVerified": true,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "rejectionMessage": "ArtifactStore index descriptor must be a regular, non-symlink, single-link file"
+      },
+      {
+        "mode": "fifo-snapshot",
+        "status": "passed",
+        "durationMs": 413,
+        "faultInjected": true,
+        "actualFifoVerified": true,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "rejectionMessage": "ArtifactStore index descriptor must be a regular, non-symlink, single-link file"
+      }
+    ]
+  },
+  "finalCoverage": "One final complete eleven-file Windows run; two actual WSL FIFO probes reported separately. Earlier diagnostic passes and alternate-platform probes are not added to the Windows pass total",
+  "reproductionCommands": [
+    "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/evolution-artifact-index-boundary.test.js __tests__/integration/rrsi-artifact-index-boundary.test.js __tests__/unit/evolution-artifact-directory-boundary.test.js __tests__/integration/rrsi-artifact-directory-boundary.test.js __tests__/unit/evolution-artifact-ports.test.js __tests__/unit/evolution-artifact-identity.test.js __tests__/unit/evolution-file-identity.test.js __tests__/unit/rrsi-observed-text-index.test.js __tests__/integration/rrsi-observed-text-controls.test.js __tests__/unit/rrsi-tenant-index-anchor-history.test.js __tests__/integration/rrsi-tenant-index-anchor-history-process.test.js --maxWorkers=1 --reporter=default --reporter=json --outputFile=../../.work/rrsi-artifact-index-final-controls.json",
+    "wsl.exe -d Ubuntu -e /mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node /mnt/c/code/chainlesschain/.work/rrsi-artifact-index-fifo-linux.mjs"
+  ],
+  "cwd": "packages/cli for Vitest; repository root for evidence scripts",
+  "verification": {
+    "eslint": "passed for four changed source/test files, max-warnings=0",
+    "prettier": "passed",
+    "gitDiffCheck": "passed",
+    "astraReview": "read-only production and test review; fixed deterministic nanosecond model and added uid/gid plus constructor replacement controls; no reviewer edits or tests"
+  },
+  "bounds": {
+    "indexSnapshotBytes": 67108864,
+    "descriptorChunkBytes": 65536,
+    "extraEofProbeBytes": 1,
+    "actualReturnedReadBytesPerSnapshotMaximum": "checked size plus at most one EOF byte; partial reads may repeat a requested remaining range, but positions never extend beyond the checked size except the single EOF probe",
+    "indexRows": 10000,
+    "indexRowBytes": 16384,
+    "nativeAclBudgetsChanged": false,
+    "nativeAclTimeoutOverride": null,
+    "existingRegressionBudgetsChanged": false,
+    "newIntegrationSetupStagesMs": 60000,
+    "newHistoryBehaviorMs": 60000,
+    "posixChildWatchdogMs": 15000
+  },
+  "indexSnapshotSemantics": {
+    "capture": "Original constructor inode/device/birthtime policy, exact physical path, single regular file; final constructor path/fd metadata recheck and finally-close",
+    "requiredBigIntFields": [
+      "dev",
+      "ino",
+      "mode",
+      "uid",
+      "gid",
+      "nlink",
+      "size",
+      "mtimeNs",
+      "ctimeNs"
+    ],
+    "pathToFd": "Original shared first comparator, retaining affected Windows held-parent device bridge; uid/gid and original birthtime policy additionally compared",
+    "sameApi": "Exact BigInt dev/ino/mode/uid/gid/nlink/size/mtimeNs/ctimeNs and original birthtime policy during each read window",
+    "mutableBytes": "Size and mutation timestamps are not pinned for the ports lifetime; same-inode genuine appends and coherent same-inode overwrites remain readable as new snapshots",
+    "replacedIndex": "Same-byte new inode is rejected by original ports; fresh genuine ports may capture their own index and do not acquire tenant authority",
+    "boundedRead": "Validate path and fd BigInt size before Number conversion/allocation, read checked descriptor length in chunks, probe exactly one EOF byte, re-attest fd/path/directories",
+    "nonblocking": "O_NONBLOCK/O_NOFOLLOW on index leaf opens only; module-private directory fs adapter adds O_NONBLOCK/O_DIRECTORY when shared identity helper opens directories",
+    "cleanupRename": "ArtifactStore remove/cleanup rewrites via temporary+rename; original ports continue rejecting its new inode rather than silently adopting it"
+  },
+  "syntheticModels": {
+    "inode": "Only index lstat and index-handle fstat inode fields injected as (1n<<60n)+1n, then +1n; fd tracking retains original Windows directory/volume checks",
+    "timestamps": "mtimeNs/ctimeNs use deterministic base (1n<<60n)+1n on index path/fd, then fd+1n after descriptor read; colliding Number projections are guaranteed by construction",
+    "otherStatFaults": "Number fallback, negative/oversized size and uid/gid/mode drift are test-only index stat injections on real files",
+    "actualNtfsSameProjectionReplacementProven": false
+  },
+  "actualFilesystemControls": [
+    "Same-byte index inode copy replacement, genuine append and same-inode write",
+    "Same-inode growth between path stat and descriptor open",
+    "Constructor pathname rename/copy after its first fd stat, and final read pathname rename/copy after the sampled final fd stat",
+    "Real 64MiB+1 index rejected before content allocation; real 2MiB growth at an empty snapshot EOF reads only one byte before rejection",
+    "Real truncation before descriptor read; partial descriptor reads, 64KiB chunk bound, thrown read and failure descriptor closure",
+    "Real RRSI retained text, original journal head and directory descriptor preserved around rejected index inode replacement; restore original inode before re-verifying head",
+    "Actual mkfifo constructor/snapshot leaf swaps in WSL; child rejects exact regular-file type, does not time out, and saved empty index is preserved"
+  ],
+  "skippedWindowsCases": [
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-constructor leaf replacement without waiting for a FIFO writer",
+      "status": "skipped",
+      "durationMs": null,
+      "failures": []
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-snapshot leaf replacement without waiting for a FIFO writer",
+      "status": "skipped",
+      "durationMs": null,
+      "failures": []
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+      "status": "skipped",
+      "durationMs": null,
+      "failures": []
+    }
+  ],
+  "conditionalSkipReason": "One existing index file-symlink case and two new POSIX FIFO cases are non-Windows-only; new FIFO cases additionally execute as exact-child WSL probes, while all Windows skips remain retained",
+  "directoryOnlyDescriptorAndDigestSemanticsChanged": false,
+  "persistedObservedRecordSchemaChanged": false,
+  "persistedIndexDescriptorChanged": false,
+  "localCompositionDigestChanged": false,
+  "physicalReadOnlyClaimedForWholePortsOrHistory": false,
+  "sharedIdentityHelpersChanged": false,
+  "limitations": [
+    "This bounds only existing trusted index descriptor snapshots and index leaf opens, not the whole ArtifactPorts management API: original store.list/_readEntries and artifact bytes still use whole-file reads",
+    "Birthtime follows the existing artifactPhysicalIdentity Number/WSL1 policy; full precision claims apply to required BigInt IDs and mtimeNs/ctimeNs, not all birthtime timestamps",
+    "Exact metadata and sequential path/fd/directory checks are not an atomic snapshot or openat confinement, and do not prevent arbitrary swap/restore ABA",
+    "The old root/files directory descriptor intentionally leaves index identity/contents false; this patch does not issue a new complete graph or persistent authority capability",
+    "A fresh genuine composition may capture its own internally consistent copied local index; no protected root/pin/highwater or cross-process rollback/clone-routing guarantee is established",
+    "All retained artifact files, complete catalog/head/segment/witness/retention configuration, independent volume authority and durable inventory are still outside this batch",
+    "Existing v2 verify/read locks and authorized recovery remain; neither ports construction nor entire RRSI history check is a physical open-only reader",
+    "No independent installation approval, producer receipts, candidate alias, Registry release source gate, real model/cost experiment or production promotion is enabled",
+    "WSL probes use the already SHA-verified local Linux Node 22.22.2 toolchain without npm or downloads; this is not full Linux Vitest, macOS or a release matrix"
+  ],
+  "atomicSnapshotVerified": false,
+  "arbitraryAbaProtectionVerified": false,
+  "completeArtifactInventoryVerified": false,
+  "independentVolumeIdentityVerified": false,
+  "fullPhysicalStorageGraphVerified": false,
+  "storageGraphDigestVerified": false,
+  "rootAuthorityVerified": false,
+  "installationBindingSignatureVerified": false,
+  "routingPinVerified": false,
+  "crossProcessRollbackProtectionVerified": false,
+  "historyTransferVerified": false,
+  "originCutoverAuthenticated": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}

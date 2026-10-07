@@ -535,3 +535,23 @@ v2 verify／read 会采用既有维护锁并可能恢复已获授权的迁移或
 最终 Windows 九文件一次完整运行 **133 项通过、1 项既有条件跳过**，零失败；新增目录单元 **15**、集成 **5**，既有回归 **113**。原 ArtifactPorts 的 index 文件 symlink 用例仅在非 Windows 运行，平台跳过如实保留；新增真实目录 junction 用例已运行通过。14 个相关源码／测试均保留启动前摘要检查点，最终核对未改变；完整 reporter、逐项结果、精度模型与范围限制见 [原产物目录本地控制验证记录](./evidence/rrsi-artifact-directory-boundary-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 只读复核通过，既有 ACL helper／回归时限未放宽；新集成准备阶段与显式行为各 60 秒。
 
 下一步仍需闭合 index 文件与完整实际 v2／retention 图，再结合独立安装认可、受保护的持久 pin／高水位和强制业务路由；producer 来源、candidate alias、发布 lease／恢复来源门与生产晋级尚未完成。本批未执行真实付费／模型实验或 Linux／macOS 发行矩阵，完整 RRSI 继续实施。
+
+## 30 可信 index 快照的精度与有界读取
+
+[evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js) 的 index 构造捕获与可信快照读取改用真正 BigInt lstat／fstat，要求 dev、ino、mode、uid、gid、nlink、size、mtimeNs、ctimeNs 全部为 BigInt，拒绝 provider 的 Number 回退。path→fd 保留原共享 helper 的第一个完整比较器及 Windows 窄 device 兼容，再精确检查原比较器未覆盖的 uid／gid；同 API 的读前后 stat 逐字段严格相等。birthtime 仍继承原 artifactPhysicalIdentity 的 Number／WSL1 规则，不称所有时间戳都达到纳秒身份精度。共享 identity helper 未改，也未把只比较稳定字段的 appender 比较器用于快照。
+
+构造仅固定原 dev／ino／birthtime 物理身份，额外复查构造窗口内 path／fd 元数据和 realpath 后关闭 descriptor；不会固定整个生命周期的 size／mtime／ctime 或内容。每次读取独立检查 0–64 MiB 的 BigInt size，检查成功后才转 Number 分配；复用原 bounded-descriptor-read，按已检查长度以最多 64 KiB 分块读取，最后只探测一个 EOF 字节，再复验 descriptor、pathname 和原两目录。短读可继续，提前 EOF、增长、读取异常或元数据漂移均 HOLD，并关闭本次打开的 fd。分块读取范围受检查长度约束；partial read 可能多次请求剩余区间，不把请求长度简单累加称为总读取字节上限。
+
+两处 index 叶节点打开新增 O_NONBLOCK／O_NOFOLLOW；模块私有 directory fs 适配仅在原身份 helper 打开目录时增加 O_NONBLOCK／O_DIRECTORY，不改共享 helper 或 artifact 叶节点打开。该加固只覆盖 inspectPhysicalIndex／readTrustedIndexSnapshot，原 boundedIndexEntries 在两个可信快照之间仍可调用 store.list()，底层 _readEntries 与产物 bytes 仍使用整文件读取；不能宣称整个 ports API 已有严格读取上界或所有 FIFO race 都不会阻塞。
+
+真正 append 与同 inode 合法写入后可以读取新快照；同字节但不同 inode 的 index 复制替换由原 ports 拒绝，新真正 ports 仍可捕获自己的局部文件。ArtifactStore remove／cleanup 的 temporary＋rename 同样会更换 index inode，原 ports 继续拒绝，不悄悄重新认领。旧 root／files 目录 descriptor、其摘要域、持久 observed index descriptor、限制记录与 localCompositionDigest 全部未改；目录能力的 indexFileIdentityVerified／indexContentsVerified 仍为 false，本批没有增设完整物理图或持久权威能力。
+
+新增反例使用真实 ArtifactStore、索引文件和原 RRSI retained 历史：实际同字节 index 替换时，目录能力仍通过，原历史读取精确 HOLD；复制字节保持不变，恢复原 inode 后重新核对原 journal head 与目录摘要。另覆盖 path stat 与 open 之间同 inode 增长、构造首次 fd 采样后实际 rename／copy、最终 fd stat 采样后实际 pathname 替换、真实超限文件、EOF 时真实增长、实际截断、partial read、分块上限及失败关闭 fd。最后两项文件替换各针对明确采样窗口，不声称防任意交换后恢复的 ABA 或原子快照。
+
+精度故障模型只注入 index path／handle stat：完整 inode 使用 `(1n<<60n)+1n`，换为同 Number 投影的另一完整 ID 必须 HOLD；不同 path／fd 完整 ID 即使 Number 相同也拒绝。mtimeNs／ctimeNs 两 API 使用固定同一大整数，读取后仅 fd 增加 1n，避免真实时间恰处舍入边界而产生不稳定反例；还覆盖全部九字段 Number 回退、open 后仅 uid／gid 漂移、读后 owner／权限漂移，以及 path／fd 的负长度和超限长度在分配前拒绝。这些 stat 模型不是原生 NTFS 同投影替换的实测。
+
+最终 Windows **11 文件一次完整运行 179 项通过、3 项条件跳过**，零失败；新增单元 **44**、集成 **2**，既有回归 **133**。跳过为原 index 文件 symlink 一项和新增 POSIX FIFO 两项，Windows 条件跳过原样保留。WSL Ubuntu 另执行 **2/2** 个实际 FIFO 叶节点场景：分别在 constructor／snapshot 的 lstat→open 窗口 rename 原 index 后真正 mkfifo，确认注入、实际 FIFO 类型、精确 regular-file 拒绝和原文件字节保留；两 child 均及时返回，未被 15 秒 watchdog 杀死。复用上批已校验官方归档的临时 Linux Node v22.22.2，没有再次下载或 npm 安装；不代表完整 Linux Vitest、macOS 或发行矩阵，也不证明 parent-directory FIFO 场景或所有 ports 路径防阻塞。
+
+开发阶段两份诊断 reporter 保留：首版单元把 EOF 后 rename 的错误预期写成最后路径检查，真实 fd ctime 已先改变而正确提前拒绝；随后将注入移到最终 fd stat 采样后，精确验证最后路径分支。初版集成误写 nested observed HOLD 名称，改为导入真实常量。Astra 复核后还固定纳秒故障模型并增加 uid／gid、构造最终复查及 fd 长度边界反例；这些早期通过项不重复计入最终 179 项。生产源码从首版诊断运行后未再改，未放宽既有 ACL helper 或回归预算。
+
+最终 27 个相关源码／测试在 Windows 与 WSL 启动前保留同一摘要检查点，完成后逐一核对未变；逐文件／逐项 reporter、两份诊断失败记录、WSL 场景与模型范围见 [可信 index 本地控制验证记录](./evidence/rrsi-artifact-index-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 和 Astra 收尾复核通过；新集成准备阶段及历史行为各 60 秒。本批仍未认证完整产物清单／v2／retention 图、独立卷／安装根、受保护 pin／高水位、producer、alias 或发布准入；真实费用／模型实验和生产晋级未执行，完整 RRSI 继续实施。

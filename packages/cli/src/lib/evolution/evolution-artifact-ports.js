@@ -15,12 +15,41 @@ import { types as utilTypes } from "node:util";
 import { ArtifactStore } from "../artifact-store.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
 } from "./evolution-ledger.js";
 
 const ARTIFACT_STORE_DIRECTORY_BOUNDARIES = new WeakMap();
+// Only the shared identity helper's directory opens use this adapter. A POSIX
+// directory/FIFO swap must fail before reaching a potentially blocking open.
+const INDEX_DIRECTORY_FS = Object.freeze({
+  constants: fs.constants,
+  realpathSync: fs.realpathSync,
+  lstatSync: (...args) => fs.lstatSync(...args),
+  fstatSync: (...args) => fs.fstatSync(...args),
+  closeSync: (...args) => fs.closeSync(...args),
+  openSync: (target, flags) =>
+    fs.openSync(
+      target,
+      flags | (fs.constants.O_NONBLOCK || 0) | (fs.constants.O_DIRECTORY || 0),
+    ),
+});
+const INDEX_STAT_FIELDS = Object.freeze([
+  "dev",
+  "ino",
+  "mode",
+  "uid",
+  "gid",
+  "nlink",
+  "size",
+  "mtimeNs",
+  "ctimeNs",
+]);
+const INDEX_MUTATION_FIELDS = Object.freeze(
+  INDEX_STAT_FIELDS.filter((name) => name !== "dev" && name !== "ino"),
+);
 
 export const EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA =
   "chainlesschain.evolution-durable-artifact-record/v1";
@@ -1160,8 +1189,11 @@ function inspectPhysicalDirectory(directory, label) {
 }
 
 function inspectPhysicalIndex(indexPath, rootRealPath) {
-  return withEvolutionFileIdentity(fs, indexPath, (samePathHandle) =>
-    inspectPhysicalIndexWithIdentity(indexPath, rootRealPath, samePathHandle),
+  return withEvolutionFileIdentity(
+    INDEX_DIRECTORY_FS,
+    indexPath,
+    (samePathHandle) =>
+      inspectPhysicalIndexWithIdentity(indexPath, rootRealPath, samePathHandle),
   );
 }
 
@@ -1174,8 +1206,8 @@ function inspectPhysicalIndexWithIdentity(
   let realPath;
   let descriptor = null;
   try {
-    pathStat = fs.lstatSync(indexPath);
-    assertRegularSingleLink(pathStat, "ArtifactStore index");
+    pathStat = fs.lstatSync(indexPath, { bigint: true });
+    assertIndexStat(pathStat, "ArtifactStore index");
     realPath = physicalRealpath(indexPath);
     if (
       !samePath(realPath, indexPath) ||
@@ -1188,16 +1220,36 @@ function inspectPhysicalIndexWithIdentity(
     }
     descriptor = fs.openSync(
       indexPath,
-      fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+      fs.constants.O_RDONLY |
+        Number(fs.constants.O_NOFOLLOW || 0) |
+        Number(fs.constants.O_NONBLOCK || 0),
     );
-    const descriptorStat = fs.fstatSync(descriptor);
-    assertRegularSingleLink(descriptorStat, "ArtifactStore index descriptor");
-    if (!samePathHandle(pathStat, descriptorStat)) {
+    const descriptorStat = fs.fstatSync(descriptor, { bigint: true });
+    assertIndexStat(descriptorStat, "ArtifactStore index descriptor");
+    if (
+      !samePathHandle(pathStat, descriptorStat) ||
+      !sameIndexMutationMetadata(pathStat, descriptorStat)
+    ) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
         "ArtifactStore index pathname and descriptor identities differ",
       );
     }
+    const afterPathStat = fs.lstatSync(indexPath, { bigint: true });
+    const afterDescriptorStat = fs.fstatSync(descriptor, { bigint: true });
+    assertIndexStat(afterPathStat, "ArtifactStore index");
+    assertIndexStat(afterDescriptorStat, "ArtifactStore index descriptor");
+    if (
+      !sameIndexStat(pathStat, afterPathStat) ||
+      !sameIndexStat(descriptorStat, afterDescriptorStat) ||
+      !samePathHandle(afterPathStat, afterDescriptorStat) ||
+      !sameIndexMutationMetadata(afterPathStat, afterDescriptorStat) ||
+      !samePath(physicalRealpath(indexPath), realPath)
+    )
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        "ArtifactStore index changed while its identity was captured",
+      );
   } catch (cause) {
     if (isEvolutionArtifactPortError(cause)) throw cause;
     throw artifactError(
@@ -1315,6 +1367,35 @@ function assertRegularSingleLink(stat, label) {
       `${label} must be a regular, non-symlink, single-link file`,
     );
   }
+}
+
+function assertIndexStat(stat, label) {
+  if (INDEX_STAT_FIELDS.some((name) => typeof stat?.[name] !== "bigint"))
+    throw artifactError(
+      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+      `${label} requires full-precision index stat fields`,
+    );
+  assertRegularSingleLink(stat, label);
+  if (stat.size < 0n || stat.size > BigInt(EVOLUTION_ARTIFACT_MAX_INDEX_BYTES))
+    throw artifactError(
+      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+      `${label} exceeds its bounded snapshot size`,
+    );
+}
+
+function sameIndexMutationMetadata(left, right) {
+  return (
+    INDEX_MUTATION_FIELDS.every((name) => left[name] === right[name]) &&
+    physicalIdentity(left).birthtimeMs === physicalIdentity(right).birthtimeMs
+  );
+}
+
+function sameIndexStat(left, right) {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    sameIndexMutationMetadata(left, right)
+  );
 }
 
 function attestStoreDirectories(layout) {
@@ -1439,8 +1520,11 @@ function parseTrustedIndexBytes(bytes) {
 }
 
 function readTrustedIndexSnapshot(layout) {
-  return withEvolutionFileIdentity(fs, layout.indexPath, (samePathHandle) =>
-    readTrustedIndexSnapshotWithIdentity(layout, samePathHandle),
+  return withEvolutionFileIdentity(
+    INDEX_DIRECTORY_FS,
+    layout.indexPath,
+    (samePathHandle) =>
+      readTrustedIndexSnapshotWithIdentity(layout, samePathHandle),
   );
 }
 
@@ -1453,8 +1537,8 @@ function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
   let bytes;
   let indexRealPath;
   try {
-    beforePathStat = fs.lstatSync(layout.indexPath);
-    assertRegularSingleLink(beforePathStat, "ArtifactStore index");
+    beforePathStat = fs.lstatSync(layout.indexPath, { bigint: true });
+    assertIndexStat(beforePathStat, "ArtifactStore index");
     if (!samePhysicalIdentity(beforePathStat, layout.indexIdentity)) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -1474,27 +1558,32 @@ function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
     }
     descriptor = fs.openSync(
       layout.indexPath,
-      fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+      fs.constants.O_RDONLY |
+        Number(fs.constants.O_NOFOLLOW || 0) |
+        Number(fs.constants.O_NONBLOCK || 0),
     );
-    beforeDescriptorStat = fs.fstatSync(descriptor);
-    assertRegularSingleLink(
-      beforeDescriptorStat,
-      "ArtifactStore index descriptor",
-    );
+    beforeDescriptorStat = fs.fstatSync(descriptor, { bigint: true });
+    assertIndexStat(beforeDescriptorStat, "ArtifactStore index descriptor");
     if (
       !samePathHandle(beforePathStat, beforeDescriptorStat) ||
-      beforeDescriptorStat.size > EVOLUTION_ARTIFACT_MAX_INDEX_BYTES
+      !sameIndexMutationMetadata(beforePathStat, beforeDescriptorStat)
     ) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
         "ArtifactStore index descriptor is replaced or oversized",
       );
     }
-    bytes = fs.readFileSync(descriptor);
-    afterDescriptorStat = fs.fstatSync(descriptor);
+    bytes = readBoundedDescriptor(
+      fs,
+      descriptor,
+      Number(beforeDescriptorStat.size),
+      EVOLUTION_ARTIFACT_MAX_INDEX_BYTES,
+    );
+    afterDescriptorStat = fs.fstatSync(descriptor, { bigint: true });
+    assertIndexStat(afterDescriptorStat, "ArtifactStore index descriptor");
     if (
-      !sameFileIdentity(beforeDescriptorStat, afterDescriptorStat) ||
-      bytes.length !== beforeDescriptorStat.size
+      !sameIndexStat(beforeDescriptorStat, afterDescriptorStat) ||
+      BigInt(bytes.length) !== beforeDescriptorStat.size
     ) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -1513,10 +1602,10 @@ function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
   }
   let afterPathStat;
   try {
-    afterPathStat = fs.lstatSync(layout.indexPath);
-    assertRegularSingleLink(afterPathStat, "ArtifactStore index");
+    afterPathStat = fs.lstatSync(layout.indexPath, { bigint: true });
+    assertIndexStat(afterPathStat, "ArtifactStore index");
     if (
-      !sameFileIdentity(beforePathStat, afterPathStat) ||
+      !sameIndexStat(beforePathStat, afterPathStat) ||
       !samePhysicalIdentity(afterPathStat, layout.indexIdentity) ||
       !samePath(physicalRealpath(layout.indexPath), indexRealPath)
     ) {
