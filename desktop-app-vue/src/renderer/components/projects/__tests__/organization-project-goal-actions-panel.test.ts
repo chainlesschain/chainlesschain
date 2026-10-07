@@ -212,7 +212,7 @@ describe("organization goal suggestions with Vue and real multi-member native SQ
     expect(
       f.db.prepare("SELECT count(*) AS n FROM approval_responses").get().n,
     ).toBe(0);
-    expect(wrapper.get(`[data-goal-action-open="${item.id}"]`).exists()).toBe(
+    expect(wrapper.find(`[data-goal-action-open="${item.id}"]`).exists()).toBe(
       true,
     );
   });
@@ -250,7 +250,7 @@ describe("organization goal suggestions with Vue and real multi-member native SQ
     });
     await panel();
     const item = await prepare();
-    expect(wrapper.get(`[data-goal-action-retry="${item.id}"]`).exists()).toBe(
+    expect(wrapper.find(`[data-goal-action-retry="${item.id}"]`).exists()).toBe(
       true,
     );
     const input = structuredClone(api.prepareGoalAction.mock.calls[0][0]);

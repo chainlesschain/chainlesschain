@@ -4,7 +4,8 @@ All notable changes to this extension are documented here.
 
 ## [0.37.138] - Pair with bounded investigation recovery (2026-10-08)
 
-- Recommend CLI `0.166.93` and Session Core `0.3.18` after their public
+- Recommend CLI `0.166.93`, Session Core `0.3.18`, and Context Memory Kernel
+  `0.1.8` after their public
   npm release and the extension's exact-commit release gates pass.
 - The paired CLI bounds repeated evidence inspections and authenticated
   artifact reads, and includes organization goal and notification services.

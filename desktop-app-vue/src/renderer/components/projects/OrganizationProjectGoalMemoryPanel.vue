@@ -305,8 +305,7 @@ let epoch = 0,
   writing = false,
   refreshAfterWrite = false,
   loaded = false;
-let stopListener: (() => void) | undefined,
-  expiryTimer: ReturnType<typeof window.setTimeout> | undefined;
+let stopListener: (() => void) | undefined, expiryTimer: number | undefined;
 const current = (token: number) => mounted && token === epoch;
 const newId = () => `organization-memory-${globalThis.crypto.randomUUID()}`;
 function clearDraft() {
@@ -742,19 +741,23 @@ watch(
   { flush: "sync" },
 );
 onMounted(() => {
-  if (available.value)
-    stopListener = organizationApi().onGoalMemoryInvalidated(() => {
-      readEpoch++;
-      clearBodies();
-      clearDraft();
-      loaded = false;
-      if (writing) {
-        refreshAfterWrite = true;
-        return;
-      }
-      busy.value = false;
-      void load();
-    });
+  if (!available.value) return;
+  // Preload event subscriptions return their disposer synchronously, unlike RPCs.
+  const events = organizationApi() as unknown as {
+    onGoalMemoryInvalidated(listener: () => void): () => void;
+  };
+  stopListener = events.onGoalMemoryInvalidated(() => {
+    readEpoch++;
+    clearBodies();
+    clearDraft();
+    loaded = false;
+    if (writing) {
+      refreshAfterWrite = true;
+      return;
+    }
+    busy.value = false;
+    void load();
+  });
 });
 onBeforeUnmount(() => {
   mounted = false;

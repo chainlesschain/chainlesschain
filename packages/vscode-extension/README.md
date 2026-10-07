@@ -12,7 +12,7 @@ Public Open VSX **0.37.137** at `e812a89952` recommends public CLI **0.166.92**.
 > IDE publication requires this exact commit to pass its release gates.
 
 Candidate `0.37.138` pairs with CLI `0.166.93`, Session Core `0.3.18`, and
-Context/Memory Kernel `0.1.7` for the current runtime and packaging fixes.
+Context/Memory Kernel `0.1.8` for the current runtime and packaging fixes.
 The candidates remain unpublished; complete gates on the exact release commit
 remain required.
 

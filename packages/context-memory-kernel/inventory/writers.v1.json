@@ -94,6 +94,31 @@
       "disposition": "capability_only"
     },
     {
+      "id": "session-core-organization-project-goal-memory",
+      "surface": "session_core",
+      "role": "capability_client",
+      "currentStage": "canonical_default",
+      "targetAuthority": "context_memory_kernel",
+      "files": [
+        "packages/session-core/lib/organization-project-goal-memory.js"
+      ],
+      "mutationFunctions": [
+        "OrganizationProjectGoalMemoryService.create",
+        "OrganizationProjectGoalMemoryService.correct",
+        "OrganizationProjectGoalMemoryService.delete",
+        "OrganizationProjectGoalMemoryService.revoke",
+        "OrganizationProjectGoalMemoryService.recover",
+        "OrganizationProjectGoalMemoryService.discard"
+      ],
+      "stores": [
+        "OrganizationProjectGoalMemoryReferences",
+        "OrganizationProjectGoalMemoryOperations",
+        "OrganizationProjectGoalMemoryAuthority"
+      ],
+      "recoveryEntrypoints": ["OrganizationProjectGoalMemoryService.recover"],
+      "disposition": "capability_only"
+    },
+    {
       "id": "session-core-memory-authority",
       "surface": "session_core",
       "role": "legacy_writer",

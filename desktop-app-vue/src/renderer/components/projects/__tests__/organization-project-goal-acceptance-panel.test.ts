@@ -222,7 +222,7 @@ describe("organization independent acceptance with Vue, current facts, actual me
     await wrapper.setProps({ goal });
     await flushPromises();
     expect(
-      wrapper.get('[data-testid="organization-acceptance-done"]').exists(),
+      wrapper.find('[data-testid="organization-acceptance-done"]').exists(),
     ).toBe(true);
     f.setActor(f.identities.requester);
     await wrapper.setProps({ identityKey: f.getActor() });

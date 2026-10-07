@@ -717,23 +717,52 @@ class DatabaseManager {
 
     // 添加 transaction 方法兼容性（模拟 better-sqlite3 的 transaction API）
     if (!this.db.transaction) {
+      let savepointSequence = 0;
+      Object.defineProperty(this.db, "inTransaction", {
+        get: () => manager.inTransaction,
+      });
       this.db.transaction = (fn) => {
-        // 返回一个可调用的函数，执行时会包裹在事务中
-        return (...args) => {
-          try {
+        if (typeof fn !== "function") {
+          throw new TypeError("Expected a transaction callback");
+        }
+        const wrap = (mode) =>
+          function (...args) {
+            const nested = manager.inTransaction;
+            const savepoint = `cc_transaction_${++savepointSequence}`;
+            let started = false;
             manager.inTransaction = true;
-            manager.db.run("BEGIN TRANSACTION");
-            const result = fn(...args);
-            manager.db.run("COMMIT");
-            manager.saveToFile();
-            return result;
-          } catch (error) {
-            manager.db.run("ROLLBACK");
-            throw error;
-          } finally {
-            manager.inTransaction = false;
-          }
-        };
+            try {
+              manager.db.run(
+                nested ? `SAVEPOINT ${savepoint}` : `BEGIN ${mode}`,
+              );
+              started = true;
+              const result = fn.apply(this, args);
+              if (result && typeof result.then === "function") {
+                throw new TypeError(
+                  "Transaction callbacks must be synchronous",
+                );
+              }
+              manager.db.run(nested ? `RELEASE ${savepoint}` : "COMMIT");
+              started = false;
+              if (!nested) manager.saveToFile();
+              return result;
+            } catch (error) {
+              if (started) {
+                manager.db.run(
+                  nested ? `ROLLBACK TO ${savepoint}` : "ROLLBACK",
+                );
+                if (nested) manager.db.run(`RELEASE ${savepoint}`);
+              }
+              throw error;
+            } finally {
+              manager.inTransaction = nested;
+            }
+          };
+        const transaction = wrap("DEFERRED");
+        transaction.deferred = transaction;
+        transaction.immediate = wrap("IMMEDIATE");
+        transaction.exclusive = wrap("EXCLUSIVE");
+        return transaction;
       };
     }
 

@@ -290,7 +290,7 @@ let epoch = 0,
   refreshAfterWrite = false,
   mounted = true,
   stopListener: (() => void) | undefined,
-  expiryTimer: ReturnType<typeof window.setTimeout> | undefined;
+  expiryTimer: number | undefined;
 const current = (stamp: number) => mounted && stamp === epoch;
 function finishWrite(stamp: number) {
   if (!current(stamp)) return;

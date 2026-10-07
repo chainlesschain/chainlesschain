@@ -11,10 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Bound repeated IDE evidence inspections and all phases of authenticated
   artifact byte reads, including directory, index, identity, and history checks.
-- Publish Session Core `0.3.18` before CLI `0.166.93`, with exact dependency
+- Publish Session Core `0.3.18` and Context Memory Kernel `0.1.8` before CLI
+  `0.166.93`, with exact dependency
   pins and registry-only readback of the published child package.
 - Include organization goal acceptance, periodic monitoring, memory, risk
   review, transfer, workflow, and notification services in Session Core.
+- Register the organization goal memory adapter as a Kernel capability client,
+  preserving the single canonical memory writer in the published inventory.
+- Support immediate transactions and nested savepoints in desktop SQLite
+  compatibility adapters, and verify notification reads after login and denial
+  after logout with a real Electron session.
+- Correct browser timer and synchronous subscription types in goal memory
+  panels and retain their disposal behavior.
 - Install exact-checkout dependencies in the accessibility/performance
   aggregate job before verifying Linux, Windows, and macOS evidence.
 - Pair VS Code `0.37.138` and JetBrains `0.4.156` after CLI publication;

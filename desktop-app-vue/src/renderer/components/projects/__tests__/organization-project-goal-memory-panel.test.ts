@@ -391,7 +391,9 @@ describe("organization shared memory UI with fresh grants and body-free recovery
   it("offers read-only members no shared write or delete buttons", async () => {
     await wrapper.setProps({ permissions: ["goal.read", "goal.memory.read"] });
     await flushPromises();
-    expect(find("body").exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="organization-memory-body"]').exists(),
+    ).toBe(true);
     expect(wrapper.find("form").exists()).toBe(false);
     expect(
       wrapper.find('[data-testid="organization-memory-delete"]').exists(),

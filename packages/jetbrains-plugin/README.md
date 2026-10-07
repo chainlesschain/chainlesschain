@@ -28,7 +28,7 @@ the corresponding exact-gated CLI command, as documented below.
 
 The new pairing remains unpublished and requires its exact-commit release gates.
 CLI `0.166.93` pairs with Session Core `0.3.18` and Context/Memory Kernel
-`0.1.7`, including scheduler initialization before Windows sidecar ACL protection
+`0.1.8`, including scheduler initialization before Windows sidecar ACL protection
 and canonical record/replay digest handling that retains captured-content
 secret and PII checks.
 
