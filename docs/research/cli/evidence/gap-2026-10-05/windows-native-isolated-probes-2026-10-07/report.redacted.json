@@ -1,0 +1,2053 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capabilities/v2",
+  "startedAt": "2026-10-07T05:34:33.357Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "diagnosticCompleted": false,
+  "stageRetained": true,
+  "runs": [
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "scratch-environment",
+      "startedAt": "2026-10-07T05:34:33.360Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": true,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [
+        {
+          "id": "scratch-environment",
+          "status": "supported",
+          "timedOut": false,
+          "code": 0,
+          "signal": null,
+          "errorCode": null,
+          "error": null,
+          "output": "{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true}",
+          "outputSha256": "sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6",
+          "details": {
+            "credentialKeys": [],
+            "inheritedKeys": [
+              "LOCALAPPDATA",
+              "PATH",
+              "SystemDrive",
+              "SystemRoot",
+              "TEMP",
+              "TMP",
+              "WINDIR"
+            ],
+            "derived": {
+              "TMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+              "TEMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+              "HOME": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+              "USERPROFILE": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+              "APPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+              "LOCALAPPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local"
+            },
+            "proofs": [
+              {
+                "key": "TMP",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                "value": "TMP"
+              },
+              {
+                "key": "TEMP",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                "value": "TEMP"
+              },
+              {
+                "key": "HOME",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                "value": "HOME"
+              },
+              {
+                "key": "USERPROFILE",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                "value": "USERPROFILE"
+              },
+              {
+                "key": "APPDATA",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+                "value": "APPDATA"
+              },
+              {
+                "key": "LOCALAPPDATA",
+                "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local",
+                "value": "LOCALAPPDATA"
+              }
+            ],
+            "tmpdir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+            "homedir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+            "credentialsAbsent": true,
+            "nodeOptionsAbsent": true
+          },
+          "elapsedMs": 7
+        }
+      ],
+      "stageRetained": false,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:a103bde2cc9eae7c013583affa790e88e23691cc55d5403831887c061c077c8c",
+      "manifestDigest": "sha256:2218677e385bbe1151912cc349d39bc3cb2650f369d0160bffadf894dad2869b",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "3096224751007216",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+            "dev": "38182903",
+            "ino": "3659174704428524"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control",
+            "dev": "38182903",
+            "ino": "2814749774296558"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch",
+            "dev": "38182903",
+            "ino": "2814749774296559"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+            "dev": "38182903",
+            "ino": "3659174704428525"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "47850746048001484",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "17169973586539983",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "4503599634560490",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "4222124657849835",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "3377699727717873",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "3377699727717874",
+            "bytes": 7418,
+            "sha256": "a103bde2cc9eae7c013583affa790e88e23691cc55d5403831887c061c077c8c"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "2218677e385bbe1151912cc349d39bc3cb2650f369d0160bffadf894dad2869b",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 22380,
+        "appContainerSid": "S-1-15-2-3672435768-2236337232-1096183640-100036534-4137892698-653949931-2948696267",
+        "wallTimeMs": 15000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "execution": {
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"scratch-environment\",\"pid\":22380,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\",\"observations\":[{\"id\":\"scratch-environment\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"credentialKeys\\\":[],\\\"inheritedKeys\\\":[\\\"LOCALAPPDATA\\\",\\\"PATH\\\",\\\"SystemDrive\\\",\\\"SystemRoot\\\",\\\"TEMP\\\",\\\"TMP\\\",\\\"WINDIR\\\"],\\\"derived\\\":{\\\"TMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"TEMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"HOME\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"USERPROFILE\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"APPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"LOCALAPPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\"},\\\"proofs\\\":[{\\\"key\\\":\\\"TMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TMP\\\"},{\\\"key\\\":\\\"TEMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TEMP\\\"},{\\\"key\\\":\\\"HOME\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"HOME\\\"},{\\\"key\\\":\\\"USERPROFILE\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"USERPROFILE\\\"},{\\\"key\\\":\\\"APPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"value\\\":\\\"APPDATA\\\"},{\\\"key\\\":\\\"LOCALAPPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\",\\\"value\\\":\\\"LOCALAPPDATA\\\"}],\\\"tmpdir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"homedir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"credentialsAbsent\\\":true,\\\"nodeOptionsAbsent\\\":true}\",\"outputSha256\":\"sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6\",\"details\":{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true},\"elapsedMs\":7}]}\n",
+        "stderr": "",
+        "stdoutSha256": "sha256:cb38fc23c1dc810fb9f7f2d9122602bb6f38e1ee87d6166bb97cd266d987e379",
+        "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":22380,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":22380,\"elapsedMs\":16}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":22380,\"elapsedMs\":17,\"id\":\"scratch-environment\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":22380,\"elapsedMs\":24,\"id\":\"scratch-environment\",\"observation\":{\"id\":\"scratch-environment\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"credentialKeys\\\":[],\\\"inheritedKeys\\\":[\\\"LOCALAPPDATA\\\",\\\"PATH\\\",\\\"SystemDrive\\\",\\\"SystemRoot\\\",\\\"TEMP\\\",\\\"TMP\\\",\\\"WINDIR\\\"],\\\"derived\\\":{\\\"TMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"TEMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"HOME\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"USERPROFILE\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"APPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"LOCALAPPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\"},\\\"proofs\\\":[{\\\"key\\\":\\\"TMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TMP\\\"},{\\\"key\\\":\\\"TEMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TEMP\\\"},{\\\"key\\\":\\\"HOME\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"HOME\\\"},{\\\"key\\\":\\\"USERPROFILE\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"USERPROFILE\\\"},{\\\"key\\\":\\\"APPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"value\\\":\\\"APPDATA\\\"},{\\\"key\\\":\\\"LOCALAPPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\",\\\"value\\\":\\\"LOCALAPPDATA\\\"}],\\\"tmpdir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"homedir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"credentialsAbsent\\\":true,\\\"nodeOptionsAbsent\\\":true}\",\"outputSha256\":\"sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6\",\"details\":{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true},\"elapsedMs\":7}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":22380,\"elapsedMs\":25}\n",
+        "bytes": 4615,
+        "sha256": "sha256:57efdb86b509965cf1a134b303cf0e0d00101eaffa6cca1ae8f49df34353e9c6"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": true,
+        "allCapabilitiesSupported": true,
+        "capabilities": {
+          "scratch-environment": "supported"
+        },
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 22380,
+              "elapsedMs": 0
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 22380,
+              "elapsedMs": 16
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 22380,
+              "elapsedMs": 17,
+              "id": "scratch-environment"
+            },
+            {
+              "version": 1,
+              "sequence": 4,
+              "event": "settled",
+              "pid": 22380,
+              "elapsedMs": 24,
+              "id": "scratch-environment",
+              "observation": {
+                "id": "scratch-environment",
+                "status": "supported",
+                "timedOut": false,
+                "code": 0,
+                "signal": null,
+                "errorCode": null,
+                "error": null,
+                "output": "{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true}",
+                "outputSha256": "sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6",
+                "details": {
+                  "credentialKeys": [],
+                  "inheritedKeys": [
+                    "LOCALAPPDATA",
+                    "PATH",
+                    "SystemDrive",
+                    "SystemRoot",
+                    "TEMP",
+                    "TMP",
+                    "WINDIR"
+                  ],
+                  "derived": {
+                    "TMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                    "TEMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                    "HOME": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                    "USERPROFILE": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                    "APPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+                    "LOCALAPPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local"
+                  },
+                  "proofs": [
+                    {
+                      "key": "TMP",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                      "value": "TMP"
+                    },
+                    {
+                      "key": "TEMP",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                      "value": "TEMP"
+                    },
+                    {
+                      "key": "HOME",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                      "value": "HOME"
+                    },
+                    {
+                      "key": "USERPROFILE",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                      "value": "USERPROFILE"
+                    },
+                    {
+                      "key": "APPDATA",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+                      "value": "APPDATA"
+                    },
+                    {
+                      "key": "LOCALAPPDATA",
+                      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local",
+                      "value": "LOCALAPPDATA"
+                    }
+                  ],
+                  "tmpdir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                  "homedir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                  "credentialsAbsent": true,
+                  "nodeOptionsAbsent": true
+                },
+                "elapsedMs": 7
+              }
+            },
+            {
+              "version": 1,
+              "sequence": 5,
+              "event": "completed",
+              "pid": 22380,
+              "elapsedMs": 25
+            }
+          ],
+          "lastPhase": "completed",
+          "complete": true,
+          "trailingPartialBytes": 0
+        }
+      },
+      "integrityConfirmed": true,
+      "finishedAt": "2026-10-07T05:34:46.078Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "esm",
+      "startedAt": "2026-10-07T05:34:46.083Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": true,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [
+        {
+          "id": "esm",
+          "status": "supported",
+          "timedOut": false,
+          "code": 0,
+          "signal": null,
+          "errorCode": null,
+          "error": null,
+          "output": "{\"marker\":\"native-esm-ok\"}",
+          "outputSha256": "sha256:db4c86349a6894fd7d0763455323f869977783410c161398864c778a1af422f4",
+          "details": {},
+          "elapsedMs": 9
+        }
+      ],
+      "stageRetained": false,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:52f52dbfbc4e6fe928518da76b014bffd0544db7723fb1b568ddd5242208e480",
+      "manifestDigest": "sha256:e8e3518cf69ce83d23de87d2479adca96599fcb7c58eff06ec9dfbfac9e3c200",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "3940649681139186",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH",
+            "dev": "38182903",
+            "ino": "15199648749565402"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\control",
+            "dev": "38182903",
+            "ino": "3659174704428514"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\scratch",
+            "dev": "38182903",
+            "ino": "92886742321389988"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace",
+            "dev": "38182903",
+            "ino": "3659174704428513"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "6473924471535099",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "14918173772854780",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "15762598702986750",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "9570149215352319",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "13510798889301498",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Y6LdlH\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "3659174704428545",
+            "bytes": 7402,
+            "sha256": "52f52dbfbc4e6fe928518da76b014bffd0544db7723fb1b568ddd5242208e480"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "e8e3518cf69ce83d23de87d2479adca96599fcb7c58eff06ec9dfbfac9e3c200",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 22832,
+        "appContainerSid": "S-1-15-2-3629990155-243088875-1681532259-1934124905-2556018589-463140615-3853574166",
+        "wallTimeMs": 15000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "execution": {
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"esm\",\"pid\":22832,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-Y6LdlH\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-Y6LdlH\\\\scratch\",\"observations\":[{\"id\":\"esm\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-esm-ok\\\"}\",\"outputSha256\":\"sha256:db4c86349a6894fd7d0763455323f869977783410c161398864c778a1af422f4\",\"details\":{},\"elapsedMs\":9}]}\n",
+        "stderr": "",
+        "stdoutSha256": "sha256:2bc012d3f7bb748a4dc834e5989d0d7a8b58c913f955a04ce2e8604245bc9b24",
+        "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":22832,\"elapsedMs\":1}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":22832,\"elapsedMs\":18}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":22832,\"elapsedMs\":19,\"id\":\"esm\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":22832,\"elapsedMs\":28,\"id\":\"esm\",\"observation\":{\"id\":\"esm\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-esm-ok\\\"}\",\"outputSha256\":\"sha256:db4c86349a6894fd7d0763455323f869977783410c161398864c778a1af422f4\",\"details\":{},\"elapsedMs\":9}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":22832,\"elapsedMs\":29}\n",
+        "bytes": 689,
+        "sha256": "sha256:0a5216c65615f98b6be1b1fd686979b95c1be4986a901ebf3f03f33619910e80"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": true,
+        "allCapabilitiesSupported": true,
+        "capabilities": {
+          "esm": "supported"
+        },
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 22832,
+              "elapsedMs": 1
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 22832,
+              "elapsedMs": 18
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 22832,
+              "elapsedMs": 19,
+              "id": "esm"
+            },
+            {
+              "version": 1,
+              "sequence": 4,
+              "event": "settled",
+              "pid": 22832,
+              "elapsedMs": 28,
+              "id": "esm",
+              "observation": {
+                "id": "esm",
+                "status": "supported",
+                "timedOut": false,
+                "code": 0,
+                "signal": null,
+                "errorCode": null,
+                "error": null,
+                "output": "{\"marker\":\"native-esm-ok\"}",
+                "outputSha256": "sha256:db4c86349a6894fd7d0763455323f869977783410c161398864c778a1af422f4",
+                "details": {},
+                "elapsedMs": 9
+              }
+            },
+            {
+              "version": 1,
+              "sequence": 5,
+              "event": "completed",
+              "pid": 22832,
+              "elapsedMs": 29
+            }
+          ],
+          "lastPhase": "completed",
+          "complete": true,
+          "trailingPartialBytes": 0
+        }
+      },
+      "integrityConfirmed": true,
+      "finishedAt": "2026-10-07T05:35:01.926Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "worker-threads",
+      "startedAt": "2026-10-07T05:35:01.930Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": true,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [
+        {
+          "id": "worker-threads",
+          "status": "supported",
+          "timedOut": false,
+          "code": 0,
+          "signal": null,
+          "errorCode": null,
+          "error": null,
+          "output": "{\"marker\":\"native-worker-ok\",\"threadId\":1,\"pid\":26912}",
+          "outputSha256": "sha256:6fba3d5e6495b46495cb520c6840f43123bc67005477106a9472e281bb0d13ca",
+          "details": {
+            "message": {
+              "marker": "native-worker-ok",
+              "threadId": 1,
+              "pid": 26912
+            }
+          },
+          "elapsedMs": 88
+        }
+      ],
+      "stageRetained": false,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:c03cd10f89ecadb0e0a799bfe754a392dc0fc0a3f89877198dbd426b6877006e",
+      "manifestDigest": "sha256:f7ce3a730b352df0f20aac1d1a956ee61e5d1de46f25cf5d8ac84f41e46e6b30",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "7318349401667067",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI",
+            "dev": "38182903",
+            "ino": "76842668648734085"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\control",
+            "dev": "38182903",
+            "ino": "11540474052326877"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\scratch",
+            "dev": "38182903",
+            "ino": "5348024564692466"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace",
+            "dev": "38182903",
+            "ino": "29273397585098134"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "12947848935880196",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "6755399448245766",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "5066549587981831",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "11540474052326922",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "4222124657849869",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-Mc7MVI\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "3096224751007246",
+            "bytes": 7413,
+            "sha256": "c03cd10f89ecadb0e0a799bfe754a392dc0fc0a3f89877198dbd426b6877006e"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "f7ce3a730b352df0f20aac1d1a956ee61e5d1de46f25cf5d8ac84f41e46e6b30",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 26912,
+        "appContainerSid": "S-1-15-2-36732415-600858949-3495488646-545219145-3239194733-2012245698-1169328870",
+        "wallTimeMs": 15000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "execution": {
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"worker-threads\",\"pid\":26912,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-Mc7MVI\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-Mc7MVI\\\\scratch\",\"observations\":[{\"id\":\"worker-threads\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-worker-ok\\\",\\\"threadId\\\":1,\\\"pid\\\":26912}\",\"outputSha256\":\"sha256:6fba3d5e6495b46495cb520c6840f43123bc67005477106a9472e281bb0d13ca\",\"details\":{\"message\":{\"marker\":\"native-worker-ok\",\"threadId\":1,\"pid\":26912}},\"elapsedMs\":88}]}\n",
+        "stderr": "",
+        "stdoutSha256": "sha256:f263d3c4c78a4f39d6f2f39074fa6543c7dda713fe3c20742d5f6add51977560",
+        "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":26912,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":26912,\"elapsedMs\":15}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":26912,\"elapsedMs\":15,\"id\":\"worker-threads\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":26912,\"elapsedMs\":104,\"id\":\"worker-threads\",\"observation\":{\"id\":\"worker-threads\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-worker-ok\\\",\\\"threadId\\\":1,\\\"pid\\\":26912}\",\"outputSha256\":\"sha256:6fba3d5e6495b46495cb520c6840f43123bc67005477106a9472e281bb0d13ca\",\"details\":{\"message\":{\"marker\":\"native-worker-ok\",\"threadId\":1,\"pid\":26912}},\"elapsedMs\":88}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":26912,\"elapsedMs\":105}\n",
+        "bytes": 821,
+        "sha256": "sha256:c279a02b5aa61c9546c5c3587c9eb2ef9c3cd43c86914cde062788d7f747421f"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": true,
+        "allCapabilitiesSupported": true,
+        "capabilities": {
+          "worker-threads": "supported"
+        },
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 26912,
+              "elapsedMs": 0
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 26912,
+              "elapsedMs": 15
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 26912,
+              "elapsedMs": 15,
+              "id": "worker-threads"
+            },
+            {
+              "version": 1,
+              "sequence": 4,
+              "event": "settled",
+              "pid": 26912,
+              "elapsedMs": 104,
+              "id": "worker-threads",
+              "observation": {
+                "id": "worker-threads",
+                "status": "supported",
+                "timedOut": false,
+                "code": 0,
+                "signal": null,
+                "errorCode": null,
+                "error": null,
+                "output": "{\"marker\":\"native-worker-ok\",\"threadId\":1,\"pid\":26912}",
+                "outputSha256": "sha256:6fba3d5e6495b46495cb520c6840f43123bc67005477106a9472e281bb0d13ca",
+                "details": {
+                  "message": {
+                    "marker": "native-worker-ok",
+                    "threadId": 1,
+                    "pid": 26912
+                  }
+                },
+                "elapsedMs": 88
+              }
+            },
+            {
+              "version": 1,
+              "sequence": 5,
+              "event": "completed",
+              "pid": 26912,
+              "elapsedMs": 105
+            }
+          ],
+          "lastPhase": "completed",
+          "complete": true,
+          "trailingPartialBytes": 0
+        }
+      },
+      "integrityConfirmed": true,
+      "finishedAt": "2026-10-07T05:35:16.597Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "child-inherited-stdio",
+      "startedAt": "2026-10-07T05:35:16.604Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": true,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [
+        {
+          "id": "child-inherited-stdio",
+          "status": "supported",
+          "timedOut": false,
+          "code": 0,
+          "signal": null,
+          "errorCode": null,
+          "error": null,
+          "output": "{\"marker\":\"native-child-ok\",\"pid\":18320}",
+          "outputSha256": "sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d",
+          "details": {
+            "stderr": "",
+            "payload": {
+              "marker": "native-child-ok",
+              "pid": 18320
+            }
+          },
+          "elapsedMs": 166
+        }
+      ],
+      "stageRetained": false,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:6bf762e59ed1e929ccfa3db7c4d2a0577577cdd9f8252dacadd675ac59df0135",
+      "manifestDigest": "sha256:86c38513e4a3d50728b6f137dd4ba773dfa3d3b98fe9439e10796b7b1146087f",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "5348024564692487",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+            "dev": "38182903",
+            "ino": "12947848935880157"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control",
+            "dev": "38182903",
+            "ino": "22236523167331839"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch",
+            "dev": "38182903",
+            "ino": "15762598702986753"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+            "dev": "38182903",
+            "ino": "8162774331799035"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "12103424005748234",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "7881299355088395",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "4503599634560525",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "3377699727717902",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "10696049122194959",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "2814749774296779",
+            "bytes": 7420,
+            "sha256": "6bf762e59ed1e929ccfa3db7c4d2a0577577cdd9f8252dacadd675ac59df0135"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "86c38513e4a3d50728b6f137dd4ba773dfa3d3b98fe9439e10796b7b1146087f",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 2352,
+        "appContainerSid": "S-1-15-2-1372904495-4167343774-1906325503-3396116446-1863720515-4140346168-471869620",
+        "wallTimeMs": 15000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "execution": {
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"child-inherited-stdio\",\"pid\":2352,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-dLFemS\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-dLFemS\\\\scratch\",\"observations\":[{\"id\":\"child-inherited-stdio\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-child-ok\\\",\\\"pid\\\":18320}\",\"outputSha256\":\"sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d\",\"details\":{\"stderr\":\"\",\"payload\":{\"marker\":\"native-child-ok\",\"pid\":18320}},\"elapsedMs\":166}]}\n",
+        "stderr": "",
+        "stdoutSha256": "sha256:4829aabe5f6db04b2317bf0f3d4bb38622e619d0609bcfc2671bc9ba9662fde5",
+        "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":2352,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":2352,\"elapsedMs\":29}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":2352,\"elapsedMs\":30,\"id\":\"child-inherited-stdio\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":2352,\"elapsedMs\":196,\"id\":\"child-inherited-stdio\",\"observation\":{\"id\":\"child-inherited-stdio\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-child-ok\\\",\\\"pid\\\":18320}\",\"outputSha256\":\"sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d\",\"details\":{\"stderr\":\"\",\"payload\":{\"marker\":\"native-child-ok\",\"pid\":18320}},\"elapsedMs\":166}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":2352,\"elapsedMs\":196}\n",
+        "bytes": 820,
+        "sha256": "sha256:20e5f8ed583b808bddb972525ffcbab372dea93e55cce525dfeb609fc742a473"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": true,
+        "allCapabilitiesSupported": true,
+        "capabilities": {
+          "child-inherited-stdio": "supported"
+        },
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 2352,
+              "elapsedMs": 0
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 2352,
+              "elapsedMs": 29
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 2352,
+              "elapsedMs": 30,
+              "id": "child-inherited-stdio"
+            },
+            {
+              "version": 1,
+              "sequence": 4,
+              "event": "settled",
+              "pid": 2352,
+              "elapsedMs": 196,
+              "id": "child-inherited-stdio",
+              "observation": {
+                "id": "child-inherited-stdio",
+                "status": "supported",
+                "timedOut": false,
+                "code": 0,
+                "signal": null,
+                "errorCode": null,
+                "error": null,
+                "output": "{\"marker\":\"native-child-ok\",\"pid\":18320}",
+                "outputSha256": "sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d",
+                "details": {
+                  "stderr": "",
+                  "payload": {
+                    "marker": "native-child-ok",
+                    "pid": 18320
+                  }
+                },
+                "elapsedMs": 166
+              }
+            },
+            {
+              "version": 1,
+              "sequence": 5,
+              "event": "completed",
+              "pid": 2352,
+              "elapsedMs": 196
+            }
+          ],
+          "lastPhase": "completed",
+          "complete": true,
+          "trailingPartialBytes": 0
+        }
+      },
+      "integrityConfirmed": true,
+      "finishedAt": "2026-10-07T05:35:32.411Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "child-file-stdio",
+      "startedAt": "2026-10-07T05:35:32.417Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": true,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [
+        {
+          "id": "child-file-stdio",
+          "status": "blocked",
+          "timedOut": false,
+          "code": null,
+          "signal": null,
+          "errorCode": "EPERM",
+          "error": "spawnSync <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe EPERM",
+          "output": "",
+          "outputSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "details": {
+            "stderr": "",
+            "payload": null
+          },
+          "elapsedMs": 11
+        }
+      ],
+      "stageRetained": false,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:e149af009d4cc2b6c4f3233c6e38de06f35424f816d5d4c82b2b92231d4c1602",
+      "manifestDigest": "sha256:e1ec8f5c7031a6e9be78802e50a44af1a0b1502fbf38730252f10c8f8b299a34",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "11258999075616464",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+            "dev": "38182903",
+            "ino": "3659174704428558"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control",
+            "dev": "38182903",
+            "ino": "8444249308509895"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch",
+            "dev": "38182903",
+            "ino": "3096224751007435"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+            "dev": "38182903",
+            "ino": "10977524098905615"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "3659174704428758",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "5629499541403352",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "7036874424956633",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "12384898982459098",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "6473924471535323",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "14636698796144348",
+            "bytes": 7415,
+            "sha256": "e149af009d4cc2b6c4f3233c6e38de06f35424f816d5d4c82b2b92231d4c1602"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "e1ec8f5c7031a6e9be78802e50a44af1a0b1502fbf38730252f10c8f8b299a34",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 30108,
+        "appContainerSid": "S-1-15-2-3316107233-3414731499-816683628-1927519564-1143292418-2980076391-1493062624",
+        "wallTimeMs": 15000,
+        "targetExitCode": 0,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": false
+      },
+      "execution": {
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"child-file-stdio\",\"pid\":30108,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\scratch\",\"observations\":[{\"id\":\"child-file-stdio\",\"status\":\"blocked\",\"timedOut\":false,\"code\":null,\"signal\":null,\"errorCode\":\"EPERM\",\"error\":\"spawnSync <USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\control\\\\node.exe EPERM\",\"output\":\"\",\"outputSha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"details\":{\"stderr\":\"\",\"payload\":null},\"elapsedMs\":11}]}\n",
+        "stderr": "",
+        "stdoutSha256": "sha256:ad8bf46a810d7570135ec2ffa51e451a358b4ecbfe224b9e85a04c5010833952",
+        "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":30108,\"elapsedMs\":1}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":30108,\"elapsedMs\":26}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":30108,\"elapsedMs\":27,\"id\":\"child-file-stdio\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":30108,\"elapsedMs\":38,\"id\":\"child-file-stdio\",\"observation\":{\"id\":\"child-file-stdio\",\"status\":\"blocked\",\"timedOut\":false,\"code\":null,\"signal\":null,\"errorCode\":\"EPERM\",\"error\":\"spawnSync <USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\control\\\\node.exe EPERM\",\"output\":\"\",\"outputSha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"details\":{\"stderr\":\"\",\"payload\":null},\"elapsedMs\":11}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":30108,\"elapsedMs\":39}\n",
+        "bytes": 829,
+        "sha256": "sha256:ededce8cd2f0e92752024d9fa90c62de4b585a5f3d3af7ad53d1602e038df0b9"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": true,
+        "allCapabilitiesSupported": false,
+        "capabilities": {
+          "child-file-stdio": "blocked"
+        },
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 30108,
+              "elapsedMs": 1
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 30108,
+              "elapsedMs": 26
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 30108,
+              "elapsedMs": 27,
+              "id": "child-file-stdio"
+            },
+            {
+              "version": 1,
+              "sequence": 4,
+              "event": "settled",
+              "pid": 30108,
+              "elapsedMs": 38,
+              "id": "child-file-stdio",
+              "observation": {
+                "id": "child-file-stdio",
+                "status": "blocked",
+                "timedOut": false,
+                "code": null,
+                "signal": null,
+                "errorCode": "EPERM",
+                "error": "spawnSync <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe EPERM",
+                "output": "",
+                "outputSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "details": {
+                  "stderr": "",
+                  "payload": null
+                },
+                "elapsedMs": 11
+              }
+            },
+            {
+              "version": 1,
+              "sequence": 5,
+              "event": "completed",
+              "pid": 30108,
+              "elapsedMs": 39
+            }
+          ],
+          "lastPhase": "completed",
+          "complete": true,
+          "trailingPartialBytes": 0
+        }
+      },
+      "integrityConfirmed": true,
+      "finishedAt": "2026-10-07T05:35:48.619Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "child-pipe-stdio",
+      "startedAt": "2026-10-07T05:35:48.624Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": false,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [],
+      "stageRetained": true,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:743e60d5b0b30e50f6958e89f88b9cb6116bc3ffea98810c6ee863b3f529a19b",
+      "manifestDigest": "sha256:fdc737815ba824889ab45c7d3be8b3d03c529cad383a1071d3ac94b446021b85",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "12666373959169754",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl",
+            "dev": "38182903",
+            "ino": "3659174704428755"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\control",
+            "dev": "38182903",
+            "ino": "5910974518114008"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\scratch",
+            "dev": "38182903",
+            "ino": "7318349401667289"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace",
+            "dev": "38182903",
+            "ino": "3940649681139414"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "5910974518113995",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "14073748842723024",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "6755399448245979",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "14918173772855004",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "20266198330357471",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-SfZsYl\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "15762598702986978",
+            "bytes": 7415,
+            "sha256": "743e60d5b0b30e50f6958e89f88b9cb6116bc3ffea98810c6ee863b3f529a19b"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "fdc737815ba824889ab45c7d3be8b3d03c529cad383a1071d3ac94b446021b85",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 11892,
+        "appContainerSid": "S-1-15-2-383934296-4289255886-818745797-1332237050-911552678-1947473710-2447712674",
+        "wallTimeMs": 15000,
+        "targetExitCode": 125,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": true
+      },
+      "execution": {
+        "status": 125,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "",
+        "stderr": "CC_WINDOWS_SANDBOX_ERROR: Windows sandbox wall-time limit exceeded\r\n",
+        "stdoutSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":11892,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":11892,\"elapsedMs\":23}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":11892,\"elapsedMs\":24,\"id\":\"child-pipe-stdio\"}\n",
+        "bytes": 269,
+        "sha256": "sha256:2cf43afce7b4ef7ea96c0966ad2f91316117fd726fe596390b9047b0ff4fec9e"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": false,
+        "allCapabilitiesSupported": false,
+        "capabilities": {},
+        "failureKind": "execution-timeout",
+        "cleanupConfirmed": true,
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 11892,
+              "elapsedMs": 0
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 11892,
+              "elapsedMs": 23
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 11892,
+              "elapsedMs": 24,
+              "id": "child-pipe-stdio"
+            }
+          ],
+          "lastPhase": "child-pipe-stdio",
+          "complete": false,
+          "trailingPartialBytes": 0
+        },
+        "observedPrefix": []
+      },
+      "integrityConfirmed": true,
+      "failureKind": "execution-timeout",
+      "error": "Target execution timed out; native cleanup confirmed",
+      "retentionReason": "diagnostic-incomplete",
+      "finishedAt": "2026-10-07T05:36:21.580Z"
+    },
+    {
+      "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+      "probeId": "child-fork-ipc",
+      "startedAt": "2026-10-07T05:36:21.586Z",
+      "platform": "win32",
+      "osRelease": "10.0.19045",
+      "nodeVersion": "v22.22.2",
+      "architecture": "x64",
+      "formalSample": false,
+      "providerAssessed": false,
+      "fullReviewPackAssessed": false,
+      "diagnosticCompleted": false,
+      "wallTimeMs": 15000,
+      "probeTimeoutMs": 1200,
+      "observations": [],
+      "stageRetained": true,
+      "sourceFiles": [
+        {
+          "name": "esm-probe.mjs",
+          "bytes": 39,
+          "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+        },
+        {
+          "name": "worker-probe.cjs",
+          "bytes": 138,
+          "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+        },
+        {
+          "name": "child-probe.cjs",
+          "bytes": 207,
+          "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+        },
+        {
+          "name": "fork-probe.cjs",
+          "bytes": 171,
+          "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+        },
+        {
+          "name": "anchor.txt",
+          "bytes": 32,
+          "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+        }
+      ],
+      "brokerFiles": [
+        {
+          "name": "windows-native-evaluator-capabilities.js",
+          "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+        },
+        {
+          "name": "windows-native-evaluator.js",
+          "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+        },
+        {
+          "name": "index.js",
+          "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        },
+        {
+          "name": "platform-sandbox.js",
+          "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+        },
+        {
+          "name": "windows-sandbox.cs",
+          "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+        },
+        {
+          "name": "windows-sandbox-helper.exe",
+          "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+        },
+        {
+          "name": "windows-sandbox-helper.dll",
+          "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+        }
+      ],
+      "checkSourceSha256": "sha256:c0a6a06862b111eb091f94593eaac6c5e7fb534739d6c43f17c73312fb189a04",
+      "manifestDigest": "sha256:48df5359121d1d50752099a8240e04aeb192ace8a1f2e557a27c5cd3c233d907",
+      "stage": {
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch"
+      },
+      "manifest": {
+        "version": 1,
+        "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+        "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+        "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control",
+        "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch",
+        "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\check.cjs",
+        "wallTimeMs": 15000,
+        "runtime": {
+          "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\node.exe",
+          "dev": "38182903",
+          "ino": "7318349401667341",
+          "bytes": 87074816,
+          "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "directories": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+            "dev": "38182903",
+            "ino": "19140298423514831"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control",
+            "dev": "38182903",
+            "ino": "16607023633118964"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch",
+            "dev": "38182903",
+            "ino": "4503599634560763"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+            "dev": "38182903",
+            "ino": "16044073679697621"
+          }
+        ],
+        "files": [
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\esm-probe.mjs",
+            "dev": "38182903",
+            "ino": "3940649681139493",
+            "bytes": 39,
+            "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\worker-probe.cjs",
+            "dev": "38182903",
+            "ino": "3377699727718182",
+            "bytes": 138,
+            "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\child-probe.cjs",
+            "dev": "38182903",
+            "ino": "1970324844164903",
+            "bytes": 207,
+            "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\fork-probe.cjs",
+            "dev": "38182903",
+            "ino": "2533274797586216",
+            "bytes": 171,
+            "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\anchor.txt",
+            "dev": "38182903",
+            "ino": "1970324844164905",
+            "bytes": 32,
+            "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+          },
+          {
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\check.cjs",
+            "dev": "38182903",
+            "ino": "2251799820875562",
+            "bytes": 7413,
+            "sha256": "c0a6a06862b111eb091f94593eaac6c5e7fb534739d6c43f17c73312fb189a04"
+          }
+        ]
+      },
+      "settlement": {
+        "manifestDigest": "48df5359121d1d50752099a8240e04aeb192ace8a1f2e557a27c5cd3c233d907",
+        "cleanupConfirmed": true,
+        "capabilityCount": 0,
+        "loopbackExemptionAbsent": true,
+        "targetPid": 10132,
+        "appContainerSid": "S-1-15-2-2673918248-3218596457-243354033-274923998-1099104729-3264175480-423820489",
+        "wallTimeMs": 15000,
+        "targetExitCode": 125,
+        "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+        "executionFailed": true
+      },
+      "execution": {
+        "status": 125,
+        "signal": null,
+        "error": null,
+        "errorCode": null,
+        "stdout": "",
+        "stderr": "CC_WINDOWS_SANDBOX_ERROR: Windows sandbox wall-time limit exceeded\r\n",
+        "stdoutSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderrSha256": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5"
+      },
+      "journal": {
+        "name": "capability-journal.jsonl",
+        "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":10132,\"elapsedMs\":1}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":10132,\"elapsedMs\":39}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":10132,\"elapsedMs\":43,\"id\":\"child-fork-ipc\"}\n",
+        "bytes": 267,
+        "sha256": "sha256:59f38f96d1818faacc8f7547bf06eade6d19223a2c10f6b164215da24b32d385"
+      },
+      "journalReadAfterCleanup": true,
+      "validation": {
+        "diagnosticCompleted": false,
+        "allCapabilitiesSupported": false,
+        "capabilities": {},
+        "failureKind": "execution-timeout",
+        "cleanupConfirmed": true,
+        "journal": {
+          "available": true,
+          "records": [
+            {
+              "version": 1,
+              "sequence": 1,
+              "event": "initialization-started",
+              "pid": 10132,
+              "elapsedMs": 1
+            },
+            {
+              "version": 1,
+              "sequence": 2,
+              "event": "initialization-settled",
+              "pid": 10132,
+              "elapsedMs": 39
+            },
+            {
+              "version": 1,
+              "sequence": 3,
+              "event": "started",
+              "pid": 10132,
+              "elapsedMs": 43,
+              "id": "child-fork-ipc"
+            }
+          ],
+          "lastPhase": "child-fork-ipc",
+          "complete": false,
+          "trailingPartialBytes": 0
+        },
+        "observedPrefix": []
+      },
+      "integrityConfirmed": true,
+      "failureKind": "execution-timeout",
+      "error": "Target execution timed out; native cleanup confirmed",
+      "retentionReason": "diagnostic-incomplete",
+      "finishedAt": "2026-10-07T05:36:51.852Z"
+    }
+  ],
+  "validation": {
+    "diagnosticCompleted": false,
+    "allCapabilitiesSupported": false,
+    "capabilities": {},
+    "probeResults": [
+      {
+        "id": "scratch-environment",
+        "diagnosticCompleted": true,
+        "status": "supported",
+        "cleanupConfirmed": true,
+        "lastPhase": "completed"
+      },
+      {
+        "id": "esm",
+        "diagnosticCompleted": true,
+        "status": "supported",
+        "cleanupConfirmed": true,
+        "lastPhase": "completed"
+      },
+      {
+        "id": "worker-threads",
+        "diagnosticCompleted": true,
+        "status": "supported",
+        "cleanupConfirmed": true,
+        "lastPhase": "completed"
+      },
+      {
+        "id": "child-inherited-stdio",
+        "diagnosticCompleted": true,
+        "status": "supported",
+        "cleanupConfirmed": true,
+        "lastPhase": "completed"
+      },
+      {
+        "id": "child-file-stdio",
+        "diagnosticCompleted": true,
+        "status": "blocked",
+        "cleanupConfirmed": true,
+        "lastPhase": "completed"
+      },
+      {
+        "id": "child-pipe-stdio",
+        "diagnosticCompleted": false,
+        "status": "timed-out",
+        "cleanupConfirmed": true,
+        "lastPhase": "child-pipe-stdio"
+      },
+      {
+        "id": "child-fork-ipc",
+        "diagnosticCompleted": false,
+        "status": "timed-out",
+        "cleanupConfirmed": true,
+        "lastPhase": "child-fork-ipc"
+      }
+    ],
+    "cleanupConfirmed": true,
+    "failureKind": "isolated-probe-incomplete"
+  },
+  "failureKind": "isolated-probe-incomplete",
+  "retentionReason": "diagnostic-incomplete",
+  "finishedAt": "2026-10-07T05:36:51.860Z"
+}

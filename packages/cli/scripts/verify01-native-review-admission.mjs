@@ -61,8 +61,10 @@ function capabilities(bytes, expectedDigest, host) {
     throw new Error("Windows review admission: invalid capability JSON");
   }
   requireCondition(
-    report.schema ===
-      "chainlesschain.windows-native-evaluator-capabilities/v1" &&
+    [
+      "chainlesschain.windows-native-evaluator-capabilities/v1",
+      "chainlesschain.windows-native-evaluator-capabilities/v2",
+    ].includes(report.schema) &&
       report.formalSample === false &&
       report.providerAssessed === false &&
       report.fullReviewPackAssessed === false,
@@ -78,6 +80,10 @@ function capabilities(bytes, expectedDigest, host) {
   if (report.diagnosticCompleted !== true)
     return { digest: expectedDigest, status: "INCOMPLETE", values: {} };
   const inspected = validateWindowsNativeEvaluatorCapabilitiesReport(report);
+  requireCondition(
+    inspected.diagnosticCompleted === true,
+    "capability completion contradicts the native evidence",
+  );
   return {
     digest: expectedDigest,
     status: "VERIFIED_DIAGNOSTIC",

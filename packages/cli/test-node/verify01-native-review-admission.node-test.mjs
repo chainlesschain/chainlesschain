@@ -229,6 +229,65 @@ test("input validation cannot substitute first-install samples, missing IDs, or 
   );
 });
 
+test("isolated v2 partial reports never grant caller-supplied capabilities", () => {
+  const bytes = Buffer.from(
+    JSON.stringify({
+      schema: "chainlesschain.windows-native-evaluator-capabilities/v2",
+      formalSample: false,
+      providerAssessed: false,
+      fullReviewPackAssessed: false,
+      diagnosticCompleted: false,
+      platform: host.platform,
+      architecture: host.arch,
+      nodeVersion: host.node,
+      osRelease: host.osRelease,
+      validation: {
+        capabilities: { esm: "supported", "child-fork-ipc": "supported" },
+      },
+    }),
+  );
+  const report = inspectNativeReviewAdmission(bundle, {
+    host,
+    capabilityBytes: bytes,
+    capabilityDigest: evalDigest(bytes),
+  });
+  assert.equal(report.capabilityCapture.status, "INCOMPLETE");
+  assert.equal(report.fullReviewPackReady, false);
+  assert.ok(
+    report.tasks.every((task) =>
+      task.requiredCapabilities.every(
+        (capability) => capability.observed === "INCOMPLETE",
+      ),
+    ),
+  );
+});
+
+test("isolated v2 completed declarations must contain all independent native runs", () => {
+  const bytes = Buffer.from(
+    JSON.stringify({
+      schema: "chainlesschain.windows-native-evaluator-capabilities/v2",
+      formalSample: false,
+      providerAssessed: false,
+      fullReviewPackAssessed: false,
+      diagnosticCompleted: true,
+      platform: host.platform,
+      architecture: host.arch,
+      nodeVersion: host.node,
+      osRelease: host.osRelease,
+      runs: [],
+    }),
+  );
+  assert.throws(
+    () =>
+      inspectNativeReviewAdmission(bundle, {
+        host,
+        capabilityBytes: bytes,
+        capabilityDigest: evalDigest(bytes),
+      }),
+    /isolated probe sequence/,
+  );
+});
+
 test("explicit Windows generation fails before creating scripts and rejects Docker bindings", () => {
   // Temp roots can use /var aliases on macOS and short names on Windows.
   // Keep the cleanup guard bound to the canonical directory we created.

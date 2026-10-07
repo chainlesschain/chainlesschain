@@ -1,0 +1,5 @@
+{"version":1,"sequence":1,"event":"initialization-started","pid":30108,"elapsedMs":1}
+{"version":1,"sequence":2,"event":"initialization-settled","pid":30108,"elapsedMs":26}
+{"version":1,"sequence":3,"event":"started","pid":30108,"elapsedMs":27,"id":"child-file-stdio"}
+{"version":1,"sequence":4,"event":"settled","pid":30108,"elapsedMs":38,"id":"child-file-stdio","observation":{"id":"child-file-stdio","status":"blocked","timedOut":false,"code":null,"signal":null,"errorCode":"EPERM","error":"spawnSync <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe EPERM","output":"","outputSha256":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","details":{"stderr":"","payload":null},"elapsedMs":11}}
+{"version":1,"sequence":5,"event":"completed","pid":30108,"elapsedMs":39}

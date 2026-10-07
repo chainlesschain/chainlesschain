@@ -1,0 +1,5 @@
+{"version":1,"sequence":1,"event":"initialization-started","pid":26912,"elapsedMs":0}
+{"version":1,"sequence":2,"event":"initialization-settled","pid":26912,"elapsedMs":15}
+{"version":1,"sequence":3,"event":"started","pid":26912,"elapsedMs":15,"id":"worker-threads"}
+{"version":1,"sequence":4,"event":"settled","pid":26912,"elapsedMs":104,"id":"worker-threads","observation":{"id":"worker-threads","status":"supported","timedOut":false,"code":0,"signal":null,"errorCode":null,"error":null,"output":"{\"marker\":\"native-worker-ok\",\"threadId\":1,\"pid\":26912}","outputSha256":"sha256:6fba3d5e6495b46495cb520c6840f43123bc67005477106a9472e281bb0d13ca","details":{"message":{"marker":"native-worker-ok","threadId":1,"pid":26912}},"elapsedMs":88}}
+{"version":1,"sequence":5,"event":"completed","pid":26912,"elapsedMs":105}

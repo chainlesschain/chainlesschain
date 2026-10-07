@@ -326,3 +326,40 @@ node packages/cli/scripts/verify01-review-pack.mjs --backend windows-native
 完整 native review 仍 **NOT_READY**：需要将有阻塞风险的探针隔离为各自原生 Job、完成未观察 IPC，并实现受信任工具链与 locked test support；其他平台的原生后端、独立人工 setup/check 预审也未关闭。现有检查没有启动正式任务或 provider；冻结 fingerprint 仍为 `665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，只读 collector exit **2**，task observed=0/missing=36、firstRun observed=0/missing=9、totalCost=null、预算 **$99** 不变。
 | 辅助技术、性能与维护 | 既有工程/宿主语义证据保留 | NVDA/VoiceOver/Orca 真人听测、8h/24h、获批 SLO 与独立维护工时 |
 | CLOUD-02 | 现有 self-hosted handoff 继续可用，resume 明确未实现 | 需求明确后实现跨机器连续恢复，不默认复制云账户/订阅 |
+
+## 11. 2026-10-07 独立原生探针与工具链预检
+
+### 11.1 已完成的工程
+
+七项探针分别使用新的一次性 AppContainer/Job，保持每 Job 15 秒期限、零网络 capability 和独立 manifest/stdio/journal/清理回执。确认清理且证据有效的超时可继续；清理或身份/摘要不确认则停止，不发下一 policy。未修改 helper、ACL 范围或生产 allowlist。
+
+新 `capabilities/v2` 保留 v1 历史验证，核对固定顺序、独立 stage/manifest、顶层与各 Job 的宿主/runtime、runtime 字节摘要/大小、完成状态和原始证据。超时整包 `capabilities={}`；独立结果仅作诊断。原准入兼容 v2，保持 12 个 Windows 任务与原 36 题人口，未就绪时生成前拒绝。
+
+新增 `verify01-native-toolchain.mjs` 只读核对独立 lock digest 与冻结 Git blob、包版本/registry integrity 元数据、全部文件摘要、Node 可执行文件/ABI、addon 清单和五个冻结 setup/helper 字节；拒绝 links/junctions、硬链接、别名、超限和未锁定包。不安装、import 或执行 addon/setup/test。输出明确为 `INVENTORIED_NOT_EXECUTABLE`、`trusted:false`、`executionStatus:NOT_RUN`；registry 内容验证、addon ABI 执行和原生 ACL 均未获证明，不扩张最小 evaluator 的 64 文件/8 MiB 边界。
+
+### 11.2 实际诊断与证据
+
+受限会话先在 readiness/cleanup 阶段失败并保留 stage。获准真实用户权限的七 Job 结果如下，全部独立清理确认：
+
+| 探针 | 实际结果 |
+| --- | --- |
+| scratch / ESM / worker / inherited stdio | 四项支持 |
+| file stdio | `EPERM`，blocked |
+| pipe stdio | 15 秒 Job watchdog 结束，timed-out |
+| fork IPC | 已独立执行，15 秒 Job watchdog 结束，timed-out |
+
+整包不完整、能力为空；完整 validator 拒绝，partial 回读保留七项结果。本机 Windows **10.0.19045 / Node 22.22.2** 不能替代冻结 Windows 11 24H2 / Node 22.12.0。诊断发生在随后 validator-only 收紧之前；原报告摘要绑定实际运行源码，最终源码摘要另行记录，不称为新准确提交的原生门。
+
+[回读和摘要](./cli/evidence/gap-2026-10-05/windows-native-isolated-probes-2026-10-07/readback.json)包含受限失败、逐 Job 报告/journal 的脱敏副本、准入拒绝和测试回执。原件与脱敏归档分别记录摘要，脱敏档案不能作为 capability 输入。
+
+### 11.3 验证与剩余项
+
+能力合同 **37/37**、Docker review-pack **8/8**、Node 准入 **10/10**、工具链预检 **13/13**，共 **68/68**，零失败、零跳过。预检接入 CLI CI 的三系统步骤；本地不代替新准确提交 Actions。本轮没有发布或新增付费 provider 请求。
+
+```powershell
+node --test packages/cli/test-node/verify01-native-review-admission.node-test.mjs packages/cli/test-node/verify01-native-toolchain.node-test.mjs
+node packages/cli/scripts/windows-native-evaluator-capabilities.mjs --confirm-native --output NEW_ABSOLUTE_DIR
+node packages/cli/scripts/verify01-native-toolchain.mjs --root ABSOLUTE_ISOLATED_TREE --lock-digest sha256:INDEPENDENT_FROZEN_LOCK_DIGEST
+```
+
+仍需完成：受信任原生工具链 capsule 与 locked setup/config 执行、Windows/macOS durable 权限/网络撤销/崩溃恢复后端；冻结目标宿主；独立人工 review、正式 36+9、官方账号/账单、真人辅助技术、8h/24h 与获批 SLO。本轮未写正式 observations，不增加正式实测分母。

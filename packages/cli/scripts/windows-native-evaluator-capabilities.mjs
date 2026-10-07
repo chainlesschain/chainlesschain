@@ -18,7 +18,7 @@ export async function main(args = process.argv.slice(2)) {
   });
   if (values.help) {
     console.log(
-      "Probe ESM, workers and real child stdio/IPC inside the private zero-capability AppContainer. No model or review task execution.\n--confirm-native --output NEW_ABSOLUTE_DIR [--wall-time-ms 15000 --probe-timeout-ms 1200]\nExit 0 means complete diagnostic capture, including blocked probes; it does not mean full review readiness. Exit 2 means incomplete native diagnostic; all incomplete stages are retained with their reason and bounded progress evidence.",
+      "Probe ESM, workers and real child stdio/IPC in seven separate one-use zero-capability AppContainers/Jobs. No model or review task execution.\n--confirm-native --output NEW_ABSOLUTE_DIR [--wall-time-ms 15000 --probe-timeout-ms 1200]\nThe wall-time limit applies to each Job. A timeout continues only after confirmed cleanup and evidence validation. Exit 0 means complete diagnostic capture, including blocked probes; it does not mean full review readiness. Exit 2 means incomplete native diagnostic; incomplete stages are retained with their reason and bounded progress evidence. Each probe has its own evidence subdirectory.",
     );
     return 0;
   }
@@ -47,6 +47,9 @@ export async function main(args = process.argv.slice(2)) {
       formalSample: false,
       providerAssessed: false,
       capabilities: report.validation?.capabilities ?? {},
+      probeResults: report.validation?.probeResults ?? [],
+      attemptedProbes: report.runs.length,
+      stoppedAfter: report.stoppedAfter ?? null,
       stageRetained: report.stageRetained,
       retentionReason: report.retentionReason ?? null,
       failureKind: report.failureKind ?? null,

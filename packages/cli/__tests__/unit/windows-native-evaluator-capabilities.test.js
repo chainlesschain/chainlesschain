@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { EventEmitter } from "node:events";
+import { pathToFileURL } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -46,7 +48,8 @@ function rewriteRaw(report) {
   report.execution.stdout =
     PREFIX +
     JSON.stringify({
-      version: 1,
+      version: report.probeId ? 2 : 1,
+      ...(report.probeId ? { probeId: report.probeId } : {}),
       pid: 100,
       workspace: report.stage.workspace,
       scratch: report.stage.scratch,
@@ -419,11 +422,421 @@ describe.runIf(process.platform === "win32")(
   "native runner failure preservation (mocked factory)",
   () => {
     const roots = [];
+    function isolatedFactory({
+      timeoutProbe,
+      unconfirmedProbe,
+      badJournalProbe,
+      trace = [],
+    } = {}) {
+      createEvaluator.mockImplementation((request) => {
+        const probeId = JSON.parse(
+          request.checkSource.match(/const probeId=("[^"]+");/u)[1],
+        );
+        trace.push(`create:${probeId}`);
+        expect(() => new Script(request.checkSource)).not.toThrow();
+        const root = fs.mkdtempSync(
+          path.join(fs.realpathSync.native(os.tmpdir()), "cc-isolated-unit-"),
+        );
+        roots.push(root);
+        const scratch = path.join(root, "scratch"),
+          workspace = path.join(root, "workspace");
+        fs.mkdirSync(scratch);
+        const stat = fs.lstatSync(scratch, { bigint: true });
+        const check = path.join(root, "check.cjs");
+        const manifest = {
+          root,
+          scratch,
+          workspace,
+          check,
+          wallTimeMs: request.wallTimeMs,
+          runtime: {
+            path: path.join(root, "node.exe"),
+            sha256: "c".repeat(64),
+            bytes: 1024,
+          },
+          directories: [
+            { path: scratch, dev: String(stat.dev), ino: String(stat.ino) },
+          ],
+          files: [
+            { path: check, sha256: hash(request.checkSource).slice(7) },
+            ...request.files.map((name) => ({
+              path: path.join(workspace, name),
+              sha256: hash(
+                fs.readFileSync(path.join(request.sourceRoot, name)),
+              ).slice(7),
+            })),
+          ],
+        };
+        const manifestDigest = hash(JSON.stringify(manifest)).slice(7);
+        const fixture = syntheticReport();
+        fixture.probeId = probeId;
+        fixture.stage = { root, scratch, workspace };
+        fixture.observations = fixture.observations.filter(
+          (item) => item.id === probeId,
+        );
+        if (probeId === "scratch-environment") {
+          const payload = JSON.parse(fixture.observations[0].output);
+          for (const key of Object.keys(payload.derived)) {
+            payload.derived[key] = path.join(
+              scratch,
+              path.win32.relative("C:\\private\\scratch", payload.derived[key]),
+            );
+          }
+          payload.tmpdir = payload.derived.TEMP;
+          payload.homedir = payload.derived.USERPROFILE;
+          payload.proofs = Object.entries(payload.derived).map(
+            ([key, directory]) => ({ key, path: directory, value: key }),
+          );
+          replacePayload(fixture.observations[0], payload);
+        }
+        rewriteRaw(fixture);
+        if (timeoutProbe === probeId) {
+          fixture.journal.raw =
+            fixture.journal.raw.split("\n").slice(0, 3).join("\n") + "\n";
+        }
+        if (badJournalProbe === probeId)
+          fixture.journal.raw = fixture.journal.raw.replace(
+            '"pid":100',
+            '"pid":999',
+          );
+        return {
+          root,
+          manifest,
+          manifestDigest,
+          execute: vi.fn(async () => {
+            trace.push(`execute:${probeId}`);
+            if (unconfirmedProbe === probeId)
+              throw new Error("native settlement unconfirmed");
+            fs.writeFileSync(
+              path.join(scratch, "capability-journal.jsonl"),
+              fixture.journal.raw,
+              { flag: "wx" },
+            );
+            trace.push(`settle:${probeId}`);
+            return {
+              receipt: {
+                ...fixture.settlement,
+                manifestDigest,
+                targetExitCode: timeoutProbe === probeId ? 125 : 0,
+                executionFailed: timeoutProbe === probeId,
+              },
+              result:
+                timeoutProbe === probeId
+                  ? {
+                      status: 125,
+                      stdout: "",
+                      stderr: "Windows sandbox wall-time limit exceeded",
+                    }
+                  : { status: 0, stdout: fixture.execution.stdout, stderr: "" },
+            };
+          }),
+          dispose: vi.fn(() => trace.push(`dispose:${probeId}`)),
+        };
+      });
+      return trace;
+    }
     afterEach(() => {
       vi.resetAllMocks();
       for (const root of roots.splice(0))
         fs.rmSync(root, { recursive: true, force: true });
     });
+    it("isolates all seven probes and validates the v2 report without trusting stored summaries", async () => {
+      const trace = isolatedFactory();
+      const report = await runWindowsNativeEvaluatorCapabilities();
+      expect(report.error).toBeUndefined();
+      expect(report.validation).toMatchObject({
+        diagnosticCompleted: true,
+        allCapabilitiesSupported: true,
+      });
+      expect(report.runs.map((run) => run.probeId)).toEqual(ids);
+      expect(new Set(report.runs.map((run) => run.stage.root)).size).toBe(7);
+      expect(
+        new Set(report.runs.map((run) => run.checkSourceSha256)).size,
+      ).toBe(7);
+      expect(trace).toEqual(
+        ids.flatMap((id) => [
+          `create:${id}`,
+          `execute:${id}`,
+          `settle:${id}`,
+          `dispose:${id}`,
+        ]),
+      );
+      report.validation = { capabilities: { esm: "blocked" } };
+      expect(
+        validateWindowsNativeEvaluatorCapabilitiesReport(report)
+          .allCapabilitiesSupported,
+      ).toBe(true);
+      for (const alter of [
+        (r) => r.runs.reverse(),
+        (r) => r.runs.pop(),
+        (r) => {
+          r.runs[1].stage.root = r.runs[0].stage.root;
+        },
+        (r) => {
+          r.runs[6].settlement.cleanupConfirmed = false;
+        },
+        (r) => {
+          r.runs[6].settlement.targetPid = 999;
+        },
+        (r) => {
+          r.runs[6].checkSourceSha256 = r.runs[5].checkSourceSha256;
+        },
+        (r) => {
+          r.runs[6].brokerFiles = [];
+        },
+        (r) => {
+          r.runs[6].sourceFiles[0].sha256 = hash("substitution");
+        },
+        (r) => {
+          r.runs[6].manifest.wallTimeMs += 1;
+        },
+        (r) => {
+          r.runs[6].execution.stdout += "forged";
+        },
+      ]) {
+        const changed = structuredClone(report);
+        alter(changed);
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(changed, {
+            allowPartial: true,
+          }),
+        ).toThrow();
+      }
+    });
+    it("continues to fork IPC after cleanup-confirmed pipe timeout without granting partial support", async () => {
+      const trace = isolatedFactory({ timeoutProbe: "child-pipe-stdio" });
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-isolated-evidence-unit-"),
+      );
+      roots.push(root);
+      const evidenceDirectory = path.join(root, "evidence");
+      const report = await runWindowsNativeEvaluatorCapabilities({
+        evidenceDirectory,
+      });
+      expect(report.error).toBeUndefined();
+      expect(report.runs).toHaveLength(7);
+      expect(report.validation).toMatchObject({
+        diagnosticCompleted: false,
+        allCapabilitiesSupported: false,
+        capabilities: {},
+      });
+      expect(report.validation.probeResults.slice(-2)).toMatchObject([
+        {
+          id: "child-pipe-stdio",
+          status: "timed-out",
+          diagnosticCompleted: false,
+        },
+        {
+          id: "child-fork-ipc",
+          status: "supported",
+          diagnosticCompleted: true,
+        },
+      ]);
+      expect(trace.indexOf("settle:child-pipe-stdio")).toBeLessThan(
+        trace.indexOf("create:child-fork-ipc"),
+      );
+      expect(trace).not.toContain("dispose:child-pipe-stdio");
+      expect(report.runs[5]).toMatchObject({
+        stageRetained: true,
+        retentionReason: "diagnostic-incomplete",
+      });
+      expect(() =>
+        validateWindowsNativeEvaluatorCapabilitiesReport(report),
+      ).toThrow(/timed out/);
+      expect(
+        validateWindowsNativeEvaluatorCapabilitiesReport(report, {
+          allowPartial: true,
+        }).capabilities,
+      ).toEqual({});
+      const relabeled = structuredClone(report);
+      relabeled.diagnosticCompleted = true;
+      expect(() =>
+        validateWindowsNativeEvaluatorCapabilitiesReport(relabeled, {
+          allowPartial: true,
+        }),
+      ).toThrow(/aggregate completion summary/);
+      expect(
+        JSON.parse(
+          fs.readFileSync(path.join(evidenceDirectory, "report.json"), "utf8"),
+        ),
+      ).toEqual(report);
+      expect(
+        fs.readFileSync(
+          path.join(evidenceDirectory, "child-fork-ipc", "stdout.txt"),
+          "utf8",
+        ),
+      ).toContain("native-fork-ok");
+      report.runs[5].observations = [
+        observation("child-pipe-stdio", {
+          marker: "native-child-ok",
+          pid: 200,
+        }),
+      ];
+      expect(
+        validateWindowsNativeEvaluatorCapabilitiesReport(report, {
+          allowPartial: true,
+        }).probeResults[5].status,
+      ).toBe("timed-out");
+    });
+    it("rejects incomplete aggregate labels on fully completed runs", async () => {
+      isolatedFactory();
+      const report = await runWindowsNativeEvaluatorCapabilities();
+      for (const value of [false, undefined, "true"]) {
+        report.diagnosticCompleted = value;
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(report),
+        ).toThrow(/aggregate completion summary/);
+      }
+    });
+    it.each(["platform", "architecture", "nodeVersion", "osRelease"])(
+      "binds every Job to the aggregate %s",
+      async (field) => {
+        isolatedFactory();
+        const report = await runWindowsNativeEvaluatorCapabilities();
+        const changedHost = structuredClone(report);
+        changedHost[field] =
+          field === "platform" ? "darwin" : "different-host-value";
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(changedHost),
+        ).toThrow(/host\/runtime identity/);
+        const changedRun = structuredClone(report);
+        changedRun.runs[6][field] = "different-host-value";
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(changedRun),
+        ).toThrow(/host\/runtime identity/);
+        for (const row of [report, ...report.runs]) delete row[field];
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(report),
+        ).toThrow(/host\/runtime identity/);
+      },
+    );
+    it.each(["sha256", "bytes"])(
+      "rejects a rehashed %s runtime substitution between Jobs",
+      async (field) => {
+        isolatedFactory();
+        const report = await runWindowsNativeEvaluatorCapabilities();
+        const run = report.runs[6];
+        run.manifest.runtime[field] =
+          field === "sha256" ? "d".repeat(64) : run.manifest.runtime.bytes + 1;
+        run.manifestDigest = hash(JSON.stringify(run.manifest));
+        run.settlement.manifestDigest = run.manifestDigest.slice(7);
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(report),
+        ).toThrow(/runtime bytes or digest/);
+      },
+    );
+    it("executes only the selected child probe in the generated fixture (VM mocks)", async () => {
+      isolatedFactory();
+      await runWindowsNativeEvaluatorCapabilities();
+      for (const probeId of ["child-pipe-stdio", "child-fork-ipc"]) {
+        const stdout = [],
+          journal = [];
+        const childProcess = {
+          spawnSync: vi.fn(() => ({
+            status: 0,
+            stdout: JSON.stringify({ marker: "native-child-ok", pid: 200 }),
+          })),
+          fork: vi.fn(() => {
+            const child = new EventEmitter();
+            queueMicrotask(() => {
+              child.emit("message", { marker: "native-fork-ok", pid: 200 });
+              child.emit("exit", 0, null);
+            });
+            return child;
+          }),
+        };
+        const fixtureFs = {
+          openSync: () => 1,
+          fsyncSync: () => {},
+          closeSync: () => {},
+          mkdirSync: () => {},
+          writeSync: (_fd, buffer, offset, length) => {
+            journal.push(buffer.subarray(offset, offset + length).toString());
+            return length;
+          },
+        };
+        const modules = {
+          "node:fs": fixtureFs,
+          "node:path": path.win32,
+          "node:os": {},
+          "node:crypto": { createHash },
+          "node:child_process": childProcess,
+          "node:url": { pathToFileURL },
+          "node:worker_threads": { Worker: class {} },
+        };
+        const source =
+          createEvaluator.mock.calls[ids.indexOf(probeId)][0].checkSource;
+        await new Script(source).runInNewContext({
+          require: (name) => modules[name],
+          Buffer,
+          setTimeout,
+          clearTimeout,
+          console,
+          process: {
+            pid: 100,
+            execPath: "C:\\private\\node.exe",
+            argv: [
+              "node",
+              "check",
+              "C:\\private\\workspace",
+              "C:\\private\\scratch",
+            ],
+            env: {},
+            stdout: { write: (value) => stdout.push(value) },
+          },
+        });
+        const target = JSON.parse(stdout.join("").trim().slice(PREFIX.length));
+        expect(target.observations).toHaveLength(1);
+        expect(target.observations[0]).toMatchObject({
+          id: probeId,
+          status: "supported",
+        });
+        expect(childProcess.spawnSync).toHaveBeenCalledTimes(
+          probeId === "child-pipe-stdio" ? 1 : 0,
+        );
+        expect(childProcess.fork).toHaveBeenCalledTimes(
+          probeId === "child-fork-ipc" ? 1 : 0,
+        );
+        expect(
+          journal
+            .join("")
+            .trim()
+            .split("\n")
+            .map(JSON.parse)
+            .map((event) => event.event),
+        ).toEqual([
+          "initialization-started",
+          "initialization-settled",
+          "started",
+          "settled",
+          "completed",
+        ]);
+      }
+    });
+    it.each(["cleanup", "journal"])(
+      "stops before another Job when %s validation fails",
+      async (kind) => {
+        const trace = isolatedFactory(
+          kind === "cleanup"
+            ? { unconfirmedProbe: "child-pipe-stdio" }
+            : { badJournalProbe: "child-pipe-stdio" },
+        );
+        const report = await runWindowsNativeEvaluatorCapabilities();
+        expect(report).toMatchObject({
+          diagnosticCompleted: false,
+          stoppedAfter: "child-pipe-stdio",
+          stageRetained: true,
+        });
+        expect(createEvaluator).toHaveBeenCalledTimes(6);
+        expect(trace).not.toContain("create:child-fork-ipc");
+        expect(trace).not.toContain("dispose:child-pipe-stdio");
+        expect(() =>
+          validateWindowsNativeEvaluatorCapabilitiesReport(report, {
+            allowPartial: true,
+          }),
+        ).toThrow(/sequence/);
+      },
+    );
     it("archives factory failure and refuses to overwrite evidence", async () => {
       const root = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-capability-unit-"),
@@ -471,7 +884,7 @@ describe.runIf(process.platform === "win32")(
         dispose,
       });
       const report = await runWindowsNativeEvaluatorCapabilities();
-      expect(report).toMatchObject({
+      expect(report.runs[0]).toMatchObject({
         diagnosticCompleted: false,
         stageRetained: true,
         retentionReason: "cleanup-unconfirmed",
@@ -511,7 +924,7 @@ describe.runIf(process.platform === "win32")(
           syntheticReport()
             .journal.raw.trimEnd()
             .split("\n")
-            .slice(0, 5)
+            .slice(0, 3)
             .join("\n") + "\n";
         if (kind === "hardlink") {
           const other = path.join(root, "other.txt");
@@ -524,6 +937,8 @@ describe.runIf(process.platform === "win32")(
           );
         const dispose = vi.fn();
         createEvaluator.mockImplementation((request) => {
+          if (createEvaluator.mock.calls.length > 1)
+            throw new Error("stop mock after bounded read");
           const stat = fs.lstatSync(scratch, { bigint: true });
           const manifest = {
             root,
@@ -583,9 +998,10 @@ describe.runIf(process.platform === "win32")(
           : null;
         let report;
         try {
-          report = await runWindowsNativeEvaluatorCapabilities({
+          const aggregate = await runWindowsNativeEvaluatorCapabilities({
             evidenceDirectory,
           });
+          report = aggregate.runs[0];
         } finally {
           statSpy?.mockRestore();
         }
@@ -601,11 +1017,15 @@ describe.runIf(process.platform === "win32")(
           expect(report.validation, report.error).toMatchObject({
             failureKind: "execution-timeout",
             capabilities: {},
-            journal: { lastPhase: "esm" },
+            journal: { lastPhase: "scratch-environment" },
           });
           expect(
             fs.readFileSync(
-              path.join(evidenceDirectory, "capability-journal.jsonl"),
+              path.join(
+                evidenceDirectory,
+                "scratch-environment",
+                "capability-journal.jsonl",
+              ),
               "utf8",
             ),
           ).toBe(raw);
@@ -618,7 +1038,11 @@ describe.runIf(process.platform === "win32")(
           expect(report.journal).toBeUndefined();
           expect(
             fs.existsSync(
-              path.join(evidenceDirectory, "capability-journal.jsonl"),
+              path.join(
+                evidenceDirectory,
+                "scratch-environment",
+                "capability-journal.jsonl",
+              ),
             ),
           ).toBe(false);
         }

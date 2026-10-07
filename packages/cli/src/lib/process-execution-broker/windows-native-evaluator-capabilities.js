@@ -5,6 +5,10 @@ import { createHash } from "node:crypto";
 import { createWindowsNativeEvaluator } from "./windows-native-evaluator.js";
 
 const SCHEMA = "chainlesschain.windows-native-evaluator-capabilities/v1";
+const ISOLATED_SCHEMA =
+  "chainlesschain.windows-native-evaluator-capabilities/v2";
+const PROBE_SCHEMA =
+  "chainlesschain.windows-native-evaluator-capability-probe/v2";
 const PREFIX = "CC_NATIVE_CAPABILITIES:";
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const JOURNAL_FILE = "capability-journal.jsonl";
@@ -17,6 +21,15 @@ const PROBES = [
   "child-file-stdio",
   "child-pipe-stdio",
   "child-fork-ipc",
+];
+const BROKER_FILES = [
+  "windows-native-evaluator-capabilities.js",
+  "windows-native-evaluator.js",
+  "index.js",
+  "platform-sandbox.js",
+  "windows-sandbox.cs",
+  "windows-sandbox-helper.exe",
+  "windows-sandbox-helper.dll",
 ];
 const sha256 = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -36,7 +49,7 @@ const FIXTURES = Object.freeze({
   "anchor.txt": "private-native-capability-input\n",
 });
 
-function checkSource(probeTimeoutMs) {
+function checkSource(probeTimeoutMs, probeId) {
   return `
 const fs=require('node:fs');
 const journalFd=fs.openSync(process.argv[3]+'/'+${JSON.stringify(JOURNAL_FILE)},'wx',0o600);
@@ -53,11 +66,18 @@ const path=require('node:path'),os=require('node:os');
 const crypto=require('node:crypto'),cp=require('node:child_process');
 const {pathToFileURL}=require('node:url'),{Worker}=require('node:worker_threads');
 const workspace=process.argv[2],scratch=process.argv[3],timeout=${probeTimeoutMs};
+const probeId=${JSON.stringify(probeId)};
+const inheritedKeys=Object.keys(process.env).sort();
+const credentialKeys=inheritedKeys.filter(key=>/TOKEN|SECRET|PASSWORD|CREDENTIAL|API_KEY|AUTHORIZATION/i.test(key));
+const derived={TMP:path.join(scratch,'tmp'),TEMP:path.join(scratch,'tmp'),HOME:path.join(scratch,'home'),USERPROFILE:path.join(scratch,'home'),APPDATA:path.join(scratch,'home','AppData','Roaming'),LOCALAPPDATA:path.join(scratch,'home','AppData','Local')};
+for(const directory of new Set(Object.values(derived)))fs.mkdirSync(directory,{recursive:true});
+for(const [key,value]of Object.entries(derived))process.env[key]=value;
 const observations=[];
 const hash=value=>'sha256:'+crypto.createHash('sha256').update(value).digest('hex');
 journal('initialization-settled');
 function settled(value){journal('settled',{id:value.id,observation:value});observations.push(value);}
 function observe(id,operation){
+ if(id!==probeId)return Promise.resolve();
  const start=Date.now();
  journal('started',{id});
  return Promise.resolve().then(operation).then(value=>{
@@ -82,11 +102,6 @@ function asyncProbe(create,valid){
 }
 (async()=>{
  await observe('scratch-environment',()=>{
-  const inheritedKeys=Object.keys(process.env).sort();
-  const credentialKeys=inheritedKeys.filter(key=>/TOKEN|SECRET|PASSWORD|CREDENTIAL|API_KEY|AUTHORIZATION/i.test(key));
-  const derived={TMP:path.join(scratch,'tmp'),TEMP:path.join(scratch,'tmp'),HOME:path.join(scratch,'home'),USERPROFILE:path.join(scratch,'home'),APPDATA:path.join(scratch,'home','AppData','Roaming'),LOCALAPPDATA:path.join(scratch,'home','AppData','Local')};
-  for(const directory of new Set(Object.values(derived)))fs.mkdirSync(directory,{recursive:true});
-  for(const [key,value]of Object.entries(derived))process.env[key]=value;
   const proofs=[];
   for(const [key,value]of Object.entries(derived)){const file=path.join(value,key+'.txt');fs.writeFileSync(file,key,{flag:'wx'});proofs.push({key,path:value,value:fs.readFileSync(file,'utf8')});}
   const details={credentialKeys,inheritedKeys,derived,proofs,tmpdir:os.tmpdir(),homedir:os.homedir(),credentialsAbsent:credentialKeys.length===0,nodeOptionsAbsent:!Object.hasOwn(process.env,'NODE_OPTIONS')};
@@ -117,12 +132,12 @@ function asyncProbe(create,valid){
  });
  await observe('child-fork-ipc',()=>asyncProbe(()=>cp.fork(path.join(workspace,'fork-probe.cjs'),[],{execArgv:['--preserve-symlinks','--preserve-symlinks-main'],windowsHide:true,stdio:['inherit','inherit','inherit','ipc']}),value=>value?.marker==='native-fork-ok'&&Number.isSafeInteger(value.pid)&&value.pid!==process.pid));
  journal('completed');
- process.stdout.write(${JSON.stringify(PREFIX)}+JSON.stringify({version:1,pid:process.pid,workspace,scratch,observations})+'\\n');
+ process.stdout.write(${JSON.stringify(PREFIX)}+JSON.stringify({version:2,probeId,pid:process.pid,workspace,scratch,observations})+'\\n');
 })().catch(error=>{console.error(error.stack||error);process.exitCode=74;}).finally(()=>fs.closeSync(journalFd));
 `;
 }
 
-function validateJournal(report, complete) {
+function validateJournal(report, complete, probes = PROBES) {
   const artifact = report.journal;
   if (!artifact) {
     requireCondition(!complete, "completed target omitted its journal");
@@ -141,7 +156,7 @@ function validateJournal(report, complete) {
   const expected = [
     { event: "initialization-started" },
     { event: "initialization-settled" },
-    ...PROBES.flatMap((id) => [
+    ...probes.flatMap((id) => [
       { event: "started", id },
       { event: "settled", id },
     ]),
@@ -317,7 +332,37 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
   report,
   { allowPartial = false } = {},
 ) {
+  if (report?.schema === ISOLATED_SCHEMA) {
+    const validation = validateIsolatedReport(report, { allowPartial });
+    requireCondition(
+      report.diagnosticCompleted === validation.diagnosticCompleted,
+      "aggregate completion summary changed",
+    );
+    return validation;
+  }
   requireCondition(report?.schema === SCHEMA, "unknown report schema");
+  return validateProbeReport(report, { allowPartial });
+}
+
+function validateProbeReport(report, { allowPartial = false } = {}) {
+  const isolated = report.schema === PROBE_SCHEMA;
+  const probes = isolated ? [report.probeId] : PROBES;
+  if (isolated) {
+    requireCondition(PROBES.includes(report.probeId), "unknown isolated probe");
+    requireCondition(
+      report.checkSourceSha256 ===
+        sha256(checkSource(report.probeTimeoutMs, report.probeId)),
+      "isolated probe source binding mismatch",
+    );
+    requireCondition(
+      report.stage?.root === report.manifest?.root &&
+        report.stage?.workspace === report.manifest?.workspace &&
+        report.stage?.scratch === report.manifest?.scratch &&
+        Number.isSafeInteger(report.settlement?.targetPid) &&
+        report.settlement.targetPid > 0,
+      "isolated stage or target identity mismatch",
+    );
+  }
   requireCondition(
     report.formalSample === false &&
       report.providerAssessed === false &&
@@ -369,7 +414,7 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
         ? "target execution timed out; native cleanup confirmed"
         : "target execution incomplete; native cleanup confirmed",
     );
-    const journal = validateJournal(report, false);
+    const journal = validateJournal(report, false, probes);
     return {
       diagnosticCompleted: false,
       allCapabilitiesSupported: false,
@@ -389,7 +434,8 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
   );
   const target = JSON.parse(lines[0].slice(PREFIX.length));
   requireCondition(
-    target.version === 1 &&
+    target.version === (isolated ? 2 : 1) &&
+      (!isolated || target.probeId === report.probeId) &&
       Number.isSafeInteger(target.pid) &&
       target.pid > 0 &&
       target.pid === report.settlement.targetPid &&
@@ -399,7 +445,7 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
       target.scratch === report.stage.scratch &&
       Array.isArray(target.observations) &&
       JSON.stringify(target.observations.map((item) => item.id)) ===
-        JSON.stringify(PROBES),
+        JSON.stringify(probes),
     "target identity or probe sequence mismatch",
   );
   for (const observation of target.observations) {
@@ -540,10 +586,11 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
     "report observations differ from raw output",
   );
   requireCondition(
-    target.observations[0].status === "supported",
+    !probes.includes("scratch-environment") ||
+      target.observations[0].status === "supported",
     "scratch environment or credential isolation failed",
   );
-  const journal = validateJournal(report, true);
+  const journal = validateJournal(report, true, probes);
   requireCondition(
     JSON.stringify(
       journal.records
@@ -568,10 +615,13 @@ export function validateWindowsNativeEvaluatorCapabilitiesReport(
  * evidenceDirectory, when supplied, must be a new directory. A failed native
  * settlement retains its stage; there is no unsandboxed fallback or provider.
  */
-export async function runWindowsNativeEvaluatorCapabilities({
+async function runIsolatedProbe({
   wallTimeMs = 15000,
   probeTimeoutMs = 1200,
   evidenceDirectory,
+  probeId,
+  usedStages,
+  expectedBrokerFiles,
 } = {}) {
   requireCondition(process.platform === "win32", "Windows host required");
   requireCondition(
@@ -599,7 +649,8 @@ export async function runWindowsNativeEvaluatorCapabilities({
   const sourceIdentity = fs.lstatSync(sourceRoot, { bigint: true });
   let evaluator;
   const report = {
-    schema: SCHEMA,
+    schema: PROBE_SCHEMA,
+    probeId,
     startedAt: new Date().toISOString(),
     platform: process.platform,
     osRelease: os.release(),
@@ -621,21 +672,19 @@ export async function runWindowsNativeEvaluatorCapabilities({
     brokerFiles: [],
   };
   try {
-    report.brokerFiles = [
-      "windows-native-evaluator-capabilities.js",
-      "windows-native-evaluator.js",
-      "index.js",
-      "platform-sandbox.js",
-      "windows-sandbox.cs",
-      "windows-sandbox-helper.exe",
-      "windows-sandbox-helper.dll",
-    ].map((name) => ({
+    report.brokerFiles = BROKER_FILES.map((name) => ({
       name,
       sha256: sha256(fs.readFileSync(new URL(name, import.meta.url))),
     }));
+    requireCondition(
+      !expectedBrokerFiles ||
+        JSON.stringify(report.brokerFiles) ===
+          JSON.stringify(expectedBrokerFiles),
+      "broker source or binary changed before isolated probe issuance",
+    );
     for (const [name, bytes] of Object.entries(FIXTURES))
       fs.writeFileSync(path.join(sourceRoot, name), bytes, { flag: "wx" });
-    const source = checkSource(probeTimeoutMs);
+    const source = checkSource(probeTimeoutMs, probeId);
     report.checkSourceSha256 = sha256(source);
     evaluator = createWindowsNativeEvaluator({
       sourceRoot,
@@ -650,6 +699,12 @@ export async function runWindowsNativeEvaluatorCapabilities({
       scratch: evaluator.manifest.scratch,
     };
     report.manifest = evaluator.manifest;
+    const stageKey = path.win32.normalize(evaluator.root).toLowerCase();
+    requireCondition(
+      !usedStages.has(stageKey),
+      "isolated probe stage was reused",
+    );
+    usedStages.add(stageKey);
     const outcome = await evaluator.execute();
     report.settlement = outcome.receipt;
     const { result } = outcome;
@@ -671,10 +726,7 @@ export async function runWindowsNativeEvaluatorCapabilities({
       .find((value) => value.startsWith(PREFIX));
     if (line)
       report.observations = JSON.parse(line.slice(PREFIX.length)).observations;
-    report.validation = validateWindowsNativeEvaluatorCapabilitiesReport(
-      report,
-      { allowPartial: true },
-    );
+    report.validation = validateProbeReport(report, { allowPartial: true });
     requireCondition(
       report.brokerFiles.every(
         ({ name, sha256: expected }) =>
@@ -682,6 +734,7 @@ export async function runWindowsNativeEvaluatorCapabilities({
       ),
       "broker source or binary changed during probe execution",
     );
+    report.integrityConfirmed = true;
     report.diagnosticCompleted = report.validation.diagnosticCompleted;
     if (!report.diagnosticCompleted) {
       report.failureKind = report.validation.failureKind;
@@ -753,5 +806,213 @@ export async function runWindowsNativeEvaluatorCapabilities({
       );
     }
   }
+  return report;
+}
+
+function validateIsolatedReport(report, { allowPartial }) {
+  const hostFields = ["platform", "architecture", "nodeVersion", "osRelease"];
+  requireCondition(
+    report.platform === "win32" &&
+      hostFields.every(
+        (key) => typeof report[key] === "string" && report[key].length > 0,
+      ),
+    "isolated host/runtime identity missing",
+  );
+  requireCondition(
+    report.formalSample === false &&
+      report.providerAssessed === false &&
+      report.fullReviewPackAssessed === false,
+    "diagnostic scope changed",
+  );
+  requireCondition(
+    Array.isArray(report.runs) &&
+      report.runs.length === PROBES.length &&
+      JSON.stringify(report.runs.map((run) => run.probeId)) ===
+        JSON.stringify(PROBES),
+    "isolated probe sequence incomplete or changed",
+  );
+  const stages = new Set(),
+    manifests = new Set();
+  const expectedRuntime = report.runs[0].manifest?.runtime;
+  const probeResults = report.runs.map((run) => {
+    requireCondition(
+      run.schema === PROBE_SCHEMA,
+      "unknown isolated probe schema",
+    );
+    requireCondition(
+      hostFields.every((key) => run[key] === report[key]),
+      "isolated host/runtime identity changed",
+    );
+    const runtime = run.manifest?.runtime;
+    requireCondition(
+      runtime &&
+        /^[a-f0-9]{64}$/u.test(runtime.sha256) &&
+        Number.isSafeInteger(runtime.bytes) &&
+        runtime.bytes > 0 &&
+        runtime.sha256 === expectedRuntime?.sha256 &&
+        runtime.bytes === expectedRuntime?.bytes,
+      "isolated runtime bytes or digest changed",
+    );
+    requireCondition(
+      run.wallTimeMs === report.wallTimeMs &&
+        run.probeTimeoutMs === report.probeTimeoutMs &&
+        run.manifest.wallTimeMs === report.wallTimeMs &&
+        run.integrityConfirmed === true &&
+        !run.cleanupError &&
+        !run.sourceRetained &&
+        JSON.stringify(run.brokerFiles) ===
+          JSON.stringify(report.runs[0].brokerFiles),
+      "isolated probe integrity or limits changed",
+    );
+    requireCondition(
+      JSON.stringify(run.brokerFiles.map((file) => file.name)) ===
+        JSON.stringify(BROKER_FILES) &&
+        run.brokerFiles.every((file) => HASH.test(file.sha256)) &&
+        JSON.stringify(run.sourceFiles) ===
+          JSON.stringify(
+            Object.entries(FIXTURES).map(([name, bytes]) => ({
+              name,
+              bytes: Buffer.byteLength(bytes),
+              sha256: sha256(bytes),
+            })),
+          ),
+      "isolated broker or fixture hashes missing or changed",
+    );
+    const key = path.win32.normalize(run.stage.root).toLowerCase();
+    requireCondition(
+      !stages.has(key) && !manifests.has(run.manifestDigest),
+      "isolated probe stage or manifest was reused",
+    );
+    stages.add(key);
+    manifests.add(run.manifestDigest);
+    const validation = validateProbeReport(run, { allowPartial });
+    requireCondition(
+      run.diagnosticCompleted === validation.diagnosticCompleted,
+      "isolated completion summary changed",
+    );
+    return {
+      id: run.probeId,
+      diagnosticCompleted: validation.diagnosticCompleted,
+      status: validation.diagnosticCompleted
+        ? validation.capabilities[run.probeId]
+        : validation.failureKind === "execution-timeout"
+          ? "timed-out"
+          : "failed",
+      cleanupConfirmed: true,
+      lastPhase: validation.journal.lastPhase,
+    };
+  });
+  const diagnosticCompleted = probeResults.every(
+    (probe) => probe.diagnosticCompleted,
+  );
+  return {
+    diagnosticCompleted,
+    allCapabilitiesSupported:
+      diagnosticCompleted &&
+      probeResults.every((probe) => probe.status === "supported"),
+    capabilities: diagnosticCompleted
+      ? Object.fromEntries(
+          probeResults.map((probe) => [probe.id, probe.status]),
+        )
+      : {},
+    probeResults,
+    cleanupConfirmed: true,
+    ...(diagnosticCompleted
+      ? {}
+      : { failureKind: "isolated-probe-incomplete" }),
+  };
+}
+
+/** Each probe consumes a fresh AppContainer policy and Job. A native timeout can
+ * continue only after the per-Job settlement and bounded evidence validate.
+ * An integrity/cleanup failure stops the sequence before another policy issues.
+ */
+export async function runWindowsNativeEvaluatorCapabilities({
+  wallTimeMs = 15000,
+  probeTimeoutMs = 1200,
+  evidenceDirectory,
+} = {}) {
+  requireCondition(process.platform === "win32", "Windows host required");
+  requireCondition(
+    Number.isSafeInteger(probeTimeoutMs) &&
+      probeTimeoutMs >= 100 &&
+      probeTimeoutMs <= 5000 &&
+      Number.isSafeInteger(wallTimeMs) &&
+      wallTimeMs >= probeTimeoutMs * 5 + 3000 &&
+      wallTimeMs <= 60000,
+    "invalid bounded diagnostic deadlines",
+  );
+  if (evidenceDirectory) {
+    requireCondition(
+      path.isAbsolute(evidenceDirectory),
+      "absolute evidence path required",
+    );
+    fs.mkdirSync(evidenceDirectory, { mode: 0o700 });
+  }
+  const report = {
+    schema: ISOLATED_SCHEMA,
+    startedAt: new Date().toISOString(),
+    platform: process.platform,
+    osRelease: os.release(),
+    nodeVersion: process.version,
+    architecture: process.arch,
+    formalSample: false,
+    providerAssessed: false,
+    fullReviewPackAssessed: false,
+    wallTimeMs,
+    probeTimeoutMs,
+    diagnosticCompleted: false,
+    stageRetained: false,
+    runs: [],
+  };
+  const usedStages = new Set();
+  try {
+    for (const probeId of PROBES) {
+      const run = await runIsolatedProbe({
+        wallTimeMs,
+        probeTimeoutMs,
+        probeId,
+        usedStages,
+        expectedBrokerFiles: report.runs[0]?.brokerFiles,
+        evidenceDirectory: evidenceDirectory
+          ? path.join(evidenceDirectory, probeId)
+          : undefined,
+      });
+      report.runs.push(run);
+      report.stageRetained ||= run.stageRetained;
+      if (!run.integrityConfirmed || run.cleanupError || run.sourceRetained) {
+        report.failureKind = run.failureKind || "diagnostic-incomplete";
+        report.retentionReason = run.retentionReason;
+        report.error = run.error || run.cleanupError || run.sourceCleanupError;
+        report.stoppedAfter = probeId;
+        break;
+      }
+      requireCondition(
+        JSON.stringify(run.brokerFiles) ===
+          JSON.stringify(report.runs[0].brokerFiles),
+        "broker source or binary changed between isolated probes",
+      );
+    }
+    if (report.runs.length === PROBES.length && !report.stoppedAfter) {
+      report.validation = validateIsolatedReport(report, {
+        allowPartial: true,
+      });
+      report.diagnosticCompleted = report.validation.diagnosticCompleted;
+      if (!report.diagnosticCompleted) {
+        report.failureKind = report.validation.failureKind;
+        report.retentionReason = "diagnostic-incomplete";
+      }
+    }
+  } catch (error) {
+    report.error = String(error.stack || error);
+    report.failureKind ||= "diagnostic-incomplete";
+  }
+  report.finishedAt = new Date().toISOString();
+  if (evidenceDirectory)
+    fs.writeFileSync(
+      path.join(evidenceDirectory, "report.json"),
+      `${JSON.stringify(report, null, 2)}\n`,
+      { flag: "wx" },
+    );
   return report;
 }

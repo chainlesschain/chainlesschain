@@ -1,0 +1,5 @@
+{"version":1,"sequence":1,"event":"initialization-started","pid":2352,"elapsedMs":0}
+{"version":1,"sequence":2,"event":"initialization-settled","pid":2352,"elapsedMs":29}
+{"version":1,"sequence":3,"event":"started","pid":2352,"elapsedMs":30,"id":"child-inherited-stdio"}
+{"version":1,"sequence":4,"event":"settled","pid":2352,"elapsedMs":196,"id":"child-inherited-stdio","observation":{"id":"child-inherited-stdio","status":"supported","timedOut":false,"code":0,"signal":null,"errorCode":null,"error":null,"output":"{\"marker\":\"native-child-ok\",\"pid\":18320}","outputSha256":"sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d","details":{"stderr":"","payload":{"marker":"native-child-ok","pid":18320}},"elapsedMs":166}}
+{"version":1,"sequence":5,"event":"completed","pid":2352,"elapsedMs":196}

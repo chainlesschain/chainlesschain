@@ -184,7 +184,10 @@ jobs:
           packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs
           packages/cli/test-node/cli-registry-public-install.node-test.mjs
       - name: Verify Windows review admission without native or provider execution
-        run: node --test packages/cli/test-node/verify01-native-review-admission.node-test.mjs
+        run: >-
+          node --test
+          packages/cli/test-node/verify01-native-review-admission.node-test.mjs
+          packages/cli/test-node/verify01-native-toolchain.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

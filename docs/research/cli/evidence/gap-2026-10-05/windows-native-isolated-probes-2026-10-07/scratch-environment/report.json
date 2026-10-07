@@ -1,0 +1,383 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+  "probeId": "scratch-environment",
+  "startedAt": "2026-10-07T05:34:33.360Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "diagnosticCompleted": true,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "observations": [
+    {
+      "id": "scratch-environment",
+      "status": "supported",
+      "timedOut": false,
+      "code": 0,
+      "signal": null,
+      "errorCode": null,
+      "error": null,
+      "output": "{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true}",
+      "outputSha256": "sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6",
+      "details": {
+        "credentialKeys": [],
+        "inheritedKeys": [
+          "LOCALAPPDATA",
+          "PATH",
+          "SystemDrive",
+          "SystemRoot",
+          "TEMP",
+          "TMP",
+          "WINDIR"
+        ],
+        "derived": {
+          "TMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+          "TEMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+          "HOME": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+          "USERPROFILE": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+          "APPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+          "LOCALAPPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local"
+        },
+        "proofs": [
+          {
+            "key": "TMP",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+            "value": "TMP"
+          },
+          {
+            "key": "TEMP",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+            "value": "TEMP"
+          },
+          {
+            "key": "HOME",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+            "value": "HOME"
+          },
+          {
+            "key": "USERPROFILE",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+            "value": "USERPROFILE"
+          },
+          {
+            "key": "APPDATA",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+            "value": "APPDATA"
+          },
+          {
+            "key": "LOCALAPPDATA",
+            "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local",
+            "value": "LOCALAPPDATA"
+          }
+        ],
+        "tmpdir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+        "homedir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+        "credentialsAbsent": true,
+        "nodeOptionsAbsent": true
+      },
+      "elapsedMs": 7
+    }
+  ],
+  "stageRetained": false,
+  "sourceFiles": [
+    {
+      "name": "esm-probe.mjs",
+      "bytes": 39,
+      "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+    },
+    {
+      "name": "worker-probe.cjs",
+      "bytes": 138,
+      "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+    },
+    {
+      "name": "child-probe.cjs",
+      "bytes": 207,
+      "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+    },
+    {
+      "name": "fork-probe.cjs",
+      "bytes": 171,
+      "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+    },
+    {
+      "name": "anchor.txt",
+      "bytes": 32,
+      "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+    }
+  ],
+  "brokerFiles": [
+    {
+      "name": "windows-native-evaluator-capabilities.js",
+      "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+    },
+    {
+      "name": "windows-native-evaluator.js",
+      "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+    },
+    {
+      "name": "index.js",
+      "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "name": "platform-sandbox.js",
+      "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "name": "windows-sandbox.cs",
+      "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+    },
+    {
+      "name": "windows-sandbox-helper.exe",
+      "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+    },
+    {
+      "name": "windows-sandbox-helper.dll",
+      "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+    }
+  ],
+  "checkSourceSha256": "sha256:a103bde2cc9eae7c013583affa790e88e23691cc55d5403831887c061c077c8c",
+  "manifestDigest": "sha256:2218677e385bbe1151912cc349d39bc3cb2650f369d0160bffadf894dad2869b",
+  "stage": {
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch"
+  },
+  "manifest": {
+    "version": 1,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+    "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch",
+    "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "3096224751007216",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP",
+        "dev": "38182903",
+        "ino": "3659174704428524"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control",
+        "dev": "38182903",
+        "ino": "2814749774296558"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch",
+        "dev": "38182903",
+        "ino": "2814749774296559"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace",
+        "dev": "38182903",
+        "ino": "3659174704428525"
+      }
+    ],
+    "files": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\esm-probe.mjs",
+        "dev": "38182903",
+        "ino": "47850746048001484",
+        "bytes": 39,
+        "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\worker-probe.cjs",
+        "dev": "38182903",
+        "ino": "17169973586539983",
+        "bytes": 138,
+        "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\child-probe.cjs",
+        "dev": "38182903",
+        "ino": "4503599634560490",
+        "bytes": 207,
+        "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\fork-probe.cjs",
+        "dev": "38182903",
+        "ino": "4222124657849835",
+        "bytes": 171,
+        "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\workspace\\anchor.txt",
+        "dev": "38182903",
+        "ino": "3377699727717873",
+        "bytes": 32,
+        "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "3377699727717874",
+        "bytes": 7418,
+        "sha256": "a103bde2cc9eae7c013583affa790e88e23691cc55d5403831887c061c077c8c"
+      }
+    ]
+  },
+  "settlement": {
+    "manifestDigest": "2218677e385bbe1151912cc349d39bc3cb2650f369d0160bffadf894dad2869b",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 22380,
+    "appContainerSid": "S-1-15-2-3672435768-2236337232-1096183640-100036534-4137892698-653949931-2948696267",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "errorCode": null,
+    "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"scratch-environment\",\"pid\":22380,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\",\"observations\":[{\"id\":\"scratch-environment\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"credentialKeys\\\":[],\\\"inheritedKeys\\\":[\\\"LOCALAPPDATA\\\",\\\"PATH\\\",\\\"SystemDrive\\\",\\\"SystemRoot\\\",\\\"TEMP\\\",\\\"TMP\\\",\\\"WINDIR\\\"],\\\"derived\\\":{\\\"TMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"TEMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"HOME\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"USERPROFILE\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"APPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"LOCALAPPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\"},\\\"proofs\\\":[{\\\"key\\\":\\\"TMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TMP\\\"},{\\\"key\\\":\\\"TEMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TEMP\\\"},{\\\"key\\\":\\\"HOME\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"HOME\\\"},{\\\"key\\\":\\\"USERPROFILE\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"USERPROFILE\\\"},{\\\"key\\\":\\\"APPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"value\\\":\\\"APPDATA\\\"},{\\\"key\\\":\\\"LOCALAPPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\",\\\"value\\\":\\\"LOCALAPPDATA\\\"}],\\\"tmpdir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"homedir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"credentialsAbsent\\\":true,\\\"nodeOptionsAbsent\\\":true}\",\"outputSha256\":\"sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6\",\"details\":{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true},\"elapsedMs\":7}]}\n",
+    "stderr": "",
+    "stdoutSha256": "sha256:cb38fc23c1dc810fb9f7f2d9122602bb6f38e1ee87d6166bb97cd266d987e379",
+    "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "journal": {
+    "name": "capability-journal.jsonl",
+    "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":22380,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":22380,\"elapsedMs\":16}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":22380,\"elapsedMs\":17,\"id\":\"scratch-environment\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":22380,\"elapsedMs\":24,\"id\":\"scratch-environment\",\"observation\":{\"id\":\"scratch-environment\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"credentialKeys\\\":[],\\\"inheritedKeys\\\":[\\\"LOCALAPPDATA\\\",\\\"PATH\\\",\\\"SystemDrive\\\",\\\"SystemRoot\\\",\\\"TEMP\\\",\\\"TMP\\\",\\\"WINDIR\\\"],\\\"derived\\\":{\\\"TMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"TEMP\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"HOME\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"USERPROFILE\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"APPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"LOCALAPPDATA\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\"},\\\"proofs\\\":[{\\\"key\\\":\\\"TMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TMP\\\"},{\\\"key\\\":\\\"TEMP\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"value\\\":\\\"TEMP\\\"},{\\\"key\\\":\\\"HOME\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"HOME\\\"},{\\\"key\\\":\\\"USERPROFILE\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"value\\\":\\\"USERPROFILE\\\"},{\\\"key\\\":\\\"APPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Roaming\\\",\\\"value\\\":\\\"APPDATA\\\"},{\\\"key\\\":\\\"LOCALAPPDATA\\\",\\\"path\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\\\\\\AppData\\\\\\\\Local\\\",\\\"value\\\":\\\"LOCALAPPDATA\\\"}],\\\"tmpdir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\tmp\\\",\\\"homedir\\\":\\\"<USERPROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-6RAdNP\\\\\\\\scratch\\\\\\\\home\\\",\\\"credentialsAbsent\\\":true,\\\"nodeOptionsAbsent\\\":true}\",\"outputSha256\":\"sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6\",\"details\":{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true},\"elapsedMs\":7}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":22380,\"elapsedMs\":25}\n",
+    "bytes": 4615,
+    "sha256": "sha256:57efdb86b509965cf1a134b303cf0e0d00101eaffa6cca1ae8f49df34353e9c6"
+  },
+  "journalReadAfterCleanup": true,
+  "validation": {
+    "diagnosticCompleted": true,
+    "allCapabilitiesSupported": true,
+    "capabilities": {
+      "scratch-environment": "supported"
+    },
+    "journal": {
+      "available": true,
+      "records": [
+        {
+          "version": 1,
+          "sequence": 1,
+          "event": "initialization-started",
+          "pid": 22380,
+          "elapsedMs": 0
+        },
+        {
+          "version": 1,
+          "sequence": 2,
+          "event": "initialization-settled",
+          "pid": 22380,
+          "elapsedMs": 16
+        },
+        {
+          "version": 1,
+          "sequence": 3,
+          "event": "started",
+          "pid": 22380,
+          "elapsedMs": 17,
+          "id": "scratch-environment"
+        },
+        {
+          "version": 1,
+          "sequence": 4,
+          "event": "settled",
+          "pid": 22380,
+          "elapsedMs": 24,
+          "id": "scratch-environment",
+          "observation": {
+            "id": "scratch-environment",
+            "status": "supported",
+            "timedOut": false,
+            "code": 0,
+            "signal": null,
+            "errorCode": null,
+            "error": null,
+            "output": "{\"credentialKeys\":[],\"inheritedKeys\":[\"LOCALAPPDATA\",\"PATH\",\"SystemDrive\",\"SystemRoot\",\"TEMP\",\"TMP\",\"WINDIR\"],\"derived\":{\"TMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"TEMP\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"HOME\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"USERPROFILE\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"APPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"LOCALAPPDATA\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\"},\"proofs\":[{\"key\":\"TMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TMP\"},{\"key\":\"TEMP\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"value\":\"TEMP\"},{\"key\":\"HOME\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"HOME\"},{\"key\":\"USERPROFILE\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"value\":\"USERPROFILE\"},{\"key\":\"APPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Roaming\",\"value\":\"APPDATA\"},{\"key\":\"LOCALAPPDATA\",\"path\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\\\\AppData\\\\Local\",\"value\":\"LOCALAPPDATA\"}],\"tmpdir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\tmp\",\"homedir\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-6RAdNP\\\\scratch\\\\home\",\"credentialsAbsent\":true,\"nodeOptionsAbsent\":true}",
+            "outputSha256": "sha256:04348841f10e063d268f441b3e815f8f0b3f16189ac63be4c024d55176b253b6",
+            "details": {
+              "credentialKeys": [],
+              "inheritedKeys": [
+                "LOCALAPPDATA",
+                "PATH",
+                "SystemDrive",
+                "SystemRoot",
+                "TEMP",
+                "TMP",
+                "WINDIR"
+              ],
+              "derived": {
+                "TMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                "TEMP": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                "HOME": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                "USERPROFILE": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                "APPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+                "LOCALAPPDATA": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local"
+              },
+              "proofs": [
+                {
+                  "key": "TMP",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                  "value": "TMP"
+                },
+                {
+                  "key": "TEMP",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+                  "value": "TEMP"
+                },
+                {
+                  "key": "HOME",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                  "value": "HOME"
+                },
+                {
+                  "key": "USERPROFILE",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+                  "value": "USERPROFILE"
+                },
+                {
+                  "key": "APPDATA",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Roaming",
+                  "value": "APPDATA"
+                },
+                {
+                  "key": "LOCALAPPDATA",
+                  "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home\\AppData\\Local",
+                  "value": "LOCALAPPDATA"
+                }
+              ],
+              "tmpdir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\tmp",
+              "homedir": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-6RAdNP\\scratch\\home",
+              "credentialsAbsent": true,
+              "nodeOptionsAbsent": true
+            },
+            "elapsedMs": 7
+          }
+        },
+        {
+          "version": 1,
+          "sequence": 5,
+          "event": "completed",
+          "pid": 22380,
+          "elapsedMs": 25
+        }
+      ],
+      "lastPhase": "completed",
+      "complete": true,
+      "trailingPartialBytes": 0
+    }
+  },
+  "integrityConfirmed": true,
+  "finishedAt": "2026-10-07T05:34:46.078Z"
+}

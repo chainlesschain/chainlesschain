@@ -1,0 +1,285 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+  "probeId": "child-inherited-stdio",
+  "startedAt": "2026-10-07T05:35:16.604Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "diagnosticCompleted": true,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "observations": [
+    {
+      "id": "child-inherited-stdio",
+      "status": "supported",
+      "timedOut": false,
+      "code": 0,
+      "signal": null,
+      "errorCode": null,
+      "error": null,
+      "output": "{\"marker\":\"native-child-ok\",\"pid\":18320}",
+      "outputSha256": "sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d",
+      "details": {
+        "stderr": "",
+        "payload": {
+          "marker": "native-child-ok",
+          "pid": 18320
+        }
+      },
+      "elapsedMs": 166
+    }
+  ],
+  "stageRetained": false,
+  "sourceFiles": [
+    {
+      "name": "esm-probe.mjs",
+      "bytes": 39,
+      "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+    },
+    {
+      "name": "worker-probe.cjs",
+      "bytes": 138,
+      "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+    },
+    {
+      "name": "child-probe.cjs",
+      "bytes": 207,
+      "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+    },
+    {
+      "name": "fork-probe.cjs",
+      "bytes": 171,
+      "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+    },
+    {
+      "name": "anchor.txt",
+      "bytes": 32,
+      "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+    }
+  ],
+  "brokerFiles": [
+    {
+      "name": "windows-native-evaluator-capabilities.js",
+      "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+    },
+    {
+      "name": "windows-native-evaluator.js",
+      "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+    },
+    {
+      "name": "index.js",
+      "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "name": "platform-sandbox.js",
+      "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "name": "windows-sandbox.cs",
+      "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+    },
+    {
+      "name": "windows-sandbox-helper.exe",
+      "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+    },
+    {
+      "name": "windows-sandbox-helper.dll",
+      "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+    }
+  ],
+  "checkSourceSha256": "sha256:6bf762e59ed1e929ccfa3db7c4d2a0577577cdd9f8252dacadd675ac59df0135",
+  "manifestDigest": "sha256:86c38513e4a3d50728b6f137dd4ba773dfa3d3b98fe9439e10796b7b1146087f",
+  "stage": {
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch"
+  },
+  "manifest": {
+    "version": 1,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+    "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch",
+    "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "5348024564692487",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS",
+        "dev": "38182903",
+        "ino": "12947848935880157"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control",
+        "dev": "38182903",
+        "ino": "22236523167331839"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\scratch",
+        "dev": "38182903",
+        "ino": "15762598702986753"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace",
+        "dev": "38182903",
+        "ino": "8162774331799035"
+      }
+    ],
+    "files": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\esm-probe.mjs",
+        "dev": "38182903",
+        "ino": "12103424005748234",
+        "bytes": 39,
+        "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\worker-probe.cjs",
+        "dev": "38182903",
+        "ino": "7881299355088395",
+        "bytes": 138,
+        "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\child-probe.cjs",
+        "dev": "38182903",
+        "ino": "4503599634560525",
+        "bytes": 207,
+        "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\fork-probe.cjs",
+        "dev": "38182903",
+        "ino": "3377699727717902",
+        "bytes": 171,
+        "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\workspace\\anchor.txt",
+        "dev": "38182903",
+        "ino": "10696049122194959",
+        "bytes": 32,
+        "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dLFemS\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "2814749774296779",
+        "bytes": 7420,
+        "sha256": "6bf762e59ed1e929ccfa3db7c4d2a0577577cdd9f8252dacadd675ac59df0135"
+      }
+    ]
+  },
+  "settlement": {
+    "manifestDigest": "86c38513e4a3d50728b6f137dd4ba773dfa3d3b98fe9439e10796b7b1146087f",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 2352,
+    "appContainerSid": "S-1-15-2-1372904495-4167343774-1906325503-3396116446-1863720515-4140346168-471869620",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "errorCode": null,
+    "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"child-inherited-stdio\",\"pid\":2352,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-dLFemS\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-dLFemS\\\\scratch\",\"observations\":[{\"id\":\"child-inherited-stdio\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-child-ok\\\",\\\"pid\\\":18320}\",\"outputSha256\":\"sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d\",\"details\":{\"stderr\":\"\",\"payload\":{\"marker\":\"native-child-ok\",\"pid\":18320}},\"elapsedMs\":166}]}\n",
+    "stderr": "",
+    "stdoutSha256": "sha256:4829aabe5f6db04b2317bf0f3d4bb38622e619d0609bcfc2671bc9ba9662fde5",
+    "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "journal": {
+    "name": "capability-journal.jsonl",
+    "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":2352,\"elapsedMs\":0}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":2352,\"elapsedMs\":29}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":2352,\"elapsedMs\":30,\"id\":\"child-inherited-stdio\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":2352,\"elapsedMs\":196,\"id\":\"child-inherited-stdio\",\"observation\":{\"id\":\"child-inherited-stdio\",\"status\":\"supported\",\"timedOut\":false,\"code\":0,\"signal\":null,\"errorCode\":null,\"error\":null,\"output\":\"{\\\"marker\\\":\\\"native-child-ok\\\",\\\"pid\\\":18320}\",\"outputSha256\":\"sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d\",\"details\":{\"stderr\":\"\",\"payload\":{\"marker\":\"native-child-ok\",\"pid\":18320}},\"elapsedMs\":166}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":2352,\"elapsedMs\":196}\n",
+    "bytes": 820,
+    "sha256": "sha256:20e5f8ed583b808bddb972525ffcbab372dea93e55cce525dfeb609fc742a473"
+  },
+  "journalReadAfterCleanup": true,
+  "validation": {
+    "diagnosticCompleted": true,
+    "allCapabilitiesSupported": true,
+    "capabilities": {
+      "child-inherited-stdio": "supported"
+    },
+    "journal": {
+      "available": true,
+      "records": [
+        {
+          "version": 1,
+          "sequence": 1,
+          "event": "initialization-started",
+          "pid": 2352,
+          "elapsedMs": 0
+        },
+        {
+          "version": 1,
+          "sequence": 2,
+          "event": "initialization-settled",
+          "pid": 2352,
+          "elapsedMs": 29
+        },
+        {
+          "version": 1,
+          "sequence": 3,
+          "event": "started",
+          "pid": 2352,
+          "elapsedMs": 30,
+          "id": "child-inherited-stdio"
+        },
+        {
+          "version": 1,
+          "sequence": 4,
+          "event": "settled",
+          "pid": 2352,
+          "elapsedMs": 196,
+          "id": "child-inherited-stdio",
+          "observation": {
+            "id": "child-inherited-stdio",
+            "status": "supported",
+            "timedOut": false,
+            "code": 0,
+            "signal": null,
+            "errorCode": null,
+            "error": null,
+            "output": "{\"marker\":\"native-child-ok\",\"pid\":18320}",
+            "outputSha256": "sha256:1f3cad2458b6ea197a884845cee0abd2a53e00a51e7f40bacef1b40e0f64e96d",
+            "details": {
+              "stderr": "",
+              "payload": {
+                "marker": "native-child-ok",
+                "pid": 18320
+              }
+            },
+            "elapsedMs": 166
+          }
+        },
+        {
+          "version": 1,
+          "sequence": 5,
+          "event": "completed",
+          "pid": 2352,
+          "elapsedMs": 196
+        }
+      ],
+      "lastPhase": "completed",
+      "complete": true,
+      "trailingPartialBytes": 0
+    }
+  },
+  "integrityConfirmed": true,
+  "finishedAt": "2026-10-07T05:35:32.411Z"
+}

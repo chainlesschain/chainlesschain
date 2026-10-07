@@ -1,0 +1,3 @@
+{"version":1,"sequence":1,"event":"initialization-started","pid":10132,"elapsedMs":1}
+{"version":1,"sequence":2,"event":"initialization-settled","pid":10132,"elapsedMs":39}
+{"version":1,"sequence":3,"event":"started","pid":10132,"elapsedMs":43,"id":"child-fork-ipc"}

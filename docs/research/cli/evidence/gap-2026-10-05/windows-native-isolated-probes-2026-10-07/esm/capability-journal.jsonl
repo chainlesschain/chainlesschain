@@ -1,0 +1,5 @@
+{"version":1,"sequence":1,"event":"initialization-started","pid":22832,"elapsedMs":1}
+{"version":1,"sequence":2,"event":"initialization-settled","pid":22832,"elapsedMs":18}
+{"version":1,"sequence":3,"event":"started","pid":22832,"elapsedMs":19,"id":"esm"}
+{"version":1,"sequence":4,"event":"settled","pid":22832,"elapsedMs":28,"id":"esm","observation":{"id":"esm","status":"supported","timedOut":false,"code":0,"signal":null,"errorCode":null,"error":null,"output":"{\"marker\":\"native-esm-ok\"}","outputSha256":"sha256:db4c86349a6894fd7d0763455323f869977783410c161398864c778a1af422f4","details":{},"elapsedMs":9}}
+{"version":1,"sequence":5,"event":"completed","pid":22832,"elapsedMs":29}

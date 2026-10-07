@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-07 独立原生诊断与预检**：七个探针各自原生 Job，确认清理后才继续；新增 v2 严格回读与原准入兼容，并交付冻结 lock/文件/setup/Node ABI 的只读工具链 inventory。**68 项回归通过**。实际 pipe/IPC 仍超时，整包无能力；inventory 明确 `trusted:false` / `INVENTORIED_NOT_EXECUTABLE`，不关闭完整 native36 或 durable 后端。证据与剩余条件见[验证第 11 节](./cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。
+
 > **2026-10-06 公开安装与 Windows 原生增量**：公开 CLI `0.166.90` 的 registry lock/子包校验与真实工具旅程完成；Windows watchdog、只读 stage 和一次性原生检查器完成，**360/360** 回归及关键失败已归档。公开 VS Code `0.37.135` / JetBrains `0.4.153` 在真实火山任务后重启恢复且零输入重放；补齐许可模式启动前校验并修复合法 `system/end` 的终态导入。详细证据见[验证记录第 9 节](./cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、durable Windows/macOS、官方账户/账单及正式人工验收仍独立开放。
 
 > **2026-10-06 CI 与真实采样回读**：Linux x64/ARM64 显式进程恢复各 31/31、双 IDE 六宿主矩阵成功并归档。按用户授权完成火山两轮校准与两轮压缩/工具轨迹，共 30 次真实调用；修复正文期限、部分失败回执和输出限制观测，15 项 Node 回归通过并接入三系统 CI。准确源码、估算费用与仍开放条件见[验证记录第 8 节](./cli-ide-gap-validation-2026-10-05.md#8-2026-10-06-ci-回读与火山真实采样)。火山授权已取得；官方 OpenAI/Anthropic 账号、正式 36+9 的原生验收和独立人工审阅仍未具备。

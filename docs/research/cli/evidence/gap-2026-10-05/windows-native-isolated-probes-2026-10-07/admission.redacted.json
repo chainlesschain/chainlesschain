@@ -1,0 +1,863 @@
+{
+  "schema": "chainlesschain.verify01-native-review-admission/v1",
+  "backend": "windows-native",
+  "scope": "read-only-operator-preparation",
+  "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "specsDigest": "sha256:684db51b1d768a36606a81b8944d235682b17306514335fff5fc07664d88d9fe",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "osRelease": "10.0.19045"
+  },
+  "requestedPool": "forks",
+  "poolDiffersFromDockerPack": false,
+  "capabilityCapture": {
+    "digest": "sha256:8587a47186d8ea6138c1779f2d59e109f71970f54765ae43cbc05aa18c9b9a9d",
+    "status": "INCOMPLETE"
+  },
+  "plannedTasks": 36,
+  "selectedTasks": 12,
+  "readyTasks": 0,
+  "fullReviewPackReady": false,
+  "executionStatus": "NOT_RUN",
+  "tasks": [
+    {
+      "sampleId": "verify-01",
+      "taskId": "verify-01",
+      "stratum": "win32-cli-volcengine",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/model-capabilities.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/model-capabilities.test.js",
+        "packages/cli/__tests__/unit/model-release-contract.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-02",
+      "taskId": "verify-02",
+      "stratum": "win32-vscode-volcengine",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/model-capabilities.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/model-capabilities.test.js",
+        "packages/cli/__tests__/unit/model-release-contract.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-03",
+      "taskId": "verify-03",
+      "stratum": "win32-jetbrains-volcengine",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/llm-pricing.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/llm-pricing.test.js",
+        "packages/cli/__tests__/unit/model-release-contract.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "stratum": "win32-cli-openai",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/background-agent-list-index.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/background-agent-list-index.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "stratum": "win32-vscode-openai",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/background-interaction-journal.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/background-interaction-journal.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-12",
+      "taskId": "verify-12",
+      "stratum": "win32-jetbrains-openai",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/background-command-argv.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/background-command-argv.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "stratum": "win32-cli-volcengine",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/runtime/headless-stream.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/headless-stream-approvals.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "stratum": "win32-vscode-volcengine",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/permission-decision.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/permission-decision.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-21",
+      "taskId": "verify-21",
+      "stratum": "win32-jetbrains-volcengine",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/segmented-memory-port.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-28",
+      "taskId": "verify-28",
+      "stratum": "win32-cli-openai",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/vscode-extension/src/chat/question-form-drafts.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "stratum": "win32-vscode-openai",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/vscode-extension/src/chat/permission-mode-state.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "stratum": "win32-jetbrains-openai",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "sourcePath": "packages/vscode-extension/src/chat/image-decode-budget.js",
+      "baselineTests": [
+        "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js"
+      ],
+      "platformBaseline": null,
+      "requiredCapabilities": [
+        {
+          "id": "scratch-environment",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "esm",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-pipe-stdio",
+          "observed": "INCOMPLETE"
+        },
+        {
+          "id": "child-fork-ipc",
+          "observed": "INCOMPLETE"
+        }
+      ],
+      "status": "NOT_READY",
+      "blockers": [
+        {
+          "code": "FROZEN_RUNTIME_MISMATCH",
+          "detail": "Target is Windows 11 24H2/x64/v22.12.0; observed 10.0.19045/x64/v22.22.2."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "scratch-environment: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "esm: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-pipe-stdio: INCOMPLETE."
+        },
+        {
+          "code": "NATIVE_CAPABILITY_UNAVAILABLE",
+          "detail": "child-fork-ipc: INCOMPLETE."
+        },
+        {
+          "code": "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
+          "detail": "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access."
+        },
+        {
+          "code": "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
+          "detail": "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes."
+        }
+      ]
+    }
+  ],
+  "formalSample": false,
+  "providerAssessed": false,
+  "observationsCreated": false,
+  "independentHumanReview": false,
+  "productionAttested": false
+}

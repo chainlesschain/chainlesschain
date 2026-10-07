@@ -1,0 +1,279 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+  "probeId": "child-file-stdio",
+  "startedAt": "2026-10-07T05:35:32.417Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "diagnosticCompleted": true,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "observations": [
+    {
+      "id": "child-file-stdio",
+      "status": "blocked",
+      "timedOut": false,
+      "code": null,
+      "signal": null,
+      "errorCode": "EPERM",
+      "error": "spawnSync <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe EPERM",
+      "output": "",
+      "outputSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "details": {
+        "stderr": "",
+        "payload": null
+      },
+      "elapsedMs": 11
+    }
+  ],
+  "stageRetained": false,
+  "sourceFiles": [
+    {
+      "name": "esm-probe.mjs",
+      "bytes": 39,
+      "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+    },
+    {
+      "name": "worker-probe.cjs",
+      "bytes": 138,
+      "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+    },
+    {
+      "name": "child-probe.cjs",
+      "bytes": 207,
+      "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+    },
+    {
+      "name": "fork-probe.cjs",
+      "bytes": 171,
+      "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+    },
+    {
+      "name": "anchor.txt",
+      "bytes": 32,
+      "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+    }
+  ],
+  "brokerFiles": [
+    {
+      "name": "windows-native-evaluator-capabilities.js",
+      "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+    },
+    {
+      "name": "windows-native-evaluator.js",
+      "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+    },
+    {
+      "name": "index.js",
+      "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "name": "platform-sandbox.js",
+      "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "name": "windows-sandbox.cs",
+      "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+    },
+    {
+      "name": "windows-sandbox-helper.exe",
+      "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+    },
+    {
+      "name": "windows-sandbox-helper.dll",
+      "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+    }
+  ],
+  "checkSourceSha256": "sha256:e149af009d4cc2b6c4f3233c6e38de06f35424f816d5d4c82b2b92231d4c1602",
+  "manifestDigest": "sha256:e1ec8f5c7031a6e9be78802e50a44af1a0b1502fbf38730252f10c8f8b299a34",
+  "stage": {
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch"
+  },
+  "manifest": {
+    "version": 1,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+    "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch",
+    "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "11258999075616464",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB",
+        "dev": "38182903",
+        "ino": "3659174704428558"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control",
+        "dev": "38182903",
+        "ino": "8444249308509895"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\scratch",
+        "dev": "38182903",
+        "ino": "3096224751007435"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace",
+        "dev": "38182903",
+        "ino": "10977524098905615"
+      }
+    ],
+    "files": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\esm-probe.mjs",
+        "dev": "38182903",
+        "ino": "3659174704428758",
+        "bytes": 39,
+        "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\worker-probe.cjs",
+        "dev": "38182903",
+        "ino": "5629499541403352",
+        "bytes": 138,
+        "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\child-probe.cjs",
+        "dev": "38182903",
+        "ino": "7036874424956633",
+        "bytes": 207,
+        "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\fork-probe.cjs",
+        "dev": "38182903",
+        "ino": "12384898982459098",
+        "bytes": 171,
+        "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\workspace\\anchor.txt",
+        "dev": "38182903",
+        "ino": "6473924471535323",
+        "bytes": 32,
+        "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "14636698796144348",
+        "bytes": 7415,
+        "sha256": "e149af009d4cc2b6c4f3233c6e38de06f35424f816d5d4c82b2b92231d4c1602"
+      }
+    ]
+  },
+  "settlement": {
+    "manifestDigest": "e1ec8f5c7031a6e9be78802e50a44af1a0b1502fbf38730252f10c8f8b299a34",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 30108,
+    "appContainerSid": "S-1-15-2-3316107233-3414731499-816683628-1927519564-1143292418-2980076391-1493062624",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "errorCode": null,
+    "stdout": "CC_NATIVE_CAPABILITIES:{\"version\":2,\"probeId\":\"child-file-stdio\",\"pid\":30108,\"workspace\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\workspace\",\"scratch\":\"<USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\scratch\",\"observations\":[{\"id\":\"child-file-stdio\",\"status\":\"blocked\",\"timedOut\":false,\"code\":null,\"signal\":null,\"errorCode\":\"EPERM\",\"error\":\"spawnSync <USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\control\\\\node.exe EPERM\",\"output\":\"\",\"outputSha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"details\":{\"stderr\":\"\",\"payload\":null},\"elapsedMs\":11}]}\n",
+    "stderr": "",
+    "stdoutSha256": "sha256:ad8bf46a810d7570135ec2ffa51e451a358b4ecbfe224b9e85a04c5010833952",
+    "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "journal": {
+    "name": "capability-journal.jsonl",
+    "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":30108,\"elapsedMs\":1}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":30108,\"elapsedMs\":26}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":30108,\"elapsedMs\":27,\"id\":\"child-file-stdio\"}\n{\"version\":1,\"sequence\":4,\"event\":\"settled\",\"pid\":30108,\"elapsedMs\":38,\"id\":\"child-file-stdio\",\"observation\":{\"id\":\"child-file-stdio\",\"status\":\"blocked\",\"timedOut\":false,\"code\":null,\"signal\":null,\"errorCode\":\"EPERM\",\"error\":\"spawnSync <USERPROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-YYzqTB\\\\control\\\\node.exe EPERM\",\"output\":\"\",\"outputSha256\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"details\":{\"stderr\":\"\",\"payload\":null},\"elapsedMs\":11}}\n{\"version\":1,\"sequence\":5,\"event\":\"completed\",\"pid\":30108,\"elapsedMs\":39}\n",
+    "bytes": 829,
+    "sha256": "sha256:ededce8cd2f0e92752024d9fa90c62de4b585a5f3d3af7ad53d1602e038df0b9"
+  },
+  "journalReadAfterCleanup": true,
+  "validation": {
+    "diagnosticCompleted": true,
+    "allCapabilitiesSupported": false,
+    "capabilities": {
+      "child-file-stdio": "blocked"
+    },
+    "journal": {
+      "available": true,
+      "records": [
+        {
+          "version": 1,
+          "sequence": 1,
+          "event": "initialization-started",
+          "pid": 30108,
+          "elapsedMs": 1
+        },
+        {
+          "version": 1,
+          "sequence": 2,
+          "event": "initialization-settled",
+          "pid": 30108,
+          "elapsedMs": 26
+        },
+        {
+          "version": 1,
+          "sequence": 3,
+          "event": "started",
+          "pid": 30108,
+          "elapsedMs": 27,
+          "id": "child-file-stdio"
+        },
+        {
+          "version": 1,
+          "sequence": 4,
+          "event": "settled",
+          "pid": 30108,
+          "elapsedMs": 38,
+          "id": "child-file-stdio",
+          "observation": {
+            "id": "child-file-stdio",
+            "status": "blocked",
+            "timedOut": false,
+            "code": null,
+            "signal": null,
+            "errorCode": "EPERM",
+            "error": "spawnSync <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-YYzqTB\\control\\node.exe EPERM",
+            "output": "",
+            "outputSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "details": {
+              "stderr": "",
+              "payload": null
+            },
+            "elapsedMs": 11
+          }
+        },
+        {
+          "version": 1,
+          "sequence": 5,
+          "event": "completed",
+          "pid": 30108,
+          "elapsedMs": 39
+        }
+      ],
+      "lastPhase": "completed",
+      "complete": true,
+      "trailingPartialBytes": 0
+    }
+  },
+  "integrityConfirmed": true,
+  "finishedAt": "2026-10-07T05:35:48.619Z"
+}

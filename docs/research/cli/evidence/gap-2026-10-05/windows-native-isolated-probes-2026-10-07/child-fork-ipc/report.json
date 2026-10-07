@@ -1,0 +1,235 @@
+{
+  "schema": "chainlesschain.windows-native-evaluator-capability-probe/v2",
+  "probeId": "child-fork-ipc",
+  "startedAt": "2026-10-07T05:36:21.586Z",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "diagnosticCompleted": false,
+  "wallTimeMs": 15000,
+  "probeTimeoutMs": 1200,
+  "observations": [],
+  "stageRetained": true,
+  "sourceFiles": [
+    {
+      "name": "esm-probe.mjs",
+      "bytes": 39,
+      "sha256": "sha256:b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+    },
+    {
+      "name": "worker-probe.cjs",
+      "bytes": 138,
+      "sha256": "sha256:16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+    },
+    {
+      "name": "child-probe.cjs",
+      "bytes": 207,
+      "sha256": "sha256:9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+    },
+    {
+      "name": "fork-probe.cjs",
+      "bytes": 171,
+      "sha256": "sha256:572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+    },
+    {
+      "name": "anchor.txt",
+      "bytes": 32,
+      "sha256": "sha256:3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+    }
+  ],
+  "brokerFiles": [
+    {
+      "name": "windows-native-evaluator-capabilities.js",
+      "sha256": "sha256:6f2e7351126d5bce69d7d9344c0dcb482f935fec09df255bbf0d083b57da9030"
+    },
+    {
+      "name": "windows-native-evaluator.js",
+      "sha256": "sha256:f2560c637ae94ef08ff51d560fabe088d07f94dde4c2d50570568fc4d457bc1c"
+    },
+    {
+      "name": "index.js",
+      "sha256": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+    },
+    {
+      "name": "platform-sandbox.js",
+      "sha256": "sha256:723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67"
+    },
+    {
+      "name": "windows-sandbox.cs",
+      "sha256": "sha256:8ab9d4d95072ebadcb9f53edcaffa19536ef38dd1adeea09764f43e55b3cdb98"
+    },
+    {
+      "name": "windows-sandbox-helper.exe",
+      "sha256": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+    },
+    {
+      "name": "windows-sandbox-helper.dll",
+      "sha256": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259"
+    }
+  ],
+  "checkSourceSha256": "sha256:c0a6a06862b111eb091f94593eaac6c5e7fb534739d6c43f17c73312fb189a04",
+  "manifestDigest": "sha256:48df5359121d1d50752099a8240e04aeb192ace8a1f2e557a27c5cd3c233d907",
+  "stage": {
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch"
+  },
+  "manifest": {
+    "version": 1,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+    "control": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch",
+    "check": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "7318349401667341",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J",
+        "dev": "38182903",
+        "ino": "19140298423514831"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control",
+        "dev": "38182903",
+        "ino": "16607023633118964"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\scratch",
+        "dev": "38182903",
+        "ino": "4503599634560763"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace",
+        "dev": "38182903",
+        "ino": "16044073679697621"
+      }
+    ],
+    "files": [
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\esm-probe.mjs",
+        "dev": "38182903",
+        "ino": "3940649681139493",
+        "bytes": 39,
+        "sha256": "b5a7162052896c91587055411a6b1c482de41469dedfc7607770c0075b97c907"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\worker-probe.cjs",
+        "dev": "38182903",
+        "ino": "3377699727718182",
+        "bytes": 138,
+        "sha256": "16523025c03b4154df5e7ac0d649a1079a4f01330b5b152cfbb4495247039242"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\child-probe.cjs",
+        "dev": "38182903",
+        "ino": "1970324844164903",
+        "bytes": 207,
+        "sha256": "9f3311bc7bc65fcebda9dc58d22095ba1c10ac4b594ced48296eb8959e4587fe"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\fork-probe.cjs",
+        "dev": "38182903",
+        "ino": "2533274797586216",
+        "bytes": 171,
+        "sha256": "572eb6e9819e5050d4b7c612f202a65febf359f291f8cc92a25607c7d51005b1"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\workspace\\anchor.txt",
+        "dev": "38182903",
+        "ino": "1970324844164905",
+        "bytes": 32,
+        "sha256": "3cdbbacb144c83a22c3c0e3b3b69864dff2722a4cd4fe9472da92ab5fbed2400"
+      },
+      {
+        "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-bWmV7J\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "2251799820875562",
+        "bytes": 7413,
+        "sha256": "c0a6a06862b111eb091f94593eaac6c5e7fb534739d6c43f17c73312fb189a04"
+      }
+    ]
+  },
+  "settlement": {
+    "manifestDigest": "48df5359121d1d50752099a8240e04aeb192ace8a1f2e557a27c5cd3c233d907",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 10132,
+    "appContainerSid": "S-1-15-2-2673918248-3218596457-243354033-274923998-1099104729-3264175480-423820489",
+    "wallTimeMs": 15000,
+    "targetExitCode": 125,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": true
+  },
+  "execution": {
+    "status": 125,
+    "signal": null,
+    "error": null,
+    "errorCode": null,
+    "stdout": "",
+    "stderr": "CC_WINDOWS_SANDBOX_ERROR: Windows sandbox wall-time limit exceeded\r\n",
+    "stdoutSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrSha256": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5"
+  },
+  "journal": {
+    "name": "capability-journal.jsonl",
+    "raw": "{\"version\":1,\"sequence\":1,\"event\":\"initialization-started\",\"pid\":10132,\"elapsedMs\":1}\n{\"version\":1,\"sequence\":2,\"event\":\"initialization-settled\",\"pid\":10132,\"elapsedMs\":39}\n{\"version\":1,\"sequence\":3,\"event\":\"started\",\"pid\":10132,\"elapsedMs\":43,\"id\":\"child-fork-ipc\"}\n",
+    "bytes": 267,
+    "sha256": "sha256:59f38f96d1818faacc8f7547bf06eade6d19223a2c10f6b164215da24b32d385"
+  },
+  "journalReadAfterCleanup": true,
+  "validation": {
+    "diagnosticCompleted": false,
+    "allCapabilitiesSupported": false,
+    "capabilities": {},
+    "failureKind": "execution-timeout",
+    "cleanupConfirmed": true,
+    "journal": {
+      "available": true,
+      "records": [
+        {
+          "version": 1,
+          "sequence": 1,
+          "event": "initialization-started",
+          "pid": 10132,
+          "elapsedMs": 1
+        },
+        {
+          "version": 1,
+          "sequence": 2,
+          "event": "initialization-settled",
+          "pid": 10132,
+          "elapsedMs": 39
+        },
+        {
+          "version": 1,
+          "sequence": 3,
+          "event": "started",
+          "pid": 10132,
+          "elapsedMs": 43,
+          "id": "child-fork-ipc"
+        }
+      ],
+      "lastPhase": "child-fork-ipc",
+      "complete": false,
+      "trailingPartialBytes": 0
+    },
+    "observedPrefix": []
+  },
+  "integrityConfirmed": true,
+  "failureKind": "execution-timeout",
+  "error": "Target execution timed out; native cleanup confirmed",
+  "retentionReason": "diagnostic-incomplete",
+  "finishedAt": "2026-10-07T05:36:51.852Z"
+}

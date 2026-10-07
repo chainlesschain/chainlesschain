@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: native admission selects the 12 frozen Windows task samples without reallocating the population
+ok 1 - native admission selects the 12 frozen Windows task samples without reallocating the population
+  ---
+  duration_ms: 66.8113
+  type: 'test'
+  ...
+# Subtest: matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+ok 2 - matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+  ---
+  duration_ms: 168.5289
+  type: 'test'
+  ...
+# Subtest: Windows 10 and a newer Node retain the actual frozen target mismatch
+ok 3 - Windows 10 and a newer Node retain the actual frozen target mismatch
+  ---
+  duration_ms: 52.8253
+  type: 'test'
+  ...
+# Subtest: foreign platforms and Linux-only journal baseline remain separate explicit blockers
+ok 4 - foreign platforms and Linux-only journal baseline remain separate explicit blockers
+  ---
+  duration_ms: 98.0644
+  type: 'test'
+  ...
+# Subtest: incomplete capability reports remain incomplete despite a caller's supported declarations
+ok 5 - incomplete capability reports remain incomplete despite a caller's supported declarations
+  ---
+  duration_ms: 119.8116
+  type: 'test'
+  ...
+# Subtest: input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+ok 6 - input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+  ---
+  duration_ms: 297.9851
+  type: 'test'
+  ...
+# Subtest: isolated v2 partial reports never grant caller-supplied capabilities
+ok 7 - isolated v2 partial reports never grant caller-supplied capabilities
+  ---
+  duration_ms: 64.3834
+  type: 'test'
+  ...
+# Subtest: isolated v2 completed declarations must contain all independent native runs
+ok 8 - isolated v2 completed declarations must contain all independent native runs
+  ---
+  duration_ms: 52.1869
+  type: 'test'
+  ...
+# Subtest: explicit Windows generation fails before creating scripts and rejects Docker bindings
+ok 9 - explicit Windows generation fails before creating scripts and rejects Docker bindings
+  ---
+  duration_ms: 76.8407
+  type: 'test'
+  ...
+# Subtest: real CLI exposes Windows admission without generating a Docker pack or starting a native task
+ok 10 - real CLI exposes Windows admission without generating a Docker pack or starting a native task
+  ---
+  duration_ms: 290.3803
+  type: 'test'
+  ...
+# Subtest: bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+ok 11 - bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+  ---
+  duration_ms: 1362.0273
+  type: 'test'
+  ...
+# Subtest: addon bytes are hashed and ABI remains unverified without loading the binary
+ok 12 - addon bytes are hashed and ABI remains unverified without loading the binary
+  ---
+  duration_ms: 625.7053
+  type: 'test'
+  ...
+# Subtest: caller digest cannot replace exact frozen Git lock bytes
+ok 13 - caller digest cannot replace exact frozen Git lock bytes
+  ---
+  duration_ms: 98.8588
+  type: 'test'
+  ...
+# Subtest: changed frozen setup is rejected without executing it
+ok 14 - changed frozen setup is rejected without executing it
+  ---
+  duration_ms: 135.0706
+  type: 'test'
+  ...
+# Subtest: rejects version rather than promoting a development tree
+ok 15 - rejects version rather than promoting a development tree
+  ---
+  duration_ms: 124.8645
+  type: 'test'
+  ...
+# Subtest: rejects identity rather than promoting a development tree
+ok 16 - rejects identity rather than promoting a development tree
+  ---
+  duration_ms: 99.3544
+  type: 'test'
+  ...
+# Subtest: rejects missing-integrity rather than promoting a development tree
+ok 17 - rejects missing-integrity rather than promoting a development tree
+  ---
+  duration_ms: 69.8478
+  type: 'test'
+  ...
+# Subtest: rejects linked-lock rather than promoting a development tree
+ok 18 - rejects linked-lock rather than promoting a development tree
+  ---
+  duration_ms: 84.5967
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-package rather than promoting a development tree
+ok 19 - rejects unlocked-package rather than promoting a development tree
+  ---
+  duration_ms: 78.0184
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-file rather than promoting a development tree
+ok 20 - rejects unlocked-file rather than promoting a development tree
+  ---
+  duration_ms: 93.7672
+  type: 'test'
+  ...
+# Subtest: hard-linked package bytes are forbidden
+ok 21 - hard-linked package bytes are forbidden
+  ---
+  duration_ms: 113.2735
+  type: 'test'
+  ...
+# Subtest: development dependency junction cannot redirect inventory outside its root
+ok 22 - development dependency junction cannot redirect inventory outside its root
+  ---
+  duration_ms: 98.7826
+  type: 'test'
+  ...
+# Subtest: case-alias package entries are rejected even on case-sensitive hosts
+ok 23 - case-alias package entries are rejected even on case-sensitive hosts
+  ---
+  duration_ms: 100.5426
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3399.2995
