@@ -64,7 +64,13 @@ function limit(value, fallback, max) {
  * final SQLite transaction as the task change and success receipt. */
 function organizationActions(Base) {
   return class extends Base {
-    constructor({ authority, approvals, approvalId = null, ...options } = {}) {
+    constructor({
+      authority,
+      approvals,
+      approvalId = null,
+      proposalGuard = null,
+      ...options
+    } = {}) {
       super(options);
       if (
         typeof authority?.assertAuthorizedInTransaction !== "function" ||
@@ -76,6 +82,9 @@ function organizationActions(Base) {
       this.authority = authority;
       this.approvals = approvals;
       this.approvalId = approvalId;
+      if (proposalGuard !== null && typeof proposalGuard !== "function")
+        fail("ORG_PROPOSAL_AUTHORITY_REQUIRED");
+      this.proposalGuard = proposalGuard;
     }
 
     _isReceiptScope(run, row) {
@@ -319,6 +328,7 @@ function organizationActions(Base) {
       this._validateActorScope(request, actor);
     }
     _requestSnapshot(request, actor) {
+      this._verifyProposal(request, actor);
       if (!this.approvalId) fail("ORG_APPROVAL_ID_REQUIRED");
       this.approvals.verifyApprovedInTransaction({
         approvalId: this.approvalId,
@@ -330,6 +340,13 @@ function organizationActions(Base) {
         ? this._projectSnapshot(request.target.id, actor)
         : this._snapshot(request.target.id, actor);
     }
+    _verifyProposal(request, actor) {
+      if (!this.proposalGuard) return;
+      const result = this.proposalGuard({ request, actor });
+      if (result && typeof result.then === "function")
+        fail("ORG_PROPOSAL_ASYNC_GUARD_DENIED");
+      if (result !== true) fail("ORG_PROPOSAL_NOT_FOUND_OR_DENIED");
+    }
     _applyRequest(request, actor, latest, { runId }) {
       const organizationApproval = this.approvals.consumeInTransaction({
         approvalId: this.approvalId,
@@ -338,8 +355,8 @@ function organizationActions(Base) {
         runId,
         actorDid: actor,
       });
-      if (request.actionType !== "task.create")
-        return {
+      if (request.actionType !== "task.create") {
+        const mutation = {
           ...TaskDescriptionActionService.prototype._applyRequest.call(
             this,
             request,
@@ -348,6 +365,9 @@ function organizationActions(Base) {
           ),
           organizationApproval,
         };
+        this._verifyProposal(request, actor);
+        return mutation;
+      }
       const taskId = randomUUID();
       const updatedAt = Math.max(this.now(), latest.project.updated_at + 1);
       if (!Number.isSafeInteger(updatedAt)) fail("ACTION_SOURCE_INVALID");
@@ -382,6 +402,7 @@ function organizationActions(Base) {
         created.task.project_id !== request.target.id
       )
         fail("ACTION_POSTCONDITION_FAILED");
+      this._verifyProposal(request, actor);
       return {
         kind: "sqlite-task-create",
         affectedRows: result.changes,

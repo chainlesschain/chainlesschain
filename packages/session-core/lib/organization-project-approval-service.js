@@ -362,11 +362,15 @@ class OrganizationProjectApprovalService {
     return { type: workflow.approval_type, steps };
   }
   submit(input) {
+    return this._transaction(() => this.submitInTransaction(input));
+  }
+  submitInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
     fields(input, ["request", "projectId", "workflowId"]);
     const projectId = identifier(input.projectId),
       workflowId = identifier(input.workflowId);
     const request = this._request(input.request, projectId);
-    return this._transaction(() => {
+    const submit = () => {
       const actor = this._actor();
       const authority = this._authority(projectId, actor, request.actionType);
       this._authority(projectId, actor, "task.read", authority);
@@ -464,7 +468,8 @@ class OrganizationProjectApprovalService {
           bindingDigest,
         );
       return this._view(this._load(requestId));
-    });
+    };
+    return submit();
   }
   _load(approvalId) {
     const row = this.db
@@ -577,13 +582,15 @@ class OrganizationProjectApprovalService {
       fail("ORG_APPROVAL_VERSION_CONFLICT");
   }
   get(input) {
+    return this._transaction(() => this.getInTransaction(input));
+  }
+  getInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
     fields(input, ["approvalId"]);
-    return this._transaction(() => {
-      const loaded = this._load(input.approvalId);
-      this._authority(loaded.binding.projectId, this._actor(), "task.read");
-      this._responses(loaded);
-      return this._view(loaded);
-    });
+    const loaded = this._load(input.approvalId);
+    this._authority(loaded.binding.projectId, this._actor(), "task.read");
+    this._responses(loaded);
+    return this._view(loaded);
   }
   cancel(input) {
     fields(input, ["approvalId"]);
@@ -697,7 +704,7 @@ class OrganizationProjectApprovalService {
       fail("ORG_APPROVAL_CORRUPT");
     return { status, currentStep: step };
   }
-  respond(input) {
+  _decision(input) {
     fields(input, ["approvalId", "step", "decision"]);
     if (
       !Number.isSafeInteger(input.step) ||
@@ -705,30 +712,42 @@ class OrganizationProjectApprovalService {
       !["approve", "reject"].includes(input.decision)
     )
       fail("ORG_APPROVAL_INVALID_REQUEST");
-    return this._transaction(() => {
-      const actor = this._actor(),
-        loaded = this._load(input.approvalId),
-        { binding, request, row } = loaded;
-      this._current(binding, actor, "task.approve");
-      if (row.consumed_run_id || request.status !== "pending")
-        fail("ORG_APPROVAL_NOT_PENDING");
-      if (this._time() >= binding.expiresAt) fail("ORG_APPROVAL_EXPIRED");
-      this._responses(loaded, { recheck: true });
-      if (
-        actor === binding.requesterDid ||
-        !binding.plan.steps[request.current_step].includes(actor)
-      )
-        fail("ORG_APPROVAL_NOT_FOUND_OR_DENIED");
-      if (input.step !== request.current_step)
-        fail("ORG_APPROVAL_STEP_CONFLICT");
-      if (
-        this.db
-          .prepare(
-            "SELECT 1 FROM cc_organization_action_approval_responses WHERE request_id=? AND step=? AND approver_did=?",
-          )
-          .get(binding.requestId, input.step, actor)
-      )
-        fail("ORG_APPROVAL_ALREADY_RESPONDED");
+    const actor = this._actor(),
+      loaded = this._load(input.approvalId);
+    const { binding, request, row } = loaded;
+    this._current(binding, actor, "task.approve");
+    if (row.consumed_run_id || request.status !== "pending")
+      fail("ORG_APPROVAL_NOT_PENDING");
+    if (this._time() >= binding.expiresAt) fail("ORG_APPROVAL_EXPIRED");
+    this._responses(loaded, { recheck: true });
+    if (
+      actor === binding.requesterDid ||
+      !binding.plan.steps[request.current_step].includes(actor)
+    )
+      fail("ORG_APPROVAL_NOT_FOUND_OR_DENIED");
+    if (input.step !== request.current_step) fail("ORG_APPROVAL_STEP_CONFLICT");
+    if (
+      this.db
+        .prepare(
+          "SELECT 1 FROM cc_organization_action_approval_responses WHERE request_id=? AND step=? AND approver_did=?",
+        )
+        .get(binding.requestId, input.step, actor)
+    )
+      fail("ORG_APPROVAL_ALREADY_RESPONDED");
+    return { actor, loaded };
+  }
+  verifyDecisionInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
+    return this._view(this._decision(input).loaded);
+  }
+  respond(input) {
+    return this._transaction(() => this.respondInTransaction(input));
+  }
+  respondInTransaction(input) {
+    if (!this.db.inTransaction) fail("ORG_APPROVAL_TRANSACTION_REQUIRED");
+    const respond = () => {
+      const { actor, loaded } = this._decision(input);
+      const { binding } = loaded;
       const id = randomUUID(),
         at = this._time();
       if (at >= binding.expiresAt) fail("ORG_APPROVAL_EXPIRED");
@@ -783,7 +802,8 @@ class OrganizationProjectApprovalService {
         ).changes;
       if (changes !== 1) fail("ORG_APPROVAL_STEP_CONFLICT");
       return this._view(this._load(binding.requestId));
-    });
+    };
+    return respond();
   }
   verifyApprovedInTransaction(input) {
     fields(input, ["approvalId", "request", "projectId", "actorDid"]);

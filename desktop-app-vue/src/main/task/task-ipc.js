@@ -60,6 +60,9 @@ function registerTaskIPC(database) {
   require("./task-description-ipc").registerTaskDescriptionIPC(
     resolveDatabase(database),
   );
+  require("./organization-project-ipc").registerOrganizationProjectIPC(
+    resolveDatabase(database),
+  );
   const projectGoalHost = require("./project-goal-ipc").registerProjectGoalIPC(
     resolveDatabase(database),
   );

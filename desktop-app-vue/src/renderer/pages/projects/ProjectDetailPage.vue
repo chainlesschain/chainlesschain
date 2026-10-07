@@ -69,6 +69,12 @@
             >
               项目任务
             </a-button>
+            <a-button
+              v-if="currentProject?.id === projectId && !isAICreatingMode"
+              data-testid="organization-project-tasks-button"
+              @click="showOrganizationTasks = true"
+              >组织任务与审批</a-button
+            >
             <!-- 文件导出菜单 -->
             <FileExportMenu
               v-if="currentFile"
@@ -492,6 +498,11 @@
         :project="currentProject"
         @share-success="handleShareSuccess"
       />
+      <OrganizationProjectWorkbench
+        v-model:open="showOrganizationTasks"
+        :project-id="String(projectId)"
+        :identity-key="`${taskIdentityStore.primaryDID || ''}:${taskIdentityStore.currentContext}:${taskAppStore.isAuthenticated}`"
+      />
     </div>
   </div>
 </template>
@@ -529,6 +540,7 @@ import { useActiveContextStore } from "@/stores/activeContext";
 import { useIdentityStore } from "@/stores/identity";
 import { useAppStore } from "@/stores/app";
 import ProjectTaskDescriptionDrawer from "@/components/projects/ProjectTaskDescriptionDrawer.vue";
+import OrganizationProjectWorkbench from "@/components/projects/OrganizationProjectWorkbench.vue";
 import {
   getProjectTypeColor,
   getProjectTypeText,
@@ -664,6 +676,7 @@ const pptEditorRef = ref(null); // PPT编辑器引用
 const showFileManageModal = ref(false); // 文件管理Modal
 const showShareModal = ref(false); // 分享Modal
 const showControlledTasks = ref(false);
+const showOrganizationTasks = ref(false);
 const taskIdentityStore = useIdentityStore();
 const taskAppStore = useAppStore();
 const useVirtualFileTree = ref(true); // 使用虚拟滚动文件树（性能优化）- 已启用

@@ -28,7 +28,8 @@ describe("organization authority native host", () => {
     actor = owner;
     generation = 1;
     trusted = true;
-    event = { sender: {} };
+    const frame = { url: "http://localhost:5173", parent: null };
+    event = { sender: { mainFrame: frame }, senderFrame: frame };
     window = { isDestroyed: vi.fn(() => false) };
     electron = {
       BrowserWindow: { fromWebContents: vi.fn(() => window) },

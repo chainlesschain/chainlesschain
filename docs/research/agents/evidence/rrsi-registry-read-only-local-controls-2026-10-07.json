@@ -1,0 +1,2606 @@
+{
+  "schema": "chainlesschain.rrsi-registry-read-only-local-controls/v1",
+  "generatedAt": "2026-10-07T06:33:12.028Z",
+  "revisionBeforeCommit": "567d2c8c4c057ab19734669a32ad55a559866263",
+  "node": "v22.22.2",
+  "platform": "win32",
+  "sources": [
+    {
+      "location": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+      "sha256": "1307169cefd0eecb0ad4a5f0328625a6519f641d23d2f6cce7fa7c278725bab6"
+    },
+    {
+      "location": "packages/cli/src/lib/evolution/skill-candidate-registry.js",
+      "sha256": "0f686a084900b7c6d67fb62bd91ff16d10005cbf2216fd443e2446b2fcf3292b"
+    },
+    {
+      "location": "packages/cli/src/lib/evolution/skill-release-registry.js",
+      "sha256": "ecc797193f4c79ded98864340d9ce5e2ff1beaa5a7fcc2a307fb154218f54bf4"
+    },
+    {
+      "location": "packages/cli/src/lib/evolution/evolution-ledger-ports.js",
+      "sha256": "5b156b868d285db16da7844503eb00862644d34ac36014b6d492fce1c1308f8c"
+    },
+    {
+      "location": "packages/cli/__tests__/fixtures/rrsi-registry-read-only.js",
+      "sha256": "b6ca17c7768bbe80cdb6cc5acb5880b0bb9dff24b48e04c0fa6d5dbb94319420"
+    },
+    {
+      "location": "packages/cli/__tests__/fixtures/rrsi-registry-read-only-process.mjs",
+      "sha256": "666a11456ff165922469749c31c2feb51e06dd40f712e0440380e81152059e39"
+    },
+    {
+      "location": "packages/cli/__tests__/unit/rrsi-registry-read-only.test.js",
+      "sha256": "022d6828062c3a373f8aaee083077911f2a8c1a1f3387b88331c077731c15f55"
+    },
+    {
+      "location": "packages/cli/__tests__/unit/rrsi-registry-store-policy.test.js",
+      "sha256": "0f553963bb0481c47be6700b2f6320244a95ee706e5862e466e001922c76ddc8"
+    },
+    {
+      "location": "packages/cli/__tests__/integration/rrsi-registry-read-only-process.test.js",
+      "sha256": "1663540135c8fa4ca65d7f951ca0bdb90b520dacaf2dbe3d7197355242550401"
+    }
+  ],
+  "controls": {
+    "genuinePolicyComponentBinding": true,
+    "originalV2JournalAndArtifactPortsRequired": true,
+    "genuineTransactionArtifactTenantAudiencePurposeExactlyMatched": true,
+    "nativeFilesystemAndSecureOptionsRequired": true,
+    "currentUnboundReservedNamespaceBootstrapRejected": true,
+    "filesystemAliasAndDeletedMarkerFallbackRejected": true,
+    "unboundPublicDirectoryHelpersRejectReservedNamespace": true,
+    "canonicalAncestorRedirectBeforeMkdirAndAfterPreflightHold": true,
+    "unboundSubclassCanonicalBaseRedirectHold": true,
+    "privateWriterEntriesRecheckUnboundNamespace": true,
+    "currentParentPrivatePermissionsRecheckedOnOpen": true,
+    "registeredBoundaryLossAndReplacementHold": true,
+    "markerBytesRecheckedAfterFinalInventory": true,
+    "candidateNotFoundCannotMaskMissingRegisteredBoundary": true,
+    "unknownContentAndRuntimeInventoryHold": true,
+    "registryConstructionSkipsRecoveryAndCleanup": true,
+    "writesHoldBeforeLockAdmissionAndCapabilityConsumption": true,
+    "nativePermissionObserverCoversBatchAndSinglePathRepair": true,
+    "registryAndPolicyNamespaceMutationAbsentInNativeReadback": true,
+    "journalReadKeepsExistingAuthorizedLockAndWalRecovery": true,
+    "mutationObserverAllowsOnlyOriginalAuthorityManifestCutoverAndSourceJournalLockFamilies": true,
+    "wholeBackendZeroWritesClaimed": false,
+    "nativeBudgetsOrValidatorsRelaxed": false
+  },
+  "finalDistinctPassingCases": 152,
+  "reports": [
+    {
+      "location": ".work/rrsi-registry-read-only-unit.json",
+      "note": "Initial observer incorrectly counted genuine journal maintenance locks as Registry writes",
+      "required": false,
+      "passed": 10,
+      "failed": 15,
+      "pending": 0,
+      "success": false,
+      "suites": [
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "failed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "failed",
+              "durationMs": 8034.571100000001,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 55 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "passed",
+              "durationMs": 5546.761599999998
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "passed",
+              "durationMs": 5.508199999996577
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "failed",
+              "durationMs": 1886.295900000012,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 15 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "passed",
+              "durationMs": 3.2339000000065425
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "passed",
+              "durationMs": 1.5166000000026543
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "passed",
+              "durationMs": 3.3220000000001164
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "passed",
+              "durationMs": 2.360899999999674
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "passed",
+              "durationMs": 3.1662000000069384
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "passed",
+              "durationMs": 3.9941000000108033
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "failed",
+              "durationMs": 1928.2293999999965,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 12 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "failed",
+              "durationMs": 2376.402799999996,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 12 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "failed",
+              "durationMs": 738.1068999999989,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 6 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "failed",
+              "durationMs": 826.4832000000024,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 6 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "failed",
+              "durationMs": 393.73519999999553,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 3 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "failed",
+              "durationMs": 443.0648999999976,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 3 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 517.193499999994,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 551.7317999999941,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 482.3698999999906,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 472.26740000001155,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 568.5629000000044,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "failed",
+              "durationMs": 501.2280000000028,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 4 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "failed",
+              "durationMs": 1525.0383999999904,
+              "error": "AssertionError: expected \"mkdirSync\" to not be called at all, but actually been called 12 times"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "passed",
+              "durationMs": 6.892200000002049
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "passed",
+              "durationMs": 642.6552000000083
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-native-final.json",
+      "note": "Observer allowed only the v2 wrapper lock and missed the genuine original source journal ledger-v2 lock; ACL args-form observation was subsequently strengthened",
+      "required": false,
+      "passed": 28,
+      "failed": 2,
+      "pending": 0,
+      "success": false,
+      "suites": [
+        {
+          "name": "__tests__/integration/rrsi-registry-read-only-process.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process recaptures the original pair and opens genuine empty readers without Registry publication or policy locks",
+              "status": "passed",
+              "durationMs": 17929.9372
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process holds marker loss in a new process and rejects both unbound constructors before v1 bootstrap",
+              "status": "passed",
+              "durationMs": 4966.780199999994
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process retains a same-byte marker replacement on HOLD after process restart",
+              "status": "passed",
+              "durationMs": 3775.8405000000057
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process preserves unknown recovery evidence without constructor cleanup in a new process",
+              "status": "passed",
+              "durationMs": 3831.244399999996
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "failed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "failed",
+              "durationMs": 14470.742899999997,
+              "error": "AssertionError: rmdirSync: expected [ …(165) ] to deeply equal []"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "passed",
+              "durationMs": 6119.1584
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "passed",
+              "durationMs": 15.013800000000629
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "failed",
+              "durationMs": 2958.36109999998,
+              "error": "AssertionError: rmdirSync: expected [ …(45) ] to deeply equal []"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "passed",
+              "durationMs": 2.943700000003446
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "passed",
+              "durationMs": 2.8071000000054482
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "passed",
+              "durationMs": 3.2590999999956694
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "passed",
+              "durationMs": 3.9321000000054482
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "passed",
+              "durationMs": 5.739300000015646
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "passed",
+              "durationMs": 2.8386999999929685
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 5935.491000000009
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 3789.522499999992
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 66.3521999999939
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 77.55689999999595
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 6285.996600000013
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 6935.983200000017
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2445.4398999999976
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2473.163900000014
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2533.8986999999906
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2495.862699999998
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 3510.1424000000115
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2984.089399999997
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "passed",
+              "durationMs": 13.768899999995483
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "passed",
+              "durationMs": 4.563699999998789
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "passed",
+              "durationMs": 751.6854000000167
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks current native parent permissions when an existing binding reopens and never repairs them",
+              "status": "passed",
+              "durationMs": 25310.01270000002
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-native-verified.json",
+      "note": "Current v1 Registry/History suites passed before the final transaction-scope tightening; two native observer assertions still missed source journal ledger-v2 lock cleanup",
+      "required": false,
+      "passed": 118,
+      "failed": 2,
+      "pending": 0,
+      "success": false,
+      "suites": [
+        {
+          "name": "__tests__/integration/rrsi-registry-read-only-process.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process recaptures the original pair and opens genuine empty readers without Registry publication or policy locks",
+              "status": "passed",
+              "durationMs": 18211.483700000004
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process holds marker loss in a new process and rejects both unbound constructors before v1 bootstrap",
+              "status": "passed",
+              "durationMs": 5839.8735000000015
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process retains a same-byte marker replacement on HOLD after process restart",
+              "status": "passed",
+              "durationMs": 6642.982400000008
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process preserves unknown recovery evidence without constructor cleanup in a new process",
+              "status": "passed",
+              "durationMs": 5937.878500000006
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-history-binding.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry History backend association binds exact v2=false backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 1346.9533999999999
+            },
+            {
+              "name": "genuine Registry History backend association binds exact v2=true backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 10667.749199999998
+            },
+            {
+              "name": "genuine Registry History backend association preserves the original journal identity as valid unrelated events advance its head",
+              "status": "passed",
+              "durationMs": 14968.6212
+            },
+            {
+              "name": "genuine Registry History backend association rejects another real backend with identical tenant, descriptors and campaign",
+              "status": "passed",
+              "durationMs": 24276.136799999997
+            },
+            {
+              "name": "genuine Registry History backend association rejects a newly opened real artifact port object on the same physical store",
+              "status": "passed",
+              "durationMs": 9124.436399999999
+            },
+            {
+              "name": "genuine Registry History backend association rejects a different genuine resolver from the same port instance rather than comparing descriptors",
+              "status": "passed",
+              "durationMs": 9540.104599999999
+            },
+            {
+              "name": "genuine Registry History backend association rejects copied objects, callbacks, proxies and option accessors without invoking them",
+              "status": "passed",
+              "durationMs": 10249.516199999998
+            },
+            {
+              "name": "genuine Registry History backend association rechecks actual Registry marker bytes instead of relying on construction identity",
+              "status": "passed",
+              "durationMs": 12684.998299999992
+            },
+            {
+              "name": "genuine Registry History backend association refuses a damaged v2 retained payload even while the source WAL remains present",
+              "status": "passed",
+              "durationMs": 9969.238100000002
+            },
+            {
+              "name": "genuine Registry History backend association binds a real promoted parent and refuses stale parent state after genuine rollback",
+              "status": "passed",
+              "durationMs": 41798.322799999994
+            },
+            {
+              "name": "genuine Registry History backend association rejects a real PM bridge on another backend before attaching the v2 parent runtime",
+              "status": "passed",
+              "durationMs": 49594.50779999999
+            },
+            {
+              "name": "genuine Registry History backend association keeps subclass readers rejected and original recovery/read paths independent of subclass overrides",
+              "status": "passed",
+              "durationMs": 43936.55959999998
+            },
+            {
+              "name": "genuine Registry History backend association never reads attacker-controlled Registry bind properties and keeps genuine transaction methods frozen",
+              "status": "passed",
+              "durationMs": 1207.229800000001
+            },
+            {
+              "name": "genuine Registry History backend association binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost",
+              "status": "passed",
+              "durationMs": 70761.8271
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "failed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "failed",
+              "durationMs": 11072.416500000007,
+              "error": "AssertionError: rmdirSync: expected [ …(165) ] to deeply equal []"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "passed",
+              "durationMs": 6038.819300000003
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "passed",
+              "durationMs": 6.936499999996158
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "failed",
+              "durationMs": 1851.148000000001,
+              "error": "AssertionError: rmdirSync: expected [ …(45) ] to deeply equal []"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "passed",
+              "durationMs": 2.938399999999092
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "passed",
+              "durationMs": 1.8561999999947147
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "passed",
+              "durationMs": 2.2457999999896856
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "passed",
+              "durationMs": 1.4376000000047497
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "passed",
+              "durationMs": 2.999500000005355
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "passed",
+              "durationMs": 4.318099999989499
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 2008.7090999999928
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 2235.308699999994
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 36.62300000000687
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 32.65540000000328
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 5147.335699999996
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 4227.917700000005
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2376.6618000000017
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2147.3166000000056
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2089.672299999991
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2184.712799999994
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 1942.2258000000002
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2914.8157000000065
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "passed",
+              "durationMs": 22.279899999994086
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "passed",
+              "durationMs": 9.56480000000738
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "passed",
+              "durationMs": 969.3699999999953
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks current native parent permissions when an existing binding reopens and never repairs them",
+              "status": "passed",
+              "durationMs": 17706.334099999993
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks both marker bytes after final inventory enumeration before returning an initial state",
+              "status": "passed",
+              "durationMs": 507.7127000000037
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/skill-candidate-registry.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 waits for participating writer exclusion before hardening existing constructor directories",
+              "status": "passed",
+              "durationMs": 176.57619999999997
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 builds deterministic immutable v2 candidates with complete execution artifacts",
+              "status": "passed",
+              "durationMs": 20.64539999999988
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects secret and PII plaintext before any candidate artifact is written",
+              "status": "passed",
+              "durationMs": 147.76679999999988
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 captures a complete authenticated tenant inventory and rejects enumeration drift",
+              "status": "passed",
+              "durationMs": 239.82420000000002
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires explicit tenant construction and rejects tenant or context ambiguity",
+              "status": "passed",
+              "durationMs": 6.798000000000229
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 captures one immutable admission authority and rejects caller self-admission",
+              "status": "passed",
+              "durationMs": 273.8251
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 separates identical candidate content and storage across tenants",
+              "status": "passed",
+              "durationMs": 238.42630000000008
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects self-consistent manifest and matrix substitutions against trusted admission",
+              "status": "passed",
+              "durationMs": 10.554900000000089
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 enforces derivation provenance and evidence before artifact admission",
+              "status": "passed",
+              "durationMs": 9.547100000000228
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 writes an exact tenant marker and reopens idempotently",
+              "status": "passed",
+              "durationMs": 177.6891999999998
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed when tenant roots or markers are swapped",
+              "status": "passed",
+              "durationMs": 93.69060000000036
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects wrong, symlinked, and hard-linked tenant markers",
+              "status": "passed",
+              "durationMs": 121.25500000000011
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects symlinked base and tenant directories before candidate writes",
+              "status": "passed",
+              "durationMs": 13.554000000000087
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed when bounded streaming directory enumeration is unavailable",
+              "status": "passed",
+              "durationMs": 4.562000000000353
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 migrates an exact v1 draft into tenant v2 only with durable audit binding",
+              "status": "passed",
+              "durationMs": 304.8628999999996
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 batch-migrates a bounded unscoped v1 store without modifying its source",
+              "status": "passed",
+              "durationMs": 702.8711000000003
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires explicit migration for legacy roots and mixed candidate schemas",
+              "status": "passed",
+              "durationMs": 234.57740000000013
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies missing schema as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 129.4331000000002
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies unknown schema as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 76.81840000000011
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies invalid JSON as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 73.14419999999973
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies corrupt Candidate v2 as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 88.40149999999994
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects Proxies, getters, and oversized candidate encodings before storage",
+              "status": "passed",
+              "durationMs": 493.08529999999973
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 publishes once, reads by digest, lists drafts, and never overwrites",
+              "status": "passed",
+              "durationMs": 335.27250000000004
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires ACL enforcement for base, tenant root, marker, and artifact",
+              "status": "passed",
+              "durationMs": 185.90909999999985
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 handles a competing identical publisher through exclusive hard-link CAS",
+              "status": "passed",
+              "durationMs": 123.35739999999987
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects an equal-length in-place mutation in the final publication window",
+              "status": "passed",
+              "durationMs": 151.14819999999963
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan entries before reopening",
+              "status": "passed",
+              "durationMs": 199.4929000000002
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan bytes before reopening",
+              "status": "passed",
+              "durationMs": 5365.7188
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan nodes before reopening",
+              "status": "passed",
+              "durationMs": 3259.3997
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 removes partial candidate writes without exposing marker or artifact debris",
+              "status": "passed",
+              "durationMs": 82.67109999999957
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed on candidate tampering, symlinks, and hardlinks",
+              "status": "passed",
+              "durationMs": 93.40570000000116
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/skill-release-registry.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery pins non-link registry roots beneath a canonicalized ancestor alias",
+              "status": "passed",
+              "durationMs": 441.96079999999984
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery migrates an exact v3 release only through durable candidate and release audit bindings",
+              "status": "passed",
+              "durationMs": 2724.4036999999994
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent binds committed release/content/revision without certifying deployment or stable quality",
+              "status": "passed",
+              "durationMs": 1112.5
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen revision",
+              "status": "passed",
+              "durationMs": 866.5087999999996
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen stateDigest",
+              "status": "passed",
+              "durationMs": 811.030099999999
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen contentDigest",
+              "status": "passed",
+              "durationMs": 814.1708000000017
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent refuses another tenant, Memory-policy and an absent active release",
+              "status": "passed",
+              "durationMs": 1048.7590999999993
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent detects a real committed transition and preserves the original captured reader",
+              "status": "passed",
+              "durationMs": 2453.6889999999985
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent preserves the initial frozen anchor when the registry LKG moves",
+              "status": "passed",
+              "durationMs": 2525.0422
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects accessor and Proxy composition before evaluating them",
+              "status": "passed",
+              "durationMs": 733.1226000000006
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime shadow composes the existing host and keeps promotion and full admission unavailable",
+              "status": "passed",
+              "durationMs": 5671.2767
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime off denies direct bridge calls and enforced mode cannot fall back",
+              "status": "passed",
+              "durationMs": 3253.2276999999995
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime rechecks the live parent before reservation and keeps history readable",
+              "status": "passed",
+              "durationMs": 3635.548600000002
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime consumes a stale dispatch capability without reexecution or blocking independent reconciliation",
+              "status": "passed",
+              "durationMs": 6663.289600000004
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime rechecks parent integrity after durable dispatch before invoking the host",
+              "status": "passed",
+              "durationMs": 6416.761399999996
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery captures all releases and active pointers and rejects enumeration drift",
+              "status": "passed",
+              "durationMs": 1602.6187999999966
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery creates an exact tenant marker and isolates identical releases and ledger projections",
+              "status": "passed",
+              "durationMs": 2583.613400000002
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery fails closed on marker links/swaps, root swaps, and legacy or mixed layouts",
+              "status": "passed",
+              "durationMs": 591.2667999999976
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery persists the complete candidate execution contract and rejects artifact substitution",
+              "status": "passed",
+              "durationMs": 981.4136999999973
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery keeps immutable releases, LKG/dependency lock, and unforgeable historical pins",
+              "status": "passed",
+              "durationMs": 2061.082500000004
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery retains prepared evidence on finalize failure and converges idempotently on reopen",
+              "status": "passed",
+              "durationMs": 1571.1670999999988
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-prepare",
+              "status": "passed",
+              "durationMs": 781.754200000003
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-staging-fsync",
+              "status": "passed",
+              "durationMs": 865.4806000000026
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-pointer",
+              "status": "passed",
+              "durationMs": 1521.6623999999938
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-finalize",
+              "status": "passed",
+              "durationMs": 2829.169799999996
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects an exact-digest staged pointer replacement before publication",
+              "status": "passed",
+              "durationMs": 2215.343399999998
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects an exact-digest staged pointer in-place before publication",
+              "status": "passed",
+              "durationMs": 2117.058100000002
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs in-place tampering",
+              "status": "passed",
+              "durationMs": 2036.670600000005
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs replacement tampering",
+              "status": "passed",
+              "durationMs": 1789.7618000000002
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs unlink tampering",
+              "status": "passed",
+              "durationMs": 1536.850099999996
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks finalization when the authenticated target release changes after pointer publication",
+              "status": "passed",
+              "durationMs": 1271.9719999999943
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery fails closed across restart when committed release bytes change in an awaited hook",
+              "status": "passed",
+              "durationMs": 1281.097299999994
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects bounded canonical deep nesting without a RangeError",
+              "status": "passed",
+              "durationMs": 116.00539999999455
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects bounded canonical large node count without a RangeError",
+              "status": "passed",
+              "durationMs": 251.14999999999418
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery verifies the exact legacy v3 journal without treating it as recoverable evidence",
+              "status": "passed",
+              "durationMs": 1738.1912000000011
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery aborts a crash before authenticated prepare and releases stale ownership",
+              "status": "passed",
+              "durationMs": 559.1475999999966
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects replaying an authenticated cross-tenant intent and journal",
+              "status": "passed",
+              "durationMs": 905.2372999999934
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery does not activate a self-consistent public-hash journal absent from the trusted ledger",
+              "status": "passed",
+              "durationMs": 680.8782999999967
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: candidate A to B",
+              "status": "passed",
+              "durationMs": 594.6604999999981
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: dependency lock A to B",
+              "status": "passed",
+              "durationMs": 483.5573000000004
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: promote to rollback",
+              "status": "passed",
+              "durationMs": 602.7668999999878
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects unauthenticated ledger projections, pointer tampering, and symlink releases",
+              "status": "passed",
+              "durationMs": 1050.0521000000008
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery reclaims an expired journal-less lease and stale temporary debris",
+              "status": "passed",
+              "durationMs": 597.5923000000039
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery recovers a real process exit after pointer write through authority -> controller -> registry",
+              "status": "passed",
+              "durationMs": 2528.670299999998
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-observer-probe.json",
+      "note": "Targeted native diagnostic confirmed exact authority/ledger-v2.lock.release paths; other unit cases intentionally excluded by name filter",
+      "required": false,
+      "passed": 0,
+      "failed": 1,
+      "pending": 26,
+      "success": false,
+      "suites": [
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "failed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "failed",
+              "durationMs": 2243.7762999999977,
+              "error": "AssertionError: rmdirSync [[\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-rrsi-read-only-aSa8CF\\\\store\\\\authority\\\\ledger-v2.lock.release-a4788bc12628aeffc7a161df3e25c315\"],[\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-rrsi-read-only-aSa8CF\\\\store\\\\authority\\\\ledger-v2.lock.release-30c043a3571c342de44bf9da8622e4f1\"]]: expected [ …(45) ] to deeply equal []"
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks current native parent permissions when an existing binding reopens and never repairs them",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks both marker bytes after final inventory enumeration before returning an initial state",
+              "status": "skipped",
+              "durationMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-scope-verified.json",
+      "note": "52 native read-only and exact genuine transaction scope controls passed before the final unbound namespace guard tightening",
+      "required": false,
+      "passed": 52,
+      "failed": 0,
+      "pending": 0,
+      "success": true,
+      "suites": [
+        {
+          "name": "__tests__/integration/rrsi-registry-read-only-process.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process recaptures the original pair and opens genuine empty readers without Registry publication or policy locks",
+              "status": "passed",
+              "durationMs": 17603.2561
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process holds marker loss in a new process and rejects both unbound constructors before v1 bootstrap",
+              "status": "passed",
+              "durationMs": 5200.595700000005
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process retains a same-byte marker replacement on HOLD after process restart",
+              "status": "passed",
+              "durationMs": 3714.435400000002
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process preserves unknown recovery evidence without constructor cleanup in a new process",
+              "status": "passed",
+              "durationMs": 3716.717300000004
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/evolution-ledger-ports-v2.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "release domain ports bound to genuine v2 journals commits real promotions and rollback, then recovers exact Registry state through v2 ports",
+              "status": "passed",
+              "durationMs": 26709.9513
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals authenticates a real old receipt after cutover and blocks the original v1 writer",
+              "status": "passed",
+              "durationMs": 8084.9022
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects copied, inherited and proxied journals and keeps exact ledger/artifact ownership",
+              "status": "passed",
+              "durationMs": 13992.703199999996
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals never invokes caller-overridden bind/call properties on original artifact or genuine v2 methods",
+              "status": "passed",
+              "durationMs": 8286.361100000002
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals never dispatches through overrides on a genuinely constructed source subclass",
+              "status": "passed",
+              "durationMs": 8983.841600000007
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects foreign and anonymous audit tenants without rewriting or appending them",
+              "status": "passed",
+              "durationMs": 10378.508600000001
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals reports actual v2 retention failure after WAL commit and recovers the exact nonce once",
+              "status": "passed",
+              "durationMs": 8722.397800000006
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects corrupted retained v2 bytes even when the source WAL is still authentic",
+              "status": "passed",
+              "durationMs": 9731.582699999999
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/evolution-ledger-ports.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "EvolutionLedger domain ports uses one captured ledger for exact prepare/finalize subjects and stable idempotent projections",
+              "status": "passed",
+              "durationMs": 1821.2674
+            },
+            {
+              "name": "EvolutionLedger domain ports commits one authenticated legacy state baseline and extends it with normal finalize lineage",
+              "status": "passed",
+              "durationMs": 2134.4273000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects tampered state migration evidence before appending a ledger event",
+              "status": "passed",
+              "durationMs": 83.23689999999988
+            },
+            {
+              "name": "EvolutionLedger domain ports fails closed on transaction collisions and forged consumption audit heads",
+              "status": "passed",
+              "durationMs": 1133.634
+            },
+            {
+              "name": "EvolutionLedger domain ports derives current from contiguous tenant-and-Skill finalize lineages and keeps rollback candidate null",
+              "status": "passed",
+              "durationMs": 4797.1455
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects a release finalize revision gap without retaining invalid lineage evidence",
+              "status": "passed",
+              "durationMs": 1070.8882999999987
+            },
+            {
+              "name": "EvolutionLedger domain ports retains denied audits with honest nullable event fields and exact acknowledgements",
+              "status": "passed",
+              "durationMs": 333.58539999999994
+            },
+            {
+              "name": "EvolutionLedger domain ports claims a tenant/audience/nonce key once across two adapters and returns replay false",
+              "status": "passed",
+              "durationMs": 383.3585000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports recovers an exact nonce winner after ledger response loss, then reports replay false",
+              "status": "passed",
+              "durationMs": 333.51800000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports recovers a missing local artifact from exact durable bytes and fails closed when the replica is absent or changed",
+              "status": "passed",
+              "durationMs": 1837.5131999999994
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects Proxy and accessor inputs before invoking their traps",
+              "status": "passed",
+              "durationMs": 89.98400000000038
+            },
+            {
+              "name": "EvolutionLedger domain ports exposes an exact absent projection without inventing ledger identity fields",
+              "status": "passed",
+              "durationMs": 166.78919999999925
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "passed",
+              "durationMs": 11635.8358
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "passed",
+              "durationMs": 5370.3361
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "passed",
+              "durationMs": 4.30010000000766
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "passed",
+              "durationMs": 1798.772100000002
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "passed",
+              "durationMs": 4.300699999992503
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "passed",
+              "durationMs": 1.4802999999956228
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "passed",
+              "durationMs": 2.0625
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "passed",
+              "durationMs": 1.3555000000051223
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "passed",
+              "durationMs": 1.8224000000045635
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "passed",
+              "durationMs": 2.6445999999996275
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission requires the actual normalized artifact tenant, explicit audience and purpose even for genuine same-object transaction ports",
+              "status": "passed",
+              "durationMs": 3754.412400000001
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 2001.5267000000022
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 1955.4195999999938
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 33.220000000001164
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 30.645900000003166
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 3987.4633999999933
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 3992.746800000008
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2000.0204000000085
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2248.3733999999968
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2040.5412999999971
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2011.8996000000043
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2025.671599999987
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2003.6733999999997
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "passed",
+              "durationMs": 11.893000000010943
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "passed",
+              "durationMs": 4.8928000000014435
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "passed",
+              "durationMs": 631.4126000000106
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks current native parent permissions when an existing binding reopens and never repairs them",
+              "status": "passed",
+              "durationMs": 15225.462700000004
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks both marker bytes after final inventory enumeration before returning an initial state",
+              "status": "passed",
+              "durationMs": 478.5037000000011
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-namespace-final.json",
+      "note": "Final unbound helper/ancestor-race guards, native read-only and v1 Registry/History regression on the recorded source files",
+      "required": true,
+      "passed": 127,
+      "failed": 0,
+      "pending": 0,
+      "success": true,
+      "suites": [
+        {
+          "name": "__tests__/integration/rrsi-registry-read-only-process.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process recaptures the original pair and opens genuine empty readers without Registry publication or policy locks",
+              "status": "passed",
+              "durationMs": 15478.546799999996
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process holds marker loss in a new process and rejects both unbound constructors before v1 bootstrap",
+              "status": "passed",
+              "durationMs": 4778.946499999998
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process retains a same-byte marker replacement on HOLD after process restart",
+              "status": "passed",
+              "durationMs": 6560.710000000006
+            },
+            {
+              "name": "genuine Registry v2 component binding in a fresh Node process preserves unknown recovery evidence without constructor cleanup in a new process",
+              "status": "passed",
+              "durationMs": 4495.195000000007
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-history-binding.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine Registry History backend association binds exact v2=false backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 1474.0234
+            },
+            {
+              "name": "genuine Registry History backend association binds exact v2=true backend, registry, journal and artifact resolver without certifying cutover",
+              "status": "passed",
+              "durationMs": 11118.6392
+            },
+            {
+              "name": "genuine Registry History backend association preserves the original journal identity as valid unrelated events advance its head",
+              "status": "passed",
+              "durationMs": 11295.456400000003
+            },
+            {
+              "name": "genuine Registry History backend association rejects another real backend with identical tenant, descriptors and campaign",
+              "status": "passed",
+              "durationMs": 16955.1801
+            },
+            {
+              "name": "genuine Registry History backend association rejects a newly opened real artifact port object on the same physical store",
+              "status": "passed",
+              "durationMs": 9354.089099999997
+            },
+            {
+              "name": "genuine Registry History backend association rejects a different genuine resolver from the same port instance rather than comparing descriptors",
+              "status": "passed",
+              "durationMs": 9129.971700000002
+            },
+            {
+              "name": "genuine Registry History backend association rejects copied objects, callbacks, proxies and option accessors without invoking them",
+              "status": "passed",
+              "durationMs": 9484.8943
+            },
+            {
+              "name": "genuine Registry History backend association rechecks actual Registry marker bytes instead of relying on construction identity",
+              "status": "passed",
+              "durationMs": 11831.326400000005
+            },
+            {
+              "name": "genuine Registry History backend association refuses a damaged v2 retained payload even while the source WAL remains present",
+              "status": "passed",
+              "durationMs": 11018.911299999992
+            },
+            {
+              "name": "genuine Registry History backend association binds a real promoted parent and refuses stale parent state after genuine rollback",
+              "status": "passed",
+              "durationMs": 38137.58780000001
+            },
+            {
+              "name": "genuine Registry History backend association rejects a real PM bridge on another backend before attaching the v2 parent runtime",
+              "status": "passed",
+              "durationMs": 34530.40969999999
+            },
+            {
+              "name": "genuine Registry History backend association keeps subclass readers rejected and original recovery/read paths independent of subclass overrides",
+              "status": "passed",
+              "durationMs": 50186.5576
+            },
+            {
+              "name": "genuine Registry History backend association never reads attacker-controlled Registry bind properties and keeps genuine transaction methods frozen",
+              "status": "passed",
+              "durationMs": 1515.5663999999815
+            },
+            {
+              "name": "genuine Registry History backend association binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost",
+              "status": "passed",
+              "durationMs": 100181.60620000001
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/rrsi-registry-read-only.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "genuine v2 Registry read-only open before origin admission opens the exact physical pair and genuine readers without Registry/policy locks, ACL repair or runtime bootstrap",
+              "status": "passed",
+              "durationMs": 20488.4139
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission returns existing empty/not-found semantics only after physical revalidation",
+              "status": "passed",
+              "durationMs": 8962.6342
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds all public writes and migrations before writer lock, admission callback or capability access",
+              "status": "passed",
+              "durationMs": 9.830100000006496
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission keeps public candidate bootstrap helpers existing-only",
+              "status": "passed",
+              "durationMs": 3094.199800000002
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor candidate bindings",
+              "status": "passed",
+              "durationMs": 2.2796999999991385
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects copied, serialized, proxied and accessor release bindings",
+              "status": "passed",
+              "durationMs": 2.3377999999938766
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects a current v1 instance's public directory helper before it can create inside the reserved namespace",
+              "status": "passed",
+              "durationMs": 62.91340000000491
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects an unbound subclass's redirected canonical base before virtual helpers can initialize a reserved store",
+              "status": "passed",
+              "durationMs": 3.8801000000094064
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds candidate initialization when an ancestor alias changes after preflight (base existed: true)",
+              "status": "passed",
+              "durationMs": 20.756999999997788
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds release initialization when an ancestor alias changes after preflight (base existed: true)",
+              "status": "passed",
+              "durationMs": 16.4485999999888
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds candidate initialization when an ancestor alias changes after preflight (base existed: false)",
+              "status": "passed",
+              "durationMs": 15.417400000005728
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds release initialization when an ancestor alias changes after preflight (base existed: false)",
+              "status": "passed",
+              "durationMs": 13.94890000000305
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure candidate options before bootstrap",
+              "status": "passed",
+              "durationMs": 2.0993000000016764
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects cross-component, tenant, path, custom filesystem and insecure release options before bootstrap",
+              "status": "passed",
+              "durationMs": 1.400500000003376
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects subclasses before candidate override callbacks can initialize paths",
+              "status": "passed",
+              "durationMs": 1.367500000007567
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects forged transaction methods before getters and genuine ports from another journal or ArtifactPorts",
+              "status": "passed",
+              "durationMs": 2.467499999998836
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission requires the actual normalized artifact tenant, explicit audience and purpose even for genuine same-object transaction ports",
+              "status": "passed",
+              "durationMs": 6888.239300000001
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted candidate marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 4025.7341000000015
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not recreate a deleted release marker through a bound handle, unbound reopen or candidate bootstrap helper",
+              "status": "passed",
+              "durationMs": 4875.713000000018
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte candidate marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 92.75079999997979
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects same-byte release marker inode replacement on both readers",
+              "status": "passed",
+              "durationMs": 77.11000000001513
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated candidate roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 8067.079600000026
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds removed/replaced authenticated release roots without mkdir fallback",
+              "status": "passed",
+              "durationMs": 8014.329500000022
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered artifacts runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 3859.21179999999
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered active runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 3919.2531000000017
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered journals runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2945.959300000017
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered locks runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 3032.2020000000193
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered state-migrations runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2385.0495999999985
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission holds the unregistered staging runtime directory and retains its contents",
+              "status": "passed",
+              "durationMs": 2550.386599999998
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission does not classify injected candidate bytes as non-RRSI or admit a draft by filename",
+              "status": "passed",
+              "durationMs": 15.160799999983283
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects unbound filesystem aliases into the reserved pair even when the marker is absent",
+              "status": "passed",
+              "durationMs": 7.949200000002747
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rejects uncommitted or caller-nominated operation bindings",
+              "status": "passed",
+              "durationMs": 683.9824999999837
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks current native parent permissions when an existing binding reopens and never repairs them",
+              "status": "passed",
+              "durationMs": 25905.386300000013
+            },
+            {
+              "name": "genuine v2 Registry read-only open before origin admission rechecks both marker bytes after final inventory enumeration before returning an initial state",
+              "status": "passed",
+              "durationMs": 1013.6435000000056
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/skill-candidate-registry.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 waits for participating writer exclusion before hardening existing constructor directories",
+              "status": "passed",
+              "durationMs": 130.0902000000001
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 builds deterministic immutable v2 candidates with complete execution artifacts",
+              "status": "passed",
+              "durationMs": 17.08400000000006
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects secret and PII plaintext before any candidate artifact is written",
+              "status": "passed",
+              "durationMs": 154.17769999999996
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 captures a complete authenticated tenant inventory and rejects enumeration drift",
+              "status": "passed",
+              "durationMs": 225.56410000000005
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires explicit tenant construction and rejects tenant or context ambiguity",
+              "status": "passed",
+              "durationMs": 4.251100000000179
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 captures one immutable admission authority and rejects caller self-admission",
+              "status": "passed",
+              "durationMs": 272.30549999999994
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 separates identical candidate content and storage across tenants",
+              "status": "passed",
+              "durationMs": 241.22260000000006
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects self-consistent manifest and matrix substitutions against trusted admission",
+              "status": "passed",
+              "durationMs": 11.097099999999955
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 enforces derivation provenance and evidence before artifact admission",
+              "status": "passed",
+              "durationMs": 8.935099999999693
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 writes an exact tenant marker and reopens idempotently",
+              "status": "passed",
+              "durationMs": 200.2715000000003
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed when tenant roots or markers are swapped",
+              "status": "passed",
+              "durationMs": 105.78890000000001
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects wrong, symlinked, and hard-linked tenant markers",
+              "status": "passed",
+              "durationMs": 121.97550000000001
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects symlinked base and tenant directories before candidate writes",
+              "status": "passed",
+              "durationMs": 12.052999999999884
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed when bounded streaming directory enumeration is unavailable",
+              "status": "passed",
+              "durationMs": 5.9749000000001615
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 migrates an exact v1 draft into tenant v2 only with durable audit binding",
+              "status": "passed",
+              "durationMs": 255.46420000000035
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 batch-migrates a bounded unscoped v1 store without modifying its source",
+              "status": "passed",
+              "durationMs": 417.9962999999998
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires explicit migration for legacy roots and mixed candidate schemas",
+              "status": "passed",
+              "durationMs": 116.15700000000015
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies missing schema as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 63.19270000000006
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies unknown schema as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 61.37480000000005
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies invalid JSON as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 62.45739999999978
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 classifies corrupt Candidate v2 as unsafe rather than migration-required",
+              "status": "passed",
+              "durationMs": 62.39629999999988
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects Proxies, getters, and oversized candidate encodings before storage",
+              "status": "passed",
+              "durationMs": 237.21429999999964
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 publishes once, reads by digest, lists drafts, and never overwrites",
+              "status": "passed",
+              "durationMs": 199.23389999999972
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 requires ACL enforcement for base, tenant root, marker, and artifact",
+              "status": "passed",
+              "durationMs": 103.30649999999969
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 handles a competing identical publisher through exclusive hard-link CAS",
+              "status": "passed",
+              "durationMs": 119.1908999999996
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 rejects an equal-length in-place mutation in the final publication window",
+              "status": "passed",
+              "durationMs": 89.63459999999941
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan entries before reopening",
+              "status": "passed",
+              "durationMs": 109.67789999999968
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan bytes before reopening",
+              "status": "passed",
+              "durationMs": 3764.7623999999987
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 bounds aggregate tenant scan nodes before reopening",
+              "status": "passed",
+              "durationMs": 3324.038199999999
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 removes partial candidate writes without exposing marker or artifact debris",
+              "status": "passed",
+              "durationMs": 92.62850000000071
+            },
+            {
+              "name": "SkillCandidateRegistry tenant-scoped v2 fails closed on candidate tampering, symlinks, and hardlinks",
+              "status": "passed",
+              "durationMs": 110.54989999999998
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/skill-release-registry.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery pins non-link registry roots beneath a canonicalized ancestor alias",
+              "status": "passed",
+              "durationMs": 457.7660000000001
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery migrates an exact v3 release only through durable candidate and release audit bindings",
+              "status": "passed",
+              "durationMs": 4903.519400000001
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent binds committed release/content/revision without certifying deployment or stable quality",
+              "status": "passed",
+              "durationMs": 1854.7020000000011
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen revision",
+              "status": "passed",
+              "durationMs": 1287.2518999999993
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen stateDigest",
+              "status": "passed",
+              "durationMs": 1497.2623000000003
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects replaced frozen contentDigest",
+              "status": "passed",
+              "durationMs": 1567.2636999999995
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent refuses another tenant, Memory-policy and an absent active release",
+              "status": "passed",
+              "durationMs": 1912.6957000000002
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent detects a real committed transition and preserves the original captured reader",
+              "status": "passed",
+              "durationMs": 2628.9996999999985
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent preserves the initial frozen anchor when the registry LKG moves",
+              "status": "passed",
+              "durationMs": 3981.2327000000005
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI parent rejects accessor and Proxy composition before evaluating them",
+              "status": "passed",
+              "durationMs": 1402.4779000000017
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime shadow composes the existing host and keeps promotion and full admission unavailable",
+              "status": "passed",
+              "durationMs": 7793.458599999998
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime off denies direct bridge calls and enforced mode cannot fall back",
+              "status": "passed",
+              "durationMs": 6342.0288999999975
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime rechecks the live parent before reservation and keeps history readable",
+              "status": "passed",
+              "durationMs": 5897.800199999998
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime consumes a stale dispatch capability without reexecution or blocking independent reconciliation",
+              "status": "passed",
+              "durationMs": 8984.8874
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery RRSI runtime rechecks parent integrity after durable dispatch before invoking the host",
+              "status": "passed",
+              "durationMs": 9749.2621
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery captures all releases and active pointers and rejects enumeration drift",
+              "status": "passed",
+              "durationMs": 1537.9599000000017
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery creates an exact tenant marker and isolates identical releases and ledger projections",
+              "status": "passed",
+              "durationMs": 1571.7266999999993
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery fails closed on marker links/swaps, root swaps, and legacy or mixed layouts",
+              "status": "passed",
+              "durationMs": 400.6278999999995
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery persists the complete candidate execution contract and rejects artifact substitution",
+              "status": "passed",
+              "durationMs": 828.9354999999923
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery keeps immutable releases, LKG/dependency lock, and unforgeable historical pins",
+              "status": "passed",
+              "durationMs": 2152.8387000000075
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery retains prepared evidence on finalize failure and converges idempotently on reopen",
+              "status": "passed",
+              "durationMs": 1227.698000000004
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-prepare",
+              "status": "passed",
+              "durationMs": 834.2125000000087
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-staging-fsync",
+              "status": "passed",
+              "durationMs": 893.9876999999979
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-pointer",
+              "status": "passed",
+              "durationMs": 1253.9453000000067
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery converges the authenticated transaction after a crash at after-finalize",
+              "status": "passed",
+              "durationMs": 1721.6272000000026
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects an exact-digest staged pointer replacement before publication",
+              "status": "passed",
+              "durationMs": 1126.910699999993
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects an exact-digest staged pointer in-place before publication",
+              "status": "passed",
+              "durationMs": 1088.3107000000018
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs in-place tampering",
+              "status": "passed",
+              "durationMs": 957.4519999999902
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs replacement tampering",
+              "status": "passed",
+              "durationMs": 859.1658999999927
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks ledger finalization when the after-pointer hook performs unlink tampering",
+              "status": "passed",
+              "durationMs": 674.5746999999974
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery blocks finalization when the authenticated target release changes after pointer publication",
+              "status": "passed",
+              "durationMs": 872.0481
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery fails closed across restart when committed release bytes change in an awaited hook",
+              "status": "passed",
+              "durationMs": 1205.8571000000084
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects bounded canonical deep nesting without a RangeError",
+              "status": "passed",
+              "durationMs": 126.4042000000045
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects bounded canonical large node count without a RangeError",
+              "status": "passed",
+              "durationMs": 170.59640000000945
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery verifies the exact legacy v3 journal without treating it as recoverable evidence",
+              "status": "passed",
+              "durationMs": 1243.4477999999945
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery aborts a crash before authenticated prepare and releases stale ownership",
+              "status": "passed",
+              "durationMs": 586.9707000000053
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects replaying an authenticated cross-tenant intent and journal",
+              "status": "passed",
+              "durationMs": 808.7228000000032
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery does not activate a self-consistent public-hash journal absent from the trusted ledger",
+              "status": "passed",
+              "durationMs": 589.1692999999941
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: candidate A to B",
+              "status": "passed",
+              "durationMs": 546.850099999996
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: dependency lock A to B",
+              "status": "passed",
+              "durationMs": 509.31159999998636
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects a self-consistent public-hash intent substitution: promote to rollback",
+              "status": "passed",
+              "durationMs": 479.0969000000041
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery rejects unauthenticated ledger projections, pointer tampering, and symlink releases",
+              "status": "passed",
+              "durationMs": 713.9109000000026
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery reclaims an expired journal-less lease and stale temporary debris",
+              "status": "passed",
+              "durationMs": 421.141100000008
+            },
+            {
+              "name": "SkillReleaseRegistry authenticated transaction recovery recovers a real process exit after pointer write through authority -> controller -> registry",
+              "status": "passed",
+              "durationMs": 1656.6656000000075
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-ports-final.json",
+      "note": "Final Ledger transaction ports regression on the recorded source files",
+      "required": true,
+      "passed": 20,
+      "failed": 0,
+      "pending": 0,
+      "success": true,
+      "suites": [
+        {
+          "name": "__tests__/unit/evolution-ledger-ports-v2.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "release domain ports bound to genuine v2 journals commits real promotions and rollback, then recovers exact Registry state through v2 ports",
+              "status": "passed",
+              "durationMs": 24234.2347
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals authenticates a real old receipt after cutover and blocks the original v1 writer",
+              "status": "passed",
+              "durationMs": 8493.309099999999
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects copied, inherited and proxied journals and keeps exact ledger/artifact ownership",
+              "status": "passed",
+              "durationMs": 13476.973700000002
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals never invokes caller-overridden bind/call properties on original artifact or genuine v2 methods",
+              "status": "passed",
+              "durationMs": 8307.509199999993
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals never dispatches through overrides on a genuinely constructed source subclass",
+              "status": "passed",
+              "durationMs": 7947.349100000007
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects foreign and anonymous audit tenants without rewriting or appending them",
+              "status": "passed",
+              "durationMs": 8127.919900000008
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals reports actual v2 retention failure after WAL commit and recovers the exact nonce once",
+              "status": "passed",
+              "durationMs": 7672.359400000001
+            },
+            {
+              "name": "release domain ports bound to genuine v2 journals rejects corrupted retained v2 bytes even when the source WAL is still authentic",
+              "status": "passed",
+              "durationMs": 7379.608999999997
+            }
+          ]
+        },
+        {
+          "name": "__tests__/unit/evolution-ledger-ports.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "EvolutionLedger domain ports uses one captured ledger for exact prepare/finalize subjects and stable idempotent projections",
+              "status": "passed",
+              "durationMs": 1704.7428000000002
+            },
+            {
+              "name": "EvolutionLedger domain ports commits one authenticated legacy state baseline and extends it with normal finalize lineage",
+              "status": "passed",
+              "durationMs": 2425.6754
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects tampered state migration evidence before appending a ledger event",
+              "status": "passed",
+              "durationMs": 93.19000000000051
+            },
+            {
+              "name": "EvolutionLedger domain ports fails closed on transaction collisions and forged consumption audit heads",
+              "status": "passed",
+              "durationMs": 1217.9282000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports derives current from contiguous tenant-and-Skill finalize lineages and keeps rollback candidate null",
+              "status": "passed",
+              "durationMs": 4581.252400000001
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects a release finalize revision gap without retaining invalid lineage evidence",
+              "status": "passed",
+              "durationMs": 1046.0033000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports retains denied audits with honest nullable event fields and exact acknowledgements",
+              "status": "passed",
+              "durationMs": 318.7566999999999
+            },
+            {
+              "name": "EvolutionLedger domain ports claims a tenant/audience/nonce key once across two adapters and returns replay false",
+              "status": "passed",
+              "durationMs": 346.15450000000055
+            },
+            {
+              "name": "EvolutionLedger domain ports recovers an exact nonce winner after ledger response loss, then reports replay false",
+              "status": "passed",
+              "durationMs": 281.1746000000003
+            },
+            {
+              "name": "EvolutionLedger domain ports recovers a missing local artifact from exact durable bytes and fails closed when the replica is absent or changed",
+              "status": "passed",
+              "durationMs": 1485.8544999999995
+            },
+            {
+              "name": "EvolutionLedger domain ports rejects Proxy and accessor inputs before invoking their traps",
+              "status": "passed",
+              "durationMs": 57.04650000000038
+            },
+            {
+              "name": "EvolutionLedger domain ports exposes an exact absent projection without inventing ledger identity fields",
+              "status": "passed",
+              "durationMs": 73.88470000000052
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-policy-final.json",
+      "note": "Final policy containment regression; other cases intentionally excluded by the committed fresh pair readback and containment name filter",
+      "required": true,
+      "passed": 5,
+      "failed": 0,
+      "pending": 20,
+      "success": true,
+      "suites": [
+        {
+          "name": "__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment retains three ordered phases and installs independent v2 floors",
+              "status": "passed",
+              "durationMs": 110.42199999999866
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment idempotently recovers and genuinely reopens only the original physical pair with branded handles",
+              "status": "passed",
+              "durationMs": 7435.796900000001
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment verifies native private permissions and rejects current unbound constructors before initialization",
+              "status": "passed",
+              "durationMs": 4760.0003
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment cannot reset the registered operation or select a different parent",
+              "status": "passed",
+              "durationMs": 684.2583000000013
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment rejects nesting a second policy inside Registry or pair storage",
+              "status": "passed",
+              "durationMs": 11382.520100000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction unregistered provisioning input rejection rejects caller-selected roots, invalid parents and protected Ledger storage before allocation",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rechecks Registry ancestry after native parent inspection before creating a pair",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "location": ".work/rrsi-registry-read-only-policy-regression.json",
+      "note": "Five policy containment cases passed before the final unbound helper/ancestor-race tightening; other cases intentionally excluded by name filter",
+      "required": false,
+      "passed": 5,
+      "failed": 0,
+      "pending": 20,
+      "success": true,
+      "suites": [
+        {
+          "name": "__tests__/unit/rrsi-registry-store-policy.test.js",
+          "status": "passed",
+          "assertions": [
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment retains three ordered phases and installs independent v2 floors",
+              "status": "passed",
+              "durationMs": 117.46919999999955
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment idempotently recovers and genuinely reopens only the original physical pair with branded handles",
+              "status": "passed",
+              "durationMs": 7547.0933
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment verifies native private permissions and rejects current unbound constructors before initialization",
+              "status": "passed",
+              "durationMs": 4407.652000000002
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment cannot reset the registered operation or select a different parent",
+              "status": "passed",
+              "durationMs": 713.2871999999988
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction committed fresh pair readback and containment rejects nesting a second policy inside Registry or pair storage",
+              "status": "passed",
+              "durationMs": 12057.869500000008
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects v1, copied graphs, alternate genuine resolvers, proxies, accessors and caller fields before allocation",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction unregistered provisioning input rejection rejects caller-selected roots, invalid parents and protected Ledger storage before allocation",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rechecks Registry ancestry after native parent inspection before creating a pair",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed candidate marker or accepts a same-bytes replacement",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction never repairs a missing committed release marker or accepts a same-bytes replacement",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction rejects directory replacement, lowered marker floors and unknown bootstrap files",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction preserves the v2 winner and private debris when the second marker publication fails",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction cannot overwrite a v1 initializer winner between marker staging and atomic link",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers prepared only when both original single-link markers were fully installed",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 2 after a real manifest head commit loses its response",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction recovers retained phase 3 after a real manifest head commit loses its response",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction keeps a retained prepared operation without markers on HOLD after response loss",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction retains orphans from failed allocation and never adopts caller-selected debris",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction requires dedicated ledger-retained artifacts and rejects signed out-of-order policy records",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction releases its operation lock after rejection and uses genuine live policy handles only",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction checks parent permissions before allocation and on reopen without repairing caller storage",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-mkdir and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-open and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-write and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "authenticated fresh Registry provisioning before Registry construction stops new mutations after ownership is lost at before-temp-acl and leaves the new owner untouched",
+              "status": "skipped",
+              "durationMs": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "interruptedRun": {
+    "location": ".work/rrsi-registry-read-only-namespace-verified.json",
+    "reason": "Astra found six new cases declared inside an existing test callback; stopped only the verified owned runner and worker, moved declarations to describe scope, then recollected and reran",
+    "countedAsPassingEvidence": false
+  },
+  "verification": {
+    "eslint": "passed",
+    "prettier": "passed",
+    "astraReview": "completed, fixes applied"
+  },
+  "limitations": [
+    "Local fixtures use test HMAC and replica authorities; no production key custody or remote durability assertion",
+    "No authenticated runtime-directory initialization attachment or content-origin admission exists yet",
+    "Only complete marker-only pairs are readable; injected business content or runtime directories remain HOLD",
+    "Current constructor guards do not prove all historical binaries, inherited handles or future legacy writers are drained",
+    "Normal v2 journal reads may write maintenance locks or recover already authorized WAL/checkpoints",
+    "Bookended physical verification is not a cross-file atomic snapshot or physical power-loss proof",
+    "Long-lived read handles verify physical identity and history; parent private permissions are checked anew when opening",
+    "No Linux/macOS workflow matrix, production experiment, real model/cost trial or release verification was run"
+  ],
+  "originCutoverAuthenticated": false,
+  "originClassificationAvailable": false,
+  "legacyWriterDrainVerified": false,
+  "productionAuthorityVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "readyForExecution": false,
+  "qualifiesForPromotion": false
+}

@@ -33,6 +33,7 @@
     "./business-object-contract": "./lib/business-object-contract.js",
     "./organization-project-authority": "./lib/organization-project-authority.js",
     "./organization-project-approval-service": "./lib/organization-project-approval-service.js",
+    "./organization-project-proposal-store": "./lib/organization-project-proposal-store.js",
     "./organization-task-action-service": "./lib/organization-task-action-service.js",
     "./goal-contract": "./lib/goal-contract.js",
     "./goal-repository": "./lib/goal-repository.js",

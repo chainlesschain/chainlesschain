@@ -32,6 +32,7 @@ import {
 } from "./evolution-artifact-ports.js";
 import { deriveSkillCandidateTenantKey } from "./skill-candidate-registry.js";
 import { deriveSkillReleaseTenantKey } from "./skill-release-registry.js";
+import { captureSkillReleaseOperationReader } from "./evolution-ledger-ports.js";
 import {
   snapshotRrsiData,
   rrsiExact,
@@ -56,6 +57,7 @@ const EVENT_SCHEMA = "chainlesschain.rrsi-registry-store-policy-event/v1";
 const PREPARED_SCHEMA = "chainlesschain.rrsi-registry-store-prepared/v1";
 const PHASES = ["prepared", "markers-installed", "committed"];
 const POLICIES = new WeakMap();
+const COMPONENT_BINDINGS = new WeakMap();
 const ORIGIN_POLICY = freezeRrsiData({
   schema: "chainlesschain.rrsi-registry-origin-policy/v1",
   revision: 1,
@@ -65,8 +67,14 @@ const ORIGIN_POLICY = freezeRrsiData({
   originAdmissionImplemented: false,
 });
 const ORIGIN_POLICY_DIGEST = rrsiHash(ORIGIN_POLICY.schema, ORIGIN_POLICY);
-const hold = (message) =>
-  rrsiFail(message, RRSI_REGISTRY_STORE_POLICY_HOLD_CODE);
+function hold(message, cause) {
+  try {
+    rrsiFail(message, RRSI_REGISTRY_STORE_POLICY_HOLD_CODE);
+  } catch (error) {
+    if (cause) error.cause = cause;
+    throw error;
+  }
+}
 const canonicalPath = (value) =>
   process.platform === "win32" ? value.toLowerCase() : value;
 const physicalIdentity = (stat) => `${String(stat.dev)}:${String(stat.ino)}`;
@@ -353,8 +361,16 @@ function assertLayout(prepared, markerPresence, ownTemporary = null) {
   }
   prepared.directories.forEach(assertDirectory);
 }
-function markerProof(prepared) {
-  assertLayout(prepared, [true, true]);
+function assertImmutableBoundary(prepared) {
+  assertDirectory(prepared.parent);
+  prepared.directories.forEach(assertDirectory);
+}
+function markerProof(prepared, boundaryOnly = false) {
+  const check = () =>
+    boundaryOnly
+      ? assertImmutableBoundary(prepared)
+      : assertLayout(prepared, [true, true]);
+  check();
   const markers = Object.fromEntries(
     ["candidate", "release"].map((name) => {
       const expected = markerFor(prepared, name);
@@ -369,7 +385,7 @@ function markerProof(prepared) {
       ];
     }),
   );
-  assertLayout(prepared, [true, true]);
+  check();
   return markers;
 }
 
@@ -855,11 +871,16 @@ export function createRrsiRegistryStorePolicy(input) {
     if (final.identity !== staged.identity || !final.bytes.equals(bytes))
       hold("store marker final readback differs");
   }
-  function status(state, operationId) {
+  function status(
+    state,
+    operationId,
+    { boundaryOnly = false, verifyPermissions = true } = {},
+  ) {
     if (!state.prepared || state.prepared.operationId !== operationId)
       hold("store provisioning operation is unregistered");
-    assertPrivateParent(state.prepared.parent);
-    const actual = markerProof(state.prepared);
+    if (verifyPermissions) assertPrivateParent(state.prepared.parent);
+    else assertDirectory(state.prepared.parent);
+    const actual = markerProof(state.prepared, boundaryOnly);
     if (state.proof && !equal(actual, state.proof))
       hold("installed marker physical identity changed");
     if (!equal(state.head, headData(methods.verify())))
@@ -921,6 +942,148 @@ export function createRrsiRegistryStorePolicy(input) {
   load();
   const policy = Object.freeze({
     descriptor,
+    bindComponent(input) {
+      const request = snapshotRrsiData(input);
+      rrsiExact(
+        request,
+        ["operationId", "component"],
+        "Registry component binding",
+      );
+      rrsiId(request.operationId, "provision operation ID");
+      if (!["candidate", "release"].includes(request.component))
+        rrsiFail("Registry binding component is invalid");
+      // Do not take a policy operation lock or repair any Registry path. The
+      // retained head and both physical markers bookend this read-only open.
+      let original;
+      try {
+        original = status(load(), request.operationId);
+      } catch (cause) {
+        if (["ENOENT", "ENOTDIR"].includes(cause?.code))
+          hold("an authenticated Registry binding boundary is missing", cause);
+        throw cause;
+      }
+      if (!original.freshPhysicalPairProvisioningCommitted)
+        hold("Registry requires committed fresh store provisioning");
+      const prepared = original.prepared;
+      const component = request.component;
+      const store = prepared[component];
+      const peer =
+        prepared[component === "candidate" ? "release" : "candidate"];
+      const componentDescriptor = freezeRrsiData({
+        schema: "chainlesschain.rrsi-registry-component-binding/v1",
+        operationId: request.operationId,
+        component: `skill-${component}-registry`,
+        tenantId: prepared.tenantId,
+        ...store,
+        peerStoreId: peer.storeId,
+        journalIdentity: prepared.journalIdentity,
+        committedRecordDigest: original.records.at(-1).recordDigest,
+        writerFloor: RRSI_REGISTRY_STORE_WRITER_FLOOR,
+        registryRuntimeMode: "uninitialized-read-only",
+        persistentStoreIdentityAuthenticated: true,
+        originCutoverAuthenticated: false,
+        originClassificationAvailable: false,
+        grantsMutationOrPromotionAuthority: false,
+      });
+      function recheckUnchecked() {
+        // Invalid existing physical state needs no journal recovery or locks.
+        assertLayout(prepared, [true, true]);
+        if (!equal(markerProof(prepared, true), original.markers))
+          hold("Registry marker identity changed after capture");
+        const result = status(load(), request.operationId, {
+          boundaryOnly: true,
+          verifyPermissions: false,
+        });
+        if (
+          !equal(result.prepared, prepared) ||
+          !equal(result.markers, original.markers) ||
+          !equal(result.records, original.records)
+        )
+          hold("Registry component binding changed after capture");
+        // No origin or runtime attachment exists yet. Unknown content and
+        // even empty runtime containers remain HOLD, with no adoption/cleanup.
+        assertLayout(prepared, [true, true]);
+        if (!equal(markerProof(prepared, true), original.markers))
+          hold("Registry markers changed during uninitialized inventory read");
+        if (!equal(result.currentHead, headData(methods.verify())))
+          hold("Registry journal changed during uninitialized inventory read");
+        return result;
+      }
+      function recheck() {
+        try {
+          return recheckUnchecked();
+        } catch (cause) {
+          if (["ENOENT", "ENOTDIR"].includes(cause?.code))
+            hold("an authenticated Registry boundary is missing", cause);
+          throw cause;
+        }
+      }
+      const componentBinding = Object.freeze({
+        descriptor: componentDescriptor,
+      });
+      COMPONENT_BINDINGS.set(
+        componentBinding,
+        Object.freeze({
+          descriptor: componentDescriptor,
+          boundaries: freezeRrsiData({
+            base: prepared.directories.find(
+              (entry) => entry.path === store.baseDir,
+            ),
+            tenants: prepared.directories.find(
+              (entry) => entry.path === path.dirname(store.rootDir),
+            ),
+            tenantRoot: prepared.directories.find(
+              (entry) => entry.path === store.rootDir,
+            ),
+          }),
+          marker: freezeRrsiData({
+            identity: original.markers[component].identity,
+            marker: markerFor(prepared, component),
+          }),
+          recheck,
+          recheckForOpen() {
+            try {
+              assertPrivateParent(prepared.parent);
+              return recheck();
+            } catch (cause) {
+              if (["ENOENT", "ENOTDIR"].includes(cause?.code))
+                hold(
+                  "an authenticated Registry open boundary is missing",
+                  cause,
+                );
+              throw cause;
+            }
+          },
+          matchesPolicy: (value) => value === policy,
+          assertTransactionLedger(value) {
+            let reader;
+            try {
+              reader = captureSkillReleaseOperationReader(value);
+            } catch (cause) {
+              hold("a genuine Registry transaction port is required", cause);
+            }
+            if (
+              !reader.matchesLedger(ledger) ||
+              !reader.matchesArtifactPorts(options.artifactPorts) ||
+              !equal(reader.scope, {
+                artifactTenantId: descriptor.artifactTenantId,
+                audience: descriptor.audience,
+                purpose: descriptor.purpose,
+              })
+            )
+              hold(
+                "Registry transaction ports require the original journal, artifact ports and exact scope",
+              );
+          },
+          assertMutationAllowed() {
+            hold(
+              "Registry origin admission and runtime initialization are not implemented",
+            );
+          },
+        }),
+      );
+      return componentBinding;
+    },
     provisionFresh(input) {
       const request = snapshotRrsiData(input);
       rrsiExact(
@@ -984,4 +1147,38 @@ export function captureRrsiRegistryStorePolicy(value) {
   const captured = POLICIES.get(value);
   if (!captured) rrsiFail("a genuine Registry store policy is required");
   return captured;
+}
+
+export function captureRrsiRegistryComponentBinding(value) {
+  const captured = COMPONENT_BINDINGS.get(value);
+  if (!captured) hold("a genuine Registry component binding is required");
+  return captured;
+}
+
+/** Current v1 constructors must never bootstrap in the reserved fresh namespace,
+ * including after marker loss and through a canonical filesystem alias. */
+export function assertOutsideRrsiRegistryNamespace(baseDir) {
+  const reserved = (value) =>
+    value.split(/[\\/]/u).some((part) => /^pair\.[a-f0-9-]{36}$/iu.test(part));
+  const requested = path.resolve(baseDir);
+  if (reserved(requested))
+    hold(
+      "reserved v2 Registry namespace requires its genuine component binding",
+    );
+  for (let current = requested; ; current = path.dirname(current)) {
+    try {
+      const target = path.resolve(
+        fs.realpathSync.native(current),
+        path.relative(current, requested),
+      );
+      if (reserved(target))
+        hold(
+          "reserved v2 Registry namespace cannot be opened through an unbound alias",
+        );
+      return target;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      if (current === path.dirname(current)) throw error;
+    }
+  }
 }
