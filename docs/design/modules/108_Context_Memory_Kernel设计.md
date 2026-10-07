@@ -1,6 +1,6 @@
 # 108 Context/Memory Kernel 设计
 
-> **2026-10-08 增量**：公开 Kernel `0.1.7` 随 CLI `0.166.92` 配对，发行提交 `e812a89952` 已含 `NativeSqliteMemoryPort` 和个人目标授权记忆服务/IPC。主线 `381f8018ef` 另接入个人记忆操作面板与组织共享记忆；目标只保存精确版本引用，修正/撤权/删除先阻止读取并保留恢复身份，尚未自动注入模型回答。原 Kernel 的 production-close 证据保持其原身份，不为新业务面授予验收资格。见[授权记忆设计](../governance-runtime-update-2026-10-08.md)。
+> **2026-10-08 增量**：公开 Kernel `0.1.7` 随 CLI `0.166.92` 配对，发行提交 `e812a89952` 已含 `NativeSqliteMemoryPort` 和个人目标授权记忆服务/IPC。主线 `381f8018ef` 另接入个人记忆操作面板与组织共享记忆；目标只保存精确版本引用，修正创建 successor 并切换授权引用；撤权/删除先阻止读取，操作保留原请求恢复身份。尚未自动注入模型回答。原 Kernel 的 production-close 证据保持其原身份，不为新业务面授予验收资格。见[授权记忆设计](../governance-runtime-update-2026-10-08.md)。
 
 > 2026-09-01 历史状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.15`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-09-01
 
