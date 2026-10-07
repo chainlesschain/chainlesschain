@@ -1,0 +1,224 @@
+{
+  "schema": "chainlesschain.rrsi-registry-history-local-controls/v1",
+  "recordedAt": "2026-10-07T03:14:51.915Z",
+  "baseCommit": "8909cd13dd4b34725f49e53591fcfb35c63e5555",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "workingTreeCodeHashes": [
+    {
+      "file": "packages/cli/__tests__/fixtures/rrsi-pm-bridge.js",
+      "digest": "sha256:b083d2e158f100f88f0f21f02700f7d6319d1b27692457bafb4fad7f9cfd003a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-ledger-ports-v2.test.js",
+      "digest": "sha256:be1610d6d8cbdac13557dee5c0ec1f5257c7ac2190d4b57f09510ac03b6d219b"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-workbench-file-resources.test.js",
+      "digest": "sha256:9fcc297f49f4ca35f1b9bf273a764577b044d1a0a8aea822dfbe44adb4f8a304"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+      "digest": "sha256:29c6cec486fa1c703701432d1fbf2dfceb46af9c12aa275c3cc6fe2ceb98c05f"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "digest": "sha256:1062fb227412770ebf4dc463b2ca3a5d7b629d372330cb64f990a5cc850591d4"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+      "digest": "sha256:0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger-ports.js",
+      "digest": "sha256:3612b5415a015a2c431e25c337415cd7369cb209d48a997fa767cc156587616c"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+      "digest": "sha256:01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-workbench-file-resources.js",
+      "digest": "sha256:d830cce5fdd83cc58f5ad7c7e3091d8aa53dfb44c99e3eefbfcddff936f39e95"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-parent-binding.js",
+      "digest": "sha256:ec7f2322b47cd7714fa3f9073f081765de685267b909dd83ac0c48308211b2e8"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-pm-execution-bridge.js",
+      "digest": "sha256:1c59f0862c5994c3f03a98857279d9bc79264810ac0924f333e998d160fe87d5"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/rrsi-registry-history-binding.js",
+      "digest": "sha256:25f3d1ed5a54b9a85ec8323553a197d6f0968aea830d6b29957e2e1af7fc149a"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/skill-release-registry.js",
+      "digest": "sha256:4ba527d783177c8069d245b0142ccce8c2d34f105ac0bdefb8672fb06811f397"
+    }
+  ],
+  "sourceReports": [
+    {
+      "file": ".work/rrsi-registry-history-binding-final-tests.json",
+      "digest": "sha256:98cd172b35a74e2e3fc827a3373a6d95b01775b187ec720c27cb7496be5bb7fc"
+    },
+    {
+      "file": ".work/rrsi-registry-history-regression-final-tests.json",
+      "digest": "sha256:3e712587d1553ae2facc1e33077307f14033a6e3b48b75bd94357a2ec50e66f2"
+    }
+  ],
+  "suites": [
+    {
+      "report": ".work/rrsi-registry-history-binding-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-ledger-ports-v2.test.js",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 96801.74145507812
+    },
+    {
+      "report": ".work/rrsi-registry-history-binding-final-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 254679.310546875
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/integration/rrsi-pm-bridge-process.test.js",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 27862.6630859375
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "passed": 42,
+      "failed": 0,
+      "skipped": 1,
+      "durationMs": 27886.28173828125
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-ledger-file-backend.test.js",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 281.712158203125
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-ledger-ports.test.js",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 13899.351806640625
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 131910.34423828125
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/evolution-workbench-file-resources.test.js",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 19863.43701171875
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/rrsi-pm-execution-bridge.test.js",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 57381.885986328125
+    },
+    {
+      "report": ".work/rrsi-registry-history-regression-final-tests.json",
+      "file": "packages/cli/__tests__/unit/skill-release-registry.test.js",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 57399.724365234375
+    }
+  ],
+  "totals": {
+    "independentPassed": 170,
+    "failed": 0,
+    "skipped": 1,
+    "newCases": 22,
+    "existingWorkbenchCaseExpanded": true
+  },
+  "validation": {
+    "eslintPassed": true,
+    "prettierPassed": true,
+    "astraReviewCompleted": true,
+    "fixturesUseRealLocalFilesAndTestAuthorities": true,
+    "backendCompositionControlsVerified": true,
+    "sameV2HistoryPmDispatchTested": true,
+    "chargedUnknownAccountingPreserved": true,
+    "productionAuthorityVerified": false,
+    "registryStoreIdentityAuthenticated": false,
+    "originCutoverAuthenticated": false,
+    "originClassificationAvailable": false,
+    "statisticalCalibrationValidated": false,
+    "realModelExperimentRun": false,
+    "actualCostOrCleanupVerified": false,
+    "supportsEnforcedMode": false,
+    "qualifiesForPromotion": false,
+    "crossPlatformReleaseGatePassed": false,
+    "oldRegistryBinaryExecuted": false,
+    "physicalPowerLossTested": false
+  },
+  "firstRun": {
+    "file": ".work/rrsi-registry-history-binding-first-tests.json",
+    "digest": "sha256:4269c1a04e17c61e1a55c5d1effd0a62961d8e0beeeabbc020a5e6824d412948",
+    "passed": 11,
+    "failed": 3,
+    "skipped": 0,
+    "failures": [
+      {
+        "title": "genuine Registry History backend association uses private reads on a real Registry subclass and refuses its stale promoted parent after rollback",
+        "failureMessages": [
+          "TypeError: a genuine SkillReleaseRegistry reader is required\n    at captureSkillReleaseRegistryReader (C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-release-registry.js:72:11)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js:425:20\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ]
+      },
+      {
+        "title": "genuine Registry History backend association never reads attacker-controlled bind properties on Registry reader or genuine transaction methods",
+        "failureMessages": [
+          "TypeError: Cannot define property bind, object is not extensible\n    at Function.defineProperty (<anonymous>)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js:468:14\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+        ]
+      },
+      {
+        "title": "genuine Registry History backend association binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost",
+        "failureMessages": [
+          "Error: overridden Registry function.bind executed\n    at Function.get (C:/code/chainlesschain/packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js:472:17)\n    at new SkillPromotionController (C:/code/chainlesschain/packages/cli/src/lib/evolution/skill-promotion-controller.js:340:49)\n    at openRevocationReleaseRegistry (C:/code/chainlesschain/packages/cli/__tests__/fixtures/skill-revocation-release-registry.js:319:22)\n    at parentFixture (C:/code/chainlesschain/packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js:125:26)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/rrsi-registry-history-binding.test.js:503:25\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/Users/longfa/AppData/Local/npm-cache/_npx/22a37d7f6d01a684/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+        ]
+      }
+    ],
+    "explanation": "Two test assumptions were corrected: the existing Registry capture already rejects subclasses, and genuine transaction methods are frozen. A failed property-install loop initially polluted the following PM case. Installation now runs inside try/finally with exact cleanup. No production validation or timeout was relaxed; final full-file reruns are authoritative."
+  },
+  "platformConditionalSkips": [
+    {
+      "file": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "title": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+      "reason": "Existing runIf(process.platform !== win32) file-symlink replacement case; no new skip was added"
+    }
+  ],
+  "limitations": [
+    "Current object/backend association is not a permanent authenticated origin policy or Registry cutover.",
+    "Existing v1 shadow composition remains available; enforced/Review/Pilot/Promotion origin gates are still pending.",
+    "V2 readback may recover an already authorized WAL suffix and is not a no-write or atomic dispatch snapshot.",
+    "Local callback keys and persisted retention fixtures do not certify production WORM, source independence, quality, actual cost or cleanup.",
+    "Candidate/release markers remain v1. Upgrading them requires authenticated writer exclusion, cross-store recovery and explicit compatibility for old artifact bytes."
+  ]
+}

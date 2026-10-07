@@ -354,4 +354,6 @@ Release Registry 的 readRelease、readState、readActive、readInventory 改为
 
 所有新增输出仍为 originCutoverAuthenticated:false、registryStoreIdentityAuthenticated:false、originClassificationAvailable:false、productionAuthorityVerified:false；不授予晋级或 enforced 权限。它们只证明当前组合中的对象与存储关联，尚不证明永久来源约束、受信模式登记、生产权威、旧稳定版本豁免或跨存储 cutover。后续必须在真正候选公开前按 tenant＋实际 contentDigest 登记来源，在 Release transition lease 内再次核验，并将 writer floor、prepared/markers-installed/committed 恢复与真实维护排空接入两个 Registry。可删除的 sidecar 和 quiescent:true 声明不能替代该边界。
 
-本批最终验证正在执行；完成后保存逐文件结果、源码摘要与首轮测试修正记录。
+本批验证已完成：新增关联与 v2 端口两个完整文件 **22/22**，八个旧行为/恢复文件 **148 项通过**，合计 **170 项通过**、零失败。ArtifactPorts 原有 file-symlink 用例使用 runIf(process.platform !== "win32")，在本机 Windows 跳过 1 项；没有新增 skip。覆盖真实 promotion/rollback/reopen、留存服务故障后的 unknown、已提交旧 receipt、旧 writer 屏障、真实 source 子类与路径覆写、同物理路径对象替换、marker/载荷损坏、同 History PM 派发与回滚后拒绝，以及真实 PM 进程退出/重开。
+
+新增 22 项，扩展原 Workbench 独立 reader 用例。首轮关联文件 11 项通过、3 项失败：两项测试错误地假设 subclass reader 可被捕获、已冻结的 transaction 函数可安装属性，第三项受属性安装失败后的清理遗漏影响。保持原可信类型边界，纠正这些测试，并将安装和清理置于 try/finally 后完整复测通过；未放宽生产校验或任何既有时限。该 subclass 用例在已提交的真实存储上构造并走原恢复入口，不声称它独立覆盖 pending-journal 故障；原 Registry 和 v2 Journal 的完整恢复套件另外验证该类故障。ESLint、Prettier 与 Astra 最终复核通过，逐文件结果、源码摘要、首轮错误与平台跳过原因见 [存储关联验证记录](./evidence/rrsi-registry-history-local-controls-2026-10-07.json)。全部证据为本地控制，不替代真实来源、费用、统计校准、生产晋级或准确提交的跨平台发行门。
