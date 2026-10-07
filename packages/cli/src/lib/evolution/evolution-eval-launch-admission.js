@@ -15,6 +15,7 @@ import {
   captureEvolutionEvalLedger,
   readEvolutionEvalLedger,
 } from "./evolution-eval-ledger-capture.js";
+import { captureEvolutionEvalReadonlyAudit } from "./evolution-eval-readonly-audit.js";
 
 export const EVOLUTION_EVAL_LAUNCH_ADMISSION_SCHEMA =
   "chainlesschain.evolution-eval-launch-admission/v1";
@@ -260,7 +261,7 @@ function events(state) {
   );
 }
 
-function resolveEvent(state, event) {
+function resolveEvent(state, event, capturedIdentity = null) {
   if (
     event.type !== EVOLUTION_EVAL_LAUNCH_ADMISSION_EVENT_TYPE ||
     event.tenantId !== state.descriptor.tenantId ||
@@ -273,7 +274,7 @@ function resolveEvent(state, event) {
       canonical(state.enrollment ? [state.enrollment.enrollmentRef] : [])
   )
     fail("admission ledger event is substituted");
-  const identity = state.ledgerMethods.verify();
+  const identity = capturedIdentity ?? state.ledgerMethods.verify();
   const resolution = state.resolveArtifact({
     epoch: identity.epoch,
     ledgerId: identity.ledgerId,
@@ -536,4 +537,47 @@ export async function resolveEvolutionEvalLaunch(authority, input) {
   )
     fail("admission lookup differs from the recorded attempt");
   return result;
+}
+
+/**
+ * Verify an admission within a genuine immutable journal view. The caller must
+ * complete the whole audit with assertUnchanged before publishing its result.
+ * This does not call admission preparation or grant an execution permit.
+ */
+export async function resolveEvolutionEvalLaunchFromReadonlyAudit(
+  authority,
+  input,
+  audit,
+) {
+  const state = authorityState(authority);
+  const captured = captureEvolutionEvalReadonlyAudit(audit, state.ledger);
+  const expected = record(
+    input,
+    ["runId", "runNonce", "requestDigest"],
+    "admission lookup",
+  );
+  text(expected.runId, "runId");
+  text(expected.runNonce, "runNonce");
+  digest(expected.requestDigest, "requestDigest");
+  const matches = captured
+    .eventsById(eventId(state))
+    .filter((event) => event.schema === EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA);
+  if (matches.length !== 1) fail("admission slot is absent or ambiguous");
+  const result = resolveEvent(state, matches[0], captured.identity);
+  if (
+    Object.keys(expected).some((key) => result.evidence[key] !== expected[key])
+  )
+    fail("admission lookup differs from the recorded attempt");
+  // An artifact resolver can reenter another audit operation. Respect any
+  // invalidation already detected there without another full journal scan.
+  captureEvolutionEvalReadonlyAudit(audit, state.ledger);
+  return frozen({
+    ...result,
+    schema:
+      "chainlesschain.evolution-eval-launch-admission-audit-resolution/v1",
+    auditHead: captured.identity,
+    historicalSnapshotOnly: true,
+    requiresFinalAuditHeadCheck: true,
+    readyForExecution: false,
+  });
 }

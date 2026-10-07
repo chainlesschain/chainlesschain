@@ -10,6 +10,10 @@ import {
   RRSI_EVAL_COHORT_ENROLLMENT_SCHEMA,
   resolveEvolutionEvalCohortEnrollment,
   resolveEvolutionEvalCohortReconciliation,
+  assertRrsiEvalCohortHistoryComposition,
+  createRrsiEvalCohortReadonlyAudit,
+  resolveRrsiEvalCohortFromReadonlyAudit,
+  assertRrsiEvalCohortReadonlyAuditUnchanged,
 } from "./evolution-eval-cohort-enrollment.js";
 import { buildRrsiNativeEvaluationPlan } from "./rrsi-native-evaluation-plan.js";
 import {
@@ -31,6 +35,7 @@ export const RRSI_NATIVE_COHORT_ROWS_SCHEMA =
   "chainlesschain.rrsi-native-eval-cohort-rows/v1";
 const COLLECTORS = new WeakMap();
 const COHORTS = new WeakMap();
+const AUDIT_KEYS = new WeakMap();
 
 function ownFields(input, keys, label) {
   if (
@@ -190,17 +195,17 @@ function mappedRows(state, evidence) {
   );
 }
 
-const CLAIM_FIELDS = [
+export const RRSI_NATIVE_ROW_CLAIM_FIELDS = Object.freeze([
   "executionDigest",
   "gradeDigest",
   "safetyDigest",
   "subjectBindingDigest",
   "subjectReservationDigest",
-];
+]);
 
 function assertUniqueClaims(rows, seen) {
   for (const row of rows)
-    for (const field of CLAIM_FIELDS) {
+    for (const field of RRSI_NATIVE_ROW_CLAIM_FIELDS) {
       if (seen[field].has(row[field]))
         rrsiFail(`native cohort repeats an underlying ${field} claim`);
       seen[field].add(row[field]);
@@ -242,22 +247,22 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
     if (entry.receipt === null && entry.resultEvidence !== null)
       rrsiFail("missing native receipt cannot carry substituted rows");
   }
-  const enrollment = resolveEvolutionEvalCohortEnrollment(
+  const audit = createRrsiEvalCohortReadonlyAudit(state.authority);
+  const audited = await resolveRrsiEvalCohortFromReadonlyAudit(
     state.authority,
     state.lookup,
+    audit,
   );
+  const enrollment = audited.enrollment;
   same(enrollment, state.enrollment, "native enrollment readback");
-  const sealed = await resolveEvolutionEvalCohortReconciliation(
-    state.authority,
-    state.lookup,
-  );
+  const sealed = audited.reconciliation;
   const admissions = new Map(
     sealed.inventory.admissions.map((entry) => [entry.slotId, entry]),
   );
   const blocks = new Map();
   const index = [];
   const claims = Object.fromEntries(
-    CLAIM_FIELDS.map((field) => [field, new Set()]),
+    RRSI_NATIVE_ROW_CLAIM_FIELDS.map((field) => [field, new Set()]),
   );
   const receipts = [];
   for (const [position, entry] of source.slots.entries()) {
@@ -377,10 +382,13 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
       originalNativeGateDecision: block.originalNativeGateDecision,
     });
   }
-  const finalSeal = await resolveEvolutionEvalCohortReconciliation(
-    state.authority,
-    state.lookup,
-  );
+  const finalSeal = (
+    await resolveRrsiEvalCohortFromReadonlyAudit(
+      state.authority,
+      state.lookup,
+      audit,
+    )
+  ).reconciliation;
   same(
     sealed,
     finalSeal,
@@ -417,15 +425,65 @@ export async function collectRrsiNativeEvalCohortEvidence(collector, input) {
     },
   );
   snapshotRrsiData(result);
+  assertRrsiEvalCohortReadonlyAuditUnchanged(audit);
   const freshness = assertEvolutionEvalReceiptSetFreshness(
     state.verifier,
     receipts,
   );
+  if (!AUDIT_KEYS.has(state.authority))
+    AUDIT_KEYS.set(state.authority, Object.freeze({}));
   COHORTS.set(
     result,
     Object.freeze({
       evidence: result,
       freshness,
+      auditKey: AUDIT_KEYS.get(state.authority),
+      createReadonlyAudit(ledgerAudit) {
+        return createRrsiEvalCohortReadonlyAudit(state.authority, ledgerAudit);
+      },
+      receiptVerifier: state.verifier,
+      validityWindows: Object.freeze(
+        receipts.map((receipt) =>
+          Object.freeze({
+            issuedAt: receipt.issuedAt,
+            expiresAt: receipt.expiresAt,
+          }),
+        ),
+      ),
+      async assertCurrentInventory(historyAdapter, session = null) {
+        assertRrsiEvalCohortHistoryComposition(state.authority, historyAdapter);
+        if (session) {
+          // This verifies the pending snapshot only. The enclosing batch must
+          // finish its shared audit with assertUnchanged before publication.
+          const audited = await resolveRrsiEvalCohortFromReadonlyAudit(
+            state.authority,
+            state.lookup,
+            session,
+          );
+          same(
+            audited.enrollment,
+            enrollment,
+            "native enrollment during batch census",
+          );
+          same(
+            audited.reconciliation,
+            sealed,
+            "sealed native inventory during batch census",
+          );
+          return audited.reconciliation;
+        }
+        same(
+          resolveEvolutionEvalCohortEnrollment(state.authority, state.lookup),
+          enrollment,
+          "native enrollment during batch census",
+        );
+        const current = await resolveEvolutionEvalCohortReconciliation(
+          state.authority,
+          state.lookup,
+        );
+        same(current, sealed, "sealed native inventory during batch census");
+        return current;
+      },
       assertCurrentFreshness() {
         return assertEvolutionEvalReceiptSetFreshness(state.verifier, receipts);
       },

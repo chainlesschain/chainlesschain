@@ -64,6 +64,13 @@ export function buildRrsiCohortRegistration(
   resolutionInput,
   cohortId,
 ) {
+  return prepareRrsiCohortRegistration(rootInput, resolutionInput).build(
+    cohortId,
+  );
+}
+
+/** Structural preparation only; trusted audit callers supply genuine History data. */
+export function prepareRrsiCohortRegistration(rootInput, resolutionInput) {
   const root = snapshotRrsiData(rootInput),
     resolution = snapshotRrsiData(resolutionInput);
   const batch = normalizeRrsiNativeEvaluationBatch(
@@ -72,9 +79,41 @@ export function buildRrsiCohortRegistration(
   );
   if (rrsiCanonical(root.ledgerIdentity) !== rrsiCanonical(resolution.identity))
     rrsiFail("RRSI cohort belongs to another History journal");
-  const children = batch.children
-    .filter((child) => child.cohortId === cohortId)
-    .sort((a, b) => (a.slotId < b.slotId ? -1 : a.slotId > b.slotId ? 1 : 0));
+  const childrenByCohort = new Map();
+  for (const child of batch.children) {
+    if (!childrenByCohort.has(child.cohortId))
+      childrenByCohort.set(child.cohortId, []);
+    childrenByCohort.get(child.cohortId).push(child);
+  }
+  const groups = new Map();
+  for (const group of resolution.children)
+    if (!groups.has(group.bindings.childId))
+      groups.set(group.bindings.childId, group);
+  return Object.freeze({
+    build(cohortId) {
+      return deriveRrsiCohortRegistration(
+        root,
+        resolution,
+        batch,
+        childrenByCohort.get(cohortId) ?? [],
+        groups,
+        cohortId,
+      );
+    },
+  });
+}
+
+function deriveRrsiCohortRegistration(
+  root,
+  resolution,
+  batch,
+  sourceChildren,
+  groups,
+  cohortId,
+) {
+  const children = [...sourceChildren].sort((a, b) =>
+    a.slotId < b.slotId ? -1 : a.slotId > b.slotId ? 1 : 0,
+  );
   if (!children.length)
     rrsiFail("RRSI cohort is outside the committed native batch");
   const first = children[0];
@@ -121,9 +160,7 @@ export function buildRrsiCohortRegistration(
     ]),
   );
   const childBindings = children.map((child) => {
-    const group = resolution.children.find(
-      (group) => group.bindings.childId === child.childId,
-    );
+    const group = groups.get(child.childId);
     if (!group) rrsiFail("RRSI cohort has no reserved paired child");
     return {
       slotId: child.slotId,

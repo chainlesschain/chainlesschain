@@ -37,6 +37,10 @@ import { openRrsiNativeCohortStore } from "../fixtures/rrsi-native-cohort-store.
 import { buildRrsiNativeEvaluationPlan } from "../../src/lib/evolution/rrsi-native-evaluation-plan.js";
 import { buildSkillTargetMatrixEvalPlan } from "../../src/lib/evolution/skill-target-matrix-eval.js";
 import { rrsiHash } from "../../src/lib/evolution/rrsi-data.js";
+import {
+  collectRrsiNativeBatchEvidence,
+  captureRrsiNativeBatchEvidence,
+} from "../../src/lib/evolution/rrsi-native-batch-evidence.js";
 
 import {
   EVOLUTION_EVAL_ARTIFACT_SCHEMA,
@@ -88,6 +92,7 @@ import {
   verifyEvolutionEvalReceipt,
   verifyEvolutionEvalResultEvidence,
   assertEvolutionEvalReceiptSetFreshness,
+  assertEvolutionEvalReceiptChunkSetFreshness,
   verifyEvolutionEvalSuite,
   verifyEvolutionEvalTask,
 } from "../../src/lib/evolution/evolution-eval-gate.js";
@@ -6570,6 +6575,8 @@ describe("RRSI native signed cohort row collector", () => {
     exported,
     referenceReceipt;
   let chunks;
+  let mainCohortEvidence;
+  const sealedCohorts = new Set();
   beforeAll(async () => {
     root = mkdtempSync(
       join(realpathSync.native(tmpdir()), "rrsi-native-rows-"),
@@ -6680,6 +6687,7 @@ describe("RRSI native signed cohort row collector", () => {
       deadlineAt: new Date(store.store.clock() + 60000).toISOString(),
     });
     await sealEvolutionEvalCohort(store.authority, { cohortId });
+    sealedCohorts.add(cohortId);
     collector = createRrsiNativeEvalRowCollector({
       cohortAuthority: store.authority,
       receiptVerifier: harness.receiptVerifier,
@@ -6704,6 +6712,11 @@ describe("RRSI native signed cohort row collector", () => {
     }
   });
   const source = () => structuredClone({ slots: chunks });
+  const mainRows = async () =>
+    (mainCohortEvidence ??= await collectRrsiNativeEvalCohortEvidence(
+      collector,
+      source(),
+    ));
   async function signEdited(entry) {
     if (entry.resultEvidence !== null) {
       for (const split of ["validation", "test"])
@@ -7104,13 +7117,363 @@ describe("RRSI native signed cohort row collector", () => {
     expect(accessor).not.toHaveBeenCalled();
   }, 90000);
 
+  it("retains the full triangle denominator when no cohort evidence is presented", async () => {
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [],
+    });
+    expect(census).toMatchObject({
+      fullTriangleDenominatorRetained: true,
+      allCohortInventoriesAuthenticated: false,
+      completeSignedRows: false,
+      singleTrustedClockInstant: false,
+      receiptValidityDomainCount: 0,
+      decision: "HOLD",
+    });
+    expect(census.missingCohortIds).toHaveLength(12);
+    expect(census.children).toHaveLength(36);
+    expect(
+      census.denominators.reduce(
+        (sum, row) => sum + row.plannedActorObservations,
+        0,
+      ),
+    ).toBe(8640);
+    expect(
+      census.denominators.every(
+        (row) =>
+          row.observedSignedRows === 0 &&
+          row.missingActorObservations === row.plannedActorObservations,
+      ),
+    ).toBe(true);
+    expect(captureRrsiNativeBatchEvidence(census).freshness).toEqual([]);
+    expect(
+      captureRrsiNativeBatchEvidence(census).childEvidence(children[0].childId),
+    ).toBeNull();
+  }, 90000);
+
+  it("joins one real cohort without concealing missing siblings or the original native veto", async () => {
+    const value = await mainRows();
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [value],
+    });
+    expect(census.missingCohortIds).toHaveLength(11);
+    expect(
+      census.denominators.reduce((sum, row) => sum + row.observedSignedRows, 0),
+    ).toBe(240);
+    expect(
+      census.denominators.reduce(
+        (sum, row) => sum + row.missingActorObservations,
+        0,
+      ),
+    ).toBe(8400);
+    expect(census.nativeGateVetoChildIds).toContain(children[0].childId);
+    expect(census.blockingReasons).toEqual(
+      expect.arrayContaining([
+        "MISSING_COHORT_EVIDENCE",
+        "MISSING_SIGNED_ROWS",
+        "NATIVE_GATE_VETO",
+      ]),
+    );
+    expect(census.singleTrustedClockInstant).toBe(true);
+    const captured = captureRrsiNativeBatchEvidence(census);
+    expect(captured.freshness[0].cohortIds).toEqual([cohortId]);
+    expect(captured.childEvidence(children[0].childId).finalReceiptDigest).toBe(
+      exported.receipt.receiptDigest,
+    );
+    expect(() =>
+      captureRrsiNativeBatchEvidence(structuredClone(census)),
+    ).toThrow(/live branded/);
+    expect(() => captured.childEvidence("foreign-child")).toThrow(/outside/);
+  }, 120000);
+
+  it("captures cohort inputs before awaiting and rejects copied or repeated capabilities without invoking getters", async () => {
+    const value = await mainRows();
+    const options = {
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [value],
+    };
+    const pending = collectRrsiNativeBatchEvidence(options);
+    options.cohorts[0] = structuredClone(value);
+    options.cohorts.length = 0;
+    expect(
+      (await pending).cohorts.filter((row) => row.cohortRowsDigest !== null),
+    ).toHaveLength(1);
+    await expect(
+      collectRrsiNativeBatchEvidence({
+        ...options,
+        cohorts: [structuredClone(value)],
+      }),
+    ).rejects.toThrow(/live branded/);
+    await expect(
+      collectRrsiNativeBatchEvidence({ ...options, cohorts: [value, value] }),
+    ).rejects.toThrow(/repeated cohort/);
+    const getter = vi.fn(() => value);
+    const list = [];
+    Object.defineProperty(list, "0", { enumerable: true, get: getter });
+    await expect(
+      collectRrsiNativeBatchEvidence({ ...options, cohorts: list }),
+    ).rejects.toThrow(/accessors/);
+    expect(getter).not.toHaveBeenCalled();
+    await expect(
+      collectRrsiNativeBatchEvidence({
+        ...options,
+        historyAdapter: { ...store.adapter },
+      }),
+    ).rejects.toThrow(/branded RRSI history/);
+  }, 120000);
+
+  it("refuses a journal head change while auditing the cohort set", async () => {
+    const pending = collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [await mainRows()],
+    });
+    const ledger = store.store.backend.ledger;
+    const checked = ledger.verify();
+    ledger.appendDomainEvent(
+      {
+        type: "evolution.census.test-interleaved",
+        eventId: "test-native-census-interleaving",
+        tenantId: TENANT_ID,
+        artifactTenantId: "rrsi-artifacts",
+        correlationId: "rrsi-census-interleaving",
+        skillName: native.planContext.context.campaign.goalId,
+        decision: "accepted",
+        reason: "TEST ONLY concurrent unrelated writer",
+        sourceRefs: [],
+        subjectRef: store.resolution.reservationRecord.ref,
+        timestamp: new Date(store.store.clock()).toISOString(),
+      },
+      {
+        expectedHeadDigest: checked.headDigest,
+        expectedSequence: checked.sequence,
+      },
+    );
+    await expect(pending).rejects.toThrow(
+      /Ledger.*changed|History batch.*differs|Ledger full head.*differs/,
+    );
+  }, 120000);
+
+  it("detects execution claims copied between separately signed admitted cohorts", async () => {
+    const value = await mainRows();
+    const otherChildren = store.resolution.batch.children
+      .filter(
+        (child) =>
+          child.variant === "paraphrase" && child.pairId === "rrsi-vs-rsi",
+      )
+      .sort((a, b) => (a.slotId < b.slotId ? -1 : a.slotId > b.slotId ? 1 : 0));
+    const other = otherChildren[0];
+    const admission = createEvolutionEvalCohortSlotAdmissionAuthority(
+      store.authority,
+      {
+        cohortId: other.cohortId,
+        slotId: other.slotId,
+        freshChild: store.batch.children.find(
+          (child) => child.childId === other.childId,
+        ),
+      },
+    );
+    await admitEvolutionEvalLaunch(admission, {
+      runId: "test-native-other-cohort-run",
+      runNonce: "test-native-other-cohort-nonce",
+      requestDigest: other.requestDigest,
+      policyDigest: other.expectedContext.policyDigest,
+      evaluationAuthorityRoot: other.expectedContext.evaluationAuthorityRoot,
+      tenantId: TENANT_ID,
+      admittedAt: new Date(store.store.clock()).toISOString(),
+      deadlineAt: new Date(store.store.clock() + 60000).toISOString(),
+    });
+    await sealEvolutionEvalCohort(store.authority, {
+      cohortId: other.cohortId,
+    });
+    sealedCohorts.add(other.cohortId);
+    const otherCollector = createRrsiNativeEvalRowCollector({
+      cohortAuthority: store.authority,
+      receiptVerifier: harness.receiptVerifier,
+      planContext: native.planContext,
+      cohortId: other.cohortId,
+    });
+    // The test authority deliberately signs copied opaque claims; no Actor proof is asserted.
+    const presented = otherChildren.map((child, index) => ({
+      slotId: child.slotId,
+      receipt: index === 0 ? structuredClone(exported.receipt) : null,
+      resultEvidence:
+        index === 0 ? structuredClone(exported.resultEvidence) : null,
+    }));
+    const receipt = presented[0].receipt;
+    for (const field of [
+      "suiteDigest",
+      "policyDigest",
+      "evaluationAuthorityRoot",
+      "targetEnvironmentRef",
+      "candidateId",
+      "baselineId",
+      "environmentDigest",
+      "tenantId",
+    ])
+      receipt[field] = other.expectedContext[field];
+    receipt.runId = "test-native-other-cohort-run";
+    receipt.runNonce = "test-native-other-cohort-nonce";
+    receipt.evaluationContextDigest = other.evaluationContextDigest;
+    await signEdited(presented[0]);
+    const otherEvidence = await collectRrsiNativeEvalCohortEvidence(
+      otherCollector,
+      { slots: presented },
+    );
+    await expect(
+      collectRrsiNativeBatchEvidence({
+        historyAdapter: store.adapter,
+        batchDigest: store.batch.batchDigest,
+        cohorts: [value, otherEvidence],
+      }),
+    ).rejects.toThrow(/repeats a presented .*Digest claim/);
+    const secondVerifier = makeHarness({
+      initialTime: exported.receipt.issuedAt,
+    }).receiptVerifier;
+    const secondReader = createRrsiNativeEvalRowCollector({
+      cohortAuthority: store.authority,
+      receiptVerifier: secondVerifier,
+      planContext: native.planContext,
+      cohortId: other.cohortId,
+    });
+    const receiptOnly = await collectRrsiNativeEvalCohortEvidence(
+      secondReader,
+      {
+        slots: presented.map((entry) => ({ ...entry, resultEvidence: null })),
+      },
+    );
+    const multipleClocks = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [value, receiptOnly],
+    });
+    expect(multipleClocks).toMatchObject({
+      receiptValidityDomainCount: 2,
+      singleTrustedClockInstant: false,
+      completeSignedRows: false,
+      decision: "HOLD",
+    });
+    expect(
+      captureRrsiNativeBatchEvidence(multipleClocks).freshness,
+    ).toHaveLength(2);
+  }, 180000);
+
+  it("authenticates every cohort inventory without turning missing executions into successes", async () => {
+    const all = [await mainRows()];
+    for (const id of store.cohortIds.filter((id) => id !== cohortId)) {
+      const other = store.resolution.batch.children
+        .filter((child) => child.cohortId === id)
+        .sort((a, b) =>
+          a.slotId < b.slotId ? -1 : a.slotId > b.slotId ? 1 : 0,
+        );
+      if (!sealedCohorts.has(id)) {
+        await sealEvolutionEvalCohort(store.authority, { cohortId: id });
+        sealedCohorts.add(id);
+      }
+      const reader = createRrsiNativeEvalRowCollector({
+        cohortAuthority: store.authority,
+        receiptVerifier: harness.receiptVerifier,
+        planContext: native.planContext,
+        cohortId: id,
+      });
+      all.push(
+        await collectRrsiNativeEvalCohortEvidence(reader, {
+          slots: other.map((child) => ({
+            slotId: child.slotId,
+            receipt: null,
+            resultEvidence: null,
+          })),
+        }),
+      );
+    }
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: all,
+    });
+    expect(census).toMatchObject({
+      allCohortInventoriesAuthenticated: true,
+      missingCohortIds: [],
+      completeSignedRows: false,
+      decision: "HOLD",
+      underlyingExecutionReceiptsReverified: false,
+      completeLifecycleCostVerified: false,
+      statisticalProtocolValidated: false,
+      qualifiesForPromotion: false,
+    });
+    expect(census.children).toHaveLength(36);
+    expect(
+      census.children.filter((child) => child.pairId === "rsi-vs-baseline"),
+    ).toHaveLength(12);
+    expect(
+      census.denominators.reduce(
+        (sum, row) => sum + row.missingActorObservations,
+        0,
+      ),
+    ).toBe(8400);
+  }, 360000);
+
+  it("checks independently bounded validity chunks with one genuine verifier clock", () => {
+    const temporal = makeHarness({ initialTime: exported.receipt.issuedAt });
+    const window = [
+      {
+        issuedAt: exported.receipt.issuedAt,
+        expiresAt: exported.receipt.expiresAt,
+      },
+    ];
+    expect(
+      assertEvolutionEvalReceiptChunkSetFreshness(
+        temporal.receiptVerifier,
+        Array(128).fill(Array(64).fill(window[0])),
+      ),
+    ).toMatchObject({
+      signatureAuthenticated: false,
+      earliestExpiresAt: exported.receipt.expiresAt,
+    });
+    expect(() =>
+      assertEvolutionEvalReceiptChunkSetFreshness(
+        temporal.receiptVerifier,
+        Array(129).fill(window),
+      ),
+    ).toThrow(/at most 128/);
+    const getter = vi.fn(() => window);
+    const chunks = [];
+    Object.defineProperty(chunks, "0", { enumerable: true, get: getter });
+    expect(() =>
+      assertEvolutionEvalReceiptChunkSetFreshness(
+        temporal.receiptVerifier,
+        chunks,
+      ),
+    ).toThrow(/accessors/);
+    expect(getter).not.toHaveBeenCalled();
+    temporal.clockControl.advance(120000);
+    expect(() =>
+      assertEvolutionEvalReceiptChunkSetFreshness(temporal.receiptVerifier, [
+        window,
+      ]),
+    ).toThrow(/stale/);
+  });
+
   it("captures mutable inputs before asynchronous verification and rejects currently expired receipts", async () => {
+    const value = await mainRows();
+    const census = await collectRrsiNativeBatchEvidence({
+      historyAdapter: store.adapter,
+      batchDigest: store.batch.batchDigest,
+      cohorts: [value],
+    });
     const mutable = source();
     const pending = collectRrsiNativeEvalCohortEvidence(collector, mutable);
     mutable.slots[0].resultEvidence.test.candidate[0].pass = false;
     const result = await pending;
     expect(result.slots[0].status).toBe("signed-rows");
     harness.clockControl.advance(120000);
+    expect(() =>
+      captureRrsiNativeBatchEvidence(census).assertCurrentFreshness(),
+    ).toThrow(/stale/);
     await expect(
       collectRrsiNativeEvalCohortEvidence(collector, source()),
     ).rejects.toThrow(/expired|expiration|stale/);

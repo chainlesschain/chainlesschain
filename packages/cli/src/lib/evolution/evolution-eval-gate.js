@@ -6564,8 +6564,7 @@ export class EvolutionEvalReceiptVerifier {
     return receiptSnapshot;
   }
 
-  /** Temporal check only: signature and run-context verification remain separate. */
-  assertReceiptSetFreshness(input) {
+  #captureReceiptValidityWindows(input) {
     if (
       !input ||
       isProxy(input) ||
@@ -6619,6 +6618,10 @@ export class EvolutionEvalReceiptVerifier {
         expiresMs: new Date(expiresAt).getTime(),
       };
     });
+    return windows;
+  }
+
+  #assertReceiptValidityWindows(windows) {
     // Read the captured trusted clock once, after all bounded synchronous work.
     // Repeated asynchronous verification cannot establish a set-wide instant.
     const checked = readClock(this.#clock);
@@ -6645,6 +6648,39 @@ export class EvolutionEvalReceiptVerifier {
         : null,
       signatureAuthenticated: false,
     });
+  }
+
+  /** Temporal check only: signature and run-context verification remain separate. */
+  assertReceiptSetFreshness(input) {
+    return this.#assertReceiptValidityWindows(
+      this.#captureReceiptValidityWindows(input),
+    );
+  }
+
+  assertReceiptChunkSetFreshness(input) {
+    if (
+      !input ||
+      isProxy(input) ||
+      !Array.isArray(input) ||
+      Object.getPrototypeOf(input) !== Array.prototype ||
+      input.length > 128 ||
+      Reflect.ownKeys(input).length !== input.length + 1
+    )
+      throw evalError(
+        EVOLUTION_EVAL_INVALID_CODE,
+        "receipt validity chunks require at most 128 dense own lists",
+      );
+    const windows = [];
+    for (let index = 0; index < input.length; index++) {
+      const field = Object.getOwnPropertyDescriptor(input, String(index));
+      if (!field?.enumerable || !("value" in field))
+        throw evalError(
+          EVOLUTION_EVAL_INVALID_CODE,
+          "receipt validity chunks cannot use accessors or holes",
+        );
+      windows.push(...this.#captureReceiptValidityWindows(field.value));
+    }
+    return this.#assertReceiptValidityWindows(windows);
   }
 }
 
@@ -6730,6 +6766,19 @@ export function assertEvolutionEvalReceiptSetFreshness(verifier, receipts) {
   return EvolutionEvalReceiptVerifier.prototype.assertReceiptSetFreshness.call(
     verifier,
     receipts,
+  );
+}
+
+/** Independently bounded cohort windows share one final captured-clock reading. */
+export function assertEvolutionEvalReceiptChunkSetFreshness(verifier, chunks) {
+  if (!RECEIPT_VERIFIER_INSTANCES.has(verifier))
+    throw evalError(
+      EVOLUTION_EVAL_INVALID_CODE,
+      "receipt chunk freshness requires a trusted read-only verifier instance",
+    );
+  return EvolutionEvalReceiptVerifier.prototype.assertReceiptChunkSetFreshness.call(
+    verifier,
+    chunks,
   );
 }
 
