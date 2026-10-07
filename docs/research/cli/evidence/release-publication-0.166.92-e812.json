@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-07T15:26:29.907627+00:00",
+  "releaseSource": "e812a89952a94cf8644c4d7411fdf400ae42037d",
+  "publicationOrder": [
+    "child npm packages",
+    "CLI",
+    "IDE extensions",
+    "mobile and desktop"
+  ],
+  "tags": [
+    "v-npm-0-166-92",
+    "ide-vscode-v0.37.137",
+    "ide-jetbrains-v0.4.155",
+    "v5.0.3.139"
+  ],
+  "validation": {
+    "cliCi": {
+      "runId": 37619216418,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37619216418",
+      "conclusion": "success",
+      "successfulJobs": 70,
+      "conditionalSkippedJobs": 1
+    },
+    "strictSandbox": {
+      "runId": 37619282422,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37619282422",
+      "conclusion": "success",
+      "successfulJobs": 5
+    },
+    "contextMemoryKernel": {
+      "runId": 37626684690,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37626684690",
+      "conclusion": "success",
+      "successfulPlatforms": ["Linux", "Windows", "macOS"]
+    }
+  },
+  "npm": {
+    "runId": 37626685269,
+    "attempt": 2,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37626685269",
+    "conclusion": "success",
+    "authentication": "GitHub Actions OIDC Trusted Publishing",
+    "sessionCore": "0.3.17",
+    "contextMemoryKernel": "0.1.7",
+    "cli": "0.166.92",
+    "publicDownloadsVerified": true,
+    "exactChildDependenciesVerified": true,
+    "signedProvenanceVerified": true,
+    "cliArchiveSha1": "aa9f834a94c9322087cfa7c46e3112605c2f2969",
+    "cliArchiveSha256": "b764b515c1890bda8fd97054d0b6350298be208477f9bd97e26ccec8b94fe535"
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.137",
+      "channel": "Open VSX",
+      "runId": 37632727157,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37632727157",
+      "conclusion": "success",
+      "publicUrl": "https://open-vsx.org/extension/chainlesschain/chainlesschain-ide",
+      "readyAt": "2026-10-07T14:17:58Z",
+      "listed": true,
+      "downloadable": true,
+      "publicDownloadVerified": true,
+      "publicAndCandidateSha256Matched": true,
+      "sha256": "2ea2f250854f598ac22570c4fa7602f8b236db24149b9f0b75c752288d8571b0",
+      "recommendedCliVersion": "0.166.92"
+    },
+    "jetbrains": {
+      "version": "0.4.155",
+      "runId": 37632727660,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37632727660",
+      "conclusion": "success",
+      "approved": true,
+      "listed": true,
+      "hidden": false,
+      "publicDownloadVerified": true,
+      "marketplaceUpdateId": 1188899,
+      "publicZipBytes": 1520921,
+      "sha256": "57430d0f06fdd582bfc90f5343d875285fec56bb0049789a3dd2275cb3546e6d",
+      "pluginId": "com.chainlesschain.ide",
+      "descriptorVersionVerified": true,
+      "compiledRecommendedCliVersion": "0.166.92"
+    }
+  },
+  "product": {
+    "tag": "v5.0.3.139",
+    "runId": 37637876986,
+    "attempt": 2,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37637876986",
+    "status": "published",
+    "desktopVersion": "5.0.3-alpha.139",
+    "androidVersion": "5.0.3.139",
+    "androidVersionCode": 503139,
+    "iosVersion": "5.0.3",
+    "iosBuild": 139,
+    "artifacts": [
+      {
+        "name": "app-arm64-v8a-release.apk",
+        "bytes": 290892285,
+        "githubDigest": "sha256:c993626e677dd11c1238d54731321e78456b7c47bb5c89850e9a2c162e2064b5",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/app-arm64-v8a-release.apk",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "app-armeabi-v7a-release.apk",
+        "bytes": 248691096,
+        "githubDigest": "sha256:3fd5fa724adbf9ee2dc227310676abfed3ce1b61df682390f13611d61327448f",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/app-armeabi-v7a-release.apk",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "app-release.aab",
+        "bytes": 249124170,
+        "githubDigest": "sha256:1ed4d00d4d213ff05b03739d5a60a7a884579acb9eacaffb42853ba7489a51aa",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/app-release.aab",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "app-universal-release.apk",
+        "bytes": 320799465,
+        "githubDigest": "sha256:1d71bffd32fb59761c8108de9a74ab18ca941d81de3dc943b15a19519204ee7f",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/app-universal-release.apk",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.139-arm64.dmg",
+        "bytes": 612941352,
+        "githubDigest": "sha256:24504914243cceb6607d5f8c373a5cc297464b37be98cc95193b8c1b28e37225",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-5.0.3-alpha.139-arm64.dmg",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.139-arm64.dmg.blockmap",
+        "bytes": 637951,
+        "githubDigest": "sha256:cac0f736276e032f6e6d067d72d8d0739cd66610b4976c72601d95914fd3b195",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-5.0.3-alpha.139-arm64.dmg.blockmap",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.139.AppImage",
+        "bytes": 886077313,
+        "githubDigest": "sha256:3f14a6da918370f6635ef1f31abf0c540f8316a8803b471775a7d218cf0c794c",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-5.0.3-alpha.139.AppImage",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.139.dmg",
+        "bytes": 618455964,
+        "githubDigest": "sha256:325daf0c61ffd14185991badf01f1d2115ec30c3d5d97dbad1c14348113de0c3",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-5.0.3-alpha.139.dmg",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.139.dmg.blockmap",
+        "bytes": 640342,
+        "githubDigest": "sha256:cc0832e58f22039b7df7051d354a2d2fbd26410ea3085785efde68745126761f",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-5.0.3-alpha.139.dmg.blockmap",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "chainlesschain-desktop-vue-5.0.3-alpha.139.x86_64.rpm",
+        "bytes": 468489733,
+        "githubDigest": "sha256:529a40706b5f07ffad04bd12bb5083c09d4b6f38dfeb8abe3166a0016ff85be0",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/chainlesschain-desktop-vue-5.0.3-alpha.139.x86_64.rpm",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "chainlesschain-desktop-vue_5.0.3-alpha.139_amd64.deb",
+        "bytes": 463042156,
+        "githubDigest": "sha256:dd91a988c6a3864276bcf18e222f4ef4bdc098305cdc3dab37a5a05a523b6c79",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/chainlesschain-desktop-vue_5.0.3-alpha.139_amd64.deb",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-Portable-5.0.3-alpha.139.exe",
+        "bytes": 517542909,
+        "githubDigest": "sha256:8079b2193a8ff2c0542941696761cb7e4a34aab092215d0df0a39bb9ed58c99f",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-Portable-5.0.3-alpha.139.exe",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.139.exe",
+        "bytes": 517862536,
+        "githubDigest": "sha256:771f1a4b8b0a1506e1570c59caf6a27c38446e41c368cde69749286dceacc2f3",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-Setup-5.0.3-alpha.139.exe",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.139.exe.blockmap",
+        "bytes": 510339,
+        "githubDigest": "sha256:491b3788d6007d11de6431ca16226b229f2cb01deeed2d9a9a5a830b41395229",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain-Setup-5.0.3-alpha.139.exe.blockmap",
+        "verificationMethod": "HEAD",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": false
+      },
+      {
+        "name": "ChainlessChain.ipa",
+        "bytes": 10054279,
+        "githubDigest": "sha256:a79ecdf4effdf763cacc13cce9c5eaa510935837ec716a4a97d3d51d30a2d2fa",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain.ipa",
+        "verificationMethod": "GET",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": true
+      },
+      {
+        "name": "latest-linux.yml",
+        "bytes": 777,
+        "githubDigest": "sha256:92cfc6c4784dd57bd8c5245f2a436878244914c146470f4d3d58b1d1aae749cb",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/latest-linux.yml",
+        "verificationMethod": "GET",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": true,
+        "updateManifestVersion": "5.0.3-alpha.139"
+      },
+      {
+        "name": "latest-mac.yml",
+        "bytes": 546,
+        "githubDigest": "sha256:63ae6424dc661c1ebcbc3793001e36323466c5b27af58f85c9ebbf77fd8bef81",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/latest-mac.yml",
+        "verificationMethod": "GET",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": true,
+        "updateManifestVersion": "5.0.3-alpha.139"
+      },
+      {
+        "name": "latest.yml",
+        "bytes": 387,
+        "githubDigest": "sha256:8367ac52d1545adaed01b0dc50f988de2c466754941274d77b77feb5b6226e9b",
+        "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/latest.yml",
+        "verificationMethod": "GET",
+        "publicAvailabilityVerified": true,
+        "downloadedDigestVerified": true,
+        "updateManifestVersion": "5.0.3-alpha.139"
+      }
+    ],
+    "signingStatus": {
+      "windows": "unsigned; signing skipped in successful build",
+      "macos": "unsigned; identity discovery disabled; not notarized",
+      "android": "release signing enabled in successful build",
+      "ios": "iPhone Distribution certificate; Ad Hoc export"
+    },
+    "iosBuildEvidence": {
+      "jobId": 112855891057,
+      "conclusion": "success",
+      "signingAvailable": true,
+      "certificateType": "iPhone Distribution",
+      "exportMethod": "ad-hoc",
+      "ipaExported": true,
+      "artifactName": "ChainlessChain.ipa",
+      "simulatorFallback": false,
+      "publicReleaseDownloadVerified": true
+    },
+    "conclusion": "success",
+    "successfulJobs": 10,
+    "releaseId": 405893593,
+    "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139",
+    "publishedAt": "2026-10-07T15:21:38Z",
+    "draft": false,
+    "prerelease": false,
+    "androidBuildEvidence": {
+      "releaseSigning": true,
+      "apkArchitectures": ["arm64-v8a", "armeabi-v7a", "universal"],
+      "embeddedCliArchivePresenceVerifiedAtBuild": true,
+      "embeddedCliArchiveVersionVerified": false
+    },
+    "iosPublicReadback": {
+      "publicUrl": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.139/ChainlessChain.ipa",
+      "bytes": 10054279,
+      "digest": "sha256:a79ecdf4effdf763cacc13cce9c5eaa510935837ec716a4a97d3d51d30a2d2fa",
+      "githubAssetDigestMatches": true,
+      "bundleIdentifier": "com.chainlesschain.ChainlessChain",
+      "shortVersion": "5.0.3",
+      "buildVersion": "139",
+      "codeSignatureResourcesPresent": true,
+      "embeddedProvisioningProfilePresent": true,
+      "distribution": "Ad Hoc",
+      "debugEntitlement": false,
+      "cryptographicSignatureVerifiedLocally": false
+    }
+  },
+  "scope": {
+    "rootAggregateVersion": "5.0.3.54",
+    "legacyUniappVersion": "0.1.0",
+    "independentVersionTracks": true,
+    "newProductionCloseClaim": false,
+    "bundledNpmReleaseNotes": "Preserved as the immutable release-time snapshot"
+  }
+}
