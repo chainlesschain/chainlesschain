@@ -2,6 +2,9 @@
 
 const { createHash, randomUUID } = require("node:crypto");
 const {
+  hasOrganizationProjectBinding,
+} = require("./organization-project-authority");
+const {
   digestBusinessObjectContent,
   validateBusinessActionRun,
   validateBusinessObjectRef,
@@ -228,7 +231,11 @@ class ProjectRiskReviewService {
       (project.deleted != null && project.deleted !== 0)
     )
       fail("PROJECT_RISK_NOT_FOUND_OR_DENIED");
-    if (project.org_id != null || project.workspace_id != null)
+    if (
+      project.org_id != null ||
+      project.workspace_id != null ||
+      hasOrganizationProjectBinding(this.db, project.id)
+    )
       fail("PROJECT_RISK_ORGANIZATION_UNSUPPORTED");
     if (
       this._hasTable("organization_projects") &&

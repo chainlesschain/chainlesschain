@@ -154,9 +154,15 @@ function disposeProjectGoalAuth() {
   getUKeyManager = () => null;
 }
 
+function getProjectGoalAuthGeneration() {
+  getProjectGoalActor();
+  return generation;
+}
+
 module.exports = {
   configureProjectGoalAuth,
   getProjectGoalActor,
+  getProjectGoalAuthGeneration,
   beginProjectGoalAuthentication,
   authenticateProjectGoalPassword,
   authenticateProjectGoalUKey,

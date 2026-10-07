@@ -2,6 +2,9 @@
 
 const { randomUUID } = require("node:crypto");
 const {
+  hasOrganizationProjectBinding,
+} = require("./organization-project-authority");
+const {
   createBusinessObjectRef,
   validateBusinessObjectRef,
   createBusinessActionRequest,
@@ -336,7 +339,11 @@ class TaskDescriptionActionService {
       (project.deleted != null && project.deleted !== 0)
     )
       fail("ACTION_NOT_FOUND_OR_DENIED");
-    if (project.org_id != null || project.workspace_id != null)
+    if (
+      project.org_id != null ||
+      project.workspace_id != null ||
+      hasOrganizationProjectBinding(this.db, project.id)
+    )
       fail("ACTION_ORGANIZATION_UNSUPPORTED");
     if (typeof project.status !== "string" || project.status.length > 80)
       fail("ACTION_SOURCE_INVALID");
@@ -413,7 +420,7 @@ class TaskDescriptionActionService {
     // Validate candidates in JS too; SQL safely handles malformed JSON first.
     const row = this.db
       .prepare(
-        `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE target_id=? AND ${receiptTarget(this._targetType())} AND
+        `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE target_id=? AND ${this._receiptTarget(this._targetType())} AND
       CASE WHEN json_valid(run_json) THEN
         COALESCE(json_extract(run_json,'$.status') NOT IN ('succeeded','failed','cancelled','denied'),1)
       ELSE 1 END LIMIT 1`,
@@ -427,6 +434,29 @@ class TaskDescriptionActionService {
 
   _targetType() {
     return "Task";
+  }
+
+  _receiptTarget(type) {
+    return receiptTarget(type);
+  }
+
+  _isReceiptScope(run, row) {
+    return (
+      run.target.scope.kind === "personal" &&
+      row.actor_did === run.target.scope.id
+    );
+  }
+
+  _validateActorScope(request, actor) {
+    if (
+      request.target.scope.kind !== "personal" ||
+      request.target.scope.id !== actor
+    )
+      fail("ACTION_NOT_FOUND_OR_DENIED");
+  }
+
+  _additionalSourceEvidence() {
+    return [];
   }
 
   _readTransaction(operation) {
@@ -628,7 +658,7 @@ class TaskDescriptionActionService {
       if (options.beforeId !== undefined) {
         const cursor = this.db
           .prepare(
-            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${receiptTarget("Task")}`,
+            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${this._receiptTarget("Task")}`,
           )
           .get(options.beforeId, actor, options.taskId);
         if (!cursor) fail("ACTION_INVALID_CURSOR");
@@ -638,7 +668,7 @@ class TaskDescriptionActionService {
       if (beforeRowId !== undefined) params.push(beforeRowId);
       const rows = this.db
         .prepare(
-          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${receiptTarget("Task")}
+          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${this._receiptTarget("Task")}
         ${beforeRowId !== undefined ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
         )
         .all(...params, limit + 1);
@@ -772,7 +802,7 @@ class TaskDescriptionActionService {
         ![ACTION_TYPE, "task.create"].includes(run.actionType) ||
         run.target.type !==
           (run.actionType === "task.create" ? "Project" : "Task") ||
-        run.target.scope.kind !== "personal" ||
+        !this._isReceiptScope(run, row) ||
         run.target.sourceKind !==
           (run.actionType === "task.create"
             ? "desktop.project-task-owner"
@@ -787,7 +817,6 @@ class TaskDescriptionActionService {
         evidence.length !== run.evidenceRefs.length ||
         new Set(evidence.map((item) => item.id)).size !== evidence.length ||
         row.id !== run.id ||
-        row.actor_did !== run.target.scope.id ||
         row.target_id !== run.target.id ||
         row.invocation_digest !== run.invocationDigest ||
         row.idempotency_digest !== run.idempotencyDigest
@@ -850,8 +879,8 @@ class TaskDescriptionActionService {
         if (
           created.type !== "Task" ||
           created.sourceKind !== SOURCE_KIND ||
-          created.scope.kind !== "personal" ||
-          created.scope.id !== row.actor_did
+          created.scope.kind !== run.target.scope.kind ||
+          created.scope.id !== run.target.scope.id
         )
           fail("ACTION_RECEIPT_CORRUPT");
       }
@@ -1021,7 +1050,7 @@ class TaskDescriptionActionService {
     const admitted = this._transaction(() => {
       const actor = this._actor();
       this._authorizeRequest(request, actor);
-      if (request.target.scope.id !== actor) fail("ACTION_NOT_FOUND_OR_DENIED");
+      this._validateActorScope(request, actor);
       const previous = this.db
         .prepare(
           "SELECT * FROM cc_business_action_runs WHERE idempotency_digest=?",
@@ -1058,6 +1087,7 @@ class TaskDescriptionActionService {
             },
           ]
         : [];
+      sourceEvidence.push(...this._additionalSourceEvidence(request, actor));
       if (request.input.goalIntent)
         sourceEvidence.push({
           id: randomUUID(),
@@ -1187,13 +1217,18 @@ class TaskDescriptionActionService {
         let afterVersion = null,
           executionRef = null;
         if (approved) {
-          const mutation = this._applyRequest(request, actor, latest);
+          const mutation = this._applyRequest(request, actor, latest, {
+            runId,
+          });
           afterVersion = mutation.afterVersion;
           const execution = {
             id: randomUUID(),
             kind: mutation.kind,
             ...(mutation.createdTaskRef
               ? { createdTaskRef: mutation.createdTaskRef }
+              : {}),
+            ...(mutation.organizationApproval
+              ? { organizationApproval: mutation.organizationApproval }
               : {}),
             actorDid: actor,
             invocationDigest: request.invocationDigest,
@@ -1227,7 +1262,9 @@ class TaskDescriptionActionService {
       // A changed identity/version is a known precondition failure before any
       // write. Other DB/commit errors retain running (unknown) and are not retried.
       if (
-        /^(PROJECT_RISK_|ACTION_GOAL_)/.test(error.code || "") ||
+        /^(PROJECT_RISK_|ACTION_GOAL_|ORG_AUTH_|ORG_APPROVAL_)/.test(
+          error.code || "",
+        ) ||
         [
           "ACTION_AUTHORITY_CHANGED",
           "ACTION_VERSION_CONFLICT",
@@ -1443,14 +1480,14 @@ class TaskCreateActionService extends TaskDescriptionActionService {
       if (input.beforeId !== undefined) {
         cursor = this.db
           .prepare(
-            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${receiptTarget("Project")}`,
+            `SELECT rowid FROM cc_business_action_runs WHERE id=? AND actor_did=? AND target_id=? AND ${this._receiptTarget("Project")}`,
           )
           .get(id(input.beforeId), actor, input.projectId);
         if (!cursor) fail("ACTION_INVALID_CURSOR");
       }
       const rows = this.db
         .prepare(
-          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${receiptTarget("Project")} ${cursor ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
+          `SELECT ${RECEIPT_COLUMNS} FROM cc_business_action_runs WHERE actor_did=? AND target_id=? AND ${this._receiptTarget("Project")} ${cursor ? "AND rowid<?" : ""} ORDER BY rowid DESC LIMIT ?`,
         )
         .all(
           actor,

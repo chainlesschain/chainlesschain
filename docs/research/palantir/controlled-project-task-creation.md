@@ -1,6 +1,6 @@
 # 受控项目任务创建及旧入口收口
 
-更新：2026-10-06。本说明记录本地实现与选择性验证，不代表组织工作流或真实 Electron GUI 验收完成。
+更新：2026-10-07。本说明的个人路径及组织缺口表保留第五批基线；第六批共享组织服务进展见[组织项目授权、审批与执行](./organization-project-authority.md)。真实组织页面/固定 IPC 和 Electron GUI 旅程尚未完成。
 
 ## 真实任务模型和所有权
 
@@ -57,4 +57,4 @@
 | `permission/approval-workflow-manager.js` 的 `submitApproval`、`_processDecision`、`_handleTimeout`                                        | request_data 没有 actionDigest/expectedVersion/workflowVersion 或单次消费；审批时读取当前 workflow.approvers；超时可直接 approved；响应也没有与执行的原子消费绑定。  | 不可变审批计划、输入/资源版本绑定、审批人当下权限复核、防重复响应和最终单次消费；超时批准不能伪装成人工确认。 |
 | `permission/permission-ipc.js`、`permission/current-user-context.js`                                                                       | 旧身份适配允许 report/off 保留客户端 claim；历史审批记录不证明当时使用了强制身份模式。                                                                               | 新强制主进程身份路径及记录来源版本；旧审批不得追认为新合同下的批准。                                          |
 
-这些工作需要新增组织动作合同、迁移和撤权/审批并发测试，不能通过把已有独立项目同 ID 合并、读取用户自报 org_id 或复用旧 approved 状态来代替。本批组织路径继续明确拒绝；个人原生确认也不宣称完成多级审批。
+第六批已实现显式映射、owner 确认的事务授权、不可变版本绑定审批与单次消费，并验证组织成员的规范创建/描述写入。旧个人 renderer 入口继续明确拒绝组织数据；新的组织管理/审批/任务页面和双主体迁移尚需接线。个人原生确认不替代多级审批，旧角色、grants 或 approved 不自动升级为受控授权。

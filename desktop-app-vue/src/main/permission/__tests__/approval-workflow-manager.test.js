@@ -30,11 +30,6 @@ vi.mock("../../utils/logger.js", () => ({
   },
 }));
 
-// Mock uuid
-vi.mock("uuid", () => ({
-  v4: vi.fn(() => "mock-uuid-" + Math.random().toString(36).substr(2, 9)),
-}));
-
 const {
   ApprovalWorkflowManager,
   getApprovalWorkflowManager,
@@ -63,6 +58,9 @@ describe("ApprovalWorkflowManager", () => {
     mockDb = mocks.mockDb;
     mockPrepare = mocks.mockPrepare;
     manager = new ApprovalWorkflowManager(mockDb);
+    // This suite models the old requests with a statement-only fake database.
+    // Native companion detection is covered with real SQLite separately.
+    vi.spyOn(manager, "_isControlledRequest").mockReturnValue(false);
   });
 
   afterEach(() => {

@@ -2,6 +2,9 @@
 
 const { randomUUID } = require("node:crypto");
 const {
+  hasOrganizationProjectBinding,
+} = require("./organization-project-authority");
+const {
   createBusinessObjectRef,
   digestBusinessObjectContent,
 } = require("./business-object-contract.js");
@@ -130,6 +133,7 @@ class SqliteProjectGoalAdapter {
     if (
       project.org_id != null ||
       project.workspace_id != null ||
+      hasOrganizationProjectBinding(this.db, project.id) ||
       (this._hasTable("organization_projects") &&
         this.db
           .prepare("SELECT 1 FROM organization_projects WHERE id=?")

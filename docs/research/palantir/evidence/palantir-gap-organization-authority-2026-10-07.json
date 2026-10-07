@@ -1,0 +1,226 @@
+{
+  "schema": "chainlesschain.palantir-organization-validation/v1",
+  "capturedAt": "2026-10-07T04:42:27.740Z",
+  "sourceBaseCommit": "2b83a1986a872bc3ed3d5c12a02fb5879d1492a3",
+  "scope": "Owner-attested organization project authority, immutable multilevel approvals, canonical task create/description services, native authorization host and personal/legacy boundary regressions",
+  "environment": {
+    "platform": "win32",
+    "node": "v22.22.2",
+    "vitest": "4.1.10",
+    "sqlite": "better-sqlite3 native"
+  },
+  "verification": {
+    "passed": 294,
+    "failed": 0,
+    "skipped": 0,
+    "files": 11,
+    "groups": [
+      {
+        "name": "shared-services",
+        "cwd": "packages/cli",
+        "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/organization-project-authority.test.js __tests__/unit/organization-project-approval-service.test.js __tests__/unit/organization-task-action-service.test.js __tests__/unit/task-description-action-service.test.js __tests__/unit/task-description-read-service.test.js __tests__/unit/task-create-action-service.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/project-goal-service.test.js --reporter=json --outputFile=../../.work/palantir-organization-authority-cli-tests.json",
+        "report": ".work/palantir-organization-authority-cli-tests.json",
+        "reportSha256": "25d1bcf1d84523c6c0b6de08a225c341a873ea98398656606481633b35e5ae04",
+        "passed": 204,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+            "passed": 47,
+            "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+            "passed": 35,
+            "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+            "passed": 14,
+            "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-goal-service.test.js",
+            "passed": 11,
+            "sha256": "ff45f18691d7e1ff86a09ca675e4b29f4c720a2ef1a90f7f6c46bc6c6c990505"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+            "passed": 44,
+            "sha256": "553bb434ad26e3ce724c0eed516dadfd00566e49823d73bf62b34df7f7386d1e"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-create-action-service.test.js",
+            "passed": 12,
+            "sha256": "439804e013725dbc04ddaabfd113375904639ac5884c2e11621a011dab37e260"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-action-service.test.js",
+            "passed": 22,
+            "sha256": "6c21c8cf3761c4d9aa45c4abf5b581f2e038bf8d1addc3d593b648fd4505b065"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/task-description-read-service.test.js",
+            "passed": 19,
+            "sha256": "e066c626c0465097fba2243bb5ca11a337bc4cd23215b81e6ad8f42295bb9a4a"
+          }
+        ]
+      },
+      {
+        "name": "desktop-host",
+        "cwd": "desktop-app-vue",
+        "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.organization-authority.config.mjs --reporter=json --outputFile=../.work/palantir-organization-authority-host-tests.json",
+        "report": ".work/palantir-organization-authority-host-tests.json",
+        "reportSha256": "d45a4607bb6732368a9cfab4f290aa5e3bef27aa9f706f485e443dd054719294",
+        "passed": 90,
+        "failed": 0,
+        "skipped": 0,
+        "files": [
+          {
+            "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+            "passed": 50,
+            "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f"
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+            "passed": 12,
+            "sha256": "487b4b7496bede1c0d88dd3c746562a95a32fbdd92c90c3b93a54d168c7c5c5a"
+          },
+          {
+            "path": "desktop-app-vue/src/main/task/__tests__/task-description-ipc.test.js",
+            "passed": 28,
+            "sha256": "f071f3702509b6efbae9fe951801fe509693847120cd6a1cfc16a827514ed110"
+          }
+        ]
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "path": "desktop-app-vue/src/main/permission/__tests__/approval-workflow-manager.test.js",
+      "snapshot": "git-index",
+      "sha256": "863709fa1a4e81702be1b969f9db5e18967cb9c8210b5a5e90f2e0496b7c2f9f"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/approval-workflow-manager.js",
+      "snapshot": "git-index",
+      "sha256": "b362e9206357e8f4e31f3f5a7ba36f10fb6df34e4a94a1ac688a774af5ff10fb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/organization-project-authority-host.test.js",
+      "snapshot": "git-index",
+      "sha256": "487b4b7496bede1c0d88dd3c746562a95a32fbdd92c90c3b93a54d168c7c5c5a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/organization-project-authority-host.js",
+      "snapshot": "git-index",
+      "sha256": "01e652bb59af29f79875f09e743b13f23d31f5c545b6efdf530bfe44ed130031"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "snapshot": "git-index",
+      "sha256": "32776057a7d6972f5e333ee0c9b47531ac0083794a1e716641a872b510b8483c"
+    },
+    {
+      "path": "desktop-app-vue/vitest.organization-authority.config.mjs",
+      "snapshot": "git-index",
+      "sha256": "5610ce8ecbf544bbee5b6d74b56f03f82c442e18f9ed0a608f7529f3ebe9cf8c"
+    },
+    {
+      "path": "docs/research/palantir/controlled-project-task-creation.md",
+      "snapshot": "git-index",
+      "sha256": "be6b46ea53bf47dae044bf30057f8dc78afd4e4da745f5da96fb37e1b304014c"
+    },
+    {
+      "path": "docs/research/palantir/organization-project-authority.md",
+      "snapshot": "git-index",
+      "sha256": "f1fa541fb8b1677fbde01ef6f3aa88ae43eb32595eb14f00760c4e9e1793d0bf"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "snapshot": "git-index",
+      "sha256": "cf75dc2005fd295d96f538c6742b9c51bea8b78f27c4b3c50d116a161451c538"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-approval-service.test.js",
+      "snapshot": "git-index",
+      "sha256": "cbbf599761e25c8f1fee47a50f6814043c135cbec55e02b289a38ce06fd4f7f0"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-project-authority.test.js",
+      "snapshot": "git-index",
+      "sha256": "e4236aded09bc4e2b4951605c1df2fa44b72acb336cbe44130d8c6fe928339e3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+      "snapshot": "git-index",
+      "sha256": "8b2ee924a3ca2e8db9b375bc827caf0a7b5b93d40ea531255baec9628d45f1f9"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-approval-service.js",
+      "snapshot": "git-index",
+      "sha256": "a2a3205a467920d631036cc600e5ebf8316d8b7249d207eae40a5de19938e39d"
+    },
+    {
+      "path": "packages/session-core/lib/organization-project-authority.js",
+      "snapshot": "git-index",
+      "sha256": "2175e5356ccea072d6832406097f9d80a21b745d41d76278132effd1b0ba4269"
+    },
+    {
+      "path": "packages/session-core/lib/organization-task-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "b11ccfcb1a0b728743b331b44cb06b2b72fda31b67a6b07730aef25b8fdd55c8"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-service.js",
+      "snapshot": "git-index",
+      "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279"
+    },
+    {
+      "path": "packages/session-core/lib/project-risk-review-service.js",
+      "snapshot": "git-index",
+      "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580"
+    },
+    {
+      "path": "packages/session-core/lib/task-description-action-service.js",
+      "snapshot": "git-index",
+      "sha256": "a9fb5bbbb14e972c3ad66cbca7f41a571a2e6ba4e17432036021a6f157cb5bd7"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "snapshot": "git-index",
+      "sha256": "840234b1977fb03eb907461fd5027ece196a1696c92a18e591c42d1b7a2fa450"
+    }
+  ],
+  "review": {
+    "collaborator": "Astra",
+    "method": "Independent code inspection and real SQLite reproductions",
+    "fixed": [
+      "Authenticated login generation and database/window fences",
+      "Owner revocation/restoration during binding revocation",
+      "Serialized policy write/read size consistency",
+      "Late workflow and workspace table ABA fences",
+      "Task reparenting persists a denied receipt",
+      "Personal versus organization history and cursor isolation",
+      "Same-target pending approval new-key/workflow lock and authenticated cancellation"
+    ]
+  },
+  "checks": [
+    "Scoped Prettier check",
+    "Changed production JavaScript syntax checks",
+    "git diff --check"
+  ],
+  "limitations": [
+    "Renderer organization management/approval/task IPC and GUI journey remain to be implemented",
+    "Two-principal ownership migration is unsupported",
+    "Ancillary/board and other business-object actions are not migrated",
+    "No full-repository, Linux/macOS, external tenant, model, publishing or deployment validation"
+  ],
+  "notes": [
+    "Tests ran against the shared worktree; staged artifacts identify the committed task content, while unrelated worktree edits remain unstaged",
+    "Only the three organization exports from session-core/package.json are staged; the unrelated project-goal-memory export remains in the worktree",
+    "The authentication generation accessor is included because it is required and validated by the new native host",
+    "A passing local suite does not replace the exact-commit GitHub Actions release gate"
+  ]
+}

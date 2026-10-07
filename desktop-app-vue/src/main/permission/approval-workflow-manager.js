@@ -13,7 +13,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID: uuidv4 } = require("node:crypto");
 const EventEmitter = require("events");
 
 class ApprovalWorkflowManager extends EventEmitter {
@@ -321,6 +321,9 @@ class ApprovalWorkflowManager extends EventEmitter {
   async _processDecision(requestId, approverDid, decision, comment) {
     try {
       const db = this.database.getDatabase();
+      if (this._isControlledRequest(db, requestId)) {
+        return { success: false, error: "CONTROLLED_APPROVAL_REQUIRED" };
+      }
       const now = Date.now();
 
       const request = db
@@ -623,9 +626,30 @@ class ApprovalWorkflowManager extends EventEmitter {
     return 1;
   }
 
+  _isControlledRequest(db, requestId) {
+    return Boolean(
+      db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cc_organization_action_approvals'",
+        )
+        .get() &&
+      db
+        .prepare(
+          "SELECT 1 FROM cc_organization_action_approvals WHERE request_id=?",
+        )
+        .get(requestId),
+    );
+  }
+
   async _handleTimeout(requestId, action) {
     try {
       const db = this.database.getDatabase();
+      // The controlled service owns its immutable deadline. Legacy automatic
+      // approval and client-supplied approver identities cannot change it.
+      if (this._isControlledRequest(db, requestId)) {
+        this._clearTimeout(requestId);
+        return { success: false, error: "CONTROLLED_APPROVAL_REQUIRED" };
+      }
       const now = Date.now();
 
       let status = "expired";
