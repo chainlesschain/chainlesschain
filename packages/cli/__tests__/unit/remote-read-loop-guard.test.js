@@ -168,7 +168,7 @@ describe("remote read target classification", () => {
     "gh run view 123 --json status,conclusion",
     "gh run watch 123",
     "gh run rerun 123 --failed",
-    "gh api repos/o/r/actions/runs/123",
+    "gh api repos/o/r/actions/runs/123 --jq .status",
     "gh api --method DELETE repos/o/r/actions/runs/123/logs",
     "gh api -f key=value repos/o/r/actions/runs/123/logs",
     "npm test",
