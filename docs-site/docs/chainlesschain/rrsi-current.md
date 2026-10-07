@@ -1,12 +1,12 @@
 # RRSI 当前实现、离线回放与证据边界
 
-> 2026-10-07；主线源码核对至 `36ca503291`。RRSI 为工程实施中的正则化递归自改进流程，真实效果实验 `NOT_RUN`、automatic promotion `HOLD`。此页不提供生产自动晋升入口。
+> 2026-10-08；源码基线 `381f8018ef`。公开 .92 包含 Registry/writer 基础与完整文件身份；后续有界读取需当前源码。真实实验 `NOT_RUN`，automatic promotion `HOLD`。
 
 ## 概述
 
 RRSI 在固定基线 A、无正则 RSI B 和正则化 RRSI C 之间，以隔离数据池、共同预算、完整观察分母和事前统计合同比较候选。它旨在防止训练收益、选择集泄漏或缺费用的结果被当作可发布收益。
 
-本页从 `docs/research/agents/rrsi-implementation-plan-2026-10-07.md`、实施进度 §15–19 及相应代码补齐。统计 v2、耐久预注册、必需 HOLD 质量回执及 Registry/History/backend 关联已经实现；生产来源门、真实费用与统计校准尚未完成。
+本页从 `docs/research/agents/rrsi-implementation-plan-2026-10-07.md`、最新实施进度（含三阶段产物字节读取） 及相应代码补齐。统计 v2、耐久预注册、必需 HOLD 质量回执及 Registry/History/backend 关联已经实现；生产来源门、真实费用与统计校准尚未完成。
 
 ## 核心特性
 
@@ -22,6 +22,12 @@ RRSI 在固定基线 A、无正则 RSI B 和正则化 RRSI C 之间，以隔离�
 冻结 campaign 与有效父版本 → 准备计账/PM broad → 筛选原生计划和逐臂预占 → enrollment/launch admission → sealed 行和 census → 统计/质量回执 → 耐久 History。当前组装支持 off/shadow；enforced 的生产准入不足时拒绝。
 
 Registry/History/backend 使用真实实例的私有品牌和捕获端口，调用前重读存储关联和有效父版本。普通 callback、相同路径、相同租户或重开的历史 JSON 不恢复当前执行权限。这些关联尚不是永久来源约束或正式 Release/Review/Pilot 全链路准入。
+
+## 存储保护与读取范围（最新源码）
+
+Registry/History 关联继续扩展认证 fresh pair、空运行目录、只读 construction、原文保留、单调限制、目录/安装 route/历史前缀核查。trusted index snapshot 最大 64 MiB；默认产物前校验、读取、后校验三个阶段都按 expectedSize ≤ 1 MiB 有界读取，最多 64 KiB 分块并探测 EOF，核对完整 BigInt 文件身份和元数据，失败关闭句柄。
+
+三阶段不是原子快照。list/get、source publish、无 bounds verify 与任意 override 尚非全路径有界。完整 v2/retention 图、独立安装根、持久 pin/高水位、producer 和 alias/Release 准入未闭合；这些保护不解除质量 HOLD。参见[最新设计](/design/governance-runtime-update-2026-10-08)。
 
 ## 使用示例
 
@@ -59,7 +65,7 @@ node packages/cli/scripts/rrsi-offline-replay.mjs --input replay.json --campaign
 
 当前质量回执始终 `decision:HOLD`、`qualityVerdictVerified:false`。来源独立性、真实账单、校准和生产权威未验证；Registry 关联也保留 `originCutoverAuthenticated:false` 和 `productionAuthorityVerified:false`。外部 PASS 或合成回放成功不能解除这些条件。
 
-失败、超时、unknown 及缺费用保留原分母和预占；只能核对同一执行，不换 ID 重跑。内容来源永久门、两个 Registry writer floor/维护排空、transition lease 内核验和 cutover 恢复仍需实施。
+失败、超时、unknown 及缺费用保留原分母和预占；只能核对同一执行，不换 ID 重跑。Registry writer 维护协调、认证 fresh pair 和只读构造已有本地控制实现；完整来源/高水位/retention 以及生产 cutover 与准入仍需完成。
 
 ## 故障排查
 

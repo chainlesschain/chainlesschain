@@ -1,4 +1,5 @@
 ---
+import SourceUpdate from "../../components/SourceUpdate.astro";
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import releaseStatus from '../../data/release-status.json';
 
@@ -315,4 +316,5 @@ const SOURCE_CLI_VERSION = releaseStatus.sourceMainCliVersion;
       </a>
     </div>
   </section>
+  <SourceUpdate lang="en" />
 </BaseLayout>

@@ -1,6 +1,14 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## 2026-10-07 current release
+## Current source and public release (2026-10-08)
+
+Public CLI **0.166.92**, Open VSX **0.37.137**, JetBrains **0.4.155** and product **v5.0.3.139** are based on `e812a89952`. Source was reviewed at `381f8018ef`. The product includes personal goal monitoring/actions/acceptance and the organization task workbench. Personal memory UI, organization transfers/risk/shared goals/monitoring/acceptance/memory, in-app notifications and IDE investigation recovery require later source.
+
+Organization task writes require explicit permissions, multi-level approvals and the requester's native confirmation. Goal memory supports explicit corrections, revocation and deletion with current authorization; it is not automatically injected into model output. Notifications keep authorized references and support quiet hours and goal links. RRSI bounded artifact reads are source progress; automatic promotion remains HOLD.
+
+See the [current design](docs/design/governance-runtime-update-2026-10-08.md), [personal goal guide](docs-site/docs/chainlesschain/project-goals-current.md), [organization guide](docs-site/docs/chainlesschain/organization-project-current.md) and [public observations](docs/research/cli/evidence/documentation-release-status-2026-10-08.json). Dated records below retain their historical scope.
+
+## 2026-10-07 publication record
 
 CLI **0.166.92**, Session Core **0.3.17** and Context Memory Kernel **0.1.7** have been published through GitHub Actions OIDC in child-package → CLI order. Public archives, exact dependencies and signed provenance have been verified. Open VSX **0.37.137** and JetBrains **0.4.155** are public, with downloaded artifacts verified against the expected versions and CLI `0.166.92` pairing. All four release tags point to `e812a89952`; [product **v5.0.3.139**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) now provides Windows, macOS, Linux, Android and iOS artifacts.
 
@@ -1668,14 +1676,14 @@ Legal sign-off received 2026-05-03 unblocks Q-COMP-3 (domestic consortium chain 
 
 Closes every doable item from cross-chain bridge §11 + federation governance v0.2 §11 (chain anchoring blocked by Q-COMP-3, real RPC adapters need major desktop work — both kept):
 
-| Wave                                                 | Module                                  | Notes                                                                                                                                                                                                                                                           |
+| Wave | Module | Notes |
 | ---------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation trust (v0.3 #1)              | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate`                                                                   |
-| **A2** Independent third-party auditor (v0.3 #3)     | same lib                                | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary                         | --json]` |
-| **B1** Multi-hop bridge (bridge §11 #3)              | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch (bridge §11 #4)               | same                                    | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                                   |
-| **B3** SLA Manager integration (bridge §11 #6)       | same                                    | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla`                                                                                                     |
-| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab                    | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana                                                                          |
+| **A1** Cross-federation trust (v0.3 #1) | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor` (with EXPIRED check). CLI: `cc mtc federation cross-trust-create/validate` |
+| **A2** Independent third-party auditor (v0.3 #3) | same lib | `auditGovernanceLog(events, fedId)` pure function: detects UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER findings, returns `{ok, findings[], final_state}`. CLI: `cc mtc federation audit <fed> [--summary                         | --json]` |
+| **B1** Multi-hop bridge (bridge §11 #3) | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` chains ≥2 single-hop envelopes; enforces `leg[i].dst_chain == leg[i+1].src_chain` continuity; new schema `mtc-bridge-multihop/v1`. `verifyMultiHopBridgeEnvelope` per-leg verify. CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch (bridge §11 #4) | same | `shouldCloseBatchGasAware` heuristic: staged ≥ 50 hard-close; current_gas > baseline×1.5 defer; else close. CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
+| **B3** SLA Manager integration (bridge §11 #6) | same | `getBridgeMtcSlaMetrics` outputs `cc sla`-compatible shape: `sla_status` (ok/degraded/down) + staging/batches/last-batch time. CLI: `cc crosschain mtc-sla` |
+| **C** Web-panel monitoring dashboard (bridge §11 #5) | `Mtc.vue` bridge tab | New "SLA / Monitoring" card: 4 statistics (status / staged / batches/h / last batch) + 30s auto-poll of `cc crosschain mtc-sla --json`. Can be tapped by external Prometheus / Grafana |
 
 **Test totals**: core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 green**.
 
@@ -1780,15 +1788,15 @@ Implementation stays opt-in: `cc mtc federation` governance events only write to
 
 Two new design documents (closing §12 known-limit items #2 / #6) plus a new `cc crosschain mtc-*` subcommand surface that lets existing bridge / swap / send paths opt-in to MTC envelope writes:
 
-| Module                             | Notes                                                                                                                                                                                                                                                          |
+| Module | Notes |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design — Federation governance v1  | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
-| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship)                     |
-| CLI lib                            | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`)                                        |
-| 4 new subcommands                  | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                                                                |
-| `--mtc` opt-in flag                | `cc crosschain bridge                                                                                                                                                                                                                                          | swap | send --mtc`writes one staging op on success;`cc crosschain mtc-batch`closes staging into per-chain-pair batches (landmark + envelopes persisted to`batches/<pair>-<seq>/`) |
-| Bug fix                            | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB                                                                                 |
-| core-mtc                           | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit)                                                                                                                                                                         |
+| Design — Federation governance v1 | `docs/design/MTC_联邦治理_v1.md`: 5-stage federation lifecycle (Bootstrap/Steady/Dispute/Wind-down/Closed), admission flow with 0.5-weight candidate period, M-of-N threshold per business tier, three exit paths, Fork/Merge semantics, governance.log schema |
+| Design — Cross-chain bridge MTC v1 | `docs/design/MTC_跨链桥_v1.md`: lex-ordered `mtc/v1/bridge/<chain-pair>/...` namespace, three two-sided MTCA trust models (Independent/Federated/Light Client), cross-chain-specific threat analysis (T1 oracle collusion / T5 censorship) |
+| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js`: `bridgeNamespace` (lex-enforced) + Independent-mode trust-anchor store + `assembleBridgeBatch` / `verifyBridgeEnvelope` + staging lifecycle (`stageBridgeOp` / `closeBatch`) |
+| 4 new subcommands | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
+| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                                                                          | swap | send --mtc`writes one staging op on success;`cc crosschain mtc-batch`closes staging into per-chain-pair batches (landmark + envelopes persisted to`batches/<pair>-<seq>/`) |
+| Bug fix | `_dbFromCtx` now searches multiple parent levels for `_db` (was always null on spawnSync, breaking `bridge`/`swap`/`send` headless); crosschain `preAction` auto-bootstraps DB |
+| core-mtc | `NAMESPACE_RE` extended with `bridge` kind (additive — does not break did/skill/audit) |
 
 **Test totals**: lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + existing cross-chain 83 = **342 tests green** across unit / integration / e2e plus cross-process independent verification.
 
