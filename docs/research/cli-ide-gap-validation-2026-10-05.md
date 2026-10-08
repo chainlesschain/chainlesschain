@@ -461,3 +461,43 @@ LLVM-MinGW 20261006 官方 ZIP 校验后安装到私有 `.work/toolchains`，没
 本地 Windows **10.0.19045 / Node 22.22.2 / ABI 127** 只证明本轮实验 profile。NUL、冻结原 forks/config/full review、Rollup GNU 的整体 ABI、Windows/macOS durable authority/网络撤销/崩溃恢复仍开放。NUL 的固定 libuv 调用是 `CreateFileW(L"NUL")`，stdin access `0x120089`、stdout/stderr `0x120196`，share 3、inherit TRUE、OPEN_EXISTING、flags 0；独立下一版须验证真实 `\Device\Null` 对象/权限并精确继承，不能替换为文件、管道或普通 stdin。固定 libuv 子进程使用普通 CreateProcessW，根进程白名单不能证明所有后代的精确继承，仍需逐次 launcher/受限 runtime 支持。
 
 正式 target hosts、Node 22.12.0、人工 setup/check 签核、官方账号/账单、36+9、双 IDE/公开首次安装、真人辅助技术与 8h/24h/SLO 缺证据。计划 validator 再次确认 digest 不变，**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**；预算 $99、分母、正式 observations 和 CLOUD-02 条件项均未改变，未新增付费请求或发布。
+
+## 14. 2026-10-08 NUL 设备与精确后代继承
+
+### 14.1 实验 v3 的真实验证
+
+独立 `createWindowsNativeNullEvaluator` 使用原 v1 运输边界，并将 v3 profile 绑定到 guarded manifest；caller 不能指定额外 profile/env/handles。helper 仅对该 profile 打开两个真正的 Null 句柄，验证 `GetFileType=CHAR`、内核对象 `\Device\Null`、File 类型、read `0x120089`、write `0x120196` 与同步 mode `0x20`，纳入根进程的精确 HANDLE_LIST。原 v1/v2 默认不增加句柄。
+
+v3 的五个当前 node.exe IAT 项包括既有管道/realpath，以及 `CreateFileW/CreateProcessW`。Null fallback 只处理原 API 失败的固定 libuv NUL 调用：share 3、OPEN_EXISTING、flags 0、inherit TRUE、template NULL 与精确 access；不使用文件或 pipe 模拟 Null。private base handles 不可继承。每次受控 Node launch 独立复制并核对 CRT stdio，改写 CRT 表与标准句柄，传入精确 HANDLE_LIST 和两个新 Null 副本；未知 stdio、detached/breakaway、外部 executable、缺 trusted preload 或不支持形状拒绝。
+
+最终实际运行（格式整理及 LF 源码新构建）有 **六 PID/十二 installed+exit 回执**：root `24384`、nested `27356`、其 grandchild、三个并发 child `9748/23336/11400`。所有进程同 AppContainer SID、零 capability、处于 Job、五个 slots 完整；五个后代实际 EOF/97-byte complete write 成立，root Null fallback/maps 为 `18/18`，launch 为 `7 calls/4 launched/3 rejected`。target exit 0、stderr 空、childErrors 空、Job 清理确认、无 loopback exemption。该运行 **pipe/client/realpath counters 都为 0**，相应验证继续引用独立 v1/v2 材料，不声称 v3 再次覆盖这些分支。
+
+### 14.2 句柄数字复用与失败材料
+
+父进程维持一个真正的可继承 named Event 直到全部 child close。首次严格句柄查询在 absent number 上触发严格句柄异常，随后“相同数字必须不存在”的测试又因 child 正常复用该数字而失败，均保存。最终使用一次有界 **1 MiB `NtQueryInformationProcess(51)` 本进程句柄快照**：parent 在 Event 存活时取得其真实类型索引；child 的该数字不存在，或存在且类型不同，才能排除 Event 继承。数字存在且同 Event 类型仍明确 unsupported，不推断成功；不再查询无效句柄，也不把父子数字相同等同对象相同。
+
+独立结果校验器核对完整本地 source identity 集合、固定 runtime/ABI/布局、guarded 源码 bytes、根 NT/volume/FileId、六 PID lineage、十二 phase、精确 counters、journal digest、Event namespace/类型/存活及 bounded completion。Astra 发现原校验器未消费已采集的 childErrors，现强制数组存在且为空，并补 missing/null/object/已观察 PID 错误/未知 PID 错误五类负例。`diagnosticCompleted` 不作为独立证明来源。
+
+原始失败/成功、最初与最终回读及派生摘要见[证据目录](./cli/evidence/gap-2026-10-05/windows-null-v3-2026-10-08/README.md)。公开版路径脱敏、完整 manifest/inventory 省略并明确改名；原件保留，派生文件不能用作准入票据。source identity 只证明内部完整性与字节绑定，不认证独立 compiler/build。
+
+### 14.3 构建与回归
+
+helper source 为 **`d1734f440aa747de167e7e609ad7a61b78a28205acb3595f3b253b04a292b170`**，DLL/EXE 已重建并通过 source contract。最初 addon 为 `185a7de9…`，CPP/header 为 `5d71ba4b…/ed162f4b…`；其 build record 的 preload `13857ca1…` 保留历史含义。Prettier 整理后的当前 preload 为 **`ac9cfb6d818d378f79127a93f3167161eb9e5f08b98f08fdcea186969b81c7ab`**。提交前统一 CPP/header 为仓库规定的 LF，摘要改为 `c9281636…/42bfb27b…`，重新构建和 selftest 后实际 addon 为 **`75e7a1629843e74347f35da17cb0a4c2ac571c25cf01d140c3b35cad9c24b62c`**；该新二进制已另跑真实隔离诊断，逐项回读 staged/source 字节，见 [clean-readback](./cli/evidence/gap-2026-10-05/windows-null-v3-2026-10-08/clean-readback.json)。没有重建 addon 后借用旧结果；LLVM-MinGW 构建仍非 hermetic，PE 时间戳导致的 hash 差异继续保留。
+
+| 验证                                                             | 结果                |
+| ---------------------------------------------------------------- | ------------------- |
+| 最终 Node：准备/registry/准入/capsule/API/三代 adapter/结果/门禁 | **517/517，零跳过** |
+| 当前 helper 实际运输、篡改及未列出文件拒绝                       | **3/3，零跳过**     |
+| Vitest：原 v1、七项能力合同、review pack                         | **52/52，零跳过**   |
+
+共 **572 个不同测试通过**；最初 512 项 Node 与后来的 517 项不相加，执行诊断不另算 xUnit 测试。纯 preload/result 测试加入 CLI CI 三系统，Windows factory 合同加入 Strict native 步骤，相关脚本和诊断纳入 path filters。原归档 567 项是加 childErrors 门禁前的历史记录，最终结果有独立 TAP/readback。
+
+前序准确提交 `1e5477aebe1a69eba0932af915ea24ea545f66d7` 的 [Strict #37737538539](https://github.com/chainlesschain/chainlesschain/actions/runs/37737538539)、[Safety #37737538546](https://github.com/chainlesschain/chainlesschain/actions/runs/37737538546)、[Reliability #37737538595](https://github.com/chainlesschain/chainlesschain/actions/runs/37737538595)、[Host Diagnostics #37737538530](https://github.com/chainlesschain/chainlesschain/actions/runs/37737538530) 均成功；[CLI CI #37737538848](https://github.com/chainlesschain/chainlesschain/actions/runs/37737538848) 初次回读 queued，后续逐 job 回读发现 Linux unit shard 2/4 的 settings-permission-runtime 探针 status 0 时缺 JSON 输出。Worker message/exit 监听竞态的修复与验证见后续记录，其他 job 尚在执行，不能声称完整发布门通过。当前 v3 须新准确提交验证；本轮未发布。
+
+### 14.4 新实际阻塞与未完成验收
+
+冻结 config/default forks 的真实 v2 尝试中，**esbuild service 已启动并回复**，随后报告 `Cannot read directory "../../../../../../..": Access is denied`，再报告无法 resolve 绝对 staged `vitest.config.js`，target exit 1、cleanup true。当前只证明 esbuild 报告祖先目录读取失败，未取证具体底层 API/绝对目录；config 尚未加载、worker pool 未观察。该失败不是 NUL。诊断记录了 maxWorkers=1 与 configuration-default pool，不能作为完整冻结配置的通过结果。
+
+v3 仅接纳 guarded `control/node.exe`，非 Node 的 esbuild launch 明确 unsupported，Node IAT 也不覆盖 Go/esbuild 内核调用。因此工程仍需独立解决冻结原 config/default forks/full review、非 Node 后代适配/证明与 GNU addon 整体 ABI；不能扩大祖先 ACL、修改冻结包/config、切换 forks 为 threads 或放宽 canonical 校验取得通过。Windows/macOS durable authority、活跃网络撤销及崩溃恢复也继续开放。
+
+正式 target hosts/Node 22.12.0、官方账号/账单、独立人工 setup/check 签核、双 IDE 正式任务/公开首次安装、真人 NVDA/VoiceOver/Orca、8h/24h 与获批 SLO 仍缺验收。**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99 预算、原分母、正式 observations 和 CLOUD-02 条件项均未改变；本轮没有新增付费请求。

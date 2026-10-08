@@ -301,21 +301,58 @@ function* runLocked(targetPath, fn, opts, asynchronous) {
   let releaseError = null;
   if (held) {
     try {
-      released =
-        ownershipLost &&
-        !releasePublished &&
-        !sameLockDirectoryIdentity(
-          directoryIdentity,
-          readLockDirectoryIdentity(_fs, lockDir),
-        )
-          ? false
-          : releaseOwnedDirectory(
-              _fs,
-              lockDir,
-              owner,
-              isOwnerAlive,
-              releasePublished,
-            );
+      let releaseRetryAttempt = 0;
+      for (;;) {
+        // An unpublished release may see a sharing error followed by a
+        // transient ENOENT creating its marker (including on WSL1). Retry
+        // only the same directory and owner, before the original deadline.
+        // Recheck after waiting: an intervening replacement must stay intact.
+        if (
+          releaseRetryAttempt > 0 &&
+          (_now() >= deadline ||
+            !sameUnpublishedLockOwner(_fs, lockDir, directoryIdentity, owner))
+        ) {
+          released = false;
+          break;
+        }
+        const releaseResult =
+          ownershipLost &&
+          !releasePublished &&
+          !sameLockDirectoryIdentity(
+            directoryIdentity,
+            readLockDirectoryIdentity(_fs, lockDir),
+          )
+            ? false
+            : releaseOwnedDirectory(
+                _fs,
+                lockDir,
+                owner,
+                isOwnerAlive,
+                releasePublished,
+              );
+        if (releaseResult !== RETRY_UNPUBLISHED_RELEASE) {
+          released = releaseResult;
+          break;
+        }
+        released = false;
+        if (
+          ownershipLost ||
+          releasePublished ||
+          releaseRetryAttempt >= 3 ||
+          !sameUnpublishedLockOwner(_fs, lockDir, directoryIdentity, owner) ||
+          !(yield* waitForRetry({
+            _now,
+            _random,
+            deadline,
+            retryAttempt: releaseRetryAttempt++,
+            retryMs,
+            maxRetryMs,
+            retryJitterMs,
+          }))
+        ) {
+          break;
+        }
+      }
     } catch (error) {
       releaseError = error;
     }
@@ -341,6 +378,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 
+const RETRY_UNPUBLISHED_RELEASE = Symbol("retry-unpublished-release");
+
 const defaultFs = {
   mkdirSync: (p) => fs.mkdirSync(p),
   lstatSync: (p) => fs.lstatSync(p, { bigint: true }),
@@ -360,6 +399,24 @@ function readLockDirectoryIdentity(io, lockDir) {
 
 function sameLockDirectoryIdentity(left, right) {
   return !!left && left.dev === right.dev && left.ino === right.ino;
+}
+
+function sameUnpublishedLockOwner(io, lockDir, identity, owner) {
+  // Legacy injected filesystems without inode identity cannot establish this
+  // stronger retry precondition. Missing/unreadable identity also fails closed.
+  if (identity?.dev == null || identity?.ino == null) return false;
+  try {
+    return (
+      sameLockDirectoryIdentity(
+        identity,
+        readLockDirectoryIdentity(io, lockDir),
+      ) &&
+      sameOwner(readOwner(io, path.join(lockDir, "owner.json")), owner) &&
+      pathStatus(io, path.join(lockDir, `.release-${owner.token}`)) === "absent"
+    );
+  } catch {
+    return false;
+  }
 }
 
 function acquireOwnedDirectory(_fs, lockDir, owner) {
@@ -757,6 +814,7 @@ function releaseOwnedDirectory(
   ownerAlive,
   releaseWasPublished = false,
 ) {
+  let retryableRenameError = false;
   if (releaseWasPublished) {
     // A contender can already detach this directory. Never use the direct
     // read-owner -> rename path after publication: it could rename a new
@@ -790,6 +848,7 @@ function releaseOwnedDirectory(
       return true;
     } catch (error) {
       if (error?.code === "ENOENT") return false;
+      retryableRenameError = isTransientLockError(error);
       // Windows sharing transients fall back to the marker-based release.
     }
   }
@@ -797,7 +856,8 @@ function releaseOwnedDirectory(
   try {
     writeOwnerMarker(_fs, markerPath, owner);
   } catch (error) {
-    if (error?.code === "ENOENT") return false;
+    if (error?.code === "ENOENT")
+      return retryableRenameError ? RETRY_UNPUBLISHED_RELEASE : false;
     if (error?.code === "EEXIST") {
       const existing = readOwner(_fs, markerPath);
       if (!sameOwner(existing, owner)) return false;

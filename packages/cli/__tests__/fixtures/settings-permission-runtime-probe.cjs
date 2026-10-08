@@ -18,6 +18,9 @@ const loader = require("../../src/lib/settings-loader.cjs");
 const domain = require("../../src/lib/settings-authority-domain.cjs");
 const records = require("../../src/lib/settings-authority-record.cjs");
 const { createHash } = require("node:crypto");
+const {
+  observeSettingsWriterWorker,
+} = require("./settings-permission-runtime-worker.cjs");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check, label) {
@@ -275,14 +278,8 @@ async function probe() {
     const worker = new Worker(__filename, {
       workerData: { launch: f.launch, command: "write" },
     });
-    const result = await Promise.race([
-      once(worker, "message").then(([value]) => value),
-      once(worker, "error").then(([error]) => {
-        throw error;
-      }),
-    ]);
+    const result = await observeSettingsWriterWorker(worker);
     assert.equal(result.result.added, true);
-    await once(worker, "exit");
     assert.notEqual(owner.getSnapshot(), before);
   });
   await check("concurrent-official-writers-preserve-all-rules", async (f) => {
@@ -343,9 +340,7 @@ async function probe() {
     const worker = new Worker(__filename, {
       workerData: { launch: f.launch, command: "scoped-aba" },
     });
-    const exited = once(worker, "exit");
-    await once(worker, "message");
-    await exited;
+    await observeSettingsWriterWorker(worker);
     assert.deepEqual(provider().rules, beforeRules);
     assert.notEqual(owner.getSnapshot(), before);
     assert.equal(

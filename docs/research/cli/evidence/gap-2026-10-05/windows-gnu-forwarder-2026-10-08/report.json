@@ -1,0 +1,170 @@
+{
+  "schema": "chainlesschain.windows-rollup-gnu-diagnostic/v1",
+  "experimental": true,
+  "admissionEligible": false,
+  "status": "NOT_ADMITTED",
+  "formalSample": false,
+  "providerAssessed": false,
+  "completed": true,
+  "runtime": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "addon": {
+    "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@rollup\\rollup-win32-x64-gnu\\rollup.win32-x64-gnu.node",
+    "bytes": 2011136,
+    "digest": "sha256:a4296f17cddf99ee84cb358c8590d460d36b445775b64e42760d7c8308d60c13"
+  },
+  "forwarder": {
+    "path": "C:\\code\\chainlesschain\\.work\\gnu-forwarder-build-20261008-final\\libnode.dll",
+    "bytes": 49664,
+    "digest": "sha256:327fe76d30aceddfc534cd12f78bd4f7b15f1e9cd08cba2188094123bf52a329"
+  },
+  "sourceIdentity": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-rollup-gnu-forwarder.cpp",
+      "bytes": 3383,
+      "digest": "sha256:1c16199ba6de4a0cede60bd75440de8ddd1e1b98726e2016bdf165666ebacb8c"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-rollup-gnu-forwarder.def",
+      "bytes": 2205,
+      "digest": "sha256:c8ffe387255f46f43402fd27c8d94f0ae45d6eda6d44e3bf206713bdd75c2412"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-rollup-gnu-forwarder.mjs",
+      "bytes": 25374,
+      "digest": "sha256:4ccf019710a1d54d4a139ef26c00b6d1a3a52f8564a4755c4399a0dac06e3497"
+    }
+  ],
+  "buildRaw": "{\n  \"schema\": \"chainlesschain.windows-rollup-gnu-build/v1\",\n  \"experimental\": true,\n  \"admissionEligible\": false,\n  \"completed\": true,\n  \"commands\": [\n    {\n      \"executable\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\x86_64-w64-mingw32-clang++.exe\",\n      \"args\": [\n        \"-std=c++17\",\n        \"-O2\",\n        \"-Wall\",\n        \"-Wextra\",\n        \"-Werror\",\n        \"-static\",\n        \"-shared\",\n        \"-I\",\n        \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\",\n        \"C:\\\\code\\\\chainlesschain\\\\packages\\\\cli\\\\scripts\\\\diagnostics\\\\windows-rollup-gnu-forwarder.cpp\",\n        \"C:\\\\code\\\\chainlesschain\\\\packages\\\\cli\\\\scripts\\\\diagnostics\\\\windows-rollup-gnu-forwarder.def\",\n        \"-ladvapi32\",\n        \"-Wl,--no-insert-timestamp\",\n        \"-o\",\n        \"C:\\\\code\\\\chainlesschain\\\\.work\\\\gnu-forwarder-build-20261008-final\\\\libnode.dll\"\n      ],\n      \"status\": 0,\n      \"signal\": null,\n      \"error\": null,\n      \"stdout\": \"\",\n      \"stderr\": \"\"\n    }\n  ],\n  \"runtime\": {\n    \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\nvm\\\\v22.22.2\\\\node.exe\",\n    \"bytes\": 87074816,\n    \"digest\": \"sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\"\n  },\n  \"addon\": {\n    \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\native-toolchain-prepare-2026-10-08-canonical-pairs\\\\tree\\\\node_modules\\\\@rollup\\\\rollup-win32-x64-gnu\\\\rollup.win32-x64-gnu.node\",\n    \"bytes\": 2011136,\n    \"digest\": \"sha256:a4296f17cddf99ee84cb358c8590d460d36b445775b64e42760d7c8308d60c13\"\n  },\n  \"compilerClosure\": \"recorded compiler executables and adjacent DLLs; not hermetic\",\n  \"sources\": [\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\packages\\\\cli\\\\scripts\\\\diagnostics\\\\windows-rollup-gnu-forwarder.cpp\",\n      \"bytes\": 3383,\n      \"digest\": \"sha256:1c16199ba6de4a0cede60bd75440de8ddd1e1b98726e2016bdf165666ebacb8c\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\packages\\\\cli\\\\scripts\\\\diagnostics\\\\windows-rollup-gnu-forwarder.def\",\n      \"bytes\": 2205,\n      \"digest\": \"sha256:c8ffe387255f46f43402fd27c8d94f0ae45d6eda6d44e3bf206713bdd75c2412\"\n    }\n  ],\n  \"headers\": [\n    {\n      \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\\\\node_api.h\",\n      \"bytes\": 10370,\n      \"digest\": \"sha256:2d4560831e525b47b060ec8a0864ab73993df9e20215ce9f0fe7b24cd31af32a\"\n    },\n    {\n      \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\\\\node_api_types.h\",\n      \"bytes\": 1825,\n      \"digest\": \"sha256:088766b3cf1f0cd9b292c361ad30f7a04e7cc6db35a20ca52c572c1adf9635e7\"\n    },\n    {\n      \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\\\\js_native_api.h\",\n      \"bytes\": 31770,\n      \"digest\": \"sha256:582e64ead4d5fdf663e2bd934f2fc97e8e155a7740d28995830393d19d089705\"\n    },\n    {\n      \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\\\\js_native_api_types.h\",\n      \"bytes\": 7603,\n      \"digest\": \"sha256:05e3d86e24c814f94a8b52b6a70cec11d7e91c810008253553528637e3a15b2f\"\n    },\n    {\n      \"path\": \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\22.22.2\\\\include\\\\node\\\\node_version.h\",\n      \"bytes\": 4243,\n      \"digest\": \"sha256:0b388ee0595dee5cbe601e3e96cee5377a1e25f8f299b474f605445b68797eda\"\n    }\n  ],\n  \"compiler\": [\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\x86_64-w64-mingw32-clang++.exe\",\n      \"bytes\": 13824,\n      \"digest\": \"sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\clang-23.exe\",\n      \"bytes\": 95744,\n      \"digest\": \"sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\ld.lld.exe\",\n      \"bytes\": 5184512,\n      \"digest\": \"sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libc++.dll\",\n      \"bytes\": 2000384,\n      \"digest\": \"sha256:81fb50f0866840d7e5a1d35d48cf31adc02f623a61d8b77daf62881e1e59401b\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libclang-cpp.dll\",\n      \"bytes\": 49639936,\n      \"digest\": \"sha256:de0e788d706e25df582ffba132c50ed57568cb669d09acd78cba84b0b5a04d48\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libclang_rt.asan_dynamic-x86_64.dll\",\n      \"bytes\": 1466368,\n      \"digest\": \"sha256:23f93e1d3f4b13a5a8447f78c2bcd08ab1c98fd891ea785b8fa395030d17c05d\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libffi-8.dll\",\n      \"bytes\": 64512,\n      \"digest\": \"sha256:ea32ce9aad2fd63ca7064b23a3b3ac68e98ea73b8fe171d2cfc9e9a10ce7fc85\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\liblldb.dll\",\n      \"bytes\": 17090560,\n      \"digest\": \"sha256:e9d268f9156fac6b7bd4cf299a0f3881d4e5de07b99652cbb5632ad6048e71cb\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libLLVM-23.dll\",\n      \"bytes\": 77676032,\n      \"digest\": \"sha256:7913a4fecb6172756dbb35d08ac487fb0b0f0642e7adee166305984f3fa96511\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libomp.dll\",\n      \"bytes\": 948224,\n      \"digest\": \"sha256:2bbae398a027e33936be6882daa010533934c4daa40013e3077a31cbb5876b79\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libpython3.14.dll\",\n      \"bytes\": 5108224,\n      \"digest\": \"sha256:37f48732aaa305ad257f8d09ab26f03c03573fb0aea02273048014c0d3e06fd1\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libpython3.dll\",\n      \"bytes\": 73216,\n      \"digest\": \"sha256:6368eeb3c56200a7aa9033cc49a71b8bae3545dccb903f2b70056d464b052865\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libunwind.dll\",\n      \"bytes\": 183808,\n      \"digest\": \"sha256:b0636a4281610124704adb2be2edf5642e830d86c68b7f27dbc9c8154705a780\"\n    },\n    {\n      \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\toolchains\\\\llvm-mingw-20261006\\\\llvm-mingw-20261006-ucrt-x86_64\\\\bin\\\\libwinpthread-1.dll\",\n      \"bytes\": 293888,\n      \"digest\": \"sha256:7658f9e5e89213af287d342c554b8abcb5b2700b4a44d02184b56004b104ceec\"\n    }\n  ],\n  \"output\": {\n    \"path\": \"C:\\\\code\\\\chainlesschain\\\\.work\\\\gnu-forwarder-build-20261008-final\\\\libnode.dll\",\n    \"bytes\": 49664,\n    \"digest\": \"sha256:327fe76d30aceddfc534cd12f78bd4f7b15f1e9cd08cba2188094123bf52a329\"\n  },\n  \"closure\": {\n    \"importedFunctions\": [\n      \"napi_call_function\",\n      \"napi_cancel_async_work\",\n      \"napi_coerce_to_string\",\n      \"napi_create_async_work\",\n      \"napi_create_buffer_copy\",\n      \"napi_create_error\",\n      \"napi_create_external_buffer\",\n      \"napi_create_function\",\n      \"napi_create_object\",\n      \"napi_create_promise\",\n      \"napi_create_reference\",\n      \"napi_create_string_utf8\",\n      \"napi_create_threadsafe_function\",\n      \"napi_define_class\",\n      \"napi_delete_async_work\",\n      \"napi_delete_reference\",\n      \"napi_get_and_clear_last_exception\",\n      \"napi_get_cb_info\",\n      \"napi_get_global\",\n      \"napi_get_named_property\",\n      \"napi_get_prototype\",\n      \"napi_get_reference_value\",\n      \"napi_get_typedarray_info\",\n      \"napi_get_undefined\",\n      \"napi_get_value_bool\",\n      \"napi_get_value_string_utf8\",\n      \"napi_is_error\",\n      \"napi_is_exception_pending\",\n      \"napi_queue_async_work\",\n      \"napi_reference_unref\",\n      \"napi_reject_deferred\",\n      \"napi_remove_wrap\",\n      \"napi_resolve_deferred\",\n      \"napi_set_named_property\",\n      \"napi_strict_equals\",\n      \"napi_throw\",\n      \"napi_throw_error\",\n      \"napi_typeof\",\n      \"napi_unref_threadsafe_function\",\n      \"napi_unwrap\",\n      \"napi_wrap\"\n    ],\n    \"allForwardedToPinnedNode\": true\n  }\n}\n",
+  "buildDigest": "sha256:52337f539f4ca19900ba5b4aa4b18c7fd23a21f252ecae8ca66990af77225aa4",
+  "checkDigest": "sha256:ce7ea52195b1eca9fe0a3c1d6c90f8977a34d4f48e5951559faf1ad3fded9127",
+  "osRelease": "10.0.19045",
+  "sourceRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-gnu-forwarder-source-P6OUBK",
+  "startedAt": "2026-10-08T08:57:33.661Z",
+  "manifest": {
+    "version": 2,
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:ff3b34532b08c0d3d2ba1497393c3fd2a1bea7ff984acf2fcaa22e24a991ac6c",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I",
+    "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\workspace",
+    "control": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\control",
+    "scratch": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\scratch",
+    "check": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "4785074611128768",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I",
+        "dev": "38182903",
+        "ino": "2814749774154168"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\control",
+        "dev": "38182903",
+        "ino": "2814749774154172"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\scratch",
+        "dev": "38182903",
+        "ino": "2533274797443518"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\workspace",
+        "dev": "38182903",
+        "ino": "4785074611128763"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\workspace\\adapter",
+        "dev": "38182903",
+        "ino": "2533274797443525"
+      }
+    ],
+    "files": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\workspace\\rollup-gnu.node",
+        "dev": "38182903",
+        "ino": "2533274797443522",
+        "bytes": 2011136,
+        "sha256": "a4296f17cddf99ee84cb358c8590d460d36b445775b64e42760d7c8308d60c13"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\workspace\\adapter\\libnode.dll",
+        "dev": "38182903",
+        "ino": "3096224750864840",
+        "bytes": 49664,
+        "sha256": "327fe76d30aceddfc534cd12f78bd4f7b15f1e9cd08cba2188094123bf52a329"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-6GWG4I\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "2533274797443529",
+        "bytes": 2393,
+        "sha256": "ce7ea52195b1eca9fe0a3c1d6c90f8977a34d4f48e5951559faf1ad3fded9127"
+      }
+    ]
+  },
+  "manifestDigest": "sha256:613cffc0261120ab2ca1295b0ae403fe19bbd6df8a1d72c9d567791afde30080",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_GNU_FORWARDER:{\"native\":{\"pid\":20840,\"appContainerSid\":\"S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791\",\"capabilityCount\":0,\"inJob\":true,\"forwardedSymbols\":41,\"sameFunctionAddresses\":true},\"missingDllRejected\":true,\"parseBytes\":168,\"parseDigest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\",\"asyncDigest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\",\"hashes\":{\"xxhashBase16\":\"2109c9fcc8c72313b44d193fff26f891\",\"xxhashBase36\":\"b8o6skfu8ubtkyilf15ggmgir\",\"xxhashBase64Url\":\"hCcn8yMcjE7RNGT__JviR\"},\"invalidRejected\":true,\"changedInputDiffers\":true}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "613cffc0261120ab2ca1295b0ae403fe19bbd6df8a1d72c9d567791afde30080",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 20840,
+    "appContainerSid": "S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "journalRaw": "{\"sequence\":0,\"stage\":\"started\",\"pid\":20840}\n{\"sequence\":1,\"stage\":\"without-forwarder-rejected\",\"pid\":20840}\n{\"sequence\":2,\"stage\":\"forwarder-loaded\",\"pid\":20840,\"native\":{\"pid\":20840,\"appContainerSid\":\"S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791\",\"capabilityCount\":0,\"inJob\":true,\"forwardedSymbols\":41,\"sameFunctionAddresses\":true}}\n{\"sequence\":3,\"stage\":\"addon-loaded\",\"pid\":20840}\n{\"sequence\":4,\"stage\":\"parsed-sync\",\"pid\":20840,\"bytes\":168,\"digest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\"}\n{\"sequence\":5,\"stage\":\"parsed-async\",\"pid\":20840,\"bytes\":168,\"digest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\"}\n{\"sequence\":6,\"stage\":\"completed\",\"pid\":20840,\"native\":{\"pid\":20840,\"appContainerSid\":\"S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791\",\"capabilityCount\":0,\"inJob\":true,\"forwardedSymbols\":41,\"sameFunctionAddresses\":true},\"missingDllRejected\":true,\"parseBytes\":168,\"parseDigest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\",\"asyncDigest\":\"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35\",\"hashes\":{\"xxhashBase16\":\"2109c9fcc8c72313b44d193fff26f891\",\"xxhashBase36\":\"b8o6skfu8ubtkyilf15ggmgir\",\"xxhashBase64Url\":\"hCcn8yMcjE7RNGT__JviR\"},\"invalidRejected\":true,\"changedInputDiffers\":true}\n",
+  "journalDigest": "sha256:2c43f95258486079bfff1f5e433685e38a6baa0e141365669c6ac678813e0f82",
+  "behavior": {
+    "native": {
+      "pid": 20840,
+      "appContainerSid": "S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791",
+      "capabilityCount": 0,
+      "inJob": true,
+      "forwardedSymbols": 41,
+      "sameFunctionAddresses": true
+    },
+    "missingDllRejected": true,
+    "parseBytes": 168,
+    "parseDigest": "sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35",
+    "asyncDigest": "sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35",
+    "hashes": {
+      "xxhashBase16": "2109c9fcc8c72313b44d193fff26f891",
+      "xxhashBase36": "b8o6skfu8ubtkyilf15ggmgir",
+      "xxhashBase64Url": "hCcn8yMcjE7RNGT__JviR"
+    },
+    "invalidRejected": true,
+    "changedInputDiffers": true
+  },
+  "finishedAt": "2026-10-08T08:57:57.245Z"
+}

@@ -484,6 +484,64 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 GetFileType(IntPtr handle);
 
+        [DllImport("ntdll.dll")]
+        private static extern Int32 NtQueryObject(IntPtr handle, Int32 informationClass,
+            IntPtr information, UInt32 size, out UInt32 returned);
+
+        [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationFile")]
+        private static extern Int32 NtQueryFileMode(IntPtr handle, out IO_STATUS_BLOCK status,
+            out UInt32 mode, UInt32 size, Int32 informationClass);
+
+        // This path is reachable only for the separately gated experimental v3.
+        // Kernel object identity, exact rights, and synchronous mode are proved
+        // before either extra handle is placed in the root inheritance list.
+        private static void VerifyNullObjectString(IntPtr handle, int kind, string expected)
+        {
+            IntPtr buffer = Marshal.AllocHGlobal(4096);
+            try
+            {
+                UInt32 returned;
+                if (NtQueryObject(handle, kind, buffer, 4096, out returned) != 0 || returned > 4096)
+                    throw new InvalidDataException("Null object query failed");
+                int length = (UInt16)Marshal.ReadInt16(buffer);
+                int maximum = (UInt16)Marshal.ReadInt16(buffer, 2);
+                IntPtr value = Marshal.ReadIntPtr(buffer, IntPtr.Size == 8 ? 8 : 4);
+                long offset = value.ToInt64() - buffer.ToInt64();
+                if (length != expected.Length * 2 || maximum < length || offset < IntPtr.Size * 2 ||
+                    offset > 4096 - maximum || Marshal.PtrToStringUni(value, length / 2) != expected)
+                    throw new InvalidDataException("Null object identity differs");
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        private static IntPtr PrepareExperimentalNull(UInt32 access, List<IntPtr> owned)
+        {
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked((UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = true;
+            IntPtr handle = CreateFile("NUL", access, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                ref attributes, OPEN_EXISTING, 0, IntPtr.Zero);
+            if (IsInvalidHandle(handle)) ThrowLastError("CreateFile(experimental Null)");
+            owned.Add(handle);
+            if (GetFileType(handle) != 2) throw new InvalidDataException("Null is not a character device");
+            VerifyNullObjectString(handle, 1, "\\Device\\Null");
+            VerifyNullObjectString(handle, 2, "File");
+            IntPtr basic = Marshal.AllocHGlobal(256);
+            try
+            {
+                UInt32 returned;
+                if (NtQueryObject(handle, 0, basic, 56, out returned) != 0 || returned < 8 || returned > 256 ||
+                    unchecked((UInt32)Marshal.ReadInt32(basic, 4)) != access)
+                    throw new InvalidDataException("Null granted access differs");
+            }
+            finally { Marshal.FreeHGlobal(basic); }
+            IO_STATUS_BLOCK status;
+            UInt32 mode;
+            if (NtQueryFileMode(handle, out status, out mode, 4, 16) != 0 || mode != 0x20)
+                throw new InvalidDataException("Null synchronous mode differs");
+            return handle;
+        }
+
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr CreateFile(
             string fileName,
@@ -3029,9 +3087,19 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr standardError,
             int nodeIpcFd,
             IntPtr entrySnapshotHandle,
+            IntPtr experimentalNullRead,
+            IntPtr experimentalNullWrite,
             out IntPtr handleBytes)
         {
             List<IntPtr> handles = new List<IntPtr>();
+            if (!IsInvalidHandle(experimentalNullRead) || !IsInvalidHandle(experimentalNullWrite))
+            {
+                if (IsInvalidHandle(experimentalNullRead) || IsInvalidHandle(experimentalNullWrite) ||
+                    experimentalNullRead == experimentalNullWrite)
+                    throw new InvalidDataException("Experimental Null pair is incomplete");
+                handles.Add(experimentalNullRead);
+                handles.Add(experimentalNullWrite);
+            }
             handles.Add(standardInput);
             if (!handles.Contains(standardOutput))
                 handles.Add(standardOutput);
@@ -3302,6 +3370,7 @@ namespace ChainlessChain.WindowsSandbox
             [DataMember] public EvaluatorPathSpec[] directories { get; set; }
             [DataMember] public EvaluatorPathSpec[] files { get; set; }
             [DataMember] public NativeCapsuleBindingSpec capsuleBinding { get; set; }
+            [DataMember] public string experimentalNullDeviceProfile { get; set; }
         }
 
         private static bool SameEvaluatorPath(string left, string right)
@@ -3350,6 +3419,9 @@ namespace ChainlessChain.WindowsSandbox
             List<IntPtr> guards, ref bool rootAttested)
         {
             bool capsule = spec.version == 2;
+            if (spec.experimentalNullDeviceProfile != null &&
+                (capsule || spec.experimentalNullDeviceProfile != "chainlesschain/windows-node-runtime-adapter@3"))
+                throw new InvalidDataException("Unsupported experimental Null profile");
             int maxDirectories = capsule ? 20000 : 128;
             int maxFiles = capsule ? 20001 : 65;
             long maxFileBytes = capsule ? 32L * 1024 * 1024 : 1024 * 1024;
@@ -3631,6 +3703,7 @@ namespace ChainlessChain.WindowsSandbox
             int entrySnapshotFd = -1;
             byte[] entrySnapshot = null;
             List<IntPtr> ownedStandardHandles = new List<IntPtr>();
+            IntPtr experimentalNullRead = IntPtr.Zero, experimentalNullWrite = IntPtr.Zero;
             List<LaunchPathLock> launchPathLocks = new List<LaunchPathLock>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
             bool useAppContainer =
@@ -3725,6 +3798,13 @@ namespace ChainlessChain.WindowsSandbox
                     // Only the guarded evaluator exposes this attested identity;
                     // an inherited caller value is never used as its authority.
                     targetEnvironment["CC_WINDOWS_APPCONTAINER_SID"] = expectedAppContainerSid;
+                    if (nativeEvaluator.experimentalNullDeviceProfile != null)
+                    {
+                        experimentalNullRead = PrepareExperimentalNull(0x120089, ownedStandardHandles);
+                        experimentalNullWrite = PrepareExperimentalNull(0x120196, ownedStandardHandles);
+                        targetEnvironment["CC_WINDOWS_NULL_READ_V3"] = experimentalNullRead.ToInt64().ToString("x");
+                        targetEnvironment["CC_WINDOWS_NULL_WRITE_V3"] = experimentalNullWrite.ToInt64().ToString("x");
+                    }
                     ConfigureAppContainerEnvironment(targetEnvironment);
                 }
                 environmentBuffer =
@@ -3907,6 +3987,8 @@ namespace ChainlessChain.WindowsSandbox
                     startup.StartupInfo.hStdError,
                     nodeIpcFd,
                     entrySnapshotReadHandle,
+                    experimentalNullRead,
+                    experimentalNullWrite,
                     out inheritedHandleBytes);
                 attributeList = BuildProcessAttributeList(
                     inheritedHandleBuffer,

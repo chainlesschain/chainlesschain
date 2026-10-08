@@ -1,0 +1,221 @@
+{
+  "schema": "chainlesschain.windows-null-v3-readback/v1",
+  "collectedAt": "2026-10-08T07:56:27.410Z",
+  "derived": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "originals": [
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-lf/report.json",
+      "bytes": 78566,
+      "digest": "sha256:cf2e7719e43aee44f557418a8a4f5300221ba31e88593543c8a4c333df2bfcb4"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-lf/journal.jsonl",
+      "bytes": 11282,
+      "digest": "sha256:c3f48729cbf4ac272c57b142a4e72828c353b697d6b649667a5be1ce5e3e6d37"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-lf/stdout.txt",
+      "bytes": 1810,
+      "digest": "sha256:467f34a90bc7f4bed56c58cd607e3fa3f8ad42e2f263fa0436096e4056dd0cca"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-lf/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/null-v3-build-final-lf/build-report.json",
+      "bytes": 11224,
+      "digest": "sha256:19a63d7273ea001699b31bdffe25b9ba7323420c1440ba62b468d22a66aed16d"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "final-lf.json",
+      "bytes": 77558,
+      "digest": "sha256:0e842b00ff3a8339f5b01509db25a2811331e68756bf64e4026370bf269f8c41",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-lf-journal.jsonl",
+      "bytes": 11264,
+      "digest": "sha256:dc50725724d0ba97f29c3ec8b99dede931313d90d8f6a5334f35a8d8cd56011d",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-lf-stdout.txt",
+      "bytes": 1807,
+      "digest": "sha256:03468c2384dbac6fa98c2992be20e9ffa2da87719e0f9f72a0a4198a27a00d18",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-lf-stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "build-final-lf.json",
+      "bytes": 10879,
+      "digest": "sha256:c8aafff9daf6f031fdcd9ca22474c9db2f0353896903b7d915969542dc13d7f1",
+      "derived": true,
+      "admissionEligible": false
+    }
+  ],
+  "sourcesAtReadback": [
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-diagnostic.mjs",
+      "digest": "sha256:34fb6821470666e2549980d445f59aee3247ad19dbca81d8eb0c8e2bbd121f1e"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-result.mjs",
+      "digest": "sha256:3d787654251a8f8bc4948452be09f8a9c1c0bdd383f17f95b029f4e43639ecbe"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-fixtures.mjs",
+      "digest": "sha256:366af0e94cec49b30dd1236eced389132d3d1993633e525dbd73e3deb94d718f"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.cpp",
+      "digest": "sha256:c9281636f70838f6eab2df5258f839a4b99bfddde46aa9ba91be18f1434879ae"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.h",
+      "digest": "sha256:1967d34cfc5bf7c22d305bfa6d51575a6fe8eeb3c328c21e49f44f87c271fa84"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-preload.cjs",
+      "digest": "sha256:ac9cfb6d818d378f79127a93f3167161eb9e5f08b98f08fdcea186969b81c7ab"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:809315088a2fa4d00ec467d5487c1346322b8e11912c34dbd7abe0213bdce3a2"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:d1734f440aa747de167e7e609ad7a61b78a28205acb3595f3b253b04a292b170"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:a14939bd67ac9526f34a29c93ed9359e105b7e4fd45c3f1c4a3445d65a867115"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:1b50b2026f04fbb3a756835392d972ba95211a9af2c743795c3fba00670dcf5d"
+    }
+  ],
+  "previousReadbackDigest": "sha256:18d02c759c897e0727018d2509ebc8bc99b2686c5c92ea884802d83a0f629dfe",
+  "addonDigest": "sha256:f0c02a6219f10b9fd1d43898a24e8c6506f86b37062b3163b3b70c3cd3fc461d",
+  "checks": {
+    "independentlyRevalidated": true,
+    "stagedBytesVerified": true,
+    "sourceBytesVerified": true,
+    "completion": {
+      "pid": 16144,
+      "nested": 12456,
+      "concurrent": [
+        30308,
+        21968,
+        21656
+      ],
+      "native": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@3",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 16144,
+        "appContainerSid": "S-1-15-2-356574509-3722374523-3434167176-1046919274-4040353702-514881130-344988038",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 5,
+        "originalCreateNamedPipeA": "00007FFE65062E20",
+        "originalCreateFileA": "00007FFE65024E90",
+        "pipeSlot": "00007FF7C16D77B8",
+        "fileSlot": "00007FF7C16D7560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFE65025110",
+        "finalPathSlot": "00007FF7C16D7820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-vehUlh",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-vehUlh",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "03e67400000002000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 18,
+        "nullMapped": 18,
+        "nullRejected": 0,
+        "launches": 7,
+        "launched": 4,
+        "launchRejected": 3,
+        "launchError": 50,
+        "launchStage": "launch-stdio",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    },
+    "processes": 6,
+    "phaseReceipts": 12,
+    "childErrorsEmpty": true,
+    "cleanupConfirmed": true,
+    "pipeRealpathExecutedInThisRun": false,
+    "nodeTests": 517,
+    "nativeTransportTests": 3,
+    "vitestTests": 52,
+    "distinctTests": 572
+  },
+  "changes": [
+    "Require an empty childErrors array; five additional negative tests",
+    "Prettier-only preload changes; new actual native execution and receipt source digests",
+    "LF-normalized CPP/header; fresh build/selftest and new native execution bind the new binary; original build remains historical"
+  ],
+  "limits": [
+    "Windows 10 / Node 22.22.2 only",
+    "Controlled Node descendants only",
+    "Same Event type at numeric trap handle unsupported",
+    "esbuild reported ancestor directory read remains blocked",
+    "Non-hermetic build; no general runtime or formal review admission"
+  ]
+}

@@ -300,3 +300,17 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 | CI 反馈       | 旧准确提交 Strict/Safety/Host Diagnostics/Recovery 成功；实际 CLI CI 浅 checkout 和 Reliability 汇总缺 verifier dependency 两项失败已修 | 新准确提交完整 CI 回读；本轮没有发布                                    |
 
 源码、原始诊断/构建摘要、失败与当前准入边界见[验证第 13 节](./cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)和[证据索引](./cli/evidence/gap-2026-10-05/windows-runtime-adapter-2026-10-08/README.md)。v2 的成功不升级为正式 native backend，规范证明只覆盖真实目标和已观察的显式 preload 子进程。独立 NUL 下一版需真实设备权限与每次启动的精确继承；官方账号/账单、人工签核和正式环境仍需用户提供，36+9 保持 NOT_RUN。
+
+## 16. 2026-10-08 NUL 设备与受控 Node 后代
+
+新增独立实验 profile `chainlesschain/windows-node-runtime-adapter@3`：监督器验证真正的 `\Device\Null` 对象和精确读写权限，仅该显式 factory 传入两个 Null 句柄。runtime 为每次受控 Node 启动复制并核对 CRT stdio，改写继承表并传入精确 HANDLE_LIST；不支持的 executable、detached/breakaway、未知 stdio 和缺 trusted preload 继续拒绝。旧 factory、原七项能力与整包 `capabilities={}` 保留。
+
+| 任务          | 最新完成情况                                                                                                                       | 继续开放                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| VERIFY-02     | 独立 NUL/受控 Node 启动工程在本地真实隔离中通过；两层后代、三并发、六 PID/十二 phase 回执和 Job 清理完整                           | esbuild 报告祖先目录读取拒绝、冻结 config/default forks/full review、GNU addon 整体 ABI、人工签核 |
+| PLATFORM-02   | Null 真设备和精确继承证明；父进程保留真实可继承 Event，子进程有界内核句柄快照排除其继承；未知形状拒绝                              | 同类型句柄复用仍 unsupported；非 Node 后代；Windows/macOS durable authority、网络撤销和崩溃恢复   |
+| VERIFY-IDE-02 | 共享评测原生后端新增可回读材料；原双 IDE 工程和历史宿主结果保留                                                                    | 正式双 IDE 任务/公开首次安装、目标环境、真人听测、8h/24h 与获批 SLO                               |
+| 工程验证      | 最终 Node **517**、当前 helper 实际 transport **3**、Vitest **52**，共 **572 项通过、零跳过**；新增 childErrors 门禁和五类拒绝反例 | 新准确提交完整 Actions；当前 native v3 运行没有执行 pipe/realpath 分支                            |
+| CI/发行       | 前序 `1e5477aebe` 的 Strict/Safety/Reliability/Host Diagnostics 均成功，CLI CI 已发现 Linux Worker 结算竞态失败                                              | 当前 v3 须自身准确提交验证；本轮未合并、发布或新增付费请求                                        |
+
+实际失败和构建/源码摘要见[验证第 14 节](./cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)、[证据 README](./cli/evidence/gap-2026-10-05/windows-null-v3-2026-10-08/README.md)。最后的 preload 仅做 Prettier 整理，但仍重新执行真实诊断并保存新原件；历史构建回执的 preload 摘要不冒充新运行源码。冻结 esbuild/config 的失败不通过修改原包、改 forks 为 threads 或扩大父目录 ACL 消除。36+9、$99 预算和正式 observations 保持原状；NUL 子项的局部验证没有关闭完整 VERIFY-01。

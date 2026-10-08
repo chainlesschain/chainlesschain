@@ -1,0 +1,18 @@
+X [ERROR] Cannot read directory "../../../../../../..": Access is denied.
+
+X [ERROR] Could not resolve "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-hRt8Bl\\workspace\\packages\\cli\\vitest.config.js"
+
+[31mfailed to load config from {PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\packages\cli\vitest.config.js[39m
+Error: Build failed with 2 errors:
+error: Cannot read directory "../../../../../../..": Access is denied.
+error: Could not resolve "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-hRt8Bl\\workspace\\packages\\cli\\vitest.config.js"
+    at failureErrorWithLog ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:1748:15)
+    at {PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:1207:25
+    at runOnEndCallbacks ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:1588:45)
+    at buildResponseToResult ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:1205:7)
+    at {PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:1232:16
+    at responseCallbacks.<computed> ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout ({PRIVATE_USER}\AppData\Local\Temp\cc-native-capsule-hRt8Bl\workspace\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)

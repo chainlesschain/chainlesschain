@@ -159,6 +159,20 @@ export function createWindowsNativeEvaluator(options) {
   return createEvaluator(options, V1_LIMITS);
 }
 
+// Experimental Null transport only; never an admission capability.
+export function createWindowsNativeNullEvaluator(options) {
+  requireCondition(
+    process.arch === "x64",
+    "experimental Null requires Windows x64",
+  );
+  return createEvaluator(
+    options,
+    V1_LIMITS,
+    null,
+    "chainlesschain/windows-node-runtime-adapter@3",
+  );
+}
+
 /** Explicit v2 capsule transport. Snapshots bind every copied byte; these
  * bindings never grant review admission, registry trust, or model access.
  * v1's size/identity/one-shot contract remains independent.
@@ -214,7 +228,12 @@ export function createWindowsNativeCapsuleEvaluator(options) {
   );
 }
 
-function createEvaluator(options, limits, capsule = null) {
+function createEvaluator(
+  options,
+  limits,
+  capsule = null,
+  experimentalNullDeviceProfile = null,
+) {
   requireCondition(process.platform === "win32", "Windows host required");
   requireCondition(
     options &&
@@ -358,6 +377,7 @@ function createEvaluator(options, limits, capsule = null) {
           }),
         }
       : {}),
+    ...(experimentalNullDeviceProfile ? { experimentalNullDeviceProfile } : {}),
     root,
     workspace,
     control,

@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-08 NUL 与后代继承续做**：独立实验 v3 已在真实零 capability AppContainer 中验证 `\Device\Null`、两层受控 Node 后代、三个并发 child、精确句柄白名单和不支持启动的拒绝；六个进程、十二份 phase 回执与清理完整。结果校验新增 childErrors 门禁，最终 **517 项 Node + 3 项原生传输 + 52 项 Vitest = 572 项通过、零跳过**。冻结 config 的新实际失败是 esbuild 报告祖先目录读取被拒，尚未进入 worker pool；v3 只接纳受控 Node，不能关闭 esbuild/config/full review。证据、构建范围与未完成条件见[验证第 14 节](../cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)。正式 36+9 仍 `NOT_RUN`，未新增付费请求或发布；以下各轮记录保留其历史时点。
+
 > **2026-10-08 实验 runtime 续做**：独立 Windows 管道 v1 与私有规范路径 v2 适配器已在真实零 capability AppContainer 中完成同步、异步、fork IPC、子进程回执及清理验证；冻结 Vitest/Vite/happy-dom 导入和原 globalSetup/teardown 均已通过。未修改冻结包或原七项能力结果，整包仍 `capabilities={}`。本轮 **391 项 Node + 3 项原生传输 + 52 项 Vitest = 446 项通过、零跳过**，构建与失败原件摘要已归档。NUL、冻结 forks/config/full review、durable 后端及正式 36+9 仍未关闭，详见[验证第 13 节](../cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)。
 
 > **2026-10-08 继续实施**：补齐冻结 registry 工具链准备和独立 Windows v2 胶囊：191 包、8,369 文件、111,823,724 字节；81 文件/12 MiB 原生传输、写入拒绝、篡改与未列出文件拒绝均通过，v1 的 64 文件/8 MiB 边界保留。本轮 **208 项回归通过、零跳过**。实际导入确认仍有运行时缺口：Rollup 顶层默认管道调用阻塞，冻结 globalSetup 的 native realpath 返回 `EPERM`；三个 addon 均已观察，Parcel/MSVC 加载成功、GNU 失败，整套 ABI 不标为通过。详见[验证第 12 节](../cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。完整 native review、Windows/macOS durable 后端、正式 36+9、官方账号/账单与人工验收继续开放；本轮未发布。

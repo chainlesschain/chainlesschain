@@ -13,6 +13,12 @@ on:
       - "packages/cli/test-node/*pipe*.mjs"
       - "packages/cli/test-node/*stdio*.mjs"
       - "packages/cli/test-node/windows-node-runtime-*.mjs"
+      - "packages/cli/test-node/windows-node-null-*.mjs"
+      - "packages/cli/scripts/windows-node-null-*.mjs"
+      - "packages/cli/scripts/build-windows-node-null-v3.mjs"
+      - "packages/cli/scripts/windows-rollup-gnu-forwarder.mjs"
+      - "packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs"
+      - "packages/cli/test-node/file-lock-concurrency.node-test.mjs"
       - "packages/cli/test-node/windows-realpath-*.mjs"
       - "packages/cli/scripts/diagnostics/**"
       - "packages/cli/test-node/verify01-registry-content.node-test.mjs"
@@ -210,6 +216,12 @@ on:
       - "packages/cli/test-node/*pipe*.mjs"
       - "packages/cli/test-node/*stdio*.mjs"
       - "packages/cli/test-node/windows-node-runtime-*.mjs"
+      - "packages/cli/test-node/windows-node-null-*.mjs"
+      - "packages/cli/scripts/windows-node-null-*.mjs"
+      - "packages/cli/scripts/build-windows-node-null-v3.mjs"
+      - "packages/cli/scripts/windows-rollup-gnu-forwarder.mjs"
+      - "packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs"
+      - "packages/cli/test-node/file-lock-concurrency.node-test.mjs"
       - "packages/cli/test-node/windows-realpath-*.mjs"
       - "packages/cli/scripts/diagnostics/**"
       - "packages/cli/test-node/verify01-registry-content.node-test.mjs"
@@ -486,7 +498,7 @@ jobs:
         timeout-minutes: 5
         env:
           CC_NATIVE_CAPSULE_TRANSPORT_EVIDENCE: ${{ runner.temp }}/native-capsule-transport.json
-        run: node --test packages/cli/test-node/windows-native-capsule-live.node-test.mjs
+        run: node --test packages/cli/test-node/windows-native-capsule-live.node-test.mjs packages/cli/test-node/windows-node-null-v3-factory.node-test.mjs
 
       - name: Upload native Windows capsule transport evidence
         if: always() && runner.os == 'Windows'
@@ -584,6 +596,9 @@ jobs:
           __tests__/unit/settings-mutation-authority.test.js
           __tests__/unit/settings-authority-domain.test.js
           __tests__/unit/settings-permission-runtime.test.js
+          __tests__/unit/with-file-lock.test.js
+          __tests__/unit/with-file-lock-async.test.js
+          __tests__/unit/with-file-lock-release-retry.test.js
           __tests__/unit/scoped-permission-store.test.js
           __tests__/unit/scoped-permission-mutation-authority.test.js
           __tests__/unit/permissions-command.test.js
