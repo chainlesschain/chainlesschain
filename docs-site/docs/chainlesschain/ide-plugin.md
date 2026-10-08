@@ -1,10 +1,16 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> 2026-10-07 当前公开 CLI **0.166.91**（发行提交 `23afea300b`），Open VSX **0.37.136**、JetBrains **0.4.154**（IDE 发行提交 `5b78b8d828`），均推荐 CLI 0.166.91。Session Core **0.3.16**、PDH **0.4.64** 先行 OIDC 发布并下载核验。新增桌面目标/RRSI 按 `36ca503291` 主线源码范围理解，不在公开 CLI/IDE 或 v5.0.3.138 安装包内；详见[发布指南](./agent-platform-release)。
+> 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 详见[发布指南](./agent-platform-release)。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.136`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.154`。执行 `npm i -g chainlesschain@0.166.91 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。Open VSX `0.37.136` 推荐 `0.166.91`，JetBrains 公开 `0.4.154` 也推荐 `0.166.91`，两端按制品清单配对，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
+从 Open VSX 安装 `0.37.137`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.155`。执行 `npm i -g chainlesschain@0.166.92 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。Open VSX `0.37.137` 推荐 `0.166.92`，JetBrains 公开 `0.4.155` 也推荐 `0.166.92`，两端按制品清单配对，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
+
+## 重复调查与证据总结（后续主线）
+
+当前 381f8018ef 源码识别重复 Git/GitHub 和 IDE 证据调查。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复未进入公开 CLI 0.166.92。
+
+git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，表示不是祖先；源码进展跟踪器保留它，避免误判为工具失败。见[最新设计](/design/governance-runtime-update-2026-10-08)。
 
 ## 图片草稿、长回复与诊断
 

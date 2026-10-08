@@ -1,6 +1,8 @@
 # 108 Context/Memory Kernel 设计
 
-> 状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.15`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-09-01
+> **2026-10-08 增量**：公开 Kernel `0.1.7` 随 CLI `0.166.92` 配对，发行提交 `e812a89952` 已含 `NativeSqliteMemoryPort` 和个人目标授权记忆服务/IPC。主线 `381f8018ef` 另接入个人记忆操作面板与组织共享记忆；目标只保存精确版本引用，修正创建 successor 并切换授权引用；撤权/删除先阻止读取，操作保留原请求恢复身份。尚未自动注入模型回答。原 Kernel 的 production-close 证据保持其原身份，不为新业务面授予验收资格。见[授权记忆设计](../governance-runtime-update-2026-10-08.md)。
+
+> 2026-09-01 历史状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.15`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-09-01
 
 ## 1. 定位
 
@@ -19,16 +21,16 @@ Context/Memory Kernel 是 ChainlessChain Agent Platform 的逻辑基础模块，
 
 迁移前至少存在以下独立实现：
 
-| 能力 | 当前实现 | 主要边界 |
-| --- | --- | --- |
-| CLI 离线/自动压缩 | `packages/cli/src/harness/prompt-compressor.js` | CLI 独立策略和阈值 |
-| CLI provider-backed 压缩 | `packages/cli/src/harness/provider-backed-compaction.js` | 单独处理语义摘要和 usage |
-| CLI 上下文工程 | `packages/cli/src/lib/cli-context-engineering.js` | 独立注入顺序与压缩摘要 |
-| Desktop 压缩 | `desktop-app-vue/src/main/llm/prompt-compressor.js` | 与 CLI 不是同一权威实现 |
-| Desktop 上下文工程 | `desktop-app-vue/src/main/llm/context-engineering.js` | Desktop 自有注入器和 IPC |
-| scoped memory | `packages/session-core/lib/memory-store.js` | session/agent/user/global 原语 |
-| 会话记忆巩固 | `packages/session-core/lib/memory-consolidator.js` | 规则或 LLM 提炼，主路径接入未统一 |
-| 永久/层次化记忆 | CLI 与 Desktop 多套模块 | schema、检索和清理语义不同 |
+| 能力                     | 当前实现                                                 | 主要边界                          |
+| ------------------------ | -------------------------------------------------------- | --------------------------------- |
+| CLI 离线/自动压缩        | `packages/cli/src/harness/prompt-compressor.js`          | CLI 独立策略和阈值                |
+| CLI provider-backed 压缩 | `packages/cli/src/harness/provider-backed-compaction.js` | 单独处理语义摘要和 usage          |
+| CLI 上下文工程           | `packages/cli/src/lib/cli-context-engineering.js`        | 独立注入顺序与压缩摘要            |
+| Desktop 压缩             | `desktop-app-vue/src/main/llm/prompt-compressor.js`      | 与 CLI 不是同一权威实现           |
+| Desktop 上下文工程       | `desktop-app-vue/src/main/llm/context-engineering.js`    | Desktop 自有注入器和 IPC          |
+| scoped memory            | `packages/session-core/lib/memory-store.js`              | session/agent/user/global 原语    |
+| 会话记忆巩固             | `packages/session-core/lib/memory-consolidator.js`       | 规则或 LLM 提炼，主路径接入未统一 |
+| 永久/层次化记忆          | CLI 与 Desktop 多套模块                                  | schema、检索和清理语义不同        |
 
 这些历史实现解释了迁移起点；它们不再代表 2026-08-30 的 writer authority。当前仓库状态如下：
 
@@ -93,15 +95,15 @@ CLI / Desktop / VS Code / JetBrains / Agent SDK
 
 ## 5. 所有权与边界
 
-| 数据或决定 | 权威所有者 | Context/Memory Kernel 的职责 |
-| --- | --- | --- |
-| 原始消息、工具事件、终态 | Session/Event Store | 只读并生成有版本的上下文投影 |
-| 单轮执行和工具副作用 | Agent Kernel | 在调用模型前提供上下文；不结算副作用 |
-| 多 Agent Task/Attempt | Graph Kernel | 读取绑定的工作状态；不改写 Graph 终态 |
-| 持久记忆记录 | Memory Store | 校验、写入、替代、过期和删除 |
-| 大型正文与制品 | Artifact/Blob Store | 保存摘要、digest 和受控引用 |
-| 搜索/向量索引 | Rebuildable projection | 提交索引任务；索引不能成为事实 authority |
-| 密钥和凭据 | SecretStore | 拒绝进入普通上下文/记忆正文 |
+| 数据或决定               | 权威所有者             | Context/Memory Kernel 的职责             |
+| ------------------------ | ---------------------- | ---------------------------------------- |
+| 原始消息、工具事件、终态 | Session/Event Store    | 只读并生成有版本的上下文投影             |
+| 单轮执行和工具副作用     | Agent Kernel           | 在调用模型前提供上下文；不结算副作用     |
+| 多 Agent Task/Attempt    | Graph Kernel           | 读取绑定的工作状态；不改写 Graph 终态    |
+| 持久记忆记录             | Memory Store           | 校验、写入、替代、过期和删除             |
+| 大型正文与制品           | Artifact/Blob Store    | 保存摘要、digest 和受控引用              |
+| 搜索/向量索引            | Rebuildable projection | 提交索引任务；索引不能成为事实 authority |
+| 密钥和凭据               | SecretStore            | 拒绝进入普通上下文/记忆正文              |
 
 Context projection 是派生状态。Kernel 崩溃后必须能从 session head、memory revision、artifact digest 和策略版本重建；不能要求客户端相信一个来源不明的 prompt 缓存。
 
@@ -188,14 +190,14 @@ interface MemoryRecord {
 
 目标 scope 集合为：
 
-| Scope | 可见范围 | 默认保留倾向 |
-| --- | --- | --- |
-| `turn` | 当前轮 | 轮次结束即失效 |
-| `session` | 当前会话 | 会话结束后可归档或提升 |
-| `agent` | 指定 Agent | 不向其他 Agent 自动扩散 |
-| `project` | 指定项目身份 | 绑定 project/workspace identity |
-| `user` | 指定用户 | 跨项目使用需通过策略 |
-| `global` | 明确授权的全局范围 | 禁止作为默认提升目标 |
+| Scope     | 可见范围           | 默认保留倾向                    |
+| --------- | ------------------ | ------------------------------- |
+| `turn`    | 当前轮             | 轮次结束即失效                  |
+| `session` | 当前会话           | 会话结束后可归档或提升          |
+| `agent`   | 指定 Agent         | 不向其他 Agent 自动扩散         |
+| `project` | 指定项目身份       | 绑定 project/workspace identity |
+| `user`    | 指定用户           | 跨项目使用需通过策略            |
+| `global`  | 明确授权的全局范围 | 禁止作为默认提升目标            |
 
 从窄 scope 提升到宽 scope 是受审计的状态转换，不能由一次普通召回或摘要隐式完成。
 
@@ -357,12 +359,18 @@ Kernel 使用逻辑 ports 隔离物理存储：
 ```ts
 interface SessionContextPort {
   readSnapshot(sessionId: string): Promise<SessionSnapshot>;
-  appendCompaction(event: CompactionEvent, expectedHead: string): Promise<CasResult>;
+  appendCompaction(
+    event: CompactionEvent,
+    expectedHead: string,
+  ): Promise<CasResult>;
 }
 
 interface MemoryPort {
   query(request: MemoryQuery): Promise<MemoryRecord[]>;
-  mutate(command: MemoryCommand, expectedRevision?: number): Promise<MemoryReceipt>;
+  mutate(
+    command: MemoryCommand,
+    expectedRevision?: number,
+  ): Promise<MemoryReceipt>;
 }
 
 interface ContentPort {
@@ -498,16 +506,16 @@ reconcile(operationId): Promise<ReconciliationReport>
 
 ## 17. 失败语义
 
-| 场景 | 必须返回 | 禁止行为 |
-| --- | --- | --- |
-| token 估算/构建超限 | `context_over_budget` + 分区明细 | 静默截掉安全/任务状态 |
-| provider 摘要失败且可安全退化 | `degraded` + fallback 策略 | 冒充语义摘要成功 |
-| provider 结果未知 | `reconciliation_required` | 当成零费用并重试 |
-| session head CAS 冲突 | `stale` + 当前 head | 覆盖新事件 |
-| artifact 引用缺失/digest 错误 | `content_unavailable` / `digest_mismatch` | 使用错误正文继续恢复 |
-| memory scope 不匹配 | `scope_denied` | 跨 scope fallback |
-| 部分副本删除失败 | `partial` + pending receipts | 返回“已彻底删除” |
-| 索引损坏 | rebuild/lexical degraded | 把索引行当权威记忆 |
+| 场景                          | 必须返回                                  | 禁止行为              |
+| ----------------------------- | ----------------------------------------- | --------------------- |
+| token 估算/构建超限           | `context_over_budget` + 分区明细          | 静默截掉安全/任务状态 |
+| provider 摘要失败且可安全退化 | `degraded` + fallback 策略                | 冒充语义摘要成功      |
+| provider 结果未知             | `reconciliation_required`                 | 当成零费用并重试      |
+| session head CAS 冲突         | `stale` + 当前 head                       | 覆盖新事件            |
+| artifact 引用缺失/digest 错误 | `content_unavailable` / `digest_mismatch` | 使用错误正文继续恢复  |
+| memory scope 不匹配           | `scope_denied`                            | 跨 scope fallback     |
+| 部分副本删除失败              | `partial` + pending receipts              | 返回“已彻底删除”      |
+| 索引损坏                      | rebuild/lexical degraded                  | 把索引行当权威记忆    |
 
 ## 18. 性能与容量
 
@@ -566,25 +574,25 @@ reconcile(operationId): Promise<ReconciliationReport>
 
 ## 20. 关键文件
 
-| 文件 | 当前作用 |
-| --- | --- |
-| `packages/cli/src/harness/prompt-compressor.js` | CLI PromptCompressor 和保护不变量 |
-| `packages/cli/src/harness/provider-backed-compaction.js` | provider-backed 语义压缩 |
-| `packages/cli/src/harness/jsonl-session-store.js` | JSONL 会话与 compact event |
-| `packages/cli/src/lib/cli-context-engineering.js` | CLI 上下文注入/压缩摘要 |
-| `packages/context-memory-kernel/schema/context-memory-kernel.schema.json` | canonical schema v1 |
-| `packages/context-memory-kernel/lib/runtime.js` | 唯一 Context/Memory mutation runtime |
-| `packages/context-memory-kernel/inventory/writers.v1.json` | 全产品 writer/cutover 状态清单 |
-| `packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv` | 7 surface、14 场景 conformance fixture |
-| `packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs` | 静态 writer graph 与运行期 fail-closed receipt |
-| `packages/context-memory-kernel/scripts/context-memory-benchmark.mjs` | §18 quick/release 容量矩阵 receipt |
-| `packages/context-memory-kernel/scripts/context-memory-soak.mjs` | CLI/Desktop/VS Code/JetBrains 多轮压缩与重启 soak |
-| `packages/cli/src/lib/context-memory-kernel/` | CLI durable/session/provider/privacy adapters |
-| `packages/cli/src/lib/app-server/context-memory-notifications.js` | 固定 lifecycle notification 映射 |
-| `packages/session-core/lib/memory-store.js` | scoped MemoryStore |
-| `packages/session-core/lib/memory-consolidator.js` | 会话记忆巩固 |
-| `desktop-app-vue/src/main/llm/context-engineering.js` | Desktop 上下文构建 |
-| `desktop-app-vue/src/main/llm/prompt-compressor.js` | Desktop PromptCompressor |
+| 文件                                                                      | 当前作用                                          |
+| ------------------------------------------------------------------------- | ------------------------------------------------- |
+| `packages/cli/src/harness/prompt-compressor.js`                           | CLI PromptCompressor 和保护不变量                 |
+| `packages/cli/src/harness/provider-backed-compaction.js`                  | provider-backed 语义压缩                          |
+| `packages/cli/src/harness/jsonl-session-store.js`                         | JSONL 会话与 compact event                        |
+| `packages/cli/src/lib/cli-context-engineering.js`                         | CLI 上下文注入/压缩摘要                           |
+| `packages/context-memory-kernel/schema/context-memory-kernel.schema.json` | canonical schema v1                               |
+| `packages/context-memory-kernel/lib/runtime.js`                           | 唯一 Context/Memory mutation runtime              |
+| `packages/context-memory-kernel/inventory/writers.v1.json`                | 全产品 writer/cutover 状态清单                    |
+| `packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv` | 7 surface、14 场景 conformance fixture            |
+| `packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs`  | 静态 writer graph 与运行期 fail-closed receipt    |
+| `packages/context-memory-kernel/scripts/context-memory-benchmark.mjs`     | §18 quick/release 容量矩阵 receipt                |
+| `packages/context-memory-kernel/scripts/context-memory-soak.mjs`          | CLI/Desktop/VS Code/JetBrains 多轮压缩与重启 soak |
+| `packages/cli/src/lib/context-memory-kernel/`                             | CLI durable/session/provider/privacy adapters     |
+| `packages/cli/src/lib/app-server/context-memory-notifications.js`         | 固定 lifecycle notification 映射                  |
+| `packages/session-core/lib/memory-store.js`                               | scoped MemoryStore                                |
+| `packages/session-core/lib/memory-consolidator.js`                        | 会话记忆巩固                                      |
+| `desktop-app-vue/src/main/llm/context-engineering.js`                     | Desktop 上下文构建                                |
+| `desktop-app-vue/src/main/llm/prompt-compressor.js`                       | Desktop PromptCompressor                          |
 
 共享 Kernel 的最终包路径已经冻结为 `packages/context-memory-kernel`；上层只能通过公开 API、固定 App Server 方法或只读 projection 接入。
 
