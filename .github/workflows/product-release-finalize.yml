@@ -1,0 +1,82 @@
+name: Finalize product v5.0.3.140
+
+# One fixed draft and one fixed successful prepublication proof. No build or upload.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: product-release-v5.0.3.140
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  BUILD_SOURCE_SHA: f733f92cb953fffaafea9f91024bbf1c8846406d
+  GITHUB_TOKEN: ${{ github.token }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  finalize:
+    name: Finalize verified existing five-platform draft
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout reviewed finalization controller
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: controller
+          fetch-depth: 0
+          sparse-checkout: scripts
+      - name: Checkout immutable original product source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.BUILD_SOURCE_SHA }}
+          path: source
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.14.0"
+      - name: Test draft discovery and finalization rejection boundaries
+        run: >-
+          node --test
+          controller/scripts/__tests__/verify-product-recovery.test.mjs
+          controller/scripts/__tests__/finalize-product-recovery.test.mjs
+      - name: Verify sealed prior producer proof and existing complete draft
+        run: node controller/scripts/ci/finalize-product-recovery.mjs prepare source finalization
+      - name: Require current public CLI and both IDE releases
+        env:
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "1"
+          CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: "1"
+        run: |
+          set -euo pipefail
+          test "$(npm view chainlesschain@0.166.93 version --registry=https://registry.npmjs.org --prefer-online)" = 0.166.93
+          mkdir -p "$RUNNER_TEMP/public-cli-readback"
+          npm pack chainlesschain@0.166.93 --registry=https://registry.npmjs.org --pack-destination "$RUNNER_TEMP/public-cli-readback" >/dev/null
+          node <<'NODE'
+          const fs = require('node:fs'), crypto = require('node:crypto'), path = require('node:path');
+          const evidence = require('./finalization/product-recovery-provenance.json');
+          const tar = fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'public-cli-readback/chainlesschain-0.166.93.tgz'));
+          if (crypto.createHash('sha512').update(tar).digest('hex') !== evidence.cliEvidence.provenance.sha512) throw new Error('Public CLI archive differs from original npm attestation');
+          fs.writeFileSync('finalization/public-cli.json', JSON.stringify({ version: '0.166.93', sha512: evidence.cliEvidence.provenance.sha512 }));
+          NODE
+          node source/scripts/verify-ide-marketplace.mjs open-vsx 0.37.138 > finalization/open-vsx-public.json
+          node source/scripts/verify-ide-marketplace.mjs jetbrains 0.4.156 > finalization/jetbrains-public.json
+      - name: Publish existing complete draft through Actions token only
+        env:
+          RECOVERY_PUBLISH: "true"
+        run: node controller/scripts/ci/finalize-product-recovery.mjs publish source finalization
+      - name: Preserve finalization proof and sanitized API diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: product-finalization-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: finalization/*.json
+          if-no-files-found: warn
+          retention-days: 90

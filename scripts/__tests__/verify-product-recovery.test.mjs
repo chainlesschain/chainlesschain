@@ -15,6 +15,7 @@ import {
   verifyPublicPrerequisites,
   verifyReleaseIdentity,
   missingDraftAssets,
+  findProductRelease,
   RECOVERY,
   PRODUCERS,
   SOURCE_GATES,
@@ -23,6 +24,65 @@ import {
 
 const NOW = Date.parse("2026-10-08T04:00:00Z");
 const CONTROLLER = "c".repeat(40);
+
+test("draft discovery follows all list pages after the published-only tag endpoint returns 404", async () => {
+  const draft = {
+    id: 123,
+    tag_name: RECOVERY.version,
+    draft: true,
+    assets: [],
+  };
+  const seen = [];
+  const result = await findProductRelease(async (endpoint, allow404) => {
+    seen.push(endpoint);
+    if (endpoint.startsWith("releases/tags/")) {
+      assert.equal(allow404, true);
+      return null;
+    }
+    if (endpoint.endsWith("page=1"))
+      return Array.from({ length: 100 }, (_, id) => ({
+        id,
+        tag_name: "other",
+      }));
+    if (endpoint.endsWith("page=2")) return [draft];
+    if (endpoint === "releases/123") return draft;
+    throw new Error(endpoint);
+  });
+  assert.deepEqual(result, draft);
+  assert.equal(seen.length, 4);
+});
+
+test("draft discovery refuses duplicates or an identity changed between listing and readback", async () => {
+  const draft = { id: 123, tag_name: RECOVERY.version };
+  await assert.rejects(
+    findProductRelease(async (endpoint) =>
+      endpoint.startsWith("releases/tags/")
+        ? null
+        : [draft, { ...draft, id: 124 }],
+    ),
+    /Ambiguous product drafts/,
+  );
+  await assert.rejects(
+    findProductRelease(async (endpoint) =>
+      endpoint.startsWith("releases/tags/")
+        ? null
+        : endpoint.includes("per_page=")
+          ? [draft]
+          : { ...draft, tag_name: "other" },
+    ),
+  );
+});
+
+test("published release discovery never needs draft fallback", async () => {
+  const release = { id: 123, tag_name: RECOVERY.version, draft: false };
+  assert.equal(
+    await findProductRelease(async (endpoint) => {
+      assert.equal(endpoint, `releases/tags/${RECOVERY.version}`);
+      return release;
+    }),
+    release,
+  );
+});
 const step = (name, conclusion = "success") => ({
   name,
   status: "completed",

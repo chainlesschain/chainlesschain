@@ -326,7 +326,7 @@ export async function latestAndroidProducer(
   }
   throw new Error("No Android producer exists in this recovery run");
 }
-async function github(endpoint, allow404 = false) {
+export async function github(endpoint, allow404 = false) {
   assert.equal(process.env.GITHUB_REPOSITORY, RECOVERY.repository);
   const response = await fetch(
     `https://api.github.com/repos/${RECOVERY.repository}/${endpoint}`,
@@ -343,7 +343,7 @@ async function github(endpoint, allow404 = false) {
   assert.ok(response.ok, `GitHub ${endpoint}: HTTP ${response.status}`);
   return response.json();
 }
-async function pages(endpoint, key) {
+export async function pages(endpoint, key) {
   const items = [];
   for (let page = 1; page <= 50; page++) {
     const data = await github(
@@ -359,7 +359,7 @@ async function pages(endpoint, key) {
   }
   throw new Error("Pagination bound exceeded");
 }
-async function originalSnapshot() {
+export async function originalSnapshot() {
   const id = RECOVERY.originalRunId;
   const [run, jobs, artifacts, gates] = await Promise.all([
     github(`actions/runs/${id}`),
@@ -405,7 +405,7 @@ with zipfile.ZipFile(src) as z:
     { stdio: ["ignore", "pipe", "pipe"] },
   );
 }
-async function downloadArtifact(artifact, root) {
+export async function downloadArtifact(artifact, root) {
   const zip = path.join(root, `${artifact.id}.zip`);
   const response = await fetch(
     `https://api.github.com/repos/${RECOVERY.repository}/actions/artifacts/${artifact.id}/zip`,
@@ -478,7 +478,7 @@ function sourceIdentity(source) {
     { cwd: source, stdio: "pipe" },
   );
 }
-function controllerIdentity(source) {
+export function controllerIdentity(source) {
   assert.equal(
     process.env.GITHUB_ACTIONS,
     "true",
@@ -820,6 +820,27 @@ export function missingDraftAssets(receipt, release) {
     .filter((asset) => !seen.has(asset.name))
     .map((asset) => asset.name);
 }
+// The tag endpoint returns published releases only. Untagged drafts must be
+// discovered from the authenticated release list and then fetched by ID.
+export async function findProductRelease(fetchJson = github) {
+  const published = await fetchJson(`releases/tags/${RECOVERY.version}`, true);
+  if (published) return published;
+  const matches = [];
+  for (let page = 1; page <= 50; page++) {
+    const releases = await fetchJson(`releases?per_page=100&page=${page}`);
+    assert.ok(Array.isArray(releases), "Invalid release list");
+    matches.push(...releases.filter((r) => r.tag_name === RECOVERY.version));
+    assert.ok(matches.length <= 1, "Ambiguous product drafts");
+    if (releases.length < 100) {
+      if (!matches.length) return null;
+      const release = await fetchJson(`releases/${matches[0].id}`);
+      assert.equal(release.id, matches[0].id);
+      assert.equal(release.tag_name, RECOVERY.version);
+      return release;
+    }
+  }
+  throw new Error("Release pagination bound exceeded");
+}
 async function releaseState(
   source,
   output,
@@ -830,7 +851,9 @@ async function releaseState(
   const { verifyRemoteAssets } = createRequire(import.meta.url)(
     path.join(source, "scripts/verify-product-release-assets.cjs"),
   );
-  const release = await github(`releases/tags/${RECOVERY.version}`, !published);
+  const release = published
+    ? await github(`releases/tags/${RECOVERY.version}`)
+    : await findProductRelease();
   const receipt = readJson(path.join(output, "product-release-assets.json"));
   const remoteRef = execFileSync(
     "git",
