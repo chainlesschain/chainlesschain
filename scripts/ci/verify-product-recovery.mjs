@@ -504,18 +504,9 @@ function controllerIdentity(source) {
     process.env.GITHUB_SHA,
     "Controller checkout mismatch",
   );
-  execFileSync(
-    "git",
-    [
-      "diff",
-      "--exit-code",
-      RECOVERY.sourceSha,
-      process.env.GITHUB_SHA,
-      "--",
-      "packages",
-    ],
-    { cwd: controller, stdio: "pipe" },
-  );
+  // Only CI helpers come from the reviewed controller. Unrelated package work
+  // on main must not replace or block the independently checked-out payload;
+  // sourceIdentity still binds its complete packages tree to the npm tag.
   sourceIdentity(source);
   return controller;
 }
