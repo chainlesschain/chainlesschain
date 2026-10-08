@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.138 | Agent Platform CLI 0.166.91 | Open VSX 0.37.136 | 桌面与移动端"
+  tagline: "v5.0.3.139 | Agent Platform CLI 0.166.92 | Open VSX 0.37.137 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,21 +20,25 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
+  - icon: 🏢
+    title: 组织目标、授权记忆与站内通知（主线）
+    details: 显式巡检、多级审批、独立验收、共享记忆与通知深链接；需后续源码，.139 已包含个人目标及组织任务工作台。
+    link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 个人项目显式巡检、持久建议、原生确认和独立业务验收；停止本次、暂停、结束跟进分别保留真实状态，需源码宿主。
+    details: 产品 .139 已包含个人目标、巡检、动作与独立验收；记忆面板和站内通知需后续主线。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.91
+    title: Agent Platform 0.166.92
     details: 公开 CLI 包含记忆索引与快照分页、冻结评估及 Linux cgroup2 恢复；真实模型验收和 Docker 整包验收仍开放。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.136 推荐 CLI 0.166.91；JetBrains 0.4.154 也已公开并推荐 CLI 0.166.91。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: Open VSX 0.37.137 推荐 CLI 0.166.92；JetBrains 0.4.155 也已公开并推荐 CLI 0.166.92。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -58,31 +62,30 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.136 已公开并推荐 CLI 0.166.91；JetBrains 0.4.154 也推荐 CLI 0.166.91；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.137 已公开并推荐 CLI 0.166.92；JetBrains 0.4.155 也推荐 CLI 0.166.92；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker、跨平台沙箱与加密配置清单共同保护 Agent 执行边界。
   - icon: 🧠
-    title: Personal Data Hub 0.4.63
+    title: Personal Data Hub 0.4.64
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.91@23afea300b；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
+    details: npm latest 为 CLI 0.166.92@e812a89952；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
 ---
 
-> **当前核对**：2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 使用[项目目标指南](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)与[RRSI 指南](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)，设计见[本轮增量](/design/project-goals-rrsi-update-2026-10-07)。
+> **当前核对**：2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
 
-## 2026-10-07 最新增量
+## 2026-10-08 最新增量
 
-主线项目目标与 RRSI 设计及使用说明已补齐。公开版本为 CLI 0.166.91、Open VSX 0.37.136、JetBrains 0.4.154；下方带日期内容保留历史范围。
-
+组织共享目标、审批、独立验收、授权记忆、站内通知与 RRSI/IDE 保护已按源码补齐。公开版本为 CLI 0.166.92、Open VSX 0.37.137、JetBrains 0.4.155；下方带日期内容保留历史范围。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 
 > **2026-09-24 文档快照**：npm `latest` 为 `chainlesschain@0.166.72`，不可变标签为 `v-npm-0-166-72@5f411309b2`；Open VSX `0.37.114@94c4c5a634` 已公开并可下载。JetBrains `0.4.135@94c4c5a634` 已完成 Windows/Linux/macOS × 2024.2/2025.2 宿主门、上传及后续公共 API 批准/上架回读。CLI 已公开默认关闭的 TypeSafe、Laya 本地及通用 System One Skill 决策提供方，仅在耐久、单 prompt、headless 会话支持 `shadow/suggest`；本版把本地决策截止记录为 `provider-timeout`，并收紧离线质量统计。Laya 已完成本地真实权重单题联调，正式质量、延迟和费用评测尚未完成。CLI CI、Strict Sandbox、npm OIDC/provenance、公共安装回读与两个 IDE 标签工作流均成功；Microsoft Marketplace 未发行。文档核对基线为 `main@c036888c3c`。详见[Skill 决策层用户指南](/chainlesschain/jev-decision-layer)、[发布与升级指南](/chainlesschain/agent-platform-release)、[模块 110](/design/modules/110-agent-platform-release-boundaries)与[模块 114](/design/modules/114-jev-decision-layer-design)。
 
-> **产品发行边界**：`v5.0.3.138@eb48ffa311` 已公开 Windows、macOS、Linux 原生安装包、Android APK/AAB 和签名 iOS ad-hoc IPA；[GitHub Release](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 与三个桌面自动更新清单均已回读。此前 `8e7c45e32e` 的 Desktop IPC、密钥存储与模型入口源码增量已进入该产品标签，但真实系统凭据库、物理断电、目录 ACL、身份撤销和生产 KMS/PKI 仍需目标环境验收；automatic active Skill 晋升保持 HOLD。iOS IPA 仅供已授权设备，应用商店没有本次上架证明。详见[发布与升级指南](/chainlesschain/agent-platform-release)、[Desktop 模型治理](/chainlesschain/desktop-model-governance)和[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
+> **2026-09-24 历史产品发行边界**：`v5.0.3.138@eb48ffa311` 已公开 Windows、macOS、Linux 原生安装包、Android APK/AAB 和签名 iOS ad-hoc IPA；[GitHub Release](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.138) 与三个桌面自动更新清单均已回读。此前 `8e7c45e32e` 的 Desktop IPC、密钥存储与模型入口源码增量已进入该产品标签，但真实系统凭据库、物理断电、目录 ACL、身份撤销和生产 KMS/PKI 仍需目标环境验收；automatic active Skill 晋升保持 HOLD。iOS IPA 仅供已授权设备，应用商店没有本次上架证明。详见[发布与升级指南](/chainlesschain/agent-platform-release)、[Desktop 模型治理](/chainlesschain/desktop-model-governance)和[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 
 > **2026-09-11 历史发布快照**：npm `latest` 为 `chainlesschain@0.166.44`，不可变标签为 `v-npm-0-166-44@0651cbcb7d`；产品版本为 `v5.0.3.137`。新建 Volcengine 文本配置默认使用 `deepseek-v4-flash-ga-260731`（DeepSeek V4 Flash GA），既有保存配置不迁移。同期源码强化了 EvolutionLedger 的整批预校验/签名、增量前缀重验和 v2 manifest head CAS；这些可靠性增强不等于目标环境已配置 KMS/PKI/witness/grader，也不改变 automatic promotion `HOLD`。详见[受治理 Skill 演进](/chainlesschain/governed-skill-evolution)、[模块 112](/design/modules/112-governed-skill-evolution-design)与[模块 113](/design/modules/113-governed-desktop-model-ingress-design)。
 

@@ -2,6 +2,14 @@
 
 > 2026-10-07 核对：CLI **0.166.92**、Session Core **0.3.17**、Context Memory Kernel **0.1.7** 已按子包 → CLI 顺序通过 GitHub Actions OIDC 发布，公开归档、精确依赖和签名来源均已回读。Open VSX **0.37.137** 与 JetBrains **0.4.155** 已公开并完成实际制品下载与 CLI `0.166.92` 配对核验。本轮四个标签均指向 `e812a89952`；[产品 **v5.0.3.139**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) 已公开 Windows、macOS、Linux、Android 与 iOS 制品。当前状态见[本轮公开回读记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release-publication-0.166.92-e812.json)。
 
+## 2026-10-08 源码核对与升级范围
+
+2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。
+
+共享目标/通知和循环恢复尚未进入以上公开制品。产品 .139 已包含个人目标巡检/动作/验收和组织任务工作台；个人记忆核心存在但没有操作面板。主线还新增组织转移、风险、目标与共享记忆 UI。实际能力需核对安装包发行树或源码宿主，不能由版本数字推断。
+
+[公共回读](https://github.com/chainlesschain/chainlesschain/blob/97dca564a65abac777bd8680610c953f4db48b33/docs/research/cli/evidence/documentation-release-status-2026-10-08.json)重新检查 npm 归档 SRI、精确子包依赖、公开商店和准确发行提交的 GitHub Actions；后续源码未因此取得发行资格。详见[设计增量](/design/governance-runtime-update-2026-10-08)。
+
 ## 2026-10-07 本轮发布状态
 
 下表逐组件列出实际发布状态与签名方式。各渠道的公开制品、版本配对和产品构建结果分别核对。

@@ -1,5 +1,7 @@
 # ChainlessChain 文档中心
 
+> 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
+
 按用途查找安装指南、开发文档、专题设计和实施记录。项目介绍见[仓库首页](../README.md)。
 
 ## 2026-10-06 更新入口

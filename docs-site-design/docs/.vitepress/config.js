@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-08 组织目标与运行时保护",
+            link: "/governance-runtime-update-2026-10-08",
+          },
+          {
             text: "2026-10-07 持久目标与 RRSI 设计",
             link: "/project-goals-rrsi-update-2026-10-07",
           },

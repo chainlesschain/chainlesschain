@@ -1,16 +1,16 @@
 # CLI Runtime 当前实现与源码候选
 
-> 2026-10-07 核对：公开 CLI **0.166.91**（`v-npm-0-166-91` → `23afea300b`），Session Core **0.3.16**、PDH **0.4.64** 已先行 OIDC 发布并下载核验。Open VSX **0.37.136**、JetBrains **0.4.154** 已公开，IDE 发行提交为 `5b78b8d828`，均推荐 CLI `0.166.91`。主线源码核对至 `36ca503291`；新项目目标/巡检/独立验收与 RRSI 是主线源码能力，未进入这些 CLI/IDE 制品或独立 **v5.0.3.138** 桌面安装包。 新设计见[持久目标与 RRSI 增量](/design/project-goals-rrsi-update-2026-10-07)。较早日期章节保留历史范围。
+> 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 详见[发布指南](./agent-platform-release)。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 
 ## 2026-10-07 增量：进程清理恢复与评测准入
 
-公开 CLI 0.166.91 支持 Linux `cc agent process-ownership status --json` 与 `recover <execution-id> --timeout-ms 5000 --json`。recover 核验并停止原持久 cgroup，在真实确认清理后解除隔离，**不恢复任务执行**；Windows/macOS 拒绝该操作。重启本身不能证明清理。
+公开 CLI 0.166.92 继承 Linux `cc agent process-ownership status --json` 与 `recover <execution-id> --timeout-ms 5000 --json`。recover 核验并停止原持久 cgroup，在真实确认清理后解除隔离，**不恢复任务执行**；Windows/macOS 拒绝该操作。重启本身不能证明清理。
 
 Windows 原生 Job wall-time、能力诊断与 review admission 保留失败/清理证据。目录身份及 ACL 在原生 API 与 CLR 宿主之间核验，协作锁释放重试不掩盖已持有锁丢失。诊断或发布矩阵通过不代表正式 native36/Vitest 业务质量通过。
 
-主线的新[项目目标](./project-goals-current)与[RRSI](./rrsi-current)分别保存业务完成证据和实验 HOLD，未进入公开 0.166.91 制品。
+产品 .139 已包含[个人目标](./project-goals-current)的业务验收面板；[组织目标](./organization-project-current)、通知和新的[RRSI](./rrsi-current)读取保护属于后续源码。RRSI 实验继续 HOLD；CLI 文件目标与桌面目标是独立系统。
 
 ## 2026-09-14 源码候选：准确的请求上下文窗口
 
@@ -49,6 +49,12 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 受治理演进补齐持久 Workbench 审核/回滚与启动恢复、知识候选独立隔离/拒绝、跨 Wiki 多级来源撤销和 tombstone 恢复、Skill/Prompt/Hook 制品发布与受控市场候选安装。启动仅补记已发生的效果，未执行计划保持待处理；候选安装不会直接激活 Skill。真实身份、签名、策略、KMS/PKI、witness、grader 和目标环境验收仍由部署方提供。
 
 [Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，新增 `chainlesschain.chat.maxTurns`（`0` 跟随 CLI 交互默认；正整数限制每条消息的模型轮次）。[JetBrains Marketplace 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开，其内置 CLI 推荐仍为 `0.166.22`；源码中的 v2 批审回执支持尚未随新的 JetBrains 制品发布。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
+
+## 重复调查与证据总结（后续主线）
+
+当前 381f8018ef 源码识别重复 Git/GitHub 和 IDE 证据调查。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复未进入公开 CLI 0.166.92。
+
+git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，表示不是祖先；源码进展跟踪器保留它，避免误判为工具失败。见[最新设计](/design/governance-runtime-update-2026-10-08)。
 
 ## 概述
 
