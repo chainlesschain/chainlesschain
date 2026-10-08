@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.139 | Agent Platform CLI 0.166.92 | Open VSX 0.37.137 | 桌面与移动端"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.93 | Open VSX 0.37.138 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,25 +20,29 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
+  - icon: 🛡️
+    title: 最新发行与 Windows 验证边界
+    details: CLI .93 与产品 .140 已公开；冻结工具链及 Node runtime 胶囊仍是独立实验，不获得生产 strict 准入。
+    link: /design/release-runtime-update-2026-10-08-latest
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 显式巡检、多级审批、独立验收、共享记忆与通知深链接；需后续源码，.139 已包含个人目标及组织任务工作台。
+    details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
     link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 产品 .139 已包含个人目标、巡检、动作与独立验收；记忆面板和站内通知需后续主线。
+    details: 产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.92
+    title: Agent Platform 0.166.93
     details: 公开 CLI 包含记忆索引与快照分页、冻结评估及 Linux cgroup2 恢复；真实模型验收和 Docker 整包验收仍开放。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.137 推荐 CLI 0.166.92；JetBrains 0.4.155 也已公开并推荐 CLI 0.166.92。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: Open VSX 0.37.138 推荐 CLI 0.166.93；JetBrains 0.4.156 也已公开并推荐 CLI 0.166.93。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -62,7 +66,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.137 已公开并推荐 CLI 0.166.92；JetBrains 0.4.155 也推荐 CLI 0.166.92；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.138 已公开并推荐 CLI 0.166.93；JetBrains 0.4.156 也推荐 CLI 0.166.93；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -72,14 +76,14 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.92@e812a89952；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
+    details: npm latest 为 CLI 0.166.93@e812a89952；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
 ---
 
-> **当前核对**：2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
+> **当前核对**：2026-10-08 核对：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，两个 IDE 均推荐 CLI `0.166.93`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.140** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
 
 ## 2026-10-08 最新增量
 
-组织共享目标、审批、独立验收、授权记忆、站内通知与 RRSI/IDE 保护已按源码补齐。公开版本为 CLI 0.166.92、Open VSX 0.37.137、JetBrains 0.4.155；下方带日期内容保留历史范围。
+组织共享目标、审批、独立验收、授权记忆、站内通知与 RRSI/IDE 保护已按源码补齐。公开版本为 CLI 0.166.93、Open VSX 0.37.138、JetBrains 0.4.156；下方带日期内容保留历史范围。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 

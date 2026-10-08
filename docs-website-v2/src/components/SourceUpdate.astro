@@ -3,13 +3,13 @@ import releaseStatus from "../data/release-status.json";
 const { lang = "zh" } = Astro.props;
 const english = lang === "en";
 const items = english ? [
- ["Shared goals and approvals", "Current source adds organization goal monitoring, multi-level task approvals and independent acceptance. Approved actions still need the requester's native confirmation."],
+ ["Shared goals and approvals", "Product .140 includes organization goal monitoring, multi-level task approvals and independent acceptance. Approved actions still need the requester's native confirmation."],
  ["Authorized memory and notifications", "Explicit goal memory can be corrected, revoked or deleted. Organization members need separate permissions. In-app notifications use authorized references and quiet hours; memory is not automatically injected into models."],
- ["Runtime evidence and recovery", "Current source bounds RRSI artifact reads and repeated IDE investigations. Real RRSI experiments and production admission remain incomplete; automatic promotion stays HOLD."],
+ ["Runtime evidence and recovery", "CLI .93 bounds RRSI artifact reads and repeated IDE investigations. Windows runtime capsules remain experimental. Real RRSI experiments and production admission remain incomplete; automatic promotion stays HOLD."],
 ] : [
- ["组织目标与多级审批", "当前源码支持组织目标巡检、任务建议、多级审批与独立业务验收。批准后仍由请求者原生确认，未知动作阻止完成。"],
+ ["组织目标与多级审批", "产品 .140 支持组织目标巡检、任务建议、多级审批与独立业务验收。批准后仍由请求者原生确认，未知动作阻止完成。"],
  ["授权记忆与站内通知", "目标记忆可显式保存、修正、撤权与删除，组织共享有独立权限。通知保存授权引用并支持免打扰；记忆尚未自动注入模型。"],
- ["运行时证据与恢复", "主线收紧 RRSI 产物读取并限制 IDE 重复调查。真实实验与生产准入仍待完成，自动晋升保持 HOLD。"],
+ ["运行时证据与恢复", "CLI .93 收紧 RRSI 产物读取并限制 IDE 重复调查；Windows 胶囊仍是实验。真实实验与生产准入仍待完成，自动晋升保持 HOLD。"],
 ];
 ---
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
@@ -17,14 +17,14 @@ const items = english ? [
   <p class="font-mono text-sm text-muted">{releaseStatus.checkedAt} · {english ? "Public release and current source" : "公开发布与主线源码"} · CLI {releaseStatus.recommendedCliVersion}</p>
   <h2 id="source-update-title" class="mt-3 text-3xl font-bold">{english ? "Shared goals, controlled actions and verified outcomes" : "共享目标，受控执行，独立核验结果"}</h2>
   <p class="mt-4 text-muted leading-relaxed max-w-4xl">{english
-   ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion}, JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} and product ${releaseStatus.productVersion} are public at e812a89952. The product includes personal goal panels and the organization task workbench. Memory UI, organization goals, notifications and new runtime protections require source reviewed at ${releaseStatus.sourceHeadCommit.slice(0,10)}.`
-   : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion}、JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 与产品 ${releaseStatus.productVersion} 已公开，发行源码为 e812a89952。产品已包含个人目标面板和组织任务工作台；记忆面板、组织目标、通知与新增运行时保护需运行核对至 ${releaseStatus.sourceHeadCommit.slice(0,10)} 的源码。`}</p>
+   ? `CLI ${releaseStatus.recommendedCliVersion}, Open VSX ${releaseStatus.openVsxVersion}, JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} and product ${releaseStatus.productVersion} are public. CLI/IDE use ${releaseStatus.cliReleaseCommit.slice(0,10)}; product uses ${releaseStatus.documentedDesktopCommit.slice(0,10)}. Organization goals, memory UI and notifications are included. Later Windows validation at ${releaseStatus.sourceHeadCommit.slice(0,10)} does not grant production admission.`
+   : `CLI ${releaseStatus.recommendedCliVersion}、Open VSX ${releaseStatus.openVsxVersion}、JetBrains ${releaseStatus.jetBrainsMarketplaceVersion} 与产品 ${releaseStatus.productVersion} 已公开；CLI/IDE 发行源码为 ${releaseStatus.cliReleaseCommit.slice(0,10)}，产品为 ${releaseStatus.documentedDesktopCommit.slice(0,10)}。组织目标、记忆面板和通知已包含；后续 ${releaseStatus.sourceHeadCommit.slice(0,10)} 的 Windows 验证不授予生产准入。`}</p>
   <div class="mt-8 grid gap-6 md:grid-cols-3">{items.map(([title,description]) => (<article class="rounded-xl border border-line bg-paper p-6"><h3 class="text-lg font-bold">{title}</h3><p class="mt-3 text-sm text-muted leading-relaxed">{description}</p></article>))}</div>
   <div class="mt-6 flex flex-wrap gap-4">
    <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/project-goals-current.html">{english ? "Personal goal guide ↗" : "个人目标指南 ↗"}</a>
    <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/organization-project-current.html">{english ? "Organization guide ↗" : "组织协作指南 ↗"}</a>
    <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/rrsi-current.html">{english ? "RRSI evidence and limits ↗" : "RRSI 证据与边界 ↗"}</a>
-   <a class="btn-ghost" href="https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html">{english ? "Architecture and contracts ↗" : "架构与契约 ↗"}</a>
+   <a class="btn-ghost" href="https://design.chainlesschain.com/release-runtime-update-2026-10-08-latest.html">{english ? "Architecture and contracts ↗" : "架构与契约 ↗"}</a>
   </div>
  </div>
 </section>

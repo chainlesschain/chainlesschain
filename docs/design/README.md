@@ -1,4 +1,6 @@
-﻿# 设计文档
+# 设计文档
+
+- 当前核对：[CLI .93 / 产品 .140 与 Windows 验证增量](./release-runtime-update-2026-10-08-latest.md)。
 
 - 最新增量：[组织目标、授权记忆与运行时保护（2026-10-08）](governance-runtime-update-2026-10-08.md)。
 - 2026-10-07 历史增量：[持久项目目标、受控动作与 RRSI（2026-10-07）](project-goals-rrsi-update-2026-10-07.md)。

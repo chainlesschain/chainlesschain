@@ -1,6 +1,6 @@
 # 上下文与记忆
 
-> **2026-10-08 当前公开版本**：CLI `0.166.92`、Session Core `0.3.17` 与 Context/Memory Kernel `0.1.7`。个人目标记忆核心已进入 `e812a89952`，操作面板及组织共享记忆需主线 `381f8018ef`。新目标记忆支持显式保存、修正、撤权、删除与恢复，未自动注入模型输出。见[个人目标指南](./project-goals-current)、[组织共享记忆](./organization-project-current)和[最新设计](/design/governance-runtime-update-2026-10-08)。
+> **2026-10-08 当前公开版本**：CLI `0.166.93`、Session Core `0.3.18`、Context/Memory Kernel `0.1.8`；个人与组织共享记忆面板已进入产品 `.140`。显式保存、修正、撤权、删除与恢复不等于自动模型注入；组织服务是 capability client，Memory Kernel 保持单一正文 writer。见[个人目标](./project-goals-current)及[组织目标](./organization-project-current)。
 
 > 历史适用基线（2026-09）：CLI、Desktop 和 IDE 用户｜状态：统一 Context/Memory Kernel 已完成默认切换与正式生产关闭；当前公开基线为 CLI `0.166.21`、Session Core `0.3.11`、Kernel `0.1.0`、Agent Protocol `0.1.8` 与 SDK `0.2.8`
 

@@ -2,7 +2,7 @@
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
-> 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 详见[发布指南](./agent-platform-release)。
+> 2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。 详见[发布指南](./agent-platform-release)。
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 
@@ -15,7 +15,7 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.92` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.93` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
 - 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
 - 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
@@ -24,7 +24,7 @@
 ```
                    安装部署架构
 ┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.166.92  │  CLI 工具
+│  npm install -g chainlesschain@0.166.93  │  CLI 工具
 │         │                               │
 │         ▼                               │
 │  chainlesschain setup (交互式向导)       │

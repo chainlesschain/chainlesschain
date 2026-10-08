@@ -1,8 +1,32 @@
 # Agent Platform 发布与升级指南
 
+## 2026-10-08 最新发布与升级
+
+2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。
+
+| 组件                               | 公开版本                | 核验状态                                                             |
+| ---------------------------------- | ----------------------- | -------------------------------------------------------------------- |
+| npm CLI                            | 0.166.93                | 准确提交 CLI CI 71 成功、Strict 5/5、OIDC；公开归档 SRI 和包身份通过 |
+| Session Core / Memory Kernel / PDH | 0.3.18 / 0.1.8 / 0.4.64 | 公开归档可获取；CLI 精确依赖已对齐                                   |
+| Open VSX / JetBrains               | 0.37.138 / 0.4.156      | 官方 API 与实际归档回读；均推荐 CLI .93                              |
+| Desktop / Android / iOS            | v5.0.3.140              | 全平台公开资产；原生签名与渠道独立核验                               |
+
+1. 关闭客户端并备份持久数据，SQLite 与其 WAL / SHM 文件一并保留。
+2. 执行 `npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org`，再用 `cc --version` 核对实际版本。
+3. 升级 Open VSX `0.37.138` 或 JetBrains `0.4.156`，重启聊天宿主并通过 Doctor 检查实际 CLI 路径。Microsoft Marketplace 状态独立。
+4. 从[产品 .140 下载页](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140)安装对应平台客户端。Android 提供三种 APK 和 AAB；AAB 用于商店提交。iOS ad hoc IPA 仅适用于描述文件授权设备，App Store / TestFlight 另行审核。
+
+桌面 Windows / macOS 公开资产沿用未代码签名分发，macOS 未公证；Android release 签名和 iOS ad hoc 签名不代表桌面代码签名。发布流程继续使用 GitHub Actions OIDC，产品标签不触发 workspace npm 发布。
+
+CLI [CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37702363181)、[Strict](https://github.com/chainlesschain/chainlesschain/actions/runs/37702364146)与[OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449)来自同一 `65e8c21d3a`。产品经 [Actions 最终发布 37745138373](https://github.com/chainlesschain/chainlesschain/actions/runs/37745138373) 复核来源及完整资产后成功公开。原 Release 与中间恢复失败记录保留，不能写为原工作流全绿；最终发布未替换制品或移动产品标签。
+
+本次公开回读核对四个 npm 归档、实际 VSIX / ZIP、IDE 版本配对和产品清单；没有重新执行全套产品安装或业务回归。Windows runtime 胶囊仅为源码实验，RRSI 效果实验和自动晋升保持 NOT_RUN / HOLD。见[最新设计](/design/release-runtime-update-2026-10-08-latest)。
+
+## 前次核对（.92 / .139 历史快照）
+
 > 2026-10-07 核对：CLI **0.166.92**、Session Core **0.3.17**、Context Memory Kernel **0.1.7** 已按子包 → CLI 顺序通过 GitHub Actions OIDC 发布，公开归档、精确依赖和签名来源均已回读。Open VSX **0.37.137** 与 JetBrains **0.4.155** 已公开并完成实际制品下载与 CLI `0.166.92` 配对核验。本轮四个标签均指向 `e812a89952`；[产品 **v5.0.3.139**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.139) 已公开 Windows、macOS、Linux、Android 与 iOS 制品。当前状态见[本轮公开回读记录](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release-publication-0.166.92-e812.json)。
 
-## 2026-10-08 源码核对与升级范围
+## 前次 2026-10-08 源码核对与升级范围
 
 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。
 
