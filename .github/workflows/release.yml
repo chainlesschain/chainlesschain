@@ -1171,35 +1171,17 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          set -euo pipefail
-          test "$SIGNING_TYPE" = release
-          EXPECTED_BUNDLE=$(awk '$2 == "cc-cli.tgz" { print $1 }' binaries-manifest.txt)
-          test "${#EXPECTED_BUNDLE}" -eq 64
-          APKSIGNER=$(find "${ANDROID_HOME:?}/build-tools" -name apksigner -type f | sort -V | tail -n 1)
-          test -x "$APKSIGNER"
-          keytool -exportcert -rfc -keystore keystore.jks -alias "$KEY_ALIAS" \
-            -storepass:env KEYSTORE_PASSWORD > "$RUNNER_TEMP/android-release-certificate.pem"
-          EXPECTED_CERT=$(openssl x509 -in "$RUNNER_TEMP/android-release-certificate.pem" -outform DER | sha256sum | cut -d ' ' -f1)
-          for name in app-arm64-v8a-release.apk app-armeabi-v7a-release.apk app-universal-release.apk; do
-            apk="app/build/outputs/apk/release/$name"
-            test -s "$apk"
-            "$APKSIGNER" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/apk-signature.txt"
-            grep -Fx "Signer #1 certificate SHA-256 digest: $EXPECTED_CERT" "$RUNNER_TEMP/apk-signature.txt"
-            ACTUAL_BUNDLE=$(unzip -p "$apk" assets/local-terminal/cc-cli.tgz | sha256sum | cut -d ' ' -f1)
-            test "$ACTUAL_BUNDLE" = "$EXPECTED_BUNDLE"
-            echo "Verified release signature and pinned CLI bundle: $name"
-          done
-          aab=app/build/outputs/bundle/release/app-release.aab
-          test -s "$aab"
-          jarsigner -verify -strict -keystore keystore.jks -storepass:env KEYSTORE_PASSWORD \
-            "$aab" "$KEY_ALIAS" > "$RUNNER_TEMP/aab-signature.txt"
-          grep -q 'jar verified\.' "$RUNNER_TEMP/aab-signature.txt"
-          keytool -printcert -jarfile "$aab" -rfc > "$RUNNER_TEMP/aab-certificate.pem"
-          ACTUAL_CERT=$(openssl x509 -in "$RUNNER_TEMP/aab-certificate.pem" -outform DER | sha256sum | cut -d ' ' -f1)
-          test "$ACTUAL_CERT" = "$EXPECTED_CERT"
-          ACTUAL_BUNDLE=$(unzip -p "$aab" base/assets/local-terminal/cc-cli.tgz | sha256sum | cut -d ' ' -f1)
-          test "$ACTUAL_BUNDLE" = "$EXPECTED_BUNDLE"
-          echo "Verified release signature and pinned CLI bundle: app-release.aab"
+          bash "$GITHUB_WORKSPACE/scripts/ci/verify-android-release-artifacts.sh" \
+            "$GITHUB_WORKSPACE/android-app" "$RUNNER_TEMP/android-release-diagnostics"
+
+      - name: Preserve Android verification diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-verification-diagnostics-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/android-release-diagnostics/sanitized/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: List build outputs
         if: always()
