@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-08 Worker/锁/GNU 续做**：修复 Linux CI 的 Worker 结算竞态和严格锁释放争用；Windows 74 通过/1 Linux 专属跳过，Linux Node 22.12.0 为 75 全通过。冻结 GNU Rollup addon 通过独立 41 项 N-API forwarder 在零 capability AppContainer 中完成同步/异步解析、哈希及负例，36 项合同通过，仍为 `NOT_ADMITTED`。完整 esbuild/config/default forks/native review、Windows/macOS durable 后端和正式 36+9/官方账户账单/人工长时验收继续开放。当前结果见[验证第 15 节](../cli-ide-gap-validation-2026-10-05.md#15-2026-10-08-worker-结算锁释放与-gnu-工具链)，下方历史记录保留各自时点。
+
 > **2026-10-08 共享 NUL/继承续做**：共享评测后端新增独立实验 v3，真实 AppContainer 内的 NUL 设备、两层受控 Node 后代与并发启动、精确句柄白名单及清理已验证，最新回归 **572 项通过、零跳过**。冻结配置仍在 esbuild 报告的祖先目录读取阶段失败，未观察 worker pool；本轮没有新增双 IDE 正式旅程。详见[验证第 14 节](../cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)。正式 36+9、目标宿主、官方账号/账单、独立人工签核、真人辅助技术及长时验收继续开放；没有发布。
 
 > **2026-10-08 共享评测续做**：Windows 实验 runtime 已验证管道/fork IPC、私有规范路径及各 Node 子进程回执，冻结工具链导入和原 globalSetup/teardown 已通过；共享回归 **446 项通过、零跳过**。这些是本地 Windows 10 / Node 22.22.2 诊断，不能关闭双 IDE 正式任务、公开首次安装、真人听测或长时验收。NUL、冻结 forks/config/full review 和正式 36+9 继续开放，证据与 CI 失败修复见[验证第 13 节](../cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)。

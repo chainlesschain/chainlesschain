@@ -311,6 +311,24 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 | PLATFORM-02   | Null 真设备和精确继承证明；父进程保留真实可继承 Event，子进程有界内核句柄快照排除其继承；未知形状拒绝                              | 同类型句柄复用仍 unsupported；非 Node 后代；Windows/macOS durable authority、网络撤销和崩溃恢复   |
 | VERIFY-IDE-02 | 共享评测原生后端新增可回读材料；原双 IDE 工程和历史宿主结果保留                                                                    | 正式双 IDE 任务/公开首次安装、目标环境、真人听测、8h/24h 与获批 SLO                               |
 | 工程验证      | 最终 Node **517**、当前 helper 实际 transport **3**、Vitest **52**，共 **572 项通过、零跳过**；新增 childErrors 门禁和五类拒绝反例 | 新准确提交完整 Actions；当前 native v3 运行没有执行 pipe/realpath 分支                            |
-| CI/发行       | 前序 `1e5477aebe` 的 Strict/Safety/Reliability/Host Diagnostics 均成功，CLI CI 已发现 Linux Worker 结算竞态失败                                              | 当前 v3 须自身准确提交验证；本轮未合并、发布或新增付费请求                                        |
+| CI/发行       | 前序 `1e5477aebe` 的 Strict/Safety/Reliability/Host Diagnostics 均成功，CLI CI 已发现 Linux Worker 结算竞态失败                    | 当前 v3 须自身准确提交验证；本轮未合并、发布或新增付费请求                                        |
 
 实际失败和构建/源码摘要见[验证第 14 节](./cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)、[证据 README](./cli/evidence/gap-2026-10-05/windows-null-v3-2026-10-08/README.md)。最后的 preload 仅做 Prettier 整理，但仍重新执行真实诊断并保存新原件；历史构建回执的 preload 摘要不冒充新运行源码。冻结 esbuild/config 的失败不通过修改原包、改 forks 为 threads 或扩大父目录 ACL 消除。36+9、$99 预算和正式 observations 保持原状；NUL 子项的局部验证没有关闭完整 VERIFY-01。
+
+## 17. 2026-10-08 Worker、严格锁释放与 GNU 原生子项
+
+本轮关闭两项本地工程阻塞：Worker 最后消息/exit 竞态导致的 CI 探针静默退出，及未发布锁释放的有限 sharing/ENOENT 恢复。新增零 callback 重放、目录 dev/ino 和 owner token 的逐次验证，含同步/异步 16 类回归；四个真实进程的 240 次写入在 Windows/Linux 均保留。定向 Vitest 为 Windows 74 通过/1 Linux 专属跳过，Linux Node 22.12.0 为 75 全通过。
+
+冻结 GNU Rollup addon 新增独立、版本化且摘要绑定的 41 项 N-API PE forwarder，真实零 capability AppContainer 完成 sync/async parser、三个 hash、缺 DLL 和非法输入负例，空 Job 清理确认。纯合同 36 项通过；该局部结果保留 `NOT_ADMITTED`，未修改冻结包或生产权限。源码、原件、旧准确 CI 的最终失败和当前验证见[验证第 15 节](./cli-ide-gap-validation-2026-10-05.md#15-2026-10-08-worker-结算锁释放与-gnu-工具链)。
+
+| 项目                               | 最新工程状态                                                                               | 仍需完成                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| VERIFY-02                          | NUL v3 历史实跑保留；GNU addon 的本机同步/异步 ABI 行为已观察；Worker/锁恢复及 CI 接线完成 | esbuild/config/default forks/full native review、独立人工签核、目标冻结 Node/OS |
+| PLATFORM-02                        | 精确 Node 继承与一次性隔离原边界保留；非 Node 的独立诊断按实际阶段保留                     | Windows/macOS durable authority、网络撤销、崩溃恢复                             |
+| VERIFY-IDE-02 / MODEL-03 / PERF-02 | 既有双 IDE、模型合同和火山历史实测保留                                                     | 正式 36+9、官方端点/账户/账单、真人听测、8h/24h 和 SLO                          |
+| CI / RELEASE                       | 前序 1e54 最终失败根因已修；新 GNU/锁合同接入三系统                                        | 当前准确源码的完整 Actions；本轮没有发布                                        |
+| CLOUD-02                           | self-hosted handoff 原合同保留                                                             | 完整跨机器 resume 继续为需求条件项                                              |
+
+本轮的工程修复和局部实验不改变正式计划的 `NOT_RUN`。目标环境、官方账户配置和人工验收条件尚未提供；两份分析的整体任务继续保留上述未关闭项。
+
+独立 esbuild leaf 的最终早期 DLL 初始化仍以 `0xC0000142` 失败；当前源码的 root/child 身份与清理证据已归档，没有 installed/API 日志。30 项校验器合同已接 CLI CI；完整 config/default forks/full review 继续开放，详见[验证第 16 节](./cli-ide-gap-validation-2026-10-05.md#16-2026-10-08-非-node-esbuild-leaf-诊断的真实阻塞)。

@@ -501,3 +501,41 @@ helper source 为 **`d1734f440aa747de167e7e609ad7a61b78a28205acb3595f3b253b04a29
 v3 仅接纳 guarded `control/node.exe`，非 Node 的 esbuild launch 明确 unsupported，Node IAT 也不覆盖 Go/esbuild 内核调用。因此工程仍需独立解决冻结原 config/default forks/full review、非 Node 后代适配/证明与 GNU addon 整体 ABI；不能扩大祖先 ACL、修改冻结包/config、切换 forks 为 threads 或放宽 canonical 校验取得通过。Windows/macOS durable authority、活跃网络撤销及崩溃恢复也继续开放。
 
 正式 target hosts/Node 22.12.0、官方账号/账单、独立人工 setup/check 签核、双 IDE 正式任务/公开首次安装、真人 NVDA/VoiceOver/Orca、8h/24h 与获批 SLO 仍缺验收。**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99 预算、原分母、正式 observations 和 CLOUD-02 条件项均未改变；本轮没有新增付费请求。
+
+## 15. 2026-10-08 Worker 结算、锁释放与 GNU 工具链
+
+### 15.1 CI 失败与实际修复
+
+前序 `1e5477aebe` 的 CLI CI 最终为 failure：Linux unit shard 2/4 的 settings permission runtime 探针退出 0，却没有输出 JSON。Node 可以在同一回调内 drain 最后一条 Worker message 后立即 emit exit；原先等待 message 再注册 exit 的代码遗漏了退出事件，未结算的 Promise 不会阻止进程正常退出。新 `observeSettingsWriterWorker` 同步注册 message/error/messageerror/exit，只有唯一结果和 exit 0 同时成立才成功；错误、重复或缺结果保持失败。PM recovery aggregate 是前置 `verify-cli` 被跳过后的安全拒绝，没有降低该门。最终 69 个 job 的逐项状态见[完整回读](./cli/evidence/gap-2026-10-05/worker-lock-recovery-2026-10-08/ci-1e54-final.json)。
+
+实际 WSL 文件系统还出现释放 rename 的 sharing denial 后，release marker 写入短暂 ENOENT。只在未发布 handoff、原 directory dev/ino、原 owner token、marker 缺失和原期限都仍成立时，最多重试三次；每次等待后重新核对，不重放 callback。新增同步/异步 16 项测试覆盖成功恢复、callback 原错误、复制 owner 的替换目录、新 token、已发布 marker、缺 inode、原期限与持续争用。接手时旧 `with-file-lock.test.js` 的 48,441 字节已全部为 NUL，原字节保存在本机 `.work/with-file-lock.test.js.corrupt-20261008`，源码从 HEAD 恢复；本轮变化另用新测试文件覆盖。
+
+### 15.2 冻结 GNU addon 的真实隔离验证
+
+冻结 `@rollup/rollup-win32-x64-gnu@4.62.2` 依赖 `libnode.dll` 的 41 个 `napi_*` 导出，本机固定 Node 全部具备。新增独立 PE export forwarder，每项必须指向当前 `node.exe` 同一个函数地址；bootstrap 核对真实 AppContainer SID、零 capabilities 和 Job。冻结 addon 字节不变，未进入生产 allowlist。
+
+最终真实运行 PID **20840**，forwarder 为 `sha256:327fe76d30aceddfc534cd12f78bd4f7b15f1e9cd08cba2188094123bf52a329`。无 forwarder 时实际 `ERR_DLOPEN_FAILED`；加载后同步/异步 parser 均返回 168 字节、同一摘要，三个 hash 导出匹配独立 MSVC 对照，非法类型拒绝和输入变化反例成立。七个 journal 阶段、唯一 stdout、退出 0、stderr 空、无 loopback exemption 和空 Job 清理均核对。最终[构建](./cli/evidence/gap-2026-10-05/windows-gnu-forwarder-2026-10-08/build.json)、[原始报告](./cli/evidence/gap-2026-10-05/windows-gnu-forwarder-2026-10-08/report.json)与[journal](./cli/evidence/gap-2026-10-05/windows-gnu-forwarder-2026-10-08/journal.jsonl)保留字节绑定。该结果为 `NOT_ADMITTED`，只适用于本机 Windows 10 / Node 22.22.2 / ABI 127；LLVM-MinGW/compiler closure 不是独立认证构建。
+
+### 15.3 本轮验证与继续开放项
+
+| 验证                                                       | 结果                                         |
+| ---------------------------------------------------------- | -------------------------------------------- |
+| Windows 定向 Vitest：锁/异步锁/释放恢复/Worker runtime     | **74 通过，1 项 Linux 专属跳过**             |
+| WSL Linux / Node 22.12.0 同组 Vitest                       | **75 通过，零跳过**                          |
+| GNU PE/来源/结果篡改合同                                   | **36 通过，零跳过**                          |
+| 四个真实进程、共 240 次严格锁写入                          | Windows、Linux 各 **1 项通过**；无丢失或重复 |
+| helper 当前 source contract、定向 ESLint、格式、actionlint | 通过；actionlint 未启用 shellcheck/pyflakes  |
+
+两系统重复测试不累计为新的正式任务样本，旧 572 项回归保留历史源码含义。GNU 与并发锁 Node 合同已接入 CLI CI 三系统；Strict 接入锁恢复回归。新准确提交还须自身完整 Actions 矩阵，本轮没有 npm/IDE 发布或新增付费请求。
+
+完整冻结 config/default forks/full review 仍开放：原 esbuild service 已回复，但报告祖先目录 Access denied；独立非 Node trace 的进程创建与运行时注入按实际阶段另行记录，尚无足够证据关闭目录 API 适配。Windows/macOS durable authority、活跃网络撤销和崩溃恢复继续需要真实后端。正式目标宿主、官方账户/账单、人工 setup/check 签核、双 IDE 36+9/首次安装、真人辅助技术、8h/24h 和获批 SLO 仍缺验收。冻结 validator 再次确认 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`、**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**；原预算 $99、分母和 observations 保持冻结，CLOUD-02 仍为需求条件项。
+
+## 16. 2026-10-08 非 Node esbuild leaf 诊断的真实阻塞
+
+独立 `windows-esbuild-api-trace.mjs` 与 launcher/shim 不修改生产 v1–v3 或冻结 esbuild 包。launcher 使用固定映像摘要、受控 `CREATE_SUSPENDED`、精确四个 HANDLE_LIST、child-process-restricted leaf 策略，逐项核对根/子 AppContainer SID、零 capabilities 和 Job；只尝试真实 API 取证，不做错误码翻译或目录内容替代。
+
+最终当前源码运行的 root **22736** / child **20368** 已完成上述身份和创建证明，但远程 LoadLibrary 的早期初始化以 **`0xC0000142 / DLL_INIT_FAILED`** 退出。shim 没有写出 identity/installed/API 行，trace 长度为 0；root exit 2、`completed=false`、`NOT_ADMITTED`、`cleanupConfirmed=true`、无 loopback exemption。完整[最终原始报告](./cli/evidence/gap-2026-10-05/windows-native-esbuild-trace-2026-10-08/report.json)与[空 trace](./cli/evidence/gap-2026-10-05/windows-native-esbuild-trace-2026-10-08/trace.jsonl)保持字节绑定；报告摘要为 `sha256:06197b1337b3f44491fe53cc4539417d2888dbd0d90ce37ee2cdf1fd69592d92`。最终 CPP/driver 摘要与当前源码一致。a/b/c/d/e/final/final-clean 的失败继续保存在本机 `.work/esbuild-api-trace-20261008-*`，未覆盖成成功。
+
+固定 binary 使用动态 GetProcAddress；独立源码与 PE 检查显示需要取证 Go 的动态目录调用，而非依赖 Node IAT。当前没有实测到具体祖先路径/底层 API，因此不能将冻结 esbuild 源码的错误码解释提升为已经证明的运行根因。API hook 的安装、非 Node 受限运行时的完整继承和冻结 config/default forks/full review 仍需继续实现与真实验证。
+
+纯解析/来源/身份/清理/连续序号/缺中间 API/错误 stderr/不完整注入的 **30 项回归**通过，并接入三系统 CLI CI。fixture 只验证校验器能拒绝缺证据，实际原生结果仍为上述失败。GNU 36 与这组 30 合同合计 66 个不同纯测试；正式 36+9、Windows/macOS durable 后端、官方账户账单和人工长时验收的状态保持开放。本轮没有付费请求、生产权限扩张或发布。

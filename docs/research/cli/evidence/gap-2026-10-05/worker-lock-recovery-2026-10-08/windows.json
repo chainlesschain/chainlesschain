@@ -6,7 +6,7 @@
   "mode": "windows",
   "host": "Windows 10 local",
   "node": "v22.22.2",
-  "startedAt": "2026-10-08T08:59:07.100Z",
+  "startedAt": "2026-10-08T09:10:47.691Z",
   "sources": [
     {
       "path": "packages/cli/src/lib/with-file-lock.js",
@@ -22,7 +22,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/with-file-lock-release-retry.test.js",
-      "digest": "sha256:51e998c3c1dc0b6128227cc9a99e843ace577d0a9a6919a53386fa29cb53cbd0"
+      "digest": "sha256:ac7bfc7b2a434469d37e0ee67eca68b256a9cda6c4f2c9ea52c1dd6a3addff42"
     },
     {
       "path": "packages/cli/__tests__/unit/settings-permission-runtime.test.js",
@@ -42,6 +42,6 @@
   "error": null,
   "passed": 74,
   "skipped": 1,
-  "stdoutDigest": "sha256:8950eb8eb5589ed9217f223c1bd0a26459d6fe5b85668877f7e666bcc724eea8",
+  "stdoutDigest": "sha256:ff01e504f4c50e2e733a105ad7d77cf86763395ac8ad917296b2a3678b4d343b",
   "stderrDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 }

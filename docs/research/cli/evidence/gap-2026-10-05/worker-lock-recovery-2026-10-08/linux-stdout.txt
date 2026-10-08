@@ -5,6 +5,6 @@
 
  Test Files  4 passed (4)
       Tests  75 passed (75)
-   Start at  16:59:07
-   Duration  91.44s (transform 39.45s, setup 2.66s, import 7.32s, tests 84.80s, environment 2ms)
+   Start at  17:10:44
+   Duration  45.43s (transform 17.69s, setup 579ms, import 1.05s, tests 44.29s, environment 1ms)
 
