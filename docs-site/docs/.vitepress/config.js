@@ -1,4 +1,4 @@
-﻿import { defineConfig } from "vitepress";
+import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "ChainlessChain 文档",
@@ -198,6 +198,10 @@ export default defineConfig({
             {
               text: "2026-10-08 组织目标与运行时保护",
               link: "/design/governance-runtime-update-2026-10-08",
+            },
+            {
+              text: "最新发行与 Windows 验证",
+              link: "/design/release-runtime-update-2026-10-08-latest",
             },
             {
               text: "2026-10-07 持久目标与 RRSI 设计",

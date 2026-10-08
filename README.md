@@ -2,13 +2,20 @@
 
 ## 2026-10-08 最新代码与发行范围
 
-2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。
+2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。
 
-- **项目协作**：组织目标支持显式周期巡检、风险建议与逐级审批；批准后仍由请求者原生确认任务写入。独立验收重新读取业务事实，未知动作会阻止完成。
-- **记忆与通知**：个人和组织目标提供显式记忆保存、修正、撤权、删除与恢复；组织共享读取有独立权限。通知只保存授权引用，支持静默策略与目标深链接。记忆尚未自动注入模型。
-- **运行时保护**：RRSI 默认三阶段产物读取核验大小和完整文件身份；IDE 重复调查会进入基于已有证据的有界总结。上述新增尚未进入 e812 公开制品，RRSI 自动晋升保持 HOLD。
+- **目标与协作**：产品 .140 已包含个人 / 组织目标巡检、共享记忆、通知与独立验收；组织任务写入仍经多级审批及请求者原生确认。记忆未自动注入模型。
+- **运行时**：公开 CLI .93 承接 IDE 调查恢复与 RRSI 默认三阶段有界读取；真实 RRSI 实验 NOT_RUN，自动晋升 HOLD。新增 Windows 工具链 / Node runtime 胶囊只提供实验回读。
+- **安装与验证**：CLI 精确提交 CI 71 成功、Strict 5/5、OIDC 发布成功；产品公开资产与产品工作流状态分别记录。
 
-使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。 [最新公开观察](docs/research/cli/evidence/documentation-release-status-2026-10-08.json)包含公开归档与精确发行门的回读；下方日期记录保留其历史范围。
+```bash
+npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org
+cc --version
+```
+
+升级配对 IDE 后重启聊天宿主并运行 Doctor；原生客户端从[产品下载页](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140)获取。升级前关闭客户端并备份 SQLite / WAL / SHM。iOS ad hoc IPA 仅适用于授权设备。
+
+详见[最新设计](docs/design/release-runtime-update-2026-10-08-latest.md)、[发布与升级指南](docs-site/docs/chainlesschain/agent-platform-release.md)与[本次公开回读](docs/research/cli/evidence/documentation-release-status-2026-10-08-latest.json)。下方日期记录保留历史范围。
 
 ## 2026-10-07 公开发布记录
 

@@ -2,11 +2,18 @@
 
 ## Current source and public release (2026-10-08)
 
-Public CLI **0.166.92**, Open VSX **0.37.137**, JetBrains **0.4.155** and product **v5.0.3.139** are based on `e812a89952`. Source was reviewed at `381f8018ef`. The product includes personal goal monitoring/actions/acceptance and the organization task workbench. Personal memory UI, organization transfers/risk/shared goals/monitoring/acceptance/memory, in-app notifications and IDE investigation recovery require later source.
+Public CLI **0.166.93**, Open VSX **0.37.138** and JetBrains **0.4.156** use release commit `65e8c21d3a`; both IDEs recommend CLI `0.166.93`. Session Core **0.3.18**, Context/Memory Kernel **0.1.8** and PDH **0.4.64** are independently published. Product **v5.0.3.140** is public at `f733f92cb9`. Source was reviewed at `1e5477aebe`.
 
-Organization task writes require explicit permissions, multi-level approvals and the requester's native confirmation. Goal memory supports explicit corrections, revocation and deletion with current authorization; it is not automatically injected into model output. Notifications keep authorized references and support quiet hours and goal links. RRSI bounded artifact reads are source progress; automatic promotion remains HOLD.
+Product .140 includes organization goals, explicit shared memory, in-app notifications and independent acceptance. Task writes still require current permissions, multi-level approval and the requester's native confirmation. Memory is not automatically injected into models. CLI .93 includes bounded RRSI reads and IDE investigation recovery; real RRSI experiments remain NOT_RUN and automatic promotion HOLD. Later Windows toolchain and Node runtime capsules are experimental and admissionEligible=false.
 
-See the [current design](docs/design/governance-runtime-update-2026-10-08.md), [personal goal guide](docs-site/docs/chainlesschain/project-goals-current.md), [organization guide](docs-site/docs/chainlesschain/organization-project-current.md) and [public observations](docs/research/cli/evidence/documentation-release-status-2026-10-08.json). Dated records below retain their historical scope.
+```bash
+npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org
+cc --version
+```
+
+The exact CLI release passed CI (71 successful jobs), Strict Sandbox (5/5) and npm OIDC publication. Product public assets and product workflow status are recorded separately. Upgrade the paired IDE, restart its chat host and use Doctor. Back up SQLite databases with WAL/SHM while clients are closed. iOS ad hoc installation requires an authorized device.
+
+See the [current design](docs/design/release-runtime-update-2026-10-08-latest.md), [upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md), [product downloads](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140) and [fresh public observations](docs/research/cli/evidence/documentation-release-status-2026-10-08-latest.json). Dated records below retain their historical scope.
 
 ## 2026-10-07 publication record
 

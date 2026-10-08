@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现与源码候选
 
-> 2026-10-08 核对：公开 CLI **0.166.92**、Open VSX **0.37.137**、JetBrains **0.4.155**，两个 IDE 均推荐 CLI `0.166.92`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.139** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 详见[发布指南](./agent-platform-release)。
+> 2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。 详见[发布指南](./agent-platform-release)。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 
@@ -50,9 +50,9 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 
 [Open VSX 0.37.84](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 已公开，新增 `chainlesschain.chat.maxTurns`（`0` 跟随 CLI 交互默认；正整数限制每条消息的模型轮次）。[JetBrains Marketplace 0.4.111](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开，其内置 CLI 推荐仍为 `0.166.22`；源码中的 v2 批审回执支持尚未随新的 JetBrains 制品发布。Session Core `0.3.12`、Core DB `0.1.5` 已公开，TS/Python SDK `0.2.8` 与 Protocol `0.1.8` 保持独立版本。
 
-## 重复调查与证据总结（后续主线）
+## 重复调查与证据总结（公开 .93）
 
-当前 381f8018ef 源码识别重复 Git/GitHub 和 IDE 证据调查。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复未进入公开 CLI 0.166.92。
+公开 CLI 0.166.93 已包含重复 Git/GitHub 和 IDE 证据调查保护。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复已进入 CLI 0.166.93；按配对 IDE 版本升级并重启聊天宿主。
 
 git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，表示不是祖先；源码进展跟踪器保留它，避免误判为工具失败。见[最新设计](/design/governance-runtime-update-2026-10-08)。
 
@@ -62,19 +62,20 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                      | 版本                                                      | 说明                                                     |
-| ------------------------- | --------------------------------------------------------- | -------------------------------------------------------- |
-| 日常稳定使用 / npm latest | CLI `0.166.89`                                            | `v-npm-0-166-89@02e1318aae`；完整发行门与公开回读通过    |
-| Agent SDK / Protocol      | TS `0.2.12` / Python `0.2.9` / Protocol `0.1.12`          | 保持独立版本                                             |
-| IDE 工作台                | Open VSX `0.37.134` / JetBrains `0.4.152`                 | 已公开，均推荐 CLI `0.166.89`                            |
-| 源码候选                  | CLI `0.166.90` / VS Code `0.37.135` / JetBrains `0.4.153` | 未公开，PDH `0.4.63` 与 Session Core `0.3.15` 待独立门禁 |
-| Desktop / Android / iOS   | `v5.0.3.138@eb48ffa311`                                   | 独立产品发行；iOS ad-hoc IPA 仅限已授权设备              |
+| 用途                               | 版本                                                   | 来源与范围                                       |
+| ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| 日常使用 / npm latest              | CLI 0.166.93                                           | 65e8c21d3a，准确三平台 CI / Strict 已通过        |
+| IDE 工作台                         | Open VSX 0.37.138 / JetBrains 0.4.156                  | 均推荐 CLI 0.166.93                              |
+| 共享服务                           | Session Core 0.3.18 / Memory Kernel 0.1.8 / PDH 0.4.64 | 独立公开子包，CLI 精确依赖已核对                 |
+| Desktop / Android / iOS            | v5.0.3.140                                             | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备 |
+| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                    | admissionEligible=false，正式目标宿主验收未完成  |
 
 ```bash
-npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org
+cc --version
 ```
 
-确认版本后重启 IDE 聊天宿主。完整门禁、商店状态和限制见[发布与升级指南](./agent-platform-release)。记忆分页、冻结评估、实际会话 Doctor 与 cgroup2 恢复已公开；双 IDE 显式协议/UI 采集和 JetBrains CLI 身份诊断已随配对公开版发行，后续源码增加数据与受控任务操作，见[最新设计](/design/agent-runtime-update-2026-10-05)。
+升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-08-latest)。
 
 ## 核心特性
 

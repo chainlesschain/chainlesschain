@@ -1,0 +1,1706 @@
+{
+  "schema": "chainlesschain.documentation-release-observation/v1",
+  "checkedAt": "2026-10-08T08:51:33.854Z",
+  "sourceBaseline": "1e5477aebe1a69eba0932af915ea24ea545f66d7",
+  "releaseCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+  "packages": {
+    "chainlesschain": {
+      "version": "0.166.93",
+      "dependencies": {
+        "ws": "^8.14.2",
+        "ajv": "^8.20.0",
+        "ora": "^8.1.1",
+        "chalk": "^5.4.1",
+        "semver": "^7.6.3",
+        "sql.js": "^1.14.1",
+        "undici": "^7.29.0",
+        "webdav": "^5.10.0",
+        "js-yaml": "^3.15.1",
+        "commander": "^12.1.0",
+        "ajv-formats": "^3.0.1",
+        "esbuild-wasm": "0.28.1",
+        "pac-resolver": "^7.0.1",
+        "@noble/curves": "^1.9.7",
+        "@inquirer/prompts": "^7.2.0",
+        "@aws-sdk/client-s3": "^3.700.0",
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/session-core": "0.3.18",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@tootallnate/quickjs-emscripten": "^0.23.0",
+        "@chainlesschain/personal-data-hub": "0.4.64",
+        "@chainlesschain/context-memory-kernel": "0.1.8"
+      },
+      "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.93.tgz",
+      "bytes": 9346059,
+      "sha256": "3af723336c07134cd6aae60df862e84cd6309e47320d13e0b87e061890d643e1",
+      "integrity": "sha512-oE6hkogXml2w4fMZwQPtHCM2/IULv8PcWJ2pJdxNNjuiXL5DkXwbbC8rgA1JiSPXFLVnYuBjsIGj6Hn5cD56Ew==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "provenanceStatements": [
+        {
+          "_type": "https://in-toto.io/Statement/v0.1",
+          "subject": [
+            {
+              "name": "pkg:npm/chainlesschain@0.166.93",
+              "digest": {
+                "sha512": "a04ea19288179a5db0e1f319c103ed1c2336fc850bbfc3dc589da925dc4d363ba25cbe43917c1b6c2f2b800d498923d714b56762e063b081a3e879f9703e7a13"
+              }
+            }
+          ],
+          "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+          "predicate": {
+            "name": "chainlesschain",
+            "version": "0.166.93",
+            "registry": "https://registry.npmjs.org"
+          }
+        },
+        {
+          "_type": "https://in-toto.io/Statement/v1",
+          "subject": [
+            {
+              "name": "pkg:npm/chainlesschain@0.166.93",
+              "digest": {
+                "sha512": "a04ea19288179a5db0e1f319c103ed1c2336fc850bbfc3dc589da925dc4d363ba25cbe43917c1b6c2f2b800d498923d714b56762e063b081a3e879f9703e7a13"
+              }
+            }
+          ],
+          "predicateType": "https://slsa.dev/provenance/v1",
+          "predicate": {
+            "buildDefinition": {
+              "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+              "externalParameters": {
+                "workflow": {
+                  "ref": "refs/tags/v-npm-0-166-93",
+                  "repository": "https://github.com/chainlesschain/chainlesschain",
+                  "path": ".github/workflows/npm-publish.yml"
+                }
+              },
+              "internalParameters": {
+                "github": {
+                  "event_name": "push",
+                  "repository_id": "1107348698",
+                  "repository_owner_id": "247070867"
+                }
+              },
+              "resolvedDependencies": [
+                {
+                  "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-93",
+                  "digest": {
+                    "gitCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7"
+                  }
+                }
+              ]
+            },
+            "runDetails": {
+              "builder": {
+                "id": "https://github.com/actions/runner/github-hosted"
+              },
+              "metadata": {
+                "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449/attempts/1"
+              }
+            }
+          }
+        }
+      ],
+      "provenanceCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "provenanceCommitBindingObserved": true
+    },
+    "@chainlesschain/session-core": {
+      "version": "0.3.18",
+      "dependencies": {
+        "@scure/base": "^1.2.6",
+        "@noble/curves": "^1.9.7",
+        "@noble/hashes": "^2.0.1"
+      },
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.18.tgz",
+      "bytes": 285649,
+      "sha256": "6189574f7bd8170ef355d7ec95db6c403b557d11364ccf566bdb39fbada2fc23",
+      "integrity": "sha512-n9AJI/pGGTtAAPtjGj1DjitylVhwPLeoskSZXeBTtDQkHeDIkVLU8/6Aw0uwF7UI/4kwwtWiA7I9B+bOMlDWOw==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "provenanceStatements": [
+        {
+          "_type": "https://in-toto.io/Statement/v0.1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/session-core@0.3.18",
+              "digest": {
+                "sha512": "9fd00923fa46193b4000fb631a3d438e2b729558703cb7a8b244995de053b434241de0c89152d4f3fe80c34bb017b508ff8930c2d5a203b23d07e6ce3250d63b"
+              }
+            }
+          ],
+          "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+          "predicate": {
+            "name": "@chainlesschain/session-core",
+            "version": "0.3.18",
+            "registry": "https://registry.npmjs.org"
+          }
+        },
+        {
+          "_type": "https://in-toto.io/Statement/v1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/session-core@0.3.18",
+              "digest": {
+                "sha512": "9fd00923fa46193b4000fb631a3d438e2b729558703cb7a8b244995de053b434241de0c89152d4f3fe80c34bb017b508ff8930c2d5a203b23d07e6ce3250d63b"
+              }
+            }
+          ],
+          "predicateType": "https://slsa.dev/provenance/v1",
+          "predicate": {
+            "buildDefinition": {
+              "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+              "externalParameters": {
+                "workflow": {
+                  "ref": "refs/tags/v-npm-0-166-93",
+                  "repository": "https://github.com/chainlesschain/chainlesschain",
+                  "path": ".github/workflows/npm-publish.yml"
+                }
+              },
+              "internalParameters": {
+                "github": {
+                  "event_name": "push",
+                  "repository_id": "1107348698",
+                  "repository_owner_id": "247070867"
+                }
+              },
+              "resolvedDependencies": [
+                {
+                  "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-93",
+                  "digest": {
+                    "gitCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7"
+                  }
+                }
+              ]
+            },
+            "runDetails": {
+              "builder": {
+                "id": "https://github.com/actions/runner/github-hosted"
+              },
+              "metadata": {
+                "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449/attempts/1"
+              }
+            }
+          }
+        }
+      ],
+      "provenanceCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "provenanceCommitBindingObserved": true
+    },
+    "@chainlesschain/context-memory-kernel": {
+      "version": "0.1.8",
+      "dependencies": {},
+      "tarball": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.8.tgz",
+      "bytes": 50055,
+      "sha256": "f7e9f6a96d12fd0c14ccbbc056a4da419eab566cd31ce5ffea4a8212eed59de4",
+      "integrity": "sha512-feZpA7f7bwrfR26cmBHexAaGHQJ+4zlsW+jDW5LlxiMp8Eyf7wTFNKK2rjR8jtJSySftJaDUe492Hu2JpRESuA==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "provenanceStatements": [
+        {
+          "_type": "https://in-toto.io/Statement/v0.1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/context-memory-kernel@0.1.8",
+              "digest": {
+                "sha512": "7de66903b7fb6f0adf476e9c9811dec406861d027ee3396c5be8c35b92e5c62329f04c9fef04c534a2b6ae347c8ed252c927ed25a0d47b8f761eed89a51112b8"
+              }
+            }
+          ],
+          "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+          "predicate": {
+            "name": "@chainlesschain/context-memory-kernel",
+            "version": "0.1.8",
+            "registry": "https://registry.npmjs.org"
+          }
+        },
+        {
+          "_type": "https://in-toto.io/Statement/v1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/context-memory-kernel@0.1.8",
+              "digest": {
+                "sha512": "7de66903b7fb6f0adf476e9c9811dec406861d027ee3396c5be8c35b92e5c62329f04c9fef04c534a2b6ae347c8ed252c927ed25a0d47b8f761eed89a51112b8"
+              }
+            }
+          ],
+          "predicateType": "https://slsa.dev/provenance/v1",
+          "predicate": {
+            "buildDefinition": {
+              "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+              "externalParameters": {
+                "workflow": {
+                  "ref": "refs/tags/v-npm-0-166-93",
+                  "repository": "https://github.com/chainlesschain/chainlesschain",
+                  "path": ".github/workflows/npm-publish.yml"
+                }
+              },
+              "internalParameters": {
+                "github": {
+                  "event_name": "push",
+                  "repository_id": "1107348698",
+                  "repository_owner_id": "247070867"
+                }
+              },
+              "resolvedDependencies": [
+                {
+                  "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-93",
+                  "digest": {
+                    "gitCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7"
+                  }
+                }
+              ]
+            },
+            "runDetails": {
+              "builder": {
+                "id": "https://github.com/actions/runner/github-hosted"
+              },
+              "metadata": {
+                "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449/attempts/1"
+              }
+            }
+          }
+        }
+      ],
+      "provenanceCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "provenanceCommitBindingObserved": true
+    },
+    "@chainlesschain/personal-data-hub": {
+      "version": "0.4.64",
+      "dependencies": {
+        "mailparser": "^3.7.1"
+      },
+      "tarball": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+      "bytes": 890625,
+      "sha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q==",
+      "sriVerified": true,
+      "packageVersionVerified": true,
+      "provenanceStatements": [
+        {
+          "_type": "https://in-toto.io/Statement/v0.1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/personal-data-hub@0.4.64",
+              "digest": {
+                "sha512": "90fcf67a28d61534f28e11457956dca10207b91b83dff52dd38796e56634c633074e0171770d531bb40ecabe27f221f1889210a9e1474eb9bdfe959d82d07bf9"
+              }
+            }
+          ],
+          "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+          "predicate": {
+            "name": "@chainlesschain/personal-data-hub",
+            "version": "0.4.64",
+            "registry": "https://registry.npmjs.org"
+          }
+        },
+        {
+          "_type": "https://in-toto.io/Statement/v1",
+          "subject": [
+            {
+              "name": "pkg:npm/%40chainlesschain/personal-data-hub@0.4.64",
+              "digest": {
+                "sha512": "90fcf67a28d61534f28e11457956dca10207b91b83dff52dd38796e56634c633074e0171770d531bb40ecabe27f221f1889210a9e1474eb9bdfe959d82d07bf9"
+              }
+            }
+          ],
+          "predicateType": "https://slsa.dev/provenance/v1",
+          "predicate": {
+            "buildDefinition": {
+              "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+              "externalParameters": {
+                "workflow": {
+                  "ref": "refs/tags/v-npm-0-166-91",
+                  "repository": "https://github.com/chainlesschain/chainlesschain",
+                  "path": ".github/workflows/npm-publish.yml"
+                }
+              },
+              "internalParameters": {
+                "github": {
+                  "event_name": "push",
+                  "repository_id": "1107348698",
+                  "repository_owner_id": "247070867"
+                }
+              },
+              "resolvedDependencies": [
+                {
+                  "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-91",
+                  "digest": {
+                    "gitCommit": "23afea300b76a161233eac46269d74e04100a9cd"
+                  }
+                }
+              ]
+            },
+            "runDetails": {
+              "builder": {
+                "id": "https://github.com/actions/runner/github-hosted"
+              },
+              "metadata": {
+                "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37545002224/attempts/1"
+              }
+            }
+          }
+        }
+      ],
+      "provenanceCommit": "23afea300b76a161233eac46269d74e04100a9cd",
+      "provenanceCommitBindingObserved": true
+    }
+  },
+  "openVsx": {
+    "version": "0.37.138",
+    "manifestVersion": "0.37.138",
+    "recommendedCliVersion": "0.166.93",
+    "chainlesschain": {
+      "recommendedCliVersion": "0.166.93"
+    },
+    "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.138/file/chainlesschain.chainlesschain-ide-0.37.138.vsix",
+    "bytes": 714634,
+    "sha256": "28e4d323993b48870b0bf8e4015e1d4d223631ea54fde0b12367d210f3683907"
+  },
+  "jetbrains": {
+    "version": "0.4.156",
+    "id": 1189072,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "url": "https://plugins.jetbrains.com/files/32208/1189072/chainlesschain-ide-bridge-0.4.156.zip",
+    "bytes": 1520944,
+    "sha256": "fe932d7cb4afeb5cab2d5bbfa6ff6e6dca7fffea7feffdc30bd8dbddf8766d0b",
+    "packageVersionVerified": true,
+    "recommendedCliVersion": "0.166.93",
+    "pairingVerified": true
+  },
+  "product": {
+    "tag": "v5.0.3.140",
+    "sourceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
+    "draft": false,
+    "publishedAt": "2026-10-08T07:44:11Z",
+    "url": "https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140",
+    "assets": [
+      {
+        "name": "app-arm64-v8a-release.apk",
+        "bytes": 302853353,
+        "digest": "sha256:be12413ecaadafab54a9299a0863c80d815c00354bdd8387e8d71f00a7da30a4",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/app-arm64-v8a-release.apk"
+      },
+      {
+        "name": "app-armeabi-v7a-release.apk",
+        "bytes": 260651668,
+        "digest": "sha256:2a2fdbd3503619c5f8b8533985337fc02efb289f7d96cc10d43f8f277b6b675e",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/app-armeabi-v7a-release.apk"
+      },
+      {
+        "name": "app-release.aab",
+        "bytes": 261085087,
+        "digest": "sha256:41fd490b5e9cf5238ce86307530084ecfb258907678a227308e128bcc269a0f3",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/app-release.aab"
+      },
+      {
+        "name": "app-universal-release.apk",
+        "bytes": 332760365,
+        "digest": "sha256:467a1238286c4ee9126525a00129e26e75e506e291fb5ef78a15173a16731b46",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/app-universal-release.apk"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-arm64-mac.zip",
+        "bytes": 596298477,
+        "digest": "sha256:83629cde7da0e334829770adf8912f5b670caa9809669f466698e7168b295187",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-arm64-mac.zip"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-arm64-mac.zip.blockmap",
+        "bytes": 597837,
+        "digest": "sha256:5109cc81b374877e79e7b8576482a1f9560a9631e9a308d5cd7a99e732534b64",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-arm64-mac.zip.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-arm64.dmg",
+        "bytes": 612978912,
+        "digest": "sha256:045245509e2d861165d6038ab3eabc4b60d3eecac008ddad36080223b1436efe",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-arm64.dmg"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-arm64.dmg.blockmap",
+        "bytes": 636799,
+        "digest": "sha256:537544e34f2566f1335f0948c70c0cfb2351eb18f56df701bc07378b3f636ec2",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-arm64.dmg.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-mac.zip",
+        "bytes": 601768511,
+        "digest": "sha256:a376f69205a6eef70e9f5ae2518c367963147b059411008f89281659beada4db",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-mac.zip"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140-mac.zip.blockmap",
+        "bytes": 603676,
+        "digest": "sha256:159a4e1b09ba91934bb5304b5e4677f50f6fe107ee7e3a9d236a5b5f80787f31",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140-mac.zip.blockmap"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140.AppImage",
+        "bytes": 886312223,
+        "digest": "sha256:4b34cfc5a4757c715459f4d3f8c77ccd945ed7e194973ee819382556749e2b1d",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140.AppImage"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140.dmg",
+        "bytes": 618698088,
+        "digest": "sha256:aab2dd86baa95fa732c8a9ce5c1ea9669c215ac646d5a7d2a679fe31331a6f51",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140.dmg"
+      },
+      {
+        "name": "ChainlessChain-5.0.3-alpha.140.dmg.blockmap",
+        "bytes": 641084,
+        "digest": "sha256:8f47b6595b91cfff97cd8cae4600bd3fe03901e985c93cc7ba93d10d0d6f1feb",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-5.0.3-alpha.140.dmg.blockmap"
+      },
+      {
+        "name": "chainlesschain-desktop-vue-5.0.3-alpha.140.x86_64.rpm",
+        "bytes": 468122589,
+        "digest": "sha256:604ba58cfb1bdf3e38935691a4fa39a337dbe81a4d0635d9936245814ef7f721",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/chainlesschain-desktop-vue-5.0.3-alpha.140.x86_64.rpm"
+      },
+      {
+        "name": "chainlesschain-desktop-vue_5.0.3-alpha.140_amd64.deb",
+        "bytes": 463220058,
+        "digest": "sha256:30200c9c7597dc7975a862b7e92ff8be5068d3520c03932a23771a25394aa4b2",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/chainlesschain-desktop-vue_5.0.3-alpha.140_amd64.deb"
+      },
+      {
+        "name": "ChainlessChain-Portable-5.0.3-alpha.140.exe",
+        "bytes": 517385971,
+        "digest": "sha256:7c6d6e1f1471641765fa39921c0260744717582823967c539ab1edaf9675f425",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-Portable-5.0.3-alpha.140.exe"
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.140.exe",
+        "bytes": 517705597,
+        "digest": "sha256:657287e110aaaeb6deeafc35295eb498ee6a6572e139da6a34e4088b31dcceec",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-Setup-5.0.3-alpha.140.exe"
+      },
+      {
+        "name": "ChainlessChain-Setup-5.0.3-alpha.140.exe.blockmap",
+        "bytes": 511174,
+        "digest": "sha256:fa8856dbd7b3678e523127c3730ce72d8f0cc2d54834c1cbd5c50a585dc0ced8",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain-Setup-5.0.3-alpha.140.exe.blockmap"
+      },
+      {
+        "name": "ChainlessChain.ipa",
+        "bytes": 10054571,
+        "digest": "sha256:b771cc6a6458c5ad407fda4d6987f47dc93c3939c5922037cff805fa37322f05",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/ChainlessChain.ipa"
+      },
+      {
+        "name": "latest-linux.yml",
+        "bytes": 777,
+        "digest": "sha256:b5c7c09816f1a5961353976b5c29a63e8f93941f378a761552bd6025418a1b69",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/latest-linux.yml"
+      },
+      {
+        "name": "latest-mac.yml",
+        "bytes": 894,
+        "digest": "sha256:229b45a6bafda532b013c1e63b2a890178bc15793ba5b607b0af38be73bb5b26",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/latest-mac.yml"
+      },
+      {
+        "name": "latest.yml",
+        "bytes": 387,
+        "digest": "sha256:0fd8e89167fe497b1f97dc9f261785c2f77628c70147e0c9273e5cb54dc05b83",
+        "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.140/latest.yml"
+      }
+    ],
+    "finalizationRun": 37745138373,
+    "finalizationControllerCommit": "4b7a8231751922f9774df03f78eb2371087c081c",
+    "finalizationConclusion": "success"
+  },
+  "workflows": [
+    {
+      "id": 37711516449,
+      "name": "Publish CLI release to npm",
+      "event": "push",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449",
+      "jobs": [
+        {
+          "name": "exact-sha-gate",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test",
+          "conclusion": "skipped",
+          "status": "completed"
+        },
+        {
+          "name": "dry-run",
+          "conclusion": "skipped",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "package-cli",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "publish",
+          "conclusion": "success",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37708844340,
+      "name": "CLI macOS MCP Launcher Release Gate",
+      "event": "push",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37708844340",
+      "jobs": [
+        {
+          "name": "unsigned contract (x64)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "unsigned contract (arm64)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "exact-SHA CLI release gates",
+          "conclusion": "skipped",
+          "status": "completed"
+        },
+        {
+          "name": "protected tag identity",
+          "conclusion": "skipped",
+          "status": "completed"
+        },
+        {
+          "name": "sealed x64 + arm64 release evidence",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "signed root live (${{ matrix.arch }})",
+          "conclusion": "cancelled",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37708844626,
+      "name": "CLI CI",
+      "event": "push",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37708844626",
+      "jobs": [
+        {
+          "name": "PDH native release tests (ubuntu-latest)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "PDH native release tests (windows-latest)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "PDH native release tests (macos-latest)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "dry-run-publish",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "verify-cli",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "cancelled",
+          "status": "completed"
+        },
+        {
+          "name": "pack-linux-dryrun",
+          "conclusion": "cancelled",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37702374578,
+      "name": "IDE Roadmap Accessibility Performance",
+      "event": "workflow_dispatch",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37702374578",
+      "jobs": [
+        {
+          "name": "Accessibility/Performance macos",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "Accessibility/Performance linux",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "Accessibility/Performance windows",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "Trusted Accessibility/Performance three-OS aggregate",
+          "conclusion": "success",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37702363030,
+      "name": "Workspace Publish Staleness Check (PR mandatory)",
+      "event": "pull_request",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37702363030",
+      "jobs": [
+        {
+          "name": "check",
+          "conclusion": "success",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37702364146,
+      "name": "CLI Strict Sandbox",
+      "event": "workflow_dispatch",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37702364146",
+      "jobs": [
+        {
+          "name": "macOS latest native capability",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "strict native boundary (macos-15)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "strict native boundary (windows-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37702363181,
+      "name": "CLI CI",
+      "event": "pull_request",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37702363181",
+      "jobs": [
+        {
+          "name": "PDH native release tests (windows-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "PDH native release tests (ubuntu-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "PDH native release tests (macos-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "dry-run-publish",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "pack-linux-dryrun",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "verify-cli (ubuntu-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "verify-cli (macos-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "verify-cli (windows-latest)",
+          "conclusion": "success",
+          "status": "completed"
+        },
+        {
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "success",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "id": 37713703506,
+      "name": "IDE Extensions",
+      "event": "push",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37713703506",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 37713693957,
+      "name": "IDE Extensions",
+      "event": "push",
+      "headSha": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37713693957",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 37745138373,
+      "name": "Finalize product v5.0.3.140",
+      "event": "workflow_dispatch",
+      "headSha": "4b7a8231751922f9774df03f78eb2371087c081c",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37745138373",
+      "jobs": [
+        {
+          "name": "Finalize verified existing five-platform draft",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 37734804421,
+      "name": "Recover product v5.0.3.140",
+      "event": "workflow_dispatch",
+      "headSha": "1d513941391d666579bd173f9b88300f9827416f",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37734804421",
+      "jobs": [
+        {
+          "name": "Verify original source and successful producers",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Rebuild and verify original Android source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify five-platform provenance and publish complete product",
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ]
+    },
+    {
+      "id": 37719495217,
+      "name": "Release",
+      "event": "workflow_dispatch",
+      "headSha": "f733f92cb953fffaafea9f91024bbf1c8846406d",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37719495217",
+      "jobs": [
+        {
+          "name": "Verify authorized CLI release precondition",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify public workspace dependencies (no publishing)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-android",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "name": "build-linux",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-windows",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-ios",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-macos",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "create-release",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "update-changelog",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "finalize-release",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ]
+}

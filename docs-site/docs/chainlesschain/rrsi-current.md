@@ -1,6 +1,6 @@
 # RRSI 当前实现、离线回放与证据边界
 
-> 2026-10-08；源码基线 `381f8018ef`。公开 .92 包含 Registry/writer 基础与完整文件身份；后续有界读取需当前源码。真实实验 `NOT_RUN`，automatic promotion `HOLD`。
+> 2026-10-08；源码基线 `1e5477aebe`。公开 CLI .93 包含 Registry / writer、完整文件身份与默认三阶段有界读取；真实实验 `NOT_RUN`，automatic promotion `HOLD`。
 
 ## 概述
 
