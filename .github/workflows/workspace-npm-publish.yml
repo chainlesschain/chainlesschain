@@ -3,9 +3,11 @@ name: Publish workspace packages to npm
 on:
   push:
     tags:
-      # Product releases consume npm packages published by npm-publish.yml.
-      # Only dedicated workspace tags start this separate publishing route.
+      # Keep the legacy inclusion contract, then exclude the numeric product
+      # namespace. Only dedicated workspace tags start this publishing route.
       - "v-packages-*"
+      - "v[0-9]*.*.*"
+      - "!v[0-9]*"
   workflow_dispatch:
     inputs:
       version:

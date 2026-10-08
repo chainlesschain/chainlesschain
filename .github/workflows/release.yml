@@ -1673,18 +1673,9 @@ jobs:
   # update-changelog all succeed. Skip when user explicitly wanted a
   # draft (workflow_dispatch with inputs.draft=true).
   finalize-release:
-    needs:
-      [
-        create-release,
-        verify-cli-release,
-        update-changelog,
-        build-windows,
-        build-macos,
-        build-linux,
-        build-android,
-        build-ios,
-      ]
-    if: ${{ always() && !cancelled() && needs.create-release.result == 'success' && needs.verify-cli-release.result == 'success' && needs.update-changelog.result == 'success' && needs.build-windows.result == 'success' && needs.build-macos.result == 'success' && needs.build-linux.result == 'success' && needs.build-android.result == 'success' && needs.build-ios.result == 'success' }}
+    # create-release already requires all five signed platform producers.
+    needs: [create-release, verify-cli-release, update-changelog]
+    if: ${{ always() && !cancelled() && needs.create-release.result == 'success' && needs.verify-cli-release.result == 'success' && needs.update-changelog.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
