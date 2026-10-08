@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-08 Worker/锁/GNU 续做**：修复 Linux CI 的 Worker 结算竞态和严格锁释放争用；Windows 74 通过/1 Linux 专属跳过，Linux Node 22.12.0 为 75 全通过。冻结 GNU Rollup addon 通过独立 41 项 N-API forwarder 在零 capability AppContainer 中完成同步/异步解析、哈希及负例，36 项合同通过，仍为 `NOT_ADMITTED`。完整 esbuild/config/default forks/native review、Windows/macOS durable 后端和正式 36+9/官方账户账单/人工长时验收继续开放。当前结果见[验证第 15 节](../cli-ide-gap-validation-2026-10-05.md#15-2026-10-08-worker-结算锁释放与-gnu-工具链)，下方历史记录保留各自时点。
+
 > **2026-10-08 NUL 与后代继承续做**：独立实验 v3 已在真实零 capability AppContainer 中验证 `\Device\Null`、两层受控 Node 后代、三个并发 child、精确句柄白名单和不支持启动的拒绝；六个进程、十二份 phase 回执与清理完整。结果校验新增 childErrors 门禁，最终 **517 项 Node + 3 项原生传输 + 52 项 Vitest = 572 项通过、零跳过**。冻结 config 的新实际失败是 esbuild 报告祖先目录读取被拒，尚未进入 worker pool；v3 只接纳受控 Node，不能关闭 esbuild/config/full review。证据、构建范围与未完成条件见[验证第 14 节](../cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)。正式 36+9 仍 `NOT_RUN`，未新增付费请求或发布；以下各轮记录保留其历史时点。
 
 > **2026-10-08 实验 runtime 续做**：独立 Windows 管道 v1 与私有规范路径 v2 适配器已在真实零 capability AppContainer 中完成同步、异步、fork IPC、子进程回执及清理验证；冻结 Vitest/Vite/happy-dom 导入和原 globalSetup/teardown 均已通过。未修改冻结包或原七项能力结果，整包仍 `capabilities={}`。本轮 **391 项 Node + 3 项原生传输 + 52 项 Vitest = 446 项通过、零跳过**，构建与失败原件摘要已归档。NUL、冻结 forks/config/full review、durable 后端及正式 36+9 仍未关闭，详见[验证第 13 节](../cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)。

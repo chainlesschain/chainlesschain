@@ -119,7 +119,7 @@ static bool patch(){
   return patches==2;
 }
 BOOL WINAPI DllMain(HINSTANCE,DWORD reason,LPVOID) {
-  if(reason==DLL_PROCESS_ATTACH){if(!identity()||!patch())return FALSE;installed=true;record("installed",nullptr,TRUE,0);}
+  if(reason==DLL_PROCESS_ATTACH){if(!identity()){if(trace&&GetFileType(trace)==FILE_TYPE_DISK)record("identity-failed",nullptr,FALSE,GetLastError());return FALSE;}record("identity-accepted",nullptr,TRUE,0);if(!patch()){record("patch-failed",nullptr,FALSE,GetLastError());return FALSE;}installed=true;record("installed",nullptr,TRUE,0);}
   else if(reason==DLL_PROCESS_DETACH&&installed){record("exit",nullptr,TRUE,0);FlushFileBuffers(trace);}
   return TRUE;
 }

@@ -1,0 +1,191 @@
+TAP version 13
+# Subtest: trace parser records a dynamic API denial while retaining NOT_ADMITTED
+ok 1 - trace parser records a dynamic API denial while retaining NOT_ADMITTED
+  ---
+  duration_ms: 19.301
+  type: 'test'
+  ...
+# Subtest: trace parser rejects admission claim
+ok 2 - trace parser rejects admission claim
+  ---
+  duration_ms: 5.3417
+  type: 'test'
+  ...
+# Subtest: trace parser rejects result translation
+ok 3 - trace parser rejects result translation
+  ---
+  duration_ms: 3.6207
+  type: 'test'
+  ...
+# Subtest: trace parser rejects source substitution
+ok 4 - trace parser rejects source substitution
+  ---
+  duration_ms: 6.3472
+  type: 'test'
+  ...
+# Subtest: trace parser rejects different executable
+ok 5 - trace parser rejects different executable
+  ---
+  duration_ms: 7.6323
+  type: 'test'
+  ...
+# Subtest: trace parser rejects missing cleanup
+ok 6 - trace parser rejects missing cleanup
+  ---
+  duration_ms: 6.1465
+  type: 'test'
+  ...
+# Subtest: trace parser rejects capability added
+ok 7 - trace parser rejects capability added
+  ---
+  duration_ms: 11.3214
+  type: 'test'
+  ...
+# Subtest: trace parser rejects root failed
+ok 8 - trace parser rejects root failed
+  ---
+  duration_ms: 7.8862
+  type: 'test'
+  ...
+# Subtest: trace parser rejects manifest tamper
+ok 9 - trace parser rejects manifest tamper
+  ---
+  duration_ms: 6.5771
+  type: 'test'
+  ...
+# Subtest: trace parser rejects trace digest tamper
+ok 10 - trace parser rejects trace digest tamper
+  ---
+  duration_ms: 7.7924
+  type: 'test'
+  ...
+# Subtest: trace parser rejects empty trace
+ok 11 - trace parser rejects empty trace
+  ---
+  duration_ms: 7.0531
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed no installed shim
+ok 12 - trace parser rejects resealed no installed shim
+  ---
+  duration_ms: 6.0444
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed no dynamic resolution
+ok 13 - trace parser rejects resealed no dynamic resolution
+  ---
+  duration_ms: 6.7521
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed no actual rejection
+ok 14 - trace parser rejects resealed no actual rejection
+  ---
+  duration_ms: 13.6485
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed different Windows error
+ok 15 - trace parser rejects resealed different Windows error
+  ---
+  duration_ms: 8.9069
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed different process
+ok 16 - trace parser rejects resealed different process
+  ---
+  duration_ms: 5.6139
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed incomplete patch
+ok 17 - trace parser rejects resealed incomplete patch
+  ---
+  duration_ms: 6.2571
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed truncated trace
+ok 18 - trace parser rejects resealed truncated trace
+  ---
+  duration_ms: 5.9826
+  type: 'test'
+  ...
+# Subtest: trace parser rejects resealed missing exit
+ok 19 - trace parser rejects resealed missing exit
+  ---
+  duration_ms: 8.3863
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher DLL init failure
+ok 20 - trace parser rejects launcher DLL init failure
+  ---
+  duration_ms: 6.1694
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher child token not proven
+ok 21 - trace parser rejects launcher child token not proven
+  ---
+  duration_ms: 5.1014
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher root token not proven
+ok 22 - trace parser rejects launcher root token not proven
+  ---
+  duration_ms: 5.7177
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher unrestricted child
+ok 23 - trace parser rejects launcher unrestricted child
+  ---
+  duration_ms: 5.313
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher broad handles
+ok 24 - trace parser rejects launcher broad handles
+  ---
+  duration_ms: 5.7449
+  type: 'test'
+  ...
+# Subtest: trace parser rejects launcher different child SID
+ok 25 - trace parser rejects launcher different child SID
+  ---
+  duration_ms: 6.6127
+  type: 'test'
+  ...
+# Subtest: trace parser rejects supervisor execution failure
+ok 26 - trace parser rejects supervisor execution failure
+  ---
+  duration_ms: 5.6396
+  type: 'test'
+  ...
+# Subtest: trace parser rejects unrelated stderr
+ok 27 - trace parser rejects unrelated stderr
+  ---
+  duration_ms: 5.6858
+  type: 'test'
+  ...
+# Subtest: successful child cannot have stderr
+ok 28 - successful child cannot have stderr
+  ---
+  duration_ms: 8.4408
+  type: 'test'
+  ...
+# Subtest: trace parser rejects a resealed sequence gap
+ok 29 - trace parser rejects a resealed sequence gap
+  ---
+  duration_ms: 6.9891
+  type: 'test'
+  ...
+# Subtest: trace parser rejects a resealed missing redundant API record
+ok 30 - trace parser rejects a resealed missing redundant API record
+  ---
+  duration_ms: 11.3719
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 630.1412
+

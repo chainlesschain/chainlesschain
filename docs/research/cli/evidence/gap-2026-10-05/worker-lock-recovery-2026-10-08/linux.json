@@ -6,7 +6,7 @@
   "mode": "linux",
   "host": "WSL Ubuntu local",
   "node": "v22.12.0",
-  "startedAt": "2026-10-08T09:00:39.142Z",
+  "startedAt": "2026-10-08T09:11:30.129Z",
   "sources": [
     {
       "path": "packages/cli/src/lib/with-file-lock.js",
@@ -22,7 +22,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/with-file-lock-release-retry.test.js",
-      "digest": "sha256:51e998c3c1dc0b6128227cc9a99e843ace577d0a9a6919a53386fa29cb53cbd0"
+      "digest": "sha256:ac7bfc7b2a434469d37e0ee67eca68b256a9cda6c4f2c9ea52c1dd6a3addff42"
     },
     {
       "path": "packages/cli/__tests__/unit/settings-permission-runtime.test.js",
@@ -42,6 +42,6 @@
   "error": null,
   "passed": 75,
   "skipped": 0,
-  "stdoutDigest": "sha256:10df0c699590084d7dc9d287435617fb5b216bf84435dec742d96ad5d502c997",
-  "stderrDigest": "sha256:421fe4cb2aa45e84e8779ea6bdc0facc9db22bc650a4e08a586694170fd3577c"
+  "stdoutDigest": "sha256:98358abf1c4f091d619be4758bbf31c4bdc7876a4f0d9c22453e284db669dd6d",
+  "stderrDigest": "sha256:55b0bc7b80fc791d123ca3e6c62984973aacf37100c09f4be58c83651ce66399"
 }

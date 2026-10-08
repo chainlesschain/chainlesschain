@@ -202,6 +202,7 @@ jobs:
           packages/cli/test-node/windows-node-null-v3-preload.node-test.mjs
           packages/cli/test-node/windows-node-null-v3-result.node-test.mjs
           packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs
+          packages/cli/test-node/windows-esbuild-api-trace.node-test.mjs
           packages/cli/test-node/file-lock-concurrency.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash

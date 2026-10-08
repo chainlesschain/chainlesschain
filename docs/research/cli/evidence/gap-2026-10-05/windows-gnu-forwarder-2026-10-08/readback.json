@@ -1,0 +1,36 @@
+{
+  "schema": "chainlesschain.local-adapter-readback/v1",
+  "formalSample": false,
+  "admissionEligible": false,
+  "currentSourceMatched": true,
+  "gnuReportDigest": "sha256:93b8e66131858235154040532a35d23425349966c1e65ba02bed1dd6ec191cd9",
+  "gnu": {
+    "native": {
+      "pid": 20840,
+      "appContainerSid": "S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791",
+      "capabilityCount": 0,
+      "inJob": true,
+      "forwardedSymbols": 41,
+      "sameFunctionAddresses": true
+    },
+    "missingDllRejected": true,
+    "parseBytes": 168,
+    "parseDigest": "sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35",
+    "asyncDigest": "sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35",
+    "hashes": {
+      "xxhashBase16": "2109c9fcc8c72313b44d193fff26f891",
+      "xxhashBase36": "b8o6skfu8ubtkyilf15ggmgir",
+      "xxhashBase64Url": "hCcn8yMcjE7RNGT__JviR"
+    },
+    "invalidRejected": true,
+    "changedInputDiffers": true
+  },
+  "esbuildReportDigest": "sha256:06197b1337b3f44491fe53cc4539417d2888dbd0d90ce37ee2cdf1fd69592d92",
+  "esbuild": {
+    "completed": false,
+    "rootStatus": 2,
+    "cleanupConfirmed": true,
+    "traceBytes": 0,
+    "status": "NOT_ADMITTED"
+  }
+}

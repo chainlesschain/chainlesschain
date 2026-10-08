@@ -38,10 +38,10 @@ static napi_value resultString(napi_env env,const char* json){
   napi_value value=nullptr;if(!make||make(env,json,NAPI_AUTO_LENGTH,&value)!=napi_ok)return nullptr;return value;
 }
 static napi_value run(napi_env env,napi_callback_info){
-  const char* stage="root-token";DWORD failure=0,childExit=0xffffffff;bool complete=false,imagePinned=false,created=false;
+  const char* stage="root-token";DWORD failure=0,childExit=0xffffffff;bool complete=false,imagePinned=false,created=false,rootTokenProven=false,childTokenProven=false;
   PROCESS_INFORMATION child={};std::wstring sid,childSid;Handles handles;
   auto work=[&]()->bool{
-    if(!tokenProof(GetCurrentProcess(),sid))return false;
+    if(!tokenProof(GetCurrentProcess(),sid))return false;rootTokenProven=true;
     WCHAR module[4096]={};DWORD chars=GetModuleFileNameW(ownModule,module,4096);
     if(!chars||chars>=4096)return false;
     std::wstring loaded=module;
@@ -92,7 +92,8 @@ static napi_value run(napi_env env,napi_callback_info){
     handles.add(child.hProcess);handles.add(child.hThread);
     stage="child-token-image";
     WCHAR actual[4096]={};DWORD actualChars=4096;
-    if(!tokenProof(child.hProcess,childSid)||childSid!=sid||!QueryFullProcessImageNameW(child.hProcess,0,actual,&actualChars)||application!=actual)return false;
+    if(!tokenProof(child.hProcess,childSid)||childSid!=sid)return false;childTokenProven=true;
+    if(!QueryFullProcessImageNameW(child.hProcess,0,actual,&actualChars)||application!=actual)return false;
     stage="remote-load";
     SIZE_T size=(shim.size()+1)*sizeof(WCHAR),written=0;
     void* remote=VirtualAllocEx(child.hProcess,nullptr,size,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
@@ -104,6 +105,7 @@ static napi_value run(napi_env env,napi_callback_info){
     if(WaitForSingleObject(thread,3000)!=WAIT_OBJECT_0){failure=WAIT_TIMEOUT;return false;}
     DWORD loadedModule=0;
     if(!GetExitCodeThread(thread,&loadedModule)||!loadedModule){failure=ERROR_DLL_INIT_FAILED;return false;}
+    stage="process-loader-status";DWORD currentExit=0;if(!GetExitCodeProcess(child.hProcess,&currentExit)||currentExit!=STILL_ACTIVE){failure=currentExit;return false;}
     if(!VirtualFreeEx(child.hProcess,remote,0,MEM_RELEASE))return false;
     stage="resume";
     if(ResumeThread(child.hThread)!=1)return false;
@@ -115,8 +117,8 @@ static napi_value run(napi_env env,napi_callback_info){
   complete=work();if(!complete&&!failure)failure=GetLastError();
   if(created&&!complete){TerminateProcess(child.hProcess,125);WaitForSingleObject(child.hProcess,3000);GetExitCodeProcess(child.hProcess,&childExit);}
   char sidText[256]={},json[1024]={};WideCharToMultiByte(CP_UTF8,0,sid.c_str(),-1,sidText,sizeof(sidText),nullptr,nullptr);
-  std::snprintf(json,sizeof(json),"{\"stage\":\"%s\",\"error\":%lu,\"completed\":%s,\"rootPid\":%lu,\"childPid\":%lu,\"childExit\":%lu,\"appContainerSid\":\"%s\",\"capabilityCount\":0,\"imagePinned\":%s,\"leafRestricted\":%s,\"exactHandles\":%s}",
-    stage,failure,complete?"true":"false",GetCurrentProcessId(),child.dwProcessId,childExit,sidText,imagePinned?"true":"false",created?"true":"false",created?"true":"false");
+  std::snprintf(json,sizeof(json),"{\"stage\":\"%s\",\"error\":%lu,\"completed\":%s,\"rootPid\":%lu,\"childPid\":%lu,\"childExit\":%lu,\"appContainerSid\":\"%s\",\"capabilityCount\":%s,\"rootTokenProven\":%s,\"childTokenProven\":%s,\"imagePinned\":%s,\"leafRestricted\":%s,\"exactHandles\":%s}",
+    stage,failure,complete?"true":"false",GetCurrentProcessId(),child.dwProcessId,childExit,sidText,rootTokenProven?"0":"null",rootTokenProven?"true":"false",childTokenProven?"true":"false",imagePinned?"true":"false",created?"true":"false",created?"true":"false");
   return resultString(env,json);
 }
 NAPI_MODULE_INIT(){

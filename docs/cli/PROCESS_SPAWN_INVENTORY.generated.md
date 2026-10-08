@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 706 (runtime: 313, tooling: 358, test: 35).
+Total matches: 710 (runtime: 313, tooling: 362, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
@@ -682,6 +682,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 54 | `let value;try{value=cp.spawnSync(process.execPath,['--preserve-symlinks','--preserve-symlinks-main',child],{stdio:[mode==='ignore-stdin'?'ignore':mode==='inherit-stdin'?'inherit':input,out,err],windowsHide:true,timeout:1200});}` |
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 222 | `const compiled = spawnSync(` |
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 239 | `const host = spawnSync(binary, [], {` |
+| `packages/cli/scripts/windows-esbuild-api-trace.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-esbuild-api-trace.mjs` | 273 | `const run = spawnSync(compiler, args, {` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 23 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 43 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 50 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
@@ -694,6 +696,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 131 | `const build = spawnSync(` |
 | `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 166 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');` |
 | `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 168 | `const result=cp.spawnSync(path.join(workspace,'probe.exe'),[workspace,scratch],{stdio:'inherit',windowsHide:true,timeout:5000});` |
+| `packages/cli/scripts/windows-rollup-gnu-forwarder.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-rollup-gnu-forwarder.mjs` | 288 | `const result = spawnSync(compiler, args, {` |
 
 ## test
 
