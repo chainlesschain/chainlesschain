@@ -1,0 +1,2 @@
+{"seq":0,"stage":"started","pid":1272}
+{"seq":1,"stage":"failed","pid":1272,"error":"Experimental pipe adapter: supervisor AppContainer SID is missing or malformed"}

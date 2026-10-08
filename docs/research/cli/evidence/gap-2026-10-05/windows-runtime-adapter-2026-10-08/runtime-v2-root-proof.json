@@ -1,0 +1,96 @@
+{
+  "schema": "chainlesschain.windows-node-runtime-diagnostic/v2",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "capabilities": {},
+  "startedAt": "2026-10-08T05:56:10.306Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "runtimeDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+  "adapterManifestRaw": "{\"schema\":\"chainlesschain/windows-node-runtime-adapter@2\",\"experimental\":true,\"admissionEligible\":false,\"expectedSidEnvironment\":\"CC_WINDOWS_APPCONTAINER_SID\",\"nodeVersion\":\"22.22.2\",\"nodeModuleVersion\":\"127\",\"runtime\":{\"path\":\"../../control/node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\"},\"addon\":{\"path\":\"windows-node-runtime-adapter.node\",\"sha256\":\"1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99\"},\"preload\":{\"path\":\"windows-node-runtime-preload.cjs\",\"sha256\":\"02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452\"},\"receiptDirectory\":\"../../scratch/adapter-receipts\"}\n",
+  "addonDigest": "sha256:1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99",
+  "preloadDigest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+  "inputDigest": "0c070aca91cd185da03d1d7296054eef82b67ed2f40b479712e21f505572f57a",
+  "diagnosticCompleted": false,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD",
+  "manifestDigest": "sha256:890a678374220b96d10df248f1fc966ce0b61fd0742909b1583073de16ed22d6",
+  "execution": {
+    "status": 1,
+    "signal": null,
+    "error": null,
+    "stdout": "",
+    "stderr": "Error: Adapter rejected installation at private-root-proof (Win32 0)\n    at Object.<anonymous> ({PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\workspace\\adapter\\windows-node-runtime-preload.cjs:152:36)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\n    at require (node:internal/modules/helpers:147:16)\n    at {PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\control\\check.cjs:13:16\n"
+  },
+  "settlement": {
+    "manifestDigest": "890a678374220b96d10df248f1fc966ce0b61fd0742909b1583073de16ed22d6",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 20964,
+    "appContainerSid": "S-1-15-2-3097977026-418095533-2673942939-216515744-3377610361-4020353992-1237255202",
+    "wallTimeMs": 15000,
+    "targetExitCode": 1,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "journalDigest": "sha256:94154173aa9989a3ab4d14a631c7ec45e8e7f49020118cc9f96708004fe66b13",
+  "journalRaw": "{\"seq\":0,\"stage\":\"started\",\"pid\":20964}\n{\"seq\":1,\"stage\":\"failed\",\"pid\":20964,\"error\":\"Adapter rejected installation at private-root-proof (Win32 0)\",\"nativeFailure\":{\"schema\":\"chainlesschain/windows-node-runtime-adapter@2\",\"experimental\":true,\"admissionEligible\":false,\"pid\":20964,\"appContainerSid\":\"S-1-15-2-3097977026-418095533-2673942939-216515744-3377610361-4020353992-1237255202\",\"capabilityCount\":0,\"inJob\":true,\"state\":3,\"stage\":\"private-root-proof\",\"installError\":5,\"patches\":0,\"originalCreateNamedPipeA\":\"00007FFE65062E20\",\"originalCreateFileA\":\"00007FFE65024E90\",\"pipeSlot\":\"00007FF7BA4C77B8\",\"fileSlot\":\"00007FF7BA4C7560\",\"pipeProtection\":0,\"fileProtection\":0,\"serverCalls\":0,\"clientCalls\":0,\"serverMapped\":0,\"clientMapped\":0,\"serverFailures\":0,\"clientFailures\":0,\"serverFirstError\":0,\"clientFirstError\":0,\"serverLastError\":0,\"clientLastError\":0,\"originalGetFinalPathNameByHandleW\":\"00007FFE65025110\",\"finalPathSlot\":\"00007FF7BA4C7820\",\"finalPathProtection\":0,\"supportedPrivateRealpath\":false,\"rootProof\":{\"dos\":\"\",\"nt\":\"\",\"volumeSerial\":\"0\",\"fileId\":\"00000000000000000000000000000000\",\"normalizedNtFlags\":2,\"handlePinned\":false,\"ancestorAuthority\":\"supervisor-private-tree-guards\",\"componentPolicy\":\"pinned-no-reparse-single-link-file-id\"},\"realpathCalls\":0,\"realpathFallbacks\":0,\"realpathMapped\":0,\"realpathRejected\":0,\"realpathLastError\":0,\"unsupported\":[\"NUL\",\"outside-private-root-realpath\",\"uninstrumented-descendants\"]}}\n",
+  "adapterReceipts": [],
+  "error": "Experimental runtime diagnostic: execution or scope/cleanup differs",
+  "finishedAt": "2026-10-08T05:56:24.701Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "2251799821271486",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 5,
+    "fileBytes": 532776,
+    "directoryCount": 5,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\workspace\\adapter\\windows-node-runtime-adapter.node",
+        "dev": "38182903",
+        "ino": "2251799821271488",
+        "bytes": 516608,
+        "sha256": "1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\workspace\\adapter\\windows-node-runtime-preload.cjs",
+        "dev": "38182903",
+        "ino": "2251799821271489",
+        "bytes": 8027,
+        "sha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\workspace\\adapter\\windows-node-runtime-adapter.manifest.json",
+        "dev": "38182903",
+        "ino": "2251799821271490",
+        "bytes": 641,
+        "sha256": "ac32f157243b6ed0ea07de9c8e916f3ea5331b72f92297ab8c437416332c0cf4"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-InOXBD\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "2251799821271492",
+        "bytes": 6910,
+        "sha256": "2d7c903b7df5620b03831a74c801627e7b2178ccc09b6fa0c5708ef9c67a1810"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true
+}

@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.windows-node-runtime-diagnostic/v2",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "capabilities": {},
+  "startedAt": "2026-10-08T05:52:57.260Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "runtimeDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+  "adapterManifestRaw": "{\"schema\":\"chainlesschain/windows-node-runtime-adapter@2\",\"experimental\":true,\"admissionEligible\":false,\"expectedSidEnvironment\":\"CC_WINDOWS_APPCONTAINER_SID\",\"nodeVersion\":\"22.22.2\",\"nodeModuleVersion\":\"127\",\"runtime\":{\"path\":\"../../control/node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\"},\"addon\":{\"path\":\"windows-node-runtime-adapter.node\",\"sha256\":\"1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99\"},\"preload\":{\"path\":\"windows-node-runtime-preload.cjs\",\"sha256\":\"02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452\"},\"receiptDirectory\":\"../../scratch/adapter-receipts\"}\n",
+  "addonDigest": "sha256:1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99",
+  "preloadDigest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+  "inputDigest": "0c070aca91cd185da03d1d7296054eef82b67ed2f40b479712e21f505572f57a",
+  "diagnosticCompleted": false,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE",
+  "manifestDigest": "sha256:b74747adb69dd7125c145acd3db28a8f2346b75c723e8846d65cc6b6bc898eed",
+  "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_cleanup_unverified",
+  "finishedAt": "2026-10-08T05:53:09.889Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "2533274797981736",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 5,
+    "fileBytes": 532544,
+    "directoryCount": 5,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\workspace\\adapter\\windows-node-runtime-adapter.node",
+        "dev": "38182903",
+        "ino": "2814749774692373",
+        "bytes": 516608,
+        "sha256": "1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\workspace\\adapter\\windows-node-runtime-preload.cjs",
+        "dev": "38182903",
+        "ino": "3096224751403044",
+        "bytes": 8027,
+        "sha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\workspace\\adapter\\windows-node-runtime-adapter.manifest.json",
+        "dev": "38182903",
+        "ino": "2533274797981738",
+        "bytes": 641,
+        "sha256": "ac32f157243b6ed0ea07de9c8e916f3ea5331b72f92297ab8c437416332c0cf4"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-1pAItE\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "2251799821271084",
+        "bytes": 6678,
+        "sha256": "521b245a6e9f9c8c1263141cb4278b9117e4f879440cb044563097b0fbb72fef"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true
+}

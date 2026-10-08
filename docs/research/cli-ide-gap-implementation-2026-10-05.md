@@ -286,3 +286,17 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 | CLOUD-02                | 现 self-hosted handoff 合同保留                                         | 完整云端连续恢复继续作为需求条件项                                                |
 
 一次性胶囊和 addon 诊断没有关闭整套 native review：实际管道导入 exit 125、globalSetup native realpath exit 1、GNU addon 加载失败均保留；Parcel/MSVC 成功与整体 `addonAbiVerified=false` 同时记录。正式样本维持 `NOT_RUN`，预算 $99 与原分母不变。Windows 10/Node 22.22.2 本地结果不替代冻结宿主，也不复用其他提交的成功作为当前发布资格。
+
+## 15. 2026-10-08 实验 runtime 与已通过的冻结 setup
+
+独立管道 v1/private canonical v2 已实现并在真实 AppContainer 中验证。原七项 capability 的历史失败与 v1/v2 运输边界保留；只有显式实验 harness 加载 addon，生产权限和整包 `capabilities={}` 未改变。Windows NODE_OPTIONS、监督器最小环境 SID、strict extended drive prefix 和真实 transient counters 的接线/验证缺陷均已修，失败原件逐轮归档。
+
+| 任务          | 最新完成情况                                                                                                                            | 继续开放                                                                |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| VERIFY-02     | 冻结 Vitest/Vite/happy-dom 导入与原 globalSetup/teardown 实跑成功；profile/checker/根身份/实际子进程回执和 Job 清理均核对               | NUL、冻结原 forks/config/full review、整体 GNU addon ABI、人工签核      |
+| PLATFORM-02   | 当前进程 IAT 适配、真实规范 NT/FileId 私有根证明、root 外实际句柄拒绝；helper 身份字段与防篡改回归通过                                  | Windows/macOS durable authority、网络撤销与崩溃恢复，不用一次性隔离替代 |
+| VERIFY-IDE-02 | 共享工具链的两个前序本地阻塞已有执行结果，既有双 IDE 功能与诊断继续保留                                                                 | 正式目标宿主/36+9/公开首次安装、真人辅助技术、长时性能与 SLO            |
+| 工程验证      | Node 391、实际 helper 回归 3、Vitest 52，共 **446 项通过、零跳过**；构建/source contract、lint/格式、spawn inventory、workflow 语法通过 | 新准确提交完整 Actions；不把旧运行或 rebuilt binary 借作新源码证明      |
+| CI 反馈       | 旧准确提交 Strict/Safety/Host Diagnostics/Recovery 成功；实际 CLI CI 浅 checkout 和 Reliability 汇总缺 verifier dependency 两项失败已修 | 新准确提交完整 CI 回读；本轮没有发布                                    |
+
+源码、原始诊断/构建摘要、失败与当前准入边界见[验证第 13 节](./cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)和[证据索引](./cli/evidence/gap-2026-10-05/windows-runtime-adapter-2026-10-08/README.md)。v2 的成功不升级为正式 native backend，规范证明只覆盖真实目标和已观察的显式 preload 子进程。独立 NUL 下一版需真实设备权限与每次启动的精确继承；官方账号/账单、人工签核和正式环境仍需用户提供，36+9 保持 NOT_RUN。

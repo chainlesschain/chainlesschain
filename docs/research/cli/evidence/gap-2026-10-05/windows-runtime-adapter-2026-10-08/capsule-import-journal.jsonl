@@ -1,0 +1,10 @@
+{"sequence":0,"stage":"started","mode":"package-import","pid":18348,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"builtin-import-started","mode":"package-import","pid":18348}
+{"sequence":2,"stage":"builtin-imported","mode":"package-import","pid":18348}
+{"sequence":3,"stage":"vitest-import-started","mode":"package-import","pid":18348}
+{"sequence":4,"stage":"vitest-imported","mode":"package-import","pid":18348}
+{"sequence":5,"stage":"vite-import-started","mode":"package-import","pid":18348}
+{"sequence":6,"stage":"vite-imported","mode":"package-import","pid":18348}
+{"sequence":7,"stage":"happy-dom-import-started","mode":"package-import","pid":18348}
+{"sequence":8,"stage":"happy-dom-imported","mode":"package-import","pid":18348}
+{"sequence":9,"stage":"completed","mode":"package-import","pid":18348,"packages":["vitest/node","vite","happy-dom"],"exportsVerified":true}

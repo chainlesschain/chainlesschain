@@ -1,0 +1,323 @@
+{
+  "schema": "chainlesschain.native-runtime-capsule-diagnostic/v1",
+  "runtimeProfile": "chainlesschain/windows-node-runtime-adapter@2",
+  "experimental": true,
+  "admissionEligible": false,
+  "descendantCoverage": "observed-receipts-only",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "durableAuthorityAssessed": false,
+  "capabilities": {},
+  "startedAt": "2026-10-08T06:06:46.403Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "mode": "global-setup",
+  "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+  "registryContentVerified": true,
+  "addonDigest": "sha256:0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077",
+  "preloadDigest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+  "adapterManifestDigest": "sha256:1c4d7dc7256f47b920efcd5cc4da70be89766a42eadc22710f14967930cfdb38",
+  "sourceRoot": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-runtime-capsule-source-lPGBg4",
+  "diagnosticCompleted": true,
+  "sourceIdentities": [
+    {
+      "file": "./verify01-native-runtime-capsule.mjs",
+      "digest": "sha256:048dd8e778831b61ea569499634c3df376eea743c6f8e250abd34aaa25d3603d"
+    },
+    {
+      "file": "./verify01-native-capsule.mjs",
+      "digest": "sha256:e05e5efdd4dc8bca94b3c0bc73f7e2cc073c1c9592433d91efcf8e0280c3fa56"
+    },
+    {
+      "file": "./windows-node-runtime-diagnostic.mjs",
+      "digest": "sha256:01c1aa6284256a514d05f7eff633f2b7c070b0bf2dd8a14755388b7507ce2d5b"
+    },
+    {
+      "file": "./diagnostics/windows-node-runtime-adapter.cpp",
+      "digest": "sha256:9ee1e05562d5d59c827214c0ce0d2c8963109e1e0aae6ec719ee9ace17877e92"
+    },
+    {
+      "file": "./diagnostics/windows-node-runtime-preload.cjs",
+      "digest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:e007bc6e264216ada6f74bdd0f4fa6fa4592126b3713c8d4a572341044a7e879"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:d7ab51c1c0c8d158949f3d53720c7ba1f207b2ae823b8bf2843c86f59c41df2d"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:fe0ad93c2f2fe01baced49dab37061d5179f741c6135b864c69470fbb5b744f9"
+    }
+  ],
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+  "manifestDigest": "sha256:3c72a670168a04fd58dd50925d2d8c2618d918551193ea7ac1703338bc6281fc",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_NATIVE_CAPSULE:{\"mode\":\"global-setup\",\"pid\":9188,\"nodeVersion\":\"v22.22.2\",\"modulesAbi\":\"127\",\"detail\":{\"globalSetupExecuted\":true,\"teardownCompleted\":true}}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "3c72a670168a04fd58dd50925d2d8c2618d918551193ea7ac1703338bc6281fc",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 9188,
+    "appContainerSid": "S-1-15-2-1364441318-2227300198-3500186957-1692861026-4189033508-3996335829-182165655",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "journalDigest": "sha256:bd3e047236f551ee2793e77a7aaef58bab0511048b2df7d9eadf3d89c5c69e74",
+  "adapterReceipts": [
+    {
+      "schema": "chainlesschain/windows-node-runtime-adapter@2",
+      "experimental": true,
+      "admissionEligible": false,
+      "phase": "exit",
+      "pid": 9188,
+      "ppid": 5240,
+      "execPath": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control\\node.exe",
+      "nodeVersion": "22.22.2",
+      "manifestSha256": "1c4d7dc7256f47b920efcd5cc4da70be89766a42eadc22710f14967930cfdb38",
+      "preloadSha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+      "addonSha256": "0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077",
+      "runtimeSha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "rootProofSha256": "c39be8395c62e615ff21fc6211b4520d1764d362a947bbb72938d71514337b15",
+      "exitCode": 0,
+      "native": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@2",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 9188,
+        "appContainerSid": "S-1-15-2-1364441318-2227300198-3500186957-1692861026-4189033508-3996335829-182165655",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 3,
+        "originalCreateNamedPipeA": "00007FFE65062E20",
+        "originalCreateFileA": "00007FFE65024E90",
+        "pipeSlot": "00007FF7917377B8",
+        "fileSlot": "00007FF791737560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFE65025110",
+        "finalPathSlot": "00007FF791737820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "982b740000001a000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 14,
+        "realpathFallbacks": 14,
+        "realpathMapped": 14,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "unsupported": [
+          "NUL",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    },
+    {
+      "schema": "chainlesschain/windows-node-runtime-adapter@2",
+      "experimental": true,
+      "admissionEligible": false,
+      "phase": "installed",
+      "pid": 9188,
+      "ppid": 5240,
+      "execPath": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control\\node.exe",
+      "nodeVersion": "22.22.2",
+      "manifestSha256": "1c4d7dc7256f47b920efcd5cc4da70be89766a42eadc22710f14967930cfdb38",
+      "preloadSha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+      "addonSha256": "0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077",
+      "runtimeSha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "rootProofSha256": "c39be8395c62e615ff21fc6211b4520d1764d362a947bbb72938d71514337b15",
+      "native": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@2",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 9188,
+        "appContainerSid": "S-1-15-2-1364441318-2227300198-3500186957-1692861026-4189033508-3996335829-182165655",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 3,
+        "originalCreateNamedPipeA": "00007FFE65062E20",
+        "originalCreateFileA": "00007FFE65024E90",
+        "pipeSlot": "00007FF7917377B8",
+        "fileSlot": "00007FF791737560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFE65025110",
+        "finalPathSlot": "00007FF791737820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "982b740000001a000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "unsupported": [
+          "NUL",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    }
+  ],
+  "completion": {
+    "globalSetupExecuted": true,
+    "teardownCompleted": true
+  },
+  "finishedAt": "2026-10-08T06:10:22.419Z",
+  "manifestSummary": {
+    "version": 2,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "562949961041960",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 8373,
+    "fileBytes": 112355100,
+    "directoryCount": 1200,
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\workspace\\adapter\\windows-node-runtime-adapter.node",
+        "dev": "38182903",
+        "ino": "562949961053584",
+        "bytes": 517632,
+        "sha256": "0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\workspace\\adapter\\windows-node-runtime-preload.cjs",
+        "dev": "38182903",
+        "ino": "562949961053585",
+        "bytes": 8027,
+        "sha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\workspace\\adapter\\windows-node-runtime-adapter.manifest.json",
+        "dev": "38182903",
+        "ino": "562949961053586",
+        "bytes": 641,
+        "sha256": "1c4d7dc7256f47b920efcd5cc4da70be89766a42eadc22710f14967930cfdb38"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-rlZkwH\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "562949961053587",
+        "bytes": 5076,
+        "sha256": "97c616bce9e520868df2826652dd172ca297861c949fd5679d415231b480ebc9"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true,
+  "inventorySummary": {
+    "schema": "chainlesschain.native-review-toolchain-inventory/v1",
+    "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+    "runtime": {
+      "platform": "win32",
+      "architecture": "x64",
+      "nodeVersion": "v22.22.2",
+      "modulesAbi": "127",
+      "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "packageCount": 191,
+    "fileCount": 6907,
+    "supportCount": 5,
+    "addons": [
+      {
+        "path": "node_modules/@parcel/watcher-win32-x64/watcher.node",
+        "bytes": 530944,
+        "digest": "sha256:6c26cff1cc989bde1cdb40f49463c6a1612e528ca0cc11ac1594541a1204f4f2"
+      },
+      {
+        "path": "node_modules/@rollup/rollup-win32-x64-gnu/rollup.win32-x64-gnu.node",
+        "bytes": 2011136,
+        "digest": "sha256:a4296f17cddf99ee84cb358c8590d460d36b445775b64e42760d7c8308d60c13"
+      },
+      {
+        "path": "node_modules/@rollup/rollup-win32-x64-msvc/rollup.win32-x64-msvc.node",
+        "bytes": 2590720,
+        "digest": "sha256:80e6b8d7d96e40f78138d39be7dcff13604c330d44f5a6b4dbccf1b47de32bba"
+      }
+    ],
+    "completeInventoryOmitted": true,
+    "privateOriginalIndexed": true
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schema": "chainlesschain.windows-node-pipe-runtime-diagnostic/v1",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "capabilities": {},
+  "startedAt": "2026-10-08T05:47:53.116Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "runtimeDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+  "addonDigest": "sha256:999fec7e044ee6d72b5be02b1c40c079f0aa1b77277bcde137b9c23ed8af7abd",
+  "preloadDigest": "sha256:af58ee77f7038c3e7753d2ebdb9bc40164841ab7b39c783f92e99848456fdb3f",
+  "inputDigest": "0c070aca91cd185da03d1d7296054eef82b67ed2f40b479712e21f505572f57a",
+  "diagnosticCompleted": false,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu",
+  "manifestDigest": "sha256:3a60625a234a8502a8fd35cba9ad075bbc1ece4bf655b027ade3f91ffbb8c492",
+  "execution": {
+    "status": 1,
+    "signal": null,
+    "error": null,
+    "stdout": "",
+    "stderr": "Error: Experimental pipe adapter: supervisor AppContainer SID is missing or malformed\n    at requireCondition ({PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace\\adapter\\windows-node-pipe-preload.cjs:13:25)\n    at Object.<anonymous> ({PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace\\adapter\\windows-node-pipe-preload.cjs:99:1)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\n    at require (node:internal/modules/helpers:147:16)\n"
+  },
+  "settlement": {
+    "manifestDigest": "3a60625a234a8502a8fd35cba9ad075bbc1ece4bf655b027ade3f91ffbb8c492",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 1272,
+    "appContainerSid": "S-1-15-2-1400546300-709034615-3682622196-2400547317-2029385055-1025636283-3514874192",
+    "wallTimeMs": 15000,
+    "targetExitCode": 1,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "journalDigest": "sha256:017b05ef4910a26bcbf8b7d85e1aecc2aa22e41f3ea220240c7debe09dc65447",
+  "adapterReceipts": [],
+  "error": "Experimental pipe diagnostic: execution or scope/cleanup differs",
+  "finishedAt": "2026-10-08T05:48:06.085Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "1125899914428259",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 5,
+    "fileBytes": 69289,
+    "directoryCount": 5,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace\\adapter\\windows-node-pipe-adapter.node",
+        "dev": "38182903",
+        "ino": "1125899914428261",
+        "bytes": 56320,
+        "sha256": "999fec7e044ee6d72b5be02b1c40c079f0aa1b77277bcde137b9c23ed8af7abd"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace\\adapter\\windows-node-pipe-preload.cjs",
+        "dev": "38182903",
+        "ino": "1125899914428262",
+        "bytes": 6739,
+        "sha256": "af58ee77f7038c3e7753d2ebdb9bc40164841ab7b39c783f92e99848456fdb3f"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\workspace\\adapter\\windows-node-pipe-adapter.manifest.json",
+        "dev": "38182903",
+        "ino": "1125899914428264",
+        "bytes": 632,
+        "sha256": "40b6bda1f2ea04ce060e07843366260bb2820de55450c2db9f5196f70306b4f1"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-pS9ynu\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "1125899914428268",
+        "bytes": 5056,
+        "sha256": "f4b8c5cb3e95eaaa5f6d3280be12ae124295515b80adf9ec45e32ab30c60ae3f"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true
+}

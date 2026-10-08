@@ -193,6 +193,12 @@ jobs:
           packages/cli/test-node/verify01-registry-content.node-test.mjs
           packages/cli/test-node/windows-appcontainer-pipe-diagnostic.node-test.mjs
           packages/cli/test-node/windows-all-file-stdio-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-realpath-api-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-node-pipe-preload.node-test.mjs
+          packages/cli/test-node/windows-node-pipe-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-node-runtime-preload.node-test.mjs
+          packages/cli/test-node/windows-node-runtime-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-native-runtime-capsule.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

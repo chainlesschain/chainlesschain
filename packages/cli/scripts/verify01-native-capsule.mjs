@@ -42,6 +42,12 @@ const SOURCE_IDENTITIES = [
  * rechecks all captured bytes and the actual runtime before copying them.
  */
 export function inspectNativeCapsuleSource(options = {}) {
+  // Reject invalid caller input before reading historical Git objects. Pure
+  // rejection also works in shallow CI checkouts without the frozen commit.
+  requireCondition(
+    typeof options.root === "string" && path.isAbsolute(options.root),
+    "absolute root required",
+  );
   const bundle = options.bundle ?? readNativeReviewBundle();
   const frozenFiles = options.readFrozenBlob
     ? null

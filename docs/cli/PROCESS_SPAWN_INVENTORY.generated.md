@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 680 (runtime: 313, tooling: 332, test: 35).
+Total matches: 696 (runtime: 313, tooling: 348, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
@@ -400,6 +400,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/build-web-panel.mjs` | 200 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
 | `packages/cli/scripts/build-web-panel.mjs` | 211 | `execFileSync(` |
 | `packages/cli/scripts/build-web-panel.mjs` | 227 | `execSync("npm run build:no-sync", {` |
+| `packages/cli/scripts/build-windows-node-runtime-adapter.mjs` | 5 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/build-windows-node-runtime-adapter.mjs` | 71 | `const result = spawnSync(executable, args, {` |
 | `packages/cli/scripts/check-cli-startup.mjs` | 3 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/check-cli-startup.mjs` | 64 | `const result = spawnSync(process.execPath, [bin, ...entry.args], {` |
 | `packages/cli/scripts/claude-code-increment-audit.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
@@ -437,6 +439,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/codex-app-server-turn-probe.mjs` | 582 | `const child = spawn(` |
 | `packages/cli/scripts/context-token-volcengine-live-probe.mjs` | 9 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/context-token-volcengine-live-probe.mjs` | 161 | `execFileSync("git", ["-C", repository, ...args], {` |
+| `packages/cli/scripts/diagnostics/windows-node-pipe-preload.cjs` | 112 | `// No environment-controlled addon path and no global child_process patch.` |
+| `packages/cli/scripts/diagnostics/windows-node-runtime-preload.cjs` | 112 | `// No environment-controlled addon path and no global child_process patch.` |
 | `packages/cli/scripts/event-runtime-recovery-drill.mjs` | 132 | `child = executionBroker.fork(scriptPath, ["--child", mode, dir], {` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 3 | `* Generate (or byte-diff-check) an inventory of direct child_process usage.` |
 | `packages/cli/scripts/gen-process-spawn-inventory.mjs` | 36 | `/(?:child_process\|node:child_process\|\b(?:cpDefault\|childProcess\|_deps\|deps)\.(?:spawn\|spawnSync\|exec\|execFile\|execSync\|execFileSync\|fork)\b\|\b(?:spawn\|spawnSync\|execFile\|execSync\|execFileSync\|fork)\s*\()/;` |
@@ -645,7 +649,7 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 359 | `execFileSync(` |
 | `packages/cli/scripts/verify-session-runtime-retention.mjs` | 775 | `execFileSync(process.execPath, ["--expose-gc", SCRIPT_PATH], {` |
 | `packages/cli/scripts/verify01-native-capsule.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
-| `packages/cli/scripts/verify01-native-capsule.mjs` | 124 | `: execFileSync(` |
+| `packages/cli/scripts/verify01-native-capsule.mjs` | 130 | `: execFileSync(` |
 | `packages/cli/scripts/verify01-native-review-admission.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/verify01-native-review-admission.mjs` | 128 | `execFileSync("git", ["-C", repository, "show", `${commit}:${file}`], {` |
 | `packages/cli/scripts/verify01-native-toolchain-prepare.mjs` | 6 | `import { execFileSync } from "node:child_process";` |
@@ -668,6 +672,18 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 54 | `let value;try{value=cp.spawnSync(process.execPath,['--preserve-symlinks','--preserve-symlinks-main',child],{stdio:[mode==='ignore-stdin'?'ignore':mode==='inherit-stdin'?'inherit':input,out,err],windowsHide:true,timeout:1200});}` |
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 222 | `const compiled = spawnSync(` |
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 239 | `const host = spawnSync(binary, [], {` |
+| `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 23 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
+| `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 43 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
+| `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 50 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
+| `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 64 | `const processChild=cp.fork(child,['fork'],{execPath:contract.executable,execArgv,windowsHide:true,env,stdio:['pipe','pipe','pipe','ipc']});` |
+| `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 29 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
+| `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 70 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
+| `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 77 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
+| `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 91 | `const processChild=cp.fork(child,['fork'],{execPath:contract.executable,execArgv,windowsHide:true,env,stdio:['pipe','pipe','pipe','ipc']});` |
+| `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 5 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 131 | `const build = spawnSync(` |
+| `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 166 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');` |
+| `packages/cli/scripts/windows-realpath-api-diagnostic.mjs` | 168 | `const result=cp.spawnSync(path.join(workspace,'probe.exe'),[workspace,scratch],{stdio:'inherit',windowsHide:true,timeout:5000});` |
 
 ## test
 

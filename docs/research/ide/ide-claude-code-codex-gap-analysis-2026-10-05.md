@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-08 共享评测续做**：Windows 实验 runtime 已验证管道/fork IPC、私有规范路径及各 Node 子进程回执，冻结工具链导入和原 globalSetup/teardown 已通过；共享回归 **446 项通过、零跳过**。这些是本地 Windows 10 / Node 22.22.2 诊断，不能关闭双 IDE 正式任务、公开首次安装、真人听测或长时验收。NUL、冻结 forks/config/full review 和正式 36+9 继续开放，证据与 CI 失败修复见[验证第 13 节](../cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)。
+
 > **2026-10-08 共享验收执行续做**：已补齐冻结工具链准备、独立 v2 AppContainer 胶囊及原生传输/拒绝反例，208 项回归通过、零跳过。双 IDE 既有身份、Doctor 和冷初始化修复继续保留；共享 native review 仍被实际 Rollup 管道与冻结 globalSetup 的 `realpath EPERM` 阻塞，addon 结果保留两项成功、一项失败。详见[验证第 12 节](../cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。正式双 IDE 任务/首次安装、真人听测、8h/24h、官方账号/账单及获批 SLO 均未关闭；不把胶囊诊断写入正式 36+9。
 
 > **2026-10-07 共享原生验收续做**：七项探针各自独立 Job，IPC 已真实执行但与 pipe 一样超时；清理均确认，未授予部分能力。补齐 v2 校验、准入兼容及冻结工具链只读预检，**68 项回归通过**，失败和摘要已归档，详见[验证第 11 节](../cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。本轮未启动新的 IDE/provider 正式样本；native 完整执行、正式 36+9、账单、真人辅助技术与长时验收继续开放。

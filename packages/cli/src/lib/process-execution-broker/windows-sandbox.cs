@@ -3722,6 +3722,9 @@ namespace ChainlessChain.WindowsSandbox
                     targetEnvironment["SystemRoot"] = Path.GetDirectoryName(Environment.SystemDirectory);
                     targetEnvironment["WINDIR"] = Path.GetDirectoryName(Environment.SystemDirectory);
                     targetEnvironment["PATH"] = Path.GetDirectoryName(application);
+                    // Only the guarded evaluator exposes this attested identity;
+                    // an inherited caller value is never used as its authority.
+                    targetEnvironment["CC_WINDOWS_APPCONTAINER_SID"] = expectedAppContainerSid;
                     ConfigureAppContainerEnvironment(targetEnvironment);
                 }
                 environmentBuffer =

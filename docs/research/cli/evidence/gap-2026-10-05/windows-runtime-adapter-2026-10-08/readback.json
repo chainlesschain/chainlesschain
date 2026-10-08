@@ -1,0 +1,571 @@
+{
+  "schema": "chainlesschain.windows-runtime-adapter-readback/v1",
+  "collectedAt": "2026-10-08T06:16:36.577Z",
+  "derived": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "capabilities": {},
+  "fullReviewPackReady": false,
+  "completePrivateOriginalsRetained": true,
+  "originalFiles": [
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-stage1/report.json",
+      "bytes": 4419,
+      "digest": "sha256:a99318012a1483487fba6bc0b2702a00378c7e132e07272c97e918263194438e"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-native/report.json",
+      "bytes": 6033,
+      "digest": "sha256:cfdc48510a3424490c43626ab2542de82a16192a39e96c772044fa1b0fc3a949"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-native/journal.jsonl",
+      "bytes": 166,
+      "digest": "sha256:017b05ef4910a26bcbf8b7d85e1aecc2aa22e41f3ea220240c7debe09dc65447"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-identity/report.json",
+      "bytes": 10561,
+      "digest": "sha256:e61e3aa2b0f64955bdc616a7d10f4ed6392e38e19ab0c12d063d2e44cf2753ad"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-identity/journal.jsonl",
+      "bytes": 1991,
+      "digest": "sha256:fa9192533cf560b2e21549362af1811814de66825a625bc90b7691cfe177afe6"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-child-options/report.json",
+      "bytes": 22845,
+      "digest": "sha256:a5cc8be2e683fbe80c621f903efe282ecbff0eba1198e68e078452d9f70726d1"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-child-options/journal.jsonl",
+      "bytes": 2467,
+      "digest": "sha256:7a3d36269a7989b129a144ad984de0926ae67b5c1434e245178b439a26c20561"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-validated/report.json",
+      "bytes": 25728,
+      "digest": "sha256:ae6e3775ac6b4d908428cf7ffdafc39e13c56bbbbcdb1408ca91ef4c867b253c"
+    },
+    {
+      "file": ".work/windows-node-pipe-runtime-2026-10-08-validated/journal.jsonl",
+      "bytes": 2465,
+      "digest": "sha256:d01b45c4f835c1aece4cf9cef650ec2050f3e4efa4cf71a37b1788aae65040fc"
+    },
+    {
+      "file": ".work/windows-realpath-api-2026-10-08-stage1/report.json",
+      "bytes": 3348,
+      "digest": "sha256:168e37d5b4465ebfa02b03f81fe658bc18974c8fba0412960d21274c9bc44b5f"
+    },
+    {
+      "file": ".work/windows-realpath-api-2026-10-08-native/report.json",
+      "bytes": 9858,
+      "digest": "sha256:d3f248b84248368697b2d12dfaa762c0d75a51bb50503ff0d77da0e71b72f5b3"
+    },
+    {
+      "file": ".work/windows-realpath-api-2026-10-08-bound-child/report.json",
+      "bytes": 9871,
+      "digest": "sha256:4d95cf2deaad0084aaeeddfec668914647957916ad13c6489504a5ab176bc5af"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-restricted/report.json",
+      "bytes": 5148,
+      "digest": "sha256:ded2a1c894a2ffbdf838bc5e607f8137da53bc494de17496fe05c64aa2ccb943"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-native/report.json",
+      "bytes": 6896,
+      "digest": "sha256:3f3eaf04508f60c00bf763784aa761dcd4b8d01b7c08421ebfd2e94289bb41ac"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-native/journal.jsonl",
+      "bytes": 151,
+      "digest": "sha256:3c85285b1e4fa57ba34ab80e5a03526b6a1a7ce83f8ee021388e77627cf33ecc"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-root-proof/report.json",
+      "bytes": 8314,
+      "digest": "sha256:4494e33c1558820549a34454219728eebf3173a8d24aad9292d7f718695d026d"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-root-proof/journal.jsonl",
+      "bytes": 1440,
+      "digest": "sha256:94154173aa9989a3ab4d14a631c7ec45e8e7f49020118cc9f96708004fe66b13"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-drive-prefix/report.json",
+      "bytes": 16837,
+      "digest": "sha256:c2c1ae29fe79a315b3defa12675e86fc1f9993770f22a42682ade38912f88c89"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-drive-prefix/journal.jsonl",
+      "bytes": 4014,
+      "digest": "sha256:1a134df21459fc07ac88587404d8872065ac4370df9a3f638061576300c6757c"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-outside-controls/report.json",
+      "bytes": 38805,
+      "digest": "sha256:e7c95a3b8cb656d7ad703f80b52510b7deb705a0127d5b869b65dfd6402b3e67"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-outside-controls/journal.jsonl",
+      "bytes": 6151,
+      "digest": "sha256:48b9882d1946b7a9d9fdfad9ec3b0dd0391b0a98ae6936c1953d9668d692eccb"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-validated/report.json",
+      "bytes": 42692,
+      "digest": "sha256:39b118914a3acd748af8797566da45a3874a88c4337e7b0f65db79d537085c8e"
+    },
+    {
+      "file": ".work/windows-node-runtime-2026-10-08-validated/journal.jsonl",
+      "bytes": 6149,
+      "digest": "sha256:786b94fb5dd30dda37a103626f3cc3360e7273162eb5cef8b8637fa575e5a4fc"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-import/report.json",
+      "bytes": 4808382,
+      "digest": "sha256:9b94302fd33729e99d942f5560538c51d5d21186abf0d7eda6d93d5f530f706e"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-import/journal.jsonl",
+      "bytes": 897,
+      "digest": "sha256:42ee223a4fed7095949d8b4a24477c628dc3e1065ec89b9d98ed8e2bcc8f5312"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-setup/report.json",
+      "bytes": 4803160,
+      "digest": "sha256:cd80dfa6686e4704f3c25a4f00bcf5200eab0978f8001cd6a6d6be7207a95b68"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-setup/journal.jsonl",
+      "bytes": 763,
+      "digest": "sha256:bd3e047236f551ee2793e77a7aaef58bab0511048b2df7d9eadf3d89c5c69e74"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-setup/stdout.txt",
+      "bytes": 160,
+      "digest": "sha256:da0240a5e4ded2e3f3dc6a622b20c63c8d3d121eab68fbd9b9135ba133b4ff4c"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-setup/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/windows-node-runtime-adapter-build-2026-10-08/build-report.json",
+      "bytes": 10238,
+      "digest": "sha256:9c79234a223a4ea762d3fa99ac843d071e5d690bc7eac5da3e88e4ee4465cebf"
+    },
+    {
+      "file": ".work/windows-runtime-capsule-transport-2026-10-08.json",
+      "bytes": 46749,
+      "digest": "sha256:f26135714ed008eb54801817deb9e6a53060f23ceb8b99611f975a39ce1a2c4a"
+    },
+    {
+      "file": ".work/windows-runtime-capsule-transport-2026-10-08.json.tampered-file.json",
+      "bytes": 910,
+      "digest": "sha256:b1250b5f1d53bf77f3c7d359d88d3acfd216be8a47a256e3dc4c88239f4dd4b5"
+    },
+    {
+      "file": ".work/windows-runtime-capsule-transport-2026-10-08.json.unlisted-entry.json",
+      "bytes": 901,
+      "digest": "sha256:ef566e67b7def784b057a7ff9c4f97ec2d9f6fc6566beefb5c682c0029d55cf2"
+    },
+    {
+      "file": ".work/windows-runtime-vitest-2026-10-08.json",
+      "bytes": 20759,
+      "digest": "sha256:d2a698b2cfc1256fdaa6b2400dcc00074b90c5cb7fdd63abd7e478412485beb0"
+    },
+    {
+      "file": ".work/windows-runtime-regression-2026-10-08.tap",
+      "bytes": 63574,
+      "digest": "sha256:459573bf1131c3a929a494f30a24aa25a4fb05a908667581df9a5a3edb91a75f"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "pipe-v1-restricted.json",
+      "bytes": 3342,
+      "digest": "sha256:c4dbb2676f84df127804b3a4be5b9264939829f70dfa7455ab4358369a8d9655",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-missing-sid.json",
+      "bytes": 4949,
+      "digest": "sha256:bfcfbcb0475a47fcb19eb801cef6cf77b3f8d0d21615b5eaf5866a053d65a5d7",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-missing-sid-journal.jsonl",
+      "bytes": 166,
+      "digest": "sha256:017b05ef4910a26bcbf8b7d85e1aecc2aa22e41f3ea220240c7debe09dc65447",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-node-options.json",
+      "bytes": 9474,
+      "digest": "sha256:fd454656d666e91a65686ec66b067a0ebb6e6b32dd173b262950c4302fb95e61",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-node-options-journal.jsonl",
+      "bytes": 1991,
+      "digest": "sha256:fa9192533cf560b2e21549362af1811814de66825a625bc90b7691cfe177afe6",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-child-options.json",
+      "bytes": 21750,
+      "digest": "sha256:2ca04a5132efdcd0fa074fecaf3be40422464b2ce7879c52fd11b5e8f4aa88d5",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-child-options-journal.jsonl",
+      "bytes": 2467,
+      "digest": "sha256:7a3d36269a7989b129a144ad984de0926ae67b5c1434e245178b439a26c20561",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-validated.json",
+      "bytes": 24627,
+      "digest": "sha256:079fabb6aeae9a9cfb3847e831c645ddaea31feae83cda7224607708578e64de",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "pipe-v1-validated-journal.jsonl",
+      "bytes": 2465,
+      "digest": "sha256:d01b45c4f835c1aece4cf9cef650ec2050f3e4efa4cf71a37b1788aae65040fc",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "realpath-api-restricted.json",
+      "bytes": 2195,
+      "digest": "sha256:0f5ff6f9f700241d0df0592eb716149c189a9135071d750376a939251cdf0b10",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "realpath-api-first.json",
+      "bytes": 8705,
+      "digest": "sha256:96be7bc3b10fc962d96002b9e79e5dc8e16c335363fe3f20193fe824ffd3056a",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "realpath-api-bound-child.json",
+      "bytes": 8718,
+      "digest": "sha256:640171c0e53f2a6234f9d623eec1ab02cd2b49e05de4ab48e3b0d5e806c747ae",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-restricted.json",
+      "bytes": 4072,
+      "digest": "sha256:bd31ad42a6e36054b7caff02c8f9f52446e30451cccd400bd839e23ac9bb714a",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-module-prefix.json",
+      "bytes": 5814,
+      "digest": "sha256:375d314423c6947eb3b2aed2eadb48e2aa18ac14f7aa2ef707f9385f1f2e0634",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-module-prefix-journal.jsonl",
+      "bytes": 151,
+      "digest": "sha256:3c85285b1e4fa57ba34ab80e5a03526b6a1a7ce83f8ee021388e77627cf33ecc",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-root-proof.json",
+      "bytes": 7232,
+      "digest": "sha256:48793c680db4b3cb1db552493b23fe9121144c063b64cd169dfd1190b758dfff",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-root-proof-journal.jsonl",
+      "bytes": 1440,
+      "digest": "sha256:94154173aa9989a3ab4d14a631c7ec45e8e7f49020118cc9f96708004fe66b13",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-drive-prefix.json",
+      "bytes": 15694,
+      "digest": "sha256:824e1f6c7e44a9a992114a463d6dd4fb27c91e69b687353a19f2c5c07d7282de",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-drive-prefix-journal.jsonl",
+      "bytes": 3993,
+      "digest": "sha256:f1c9c874d8613a6cdc277e1d6e3b4384af4b59ba6294b2b39c1a702b7364af63",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-transient-counter.json",
+      "bytes": 37527,
+      "digest": "sha256:2391e15b0c79d661a5437a57b3b58151285734807648049378d6452e8e1a84f9",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-transient-counter-journal.jsonl",
+      "bytes": 6109,
+      "digest": "sha256:abeeb6c1b97cbbcac98eff9db79ac684d7983ef9a5c167ecd9dac52af072fb57",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-validated.json",
+      "bytes": 41392,
+      "digest": "sha256:08732346ac214e337db4ccfff61f6c1ccd76ba76b360afc99a1b56eebe85d13a",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "runtime-v2-validated-journal.jsonl",
+      "bytes": 6107,
+      "digest": "sha256:7ea099776cd927788d1724b23cc54111ec7c37bfd888edc262e18e5b3057ad06",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-import.json",
+      "bytes": 18894,
+      "digest": "sha256:457d30a66a31cde539742c6d261154e70fcc8284a0c76df7fff5dd30b9cef9e3",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-import-journal.jsonl",
+      "bytes": 897,
+      "digest": "sha256:42ee223a4fed7095949d8b4a24477c628dc3e1065ec89b9d98ed8e2bcc8f5312",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-setup.json",
+      "bytes": 13552,
+      "digest": "sha256:cf732b81b4792e7703024d05104d76110334b03222c2a4fd41406fb1d06fb9b4",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-setup-journal.jsonl",
+      "bytes": 763,
+      "digest": "sha256:bd3e047236f551ee2793e77a7aaef58bab0511048b2df7d9eadf3d89c5c69e74",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-setup-stdout.txt",
+      "bytes": 160,
+      "digest": "sha256:da0240a5e4ded2e3f3dc6a622b20c63c8d3d121eab68fbd9b9135ba133b4ff4c",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "capsule-setup-stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "build-report.json",
+      "bytes": 9905,
+      "digest": "sha256:fe9ee7a2dad81674fe03942819933195ea2d770118e99e9909c4160825d02866",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport-success.json",
+      "bytes": 46224,
+      "digest": "sha256:3f94c02d8ab5b7b3336cf699c67200e0b638cc47a114466a4ec575cb05fb995d",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport-tampered.json",
+      "bytes": 910,
+      "digest": "sha256:b1250b5f1d53bf77f3c7d359d88d3acfd216be8a47a256e3dc4c88239f4dd4b5",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport-unlisted.json",
+      "bytes": 901,
+      "digest": "sha256:ef566e67b7def784b057a7ff9c4f97ec2d9f6fc6566beefb5c682c0029d55cf2",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "vitest.json",
+      "bytes": 28274,
+      "digest": "sha256:6babd0ade009771e97e2600a0cdd61b3bb64fbf83521368454f6266e2fda136d",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "node-regression.tap",
+      "bytes": 63574,
+      "digest": "sha256:459573bf1131c3a929a494f30a24aa25a4fb05a908667581df9a5a3edb91a75f",
+      "derived": true,
+      "admissionEligible": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "pipe-v1-child-options",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": false
+    },
+    {
+      "name": "pipe-v1-validated",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": true
+    },
+    {
+      "name": "realpath-api-first",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": false
+    },
+    {
+      "name": "realpath-api-bound-child",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": true
+    },
+    {
+      "name": "runtime-v2-validated",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": true
+    },
+    {
+      "name": "capsule-import",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": true
+    },
+    {
+      "name": "capsule-setup",
+      "diagnosticCompleted": true,
+      "formalSample": false,
+      "capabilities": {},
+      "cleanupConfirmed": true,
+      "revalidatedWithCurrentValidator": true
+    }
+  ],
+  "sourceIdentitiesAtReadback": [
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-pipe-adapter.cpp",
+      "digest": "sha256:0dc5df6717d0ddaaf13ec8203cb6c6d67ffed28ae6acc1be4d53ebaf1e10baa3"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-pipe-preload.cjs",
+      "digest": "sha256:4bfbd1a3dcf632c53c85c36c016b161bd566eac90b281a52765b01c727c63e3c"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-runtime-adapter.cpp",
+      "digest": "sha256:9ee1e05562d5d59c827214c0ce0d2c8963109e1e0aae6ec719ee9ace17877e92"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-runtime-preload.cjs",
+      "digest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-realpath-api-probe.cs",
+      "digest": "sha256:a7254e019d970fb94ef23b484d8219c6c09470c677df6b83d7172c3f500f3f0a"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-pipe-diagnostic.mjs",
+      "digest": "sha256:c5cea57a35f8f1587f6de94fafbc45c852c0d386a8ff60f82d3a586a1ef74bfa"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-runtime-diagnostic.mjs",
+      "digest": "sha256:01c1aa6284256a514d05f7eff633f2b7c070b0bf2dd8a14755388b7507ce2d5b"
+    },
+    {
+      "file": "packages/cli/scripts/windows-realpath-api-diagnostic.mjs",
+      "digest": "sha256:31a87f19a79e7b8226b21833edda7b7a74be20d3192020c98472f2b6c66d8523"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-runtime-capsule.mjs",
+      "digest": "sha256:048dd8e778831b61ea569499634c3df376eea743c6f8e250abd34aaa25d3603d"
+    },
+    {
+      "file": "packages/cli/scripts/build-windows-node-runtime-adapter.mjs",
+      "digest": "sha256:216e75eaecd87df669cb583d1869c6584fb2aeba1dcbe0422049e071a3e4f848"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-capsule.mjs",
+      "digest": "sha256:e05e5efdd4dc8bca94b3c0bc73f7e2cc073c1c9592433d91efcf8e0280c3fa56"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:e007bc6e264216ada6f74bdd0f4fa6fa4592126b3713c8d4a572341044a7e879"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:d7ab51c1c0c8d158949f3d53720c7ba1f207b2ae823b8bf2843c86f59c41df2d"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:fe0ad93c2f2fe01baced49dab37061d5179f741c6135b864c69470fbb5b744f9"
+    }
+  ],
+  "compilerArchive": {
+    "url": "https://github.com/mstorsjo/llvm-mingw/releases/tag/20261006",
+    "bytes": 190836485,
+    "digest": "sha256:317492c456aa27ee607a5919f1d2d38dcdc1112516a24d0bf4b00d078f52d17a"
+  },
+  "executedAddonDigests": {
+    "v1": "sha256:999fec7e044ee6d72b5be02b1c40c079f0aa1b77277bcde137b9c23ed8af7abd",
+    "v2": "sha256:0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077"
+  },
+  "limitations": [
+    "private root canonical proof does not recover an already resolved caller alias",
+    "NUL unsupported",
+    "uninstrumented descendants unsupported",
+    "frozen forks/config/full review not executed",
+    "GNU Rollup addon aggregate ABI remains unverified",
+    "local Windows 10/Node 22.22.2 differs from frozen targets",
+    "runtime adapters are separate experiments, not production allowlists or capabilities",
+    "PE timestamps/output names can alter rebuilt hashes; build record is not a hermetic compiler closure",
+    "redacted/abridged archives are not admission tickets"
+  ]
+}

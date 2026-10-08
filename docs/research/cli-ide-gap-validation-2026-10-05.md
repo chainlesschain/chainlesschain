@@ -416,3 +416,48 @@ node packages/cli/scripts/verify01-native-toolchain.mjs --root ABSOLUTE_ISOLATED
 真实验收还需目标 Windows 11 24H2/macOS 15/Linux 宿主与 Node 22.12.0、官方 OpenAI/Anthropic 账号与账单、独立人工 setup/check 签核、双 IDE 正式任务/首次安装、真人 NVDA/VoiceOver/Orca、8h/24h 观察和获批 SLO。用户尚未提供目标环境/账号配置信息；CLOUD-02 继续保留需求条件项。
 
 冻结计划 validator 仍为 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**；未写正式 observations、未删分母、未新增付费请求或发布。
+
+## 13. 2026-10-08 独立实验 runtime 与冻结 setup
+
+### 13.1 已关闭的本地执行阻塞
+
+新增两个独立实验 N-API 适配器：管道 v1 只交换当前固定 `node.exe` 的 `CreateNamedPipeA/CreateFileA` IAT 项，将严格匹配、属于当前 PID 的 libuv pipe 名称映射到 AppContainer LOCAL namespace；runtime v2 加入私有根的 `GetFinalPathNameByHandleW` 回退。两者均先核对实际 AppContainer SID、零 capabilities、PID 和 Job，仅安装当前进程的 slots；失败时回滚页保护与已交换项，不允许继续半安装状态。
+
+有限 CLR/Win32 四项控制确认：scratch/workspace 的 share 0/7 均能打开并关闭句柄，DOS normalized/opened flags 0/8 返回 Win32 5，**normalized NT flags 2 成功**。v2 仅在原 flags 0 返回 ACCESS_DENIED 时，核对真实规范 NT 根目录、固定根句柄、逐层非 reparse/single-link 对象和最终 FileId，再转换到监督器已 guarded 的 DOS 根。`path.resolve` 和 FILE_NAME_OPENED 不用于 canonical 证明；原 API 已成功或其他 flags/错误均透传。证明针对实际目标，不恢复调用者已经解析掉的内部 alias。
+
+| 真实运行                  | 验证结果                                                                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 管道 v1                   | sync/async/fork IPC 全部完成；97 字节输入摘要、实际 PID/PPID、分离输出及 close/退出核对，四个 Node 八份安装/exit 回执                              |
+| runtime v2                | 上述三种操作通过；scratch/workspace 与三个 child 的 native realpath 成功；`C:\Windows` 可 open 的实际句柄触发 fallback/rejected 各 +1、mapped 不增 |
+| 冻结工具链导入            | 原 registry/Git 字节的 Vitest/Vite/happy-dom 导入与关键导出核对通过；两个实际 Node 共四份回执                                                      |
+| 冻结 globalSetup/teardown | 原模块执行和 teardown 全部完成；一个 Node 两份回执，不再是先前 realpath EPERM                                                                      |
+| helper 原生回归           | 81 文件/12 MiB、workspace/control 写拒绝与 scratch 写允许；监督器最小环境 SID 与实际 token 回执一致；篡改和未列出文件在 target 创建前拒绝          |
+
+最终真实执行均确认同 AppContainer SID、capabilityCount=0、Job、无 loopback exemption 和空 Job 清理；capsule 的 check 仍限 **15 秒**。capsule 保持原冻字节，在新的私有源树加入单独 `adapter/` 文件，factory 再核对所有 snapshot 和实际 runtime，不改变已 issued manifest。新 profile 与 checker 摘要还须命中监督器 guarded manifest 的精确条目，所有已观察 Node phase pairs 共享父进程的 NT/volume/FileId 根证明。只声明 `observed-receipts-only`；未插入原生产 allowlist。
+
+### 13.2 实际失败、修复与构建
+
+完整尝试和原件/派生摘要见[证据 README](./cli/evidence/gap-2026-10-05/windows-runtime-adapter-2026-10-08/README.md) 与 [readback.json](./cli/evidence/gap-2026-10-05/windows-runtime-adapter-2026-10-08/readback.json)。受限用户令牌的 readiness/cleanup 拒绝、监督器未传 SID、Windows NODE_OPTIONS 反斜杠丢失、module 的 extended drive prefix、outside 仅在 open 阶段被拒绝、旧 validator 拒绝正常 ERROR_PIPE_BUSY 重试，均保留原失败，没有覆盖成成功。
+
+helper 仅在 guarded native evaluator 的环境分支覆盖填入已经核对的 SID，源码摘要 **`e007bc6e264216ada6f74bdd0f4fa6fa4592126b3713c8d4a572341044a7e879`**，DLL/EXE 已重建并通过 `-Check`。preload 的 NODE_OPTIONS 使用等价 forward slash 参数编码，两个版本均有真实 Node/含空格路径解析测试。`GetModuleFileNameW` 只允许严格 extended drive 归一化，其他 namespace/alias 仍拒绝。
+
+LLVM-MinGW 20261006 官方 ZIP 校验后安装到私有 `.work/toolchains`，没有全局安装；新本地构建脚本显式接受固定 compiler/header/new-output 路径，记录源码、Node/headers/compiler/DLL、argv、自测和 binary 摘要。实际成功运行的 v2 addon 为 **`0dab7447d7732ebb132a087daefba158c6e2d4f26855ba488b7a0b8471428077`**。构建记录的后续产物有独立 hash，PE 时间戳/输出名可造成差异，不能借用先前 native 结果；未宣称 hermetic compiler closure。
+
+### 13.3 回归、CI 反馈与状态
+
+| 回归                                                                                   | 结果                                        |
+| -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Node：准备/registry/inventory/准入/capsule/API/两代 preload/runtime 和复合证据         | **391/391，零跳过**                         |
+| helper 实际 transport、防篡改、未列出文件                                              | **3/3，零跳过**                             |
+| Vitest：原 v1、七项能力合同、review pack                                               | **52/52，零跳过**                           |
+| 定向 ESLint、Prettier、helper source contract、spawn inventory、三 workflow actionlint | 通过；actionlint 未启用 shellcheck/pyflakes |
+
+合计 **446 项通过**；失败诊断不混入计数。新增 Node 合同接入 CLI CI 三系统步骤，diagnostics/runtime/realpath 纳入 Strict path filters；本轮没有将实验 addon 打包为生产支持或进行 npm/IDE 发布。
+
+准确前序提交 `8ade986b048559e9f5668b860890f7478742edd8` 的 Strict Sandbox、IDE Safety Matrix、VERIFY01 Host Diagnostics 与 Process Ownership Recovery 均成功；CLI CI 和 Reliability Soak 仍失败，不能宣称完整门通过。两项实际根因已修：pure capsule 无效输入在读历史 Git 对象前拒绝，消除浅 checkout 中 `fatal:not a tree object` 的错误；Reliability 平台汇总新增只读 verifier workspace dependencies 安装，避免缺 `@chainlesschain/session-core`。新源码须由新准确提交的完整 Actions 验证，不能复用旧成功作发布资格。
+
+### 13.4 尚需继续完成
+
+本地 Windows **10.0.19045 / Node 22.22.2 / ABI 127** 只证明本轮实验 profile。NUL、冻结原 forks/config/full review、Rollup GNU 的整体 ABI、Windows/macOS durable authority/网络撤销/崩溃恢复仍开放。NUL 的固定 libuv 调用是 `CreateFileW(L"NUL")`，stdin access `0x120089`、stdout/stderr `0x120196`，share 3、inherit TRUE、OPEN_EXISTING、flags 0；独立下一版须验证真实 `\Device\Null` 对象/权限并精确继承，不能替换为文件、管道或普通 stdin。固定 libuv 子进程使用普通 CreateProcessW，根进程白名单不能证明所有后代的精确继承，仍需逐次 launcher/受限 runtime 支持。
+
+正式 target hosts、Node 22.12.0、人工 setup/check 签核、官方账号/账单、36+9、双 IDE/公开首次安装、真人辅助技术与 8h/24h/SLO 缺证据。计划 validator 再次确认 digest 不变，**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**；预算 $99、分母、正式 observations 和 CLOUD-02 条件项均未改变，未新增付费请求或发布。

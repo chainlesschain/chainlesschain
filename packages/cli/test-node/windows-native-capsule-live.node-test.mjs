@@ -155,7 +155,7 @@ test(
     for(const file of [__filename,path.join(workspace,'large.bin')])assert.throws(()=>fs.writeFileSync(file,'tamper'));
     assert.throws(()=>fs.writeFileSync(path.join(workspace,'unlisted.txt'),'tamper'));
     fs.writeFileSync(path.join(scratch,'output.txt'),'allowed');
-    console.log(JSON.stringify({pid:process.pid,files:81,largeBytes:2097152,readOnly:true,scratchWritable:true}));
+    console.log(JSON.stringify({pid:process.pid,appContainerSid:process.env.CC_WINDOWS_APPCONTAINER_SID,files:81,largeBytes:2097152,readOnly:true,scratchWritable:true}));
   `,
       wallTimeMs: 10000,
     };
@@ -211,6 +211,7 @@ test(
       assert.equal(result.status, 0, result.stderr);
       const payload = JSON.parse(result.stdout.trim());
       assert.equal(payload.pid, receipt.targetPid);
+      assert.equal(payload.appContainerSid, receipt.appContainerSid);
       assert.equal(payload.files, 81);
       assert.equal(receipt.cleanupConfirmed, true);
       assert.equal(receipt.capabilityCount, 0);
