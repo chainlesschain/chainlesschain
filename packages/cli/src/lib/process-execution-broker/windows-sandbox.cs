@@ -3268,6 +3268,26 @@ namespace ChainlessChain.WindowsSandbox
         }
 
         [DataContract]
+        public sealed class NativeCapsuleRuntimeSpec
+        {
+            [DataMember] public string platform { get; set; }
+            [DataMember] public string architecture { get; set; }
+            [DataMember] public string nodeVersion { get; set; }
+            [DataMember] public string modulesAbi { get; set; }
+            [DataMember] public string executableDigest { get; set; }
+        }
+
+        [DataContract]
+        public sealed class NativeCapsuleBindingSpec
+        {
+            [DataMember] public string inventoryDigest { get; set; }
+            [DataMember] public string lockDigest { get; set; }
+            [DataMember] public string planDigest { get; set; }
+            [DataMember] public string projectCommit { get; set; }
+            [DataMember] public NativeCapsuleRuntimeSpec runtime { get; set; }
+        }
+
+        [DataContract]
         public sealed class NativeEvaluatorSpec
         {
             [DataMember] public int version { get; set; }
@@ -3281,6 +3301,7 @@ namespace ChainlessChain.WindowsSandbox
             [DataMember] public EvaluatorPathSpec runtime { get; set; }
             [DataMember] public EvaluatorPathSpec[] directories { get; set; }
             [DataMember] public EvaluatorPathSpec[] files { get; set; }
+            [DataMember] public NativeCapsuleBindingSpec capsuleBinding { get; set; }
         }
 
         private static bool SameEvaluatorPath(string left, string right)
@@ -3328,15 +3349,36 @@ namespace ChainlessChain.WindowsSandbox
             string[] arguments, string workingDirectory, string appSid, int wallTimeMs,
             List<IntPtr> guards, ref bool rootAttested)
         {
-            if (spec.version != 1 || !IsLowercaseSha256(spec.manifestDigest) || spec.runtime == null ||
-                spec.directories == null || spec.directories.Length < 4 || spec.directories.Length > 128 ||
-                spec.files == null || spec.files.Length < 2 || spec.files.Length > 65 ||
+            bool capsule = spec.version == 2;
+            int maxDirectories = capsule ? 20000 : 128;
+            int maxFiles = capsule ? 20001 : 65;
+            long maxFileBytes = capsule ? 32L * 1024 * 1024 : 1024 * 1024;
+            long maxTotalBytes = capsule ? 512L * 1024 * 1024 : 8 * 1024 * 1024;
+            if ((spec.version != 1 && !capsule) || !IsLowercaseSha256(spec.manifestDigest) || spec.runtime == null ||
+                spec.directories == null || spec.directories.Length < 4 || spec.directories.Length > maxDirectories ||
+                spec.files == null || spec.files.Length < 2 || spec.files.Length > maxFiles ||
                 wallTimeMs < 1 || spec.wallTimeMs != wallTimeMs || String.IsNullOrWhiteSpace(appSid))
                 throw new InvalidDataException("Native evaluator manifest is incomplete");
+            if (capsule)
+            {
+                NativeCapsuleBindingSpec binding = spec.capsuleBinding;
+                if (binding == null || binding.runtime == null ||
+                    !IsPrefixedSha256(binding.inventoryDigest) || !IsPrefixedSha256(binding.lockDigest) ||
+                    !IsPrefixedSha256(binding.planDigest) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.projectCommit ?? "", "^[a-f0-9]{40}$") ||
+                    binding.runtime.platform != "win32" ||
+                    (binding.runtime.architecture != "x64" && binding.runtime.architecture != "arm64" && binding.runtime.architecture != "ia32") ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.runtime.nodeVersion ?? "", "^v[0-9]+\\.[0-9]+\\.[0-9]+$") ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.runtime.modulesAbi ?? "", "^[0-9]+$") ||
+                    binding.runtime.executableDigest != "sha256:" + spec.runtime.sha256)
+                    throw new InvalidDataException("Native capsule inventory/runtime binding is incomplete");
+            }
+            else if (spec.capsuleBinding != null)
+                throw new InvalidDataException("v1 evaluator cannot accept a capsule binding");
             string root = NormalizeLocalDosPath(spec.root, null, "Native evaluator stage");
             string expectedParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
             if (!SameEvaluatorPath(Path.GetDirectoryName(root), expectedParent) ||
-                !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(root), "^cc-native-evaluator-[A-Za-z0-9_-]{6}$") ||
+                !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(root), capsule ? "^cc-native-capsule-[A-Za-z0-9_-]{6}$" : "^cc-native-evaluator-[A-Za-z0-9_-]{6}$") ||
                 !SameEvaluatorPath(spec.workspace, Path.Combine(root, "workspace")) ||
                 !SameEvaluatorPath(spec.control, Path.Combine(root, "control")) ||
                 !SameEvaluatorPath(spec.scratch, Path.Combine(root, "scratch")) ||
@@ -3368,10 +3410,11 @@ namespace ChainlessChain.WindowsSandbox
             {
                 string full = Path.GetFullPath(file.path);
                 if ((!full.StartsWith(spec.workspace + "\\", StringComparison.OrdinalIgnoreCase) && !SameEvaluatorPath(full, spec.check)) ||
-                    !expected.Add(full) || file.bytes < 0 || file.bytes > 1024 * 1024)
+                    !expected.Add(full) || file.bytes < 0 || file.bytes > maxFileBytes ||
+                    (SameEvaluatorPath(full, spec.check) && file.bytes > 1024 * 1024))
                     throw new InvalidDataException("Native evaluator file is outside its read-only roots or exceeds bounds");
                 total = checked(total + file.bytes);
-                if (total > 8 * 1024 * 1024) throw new InvalidDataException("Native evaluator tree exceeds byte bound");
+                if (total > maxTotalBytes) throw new InvalidDataException("Native evaluator tree exceeds byte bound");
                 VerifyEvaluatorPath(file, HoldEvaluatorPath(full, false, guards), false);
             }
             if (!expected.Contains(spec.check) || !expected.Contains(spec.workspace) || !expected.Contains(spec.control) || !expected.Contains(spec.scratch))
@@ -3417,6 +3460,12 @@ namespace ChainlessChain.WindowsSandbox
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
             SetEvaluatorAccessControl(spec.runtime.path, runtimeSecurity);
+        }
+
+        private static bool IsPrefixedSha256(string value)
+        {
+            return value != null && value.StartsWith("sha256:", StringComparison.Ordinal) &&
+                IsLowercaseSha256(value.Substring(7));
         }
 
         private static void SetEvaluatorAccessControl(string path, FileSystemSecurity security)

@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.windows-pipe-root-cause-readback/v1",
+  "report": {
+    "path": ".work/windows-pipe-api-2026-10-07-final/report.json",
+    "sha256": "sha256:48d07c3051cecc8b1b9d3be32f855686faf9c002f154892f06ab199cc679ff07"
+  },
+  "officialRuntimeChecksum": {
+    "url": "https://nodejs.org/dist/v22.22.2/SHASUMS256.txt",
+    "responseSha256": "sha256:62a55cf160c9005f0e0f0067f30b74ba8081320117c6fee6ce2938604e669d10",
+    "entry": "win-x64/node.exe",
+    "sha256": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+    "observedSha256": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+    "matches": true
+  },
+  "upstream": {
+    "nodeVersion": "v22.22.2",
+    "libuvVersion": "1.51.0",
+    "nodeCommit": "2645dc73720b1b4f27c49f395d3c66025ce126cc",
+    "tagObject": "c7462cf36736a20ed7b8d701dedbe713dff0e1df",
+    "sources": [
+      {
+        "path": "deps/uv/src/win/pipe.c",
+        "sha256": "sha256:4d370ce0bc10f8ae429f8acb2c7688d74b753e0177f347f5f3d337647e77ca38"
+      },
+      {
+        "path": "deps/uv/src/win/process-stdio.c",
+        "sha256": "sha256:7367280da2315b8cf16d42870a972164763b1967f8e39bd141b27726237872d8"
+      }
+    ],
+    "windowsApiDocumentation": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipea"
+  },
+  "sourceFiles": [
+    {
+      "path": "packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs",
+      "sha256": "sha256:5a54b470a943e2a0ae49b5239c73f9867ea007c4414ed5f7542fdfa5117cffec"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-pipe-api-probe.cs",
+      "sha256": "sha256:b6aa75eb9dda0b889cef324fd48e831f000e851bfdef42f086f2324640a2e7f7"
+    },
+    {
+      "path": "packages/cli/test-node/windows-appcontainer-pipe-diagnostic.node-test.mjs",
+      "sha256": "sha256:f885dbc4cbbeceb62c6f4b67fe7cfbba3cf9e57d9a724ebffc71a6c40d1c8245"
+    }
+  ],
+  "formalSample": false,
+  "capabilities": {}
+}

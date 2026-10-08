@@ -1,0 +1,10 @@
+CC_PIPE_API:{"label":"libuv-name-1","pid":27972,"tokenIsAppContainer":1,"success":false,"win32Error":5,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_API:{"label":"libuv-name-2","pid":27972,"tokenIsAppContainer":1,"success":false,"win32Error":5,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_API:{"label":"libuv-name-3","pid":27972,"tokenIsAppContainer":1,"success":false,"win32Error":5,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_API:{"label":"local-dot","pid":27972,"tokenIsAppContainer":1,"success":true,"win32Error":0,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_API:{"label":"local-extended","pid":27972,"tokenIsAppContainer":1,"success":true,"win32Error":0,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_API:{"label":"nul-stdin","pid":27972,"tokenIsAppContainer":1,"success":false,"win32Error":5,"handleClosed":true,"elapsedMs":0}
+CC_PIPE_CHILD:{"pid":26268,"status":0,"signal":null,"errorCode":null}
+CC_FILE_STDIO:{"mode":"ignore-stdin","pid":26268,"status":null,"signal":null,"errorCode":"EPERM","output":""}
+CC_FILE_STDIO:{"mode":"inherit-stdin","pid":26268,"status":0,"signal":null,"errorCode":null,"output":"{\"marker\":\"file-child-ok\",\"pid\":15496}"}
+CC_FILE_STDIO:{"mode":"file-stdin","pid":26268,"status":0,"signal":null,"errorCode":null,"output":"{\"marker\":\"file-child-ok\",\"pid\":27616}"}

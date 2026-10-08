@@ -1,0 +1,155 @@
+{
+  "schema": "chainlesschain.redacted-diagnostic-archive/v1",
+  "admissionEligible": false,
+  "formalSample": false,
+  "capabilities": {},
+  "original": {
+    "path": ".work/windows-all-file-stdio-2026-10-08-native/report.json",
+    "bytes": 6257,
+    "digest": "sha256:4e234f88b6e95467528dc9c236729594277fee8e6178bcdb78adc097e245f232"
+  },
+  "redactions": [
+    "user profile prefixes, including embedded JSON",
+    "AppContainer SID",
+    "supervisor SID digest"
+  ],
+  "digestSemantics": "Nested manifest/stdout digests identify original bytes; redacted bytes are not valid original admission evidence.",
+  "report": {
+    "schema": "chainlesschain.windows-all-file-stdio-diagnostic/v1",
+    "startedAt": "2026-10-08T03:17:55.152Z",
+    "platform": "win32",
+    "architecture": "x64",
+    "nodeVersion": "v22.22.2",
+    "libuvVersion": "1.51.0",
+    "osRelease": "10.0.19045",
+    "formalSample": false,
+    "providerAssessed": false,
+    "fullReviewPackAssessed": false,
+    "capabilities": {},
+    "diagnosticCompleted": true,
+    "diagnosticRunnerSha256": "sha256:d19fc7561ed17d29e16e3f862b360d60409abdae0218997be5a1022c6a59f989",
+    "checkSourceSha256": "sha256:adbe23bf62fc1c944d6df1bca6044e7e37bf66b367f5cc820b5beff1dcc0a5d6",
+    "childSourceSha256": "sha256:430653c5b1c252dc67c63ef2040ce1af8e8cd0a76e30cddcc1281d99cdffa0e1",
+    "input": {
+      "bytes": 97,
+      "digest": "sha256:5774acd203cf71ea434844155317a68bb4bded8f81a26e692582c89a0273f9ce"
+    },
+    "manifest": {
+      "version": 1,
+      "root": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm",
+      "workspace": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\workspace",
+      "control": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control",
+      "scratch": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\scratch",
+      "check": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control\\check.cjs",
+      "wallTimeMs": 10000,
+      "runtime": {
+        "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control\\node.exe",
+        "dev": "38182903",
+        "ino": "15762598697527021",
+        "bytes": 87074816,
+        "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      },
+      "directories": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm",
+          "dev": "38182903",
+          "ino": "11540474046867147"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control",
+          "dev": "38182903",
+          "ino": "10133099163313897"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\scratch",
+          "dev": "38182903",
+          "ino": "9570149209892587"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\workspace",
+          "dev": "38182903",
+          "ino": "10414574140024550"
+        }
+      ],
+      "files": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\workspace\\child.cjs",
+          "dev": "38182903",
+          "ino": "11540474046867185",
+          "bytes": 449,
+          "sha256": "430653c5b1c252dc67c63ef2040ce1af8e8cd0a76e30cddcc1281d99cdffa0e1"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\workspace\\input.bin",
+          "dev": "38182903",
+          "ino": "9570149209892606",
+          "bytes": 97,
+          "sha256": "5774acd203cf71ea434844155317a68bb4bded8f81a26e692582c89a0273f9ce"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control\\check.cjs",
+          "dev": "38182903",
+          "ino": "10133099163313923",
+          "bytes": 977,
+          "sha256": "adbe23bf62fc1c944d6df1bca6044e7e37bf66b367f5cc820b5beff1dcc0a5d6"
+        }
+      ]
+    },
+    "manifestDigest": "sha256:58e48997ace661b4b8b62f9e41c42c237b8b7c58b71981561bf442c5f0fdb6ee",
+    "runtime": {
+      "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "15762598697527021",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "nodeVersion": "v22.22.2",
+      "libuvVersion": "1.51.0"
+    },
+    "settlement": {
+      "manifestDigest": "58e48997ace661b4b8b62f9e41c42c237b8b7c58b71981561bf442c5f0fdb6ee",
+      "cleanupConfirmed": true,
+      "capabilityCount": 0,
+      "loopbackExemptionAbsent": true,
+      "targetPid": 28968,
+      "appContainerSid": "<APPCONTAINER_SID>",
+      "wallTimeMs": 10000,
+      "targetExitCode": 0,
+      "supervisorUserSidSha256": "<REDACTED_SID_DIGEST>",
+      "executionFailed": false
+    },
+    "execution": {
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "CC_ALL_FILE_STDIO:{\"mode\":\"file-file-file\",\"pid\":28968,\"status\":0,\"signal\":null,\"errorCode\":null,\"descriptorsClosed\":3,\"stdout\":\"{\\\"marker\\\":\\\"all-file-child-ok\\\",\\\"pid\\\":11052,\\\"parentPid\\\":28968,\\\"inputBytes\\\":97,\\\"inputDigest\\\":\\\"sha256:5774acd203cf71ea434844155317a68bb4bded8f81a26e692582c89a0273f9ce\\\",\\\"runtime\\\":\\\"<USER_PROFILE>\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\cc-native-evaluator-7Q7oOm\\\\\\\\control\\\\\\\\node.exe\\\",\\\"nodeVersion\\\":\\\"v22.22.2\\\",\\\"libuvVersion\\\":\\\"1.51.0\\\"}\\n\",\"stderr\":\"all-file-stderr-ok\\n\"}\n",
+      "stderr": "",
+      "stdoutSha256": "sha256:6a241f859526a4abe60b2f518a8d6ca4661b3f4b2f45e941acd3c92f17afe850",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "inspected": {
+      "record": {
+        "mode": "file-file-file",
+        "pid": 28968,
+        "status": 0,
+        "signal": null,
+        "errorCode": null,
+        "descriptorsClosed": 3,
+        "stdout": "{\"marker\":\"all-file-child-ok\",\"pid\":11052,\"parentPid\":28968,\"inputBytes\":97,\"inputDigest\":\"sha256:5774acd203cf71ea434844155317a68bb4bded8f81a26e692582c89a0273f9ce\",\"runtime\":\"<USER_PROFILE>\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-7Q7oOm\\\\control\\\\node.exe\",\"nodeVersion\":\"v22.22.2\",\"libuvVersion\":\"1.51.0\"}\n",
+        "stderr": "all-file-stderr-ok\n"
+      },
+      "child": {
+        "marker": "all-file-child-ok",
+        "pid": 11052,
+        "parentPid": 28968,
+        "inputBytes": 97,
+        "inputDigest": "sha256:5774acd203cf71ea434844155317a68bb4bded8f81a26e692582c89a0273f9ce",
+        "runtime": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-7Q7oOm\\control\\node.exe",
+        "nodeVersion": "v22.22.2",
+        "libuvVersion": "1.51.0"
+      },
+      "diagnosticCompleted": true,
+      "capabilities": {}
+    },
+    "finishedAt": "2026-10-08T03:18:05.557Z"
+  }
+}

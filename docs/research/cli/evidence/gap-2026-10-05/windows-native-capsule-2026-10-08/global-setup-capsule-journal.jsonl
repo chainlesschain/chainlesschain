@@ -1,0 +1,2 @@
+{"sequence":0,"stage":"started","mode":"global-setup","pid":11436,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"failed","mode":"global-setup","pid":11436,"error":"EPERM: operation not permitted, realpath '<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-2KvYNJ\\scratch\\tmp'","code":"EPERM"}

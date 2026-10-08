@@ -96,6 +96,7 @@ docs/research/cli/evidence/gap-2026-10-05/volcengine-live-20261006/** -text !eol
 # Public-install and native evaluator evidence preserves archived bytes.
 docs/research/cli/evidence/gap-2026-10-05/public-cli*/** -text !eol -whitespace
 docs/research/cli/evidence/gap-2026-10-05/windows-native*/** -text !eol -whitespace
+docs/research/cli/evidence/gap-2026-10-05/windows-pipe-api-2026-10-08/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/public-vscode*/** -text !eol -whitespace
 docs/research/ide/evidence/gap-2026-10-05/public-jetbrains*/** -text !eol -whitespace
 docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/** -text !eol -whitespace

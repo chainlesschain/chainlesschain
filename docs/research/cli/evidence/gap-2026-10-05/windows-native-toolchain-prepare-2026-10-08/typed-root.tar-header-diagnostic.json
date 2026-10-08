@@ -1,0 +1,88 @@
+{
+  "schema": "chainlesschain.read-only-tar-header-diagnostic/v1",
+  "extractionPerformed": false,
+  "admissionEligible": false,
+  "package": {
+    "path": "node_modules/agent-base",
+    "name": "agent-base",
+    "version": "7.1.4",
+    "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-7.1.4.tgz",
+    "integrity": "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="
+  },
+  "artifactDigest": "sha256:7dd4a61668a9a4e8d4e903f1a254f94d53dafd3f316f2b9b597c5ad8c79cb57e",
+  "lockedIntegrityMatches": true,
+  "headers": [
+    {
+      "name": "package/LICENSE",
+      "size": 1101,
+      "type": "0",
+      "contentDigest": "sha256:8d8c55319c7729d57be811c747452636688d54f19701ee0752b6b15ad3771d9a"
+    },
+    {
+      "name": "package/dist/helpers.js",
+      "size": 2314,
+      "type": "0",
+      "contentDigest": "sha256:6043c5c1bb76491992f6c56f65895e2e9167ae10122fef4d58d6638ebac4ba05"
+    },
+    {
+      "name": "package/./dist/index.js",
+      "size": 7324,
+      "type": "0",
+      "contentDigest": "sha256:c6503bd5e007db8b73fedf07b6eaaf4a94d5541953f0d06c8a17d1644c29a0c5"
+    },
+    {
+      "name": "package/dist/index.js",
+      "size": 7324,
+      "type": "0",
+      "contentDigest": "sha256:c6503bd5e007db8b73fedf07b6eaaf4a94d5541953f0d06c8a17d1644c29a0c5"
+    },
+    {
+      "name": "package/package.json",
+      "size": 1059,
+      "type": "0",
+      "contentDigest": "sha256:7a08cb2fe1d2b788e0a7bf6a9b7597dbeeeae804698c2fbd15de786d284d327c"
+    },
+    {
+      "name": "package/dist/helpers.d.ts.map",
+      "size": 585,
+      "type": "0",
+      "contentDigest": "sha256:314ccebf6dbf85ff055681fdc0291008afa38036f665c857578b2e47e17ad165"
+    },
+    {
+      "name": "package/dist/helpers.js.map",
+      "size": 1401,
+      "type": "0",
+      "contentDigest": "sha256:232164f309b02945f8f49b1f0f6d04f546de10b6d5d0151f140892f4550a55c9"
+    },
+    {
+      "name": "package/dist/index.d.ts.map",
+      "size": 1430,
+      "type": "0",
+      "contentDigest": "sha256:9cd18cdd433a41bd7b2151461db479f59f7823ee46a7ee123a3464981147a29c"
+    },
+    {
+      "name": "package/dist/index.js.map",
+      "size": 4146,
+      "type": "0",
+      "contentDigest": "sha256:3ba2c1244801b32c7dfc0a71d50b2316a2d178c666287b5c43887539354aebcb"
+    },
+    {
+      "name": "package/README.md",
+      "size": 2459,
+      "type": "0",
+      "contentDigest": "sha256:dc8148b1d0bbb80f812f1d8c00700e9242a010e7463aee2da415476a45f37a9e"
+    },
+    {
+      "name": "package/dist/helpers.d.ts",
+      "size": 624,
+      "type": "0",
+      "contentDigest": "sha256:d159a1bf12aed961258abcb9bc26ceaa615db573662be64f7e9ce136db1fb265"
+    },
+    {
+      "name": "package/dist/index.d.ts",
+      "size": 1519,
+      "type": "0",
+      "contentDigest": "sha256:86cc3effc64d89018e0615a7026f9298c17d162cde9bce65b9c4b5b2aebdb40a"
+    }
+  ]
+}

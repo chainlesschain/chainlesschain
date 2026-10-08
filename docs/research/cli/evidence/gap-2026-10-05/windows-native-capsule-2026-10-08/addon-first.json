@@ -1,0 +1,1915 @@
+{
+  "schema": "chainlesschain.native-toolchain-capsule-diagnostic/v1",
+  "startedAt": "2026-10-08T03:46:14.246Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "mode": "addon-load",
+  "pool": null,
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "durableAuthorityAssessed": false,
+  "capabilities": {},
+  "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+  "registryContentVerified": true,
+  "diagnosticCompleted": false,
+  "stage": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm",
+  "execution": {
+    "status": 1,
+    "signal": null,
+    "error": null,
+    "stdout": "",
+    "stderr": "Error: The specified module could not be found.\r\n\\\\?\\<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\workspace\\node_modules\\@rollup\\rollup-win32-x64-gnu\\rollup.win32-x64-gnu.node\n    at Object..node (node:internal/modules/cjs/loader:1864:18)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\n    at require (node:internal/modules/helpers:147:16)\n    at <USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\control\\check.cjs:39:264\n    at Object.<anonymous> (<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\control\\check.cjs:57:3)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n"
+  },
+  "settlement": {
+    "manifestDigest": "c2b4517b28ad042fb5b6df5e0eb170886e25356fba094ef7b2f3b9177621a3a8",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 13668,
+    "appContainerSid": "S-1-15-2-1079924146-2452750267-4275757320-2251721756-424494638-4135269675-4203465465",
+    "wallTimeMs": 15000,
+    "targetExitCode": 1,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "sourceIdentities": [
+    {
+      "file": "./verify01-native-capsule.mjs",
+      "digest": "sha256:6bb8ef17c164e5e84fad175490691bec5bc1e4e755969efacb9667a465ae6344"
+    },
+    {
+      "file": "./verify01-native-toolchain.mjs",
+      "digest": "sha256:74c8b69264761b4d241fffce62ff54f9214839b21971e1b1786bbd1e1637cabe"
+    },
+    {
+      "file": "./verify01-native-toolchain-prepare.mjs",
+      "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b"
+    },
+    {
+      "file": "./verify01-registry-content.mjs",
+      "digest": "sha256:1286bb889b710dc6fba9c914f212d253c728cad60d4755d4ed8df87a584eb5f3"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:f6fbd20fff7f3e9c14296e040a52397642b2f00c2757c447781474a15660e77f"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:ae1d468fce99a4a4a75b78805f24e043c8e16bc110821ae0df17bab54b5abbd7"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:6517007066b72fbac458455fbb20d88729723ff30c4520ccdd092fffb455bc42"
+    },
+    {
+      "file": "../src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:4d43480259112a7f58828a52d4b12fc74df4310bef1ab8a8ca8e6fbbe152f581"
+    }
+  ],
+  "manifestDigest": "sha256:c2b4517b28ad042fb5b6df5e0eb170886e25356fba094ef7b2f3b9177621a3a8",
+  "journalDigest": "sha256:66911b0a06317f67542e9b7e44981cd007e5e6da9b6ce6203cd1f13b301be468",
+  "error": "Native capsule: native check failed; inspect raw journal/stdio",
+  "finishedAt": "2026-10-08T03:47:32.382Z",
+  "inventorySummary": {
+    "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+    "runtime": {
+      "platform": "win32",
+      "architecture": "x64",
+      "nodeVersion": "v22.22.2",
+      "modulesAbi": "127",
+      "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "packages": 191,
+    "files": 6907,
+    "support": [
+      {
+        "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+        "bytes": 376,
+        "digest": "sha256:6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637"
+      },
+      {
+        "path": "packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js",
+        "bytes": 15132,
+        "digest": "sha256:625b7aa9405f3de6926fe25d9b84aeab947f3c57eb42065d2d6aa2f23d344b70"
+      },
+      {
+        "path": "packages/cli/test/helpers/windows-sandbox-adapter-cleanup.js",
+        "bytes": 1426,
+        "digest": "sha256:5fb283aa5aae622d3a5609bf1f878c2068177e1b547ce1c45293d86e57ef011d"
+      },
+      {
+        "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+        "bytes": 1490,
+        "digest": "sha256:c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+      },
+      {
+        "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+        "bytes": 4922,
+        "digest": "sha256:c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516"
+      }
+    ],
+    "addons": [
+      {
+        "path": "node_modules/@parcel/watcher-win32-x64/watcher.node",
+        "bytes": 530944,
+        "digest": "sha256:6c26cff1cc989bde1cdb40f49463c6a1612e528ca0cc11ac1594541a1204f4f2"
+      },
+      {
+        "path": "node_modules/@rollup/rollup-win32-x64-gnu/rollup.win32-x64-gnu.node",
+        "bytes": 2011136,
+        "digest": "sha256:a4296f17cddf99ee84cb358c8590d460d36b445775b64e42760d7c8308d60c13"
+      },
+      {
+        "path": "node_modules/@rollup/rollup-win32-x64-msvc/rollup.win32-x64-msvc.node",
+        "bytes": 2590720,
+        "digest": "sha256:80e6b8d7d96e40f78138d39be7dcff13604c330d44f5a6b4dbccf1b47de32bba"
+      }
+    ],
+    "bytes": 79324538,
+    "registryChecks": [
+      {
+        "packagePath": "node_modules/@asamuzakjp/css-color/node_modules/lru-cache",
+        "artifact": "0001.tgz",
+        "artifactDigest": "sha256:0ea17b527beaaaac504ea7a7aaab90db0581dc9a2e117bfbdba44789f15496ed",
+        "integrity": "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==",
+        "registryContentVerified": true,
+        "fileCount": 17,
+        "contentBytes": 804301
+      },
+      {
+        "packagePath": "node_modules/@asamuzakjp/css-color",
+        "artifact": "0000.tgz",
+        "artifactDigest": "sha256:b65bd3770651faf0b081aad7c2b4b7d4ec575f466c4cc881313e4a3ed0a38759",
+        "integrity": "sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==",
+        "registryContentVerified": true,
+        "fileCount": 58,
+        "contentBytes": 2097817
+      },
+      {
+        "packagePath": "node_modules/@babel/helper-string-parser",
+        "artifact": "0002.tgz",
+        "artifactDigest": "sha256:124565ecd300d7187973060ba6b1d1c4f296e55f0489ddfd6af794f516fed127",
+        "integrity": "sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 31816
+      },
+      {
+        "packagePath": "node_modules/@babel/helper-validator-identifier",
+        "artifact": "0003.tgz",
+        "artifactDigest": "sha256:7a31904bc45f1bb232d5e5dd797d12296f4a27fb4bf0f6d517827700f997dc1f",
+        "integrity": "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg==",
+        "registryContentVerified": true,
+        "fileCount": 9,
+        "contentBytes": 48813
+      },
+      {
+        "packagePath": "node_modules/@babel/parser",
+        "artifact": "0004.tgz",
+        "artifactDigest": "sha256:09acebe11cc4803acfc1d62700646d6e8ff81812f39999b1f5d91a5ad4c591db",
+        "integrity": "sha512-hnORnjP/1P/zFEndoeX+n+t1RwWRJiJpM/jO7FW32Kn9r5+sJB2JWOdYo4L6k78j15eCwY3Gm/7364B1EMwtNg==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 1997484
+      },
+      {
+        "packagePath": "node_modules/@babel/types",
+        "artifact": "0005.tgz",
+        "artifactDigest": "sha256:48a01897934d95c02459b200aa876aac5466816778fa8bda23adf86ef24b452c",
+        "integrity": "sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==",
+        "registryContentVerified": true,
+        "fileCount": 178,
+        "contentBytes": 2750097
+      },
+      {
+        "packagePath": "node_modules/@bcoe/v8-coverage",
+        "artifact": "0006.tgz",
+        "artifactDigest": "sha256:7b7688046f3470b5f681184fe65a7372dc83c89889a2abd91e18cd546f469e8f",
+        "integrity": "sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 25764
+      },
+      {
+        "packagePath": "node_modules/@csstools/color-helpers",
+        "artifact": "0007.tgz",
+        "artifactDigest": "sha256:b95d5f63268d0d884b2c5caeecba9f08b81ff1ca4d75923c12673afca080d7aa",
+        "integrity": "sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 80870
+      },
+      {
+        "packagePath": "node_modules/@csstools/css-calc",
+        "artifact": "0008.tgz",
+        "artifactDigest": "sha256:2971adbbee310145798494965c74d2228bcede97b2f9dd369f8d5e6909340236",
+        "integrity": "sha512-3N8oaj+0juUw/1H3YwmDDJXCgTB1gKU6Hc/bB502u9zR0q2vd786XJH9QfrKIEgFlZmhZiq6epXl4rHqhzsIgQ==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 71012
+      },
+      {
+        "packagePath": "node_modules/@csstools/css-color-parser",
+        "artifact": "0009.tgz",
+        "artifactDigest": "sha256:492d6a310a91735b721329f89e3e99304ef6e87c98df70c20eed3a97a64220da",
+        "integrity": "sha512-nbtKwh3a6xNVIp/VRuXV64yTKnb1IjTAEEh3irzS+HkKjAOYLTGNb9pmVNntZ8iVBHcWDA2Dof0QtPgFI1BaTA==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 105150
+      },
+      {
+        "packagePath": "node_modules/@csstools/css-parser-algorithms",
+        "artifact": "0010.tgz",
+        "artifactDigest": "sha256:11418fddd5e05444e4b24705d5313e5e26ba9b7a07c9099062fdab3206653e7e",
+        "integrity": "sha512-DaDeUkXZKjdGhgYaHNJTV9pV7Y9B3b644jCLs9Upc3VeNGg6LWARAT6O+Q+/COo+2gg/bM5rhpMAtf70WqfBdQ==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 45381
+      },
+      {
+        "packagePath": "node_modules/@csstools/css-tokenizer",
+        "artifact": "0011.tgz",
+        "artifactDigest": "sha256:0a92d4d311b7acf320aadcb632acde29569711f8eadcca9f0e980f3af93f4339",
+        "integrity": "sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 72983
+      },
+      {
+        "packagePath": "node_modules/@esbuild/win32-x64",
+        "artifact": "0012.tgz",
+        "artifactDigest": "sha256:5c5d62da7572b57ddc1fa3caedc36c1218b5d8d02ce9c7ee70e3339fce4453c4",
+        "integrity": "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A==",
+        "registryContentVerified": true,
+        "fileCount": 3,
+        "contentBytes": 11671045
+      },
+      {
+        "packagePath": "node_modules/@jridgewell/gen-mapping",
+        "artifact": "0013.tgz",
+        "artifactDigest": "sha256:bc16f658c1f6d63e0c8738ab881d03f49f1955d8f853cdcb8f7d315cf62f0082",
+        "integrity": "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==",
+        "registryContentVerified": true,
+        "fileCount": 31,
+        "contentBytes": 93797
+      },
+      {
+        "packagePath": "node_modules/@jridgewell/resolve-uri",
+        "artifact": "0014.tgz",
+        "artifactDigest": "sha256:db52f9f62558baab13353dd39e3200750fc33e6a129a575b46226f493776e230",
+        "integrity": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 53153
+      },
+      {
+        "packagePath": "node_modules/@jridgewell/source-map",
+        "artifact": "0015.tgz",
+        "artifactDigest": "sha256:002115a6e70a202b154333b911f30575aa0164e865a83fb1c766047a579d3ce5",
+        "integrity": "sha512-ZMp1V8ZFcPG5dIWnQLr3NSI1MiCU7UETdS/A0G8V/XWHvJv3ZsFqutJn1Y5RPmAPX6F3BiE397OqveU/9NCuIA==",
+        "registryContentVerified": true,
+        "fileCount": 12,
+        "contentBytes": 33473
+      },
+      {
+        "packagePath": "node_modules/@jridgewell/sourcemap-codec",
+        "artifact": "0016.tgz",
+        "artifactDigest": "sha256:47ad3b0d20a2e5e31ed65049829440fb1e3d4ac554d93f8040562c1821816585",
+        "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==",
+        "registryContentVerified": true,
+        "fileCount": 27,
+        "contentBytes": 87012
+      },
+      {
+        "packagePath": "node_modules/@jridgewell/trace-mapping",
+        "artifact": "0017.tgz",
+        "artifactDigest": "sha256:c64c71a119630d5abe8246889edf334b2ca9ddad094e20d623332956b1453ccf",
+        "integrity": "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==",
+        "registryContentVerified": true,
+        "fileCount": 52,
+        "contentBytes": 146724
+      },
+      {
+        "packagePath": "node_modules/@parcel/watcher",
+        "artifact": "0018.tgz",
+        "artifactDigest": "sha256:ab42807be3df24a12d01e31568a7e61def1a4bee636a7c60a397319eff677e95",
+        "integrity": "sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==",
+        "registryContentVerified": true,
+        "fileCount": 45,
+        "contentBytes": 133279
+      },
+      {
+        "packagePath": "node_modules/@parcel/watcher-win32-x64",
+        "artifact": "0019.tgz",
+        "artifactDigest": "sha256:a3af602cde25e3db3f217e9ab56ed8115e2b48b8935bd1b562f9867c30f163e6",
+        "integrity": "sha512-cA+/pXV2YkfxlIcXOQ5fSWqAzzPyD78/x5qbK/I0vUkrlYHA8TIz+MXjAbGouguKVSI4bOmkTSJ1/poVSsgt+A==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 532732
+      },
+      {
+        "packagePath": "node_modules/@polka/url",
+        "artifact": "0020.tgz",
+        "artifactDigest": "sha256:7219da1e8f50cffc0f82f2ddfb44bb04cd5ef9feeca96e1e61c0c981a92ccdc2",
+        "integrity": "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 4815
+      },
+      {
+        "packagePath": "node_modules/@rollup/rollup-win32-x64-gnu",
+        "artifact": "0021.tgz",
+        "artifactDigest": "sha256:f530cc6c12c512e7a7725a2b3d21c82f2329ecc8088248c22f34a18d38a05953",
+        "integrity": "sha512-T6xr6ucWSFto+VGajA8YH26LdpHRuP4YLHEKAtCWvJDOlnmWcDZVCI2Jmjr+IFHDlt2zRaTAKE4tfjTaWLgJBg==",
+        "registryContentVerified": true,
+        "fileCount": 3,
+        "contentBytes": 2011679
+      },
+      {
+        "packagePath": "node_modules/@rollup/rollup-win32-x64-msvc",
+        "artifact": "0022.tgz",
+        "artifactDigest": "sha256:b945849f90d307d1740b55283bf56b1747406008ae9347d6e2e1e224d4273e15",
+        "integrity": "sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA==",
+        "registryContentVerified": true,
+        "fileCount": 3,
+        "contentBytes": 2591268
+      },
+      {
+        "packagePath": "node_modules/@standard-schema/spec",
+        "artifact": "0023.tgz",
+        "artifactDigest": "sha256:a7cb7268be280ab518d450f8c3b07c86f23417225c0ab53691ed59b3067cceaf",
+        "integrity": "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 22634
+      },
+      {
+        "packagePath": "node_modules/@types/chai",
+        "artifact": "0024.tgz",
+        "artifactDigest": "sha256:5f0c52e34238e17d2d9a2d6e9b85530765afae645f265e0e14263ebeecdd7f94",
+        "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 92011
+      },
+      {
+        "packagePath": "node_modules/@types/deep-eql",
+        "artifact": "0025.tgz",
+        "artifactDigest": "sha256:b63d185ff2cd2223bd6962b12b10342df4c5a4c25fd20017d2d9f335c35f3607",
+        "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 4762
+      },
+      {
+        "packagePath": "node_modules/@types/estree",
+        "artifact": "0026.tgz",
+        "artifactDigest": "sha256:ec8f3c0dfb21497db5a3480c45a6cf6f9b18d3b337b2ea4d03e3ef2a9c2bb358",
+        "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 26153
+      },
+      {
+        "packagePath": "node_modules/@types/node",
+        "artifact": "0027.tgz",
+        "artifactDigest": "sha256:cb0bc3624d2e6bc233ec332a3aea6ac317c0aadb3301bfb797a34864546c1401",
+        "integrity": "sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==",
+        "registryContentVerified": true,
+        "fileCount": 91,
+        "contentBytes": 2445010
+      },
+      {
+        "packagePath": "node_modules/@types/whatwg-mimetype",
+        "artifact": "0028.tgz",
+        "artifactDigest": "sha256:db212b8ed3c2dbf77fb0c0f129de9b90aa1053b8e640cedb76c9e154fa46f3d3",
+        "integrity": "sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 7556
+      },
+      {
+        "packagePath": "node_modules/@types/ws",
+        "artifact": "0029.tgz",
+        "artifactDigest": "sha256:dc2763952a24bf15dc920830a2d2884c23bccc08a853e8556e34771401254fa5",
+        "integrity": "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 42347
+      },
+      {
+        "packagePath": "node_modules/@vitest/coverage-v8",
+        "artifact": "0030.tgz",
+        "artifactDigest": "sha256:8ede0dccd45214a19f0a88ee532dadd7fc6a11a2f9ccedf87044326dd6be83b6",
+        "integrity": "sha512-IM49HmthevbgAO4anp1hwtoT9wYe59w0LR00gr+eagHE+ZJ5lK4sLPeO0ubgoJcwLk6dehU3R24N+FbEEKDc8g==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 23647
+      },
+      {
+        "packagePath": "node_modules/@vitest/expect",
+        "artifact": "0031.tgz",
+        "artifactDigest": "sha256:4b990b73617ca3d052add0824a8021586bb3dd26c8350d01ac88afc10ea43d84",
+        "integrity": "sha512-YsCn+qAk1GWjQOWFEsEcL2gNQ0zmVmQu3T03qP6UyjhtmdtwtbuI+DASn/7iQB3HGTXkdBwGddzxPlmiql5vlA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 106756
+      },
+      {
+        "packagePath": "node_modules/@vitest/mocker",
+        "artifact": "0032.tgz",
+        "artifactDigest": "sha256:2d3f2fb7bc349f7b64183cfe4dd09b577900f269d16b5dfc1d95a6bf2176a4e3",
+        "integrity": "sha512-v0xaezt+DKEmKfaxg133ldzADrwLGd7Ze1MfQQTYfvs8OqZIwbxyxaYURivwV7sWy5fqn3rH5uOrSp07bp44Ow==",
+        "registryContentVerified": true,
+        "fileCount": 31,
+        "contentBytes": 187364
+      },
+      {
+        "packagePath": "node_modules/@vitest/pretty-format",
+        "artifact": "0033.tgz",
+        "artifactDigest": "sha256:05b345095839e9c8cabae7cc2220475c2ee63dd787b635808a164e7eb07e5aaa",
+        "integrity": "sha512-W1HsjSH4MXQ9YfmmhLAoIYf1HRfekQCGngeIgcei6MP5QQGWUe0gkopdZQaVCFO+JDJMrAJGwa5pRpNpvy4P8Q==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 49831
+      },
+      {
+        "packagePath": "node_modules/@vitest/runner",
+        "artifact": "0034.tgz",
+        "artifactDigest": "sha256:97d3f0143c81311288de38db418717b1075877b3ee9e485e09360972265205d5",
+        "integrity": "sha512-IKI6kpIH+LmpROplyLwBBaCfMgOZOMsygVa6BARD6ahA04VRuJSa6OaVG7kRvSEMD870Vd91rSSw0eegtWyLGg==",
+        "registryContentVerified": true,
+        "fileCount": 13,
+        "contentBytes": 193883
+      },
+      {
+        "packagePath": "node_modules/@vitest/snapshot",
+        "artifact": "0035.tgz",
+        "artifactDigest": "sha256:a98f52ce0c561f58fdcb5663c280dfb7f331766ec890cf9d1f2fb4e81e773edd",
+        "integrity": "sha512-xRkfOT1qpTAi/Ti4Y1LtfRc3kEuqxGw59eN2jN9pRWMtS/XDevekhcFSqvQqjUNGksfjMJu3Y+oJ+4Ypn2OaJw==",
+        "registryContentVerified": true,
+        "fileCount": 13,
+        "contentBytes": 59314
+      },
+      {
+        "packagePath": "node_modules/@vitest/spy",
+        "artifact": "0036.tgz",
+        "artifactDigest": "sha256:501d93668229ba27d7a59175dac6f650d26ed5861c30cec9f6ceb1bd73e5a893",
+        "integrity": "sha512-PLf/Ugvoq5wO/b4rwYCR1h2PSIdXz7wnkQFMiUpLdtM7l6pqVFcQIBEHyT1+l+cj7mNwAfZHzqXqDyjvOuwbDw==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 37389
+      },
+      {
+        "packagePath": "node_modules/@vitest/ui",
+        "artifact": "0037.tgz",
+        "artifactDigest": "sha256:f0dd1bae023203abd4ebfc2d197804e79a200f2c7ce477bf103f5ab8560dab34",
+        "integrity": "sha512-EOUqfXHTXtpSHsyLHH40ts3Ue+hRhSGwzwzMlK0dTEOLSDYyOXLyr5JDGmHQWhN2DYI30gw6dVx3cdgM9FZl+Q==",
+        "registryContentVerified": true,
+        "fileCount": 14,
+        "contentBytes": 1077004
+      },
+      {
+        "packagePath": "node_modules/@vitest/utils",
+        "artifact": "0038.tgz",
+        "artifactDigest": "sha256:baec96b90c182c46bb08114aa7da40b22e547ad95a4c304db9e6897aa02271c9",
+        "integrity": "sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==",
+        "registryContentVerified": true,
+        "fileCount": 34,
+        "contentBytes": 168248
+      },
+      {
+        "packagePath": "node_modules/acorn",
+        "artifact": "0039.tgz",
+        "artifactDigest": "sha256:afa83fff751e6c9739eea552d84328414d3860408f98ce5c7f3cc7e2a3996424",
+        "integrity": "sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 562966
+      },
+      {
+        "packagePath": "node_modules/agent-base",
+        "artifact": "0040.tgz",
+        "artifactDigest": "sha256:7dd4a61668a9a4e8d4e903f1a254f94d53dafd3f316f2b9b597c5ad8c79cb57e",
+        "integrity": "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 23962,
+        "normalizations": [
+          {
+            "kind": "identical-root-dot-file-pair",
+            "rawPath": "package/./dist/index.js",
+            "canonicalPath": "package/dist/index.js",
+            "bytes": 7324,
+            "digest": "sha256:c6503bd5e007db8b73fedf07b6eaaf4a94d5541953f0d06c8a17d1644c29a0c5"
+          }
+        ]
+      },
+      {
+        "packagePath": "node_modules/assertion-error",
+        "artifact": "0041.tgz",
+        "artifactDigest": "sha256:73f4a5b3c9b38e4f3123188d4d85a7933ee5fe2f77f8ff04e8867b0938c20f56",
+        "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 5832
+      },
+      {
+        "packagePath": "node_modules/ast-v8-to-istanbul/node_modules/js-tokens",
+        "artifact": "0043.tgz",
+        "artifactDigest": "sha256:b6867f1af4cf2c6e46fd94871944bf49fcc32ab1730bc829807812a87960c9cd",
+        "integrity": "sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 15993
+      },
+      {
+        "packagePath": "node_modules/ast-v8-to-istanbul",
+        "artifact": "0042.tgz",
+        "artifactDigest": "sha256:368fe903d79ec509c76f01f2aa08599968efd23922b87b4b34209227aebb6824",
+        "integrity": "sha512-UPAgKJFSEGMWSDr3LX4tqnAb4f7KGT8O40Tyx8wbYmmZ/yn58lNCm8h3svs3eXgiGd5AXxz8NDOvXWvicq+rJA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 52000
+      },
+      {
+        "packagePath": "node_modules/base64-js",
+        "artifact": "0044.tgz",
+        "artifactDigest": "sha256:b1b7a945b52685269083425216d6597e33d97bf21699d656e92fdb3eb5210a85",
+        "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 9624
+      },
+      {
+        "packagePath": "node_modules/buffer",
+        "artifact": "0045.tgz",
+        "artifactDigest": "sha256:98bfac55b7a37ade644f5eccbcf94a59269afd13e1f9af597e61fd06c057c0bc",
+        "integrity": "sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 82527
+      },
+      {
+        "packagePath": "node_modules/buffer-from",
+        "artifact": "0046.tgz",
+        "artifactDigest": "sha256:9c2b03d59eca8f463a1927e07273ddaa87785fe3f61626c42b005540e962e343",
+        "integrity": "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 5047
+      },
+      {
+        "packagePath": "node_modules/buffer-image-size",
+        "artifact": "0047.tgz",
+        "artifactDigest": "sha256:f73cfcb821a2cede2090673c1b533ec18fc8f82afd4e6006ffe538086abb4a2e",
+        "integrity": "sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==",
+        "registryContentVerified": true,
+        "fileCount": 18,
+        "contentBytes": 17156
+      },
+      {
+        "packagePath": "node_modules/canvas",
+        "artifact": "0048.tgz",
+        "artifactDigest": "sha256:8b0e958df3511566da8e797da68035d0b2425f13a4b6879b5b3e39bca2f96217",
+        "integrity": "sha512-PzE5nJZPz72YUAfo8oTp0u3fqqY7IzlTubneAihqDYAUcBk7ryeCmBbdJBEdaH0bptSOe2VT2Zwcb3UaFyaSWw==",
+        "registryContentVerified": true,
+        "fileCount": 50,
+        "contentBytes": 402510
+      },
+      {
+        "packagePath": "node_modules/chai",
+        "artifact": "0049.tgz",
+        "artifactDigest": "sha256:702cd574375345c56198e96b52f55abeb445cd73a52cf7f9ee0d57bba4055b58",
+        "integrity": "sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 146636
+      },
+      {
+        "packagePath": "node_modules/chokidar",
+        "artifact": "0050.tgz",
+        "artifactDigest": "sha256:45d07ea7d57ee482c733ab3c547cc49edc1423bc231507e41ff99d2711f7f5e3",
+        "integrity": "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 82062
+      },
+      {
+        "packagePath": "node_modules/convert-source-map",
+        "artifact": "0051.tgz",
+        "artifactDigest": "sha256:17f7253ec7e4e09f68371192fded2b5241a5cf85e610e5059b1d49e878fe1898",
+        "integrity": "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 15854
+      },
+      {
+        "packagePath": "node_modules/copy-anything",
+        "artifact": "0052.tgz",
+        "artifactDigest": "sha256:bf697c9973c21ef6e5ad5e2c853ed90b8a9fe2db69b27e9c6e81c3e391676193",
+        "integrity": "sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 11696
+      },
+      {
+        "packagePath": "node_modules/cssstyle",
+        "artifact": "0053.tgz",
+        "artifactDigest": "sha256:c3698bac3074af4449a75345eabc31d5b43fdeb8267cffe0b2907c196fde5929",
+        "integrity": "sha512-2z+rWdzbbSZv6/rhtvzvqeZQHrBaqgogqt85sqFNbabZOuFbCVFb8kPeEtZjiKkbrm395irpNKiYeFeLiQnFPg==",
+        "registryContentVerified": true,
+        "fileCount": 86,
+        "contentBytes": 216766
+      },
+      {
+        "packagePath": "node_modules/data-urls/node_modules/whatwg-mimetype",
+        "artifact": "0055.tgz",
+        "artifactDigest": "sha256:d1618a0f551c0b9d770f9ae15b54313956713d1430298e59dfc4f5d4b4bb5183",
+        "integrity": "sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 16721
+      },
+      {
+        "packagePath": "node_modules/data-urls",
+        "artifact": "0054.tgz",
+        "artifactDigest": "sha256:207c4648a8378e07c1816b15ed67b966d250dd099c488f4b2918ea9fad54f52a",
+        "integrity": "sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 7834
+      },
+      {
+        "packagePath": "node_modules/debug",
+        "artifact": "0056.tgz",
+        "artifactDigest": "sha256:89c1ac9c946ee8905a875837114528e97eeae35e03be3190584b2216af43e4a7",
+        "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 42793
+      },
+      {
+        "packagePath": "node_modules/decimal.js",
+        "artifact": "0057.tgz",
+        "artifactDigest": "sha256:433210122e8149972f64054c54b0ce0872e5f15a3c5835aab57ff1a8e6d071b1",
+        "integrity": "sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 284347
+      },
+      {
+        "packagePath": "node_modules/decompress-response/node_modules/mimic-response",
+        "artifact": "0059.tgz",
+        "artifactDigest": "sha256:321e9b7c155cd47183de9d9cdbd6c37bca8187e15b11a42443883330c063dd54",
+        "integrity": "sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 6003
+      },
+      {
+        "packagePath": "node_modules/decompress-response",
+        "artifact": "0058.tgz",
+        "artifactDigest": "sha256:d57e4c5b047bcea4c47cb4cabc14f360d3399389a14ef5a7ce524d181d2a3b4f",
+        "integrity": "sha512-aW35yZM6Bb/4oJlZncMH2LCoZtJXTRxES17vE3hoRiowU2kWHaJKFkSBDnDR+cm9J+9QhXmREyIfv0pji9ejCQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 5472
+      },
+      {
+        "packagePath": "node_modules/deep-extend",
+        "artifact": "0060.tgz",
+        "artifactDigest": "sha256:0dcc5f34920c23f5da2916d1d42e53ae5574913dfb78c406902b7189cf0b1386",
+        "integrity": "sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 9190
+      },
+      {
+        "packagePath": "node_modules/detect-libc",
+        "artifact": "0061.tgz",
+        "artifactDigest": "sha256:270dec0fc06cff86481da8af2dd8f18dee6b602790b14ef0e1c2c18d7da39427",
+        "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 26437
+      },
+      {
+        "packagePath": "node_modules/end-of-stream",
+        "artifact": "0062.tgz",
+        "artifactDigest": "sha256:6d9c2a6030dc642b77b3a4979dfa82138cdb426d2c0e5b09626ad063e384a309",
+        "integrity": "sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 6295
+      },
+      {
+        "packagePath": "node_modules/entities",
+        "artifact": "0063.tgz",
+        "artifactDigest": "sha256:554b7e2a79fa9eda0439714011fa42d77c6829842faa91e022070015bfd483a0",
+        "integrity": "sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==",
+        "registryContentVerified": true,
+        "fileCount": 109,
+        "contentBytes": 392254
+      },
+      {
+        "packagePath": "node_modules/errno",
+        "artifact": "0064.tgz",
+        "artifactDigest": "sha256:5b355ab5171eb98bd3dc02700106ff43c97f9b65a9176684573b816e7964f7d5",
+        "integrity": "sha512-dJ6oBr5SQ1VSd9qkk7ByRgb/1SH4JZjCHSW/mr63/QcXO9zLVxvJ6Oy13nio03rxpSnVDDjFor75SjVeZWPW/A==",
+        "registryContentVerified": true,
+        "fileCount": 9,
+        "contentBytes": 18101
+      },
+      {
+        "packagePath": "node_modules/es-module-lexer",
+        "artifact": "0065.tgz",
+        "artifactDigest": "sha256:82930ec4ee4d4fe590ff2e79d4d439ec1f411e56cde56a7ffe209eee667548ad",
+        "integrity": "sha512-shc1dbU90Yl/xq1QrC7QRtfcwURZuVRfPhZbDoldJ1cn1gzDvBaBWlv0eFolj5+0znnPJz5TXLxsN77X/12KTA==",
+        "registryContentVerified": true,
+        "fileCount": 12,
+        "contentBytes": 172041
+      },
+      {
+        "packagePath": "node_modules/esbuild",
+        "artifact": "0066.tgz",
+        "artifactDigest": "sha256:eb8ef756f8299d16d5c8b35678606d715ba29923f500db7b37c181310eed40a5",
+        "integrity": "sha512-HrJrvZv5ayxBzPfwphOoNzkzOIIlifzk0KJrGK2c8R4+LKpMtpYLQeUdjnwjWv/LZlkH2laZk+4w78pi99D4Vw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 146953
+      },
+      {
+        "packagePath": "node_modules/estree-walker",
+        "artifact": "0067.tgz",
+        "artifactDigest": "sha256:bbbdfdc16cd9ef099e474f55a4aa344103c01853727136a76ee165fa9d1c72b3",
+        "integrity": "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 17599
+      },
+      {
+        "packagePath": "node_modules/expand-template",
+        "artifact": "0068.tgz",
+        "artifactDigest": "sha256:135592c19c447b6f2c14d6c1d958538a0f4f44d35f87263d8ba2c40d1bc0e0df",
+        "integrity": "sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 5410
+      },
+      {
+        "packagePath": "node_modules/expect-type",
+        "artifact": "0069.tgz",
+        "artifactDigest": "sha256:c44b3fea7bcae8a4ce328b457da171e8debf553cbeb6a049817975b8e050e3a1",
+        "integrity": "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==",
+        "registryContentVerified": true,
+        "fileCount": 14,
+        "contentBytes": 138163
+      },
+      {
+        "packagePath": "node_modules/fdir",
+        "artifact": "0070.tgz",
+        "artifactDigest": "sha256:241ddcd9f31e2a1fca405326017dbb8333ce174198e887f0f96387c29f0d365e",
+        "integrity": "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 53291
+      },
+      {
+        "packagePath": "node_modules/fflate",
+        "artifact": "0071.tgz",
+        "artifactDigest": "sha256:38c2cd824402407b43153c782274aec2ea83ea688e4aa0b743c5f2c305857d92",
+        "integrity": "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==",
+        "registryContentVerified": true,
+        "fileCount": 17,
+        "contentBytes": 796742
+      },
+      {
+        "packagePath": "node_modules/flatted",
+        "artifact": "0072.tgz",
+        "artifactDigest": "sha256:1ae9adcb42efadfbf259294a89318b1edddec33058640ed227dae4d2fe5e5835",
+        "integrity": "sha512-/zipXxyO6rGvuNGDiULY9MvEGSkb2gaG4GGH4ygMi0ZZzyMHdUZBmntJmx5x1G2VuPytCwGN4xsJP6cw+sK+vQ==",
+        "registryContentVerified": true,
+        "fileCount": 15,
+        "contentBytes": 38543
+      },
+      {
+        "packagePath": "node_modules/fs-constants",
+        "artifact": "0073.tgz",
+        "artifactDigest": "sha256:e7936d7e1b24475bd59312c4005f30d42539627dfc1c4f5dfe2326d7b7c7c5fa",
+        "integrity": "sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 2223
+      },
+      {
+        "packagePath": "node_modules/github-from-package",
+        "artifact": "0074.tgz",
+        "artifactDigest": "sha256:3e46f185e0772ae9b83a3383a2bc7182b9facaef63c247a76b0ffc91114443fa",
+        "integrity": "sha512-SyHy3T1v2NUXn29OsWdxmK6RwHD+vkj3v8en8AOBZ1wBQ/hCAQ5bAQTD02kW4W9tUp/3Qh6J8r9EvntiyCmOOw==",
+        "registryContentVerified": true,
+        "fileCount": 13,
+        "contentBytes": 4608
+      },
+      {
+        "packagePath": "node_modules/graceful-fs",
+        "artifact": "0075.tgz",
+        "artifactDigest": "sha256:3961374aa161e6fed80d6f4b6aaf2fb7eafd2c9e5be34e865b375f0114dd099c",
+        "integrity": "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 32535
+      },
+      {
+        "packagePath": "node_modules/happy-dom",
+        "artifact": "0076.tgz",
+        "artifactDigest": "sha256:c81d1edda9e28d7c05c0d458071ce9d9f452a5b79417acccac6610555e7b4b0d",
+        "integrity": "sha512-XSt8tMzbW9ymE7687xztkO1ckR7qJNQ3LywY9vlYGhGi3zXrGBHuUo2Cl1ztZaICW+1eAGdkLbj6iwVqDT33kg==",
+        "registryContentVerified": true,
+        "fileCount": 3003,
+        "contentBytes": 8581629
+      },
+      {
+        "packagePath": "node_modules/has-flag",
+        "artifact": "0077.tgz",
+        "artifactDigest": "sha256:77a7eb1411d927bb8a5ca7069dbe168886d63c88f446f0b81500a2cf23ddb5b1",
+        "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 4419
+      },
+      {
+        "packagePath": "node_modules/html-encoding-sniffer",
+        "artifact": "0078.tgz",
+        "artifactDigest": "sha256:11c97fd835c46da51a793b369dbee136da1bdfd41417a17b93f9b53fad77d4cb",
+        "integrity": "sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 11662
+      },
+      {
+        "packagePath": "node_modules/html-escaper",
+        "artifact": "0079.tgz",
+        "artifactDigest": "sha256:8ab75514cf8515cf43f7b69fef645b952c6577026554eb306cc4c17b37c6fad7",
+        "integrity": "sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 13092
+      },
+      {
+        "packagePath": "node_modules/http-proxy-agent",
+        "artifact": "0080.tgz",
+        "artifactDigest": "sha256:785f73faa92bfba8d61da20bf59325ab2b3dca1bbc0bbac523406f404d8a6f02",
+        "integrity": "sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 17260,
+        "normalizations": [
+          {
+            "kind": "identical-root-dot-file-pair",
+            "rawPath": "package/./dist/index.js",
+            "canonicalPath": "package/dist/index.js",
+            "bytes": 6088,
+            "digest": "sha256:fd33b43da34da60d4914780e13fae5d52a7faaa996d687eea5335128de148627"
+          }
+        ]
+      },
+      {
+        "packagePath": "node_modules/https-proxy-agent",
+        "artifact": "0081.tgz",
+        "artifactDigest": "sha256:960f89e8e5240882f64249d04a538421dd39d62ffacc138544647cc3251bc0e0",
+        "integrity": "sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 27706,
+        "normalizations": [
+          {
+            "kind": "identical-root-dot-file-pair",
+            "rawPath": "package/./dist/index.js",
+            "canonicalPath": "package/dist/index.js",
+            "bytes": 7451,
+            "digest": "sha256:30165586fac3becbc9dbf2b7b5bdaa802a77ac34af9926208f6e94a3bd87ef31"
+          }
+        ]
+      },
+      {
+        "packagePath": "node_modules/ieee754",
+        "artifact": "0082.tgz",
+        "artifactDigest": "sha256:8ef14b9b397e339db89db97881fb714f49319d8f0eb1275901f45567b28f9dac",
+        "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 6796
+      },
+      {
+        "packagePath": "node_modules/immutable",
+        "artifact": "0083.tgz",
+        "artifactDigest": "sha256:9481d33c209e07f82933a0f8132348ee9325d72ce196ebc47a93b9b2703f3068",
+        "integrity": "sha512-m8nVez3rwrgmWxtLMt1ZYXB2Lv7OKYn/disyxAlSDYAlKSlFoPPfIAmAM/M5xqL4m4C/wAPw7S2/CNaUii1Hxg==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 726090
+      },
+      {
+        "packagePath": "node_modules/inherits",
+        "artifact": "0084.tgz",
+        "artifactDigest": "sha256:d94dbc6c1bb3c5ac0fb12a73ade187108fc60de273a1b754f55044eb5e24afaf",
+        "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 3958
+      },
+      {
+        "packagePath": "node_modules/is-extglob",
+        "artifact": "0085.tgz",
+        "artifactDigest": "sha256:8c5d4286146ad62fc1096981700ce1c22a167708926fca01f9ca74f9bb50bc19",
+        "integrity": "sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 6217
+      },
+      {
+        "packagePath": "node_modules/is-glob",
+        "artifact": "0086.tgz",
+        "artifactDigest": "sha256:3fe453fb193bb58f6f0505dfb1151230935380b5b55e1f9864261c2aafc1bec6",
+        "integrity": "sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 13609
+      },
+      {
+        "packagePath": "node_modules/is-potential-custom-element-name",
+        "artifact": "0087.tgz",
+        "artifactDigest": "sha256:b6e425bb136422af133754814046a640c1573349755c63130c424abcee398621",
+        "integrity": "sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 3918
+      },
+      {
+        "packagePath": "node_modules/is-what",
+        "artifact": "0088.tgz",
+        "artifactDigest": "sha256:35139e30c48623ceb14e88c38d024a824380b8ebbeea5e037f0567c1eefe7c3b",
+        "integrity": "sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 45090
+      },
+      {
+        "packagePath": "node_modules/istanbul-lib-coverage",
+        "artifact": "0089.tgz",
+        "artifactDigest": "sha256:55807e4747867e8a34d54d0900fab3a5bba7d44230f796fcc7dc62be2efecc8e",
+        "integrity": "sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 34367
+      },
+      {
+        "packagePath": "node_modules/istanbul-lib-report/node_modules/make-dir",
+        "artifact": "0091.tgz",
+        "artifactDigest": "sha256:91497bdb7c98b5c3de4dd26111b1ca4a1bc74670e981ef3637d9c9d71ea6d962",
+        "integrity": "sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 9913
+      },
+      {
+        "packagePath": "node_modules/istanbul-lib-report",
+        "artifact": "0090.tgz",
+        "artifactDigest": "sha256:5e76c0ef8344193fddd98a3c0da90f06d4a54b36110466a8b8538f538d470d3d",
+        "integrity": "sha512-GCfE1mtsHGOELCU8e/Z7YWzpmybrx/+dSTfLrvY8qRmaY6zXTKWn6WQIjaAFw069icm6GVMNkgu0NzI4iPZUNw==",
+        "registryContentVerified": true,
+        "fileCount": 13,
+        "contentBytes": 37641
+      },
+      {
+        "packagePath": "node_modules/istanbul-reports",
+        "artifact": "0092.tgz",
+        "artifactDigest": "sha256:aa3efaadd88bd55d7bbccdad8751b87deb59ce726039e53008869f944564c957",
+        "integrity": "sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==",
+        "registryContentVerified": true,
+        "fileCount": 41,
+        "contentBytes": 294714
+      },
+      {
+        "packagePath": "node_modules/jiti",
+        "artifact": "0093.tgz",
+        "artifactDigest": "sha256:8dd0d365fb49c0e7cc42d6a00df6fb2da9056fc24492094346fc34ecdbcf28ca",
+        "integrity": "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==",
+        "registryContentVerified": true,
+        "fileCount": 16,
+        "contentBytes": 1751293
+      },
+      {
+        "packagePath": "node_modules/jsdom/node_modules/saxes",
+        "artifact": "0095.tgz",
+        "artifactDigest": "sha256:1cdf52fbbe1ccbd175c365d2b8e63f46e590e74aff23fa6a44a6ec51522e96db",
+        "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 163774
+      },
+      {
+        "packagePath": "node_modules/jsdom/node_modules/whatwg-mimetype",
+        "artifact": "0096.tgz",
+        "artifactDigest": "sha256:d1618a0f551c0b9d770f9ae15b54313956713d1430298e59dfc4f5d4b4bb5183",
+        "integrity": "sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 16721
+      },
+      {
+        "packagePath": "node_modules/jsdom/node_modules/xml-name-validator",
+        "artifact": "0097.tgz",
+        "artifactDigest": "sha256:3d40b1428dae32a6328ea20543abaafb72101a2652a95f43ec8757fef213f0be",
+        "integrity": "sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 13574
+      },
+      {
+        "packagePath": "node_modules/jsdom",
+        "artifact": "0094.tgz",
+        "artifactDigest": "sha256:5619b4779f68dec3ae076a97ccc5b8e4aeceaef7d4821ebcfcc1eb124b192000",
+        "integrity": "sha512-Cvc9WUhxSMEo4McES3P7oK3QaXldCfNWp7pl2NNeiIFlCoLr3kfq9kb1fxftiwk1FLV7CvpvDfonxtzUDeSOPg==",
+        "registryContentVerified": true,
+        "fileCount": 500,
+        "contentBytes": 3179723
+      },
+      {
+        "packagePath": "node_modules/less/node_modules/make-dir",
+        "artifact": "0099.tgz",
+        "artifactDigest": "sha256:b7454e09c45ca454aa50c707a50c1e00953eeef4db3aa768ef6e28e2cee5df9a",
+        "integrity": "sha512-IfpFq6UM39dUNiphpA6uDezNx/AvWyhwfICWPR3t1VspkgkMZrL+Rk1RbN1bx+aeNYwOrqGJgEgV3yotk+ZUVw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 9557
+      },
+      {
+        "packagePath": "node_modules/less/node_modules/mime",
+        "artifact": "0100.tgz",
+        "artifactDigest": "sha256:215210390e617ac355b422692c7096476e3fe648176cb72b40075a03c9cc379a",
+        "integrity": "sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 51738
+      },
+      {
+        "packagePath": "node_modules/less",
+        "artifact": "0098.tgz",
+        "artifactDigest": "sha256:4128e6187580980b581c94308b079c93e987040570cc6bf741a8d37d4df230c3",
+        "integrity": "sha512-7Y7DJBMbsW29UGjOG6NGvxQEx71AaDcrryBwYCMaFwn0kj8FkSueKN9r9WexVOetKEhXh38kL++WJncfkEpS+g==",
+        "registryContentVerified": true,
+        "fileCount": 122,
+        "contentBytes": 3182947
+      },
+      {
+        "packagePath": "node_modules/lodash.merge",
+        "artifact": "0101.tgz",
+        "artifactDigest": "sha256:a34e27a950d64a15ee31c652ff1f29c29b42eadaace1d203c680ca314959ef96",
+        "integrity": "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 54132
+      },
+      {
+        "packagePath": "node_modules/magic-string",
+        "artifact": "0102.tgz",
+        "artifactDigest": "sha256:fa49762567dca44e8ccf327f365d250e04c482bf7a4ed0ae7d03659b09ac656f",
+        "integrity": "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 459761
+      },
+      {
+        "packagePath": "node_modules/magicast",
+        "artifact": "0103.tgz",
+        "artifactDigest": "sha256:440303729535ea34f187117c7f8e9c5642e7ea4e0e9ad798731eb8370ecad698",
+        "integrity": "sha512-pVKE4UdSQ7DvHzivsCIFx2BJn1mHG6KsyrFcaxFx6tONdneEuThrDx0Cj3AMg58KyN4pzYT+LHOotxDQDjNvkw==",
+        "registryContentVerified": true,
+        "fileCount": 11,
+        "contentBytes": 376857
+      },
+      {
+        "packagePath": "node_modules/minimist",
+        "artifact": "0104.tgz",
+        "artifactDigest": "sha256:350a76c115b393c19d24654834261e5dc9f0e8cc5e08f3937fa80140f3e4ce83",
+        "integrity": "sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==",
+        "registryContentVerified": true,
+        "fileCount": 24,
+        "contentBytes": 54477
+      },
+      {
+        "packagePath": "node_modules/mkdirp-classic",
+        "artifact": "0105.tgz",
+        "artifactDigest": "sha256:29bcb44df9b5cc4a5b4c3f44f16ec48c53389d2f3892c95c779e31a980075246",
+        "integrity": "sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 4498
+      },
+      {
+        "packagePath": "node_modules/mrmime",
+        "artifact": "0106.tgz",
+        "artifactDigest": "sha256:2cc6d534bb1f78f70dcb513c9b3b7ab982e22291ebc291e3366dee085fadbadd",
+        "integrity": "sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 33008
+      },
+      {
+        "packagePath": "node_modules/ms",
+        "artifact": "0107.tgz",
+        "artifactDigest": "sha256:f6616e15e530ed552f9daa2d3ce71963947c6bc7c98c9b64fd3e673fd02622c6",
+        "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 6721
+      },
+      {
+        "packagePath": "node_modules/napi-build-utils",
+        "artifact": "0108.tgz",
+        "artifactDigest": "sha256:a597633b66d0406c4ddfcdcd4eb3fa33aa89cb97f9c46fb52aa13ae889046a9e",
+        "integrity": "sha512-GEbrYkbfF7MoNaoh2iGG84Mnf/WZfB0GdGEsM8wz7Expx/LlWf5U8t9nvJKXSp3qr5IsEbK04cBGhol/KwOsWA==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 12670
+      },
+      {
+        "packagePath": "node_modules/needle/node_modules/iconv-lite",
+        "artifact": "0110.tgz",
+        "artifactDigest": "sha256:7127ec148f994f031eff658a50dc0629f6010775a8202213b0526ec5e30fc8f4",
+        "integrity": "sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==",
+        "registryContentVerified": true,
+        "fileCount": 33,
+        "contentBytes": 348518
+      },
+      {
+        "packagePath": "node_modules/needle",
+        "artifact": "0109.tgz",
+        "artifactDigest": "sha256:3090e95e3191664d98026043cad0fec9d91e428d53208c0b1a5e2fc757bcc192",
+        "integrity": "sha512-jaQyPKKk2YokHrEg+vFDYxXIHTCBgiZwSHOoVx/8V3GIBS8/VN6NdVRmg8q1ERtPkMvmOvebsgga4sAj5hls/w==",
+        "registryContentVerified": true,
+        "fileCount": 60,
+        "contentBytes": 329849
+      },
+      {
+        "packagePath": "node_modules/node-abi",
+        "artifact": "0111.tgz",
+        "artifactDigest": "sha256:f0f1f5312ccf8c55f979c1ae65d499e309749b363a90ad23d62e38fc17f3c479",
+        "integrity": "sha512-W5ZNO5KRPB5TkYmGVD9F6YqhsglXJzE6etpbmT+f6EQElhiX/UTG551cnsRGvLG3fyZEg9HwaDmNmj5nwJ4z9g==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 18278
+      },
+      {
+        "packagePath": "node_modules/node-addon-api",
+        "artifact": "0112.tgz",
+        "artifactDigest": "sha256:b10455d15a977c0cd17a1cb0eb679e03d939f8ef8d4302eb33e1f78dacc71f82",
+        "integrity": "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==",
+        "registryContentVerified": true,
+        "fileCount": 19,
+        "contentBytes": 396312
+      },
+      {
+        "packagePath": "node_modules/nwsapi",
+        "artifact": "0113.tgz",
+        "artifactDigest": "sha256:0292f789b63e5cbd5f8cdcdb91748ffad2a8b718a38c5263deaf37ed9e568053",
+        "integrity": "sha512-7YRhZ3jS45LwmSCT4b2sVFHt/WuovaktDU07QrtOBY2PXskss5a9jfmR9jptyumwXST+rFjrmppMY1KT/yn35A==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 86662
+      },
+      {
+        "packagePath": "node_modules/obug",
+        "artifact": "0114.tgz",
+        "artifactDigest": "sha256:87618f4dd0510e47759d5527a34c05aae0752c5aef8417e30898a8db4afb5375",
+        "integrity": "sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 27203
+      },
+      {
+        "packagePath": "node_modules/once",
+        "artifact": "0115.tgz",
+        "artifactDigest": "sha256:cf51460ba370c698f68b976e514d113497339ba018b6003e8e8eb569c6fccfcf",
+        "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 4046
+      },
+      {
+        "packagePath": "node_modules/parse-node-version",
+        "artifact": "0116.tgz",
+        "artifactDigest": "sha256:ecdfd0521d3c38b75be096007d049df5bebb22da92cd70d42efb399c6f940aa3",
+        "integrity": "sha512-3YHlOa/JgH6Mnpr05jP9eDG254US9ek25LyIxZlDItp2iJtwyaXQb57lBYLdT3MowkUFYEV2XXNAYIPlESvJlA==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 4499
+      },
+      {
+        "packagePath": "node_modules/parse5/node_modules/entities",
+        "artifact": "0118.tgz",
+        "artifactDigest": "sha256:a4de957ab0852f6c91eae59a6000ced5a25a04f0b6e1c3062fbad732a6b5479d",
+        "integrity": "sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==",
+        "registryContentVerified": true,
+        "fileCount": 86,
+        "contentBytes": 540551
+      },
+      {
+        "packagePath": "node_modules/parse5",
+        "artifact": "0117.tgz",
+        "artifactDigest": "sha256:9316ca7af41da9e85071b62b9605aa0a6aaeb0463f833c29e7a331e7898f0420",
+        "integrity": "sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==",
+        "registryContentVerified": true,
+        "fileCount": 64,
+        "contentBytes": 695873
+      },
+      {
+        "packagePath": "node_modules/pathe",
+        "artifact": "0119.tgz",
+        "artifactDigest": "sha256:6e3b73bc5dbb7f8a108ff5d8459b07da04062e822c662339416525510696df36",
+        "integrity": "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==",
+        "registryContentVerified": true,
+        "fileCount": 16,
+        "contentBytes": 51332
+      },
+      {
+        "packagePath": "node_modules/picocolors",
+        "artifact": "0120.tgz",
+        "artifactDigest": "sha256:d3aedb2807967b7eb37fd11b03b7e3701e725af79c650d0812ff7213f8f882d9",
+        "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 6373
+      },
+      {
+        "packagePath": "node_modules/picomatch",
+        "artifact": "0121.tgz",
+        "artifactDigest": "sha256:e89c478225a42b3793bb4a39fd576de142c9829c26a5bd71782249e48b112f51",
+        "integrity": "sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 92989
+      },
+      {
+        "packagePath": "node_modules/postcss/node_modules/nanoid",
+        "artifact": "0123.tgz",
+        "artifactDigest": "sha256:42b7f772b6df95f32aab9a2aab1ef6209a0883fd1cbb410f659d0cd61c8ff4b6",
+        "integrity": "sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==",
+        "registryContentVerified": true,
+        "fileCount": 25,
+        "contentBytes": 24714
+      },
+      {
+        "packagePath": "node_modules/postcss",
+        "artifact": "0122.tgz",
+        "artifactDigest": "sha256:1d09d6b933578d908a7c8c1e4588a43ae6cef117564b62ae1e23be42a28d269d",
+        "integrity": "sha512-KBDEIpLrvpv16pp3K0Fw+UCoZfopFjjgeB+0tA/aaThfEE74kKDLrgg603YvOWJyg3+WYtyq3xYsQWsIyZlPqQ==",
+        "registryContentVerified": true,
+        "fileCount": 55,
+        "contentBytes": 216108
+      },
+      {
+        "packagePath": "node_modules/prebuild-install/node_modules/bl",
+        "artifact": "0125.tgz",
+        "artifactDigest": "sha256:83deb909ad1829ca990e5b0852810dd1f4402fa5e3a00978fb16a05c49a5a7cb",
+        "integrity": "sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 64427
+      },
+      {
+        "packagePath": "node_modules/prebuild-install/node_modules/chownr",
+        "artifact": "0126.tgz",
+        "artifactDigest": "sha256:72863e05d34d031def689cbc3609aff0443fab0c64e0e6e81bf86d885d59833e",
+        "integrity": "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 5709
+      },
+      {
+        "packagePath": "node_modules/prebuild-install/node_modules/readable-stream",
+        "artifact": "0127.tgz",
+        "artifactDigest": "sha256:edd866c05e318aa9c091763eebdd4207409b7a7648be19c5317a96047305ab5d",
+        "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
+        "registryContentVerified": true,
+        "fileCount": 25,
+        "contentBytes": 123971
+      },
+      {
+        "packagePath": "node_modules/prebuild-install/node_modules/tar-fs",
+        "artifact": "0128.tgz",
+        "artifactDigest": "sha256:ad3283c3f1f444bbe1b8d807373b682bebf0e145893cca164bb3b6a27135e5e0",
+        "integrity": "sha512-OboTd8mmMhZDNPV+UjQcK9yKAatXu2aJ+r1w4im1Otd4M4fl2hwvdoXUxIYHFTHWK/3y3FarBP70v3vwmGlOxw==",
+        "registryContentVerified": true,
+        "fileCount": 16,
+        "contentBytes": 32792
+      },
+      {
+        "packagePath": "node_modules/prebuild-install/node_modules/tar-stream",
+        "artifact": "0129.tgz",
+        "artifactDigest": "sha256:3a8f83dfd74e9b401ba679e18d7917830c04deed3e2346e9fbca17fab4a1395b",
+        "integrity": "sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 27671
+      },
+      {
+        "packagePath": "node_modules/prebuild-install",
+        "artifact": "0124.tgz",
+        "artifactDigest": "sha256:6741b8ecf3c24c0a652748ca362560405b38797c760ccff531ab61f14930f9ab",
+        "integrity": "sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==",
+        "registryContentVerified": true,
+        "fileCount": 15,
+        "contentBytes": 34180
+      },
+      {
+        "packagePath": "node_modules/probe-image-size/node_modules/debug",
+        "artifact": "0131.tgz",
+        "artifactDigest": "sha256:72378f4db53abdf4c6d094e85169b0dc35a404ea4257da13ecafeda029a21c84",
+        "integrity": "sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==",
+        "registryContentVerified": true,
+        "fileCount": 9,
+        "contentBytes": 53255
+      },
+      {
+        "packagePath": "node_modules/probe-image-size/node_modules/iconv-lite",
+        "artifact": "0132.tgz",
+        "artifactDigest": "sha256:576c64f2098ed44c3d5e48d7a9dc65512700c1d6a969a71a74d474da8e734635",
+        "integrity": "sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==",
+        "registryContentVerified": true,
+        "fileCount": 26,
+        "contentBytes": 335941
+      },
+      {
+        "packagePath": "node_modules/probe-image-size/node_modules/needle",
+        "artifact": "0133.tgz",
+        "artifactDigest": "sha256:ffe36a6d680fa2adc25ba3d0ff5f5a9681ceb9ff9d1e3efc3f0195cba4864720",
+        "integrity": "sha512-6R9fqJ5Zcmf+uYaFgdIHmLwNldn5HbK8L5ybn7Uz+ylX/rnOsSp1AHcvQSrCaFN+qNM1wpymHqD7mVasEOlHGQ==",
+        "registryContentVerified": true,
+        "fileCount": 48,
+        "contentBytes": 227354
+      },
+      {
+        "packagePath": "node_modules/probe-image-size",
+        "artifact": "0130.tgz",
+        "artifactDigest": "sha256:2f50eac01a5469bcc41d7286bce04f770b7026962bfdc1e0d5501fc9737c76fe",
+        "integrity": "sha512-7CaDeBwiAbh6ohXsvLbAZhO7wzsZAmaevfxe39qvCwRh8LyaZfDlBGGLU1CCTgrTLtCOdwBBhjOrIHaIIimHfQ==",
+        "registryContentVerified": true,
+        "fileCount": 32,
+        "contentBytes": 70164
+      },
+      {
+        "packagePath": "node_modules/prr",
+        "artifact": "0134.tgz",
+        "artifactDigest": "sha256:2b8e3e77385e7f4e938e8e5f37cbe12a384adb9d95cac13f81f98a6e9b4c6752",
+        "integrity": "sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 10127
+      },
+      {
+        "packagePath": "node_modules/pump",
+        "artifact": "0135.tgz",
+        "artifactDigest": "sha256:3c58c7fc4c30035cdabb0b33e81d8e048935e134469491767cbaf89bd64c9b36",
+        "integrity": "sha512-VS7sjc6KR7e1ukRFhQSY5LM2uBWAUPiOPa/A3mkKmiMwSmRFUITt0xuj+/lesgnCv+dPIEYlkzrcyXgquIHMcA==",
+        "registryContentVerified": true,
+        "fileCount": 10,
+        "contentBytes": 8913
+      },
+      {
+        "packagePath": "node_modules/punycode",
+        "artifact": "0136.tgz",
+        "artifactDigest": "sha256:e4ce59f9fbac44349abab87279ab658f6b4614916bec5e088ae3be9323e193bb",
+        "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 33514
+      },
+      {
+        "packagePath": "node_modules/rc/node_modules/ini",
+        "artifact": "0138.tgz",
+        "artifactDigest": "sha256:fd9e1145104d8594ba4ee70596feecb2fe2957f998dc18a2a643e858ee12695a",
+        "integrity": "sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 9304
+      },
+      {
+        "packagePath": "node_modules/rc/node_modules/strip-json-comments",
+        "artifact": "0139.tgz",
+        "artifactDigest": "sha256:dbe45febaf1bf7265c25733242bc0e7ac38b632db6a8e19f0341af4770425899",
+        "integrity": "sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 5061
+      },
+      {
+        "packagePath": "node_modules/rc",
+        "artifact": "0137.tgz",
+        "artifactDigest": "sha256:03a5fae485203eb424dd3e9b1c4cf9ce3d04c03b154cb4fb6604497815cae93b",
+        "integrity": "sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==",
+        "registryContentVerified": true,
+        "fileCount": 12,
+        "contentBytes": 17255
+      },
+      {
+        "packagePath": "node_modules/readdirp",
+        "artifact": "0140.tgz",
+        "artifactDigest": "sha256:01ecd9d6bf8fdb4b8c462b23d1d8f69604841050ac4316e6fe67967a62b00407",
+        "integrity": "sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 22607
+      },
+      {
+        "packagePath": "node_modules/rollup",
+        "artifact": "0141.tgz",
+        "artifactDigest": "sha256:027a15633b3bb2daf879ad4002488050b636c2c56dc8a3a71348c87cfd363373",
+        "integrity": "sha512-RFnrW4lhXA3s3eqHDZvN654g8OTjzRfqpIRJYczCGB6HzphckVAi/Qh4tbPUbRuDi7s1Llv8g/NspLkttY3gTA==",
+        "registryContentVerified": true,
+        "fileCount": 27,
+        "contentBytes": 2840776
+      },
+      {
+        "packagePath": "node_modules/rrweb-cssom",
+        "artifact": "0142.tgz",
+        "artifactDigest": "sha256:6b975deba1561fbc7c6ce1e3982e354e958a34cc36097491083b472c8a922370",
+        "integrity": "sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==",
+        "registryContentVerified": true,
+        "fileCount": 30,
+        "contentBytes": 105478
+      },
+      {
+        "packagePath": "node_modules/safe-buffer",
+        "artifact": "0143.tgz",
+        "artifactDigest": "sha256:5d181804516c4a693a384272a7bd0e42d17e0d4b301ccfbe408669ccafdcb3e8",
+        "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 32101
+      },
+      {
+        "packagePath": "node_modules/safer-buffer",
+        "artifact": "0144.tgz",
+        "artifactDigest": "sha256:78812f65ae3b98071ce1c9bacbe0666f4220d0b2753c2a11530eb27df440a3b3",
+        "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 42299
+      },
+      {
+        "packagePath": "node_modules/sass",
+        "artifact": "0145.tgz",
+        "artifactDigest": "sha256:1f1a881eb9b9e2be1eee501d08d500e4b0fbda071b52f4d21e8c4758d1f8bb9d",
+        "integrity": "sha512-cDeUYU0dhwKVbpYg/ppsjyuoddxYhWlJOkRoI7+/iZsaSp7iowWDfm+tL2HcUafedWBDvbf/+hx0QRgKG4JSHA==",
+        "registryContentVerified": true,
+        "fileCount": 36,
+        "contentBytes": 5946436
+      },
+      {
+        "packagePath": "node_modules/sax",
+        "artifact": "0146.tgz",
+        "artifactDigest": "sha256:d424acd207642df18c2d814411907b9a108ff1dfca341cfddf523bd57af699f4",
+        "integrity": "sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 61006
+      },
+      {
+        "packagePath": "node_modules/semver",
+        "artifact": "0147.tgz",
+        "artifactDigest": "sha256:d85045d4300d7d57c891336b95df532e73f34c22ffcd222452b6d08b9d127d5d",
+        "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+        "registryContentVerified": true,
+        "fileCount": 53,
+        "contentBytes": 101065
+      },
+      {
+        "packagePath": "node_modules/siginfo",
+        "artifact": "0148.tgz",
+        "artifactDigest": "sha256:a20fd853c4514049964aca176d4198d58802b28dc481e82cb57f2101b2c7701b",
+        "integrity": "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 4789
+      },
+      {
+        "packagePath": "node_modules/simple-concat",
+        "artifact": "0149.tgz",
+        "artifactDigest": "sha256:6afccb749cab9f33158ad30a51797a8e7e7b4cc7e09151d5537c6dcd8882763e",
+        "integrity": "sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 4624
+      },
+      {
+        "packagePath": "node_modules/simple-get",
+        "artifact": "0150.tgz",
+        "artifactDigest": "sha256:f902a1ee61bb7c404b631914833ddcd480dfc20350b275a7e72d45c589459754",
+        "integrity": "sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 14971
+      },
+      {
+        "packagePath": "node_modules/sirv",
+        "artifact": "0151.tgz",
+        "artifactDigest": "sha256:20e9740ccd6315b603aab2f2a6c9033fc2f31e68021cf83f5698e33bc2aa2a85",
+        "integrity": "sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 21883
+      },
+      {
+        "packagePath": "node_modules/source-map",
+        "artifact": "0152.tgz",
+        "artifactDigest": "sha256:bdbca10d17ff5a5802d5acfc7b2f22f9f9bf587632a95650d3c5f513c7092b86",
+        "integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==",
+        "registryContentVerified": true,
+        "fileCount": 20,
+        "contentBytes": 805224
+      },
+      {
+        "packagePath": "node_modules/source-map-js",
+        "artifact": "0153.tgz",
+        "artifactDigest": "sha256:f126a6f9fca487a43219d8cb8c3a955279187a966119d548eb5cd47e999d4853",
+        "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==",
+        "registryContentVerified": true,
+        "fileCount": 18,
+        "contentBytes": 139872
+      },
+      {
+        "packagePath": "node_modules/source-map-support",
+        "artifact": "0154.tgz",
+        "artifactDigest": "sha256:5d9b04ef3e6824fdcf91cfcc03ab427fae486bc6859735805593f51b3554f636",
+        "integrity": "sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 85177
+      },
+      {
+        "packagePath": "node_modules/stackback",
+        "artifact": "0155.tgz",
+        "artifactDigest": "sha256:3e663c82d1ccf9748ed446b648ec21a7dd6c5895ecf4a95310a60a320ca55858",
+        "integrity": "sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 6884
+      },
+      {
+        "packagePath": "node_modules/std-env",
+        "artifact": "0156.tgz",
+        "artifactDigest": "sha256:d3e2bc287e997da66639920c5f7b86c0ff3ecb69e332c7b14912150488e3a40a",
+        "integrity": "sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 17216
+      },
+      {
+        "packagePath": "node_modules/stream-parser/node_modules/debug",
+        "artifact": "0158.tgz",
+        "artifactDigest": "sha256:34ae48c66698f1f81e2a2e6e322f34e8a88b0986a3fa7b74bb5ea14c0edb1c98",
+        "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
+        "registryContentVerified": true,
+        "fileCount": 17,
+        "contentBytes": 51243
+      },
+      {
+        "packagePath": "node_modules/stream-parser/node_modules/ms",
+        "artifact": "0159.tgz",
+        "artifactDigest": "sha256:362152ab8864181fc3359a3c440eec58ce3e18f773b0dde4d88a84fe13d73ecb",
+        "integrity": "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 6266
+      },
+      {
+        "packagePath": "node_modules/stream-parser",
+        "artifact": "0157.tgz",
+        "artifactDigest": "sha256:fb4547a3da1f1b100096320e2d40b34ab6e9e98abff64721850aa065dc1e8b9f",
+        "integrity": "sha512-bJ/HgKq41nlKvlhccD5kaCr/P+Hu0wPNKPJOH7en+YrJu/9EgqUF+88w5Jb6KNcjOFMhfX4B2asfeAtIGuHObQ==",
+        "registryContentVerified": true,
+        "fileCount": 9,
+        "contentBytes": 26129
+      },
+      {
+        "packagePath": "node_modules/string_decoder",
+        "artifact": "0160.tgz",
+        "artifactDigest": "sha256:7d036900940345e423538371ae45b23bfaf4b454bc398c6ba604063b0597b3ad",
+        "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 14427
+      },
+      {
+        "packagePath": "node_modules/supports-color",
+        "artifact": "0161.tgz",
+        "artifactDigest": "sha256:f16acafd1634624e60c24a5538004c4e168c82607f10dbe28395e9df3e7d5e4a",
+        "integrity": "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 7035
+      },
+      {
+        "packagePath": "node_modules/symbol-tree",
+        "artifact": "0162.tgz",
+        "artifactDigest": "sha256:8a69700a00d00bdbbadf116f94398cc37f38ecdda559dc6220e17eb977b94abc",
+        "integrity": "sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 57073
+      },
+      {
+        "packagePath": "node_modules/terser/node_modules/commander",
+        "artifact": "0164.tgz",
+        "artifactDigest": "sha256:3c02903de017a98d4dc3fe2bed4900beb0d04cf7b679dca0915fd8c759652b55",
+        "integrity": "sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 62442
+      },
+      {
+        "packagePath": "node_modules/terser",
+        "artifact": "0163.tgz",
+        "artifactDigest": "sha256:6cd3c5fe0cba792cd125d08f86edc16d25681c303570ed100685e42c5a2788e4",
+        "integrity": "sha512-SNiDnXyHSrxVcIOtVbULzcTmniUiwcV7Nwdyj1twVubeTmbjoa8p69KKDpfkdoOavuM4/GRm1+ykI8qqnavHoA==",
+        "registryContentVerified": true,
+        "fileCount": 43,
+        "contentBytes": 2309417
+      },
+      {
+        "packagePath": "node_modules/tinybench",
+        "artifact": "0165.tgz",
+        "artifactDigest": "sha256:3a38e953c2366359670fb41e7efae2d8a818ac12615fbea6f9d0614010582e39",
+        "integrity": "sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 62945
+      },
+      {
+        "packagePath": "node_modules/tinyexec",
+        "artifact": "0166.tgz",
+        "artifactDigest": "sha256:ec38cc26184bd21d8f5f88fe434972247b8a9280d1ceaba2cdb14fa6858657cc",
+        "integrity": "sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 22860
+      },
+      {
+        "packagePath": "node_modules/tinyglobby",
+        "artifact": "0167.tgz",
+        "artifactDigest": "sha256:afb4afae9175f8b873ac13e1d21cea0997a0bcb40c3598613a834490058cb562",
+        "integrity": "sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 39288
+      },
+      {
+        "packagePath": "node_modules/tinyrainbow",
+        "artifact": "0168.tgz",
+        "artifactDigest": "sha256:8373e4e977fc27ee3a0921ab7a933efcccfbed6066e3aba2ab9d2a3b05149842",
+        "integrity": "sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==",
+        "registryContentVerified": true,
+        "fileCount": 5,
+        "contentBytes": 7357
+      },
+      {
+        "packagePath": "node_modules/tldts",
+        "artifact": "0169.tgz",
+        "artifactDigest": "sha256:80d90fdad94b1c9f2415bb64829a00a5d577f3b2ce97c566e5b080d5b420ccc6",
+        "integrity": "sha512-WMi/OQ2axVTf/ykqCQgXiIct+mSQDFdH2fkwhPwgEwvJ1kSzZRiinb0zF2Xb8u4+OqPChmyI6MEu4EezNJz+FQ==",
+        "registryContentVerified": true,
+        "fileCount": 30,
+        "contentBytes": 2977311
+      },
+      {
+        "packagePath": "node_modules/tldts-core",
+        "artifact": "0170.tgz",
+        "artifactDigest": "sha256:f75448d0aa827cc18c8344c8e0f703a68d977f294d81f16d73e8126a0a9bfe84",
+        "integrity": "sha512-Je6p7pkk+KMzMv2XXKmAE3McmolOQFdxkKw0R8EYNr7sELW46JqnNeTX8ybPiQgvg1ymCoF8LXs5fzFaZvJPTA==",
+        "registryContentVerified": true,
+        "fileCount": 71,
+        "contentBytes": 222678
+      },
+      {
+        "packagePath": "node_modules/totalist",
+        "artifact": "0171.tgz",
+        "artifactDigest": "sha256:43f85fe769d147c4555e6f69e33690dc19c39ff90461a6fbe0faa38d1279c787",
+        "integrity": "sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==",
+        "registryContentVerified": true,
+        "fileCount": 9,
+        "contentBytes": 7459
+      },
+      {
+        "packagePath": "node_modules/tough-cookie",
+        "artifact": "0172.tgz",
+        "artifactDigest": "sha256:73baea52c8cdd34f301126e7b4e47c19ec43e228d49c9db5230b1dc3039ac43b",
+        "integrity": "sha512-FVDYdxtnj0G6Qm/DhNPSb8Ju59ULcup3tuJxkFb5K8Bv2pUXILbf0xZWU8PX8Ov19OXljbUyveOFwRMwkXzO+A==",
+        "registryContentVerified": true,
+        "fileCount": 41,
+        "contentBytes": 227724
+      },
+      {
+        "packagePath": "node_modules/tr46",
+        "artifact": "0173.tgz",
+        "artifactDigest": "sha256:62dbfa0e7959c7bf972b157afcbedd7432116891c374b7de3f78224bd7e4d7e6",
+        "integrity": "sha512-hdF5ZgjTqgAntKkklYw0R03MG2x/bSzTtkxmIRw/sTNV8YXsCJ1tfLAX23lhxhHJlEf3CRCOCGGWw3vI3GaSPw==",
+        "registryContentVerified": true,
+        "fileCount": 7,
+        "contentBytes": 225902
+      },
+      {
+        "packagePath": "node_modules/tunnel-agent",
+        "artifact": "0174.tgz",
+        "artifactDigest": "sha256:d3e3c04a50d6d2fa40654bf764fa1792f797bd5a62c69d03dceaa7d4a85c5012",
+        "integrity": "sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 16679
+      },
+      {
+        "packagePath": "node_modules/undici-types",
+        "artifact": "0175.tgz",
+        "artifactDigest": "sha256:07a721cb2cd0dd798c24757de34d14e8b640ff8fddef85d662e00b392562a1f2",
+        "integrity": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==",
+        "registryContentVerified": true,
+        "fileCount": 48,
+        "contentBytes": 118441
+      },
+      {
+        "packagePath": "node_modules/util-deprecate",
+        "artifact": "0176.tgz",
+        "artifactDigest": "sha256:79a1de983c1b393180c47456d6b73caab278a00ea6e37d5c6675f2dcdec2a3e5",
+        "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 5481
+      },
+      {
+        "packagePath": "node_modules/vite",
+        "artifact": "0177.tgz",
+        "artifactDigest": "sha256:c90bd3ea5e6a301d6aac20d22b314fad893a7ac7b010b91a4ac65bb68dd947a6",
+        "integrity": "sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==",
+        "registryContentVerified": true,
+        "fileCount": 39,
+        "contentBytes": 2238331
+      },
+      {
+        "packagePath": "node_modules/vitest",
+        "artifact": "0178.tgz",
+        "artifactDigest": "sha256:0b999a3e14e4bc096026ea61f1229aace5f2db2b9895245535bd1f8cfef8100e",
+        "integrity": "sha512-R9jUTe5S4Qb0HCd4TNqpC7oGcrMssMRGXLW80ubjWsW9VH5GF8y1Y0SFLY9AbqSk6nt0PnOx4H4WNJYZ13GUPw==",
+        "registryContentVerified": true,
+        "fileCount": 114,
+        "contentBytes": 1905633
+      },
+      {
+        "packagePath": "node_modules/w3c-xmlserializer/node_modules/xml-name-validator",
+        "artifact": "0180.tgz",
+        "artifactDigest": "sha256:3d40b1428dae32a6328ea20543abaafb72101a2652a95f43ec8757fef213f0be",
+        "integrity": "sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 13574
+      },
+      {
+        "packagePath": "node_modules/w3c-xmlserializer",
+        "artifact": "0179.tgz",
+        "artifactDigest": "sha256:7fea0c33bb82228932e677a4c7aaaad45bdb04541d8517e40700355cbefebd03",
+        "integrity": "sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 17973
+      },
+      {
+        "packagePath": "node_modules/webidl-conversions",
+        "artifact": "0181.tgz",
+        "artifactDigest": "sha256:fd4d12781018d99e2cc68cf2d997215a0b301761ab26ac2a171116960419e454",
+        "integrity": "sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 24242
+      },
+      {
+        "packagePath": "node_modules/whatwg-encoding/node_modules/iconv-lite",
+        "artifact": "0183.tgz",
+        "artifactDigest": "sha256:7127ec148f994f031eff658a50dc0629f6010775a8202213b0526ec5e30fc8f4",
+        "integrity": "sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==",
+        "registryContentVerified": true,
+        "fileCount": 33,
+        "contentBytes": 348518
+      },
+      {
+        "packagePath": "node_modules/whatwg-encoding",
+        "artifact": "0182.tgz",
+        "artifactDigest": "sha256:86295e4f0565d4d0de730180dcc32ccf8c4a001831d361a1493b4e9a25e5c8d3",
+        "integrity": "sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==",
+        "registryContentVerified": true,
+        "fileCount": 6,
+        "contentBytes": 13339
+      },
+      {
+        "packagePath": "node_modules/whatwg-mimetype",
+        "artifact": "0184.tgz",
+        "artifactDigest": "sha256:20a19c2f06097c0dfb55be422996fdc3fb2ff20bb39628621700a39a7f7b17eb",
+        "integrity": "sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 16809
+      },
+      {
+        "packagePath": "node_modules/whatwg-url",
+        "artifact": "0185.tgz",
+        "artifactDigest": "sha256:b26982a9855af10a5cd8fedbdba5ac73db4b8eab1f81528104f585039fac863e",
+        "integrity": "sha512-De72GdQZzNTUBBChsXueQUnPKDkg/5A5zp7pFDuQAj5UFoENpiACU0wlCvzpAGnTkj++ihpKwKyYewn/XNUbKw==",
+        "registryContentVerified": true,
+        "fileCount": 17,
+        "contentBytes": 98558
+      },
+      {
+        "packagePath": "node_modules/why-is-node-running",
+        "artifact": "0186.tgz",
+        "artifactDigest": "sha256:d2f668f77953509d0079ef05617ac9f5b5f64ed194f8b05872ad12ba06ec9963",
+        "integrity": "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==",
+        "registryContentVerified": true,
+        "fileCount": 8,
+        "contentBytes": 7296
+      },
+      {
+        "packagePath": "node_modules/wrappy",
+        "artifact": "0187.tgz",
+        "artifactDigest": "sha256:aff3730d91b7b1e143822956d14608f563163cf11b9d0ae602df1fe1e430fdfb",
+        "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==",
+        "registryContentVerified": true,
+        "fileCount": 4,
+        "contentBytes": 2961
+      },
+      {
+        "packagePath": "node_modules/ws",
+        "artifact": "0188.tgz",
+        "artifactDigest": "sha256:bb0f7e58ba1f64746672734d36175fe185f226491e336abc0743e2a8f4472ec1",
+        "integrity": "sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==",
+        "registryContentVerified": true,
+        "fileCount": 19,
+        "contentBytes": 150792
+      },
+      {
+        "packagePath": "node_modules/xmlchars",
+        "artifact": "0189.tgz",
+        "artifactDigest": "sha256:bdf900298963e4bd95b76aa95e96d29f05687e6ae662d617061778267b576da8",
+        "integrity": "sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==",
+        "registryContentVerified": true,
+        "fileCount": 18,
+        "contentBytes": 58957
+      },
+      {
+        "packagePath": "node_modules/yaml",
+        "artifact": "0190.tgz",
+        "artifactDigest": "sha256:008fa204cb1ba700e0272ba045abbf09a6ffe63456e8146ba97cac6c2ad1ef91",
+        "integrity": "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==",
+        "registryContentVerified": true,
+        "fileCount": 233,
+        "contentBytes": 685953
+      }
+    ]
+  },
+  "manifestSummary": {
+    "version": 2,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\scratch",
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "2533274797926591",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "files": 8370,
+    "directories": 1199,
+    "checkDigest": "57e951973f7fda1812011cdc6f40562cffe727ab396fab60d08c769cbfceda1d"
+  },
+  "archivedSummary": true,
+  "usableForAdmission": false,
+  "originalReportDigest": "sha256:75f02e7d9457af29a116688914d3e4ec79696e44e3fd2e12778210391b84e3b6"
+}

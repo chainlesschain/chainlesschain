@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-08 共享验收执行续做**：已补齐冻结工具链准备、独立 v2 AppContainer 胶囊及原生传输/拒绝反例，208 项回归通过、零跳过。双 IDE 既有身份、Doctor 和冷初始化修复继续保留；共享 native review 仍被实际 Rollup 管道与冻结 globalSetup 的 `realpath EPERM` 阻塞，addon 结果保留两项成功、一项失败。详见[验证第 12 节](../cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。正式双 IDE 任务/首次安装、真人听测、8h/24h、官方账号/账单及获批 SLO 均未关闭；不把胶囊诊断写入正式 36+9。
+
 > **2026-10-07 共享原生验收续做**：七项探针各自独立 Job，IPC 已真实执行但与 pipe 一样超时；清理均确认，未授予部分能力。补齐 v2 校验、准入兼容及冻结工具链只读预检，**68 项回归通过**，失败和摘要已归档，详见[验证第 11 节](../cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。本轮未启动新的 IDE/provider 正式样本；native 完整执行、正式 36+9、账单、真人辅助技术与长时验收继续开放。
 
 > **2026-10-06 原生 review 准入与 CI 修复**：Windows review 后端已有只读逐题准入与固定能力探针，完整 pack 仍缺受信任工具链及 locked setup 支持。逐阶段实测定位到管道 stdio 卡住，文件 stdio 返回 `EPERM`；不将部分记录作为正式验收能力。单独审计 `verify-17`：其冻结目标为 macOS VS Code，唯一 journal 基线却仅在 Linux 执行，必须分别保留平台不匹配与基线不支持。修正安全映射摘要后，`266718e8b5` 的 Strict/Safety 完整工作流成功，含三系统、ARM64、附加 macOS 与 Safety 汇总。新增测试与原始失败边界见[验证记录第 10 节](../cli-ide-gap-validation-2026-10-05.md#10-2026-10-06-原生-review-准入与-actions-修复)，正式 36+9 和人工/长时验收仍开放。

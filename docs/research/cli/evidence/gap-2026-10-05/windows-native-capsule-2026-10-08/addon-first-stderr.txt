@@ -1,0 +1,12 @@
+Error: The specified module could not be found.
+\\?\<USERPROFILE>\AppData\Local\Temp\cc-native-capsule-BhAhcm\workspace\node_modules\@rollup\rollup-win32-x64-gnu\rollup.win32-x64-gnu.node
+    at Object..node (node:internal/modules/cjs/loader:1864:18)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Module.require (node:internal/modules/cjs/loader:1463:12)
+    at require (node:internal/modules/helpers:147:16)
+    at <USERPROFILE>\AppData\Local\Temp\cc-native-capsule-BhAhcm\control\check.cjs:39:264
+    at Object.<anonymous> (<USERPROFILE>\AppData\Local\Temp\cc-native-capsule-BhAhcm\control\check.cjs:57:3)
+    at Module._compile (node:internal/modules/cjs/loader:1705:14)

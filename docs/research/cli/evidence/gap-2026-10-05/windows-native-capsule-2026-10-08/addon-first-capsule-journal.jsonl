@@ -1,0 +1,5 @@
+{"sequence":0,"stage":"started","mode":"addon-load","pid":13668,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"addon-started","mode":"addon-load","pid":13668,"path":"node_modules/@parcel/watcher-win32-x64/watcher.node"}
+{"sequence":2,"stage":"addon-loaded","mode":"addon-load","pid":13668,"path":"node_modules/@parcel/watcher-win32-x64/watcher.node"}
+{"sequence":3,"stage":"addon-started","mode":"addon-load","pid":13668,"path":"node_modules/@rollup/rollup-win32-x64-gnu/rollup.win32-x64-gnu.node"}
+{"sequence":4,"stage":"failed","mode":"addon-load","pid":13668,"error":"The specified module could not be found.\r\n\\\\?\\<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-BhAhcm\\workspace\\node_modules\\@rollup\\rollup-win32-x64-gnu\\rollup.win32-x64-gnu.node","code":"ERR_DLOPEN_FAILED"}

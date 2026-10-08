@@ -1,0 +1,292 @@
+{
+  "schema": "chainlesschain.redacted-diagnostic-archive/v1",
+  "admissionEligible": false,
+  "formalSample": false,
+  "capabilities": {},
+  "original": {
+    "path": ".work/windows-pipe-api-2026-10-07-final/report.json",
+    "bytes": 11032,
+    "digest": "sha256:48d07c3051cecc8b1b9d3be32f855686faf9c002f154892f06ab199cc679ff07"
+  },
+  "redactions": [
+    "user profile prefixes, including embedded JSON",
+    "AppContainer SID",
+    "supervisor SID digest"
+  ],
+  "digestSemantics": "Nested manifest/stdout digests identify original bytes; redacted bytes are not valid original admission evidence.",
+  "report": {
+    "schema": "chainlesschain.windows-appcontainer-pipe-api-diagnostic/v1",
+    "startedAt": "2026-10-07T08:56:13.383Z",
+    "platform": "win32",
+    "architecture": "x64",
+    "nodeVersion": "v22.22.2",
+    "libuvVersion": "1.51.0",
+    "osRelease": "10.0.19045",
+    "formalSample": false,
+    "providerAssessed": false,
+    "fullReviewPackAssessed": false,
+    "capabilities": {},
+    "fixtureSourceSha256": "sha256:b6aa75eb9dda0b889cef324fd48e831f000e851bfdef42f086f2324640a2e7f7",
+    "diagnosticRunnerSha256": "sha256:5a54b470a943e2a0ae49b5239c73f9867ea007c4414ed5f7542fdfa5117cffec",
+    "checkSourceSha256": "sha256:98c7d030b40400429157f9a78135d88fb870ae639d74fa52bf07dbd289bab07c",
+    "compilerSha256": "sha256:aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+    "upstreamReference": {
+      "nodeVersion": "v22.22.2",
+      "libuvVersion": "1.51.0",
+      "nodeCommit": "2645dc73720b1b4f27c49f395d3c66025ce126cc",
+      "tagObject": "c7462cf36736a20ed7b8d701dedbe713dff0e1df",
+      "sources": [
+        {
+          "path": "deps/uv/src/win/pipe.c",
+          "sha256": "sha256:4d370ce0bc10f8ae429f8acb2c7688d74b753e0177f347f5f3d337647e77ca38"
+        },
+        {
+          "path": "deps/uv/src/win/process-stdio.c",
+          "sha256": "sha256:7367280da2315b8cf16d42870a972164763b1967f8e39bd141b27726237872d8"
+        }
+      ],
+      "windowsApiDocumentation": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipea"
+    },
+    "upstreamRuntimeMatches": true,
+    "diagnosticCompleted": true,
+    "fixtureBinarySha256": "sha256:b921dac0f95a49379484c319344597d82573666220e14416cc28b2e68ffe92a5",
+    "host": {
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "CC_PIPE_API:{\"label\":\"libuv-name-1\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"libuv-name-2\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"libuv-name-3\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"local-dot\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"local-extended\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"nul-stdin\",\"pid\":21464,\"tokenIsAppContainer\":0,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\n",
+      "stderr": "",
+      "records": [
+        {
+          "label": "libuv-name-1",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        },
+        {
+          "label": "libuv-name-2",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        },
+        {
+          "label": "libuv-name-3",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        },
+        {
+          "label": "local-dot",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        },
+        {
+          "label": "local-extended",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        },
+        {
+          "label": "nul-stdin",
+          "pid": 21464,
+          "tokenIsAppContainer": 0,
+          "success": true,
+          "win32Error": 0,
+          "handleClosed": true,
+          "elapsedMs": 0
+        }
+      ],
+      "stdoutSha256": "sha256:655547da915006ec0b3665be4de4c0b6541e59b3a7183f8ee567955c078cb9bd",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "manifest": {
+      "version": 1,
+      "root": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42",
+      "workspace": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\workspace",
+      "control": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\control",
+      "scratch": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\scratch",
+      "check": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\control\\check.cjs",
+      "wallTimeMs": 15000,
+      "runtime": {
+        "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\control\\node.exe",
+        "dev": "38182903",
+        "ino": "27021597766239240",
+        "bytes": 87074816,
+        "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      },
+      "directories": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42",
+          "dev": "38182903",
+          "ino": "10977524093731311"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\control",
+          "dev": "38182903",
+          "ino": "16044073674523121"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\scratch",
+          "dev": "38182903",
+          "ino": "37999121857954679"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\workspace",
+          "dev": "38182903",
+          "ino": "10414574140310000"
+        }
+      ],
+      "files": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\workspace\\pipe-api-probe.exe",
+          "dev": "38182903",
+          "ino": "9007199256757310",
+          "bytes": 5632,
+          "sha256": "b921dac0f95a49379484c319344597d82573666220e14416cc28b2e68ffe92a5"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\workspace\\file-child.cjs",
+          "dev": "38182903",
+          "ino": "23362423069000843",
+          "bytes": 80,
+          "sha256": "1682aa901dd0dbf0b10ef8ae01c18302f125e5eb8eb18232b105f5cc1ece1668"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\workspace\\input.txt",
+          "dev": "38182903",
+          "ino": "29273397579924641",
+          "bytes": 14,
+          "sha256": "43c96e6a0d44cf925c36b5d2a442ca9736c92a0932894dd28cd9543d466606e7"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-dBqX42\\control\\check.cjs",
+          "dev": "38182903",
+          "ino": "16888498604655782",
+          "bytes": 1634,
+          "sha256": "98c7d030b40400429157f9a78135d88fb870ae639d74fa52bf07dbd289bab07c"
+        }
+      ]
+    },
+    "manifestDigest": "sha256:d095a3c7cb85777f92acf608dd68bb760379b5f5bc25f4f337132f21f62a657c",
+    "settlement": {
+      "manifestDigest": "d095a3c7cb85777f92acf608dd68bb760379b5f5bc25f4f337132f21f62a657c",
+      "cleanupConfirmed": true,
+      "capabilityCount": 0,
+      "loopbackExemptionAbsent": true,
+      "targetPid": 26268,
+      "appContainerSid": "<APPCONTAINER_SID>",
+      "wallTimeMs": 15000,
+      "targetExitCode": 0,
+      "supervisorUserSidSha256": "<REDACTED_SID_DIGEST>",
+      "executionFailed": false
+    },
+    "execution": {
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "CC_PIPE_API:{\"label\":\"libuv-name-1\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":false,\"win32Error\":5,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"libuv-name-2\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":false,\"win32Error\":5,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"libuv-name-3\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":false,\"win32Error\":5,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"local-dot\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"local-extended\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":true,\"win32Error\":0,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_API:{\"label\":\"nul-stdin\",\"pid\":27972,\"tokenIsAppContainer\":1,\"success\":false,\"win32Error\":5,\"handleClosed\":true,\"elapsedMs\":0}\nCC_PIPE_CHILD:{\"pid\":26268,\"status\":0,\"signal\":null,\"errorCode\":null}\nCC_FILE_STDIO:{\"mode\":\"ignore-stdin\",\"pid\":26268,\"status\":null,\"signal\":null,\"errorCode\":\"EPERM\",\"output\":\"\"}\nCC_FILE_STDIO:{\"mode\":\"inherit-stdin\",\"pid\":26268,\"status\":0,\"signal\":null,\"errorCode\":null,\"output\":\"{\\\"marker\\\":\\\"file-child-ok\\\",\\\"pid\\\":15496}\"}\nCC_FILE_STDIO:{\"mode\":\"file-stdin\",\"pid\":26268,\"status\":0,\"signal\":null,\"errorCode\":null,\"output\":\"{\\\"marker\\\":\\\"file-child-ok\\\",\\\"pid\\\":27616}\"}\n",
+      "stderr": "",
+      "stdoutSha256": "sha256:437d573bfd38ad9c7a33fcbb967323fb79d32ea9fcc7664e3140e602ea472ee1",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nativeRecords": [
+      {
+        "label": "libuv-name-1",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": false,
+        "win32Error": 5,
+        "handleClosed": true,
+        "elapsedMs": 0
+      },
+      {
+        "label": "libuv-name-2",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": false,
+        "win32Error": 5,
+        "handleClosed": true,
+        "elapsedMs": 0
+      },
+      {
+        "label": "libuv-name-3",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": false,
+        "win32Error": 5,
+        "handleClosed": true,
+        "elapsedMs": 0
+      },
+      {
+        "label": "local-dot",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": true,
+        "win32Error": 0,
+        "handleClosed": true,
+        "elapsedMs": 0
+      },
+      {
+        "label": "local-extended",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": true,
+        "win32Error": 0,
+        "handleClosed": true,
+        "elapsedMs": 0
+      },
+      {
+        "label": "nul-stdin",
+        "pid": 27972,
+        "tokenIsAppContainer": 1,
+        "success": false,
+        "win32Error": 5,
+        "handleClosed": true,
+        "elapsedMs": 0
+      }
+    ],
+    "fileStdio": [
+      {
+        "mode": "ignore-stdin",
+        "pid": 26268,
+        "status": null,
+        "signal": null,
+        "errorCode": "EPERM",
+        "output": ""
+      },
+      {
+        "mode": "inherit-stdin",
+        "pid": 26268,
+        "status": 0,
+        "signal": null,
+        "errorCode": null,
+        "output": "{\"marker\":\"file-child-ok\",\"pid\":15496}"
+      },
+      {
+        "mode": "file-stdin",
+        "pid": 26268,
+        "status": 0,
+        "signal": null,
+        "errorCode": null,
+        "output": "{\"marker\":\"file-child-ok\",\"pid\":27616}"
+      }
+    ],
+    "finishedAt": "2026-10-07T08:56:32.226Z"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "chainlesschain.windows-native-capsule-transport-live/v1",
+  "startedAt": "2026-10-08T03:29:21.365Z",
+  "formalSample": false,
+  "providerAssessed": false,
+  "registryContentVerified": false,
+  "fullReviewPackReady": false,
+  "platform": "win32",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "modulesAbi": "127",
+  "sourceFiles": 81,
+  "sourceBytes": 12582912,
+  "stage": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-I68pMr",
+  "manifestDigest": "sha256:5030464f11e7b949611a2b844e61047c0de9d4e351bf6d7bbe2b59402b7aeee8",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"pid\":15436,\"files\":81,\"largeBytes\":2097152,\"readOnly\":true,\"scratchWritable\":true}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "5030464f11e7b949611a2b844e61047c0de9d4e351bf6d7bbe2b59402b7aeee8",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 15436,
+    "appContainerSid": "S-1-15-2-1547068032-148846390-3613931208-949337697-2845481958-3524745172-4113296102",
+    "wallTimeMs": 10000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "passed": true,
+  "finishedAt": "2026-10-08T03:29:30.698Z",
+  "manifestSummary": {
+    "version": 2,
+    "root": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-I68pMr",
+    "workspace": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-I68pMr\\workspace",
+    "scratch": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-I68pMr\\scratch",
+    "runtime": {
+      "path": "<USERPROFILE>\\AppData\\Local\\Temp\\cc-native-capsule-I68pMr\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "2814749772914087",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "lockDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "planDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "projectCommit": "4444444444444444444444444444444444444444",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "files": 82,
+    "directories": 86,
+    "checkDigest": "9904da911186bbec8a237c3348694921cfa3e12cccd948bf3e07afcd378d7758"
+  },
+  "archivedSummary": true,
+  "usableForAdmission": false,
+  "originalReportDigest": "sha256:3ce080b4d97bb8bdfc13e0ceabb92cbf694482b5c4cfcd1e31ea353c7aa15980"
+}

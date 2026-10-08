@@ -271,3 +271,18 @@ PR 的 publish-staleness 门发现 VS Code 源码变更未递增版本。候选�
 CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与已 drain 的 CLI 协议 exit 0 分别记录，不宣称六宿主都自然退出。本地 Windows 两阶段正常退出的证据仅适用于该本地尝试。上述 CI 使用确定性 peer，IntelliJ 2024.2 是最低 API 诊断宿主，不等于冻结的正式 2025.2 环境、公开安装验收或 provider 实测。专项矩阵通过也不替代 CLI CI、CLI Strict Sandbox 等准确发布提交的完整门。
 
 当前仍需独立完成：正式 36+9 provider/首次安装样本、账号与账单、Linux Docker review pack 整包执行及人工签核、Windows/macOS native reviewed 验收与 durable 后端实现、真人辅助技术听测、8h/24h 观察及获批性能 SLO。完整跨机器云 resume 仍为需求条件项。上述项目没有被 fixture、Astra 代码审查或局部 CI 标为完成。
+
+## 14. 2026-10-08 原生工具链胶囊与剩余验收
+
+本轮在 `feature/cli-ide-gap-completion-20261008` 新增冻结工具链准备、逐包 registry 字节核对、原 Git 源码闭包、独立 v2 AppContainer 运输及原始诊断回读。真实准备为 191 包、8,369 文件、111,823,724 字节；原 v1 64 文件/8 MiB 边界保留，v2 81 文件/12 MiB 与两项目标创建前拒绝已经实跑。最终 Node 合同 153、原生运输 3、Vitest 回归 52，共 208 项通过、零跳过。完整细节和失败材料见[验证第 12 节](./cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。
+
+| 任务                    | 本轮状态                                                                | 尚需完成                                                                          |
+| ----------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| VERIFY-02               | 冻结准备/registry/胶囊运输接线完成；实际导入与原 setup 已尝试并保留失败 | Rollup 管道兼容、native canonical 支持、locked setup/config/full review、独立签核 |
+| PLATFORM-02             | Windows 一次性 v2 隔离、身份与清理合同补齐，未授予额外权限              | Windows/macOS durable authority、活跃网络撤销及崩溃恢复                           |
+| VERIFY-IDE-02           | 双 IDE 既有修复与历史实测保留；共享评测后端新增真实材料                 | 正式 36+9、目标宿主、官方账号/账单、真人听测、长时观察与 SLO                      |
+| MODEL-03/PERF-02/MCP-02 | 原实现和已归档网关/参考服务实测保留                                     | 官方新模型/账号/OAuth/账单验收仍独立开放                                          |
+| RELEASE                 | 工作区 helper 重建与源码摘要检查通过；三系统/Windows 专项 CI 接线已补   | 准确提交完整 Actions 与后续明确授权的 OIDC 发布；本轮未发布                       |
+| CLOUD-02                | 现 self-hosted handoff 合同保留                                         | 完整云端连续恢复继续作为需求条件项                                                |
+
+一次性胶囊和 addon 诊断没有关闭整套 native review：实际管道导入 exit 125、globalSetup native realpath exit 1、GNU addon 加载失败均保留；Parcel/MSVC 成功与整体 `addonAbiVerified=false` 同时记录。正式样本维持 `NOT_RUN`，预算 $99 与原分母不变。Windows 10/Node 22.22.2 本地结果不替代冻结宿主，也不复用其他提交的成功作为当前发布资格。

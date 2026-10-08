@@ -1,0 +1,112 @@
+{
+  "schema": "chainlesschain.redacted-diagnostic-archive/v1",
+  "admissionEligible": false,
+  "formalSample": false,
+  "capabilities": {},
+  "original": {
+    "path": ".work/windows-all-file-stdio-2026-10-08-astra/report.json",
+    "bytes": 4857,
+    "digest": "sha256:eeefb70dafebe436038efc04b44c46608420b068b9d4cca6f03d345d55bae297"
+  },
+  "redactions": [
+    "user profile prefixes, including embedded JSON",
+    "AppContainer SID",
+    "supervisor SID digest"
+  ],
+  "digestSemantics": "Nested manifest/stdout digests identify original bytes; redacted bytes are not valid original admission evidence.",
+  "report": {
+    "schema": "chainlesschain.windows-all-file-stdio-diagnostic/v1",
+    "startedAt": "2026-10-08T03:17:34.912Z",
+    "platform": "win32",
+    "architecture": "x64",
+    "nodeVersion": "v22.22.2",
+    "libuvVersion": "1.51.0",
+    "osRelease": "10.0.19045",
+    "formalSample": false,
+    "providerAssessed": false,
+    "fullReviewPackAssessed": false,
+    "capabilities": {},
+    "diagnosticCompleted": false,
+    "diagnosticRunnerSha256": "sha256:d19fc7561ed17d29e16e3f862b360d60409abdae0218997be5a1022c6a59f989",
+    "checkSourceSha256": "sha256:adbe23bf62fc1c944d6df1bca6044e7e37bf66b367f5cc820b5beff1dcc0a5d6",
+    "childSourceSha256": "sha256:430653c5b1c252dc67c63ef2040ce1af8e8cd0a76e30cddcc1281d99cdffa0e1",
+    "input": {
+      "bytes": 97,
+      "digest": "sha256:aff5eab77bb8326ae1ea4308df331d71d965b0d385afbee937e0815aef1b6904"
+    },
+    "manifest": {
+      "version": 1,
+      "root": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6",
+      "workspace": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\workspace",
+      "control": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control",
+      "scratch": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\scratch",
+      "check": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control\\check.cjs",
+      "wallTimeMs": 10000,
+      "runtime": {
+        "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control\\node.exe",
+        "dev": "38182903",
+        "ino": "10133099163313719",
+        "bytes": 87074816,
+        "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      },
+      "directories": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6",
+          "dev": "38182903",
+          "ino": "13510798883841515"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control",
+          "dev": "38182903",
+          "ino": "10414574140024352"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\scratch",
+          "dev": "38182903",
+          "ino": "9570149209892403"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\workspace",
+          "dev": "38182903",
+          "ino": "10977524093445659"
+        }
+      ],
+      "files": [
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\workspace\\child.cjs",
+          "dev": "38182903",
+          "ino": "10133099163313724",
+          "bytes": 449,
+          "sha256": "430653c5b1c252dc67c63ef2040ce1af8e8cd0a76e30cddcc1281d99cdffa0e1"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\workspace\\input.bin",
+          "dev": "38182903",
+          "ino": "9570149209892413",
+          "bytes": 97,
+          "sha256": "aff5eab77bb8326ae1ea4308df331d71d965b0d385afbee937e0815aef1b6904"
+        },
+        {
+          "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control\\check.cjs",
+          "dev": "38182903",
+          "ino": "9570149209892434",
+          "bytes": 977,
+          "sha256": "adbe23bf62fc1c944d6df1bca6044e7e37bf66b367f5cc820b5beff1dcc0a5d6"
+        }
+      ]
+    },
+    "manifestDigest": "sha256:19db3bc602280a5464d344441aeb5cec1f7911a08a2e2ef1316e6b1a605a124e",
+    "runtime": {
+      "path": "<USER_PROFILE>\\AppData\\Local\\Temp\\cc-native-evaluator-wqQ9E6\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "10133099163313719",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "nodeVersion": "v22.22.2",
+      "libuvVersion": "1.51.0"
+    },
+    "error": "Error: The requested native wall-time limit was not enforced: windows_appcontainer_readiness_cleanup_unverified\n    at ProcessExecutionBroker._sandboxError (file:///C:/code/chainlesschain/packages/cli/src/lib/process-execution-broker/index.js:1705:19)\n    at ProcessExecutionBroker._sandboxBoundaryError (file:///C:/code/chainlesschain/packages/cli/src/lib/process-execution-broker/index.js:1712:24)\n    at ProcessExecutionBroker._prepareSandboxPlan (file:///C:/code/chainlesschain/packages/cli/src/lib/process-execution-broker/index.js:3758:20)\n    at ProcessExecutionBroker.spawnSync (file:///C:/code/chainlesschain/packages/cli/src/lib/process-execution-broker/index.js:5295:26)\n    at Object.execute (file:///C:/code/chainlesschain/packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js:209:38)\n    at async runAllFileDiagnostic (file:///C:/code/chainlesschain/packages/cli/scripts/windows-all-file-stdio-diagnostic.mjs:152:33)\n    at async file:///C:/code/chainlesschain/packages/cli/scripts/windows-all-file-stdio-diagnostic.mjs:217:20",
+    "stageRetained": true,
+    "finishedAt": "2026-10-08T03:17:42.190Z"
+  }
+}

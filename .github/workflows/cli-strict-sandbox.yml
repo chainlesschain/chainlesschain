@@ -9,6 +9,13 @@ on:
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
       - "packages/cli/__tests__/**"
+      - "packages/cli/test-node/*native*.mjs"
+      - "packages/cli/test-node/*pipe*.mjs"
+      - "packages/cli/test-node/*stdio*.mjs"
+      - "packages/cli/test-node/verify01-registry-content.node-test.mjs"
+      - "packages/cli/scripts/verify01-native-*.mjs"
+      - "packages/cli/scripts/verify01-registry-content.mjs"
+      - "packages/cli/scripts/windows-*-diagnostic.mjs"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/repl/permission-prompt.js"
@@ -196,6 +203,13 @@ on:
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
       - "packages/cli/__tests__/**"
+      - "packages/cli/test-node/*native*.mjs"
+      - "packages/cli/test-node/*pipe*.mjs"
+      - "packages/cli/test-node/*stdio*.mjs"
+      - "packages/cli/test-node/verify01-registry-content.node-test.mjs"
+      - "packages/cli/scripts/verify01-native-*.mjs"
+      - "packages/cli/scripts/verify01-registry-content.mjs"
+      - "packages/cli/scripts/windows-*-diagnostic.mjs"
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/src/lib/mcp-headers-helper.js"
       - "packages/cli/src/repl/permission-prompt.js"
@@ -460,6 +474,21 @@ jobs:
       - name: Set up Linux kernel sandbox backend
         if: runner.os == 'Linux'
         uses: ./.github/actions/setup-linux-bwrap
+
+      - name: Verify native Windows capsule transport and unchanged v1 limits
+        if: runner.os == 'Windows'
+        timeout-minutes: 5
+        env:
+          CC_NATIVE_CAPSULE_TRANSPORT_EVIDENCE: ${{ runner.temp }}/native-capsule-transport.json
+        run: node --test packages/cli/test-node/windows-native-capsule-live.node-test.mjs
+
+      - name: Upload native Windows capsule transport evidence
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-capsule-transport-windows
+          path: ${{ runner.temp }}/native-capsule-transport.json*
+          if-no-files-found: warn
 
       - name: Run platform sandbox contract tests
         working-directory: packages/cli

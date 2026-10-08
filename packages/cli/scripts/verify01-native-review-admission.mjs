@@ -237,18 +237,19 @@ export function inspectNativeReviewAdmission(
           ),
         );
     }
-    // No option can turn an arbitrary cache directory or caller assertion into
-    // a pinned read-only toolchain. Its native implementation is still required.
+    // A diagnostic capsule transport does not admit the full review backend.
+    // Preserve the v1 blocker codes: actual frozen loading/setup/check remains
+    // required, and caller inventory JSON cannot satisfy that execution gate.
     blockers.push(
       blocker(
         "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
-        "A versioned lock/integrity/hash/ABI-bound toolchain capsule is required; development junctions cannot be granted access.",
+        "The versioned diagnostic capsule must pass actual frozen loading, ABI and review execution before admission; development junctions and inventory JSON cannot grant access.",
       ),
     );
     blockers.push(
       blocker(
         "LOCKED_TEST_SUPPORT_NOT_IMPLEMENTED",
-        "Frozen Vitest setup/globalSetup must execute inside the native private tree with validated support bytes.",
+        "Frozen Vitest setup/globalSetup/config must execute successfully inside the native private tree; diagnostic transport alone leaves this gate NOT_READY.",
       ),
     );
     return {

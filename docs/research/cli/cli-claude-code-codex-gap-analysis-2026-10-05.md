@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-08 继续实施**：补齐冻结 registry 工具链准备和独立 Windows v2 胶囊：191 包、8,369 文件、111,823,724 字节；81 文件/12 MiB 原生传输、写入拒绝、篡改与未列出文件拒绝均通过，v1 的 64 文件/8 MiB 边界保留。本轮 **208 项回归通过、零跳过**。实际导入确认仍有运行时缺口：Rollup 顶层默认管道调用阻塞，冻结 globalSetup 的 native realpath 返回 `EPERM`；三个 addon 均已观察，Parcel/MSVC 加载成功、GNU 失败，整套 ABI 不标为通过。详见[验证第 12 节](../cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。完整 native review、Windows/macOS durable 后端、正式 36+9、官方账号/账单与人工验收继续开放；本轮未发布。
+
 > **2026-10-07 原生评测续做**：七个能力探针已改为各自的一次性 AppContainer/Job，完成原先未观察的 IPC。真实 Windows 10 / Node 22.22.2 结果为四项支持、file stdio `EPERM`、pipe/IPC 各自超时，七项清理均确认，整包 `capabilities={}`；未扩大隔离权限或期限。补齐 v2 证据/宿主/runtime 校验、原准入兼容及冻结 lock/setup 的只读工具链 inventory，共 **68 项回归通过、零跳过**。详见[验证第 11 节](../cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。完整 native 工具链执行、Windows/macOS durable 后端、正式 36+9、账单与人工/长时验收仍未完成；inventory 不授予执行权限。
 
 > **2026-10-06 原生 review 准入与 CI 修复**：新增 Windows 后端的只读逐题准入及固定能力探针，保留冻结 Windows 的 12 个任务与原分母；不完整探针不授予能力。真实零 capability AppContainer 的逐阶段记录定位到管道 stdio 卡住，文件 stdio 返回 `EPERM`，15 秒 watchdog 与空 Job 清理成立；完整 native review 仍 `NOT_READY`。安全映射的过期生产者摘要已在 `d558e6c71e` 修正，`266718e8b5` 的 Strict/Safety 完整工作流已成功，含三系统、ARM64、附加 macOS 与 Safety 汇总；另已提交 PDH 安装隔离与迁移夹具修复。工程测试、失败材料及后续条件见[验证记录第 10 节](../cli-ide-gap-validation-2026-10-05.md#10-2026-10-06-原生-review-准入与-actions-修复)。新改动须以自身准确提交的 Actions 验证，正式 36+9 仍未运行。

@@ -341,12 +341,12 @@ node packages/cli/scripts/verify01-review-pack.mjs --backend windows-native
 
 受限会话先在 readiness/cleanup 阶段失败并保留 stage。获准真实用户权限的七 Job 结果如下，全部独立清理确认：
 
-| 探针 | 实际结果 |
-| --- | --- |
-| scratch / ESM / worker / inherited stdio | 四项支持 |
-| file stdio | `EPERM`，blocked |
-| pipe stdio | 15 秒 Job watchdog 结束，timed-out |
-| fork IPC | 已独立执行，15 秒 Job watchdog 结束，timed-out |
+| 探针                                     | 实际结果                                       |
+| ---------------------------------------- | ---------------------------------------------- |
+| scratch / ESM / worker / inherited stdio | 四项支持                                       |
+| file stdio                               | `EPERM`，blocked                               |
+| pipe stdio                               | 15 秒 Job watchdog 结束，timed-out             |
+| fork IPC                                 | 已独立执行，15 秒 Job watchdog 结束，timed-out |
 
 整包不完整、能力为空；完整 validator 拒绝，partial 回读保留七项结果。本机 Windows **10.0.19045 / Node 22.22.2** 不能替代冻结 Windows 11 24H2 / Node 22.12.0。诊断发生在随后 validator-only 收紧之前；原报告摘要绑定实际运行源码，最终源码摘要另行记录，不称为新准确提交的原生门。
 
@@ -363,3 +363,56 @@ node packages/cli/scripts/verify01-native-toolchain.mjs --root ABSOLUTE_ISOLATED
 ```
 
 仍需完成：受信任原生工具链 capsule 与 locked setup/config 执行、Windows/macOS durable 权限/网络撤销/崩溃恢复后端；冻结目标宿主；独立人工 review、正式 36+9、官方账号/账单、真人辅助技术、8h/24h 与获批 SLO。本轮未写正式 observations，不增加正式实测分母。
+
+## 12. 2026-10-08 冻结原生工具链与 AppContainer 胶囊
+
+### 12.1 本轮实现与真实准备
+
+在 `feature/cli-ide-gap-completion-20261008` 继续工作。新增 `verify01-native-toolchain-prepare.mjs`，从冻结 Git lock 解析 Vitest/Vite/happy-dom 的依赖、peer 与平台适用闭包，保留原始嵌套 `node_modules` 路径。顺序下载仅接受锁定的 HTTPS npm registry URL，先核对 sha512、完整 tar 结构、包身份与每个文件字节，再写入新建的私有树；不运行 npm 安装或 lifecycle scripts。冻结源码使用一次 `git cat-file --batch`，逐 blob 校验 Git SHA-1 与文件 SHA-256，包含原配置、五个 setup/helper 和其源码依赖闭包。
+
+真实 Windows x64 准备结果为 **191 包、8,369 文件、111,823,724 字节**。独立 inventory 再次验证全部 registry 内容，状态仍 `INVENTORIED_NOT_EXECUTABLE`。锁定原件摘要为 `sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a`；registry manifest 摘要为 `sha256:40f48cf9bbdcf754f9e9fad91ddde1f020f520710a3444552c5c86ac625ee2c2`。成功与前两次失败见[准备回读](./cli/evidence/gap-2026-10-05/windows-native-toolchain-prepare-2026-10-08/completion-readback.json)。
+
+准备过程修复两个真实 npm 制品编码兼容问题：DefinitelyTyped 的 `@types/NAME` 可使用其锁定 `NAME/` 根；同一制品必须保持唯一根与准确包身份。`package/./PATH` 只有与精确 canonical 普通文件逐字节相同且成对出现时才可归一化一次，写出审计记录。不同内容、孤立 alias、case alias、重复原名、目录 alias、`..`、links、未锁定包与额外安装文件仍拒绝。实际成对编码仅出现在 agent-base/http-proxy-agent/https-proxy-agent；首次两轮失败原样保留。
+
+### 12.2 独立 v2 原生胶囊
+
+新增 `createWindowsNativeCapsuleEvaluator` 与 `verify01-native-capsule.mjs`，保持原 v1 的 **64 文件、1 MiB 单文件、8 MiB 总量、128 目录**。v2 使用独立 policy brand、私有目录前缀、manifest version 与 lock/plan/project/runtime/ABI 绑定，JS 和 C# 两侧分别限制 **20,000 文件、32 MiB 单文件、512 MiB 总量、20,000 目录**，check 仍最多 1 MiB，manifest 最多 4 MiB。实际使用现有摘要绑定的 invocation 文件运输，没有将大清单塞入 Windows 命令行。
+
+捕获在分配下一文件前累计预算；单文件以有界 FD 读取，分别核对 pathname/descriptor 身份并重新打开比对，不能用文件增长突破分配上限。binding/runtime 深冻结，库存 JSON 不能替代源树重新核验。安全 dotfile 与 scoped 包路径可进入 v2；v1 路径合同保留。
+
+原生 helper 继续逐文件/目录持有 guard、枚举全部条目、拒绝未列出文件与 links/硬链接/别名，绑定实际复制的 Node/check、挂起目标令牌和 Job；仍为零 capabilities、无 loopback exemption、墙钟终止与空 Job settlement。新 helper 的嵌入源码摘要为 `ae1d468fce99a4a4a75b78805f24e043c8e16bc110821ae0df17bab54b5abbd7`。
+
+真实原生测试 **3/3**：81 文件、12 MiB 可传输执行，源码/control 写入拒绝、scratch 写入成功；篡改文件及新增未列出文件分别在目标创建前拒绝，`targetPid=0`，清理确认。20,000 的上限没有做满额资源/SLO 测量。证据见[胶囊回读](./cli/evidence/gap-2026-10-05/windows-native-capsule-2026-10-08/readback.json)；旧回执的源码身份与最后有界读取回归分别记录，不作为准确提交发布门。
+
+### 12.3 实际工具链执行与仍存在的故障
+
+所有执行使用原 registry/Git 字节、Windows **10.0.19045**、Node **22.22.2**、ABI **127**。先前受限用户令牌的 readiness/cleanup 拒绝被保留；按工具权限流程用真实用户令牌继续诊断。
+
+| 实际诊断                   | 观察结果                                                                                              | 当前结论                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 独立 all-file stdio        | 97 字节二进制 stdin 摘要、独立 stdout/stderr、PID、FD 关闭与 settlement 均核对通过                    | 原 ignore-stdin 的 NUL 拒绝不能泛化为所有文件 stdio 不支持；旧七项 capability ID/结果未改 |
+| 工具链导入                 | builtin ESM 已完成，`vitest-import-started` 后 15 秒 Job 超时，exit 125，清理确认                     | 导入未完成，不授予完整工具链能力                                                          |
+| 冻结 globalSetup           | 原模块导入成功；helper 第 531 行 `fs.realpathSync.native(scratch/tmp)` 返回 `EPERM`，exit 1，清理确认 | 该次不是初始化超时；locked setup 未通过                                                   |
+| 三个 registry addon        | Parcel watcher 与 Rollup MSVC 加载成功；Rollup GNU `ERR_DLOPEN_FAILED`                                | 完整诊断保留全部三项，`addonAbiVerified=false`                                            |
+| frozen-config Vitest smoke | 前置导入未通过，未运行                                                                                | 保留 `NOT_RUN`；threads 也不等于原 forks 合同                                             |
+
+[Win32/全文件 stdio 回读](./cli/evidence/gap-2026-10-05/windows-pipe-api-2026-10-08/readback.json)保留原始摘要和脱敏派生。固定 libuv 的普通 `uv` pipe 名称返回 Win32 5，LOCAL 创建成功、NUL 返回 5；冻结 Rollup `dist/native.js:21` 在 Windows 顶层使用默认 pipe 的 `spawnSync`，`:91` 的 `isMingw32()` 触发该调用，路径为 `vitest/node → vite → rollup/parseAst → native.js`。内部 3 秒 timeout 不能抢占此前已确认的 libuv 管道创建循环；不以延长 Job 时间或取消隔离解决。
+
+单个 addon 失败不会让其他二进制变成未观察：检查器逐项保留 loaded/blocked/code，验证完整人口、PID/ABI、唯一结束帧与 fsync journal。缺摘要、替换 journal、夹入失败阶段、缺或重复 Vitest start、删除失败 addon 或假称整体 ABI 通过均拒绝。整包 `capabilities={}`，公开派生摘要不能作为准入票据。
+
+### 12.4 回归、接线与剩余任务
+
+| 验证                                                                                   | 结果                                        |
+| -------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Node：准备/registry/inventory/准入/胶囊回读/pipe/file-stdio 合同                       | **153/153，零跳过**                         |
+| 真实 v2 胶囊及篡改/未列出文件拒绝                                                      | **3/3，零跳过**                             |
+| Vitest：原 v1、七项能力合同、Docker review pack                                        | **52/52，零跳过**                           |
+| 定向 ESLint、Prettier、helper source contract、spawn inventory、两 workflow actionlint | 通过；actionlint 未启用 shellcheck/pyflakes |
+
+共 **208 项通过**；执行诊断中的失败没有混入此回归计数。Node 合同接入 CLI CI 三系统；真实 v2 运输接入 Strict 的 Windows job 并上传回执，相关脚本/测试补入 push/PR path filters。本地结果不替代本分支准确提交的完整 Actions 矩阵。
+
+本轮确认尚需实现的工程：独立版本化原生 runtime 对 LOCAL 管道、Null 设备、受限根 canonical 查询及 Node 后代适配/证明；冻结 setup/config/full review；Windows/macOS durable 权限 authority、网络撤销和崩溃恢复。Astra 的设计审查不是这些后端的执行证据，未启用 IAT hooks、修改 Node/冻结包或扩大生产 allowlist。
+
+真实验收还需目标 Windows 11 24H2/macOS 15/Linux 宿主与 Node 22.12.0、官方 OpenAI/Anthropic 账号与账单、独立人工 setup/check 签核、双 IDE 正式任务/首次安装、真人 NVDA/VoiceOver/Orca、8h/24h 观察和获批 SLO。用户尚未提供目标环境/账号配置信息；CLOUD-02 继续保留需求条件项。
+
+冻结计划 validator 仍为 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`，**36 tasks / 9 firstRuns / NOT_RUN / INSUFFICIENT_EVIDENCE**；未写正式 observations、未删分母、未新增付费请求或发布。

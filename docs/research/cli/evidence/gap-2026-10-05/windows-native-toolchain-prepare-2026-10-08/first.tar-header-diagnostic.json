@@ -1,0 +1,52 @@
+{
+  "schema": "chainlesschain.read-only-tar-header-diagnostic/v1",
+  "extractionPerformed": false,
+  "admissionEligible": false,
+  "package": {
+    "path": "node_modules/@types/chai",
+    "name": "@types/chai",
+    "version": "5.2.3",
+    "resolved": "https://registry.npmjs.org/@types/chai/-/chai-5.2.3.tgz",
+    "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA=="
+  },
+  "artifactDigest": "sha256:5f0c52e34238e17d2d9a2d6e9b85530765afae645f265e0e14263ebeecdd7f94",
+  "lockedIntegrityMatches": true,
+  "headers": [
+    {
+      "name": "chai/",
+      "size": 0,
+      "type": "5",
+      "contentDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "chai/LICENSE",
+      "size": 1141,
+      "type": "0",
+      "contentDigest": "sha256:c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "name": "chai/README.md",
+      "size": 1009,
+      "type": "0",
+      "contentDigest": "sha256:885843315389cf2c05776cca29f4855304dd0eef55a5b3f6714245b44f8db920"
+    },
+    {
+      "name": "chai/index.d.ts",
+      "size": 87485,
+      "type": "0",
+      "contentDigest": "sha256:9afb4cb864d297e4092a79ee2871b5d3143ea14153f62ef0bb04ede25f432030"
+    },
+    {
+      "name": "chai/package.json",
+      "size": 2284,
+      "type": "0",
+      "contentDigest": "sha256:273a3159a592826cc068b22356e9a3e968dffe88a0f99892032a889f28c567a7"
+    },
+    {
+      "name": "chai/register-should.d.ts",
+      "size": 92,
+      "type": "0",
+      "contentDigest": "sha256:71fbdc262430e2bd88eb023484ebaaa15f6ae8a4e1f9a0ff80b7bf89fbc76f08"
+    }
+  ]
+}

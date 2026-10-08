@@ -1,0 +1,6 @@
+Error: EPERM: operation not permitted, realpath '<USERPROFILE>\AppData\Local\Temp\cc-native-capsule-2KvYNJ\scratch\tmp'
+    at node:fs:2853:18
+    at realpath (file:///<USERPROFILE>/AppData/Local/Temp/cc-native-capsule-2KvYNJ/workspace/packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js:62:10)
+    at installWindowsSandboxAdapterTestRoot (file:///<USERPROFILE>/AppData/Local/Temp/cc-native-capsule-2KvYNJ/workspace/packages/cli/test/helpers/windows-sandbox-adapter-temp-root.js:531:30)
+    at Module.setupWindowsSandboxAdapterTempRoot (file:///<USERPROFILE>/AppData/Local/Temp/cc-native-capsule-2KvYNJ/workspace/packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js:7:17)
+    at <USERPROFILE>\AppData\Local\Temp\cc-native-capsule-2KvYNJ\control\check.cjs:24:37
