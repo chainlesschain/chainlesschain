@@ -28,7 +28,7 @@ public final class RuntimeCompatibility {
         public final String cliVersion;
         public final String minimumCliVersion;
         public final List<String> reasons;
-        public final String recommendedCliVersion = CliVersionCheck.RECOMMENDED_CLI_VERSION;
+        public final String recommendedCliVersion = CliVersionCheck.recommendedCliVersion();
         public final AgentRuntime agentRuntime;
 
         private Result(String status, String label, String summary,

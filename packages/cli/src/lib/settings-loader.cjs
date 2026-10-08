@@ -491,7 +491,16 @@ function addRule({
         committed = true;
         return { file, added: true };
       },
-      { failIfUnavailable: true },
+      {
+        failIfUnavailable: true,
+        // Keep the existing two-second acquisition deadline. A writer doing
+        // several synchronous addRule calls must give existing contenders a
+        // retry window after each release instead of immediately reacquiring.
+        retryMs: 5,
+        maxRetryMs: 25,
+        retryJitterMs: 5,
+        yieldAfterReleaseMs: 32,
+      },
     );
     if (began) finishSettingsMutation("ready");
     return result;

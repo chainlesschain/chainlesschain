@@ -260,6 +260,69 @@ describe("withFileLock", () => {
     ).toThrowError(/Could not acquire state lock/);
   });
 
+  it("polls a live incumbent without creating acquisition debris or extending the deadline", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = { pid: 4242, startedAt: 0, token: "live-owner-token-0001" };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+    _fs.writeFileSync.mockClear();
+    let now = 0;
+    const body = vi.fn();
+    expect(() =>
+      withFileLock("/critical.json", body, {
+        _fs,
+        failIfUnavailable: true,
+        timeoutMs: 30,
+        retryMs: 5,
+        maxRetryMs: 5,
+        retryJitterMs: 0,
+        _now: () => now,
+        _sleep: (milliseconds) => {
+          now += milliseconds;
+        },
+        _isProcessAlive: () => true,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "STATE_LOCK_UNAVAILABLE" }));
+    expect(now).toBe(30);
+    expect(body).not.toHaveBeenCalled();
+    expect(_fs.mkdirSync).not.toHaveBeenCalled();
+    expect(_fs.writeFileSync).not.toHaveBeenCalled();
+    expect(_fs.renameSync).not.toHaveBeenCalled();
+    expect(_fs.rmSync).not.toHaveBeenCalled();
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      owner,
+    );
+  });
+
+  it("still requires atomic publication when another owner arrives after the absence observation", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const owner = { pid: 4242, startedAt: 0, token: "racing-owner-token-0001" };
+    const rename = _fs.renameSync;
+    _fs.renameSync = vi.fn((from, to) => {
+      if (String(from).includes(".acquire-") && !_fs.dirs.has(lockDir)) {
+        _fs.dirs.set(lockDir, 0);
+        _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(owner));
+      }
+      return rename(from, to);
+    });
+    const body = vi.fn();
+    expect(() =>
+      withFileLock("/critical.json", body, {
+        _fs,
+        failIfUnavailable: true,
+        timeoutMs: 0,
+        _isProcessAlive: () => true,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "STATE_LOCK_UNAVAILABLE" }));
+    expect(body).not.toHaveBeenCalled();
+    expect([..._fs.dirs.keys()]).toEqual([lockDir]);
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      owner,
+    );
+  });
+
   it("strict mode retries transient Windows filesystem errors with bounded jitter", () => {
     const _fs = fakeLockFs();
     const originalMkdir = _fs.mkdirSync;

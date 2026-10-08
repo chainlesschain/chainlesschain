@@ -332,3 +332,19 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 本轮的工程修复和局部实验不改变正式计划的 `NOT_RUN`。目标环境、官方账户配置和人工验收条件尚未提供；两份分析的整体任务继续保留上述未关闭项。
 
 独立 esbuild leaf 的最终早期 DLL 初始化仍以 `0xC0000142` 失败；当前源码的 root/child 身份与清理证据已归档，没有 installed/API 日志。30 项校验器合同已接 CLI CI；完整 config/default forks/full review 继续开放，详见[验证第 16 节](./cli-ide-gap-validation-2026-10-05.md#16-2026-10-08-非-node-esbuild-leaf-诊断的真实阻塞)。
+
+## 18. 2026-10-08 设置锁 CI 修复与 esbuild 启动
+
+`91924f202e`修复Windows并发设置锁饥饿，保留两秒期限/ownership。Windows两Node版本定向各136通过/1 Linux专属跳过，两系统真实四进程各240次写入无丢失/重复；准确SHA Windows/Linux x64/ARM64/macOS15及额外macOS latest的完整Strict成功，CLI CI仍待完成。本机完整Strict失败保留。
+
+`fd713e0e72`在零capability AppContainer得到11条esbuild API记录，消除本机DLL_INIT_FAILED；esbuild仍exit1/NOT_ADMITTED，完整config/default forks/review开放。34项trace+36项GNU合同通过，见[验证第17节](./cli-ide-gap-validation-2026-10-05.md#17-2026-10-08-设置锁公平性与-esbuild-启动取证)。
+
+Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时验收继续开放；无付费请求或发布。
+
+## 19. 2026-10-08 私有 esbuild leaf 与配对发布准备
+
+独立非管理员监督器在原始child HANDLE上安装私有映射，冻结esbuild实际bundle成功，零capabilities/leaf/精确5句柄/父映射不变/child退出与空Job证明成立。主agent复核后的未入Job真实负例也确认退出，61项合同在两个Node runtime通过；保持NOT_ADMITTED，完整service/config/default forks/review仍开放。见[验证第18节](./cli-ide-gap-validation-2026-10-05.md#18-2026-10-08-私有-esbuild-leaf-与发布候选)。
+
+用户已授权测试成功后配对发布。CLI0.166.94 / VSCode0.37.139 / JetBrains0.4.157候选已同步，10个固定子包真实下载及下游版本验证完成，无需新子包发布。Doctor推荐值跨类常量内联问题已修复；本机74项CLI、21项VSCode、946项Java+1445项smoke及ZIP构建通过。仍须最终准确SHA完整CLI/IDE矩阵，未发布且未写正式36+9 observations。
+
+最终 v3 已按新源码重新编译、真实运行并归档，旧 v2 保留历史。旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 见[验证18.3–18.4](./cli-ide-gap-validation-2026-10-05.md#183-最终源码字节重新验证)。

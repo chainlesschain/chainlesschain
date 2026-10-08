@@ -65,6 +65,9 @@ function fixture() {
   const launcher = {
     completed: true,
     stage: "completed",
+    error: 0,
+    consoleMode: "detached",
+    loaderStrategy: "primary-thread-apc",
     rootPid,
     childPid,
     childExit: 1,
@@ -202,6 +205,10 @@ for (const [label, mutate] of [
       value.childExit = 0xc0000142;
     },
   ],
+  ["abnormal child exit", (value) => (value.childExit = 0xc0000142)],
+  ["launcher error", (value) => (value.error = 5)],
+  ["console initialization", (value) => (value.consoleMode = "no-window")],
+  ["remote loader thread", (value) => (value.loaderStrategy = "remote-thread")],
   ["child token not proven", (value) => (value.childTokenProven = false)],
   ["root token not proven", (value) => (value.rootTokenProven = false)],
   ["unrestricted child", (value) => (value.leafRestricted = false)],

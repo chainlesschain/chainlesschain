@@ -2,13 +2,22 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-07)
+## Current release and source (2026-10-08)
 
-Public npm latest is **chainlesschain@0.166.91** at `23afea300b`, pinning Session Core **0.3.16**, PDH **0.4.64** and Context/Memory Kernel **0.1.6**. Its exact Linux/Windows/macOS CLI CI and Strict Sandbox gates passed before OIDC publication. Public package versions, SRI, dependency pins and provenance statement were read back on 2026-10-07.
+Public npm latest is **chainlesschain@0.166.93**, pinning Session Core **0.3.18**,
+PDH **0.4.64** and Context/Memory Kernel **0.1.8**. Open VSX **0.37.138** and
+JetBrains **0.4.156** are public and recommend that CLI; JetBrains is
+approved/listed, not hidden. Public versions were read back on 2026-10-08.
 
-Open VSX **0.37.136** and JetBrains **0.4.154** are public at the separate IDE commit `5b78b8d828` and recommend 0.166.91. JetBrains is approved/listed, not hidden. Microsoft Marketplace remains unpublished. See the [release observation](../../docs/research/cli/evidence/documentation-release-status-2026-10-07.json).
+Source **0.166.94** is the next release candidate, paired with VS Code
+**0.37.139** and JetBrains **0.4.157** after exact-commit release gates and
+public CLI availability. It reduces contention between synchronous permission
+rule writers while preserving strict ownership, the two-second acquisition
+deadline and synchronous authority revocation.
 
-Main source reviewed at `36ca503291` adds project-goal/scheduler modules and RRSI controls. The new project goal monitoring/actions/acceptance require the desktop source; neither these nor the new RRSI contracts are included in the public 0.166.91 artifact. Source package versions alone do not identify installed capability. See [project goals](../../docs-site/docs/chainlesschain/project-goals-current.md) and [RRSI](../../docs-site/docs/chainlesschain/rrsi-current.md).
+Independent Windows native review diagnostics remain experimental.
+Full native review and Windows/macOS durable recovery require separate
+acceptance; package publication does not complete formal 36+9 evaluation.
 
 ### Linux process ownership recovery (public 0.166.91)
 

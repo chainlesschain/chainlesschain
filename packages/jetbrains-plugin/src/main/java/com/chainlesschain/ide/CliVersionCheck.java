@@ -19,7 +19,12 @@ public final class CliVersionCheck {
     public static final String UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
     /** Exact public CLI paired with this plugin release. */
-    public static final String RECOMMENDED_CLI_VERSION = "0.166.93";
+    public static final String RECOMMENDED_CLI_VERSION = "0.166.94";
+
+    /** Keep consumers from inlining a previous release through transitive constants. */
+    public static String recommendedCliVersion() {
+        return RECOMMENDED_CLI_VERSION;
+    }
 
     private static final Pattern SEMVER = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
 

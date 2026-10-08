@@ -420,6 +420,16 @@ function sameUnpublishedLockOwner(io, lockDir, identity, owner) {
 }
 
 function acquireOwnedDirectory(_fs, lockDir, owner) {
+  // Avoid creating, writing and deleting a candidate on every poll of a live
+  // lock. On Windows that metadata churn competes with the owner's durable
+  // write and release. This observation grants no ownership: an absent path
+  // still requires the atomic publication below, and a disappearing incumbent
+  // merely sends the contender through the normal bounded retry/reclaim path.
+  if (directoryExists(_fs, lockDir)) {
+    const error = new Error("State lock already exists");
+    error.code = "EEXIST";
+    throw error;
+  }
   const serializedOwner = JSON.stringify(owner);
   // Injected legacy filesystems used by a few consumers may not implement
   // rename. Keep their old acquire path, while the real Node filesystem always

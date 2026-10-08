@@ -1,0 +1,182 @@
+{
+  "collectedAt": "2026-10-08T12:54:39.437Z",
+  "sourceHead": "fd713e0e726b857cf53da2e33ea798621655507f",
+  "settingsFixCommit": "91924f202ecee89306fdd649df90f311e37debdf",
+  "originalJobLogDigest": "sha256:fd10e7a8c1b54c8ec6c2102d077abf26d296bd0055d99ba4b166e2d66f952f01",
+  "originalJobExcerptDigest": "sha256:5da0f22cf49cf0416cc85ce3a2aef9e694751ae91a959ed89e4fee518aad27a0",
+  "targetedWindows": {
+    "nodeVersions": ["22.22.2", "22.12.0"],
+    "passed": 136,
+    "skipped": 1,
+    "skip": "Linux-only runtime test"
+  },
+  "realLockWriters": {
+    "operatingSystems": ["Windows", "WSL Linux"],
+    "linuxNodeVersion": "22.12.0",
+    "writers": 4,
+    "writesPerWriter": 60,
+    "missingWrites": 0,
+    "duplicateWrites": 0
+  },
+  "broadRuns": [
+    {
+      "label": "misnamed-node-full-strict",
+      "rawDigest": "sha256:c4750662f0223e801e8853247832d933c4d4f05ba01ec1b1ec014c32a5cc9ac5",
+      "localRawPath": ".work/strict-contract-settings-20261008.json",
+      "startTime": 1791462897833,
+      "files": 89,
+      "passedFiles": 86,
+      "totalTests": 2707,
+      "passedTests": 2680,
+      "failedTests": 16,
+      "pendingTests": 11,
+      "success": false,
+      "failures": [
+        {
+          "file": "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js",
+          "fullName": "agent-core adversarial MCP stdio admission blocks real stdio claimed_read_mutation before transport and mutation without approval",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at Object.prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at MCPClient.connect (C:/code/chainlesschain/packages/cli/src/harness/mcp-client.js:2308:30)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js:50:18\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at wrapper (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:722:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js",
+          "fullName": "agent-core adversarial MCP stdio admission blocks real stdio unknown_mutation before transport and mutation without approval",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at Object.prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at MCPClient.connect (C:/code/chainlesschain/packages/cli/src/harness/mcp-client.js:2308:30)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js:50:18\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at wrapper (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:722:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js",
+          "fullName": "agent-core adversarial MCP stdio admission blocks real stdio declared_write before transport and mutation without approval",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at Object.prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at MCPClient.connect (C:/code/chainlesschain/packages/cli/src/harness/mcp-client.js:2308:30)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js:50:18\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at wrapper (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:722:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js",
+          "fullName": "agent-core adversarial MCP stdio admission executes only after request approval and records the claimed read as unknown",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at Object.prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at MCPClient.connect (C:/code/chainlesschain/packages/cli/src/harness/mcp-client.js:2308:30)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js:50:18\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at wrapper (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:722:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/integration/mcp-client-stdio-process-tree.test.js",
+          "fullName": "MCP stdio real process-tree cleanup reaps the MCP root and grandchild before a failed connect settles",
+          "messages": [
+            "Error: MCP process-tree fixture settled before publishing PIDs: CC_MCP_STDIO_RUNTIME_KIND_REQUIRED\n    at waitForMarker (C:/code/chainlesschain/packages/cli/__tests__/integration/mcp-client-stdio-process-tree.test.js:49:13)\n    at C:/code/chainlesschain/packages/cli/__tests__/integration/mcp-client-stdio-process-tree.test.js:221:20\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity fails closed on first use and reports the exact reviewed hashes",
+          "messages": [
+            "AssertionError: expected 'CC_MCP_STDIO_RUNTIME_KIND_REQUIRED' to be 'CC_MCP_STDIO_EXECUTABLE_TRUST_REQUIRED' // Object.is equality\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:81:27\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity persists no environment values and issues a one-shot launch token",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:95:55\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity rejects a runtime declaration that downgrades a recognized interpreter",
+          "messages": [
+            "AssertionError: expected function to throw an error, but it didn't\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:182:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity keeps default trust outside CLI home and survives a home rollback",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:204:54\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity rejects changed entrypoint bytes until they are explicitly retrusted",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:249:38\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity rejects a trust-store snapshot restored behind its independent witness",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:282:38\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity deterministically recovers both sides of an interrupted trust mutation",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:325:38\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity re-attests immediately before spawn and rejects a post-approval change",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:399:55\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity strips ambient runtime injection and rejects configured injection",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:423:55\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity lets the Broker consume the private token and strips it from native spawn",
+          "messages": [
+            "McpStdioExecutableIdentityError: MCP stdio executable \"node-v22.12.0\" has no recognized runtime semantics; set runtimeKind explicitly before trusting it\n    at identityError (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:103:17)\n    at resolveMcpStdioRuntimeKind (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:455:9)\n    at attestMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:973:23)\n    at prepareMcpStdioExecutableIdentity (C:/code/chainlesschain/packages/cli/src/lib/mcp-stdio-executable-identity.js:1144:5)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:462:55\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "file": "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js",
+          "fullName": "MCP stdio executable byte identity fails closed when the durable trust store is corrupt",
+          "messages": [
+            "AssertionError: expected error to match asymmetric matcher\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js:586:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "node-exe-full-strict",
+      "rawDigest": "sha256:2e3888e6b09081db0606869e5288bf75b1c14f35bda7b3e318e3c756eb6930ae",
+      "localRawPath": ".work/strict-contract-settings-node-exe-20261008.json",
+      "startTime": 1791463487731,
+      "files": 89,
+      "passedFiles": 88,
+      "totalTests": 2707,
+      "passedTests": 2695,
+      "failedTests": 1,
+      "pendingTests": 11,
+      "success": false,
+      "failures": [
+        {
+          "file": "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js",
+          "fullName": "headless MCP ledger persistence and recovery injects a recovery notice and blocks unsafe replay before the same session sink",
+          "messages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js:106:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          ]
+        }
+      ]
+    }
+  ],
+  "limitation": "Local full runs include preserved failures; targeted passes do not convert them to an all-green gate. Exact Actions gates are reported separately.",
+  "headlessIsolated": {
+    "nodeVersion": "22.12.0",
+    "rawDigest": "sha256:572ee2b9c07c2be97b54369ca365e2da00b625156fc7bfeaf87f6442aae9a9e7",
+    "passed": 5,
+    "failed": 0,
+    "success": true,
+    "originalTestDeadlineMs": 15000,
+    "doesNotEraseBroadRunFailure": true
+  }
+}

@@ -1,0 +1,376 @@
+TAP version 13
+# Subtest: independent entry proof binds real private-root enumeration and exact bundle bytes
+ok 1 - independent entry proof binds real private-root enumeration and exact bundle bytes
+  ---
+  duration_ms: 10.3948
+  type: 'test'
+  ...
+# Subtest: rejects formal promotion
+ok 2 - rejects formal promotion
+  ---
+  duration_ms: 2.0704
+  type: 'test'
+  ...
+# Subtest: rejects admission promotion
+ok 3 - rejects admission promotion
+  ---
+  duration_ms: 2.682
+  type: 'test'
+  ...
+# Subtest: rejects result translation
+ok 4 - rejects result translation
+  ---
+  duration_ms: 1.4192
+  type: 'test'
+  ...
+# Subtest: rejects source replacement
+ok 5 - rejects source replacement
+  ---
+  duration_ms: 2.0241
+  type: 'test'
+  ...
+# Subtest: rejects frozen binary replacement
+ok 6 - rejects frozen binary replacement
+  ---
+  duration_ms: 1.2889
+  type: 'test'
+  ...
+# Subtest: rejects staged shim replacement
+ok 7 - rejects staged shim replacement
+  ---
+  duration_ms: 3.3771
+  type: 'test'
+  ...
+# Subtest: rejects staged entry replacement
+ok 8 - rejects staged entry replacement
+  ---
+  duration_ms: 2.9804
+  type: 'test'
+  ...
+# Subtest: rejects unlisted staged file
+ok 9 - rejects unlisted staged file
+  ---
+  duration_ms: 4.0104
+  type: 'test'
+  ...
+# Subtest: rejects supervisor failure
+ok 10 - rejects supervisor failure
+  ---
+  duration_ms: 3.5297
+  type: 'test'
+  ...
+# Subtest: rejects extra supervisor frame
+ok 11 - rejects extra supervisor frame
+  ---
+  duration_ms: 2.736
+  type: 'test'
+  ...
+# Subtest: rejects trace byte tamper
+ok 12 - rejects trace byte tamper
+  ---
+  duration_ms: 2.6891
+  type: 'test'
+  ...
+# Subtest: rejects forged resealed bundle
+ok 13 - rejects forged resealed bundle
+  ---
+  duration_ms: 2.6477
+  type: 'test'
+  ...
+# Subtest: rejects child error
+ok 14 - rejects child error
+  ---
+  duration_ms: 2.4708
+  type: 'test'
+  ...
+# Subtest: rejects native denied setter
+ok 15 - rejects native denied setter
+  ---
+  duration_ms: 2.4419
+  type: 'test'
+  ...
+# Subtest: rejects native privileged or unproven host
+ok 16 - rejects native privileged or unproven host
+  ---
+  duration_ms: 2.5604
+  type: 'test'
+  ...
+# Subtest: rejects native missing child token proof
+ok 17 - rejects native missing child token proof
+  ---
+  duration_ms: 2.5058
+  type: 'test'
+  ...
+# Subtest: rejects native extra capability
+ok 18 - rejects native extra capability
+  ---
+  duration_ms: 3.425
+  type: 'test'
+  ...
+# Subtest: rejects native non-leaf child
+ok 19 - rejects native non-leaf child
+  ---
+  duration_ms: 2.2974
+  type: 'test'
+  ...
+# Subtest: rejects native wrong handle count
+ok 20 - rejects native wrong handle count
+  ---
+  duration_ms: 2.2522
+  type: 'test'
+  ...
+# Subtest: rejects native missing image pin
+ok 21 - rejects native missing image pin
+  ---
+  duration_ms: 3.2562
+  type: 'test'
+  ...
+# Subtest: rejects native map not installed
+ok 22 - rejects native map not installed
+  ---
+  duration_ms: 2.1264
+  type: 'test'
+  ...
+# Subtest: rejects native parent map changed
+ok 23 - rejects native parent map changed
+  ---
+  duration_ms: 2.3918
+  type: 'test'
+  ...
+# Subtest: rejects native live job
+ok 24 - rejects native live job
+  ---
+  duration_ms: 2.1503
+  type: 'test'
+  ...
+# Subtest: rejects native child was never created
+ok 25 - rejects native child was never created
+  ---
+  duration_ms: 2.0719
+  type: 'test'
+  ...
+# Subtest: rejects native unassigned child
+ok 26 - rejects native unassigned child
+  ---
+  duration_ms: 2.1356
+  type: 'test'
+  ...
+# Subtest: rejects native child wait timed out
+ok 27 - rejects native child wait timed out
+  ---
+  duration_ms: 2.1857
+  type: 'test'
+  ...
+# Subtest: rejects native child wait failed
+ok 28 - rejects native child wait failed
+  ---
+  duration_ms: 2.2614
+  type: 'test'
+  ...
+# Subtest: rejects native unknown child exit
+ok 29 - rejects native unknown child exit
+  ---
+  duration_ms: 2.3484
+  type: 'test'
+  ...
+# Subtest: rejects native child remains live
+ok 30 - rejects native child remains live
+  ---
+  duration_ms: 2.975
+  type: 'test'
+  ...
+# Subtest: rejects native unqueried job
+ok 31 - rejects native unqueried job
+  ---
+  duration_ms: 2.3375
+  type: 'test'
+  ...
+# Subtest: rejects native nonempty job
+ok 32 - rejects native nonempty job
+  ---
+  duration_ms: 2.5009
+  type: 'test'
+  ...
+# Subtest: rejects native contradictory termination
+ok 33 - rejects native contradictory termination
+  ---
+  duration_ms: 2.816
+  type: 'test'
+  ...
+# Subtest: rejects native unknown but equal parent map
+ok 34 - rejects native unknown but equal parent map
+  ---
+  duration_ms: 4.1247
+  type: 'test'
+  ...
+# Subtest: rejects native wrong absent error
+ok 35 - rejects native wrong absent error
+  ---
+  duration_ms: 2.8016
+  type: 'test'
+  ...
+# Subtest: rejects native missing final map observation
+ok 36 - rejects native missing final map observation
+  ---
+  duration_ms: 2.3341
+  type: 'test'
+  ...
+# Subtest: rejects native different map after setter
+ok 37 - rejects native different map after setter
+  ---
+  duration_ms: 2.2815
+  type: 'test'
+  ...
+# Subtest: rejects native different final map
+ok 38 - rejects native different final map
+  ---
+  duration_ms: 2.1517
+  type: 'test'
+  ...
+# Subtest: rejects native profile retained
+ok 39 - rejects native profile retained
+  ---
+  duration_ms: 2.1669
+  type: 'test'
+  ...
+# Subtest: rejects native loopback exempted
+ok 40 - rejects native loopback exempted
+  ---
+  duration_ms: 2.6422
+  type: 'test'
+  ...
+# Subtest: rejects native same PID
+ok 41 - rejects native same PID
+  ---
+  duration_ms: 3.1632
+  type: 'test'
+  ...
+# Subtest: rejects native child failed
+ok 42 - rejects native child failed
+  ---
+  duration_ms: 2.5675
+  type: 'test'
+  ...
+# Subtest: rejects native different guarded root
+ok 43 - rejects native different guarded root
+  ---
+  duration_ms: 2.7219
+  type: 'test'
+  ...
+# Subtest: rejects resealed writable map
+ok 44 - rejects resealed writable map
+  ---
+  duration_ms: 2.7253
+  type: 'test'
+  ...
+# Subtest: rejects resealed wrong mapped root
+ok 45 - rejects resealed wrong mapped root
+  ---
+  duration_ms: 2.421
+  type: 'test'
+  ...
+# Subtest: rejects resealed wrong FileId
+ok 46 - rejects resealed wrong FileId
+  ---
+  duration_ms: 2.3858
+  type: 'test'
+  ...
+# Subtest: rejects resealed host read allowed
+ok 47 - rejects resealed host read allowed
+  ---
+  duration_ms: 2.9186
+  type: 'test'
+  ...
+# Subtest: rejects resealed wrong host denial
+ok 48 - rejects resealed wrong host denial
+  ---
+  duration_ms: 3.0045
+  type: 'test'
+  ...
+# Subtest: rejects resealed workspace write allowed
+ok 49 - rejects resealed workspace write allowed
+  ---
+  duration_ms: 2.3603
+  type: 'test'
+  ...
+# Subtest: rejects resealed traversal escaped
+ok 50 - rejects resealed traversal escaped
+  ---
+  duration_ms: 2.5048
+  type: 'test'
+  ...
+# Subtest: rejects resealed uninstalled shim
+ok 51 - rejects resealed uninstalled shim
+  ---
+  duration_ms: 2.3298
+  type: 'test'
+  ...
+# Subtest: rejects resealed root directory unreadable
+ok 52 - rejects resealed root directory unreadable
+  ---
+  duration_ms: 2.5136
+  type: 'test'
+  ...
+# Subtest: rejects resealed root enumeration missing
+ok 53 - rejects resealed root enumeration missing
+  ---
+  duration_ms: 2.7293
+  type: 'test'
+  ...
+# Subtest: rejects resealed entry unreadable
+ok 54 - rejects resealed entry unreadable
+  ---
+  duration_ms: 2.3407
+  type: 'test'
+  ...
+# Subtest: rejects resealed bundle write missing
+ok 55 - rejects resealed bundle write missing
+  ---
+  duration_ms: 2.4036
+  type: 'test'
+  ...
+# Subtest: rejects resealed wrong child PID
+ok 56 - rejects resealed wrong child PID
+  ---
+  duration_ms: 2.291
+  type: 'test'
+  ...
+# Subtest: rejects resealed sequence gap
+ok 57 - rejects resealed sequence gap
+  ---
+  duration_ms: 2.3866
+  type: 'test'
+  ...
+# Subtest: rejects resealed overflow
+ok 58 - rejects resealed overflow
+  ---
+  duration_ms: 2.3026
+  type: 'test'
+  ...
+# Subtest: rejects resealed incomplete patches
+ok 59 - rejects resealed incomplete patches
+  ---
+  duration_ms: 2.6133
+  type: 'test'
+  ...
+# Subtest: rejects resealed exit missing
+ok 60 - rejects resealed exit missing
+  ---
+  duration_ms: 2.3252
+  type: 'test'
+  ...
+# Subtest: an existing parent mapping requires equal successful raw observations
+ok 61 - an existing parent mapping requires equal successful raw observations
+  ---
+  duration_ms: 3.5643
+  type: 'test'
+  ...
+1..61
+# tests 61
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 370.2361

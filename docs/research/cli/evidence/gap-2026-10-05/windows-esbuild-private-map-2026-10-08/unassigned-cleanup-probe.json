@@ -1,0 +1,88 @@
+{
+  "schema": "chainlesschain.esbuild-private-map-unassigned-cleanup-probe/v1",
+  "experimental": true,
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "formalSample": false,
+  "probePassed": true,
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-unassigned-oNheAv",
+  "supervisor": {
+    "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-map-20261008-final-v2\\supervisor.exe",
+    "bytes": 798720,
+    "digest": "sha256:bbdc6161dc877c2e67cf05c2327f4e72f09197586d541f75d4073866c85adf64"
+  },
+  "source": {
+    "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+    "bytes": 23009,
+    "digest": "sha256:9ef9624798b445de7432299ab74b48d96c6808c689f296295f6ba830d8a212fb"
+  },
+  "baselineReportDigest": "sha256:3dbdd99d742a6e610b87af88644ee8cb210b23a10548b4a4415c3559284c4d2b",
+  "actualSupervisorDigest": "sha256:bbdc6161dc877c2e67cf05c2327f4e72f09197586d541f75d4073866c85adf64",
+  "actualSourceDigest": "sha256:9ef9624798b445de7432299ab74b48d96c6808c689f296295f6ba830d8a212fb",
+  "args": [
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-unassigned-oNheAv",
+    "5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+    "--probe-unassigned-cleanup"
+  ],
+  "execution": {
+    "status": 2,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"experimental\":true,\"status\":\"NOT_ADMITTED\",\"completed\":false,\"stage\":\"probe-unassigned-child\",\"error\":1223,\"setterStatus\":2147483647,\"hostNonElevatedUnrestricted\":true,\"rootPid\":27232,\"childPid\":23712,\"childExit\":125,\"childTokenProven\":false,\"appContainerSid\":\"S-1-15-2-2981677680-3593666633-121887624-2136512171-3112397599-2901358285-489084888\",\"capabilityCount\":null,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandleCount\":5,\"mapPrepared\":true,\"mapInstalled\":false,\"parentMapUnchanged\":false,\"cleanupConfirmed\":true,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"guardedRootNt\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-unassigned-oNheAv\",\"guardedRootFileId\":\"02469ff7:000b0000:006fb76a\",\"childCreated\":true,\"jobAssigned\":false,\"childWaitStatus\":0,\"childExitRead\":true,\"childExited\":true,\"jobQuerySucceeded\":true,\"jobActiveProcesses\":0,\"directTerminationAttempted\":true,\"directTerminationSucceeded\":true,\"directTerminationError\":0,\"beforeMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterSetterMap\":{\"status\":\"not-captured\",\"characters\":0,\"error\":31,\"valueHex\":\"\"},\"afterChildMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"}}\r\n",
+    "stderr": ""
+  },
+  "observation": {
+    "experimental": true,
+    "status": "NOT_ADMITTED",
+    "completed": false,
+    "stage": "probe-unassigned-child",
+    "error": 1223,
+    "setterStatus": 2147483647,
+    "hostNonElevatedUnrestricted": true,
+    "rootPid": 27232,
+    "childPid": 23712,
+    "childExit": 125,
+    "childTokenProven": false,
+    "appContainerSid": "S-1-15-2-2981677680-3593666633-121887624-2136512171-3112397599-2901358285-489084888",
+    "capabilityCount": null,
+    "imagePinned": true,
+    "leafRestricted": true,
+    "exactHandleCount": 5,
+    "mapPrepared": true,
+    "mapInstalled": false,
+    "parentMapUnchanged": false,
+    "cleanupConfirmed": true,
+    "profileDeleted": true,
+    "loopbackExemptionAbsent": true,
+    "guardedRootNt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-unassigned-oNheAv",
+    "guardedRootFileId": "02469ff7:000b0000:006fb76a",
+    "childCreated": true,
+    "jobAssigned": false,
+    "childWaitStatus": 0,
+    "childExitRead": true,
+    "childExited": true,
+    "jobQuerySucceeded": true,
+    "jobActiveProcesses": 0,
+    "directTerminationAttempted": true,
+    "directTerminationSucceeded": true,
+    "directTerminationError": 0,
+    "beforeMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    },
+    "afterSetterMap": {
+      "status": "not-captured",
+      "characters": 0,
+      "error": 31,
+      "valueHex": ""
+    },
+    "afterChildMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    }
+  }
+}

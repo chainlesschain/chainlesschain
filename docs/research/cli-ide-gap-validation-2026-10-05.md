@@ -539,3 +539,61 @@ v3 仅接纳 guarded `control/node.exe`，非 Node 的 esbuild launch 明确 uns
 固定 binary 使用动态 GetProcAddress；独立源码与 PE 检查显示需要取证 Go 的动态目录调用，而非依赖 Node IAT。当前没有实测到具体祖先路径/底层 API，因此不能将冻结 esbuild 源码的错误码解释提升为已经证明的运行根因。API hook 的安装、非 Node 受限运行时的完整继承和冻结 config/default forks/full review 仍需继续实现与真实验证。
 
 纯解析/来源/身份/清理/连续序号/缺中间 API/错误 stderr/不完整注入的 **30 项回归**通过，并接入三系统 CLI CI。fixture 只验证校验器能拒绝缺证据，实际原生结果仍为上述失败。GNU 36 与这组 30 合同合计 66 个不同纯测试；正式 36+9、Windows/macOS durable 后端、官方账户账单和人工长时验收的状态保持开放。本轮没有付费请求、生产权限扩张或发布。
+
+## 17. 2026-10-08 设置锁公平性与 esbuild 启动取证
+
+### 17.1 用户指出的 Windows Strict 失败
+
+[原job 113298272095](https://github.com/chainlesschain/chainlesschain/actions/runs/37773413407/job/113298272095)绑定`be17dfc48a2e8b440d984d00d3f98d9a78a406a3`：2692通过/1失败/11跳过。一个并发addRule writer在原两秒期限内未取得严格锁，owner仍alive且releasePublished=false。每次等待创建/删除candidate、连续writer释放后立即再抢锁，增加Windows元数据争用及饥饿风险。
+
+修复`91924f202ecee89306fdd649df90f311e37debdf`等待活跃锁不创建candidate；absence仍须原子rename发布owner。addRule使用短抖动和释放后32ms让出，原两秒期限、活跃owner保护、单次callback、unknown commit和本进程同步撤销均保留。新增测试验证无candidate副作用、absence后其他owner抢占及释放后authority撤销状态。
+
+Windows Node22.22.2、官方SHASUMS核验的22.12.0各136通过/1 Linux专属跳过；Windows/WSL Linux真实四进程各240次写入无丢失/重复。定向格式/lint通过。两次完整本机Strict失败原样保留：临时Node名字被身份校验拒绝（2680通过/16失败/11跳过）；改正node.exe后2695通过/1 headless恢复15秒超时/11跳过。该单文件保持原期限后来5项通过，不据此声称整组通过。见[原件及摘要](./cli/evidence/gap-2026-10-05/settings-lock-fairness-2026-10-08/README.md)。
+
+该SHA的[Strict #37779098798](https://github.com/chainlesschain/chainlesschain/actions/runs/37779098798) Windows、Linux x64/ARM64、macOS15及额外macOS latest五job均成功，完整Strict成功；[CLI CI #37779105012](https://github.com/chainlesschain/chainlesschain/actions/runs/37779105012)仍执行/排队；尚未完整双门。后续native提交不能借用旧SHA作发布凭据。
+
+### 17.2 esbuild 启动与真实 API
+
+按用户允许请Astra协助，`fd713e0e72`将独立launcher改为DETACHED_PROCESS+原主线程APC加载shim。仅APC及无注入、保留旧console flags的对照仍DLL_INIT_FAILED；当前组合在真实零capability AppContainer完成加载，但不证明Windows内部loader根因。
+
+最终root18140/child27164，同SID、零capabilities、固定映像、四句柄、leaf policy、无loopback exemption与空Job清理成立。11条trace含identity/installed/动态GetProcAddress/CreateFileW/GetFileInformationByHandleEx/exit。外层exit0、esbuild exit1、stderr原样Access denied，仍NOT_ADMITTED。CreateFileW请求`C:\Users`（access0，两次）及`C:\`（GENERIC_READ）均Win32 5；私有workspace真实handle枚举成立。requestedPath不代替canonical证明；Lstat祖先检查与递归ReadDirectory是不同操作，metadata修复不能替代根枚举。
+
+[完整原件](./cli/evidence/gap-2026-10-05/windows-esbuild-detached-2026-10-08/README.md)摘要`acd7a7c6052f525442af455a9cd6e9dc4b4264f2843c45ca7d8539426ea425e6`，当前CPP/driver/实际产物一致。34项trace+36项GNU合同共70项通过，格式/lint通过；冻结包/config、API结果、祖先ACL、生产权限、forks和observations未改。
+
+### 17.3 尚需完成
+
+完整frozen config/default forks/review仍未通过。子进程私有命名空间须绑定监督器guarded真实NT根/FileId，不能以全局/全用户盘符、祖先ACL扩大、目录伪造或错误码翻译关闭本项。
+
+Windows/macOS durable authority、活跃网络撤销、崩溃恢复仍需真实后端。目标宿主/Node22.12.0、官方账号账单、独立人工setup/check签核、双IDE正式36+9/首次安装、真人辅助技术、8h/24h和获批SLO缺证据；已请求用户提供环境与负责人，继续独立工程。36+9固定分母/NOT_RUN、$99预算和CLOUD-02条件项保留，无付费请求或发布。
+
+## 18. 2026-10-08 私有 esbuild leaf 与发布候选
+
+### 18.1 独立私有命名空间组件已真实执行
+
+Astra新增独立非管理员直启监督器、固定shim、driver和结果校验器。LowBox自己设置ProcessDeviceMap实际ACCESS_DENIED，同用户非管理员宿主自设置成功；独立监督器直接创建受限leaf，凭自己持有的原始进程HANDLE设置私有映射，避免未受认证PID请求。根/源文件持有readonly guards，映射根由真实NT路径/FileId绑定。
+
+最终root404/child21860，冻结esbuildexit0并生成真实bundle，20条trace验证X根枚举/entry读/bundle写及宿主根读拒绝、workspace写拒绝、路径遍历受限。零capabilities、精确5句柄、leaf、父映射三次absent/error2、原始child退出、空Job、profile删除和无loopback均成立。
+
+主agent复核要求补强失败清理和未知映射状态。最后同一二进制实际创建child23712后在入Job前停止；原始HANDLE兜底终止、Wait0/exit125/Job0验证成立，不以空Job或PID不见作退出证明。原v1/v2失败、旧final、最终final-v2各自保留。
+
+[完整原件](./cli/evidence/gap-2026-10-05/windows-esbuild-private-map-2026-10-08/README.md)报告摘要`3dbdd99d742a6e610b87af88644ee8cb210b23a10548b4a4415c3559284c4d2b`，CPP/driver/实际二进制/staged字节一致。61项合同在Node22.22.2、22.12.0均通过；原trace34+GNU36合计131个不同Node合同，两个runtime不相加。新合同接入CLI CI三系统，Strict path filters齐备，未将原生诊断加入生产allowlist。
+
+**仍NOT_ADMITTED**，只完成固定entry leaf。完整esbuild service、冻结config/default forks/full review尚未接入；compiler closure非hermetic，正式Win11/Node22.12 target仍待验。Windows/macOS durable、官方账户账单、独立人工、正式36+9及真人长时验收保持开放。
+
+### 18.2 用户授权的配对发布准备
+
+用户明确允许测试成功后发布CLI和两IDE。候选CLI0.166.94 / OpenVSX0.37.139 / JetBrains0.4.157，配对推荐值、lock、changelog与用户升级说明已同步。10个固定子包逐个从官方registry下载并核对SRI/manifest/下游版本，本轮无子包源码改动，无需重发；[子包回读](./cli/evidence/gap-2026-10-05/release-0.166.94/child-registry-readback.json)。
+
+候选本机CLI相关74项、VSCode21项通过；JetBrains946项JUnit通过/3跳过、1445项smoke assertions及ZIP构建成功。第一次JetBrains候选失败暴露Doctor跨类常量内联保留0.166.90而升级推荐已94；改为共享运行时访问器，保留原测试，重新构建通过。后续完整准确SHA的CLI双门与IDE宿主矩阵才作发布依据，不借用91924f202e的旧完整Strict结果。
+
+正式36+9的NOT_RUN、$99预算、原分母和observations保持冻结。发布继续OIDC、子包→CLI→IDE顺序；本节是准备记录，尚未声称候选已发布。
+
+### 18.3 最终源码字节重新验证
+
+shim EOF 多余空行移除后重编译并真实运行 v3，root19628 / child23440 / exit0、20条 trace、父映射明确 absent、原始 HANDLE 与 Job 清理成立；未入 Job 负例 child25900 / exit125 也确认清理。最新 [v3 原件](./cli/evidence/gap-2026-10-05/windows-esbuild-private-map-2026-10-08/final-v3/report.json) SHA256 `e0e346fa05b7df5fc90a87e538188afa2d11a0c27361c0097f88b3bf860e6a02`，源码/driver/实际二进制/staged 一致，61项合同通过。v2 保留历史，不能借用旧摘要绑定新源码。
+
+旧 `91924f202e` 的 CLI CI #37779105012 最终失败：Windows/macOS 工具链准备测试输出父目录被判定为 path alias，导致后续验证未运行和 PM 三系统汇总拒绝；即使原 Strict 全部成功，也未取得双门通过。该失败必须修正后用最终准确 SHA 重跑完整门。
+
+### 18.4 跨平台准备 fixture 修正
+
+旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 macOS /var 与 Windows runner 临时目录可以具有平台别名；fixture 对自己新建的临时目录使用 `fs.realpathSync.native` 后传入准备器。新增实建 symlink/junction 的拒绝测试，确认目标目录没有新增文件。生产准备器零修改，原失败/负例断言保留。Prettier、定向 ESLint 通过。

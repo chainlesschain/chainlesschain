@@ -1,0 +1,393 @@
+{
+  "schema": "chainlesschain.windows-esbuild-api-trace/v1",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "status": "NOT_ADMITTED",
+  "resultTranslation": false,
+  "completed": true,
+  "runtime": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "esbuild": {
+    "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+    "bytes": 11670528,
+    "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+  },
+  "checkDigest": "sha256:fb0ba9b6daa63a8f4afdc98dfa0a1471d7578401288916a4e89f397ab3b82012",
+  "commands": [
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-trace-launcher.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-api-trace-20261008-apc-detached-final\\esbuild-trace-launcher.node"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-trace-shim.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-api-trace-20261008-apc-detached-final\\esbuild-trace-shim.dll"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "startedAt": "2026-10-08T12:42:23.108Z",
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-trace-launcher.cpp",
+      "bytes": 9967,
+      "digest": "sha256:88f2a70fc02a2139b09353c4af3f354a65c48eac7570caf687469b12bc42e483"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-trace-shim.cpp",
+      "bytes": 8484,
+      "digest": "sha256:846af94bf73ed2b3a6525ece782b02be587be53a5167c39934077634538e7d65"
+    }
+  ],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-esbuild-api-trace.mjs",
+    "bytes": 14002,
+    "digest": "sha256:3dc0224db8baf0ee500c4ac302ce7c4771b62c82e7182a8080f1fcbdfe3ca087"
+  },
+  "headers": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api.h",
+      "bytes": 10370,
+      "digest": "sha256:2d4560831e525b47b060ec8a0864ab73993df9e20215ce9f0fe7b24cd31af32a"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api_types.h",
+      "bytes": 1825,
+      "digest": "sha256:088766b3cf1f0cd9b292c361ad30f7a04e7cc6db35a20ca52c572c1adf9635e7"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api.h",
+      "bytes": 31770,
+      "digest": "sha256:582e64ead4d5fdf663e2bd934f2fc97e8e155a7740d28995830393d19d089705"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api_types.h",
+      "bytes": 7603,
+      "digest": "sha256:05e3d86e24c814f94a8b52b6a70cec11d7e91c810008253553528637e3a15b2f"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_version.h",
+      "bytes": 4243,
+      "digest": "sha256:0b388ee0595dee5cbe601e3e96cee5377a1e25f8f299b474f605445b68797eda"
+    }
+  ],
+  "compiler": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "bytes": 13824,
+      "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\clang-23.exe",
+      "bytes": 95744,
+      "digest": "sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\ld.lld.exe",
+      "bytes": 5184512,
+      "digest": "sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libc++.dll",
+      "bytes": 2000384,
+      "digest": "sha256:81fb50f0866840d7e5a1d35d48cf31adc02f623a61d8b77daf62881e1e59401b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang-cpp.dll",
+      "bytes": 49639936,
+      "digest": "sha256:de0e788d706e25df582ffba132c50ed57568cb669d09acd78cba84b0b5a04d48"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang_rt.asan_dynamic-x86_64.dll",
+      "bytes": 1466368,
+      "digest": "sha256:23f93e1d3f4b13a5a8447f78c2bcd08ab1c98fd891ea785b8fa395030d17c05d"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libffi-8.dll",
+      "bytes": 64512,
+      "digest": "sha256:ea32ce9aad2fd63ca7064b23a3b3ac68e98ea73b8fe171d2cfc9e9a10ce7fc85"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\liblldb.dll",
+      "bytes": 17090560,
+      "digest": "sha256:e9d268f9156fac6b7bd4cf299a0f3881d4e5de07b99652cbb5632ad6048e71cb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libLLVM-23.dll",
+      "bytes": 77676032,
+      "digest": "sha256:7913a4fecb6172756dbb35d08ac487fb0b0f0642e7adee166305984f3fa96511"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libomp.dll",
+      "bytes": 948224,
+      "digest": "sha256:2bbae398a027e33936be6882daa010533934c4daa40013e3077a31cbb5876b79"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.14.dll",
+      "bytes": 5108224,
+      "digest": "sha256:37f48732aaa305ad257f8d09ab26f03c03573fb0aea02273048014c0d3e06fd1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.dll",
+      "bytes": 73216,
+      "digest": "sha256:6368eeb3c56200a7aa9033cc49a71b8bae3545dccb903f2b70056d464b052865"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libunwind.dll",
+      "bytes": 183808,
+      "digest": "sha256:b0636a4281610124704adb2be2edf5642e830d86c68b7f27dbc9c8154705a780"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libwinpthread-1.dll",
+      "bytes": 293888,
+      "digest": "sha256:7658f9e5e89213af287d342c554b8abcb5b2700b4a44d02184b56004b104ceec"
+    }
+  ],
+  "compilerScope": "recorded source, header, compiler and adjacent DLL bytes; not hermetic",
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-api-trace-20261008-apc-detached-final\\esbuild-trace-launcher.node",
+      "bytes": 747520,
+      "digest": "sha256:aa3dbf6f5cd8248eb6da66c272d1275e3930a8dead135ff78df82907c4b51694"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-api-trace-20261008-apc-detached-final\\esbuild-trace-shim.dll",
+      "bytes": 50176,
+      "digest": "sha256:c782eab11b53d9b9bb82924baf9534d2378c0c213ddd14ff4a0c0366c2bc6906"
+    }
+  ],
+  "sourceRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-trace-source-1Opl6F",
+  "manifest": {
+    "version": 2,
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:5b2f44c1000ae601bb1f37ec1f2c1e3db8561ce11adfa80e6bc7b849788163e7",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL",
+    "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace",
+    "control": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\control",
+    "scratch": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\scratch",
+    "check": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "22236523167192061",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL",
+        "dev": "38182903",
+        "ino": "34339947165750252"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\control",
+        "dev": "38182903",
+        "ino": "14355223819293681"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\scratch",
+        "dev": "38182903",
+        "ino": "3659174704288757"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace",
+        "dev": "38182903",
+        "ino": "3940649680999406"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace\\adapter",
+        "dev": "38182903",
+        "ino": "2814749774156800"
+      }
+    ],
+    "files": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace\\esbuild.exe",
+        "dev": "38182903",
+        "ino": "2814749774156798",
+        "bytes": 11670528,
+        "sha256": "ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace\\entry.js",
+        "dev": "38182903",
+        "ino": "3659174704288767",
+        "bytes": 26,
+        "sha256": "a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace\\adapter\\esbuild-trace-launcher.node",
+        "dev": "38182903",
+        "ino": "11540474052187138",
+        "bytes": 747520,
+        "sha256": "aa3dbf6f5cd8248eb6da66c272d1275e3930a8dead135ff78df82907c4b51694"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\workspace\\adapter\\esbuild-trace-shim.dll",
+        "dev": "38182903",
+        "ino": "4222124657710083",
+        "bytes": 50176,
+        "sha256": "c782eab11b53d9b9bb82924baf9534d2378c0c213ddd14ff4a0c0366c2bc6906"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-8oZOqL\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "20266198330217476",
+        "bytes": 308,
+        "sha256": "fb0ba9b6daa63a8f4afdc98dfa0a1471d7578401288916a4e89f397ab3b82012"
+      }
+    ]
+  },
+  "manifestDigest": "sha256:00f011b510831156678e27b1c746d9040750a153d1c9277fe787d54010429688",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_ESBUILD_TRACE:{\"stage\":\"completed\",\"error\":0,\"completed\":true,\"rootPid\":18140,\"childPid\":27164,\"childExit\":1,\"appContainerSid\":\"S-1-15-2-2267034021-1236782366-734754910-1729060534-514204721-826771851-887915486\",\"capabilityCount\":0,\"rootTokenProven\":true,\"childTokenProven\":true,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandles\":true,\"consoleMode\":\"detached\",\"loaderStrategy\":\"primary-thread-apc\"}\n",
+    "stderr": "X [ERROR] Cannot read directory \"../../../../../../..\": Access is denied.\n\nX [ERROR] Could not resolve \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-capsule-8oZOqL\\\\workspace\\\\entry.js\"\n\n2 errors\n"
+  },
+  "settlement": {
+    "manifestDigest": "00f011b510831156678e27b1c746d9040750a153d1c9277fe787d54010429688",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 18140,
+    "appContainerSid": "S-1-15-2-2267034021-1236782366-734754910-1729060534-514204721-826771851-887915486",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "launcherObservation": {
+    "stage": "completed",
+    "error": 0,
+    "completed": true,
+    "rootPid": 18140,
+    "childPid": 27164,
+    "childExit": 1,
+    "appContainerSid": "S-1-15-2-2267034021-1236782366-734754910-1729060534-514204721-826771851-887915486",
+    "capabilityCount": 0,
+    "rootTokenProven": true,
+    "childTokenProven": true,
+    "imagePinned": true,
+    "leafRestricted": true,
+    "exactHandles": true,
+    "consoleMode": "detached",
+    "loaderStrategy": "primary-thread-apc"
+  },
+  "traceRaw": "{\"sequence\":1,\"pid\":27164,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":27164,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":3,\"pid\":27164,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":4,\"pid\":27164,\"api\":\"CreateFileW\",\"requestedPath\":\"C:\\\\Users\",\"success\":false,\"error\":5,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":5,\"pid\":27164,\"api\":\"CreateFileW\",\"requestedPath\":\"C:\\\\Users\",\"success\":false,\"error\":5,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":6,\"pid\":27164,\"api\":\"CreateFileW\",\"requestedPath\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-capsule-8oZOqL\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":7,\"pid\":27164,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":8,\"pid\":27164,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-capsule-8oZOqL\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":9,\"pid\":27164,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-capsule-8oZOqL\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":27164,\"api\":\"CreateFileW\",\"requestedPath\":\"C:\\\\\",\"success\":false,\"error\":5,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":27164,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n",
+  "traceDigest": "sha256:cdc0cd572acb019e7d9323637be6f8e534da8ca92765b415e74ade04142c0658",
+  "observations": {
+    "launcher": {
+      "stage": "completed",
+      "error": 0,
+      "completed": true,
+      "rootPid": 18140,
+      "childPid": 27164,
+      "childExit": 1,
+      "appContainerSid": "S-1-15-2-2267034021-1236782366-734754910-1729060534-514204721-826771851-887915486",
+      "capabilityCount": 0,
+      "rootTokenProven": true,
+      "childTokenProven": true,
+      "imagePinned": true,
+      "leafRestricted": true,
+      "exactHandles": true,
+      "consoleMode": "detached",
+      "loaderStrategy": "primary-thread-apc"
+    },
+    "resolved": [
+      "resolve:CreateFileW",
+      "resolve:GetFileInformationByHandleEx"
+    ],
+    "denied": [
+      {
+        "sequence": 4,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\Users",
+        "success": false,
+        "error": 5,
+        "kind": 0,
+        "patches": 2,
+        "overflow": 0
+      },
+      {
+        "sequence": 5,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\Users",
+        "success": false,
+        "error": 5,
+        "kind": 0,
+        "patches": 2,
+        "overflow": 0
+      },
+      {
+        "sequence": 10,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\",
+        "success": false,
+        "error": 5,
+        "kind": 2147483648,
+        "patches": 2,
+        "overflow": 0
+      }
+    ],
+    "rows": 11
+  },
+  "finishedAt": "2026-10-08T12:42:48.647Z"
+}

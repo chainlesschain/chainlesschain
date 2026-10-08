@@ -1,5 +1,11 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-08 最终候选修正**：旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 私有 esbuild leaf 按去除 EOF 空行后的最新源码重编译并真实实跑 v3，成功和未入 Job 清理负例均成立；[最新字节与状态](../cli-ide-gap-validation-2026-10-05.md#183-最终源码字节重新验证)仍保留 NOT_ADMITTED，正式36+9和人工/账户验收仍开放。配对候选为 CLI `0.166.94` / VS Code `0.37.139` / JetBrains `0.4.157`；通过完整发布门后按授权发布。
+
+> **2026-10-08 私有 leaf 与发布准备**：独立非管理员监督器已在零capability AppContainer内让冻结esbuild真实bundle成功，源码/真实负例与61项合同已固化；完整service/config/default forks/review仍未接入，状态NOT_ADMITTED。用户授权测试成功后配对发布，候选CLI`0.166.94` / VSCode`0.37.139` / JetBrains`0.4.157`，10个固定子包下载/依赖核验完成，Doctor推荐值构建残留也已修复。本机CLI/IDE相关回归和插件ZIP构建通过，最终准确SHA完整门待执行；见[验证第18节](../cli-ide-gap-validation-2026-10-05.md#18-2026-10-08-私有-esbuild-leaf-与发布候选)。durable后端、正式36+9、官方账单和人工长时验收继续开放，无付费模型请求，尚未发布。
+
+> **2026-10-08 设置锁与 esbuild 启动续做**：用户指出的Windows Strict并发设置锁失败已在`91924f202e`修复，原两秒期限/ownership保留；Windows/Linux x64/ARM64/macOS15及额外macOS latest五job完整成功；CLI CI仍待完成。独立esbuild leaf在`fd713e0e72`已启动并取得11条API记录，祖先打开仍Win32 5，完整config/default forks/review开放。定向回归两Node版本各136通过/1 Linux专属跳过，真实四进程两系统各240次写入无丢失/重复；本机完整失败保留。见[验证第17节](../cli-ide-gap-validation-2026-10-05.md#17-2026-10-08-设置锁公平性与-esbuild-启动取证)。Windows/macOS durable、正式36+9、官方账单与人工长时验收仍开放，无付费请求或发布。
+
 > **2026-10-08 Worker/锁/GNU 续做**：修复 Linux CI 的 Worker 结算竞态和严格锁释放争用；Windows 74 通过/1 Linux 专属跳过，Linux Node 22.12.0 为 75 全通过。冻结 GNU Rollup addon 通过独立 41 项 N-API forwarder 在零 capability AppContainer 中完成同步/异步解析、哈希及负例，36 项合同通过，仍为 `NOT_ADMITTED`。完整 esbuild/config/default forks/native review、Windows/macOS durable 后端和正式 36+9/官方账户账单/人工长时验收继续开放。当前结果见[验证第 15 节](../cli-ide-gap-validation-2026-10-05.md#15-2026-10-08-worker-结算锁释放与-gnu-工具链)，下方历史记录保留各自时点。
 
 > **2026-10-08 共享 NUL/继承续做**：共享评测后端新增独立实验 v3，真实 AppContainer 内的 NUL 设备、两层受控 Node 后代与并发启动、精确句柄白名单及清理已验证，最新回归 **572 项通过、零跳过**。冻结配置仍在 esbuild 报告的祖先目录读取阶段失败，未观察 worker pool；本轮没有新增双 IDE 正式旅程。详见[验证第 14 节](../cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)。正式 36+9、目标宿主、官方账号/账单、独立人工签核、真人辅助技术及长时验收继续开放；没有发布。

@@ -1,0 +1,271 @@
+{
+  "schema": "chainlesschain.windows-esbuild-private-map/v1",
+  "experimental": true,
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "formalSample": false,
+  "resultTranslation": false,
+  "completed": true,
+  "runtime": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "esbuild": {
+    "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+    "bytes": 11670528,
+    "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+  },
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-esbuild-private-map.mjs",
+    "bytes": 15585,
+    "digest": "sha256:0c2e332bcf8c1735a297937f3113019770522432e548d5096e1f9dbaed35975a"
+  },
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 23009,
+      "digest": "sha256:9ef9624798b445de7432299ab74b48d96c6808c689f296295f6ba830d8a212fb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    }
+  ],
+  "commands": [
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-municode",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+        "-ladvapi32",
+        "-luserenv",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-map-20261008-final-v3\\supervisor.exe"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-map-20261008-final-v3\\shim.dll"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "startedAt": "2026-10-08T14:17:41.924Z",
+  "compiler": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "bytes": 13824,
+      "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\clang-23.exe",
+      "bytes": 95744,
+      "digest": "sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\ld.lld.exe",
+      "bytes": 5184512,
+      "digest": "sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libc++.dll",
+      "bytes": 2000384,
+      "digest": "sha256:81fb50f0866840d7e5a1d35d48cf31adc02f623a61d8b77daf62881e1e59401b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang-cpp.dll",
+      "bytes": 49639936,
+      "digest": "sha256:de0e788d706e25df582ffba132c50ed57568cb669d09acd78cba84b0b5a04d48"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang_rt.asan_dynamic-x86_64.dll",
+      "bytes": 1466368,
+      "digest": "sha256:23f93e1d3f4b13a5a8447f78c2bcd08ab1c98fd891ea785b8fa395030d17c05d"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libffi-8.dll",
+      "bytes": 64512,
+      "digest": "sha256:ea32ce9aad2fd63ca7064b23a3b3ac68e98ea73b8fe171d2cfc9e9a10ce7fc85"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\liblldb.dll",
+      "bytes": 17090560,
+      "digest": "sha256:e9d268f9156fac6b7bd4cf299a0f3881d4e5de07b99652cbb5632ad6048e71cb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libLLVM-23.dll",
+      "bytes": 77676032,
+      "digest": "sha256:7913a4fecb6172756dbb35d08ac487fb0b0f0642e7adee166305984f3fa96511"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libomp.dll",
+      "bytes": 948224,
+      "digest": "sha256:2bbae398a027e33936be6882daa010533934c4daa40013e3077a31cbb5876b79"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.14.dll",
+      "bytes": 5108224,
+      "digest": "sha256:37f48732aaa305ad257f8d09ab26f03c03573fb0aea02273048014c0d3e06fd1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.dll",
+      "bytes": 73216,
+      "digest": "sha256:6368eeb3c56200a7aa9033cc49a71b8bae3545dccb903f2b70056d464b052865"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libunwind.dll",
+      "bytes": 183808,
+      "digest": "sha256:b0636a4281610124704adb2be2edf5642e830d86c68b7f27dbc9c8154705a780"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libwinpthread-1.dll",
+      "bytes": 293888,
+      "digest": "sha256:7658f9e5e89213af287d342c554b8abcb5b2700b4a44d02184b56004b104ceec"
+    }
+  ],
+  "compilerScope": "recorded sources, compiler and adjacent DLL bytes; not hermetic",
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-map-20261008-final-v3\\supervisor.exe",
+      "bytes": 798720,
+      "digest": "sha256:bbdc6161dc877c2e67cf05c2327f4e72f09197586d541f75d4073866c85adf64"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-map-20261008-final-v3\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-private-map-BI5Tg5",
+  "stagedInputs": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-private-map-BI5Tg5\\workspace\\esbuild.exe",
+      "bytes": 11670528,
+      "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-private-map-BI5Tg5\\workspace\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-private-map-BI5Tg5\\workspace\\entry.js",
+      "bytes": 26,
+      "digest": "sha256:a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+    }
+  ],
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"experimental\":true,\"status\":\"NOT_ADMITTED\",\"completed\":true,\"stage\":\"completed\",\"error\":0,\"setterStatus\":0,\"hostNonElevatedUnrestricted\":true,\"rootPid\":19628,\"childPid\":23440,\"childExit\":0,\"childTokenProven\":true,\"appContainerSid\":\"S-1-15-2-2532238911-986565724-2091848680-3149679878-2844180565-874776816-2656507743\",\"capabilityCount\":0,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandleCount\":5,\"mapPrepared\":true,\"mapInstalled\":true,\"parentMapUnchanged\":true,\"cleanupConfirmed\":true,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"guardedRootNt\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\",\"guardedRootFileId\":\"02469ff7:00570000:006fbc83\",\"childCreated\":true,\"jobAssigned\":true,\"childWaitStatus\":0,\"childExitRead\":true,\"childExited\":true,\"jobQuerySucceeded\":true,\"jobActiveProcesses\":0,\"directTerminationAttempted\":false,\"directTerminationSucceeded\":false,\"directTerminationError\":0,\"beforeMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterSetterMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterChildMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"}}\r\n",
+    "stderr": ""
+  },
+  "trace": {
+    "digest": "sha256:57682c443e8f3d71bc1407a05421a6eed0a16969015cca0fb754c963b14504c4",
+    "text": "{\"sequence\":1,\"pid\":23440,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":23440,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":23440,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":23440,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":23440,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:00570000:006fbc83\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":23440,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":23440,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":23440,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":23440,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":23440,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":23440,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":12,\"pid\":23440,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":13,\"pid\":23440,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":14,\"pid\":23440,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":15,\"pid\":23440,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":16,\"pid\":23440,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":17,\"pid\":23440,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-private-map-BI5Tg5\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":18,\"pid\":23440,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\entry.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":19,\"pid\":23440,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\scratch\\\\bundle.js\",\"success\":true,\"error\":0,\"kind\":1073741824,\"patches\":2,\"overflow\":0}\n{\"sequence\":20,\"pid\":23440,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n"
+  },
+  "childStdout": {
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "text": ""
+  },
+  "childStderr": {
+    "digest": "sha256:b03f0edb2db616cde4cfe3a75df60780445d723118f65cb9f91d703907c0db13",
+    "text": "\n  ..\\scratch\\bundle.js  1.0kb\n\nDone in 13ms\n"
+  },
+  "bundle": {
+    "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+    "text": "var __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __export = (target, all) => {\n  for (var name in all)\n    __defProp(target, name, { get: all[name], enumerable: true });\n};\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === \"object\" || typeof from === \"function\") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n// entry.js\nvar entry_exports = {};\n__export(entry_exports, {\n  answer: () => answer\n});\nmodule.exports = __toCommonJS(entry_exports);\nvar answer = 42;\n// Annotate the CommonJS export names for ESM import in node:\n0 && (module.exports = {\n  answer\n});\n"
+  },
+  "observations": {
+    "native": {
+      "experimental": true,
+      "status": "NOT_ADMITTED",
+      "completed": true,
+      "stage": "completed",
+      "error": 0,
+      "setterStatus": 0,
+      "hostNonElevatedUnrestricted": true,
+      "rootPid": 19628,
+      "childPid": 23440,
+      "childExit": 0,
+      "childTokenProven": true,
+      "appContainerSid": "S-1-15-2-2532238911-986565724-2091848680-3149679878-2844180565-874776816-2656507743",
+      "capabilityCount": 0,
+      "imagePinned": true,
+      "leafRestricted": true,
+      "exactHandleCount": 5,
+      "mapPrepared": true,
+      "mapInstalled": true,
+      "parentMapUnchanged": true,
+      "cleanupConfirmed": true,
+      "profileDeleted": true,
+      "loopbackExemptionAbsent": true,
+      "guardedRootNt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-private-map-BI5Tg5",
+      "guardedRootFileId": "02469ff7:00570000:006fbc83",
+      "childCreated": true,
+      "jobAssigned": true,
+      "childWaitStatus": 0,
+      "childExitRead": true,
+      "childExited": true,
+      "jobQuerySucceeded": true,
+      "jobActiveProcesses": 0,
+      "directTerminationAttempted": false,
+      "directTerminationSucceeded": false,
+      "directTerminationError": 0,
+      "beforeMap": {
+        "status": "absent",
+        "characters": 0,
+        "error": 2,
+        "valueHex": ""
+      },
+      "afterSetterMap": {
+        "status": "absent",
+        "characters": 0,
+        "error": 2,
+        "valueHex": ""
+      },
+      "afterChildMap": {
+        "status": "absent",
+        "characters": 0,
+        "error": 2,
+        "valueHex": ""
+      }
+    },
+    "rows": 20,
+    "bundleDigest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07"
+  },
+  "finishedAt": "2026-10-08T14:17:48.560Z"
+}
