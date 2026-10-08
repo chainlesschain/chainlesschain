@@ -332,3 +332,11 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 本轮的工程修复和局部实验不改变正式计划的 `NOT_RUN`。目标环境、官方账户配置和人工验收条件尚未提供；两份分析的整体任务继续保留上述未关闭项。
 
 独立 esbuild leaf 的最终早期 DLL 初始化仍以 `0xC0000142` 失败；当前源码的 root/child 身份与清理证据已归档，没有 installed/API 日志。30 项校验器合同已接 CLI CI；完整 config/default forks/full review 继续开放，详见[验证第 16 节](./cli-ide-gap-validation-2026-10-05.md#16-2026-10-08-非-node-esbuild-leaf-诊断的真实阻塞)。
+
+## 18. 2026-10-08 设置锁 CI 修复与 esbuild 启动
+
+`91924f202e`修复Windows并发设置锁饥饿，保留两秒期限/ownership。Windows两Node版本定向各136通过/1 Linux专属跳过，两系统真实四进程各240次写入无丢失/重复；准确SHA Windows/Linux x64/ARM64/macOS15及额外macOS latest的完整Strict成功，CLI CI仍待完成。本机完整Strict失败保留。
+
+`fd713e0e72`在零capability AppContainer得到11条esbuild API记录，消除本机DLL_INIT_FAILED；esbuild仍exit1/NOT_ADMITTED，完整config/default forks/review开放。34项trace+36项GNU合同通过，见[验证第17节](./cli-ide-gap-validation-2026-10-05.md#17-2026-10-08-设置锁公平性与-esbuild-启动取证)。
+
+Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时验收继续开放；无付费请求或发布。

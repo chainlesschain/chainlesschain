@@ -539,3 +539,29 @@ v3 仅接纳 guarded `control/node.exe`，非 Node 的 esbuild launch 明确 uns
 固定 binary 使用动态 GetProcAddress；独立源码与 PE 检查显示需要取证 Go 的动态目录调用，而非依赖 Node IAT。当前没有实测到具体祖先路径/底层 API，因此不能将冻结 esbuild 源码的错误码解释提升为已经证明的运行根因。API hook 的安装、非 Node 受限运行时的完整继承和冻结 config/default forks/full review 仍需继续实现与真实验证。
 
 纯解析/来源/身份/清理/连续序号/缺中间 API/错误 stderr/不完整注入的 **30 项回归**通过，并接入三系统 CLI CI。fixture 只验证校验器能拒绝缺证据，实际原生结果仍为上述失败。GNU 36 与这组 30 合同合计 66 个不同纯测试；正式 36+9、Windows/macOS durable 后端、官方账户账单和人工长时验收的状态保持开放。本轮没有付费请求、生产权限扩张或发布。
+
+## 17. 2026-10-08 设置锁公平性与 esbuild 启动取证
+
+### 17.1 用户指出的 Windows Strict 失败
+
+[原job 113298272095](https://github.com/chainlesschain/chainlesschain/actions/runs/37773413407/job/113298272095)绑定`be17dfc48a2e8b440d984d00d3f98d9a78a406a3`：2692通过/1失败/11跳过。一个并发addRule writer在原两秒期限内未取得严格锁，owner仍alive且releasePublished=false。每次等待创建/删除candidate、连续writer释放后立即再抢锁，增加Windows元数据争用及饥饿风险。
+
+修复`91924f202ecee89306fdd649df90f311e37debdf`等待活跃锁不创建candidate；absence仍须原子rename发布owner。addRule使用短抖动和释放后32ms让出，原两秒期限、活跃owner保护、单次callback、unknown commit和本进程同步撤销均保留。新增测试验证无candidate副作用、absence后其他owner抢占及释放后authority撤销状态。
+
+Windows Node22.22.2、官方SHASUMS核验的22.12.0各136通过/1 Linux专属跳过；Windows/WSL Linux真实四进程各240次写入无丢失/重复。定向格式/lint通过。两次完整本机Strict失败原样保留：临时Node名字被身份校验拒绝（2680通过/16失败/11跳过）；改正node.exe后2695通过/1 headless恢复15秒超时/11跳过。该单文件保持原期限后来5项通过，不据此声称整组通过。见[原件及摘要](./cli/evidence/gap-2026-10-05/settings-lock-fairness-2026-10-08/README.md)。
+
+该SHA的[Strict #37779098798](https://github.com/chainlesschain/chainlesschain/actions/runs/37779098798) Windows、Linux x64/ARM64、macOS15及额外macOS latest五job均成功，完整Strict成功；[CLI CI #37779105012](https://github.com/chainlesschain/chainlesschain/actions/runs/37779105012)仍执行/排队；尚未完整双门。后续native提交不能借用旧SHA作发布凭据。
+
+### 17.2 esbuild 启动与真实 API
+
+按用户允许请Astra协助，`fd713e0e72`将独立launcher改为DETACHED_PROCESS+原主线程APC加载shim。仅APC及无注入、保留旧console flags的对照仍DLL_INIT_FAILED；当前组合在真实零capability AppContainer完成加载，但不证明Windows内部loader根因。
+
+最终root18140/child27164，同SID、零capabilities、固定映像、四句柄、leaf policy、无loopback exemption与空Job清理成立。11条trace含identity/installed/动态GetProcAddress/CreateFileW/GetFileInformationByHandleEx/exit。外层exit0、esbuild exit1、stderr原样Access denied，仍NOT_ADMITTED。CreateFileW请求`C:\Users`（access0，两次）及`C:\`（GENERIC_READ）均Win32 5；私有workspace真实handle枚举成立。requestedPath不代替canonical证明；Lstat祖先检查与递归ReadDirectory是不同操作，metadata修复不能替代根枚举。
+
+[完整原件](./cli/evidence/gap-2026-10-05/windows-esbuild-detached-2026-10-08/README.md)摘要`acd7a7c6052f525442af455a9cd6e9dc4b4264f2843c45ca7d8539426ea425e6`，当前CPP/driver/实际产物一致。34项trace+36项GNU合同共70项通过，格式/lint通过；冻结包/config、API结果、祖先ACL、生产权限、forks和observations未改。
+
+### 17.3 尚需完成
+
+完整frozen config/default forks/review仍未通过。子进程私有命名空间须绑定监督器guarded真实NT根/FileId，不能以全局/全用户盘符、祖先ACL扩大、目录伪造或错误码翻译关闭本项。
+
+Windows/macOS durable authority、活跃网络撤销、崩溃恢复仍需真实后端。目标宿主/Node22.12.0、官方账号账单、独立人工setup/check签核、双IDE正式36+9/首次安装、真人辅助技术、8h/24h和获批SLO缺证据；已请求用户提供环境与负责人，继续独立工程。36+9固定分母/NOT_RUN、$99预算和CLOUD-02条件项保留，无付费请求或发布。

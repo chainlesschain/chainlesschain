@@ -1,0 +1,68 @@
+{
+  "reportDigest": "sha256:acd7a7c6052f525442af455a9cd6e9dc4b4264f2843c45ca7d8539426ea425e6",
+  "traceDigest": "sha256:cdc0cd572acb019e7d9323637be6f8e534da8ca92765b415e74ade04142c0658",
+  "currentSourcesMatch": true,
+  "currentDriverMatch": true,
+  "outputsMatch": true,
+  "status": "NOT_ADMITTED",
+  "completed": true,
+  "observed": {
+    "launcher": {
+      "stage": "completed",
+      "error": 0,
+      "completed": true,
+      "rootPid": 18140,
+      "childPid": 27164,
+      "childExit": 1,
+      "appContainerSid": "S-1-15-2-2267034021-1236782366-734754910-1729060534-514204721-826771851-887915486",
+      "capabilityCount": 0,
+      "rootTokenProven": true,
+      "childTokenProven": true,
+      "imagePinned": true,
+      "leafRestricted": true,
+      "exactHandles": true,
+      "consoleMode": "detached",
+      "loaderStrategy": "primary-thread-apc"
+    },
+    "resolved": [
+      "resolve:CreateFileW",
+      "resolve:GetFileInformationByHandleEx"
+    ],
+    "denied": [
+      {
+        "sequence": 4,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\Users",
+        "success": false,
+        "error": 5,
+        "kind": 0,
+        "patches": 2,
+        "overflow": 0
+      },
+      {
+        "sequence": 5,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\Users",
+        "success": false,
+        "error": 5,
+        "kind": 0,
+        "patches": 2,
+        "overflow": 0
+      },
+      {
+        "sequence": 10,
+        "pid": 27164,
+        "api": "CreateFileW",
+        "requestedPath": "C:\\",
+        "success": false,
+        "error": 5,
+        "kind": 2147483648,
+        "patches": 2,
+        "overflow": 0
+      }
+    ],
+    "rows": 11
+  }
+}
