@@ -332,6 +332,37 @@ assert.throws(()=>loader.addRule({cwd:root,kind:'allow',rule:'Bash'}),/unavailab
     ).not.toThrow();
   });
 
+  it("yields after a committed update and released lock while keeping local authority revoked", () => {
+    seed({});
+    const realLock = _deps.withFileLock;
+    const observations = [];
+    const observer = vi.fn();
+    listen(observer);
+    _deps.withFileLock = (target, body, options) =>
+      realLock(target, body, {
+        ...options,
+        _sleep(milliseconds) {
+          observations.push({
+            milliseconds,
+            lockExists: fs.existsSync(`${target}.lock`),
+            rules: JSON.parse(fs.readFileSync(target, "utf8")).permissions.deny,
+          });
+          expect(() => getSettingsPermissionRevision()).toThrow(/unavailable/);
+        },
+      });
+    expect(addRule({ cwd: root, kind: "deny", rule: "Bash" }).added).toBe(true);
+    expect(observations).toEqual([
+      {
+        milliseconds: expect.any(Number),
+        lockExists: false,
+        rules: ["Bash"],
+      },
+    ]);
+    expect(observations[0].milliseconds).toBeGreaterThan(0);
+    expect(observer).toHaveBeenCalledOnce();
+    expect(getSettingsPermissionRevision().state).toBe("ready");
+  });
+
   it("preserves every concurrent process update using the existing strict lock", async () => {
     seed({ retained: "yes" });
     const fixture = fileURLToPath(
