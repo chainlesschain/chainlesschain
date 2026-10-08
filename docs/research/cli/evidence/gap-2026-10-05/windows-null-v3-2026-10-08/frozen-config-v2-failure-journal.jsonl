@@ -1,0 +1,5 @@
+{"sequence":0,"stage":"started","mode":"vitest-smoke","pid":21256,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"vitest-import-started","mode":"vitest-smoke","pid":21256}
+{"sequence":2,"stage":"vitest-imported","mode":"vitest-smoke","pid":21256}
+{"sequence":3,"stage":"vitest-started","mode":"vitest-smoke","pid":21256,"pool":"configuration-default","config":"packages/cli/vitest.config.js"}
+{"sequence":4,"stage":"failed","mode":"vitest-smoke","pid":21256,"error":"Build failed with 2 errors:\nerror: Cannot read directory \"../../../../../../..\": Access is denied.\nerror: Could not resolve \"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-capsule-hRt8Bl\\\\workspace\\\\packages\\\\cli\\\\vitest.config.js\"","code":null}

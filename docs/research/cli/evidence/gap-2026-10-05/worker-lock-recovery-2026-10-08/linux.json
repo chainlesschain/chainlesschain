@@ -1,0 +1,47 @@
+{
+  "schema": "chainlesschain.worker-lock-recovery/v1",
+  "formalSample": false,
+  "providerAssessed": false,
+  "ciAdmission": false,
+  "mode": "linux",
+  "host": "WSL Ubuntu local",
+  "node": "v22.12.0",
+  "startedAt": "2026-10-08T09:00:39.142Z",
+  "sources": [
+    {
+      "path": "packages/cli/src/lib/with-file-lock.js",
+      "digest": "sha256:fe531f9ce938dcf28f087211852d117223b5471d21a0fd97fa2ba60cac8b8b05"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/with-file-lock.test.js",
+      "digest": "sha256:6a67e520e6296d45b58b069843ee559995c60fb22964bd709a747db09355c6a3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/with-file-lock-async.test.js",
+      "digest": "sha256:160a2b648137d1b95fb1c4347e8e3794e74fc24872e730262351d21f62fa0502"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/with-file-lock-release-retry.test.js",
+      "digest": "sha256:51e998c3c1dc0b6128227cc9a99e843ace577d0a9a6919a53386fa29cb53cbd0"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/settings-permission-runtime.test.js",
+      "digest": "sha256:0ac97e07646a73948b1816c63c83ebf8be93255a284280b61a6eeac2c0b38f69"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/settings-permission-runtime-probe.cjs",
+      "digest": "sha256:d204384cc508870fca16f38611d8d0975122a4b717d27189a2d4a937cbf7f14c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/settings-permission-runtime-worker.cjs",
+      "digest": "sha256:e462d32b15d0f0fb0149666bd311cda793338a08793c3a32ed2e6ca7c13a047b"
+    }
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "passed": 75,
+  "skipped": 0,
+  "stdoutDigest": "sha256:10df0c699590084d7dc9d287435617fb5b216bf84435dec742d96ad5d502c997",
+  "stderrDigest": "sha256:421fe4cb2aa45e84e8779ea6bdc0facc9db22bc650a4e08a586694170fd3577c"
+}

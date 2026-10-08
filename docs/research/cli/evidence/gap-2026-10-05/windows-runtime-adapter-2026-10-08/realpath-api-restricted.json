@@ -1,0 +1,50 @@
+{
+  "schema": "chainlesschain.windows-realpath-api-diagnostic/v1",
+  "startedAt": "2026-10-08T04:30:54.421Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "fixtureSourceDigest": "sha256:a7254e019d970fb94ef23b484d8219c6c09470c677df6b83d7172c3f500f3f0a",
+  "fixtureDigest": "sha256:970710f566dcd620cb94f023f6deafae251c3371ff6afe37306296b7bd510a04",
+  "diagnosticCompleted": false,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj",
+  "manifestDigest": "sha256:a5b5196ef668fd93a8aef4814a973e30d5675476c83b86d8ac424bd5de84d4c0",
+  "error": "The requested native wall-time limit was not enforced: windows_appcontainer_readiness_cleanup_unverified",
+  "finishedAt": "2026-10-08T04:31:01.893Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "1125899914416298",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 3,
+    "fileBytes": 7146,
+    "directoryCount": 4,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-H83gkj\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "1688849867837611",
+        "bytes": 470,
+        "sha256": "870291978f258ec786c442d6d204cc3ba5199bb414c9a3ebdd24867d1a5a71b8"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true,
+  "admissionEligible": false
+}

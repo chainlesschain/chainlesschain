@@ -1,0 +1,4 @@
+{"sequence":0,"stage":"started","mode":"package-import","pid":18276,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"builtin-import-started","mode":"package-import","pid":18276}
+{"sequence":2,"stage":"builtin-imported","mode":"package-import","pid":18276}
+{"sequence":3,"stage":"vitest-import-started","mode":"package-import","pid":18276}

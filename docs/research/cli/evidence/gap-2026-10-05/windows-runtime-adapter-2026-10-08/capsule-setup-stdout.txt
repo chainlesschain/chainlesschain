@@ -1,0 +1,1 @@
+CC_NATIVE_CAPSULE:{"mode":"global-setup","pid":9188,"nodeVersion":"v22.22.2","modulesAbi":"127","detail":{"globalSetupExecuted":true,"teardownCompleted":true}}

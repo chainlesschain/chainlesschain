@@ -1,0 +1,202 @@
+TAP version 13
+# Subtest: binds actual stdin digest and both output channels without granting capability
+ok 1 - binds actual stdin digest and both output channels without granting capability
+  ---
+  duration_ms: 5.7689
+  type: 'test'
+  ...
+# Subtest: rejects missing stdin bytes
+ok 2 - rejects missing stdin bytes
+  ---
+  duration_ms: 1.0111
+  type: 'test'
+  ...
+# Subtest: rejects substituted stdin content
+ok 3 - rejects substituted stdin content
+  ---
+  duration_ms: 1.7892
+  type: 'test'
+  ...
+# Subtest: rejects wrong child parent
+ok 4 - rejects wrong child parent
+  ---
+  duration_ms: 0.6047
+  type: 'test'
+  ...
+# Subtest: rejects same child as evaluator
+ok 5 - rejects same child as evaluator
+  ---
+  duration_ms: 0.3042
+  type: 'test'
+  ...
+# Subtest: rejects substituted runtime
+ok 6 - rejects substituted runtime
+  ---
+  duration_ms: 0.2694
+  type: 'test'
+  ...
+# Subtest: rejects wrong runtime version
+ok 7 - rejects wrong runtime version
+  ---
+  duration_ms: 0.4613
+  type: 'test'
+  ...
+# Subtest: rejects lost stderr
+ok 8 - rejects lost stderr
+  ---
+  duration_ms: 0.4618
+  type: 'test'
+  ...
+# Subtest: rejects ignore mode
+ok 9 - rejects ignore mode
+  ---
+  duration_ms: 1.0835
+  type: 'test'
+  ...
+# Subtest: rejects descriptor leak
+ok 10 - rejects descriptor leak
+  ---
+  duration_ms: 1.1174
+  type: 'test'
+  ...
+# Subtest: rejects child failure
+ok 11 - rejects child failure
+  ---
+  duration_ms: 0.5214
+  type: 'test'
+  ...
+# Subtest: rejects timeout
+ok 12 - rejects timeout
+  ---
+  duration_ms: 0.3296
+  type: 'test'
+  ...
+# Subtest: rejects duplicate observation
+ok 13 - rejects duplicate observation
+  ---
+  duration_ms: 0.2464
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed cleanup
+ok 14 - rejects unconfirmed cleanup
+  ---
+  duration_ms: 0.2379
+  type: 'test'
+  ...
+# Subtest: rejects granted capabilities
+ok 15 - rejects granted capabilities
+  ---
+  duration_ms: 0.2407
+  type: 'test'
+  ...
+# Subtest: rejects loopback exemption
+ok 16 - rejects loopback exemption
+  ---
+  duration_ms: 0.2415
+  type: 'test'
+  ...
+# Subtest: rejects substituted manifest
+ok 17 - rejects substituted manifest
+  ---
+  duration_ms: 0.2431
+  type: 'test'
+  ...
+# Subtest: real host control transports binary input and both outputs through file descriptors
+ok 18 - real host control transports binary input and both outputs through file descriptors
+  ---
+  duration_ms: 224.4636
+  type: 'test'
+  ...
+# Subtest: keeps host controls distinct from native Win32 error observations
+ok 19 - keeps host controls distinct from native Win32 error observations
+  ---
+  duration_ms: 5.7533
+  type: 'test'
+  ...
+# Subtest: rejects root identity API records
+ok 20 - rejects root identity API records
+  ---
+  duration_ms: 0.6573
+  type: 'test'
+  ...
+# Subtest: rejects mixed identity API records
+ok 21 - rejects mixed identity API records
+  ---
+  duration_ms: 0.2837
+  type: 'test'
+  ...
+# Subtest: rejects host impersonation API records
+ok 22 - rejects host impersonation API records
+  ---
+  duration_ms: 0.2523
+  type: 'test'
+  ...
+# Subtest: rejects open handle API records
+ok 23 - rejects open handle API records
+  ---
+  duration_ms: 1.7878
+  type: 'test'
+  ...
+# Subtest: rejects fake error API records
+ok 24 - rejects fake error API records
+  ---
+  duration_ms: 0.2564
+  type: 'test'
+  ...
+# Subtest: rejects fake success API records
+ok 25 - rejects fake success API records
+  ---
+  duration_ms: 0.2234
+  type: 'test'
+  ...
+# Subtest: rejects duplicate API records
+ok 26 - rejects duplicate API records
+  ---
+  duration_ms: 0.2278
+  type: 'test'
+  ...
+# Subtest: rejects missing API records
+ok 27 - rejects missing API records
+  ---
+  duration_ms: 0.5131
+  type: 'test'
+  ...
+# Subtest: rejects reordered API records
+ok 28 - rejects reordered API records
+  ---
+  duration_ms: 0.6426
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed cleanupConfirmed
+ok 29 - rejects unconfirmed cleanupConfirmed
+  ---
+  duration_ms: 0.6153
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed loopbackExemptionAbsent
+ok 30 - rejects unconfirmed loopbackExemptionAbsent
+  ---
+  duration_ms: 0.1797
+  type: 'test'
+  ...
+# Subtest: rejects timeout, grants, substituted manifest and missing child/file records
+ok 31 - rejects timeout, grants, substituted manifest and missing child/file records
+  ---
+  duration_ms: 1.3547
+  type: 'test'
+  ...
+# Subtest: pins the investigated upstream release and the two independent code paths
+ok 32 - pins the investigated upstream release and the two independent code paths
+  ---
+  duration_ms: 0.4894
+  type: 'test'
+  ...
+1..32
+# tests 32
+# suites 0
+# pass 32
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 404.6288

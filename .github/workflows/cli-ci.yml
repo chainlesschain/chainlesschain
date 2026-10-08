@@ -183,11 +183,26 @@ jobs:
           packages/cli/test-node/context-token-calibration.node-test.mjs
           packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs
           packages/cli/test-node/cli-registry-public-install.node-test.mjs
-      - name: Verify Windows review admission without native or provider execution
+      - name: Verify native review preparation and receipt contracts without provider execution
         run: >-
           node --test
           packages/cli/test-node/verify01-native-review-admission.node-test.mjs
           packages/cli/test-node/verify01-native-toolchain.node-test.mjs
+          packages/cli/test-node/verify01-native-capsule.node-test.mjs
+          packages/cli/test-node/verify01-native-toolchain-prepare.node-test.mjs
+          packages/cli/test-node/verify01-registry-content.node-test.mjs
+          packages/cli/test-node/windows-appcontainer-pipe-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-all-file-stdio-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-realpath-api-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-node-pipe-preload.node-test.mjs
+          packages/cli/test-node/windows-node-pipe-diagnostic.node-test.mjs
+          packages/cli/test-node/windows-node-runtime-preload.node-test.mjs
+          packages/cli/test-node/windows-node-runtime-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-native-runtime-capsule.node-test.mjs
+          packages/cli/test-node/windows-node-null-v3-preload.node-test.mjs
+          packages/cli/test-node/windows-node-null-v3-result.node-test.mjs
+          packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs
+          packages/cli/test-node/file-lock-concurrency.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

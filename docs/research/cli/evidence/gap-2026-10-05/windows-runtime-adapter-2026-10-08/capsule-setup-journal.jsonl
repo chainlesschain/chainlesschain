@@ -1,0 +1,9 @@
+{"sequence":0,"stage":"started","mode":"global-setup","pid":9188,"nodeVersion":"v22.22.2","modulesAbi":"127"}
+{"sequence":1,"stage":"builtin-import-started","mode":"global-setup","pid":9188}
+{"sequence":2,"stage":"builtin-imported","mode":"global-setup","pid":9188}
+{"sequence":3,"stage":"support-import-started","mode":"global-setup","pid":9188}
+{"sequence":4,"stage":"support-imported","mode":"global-setup","pid":9188}
+{"sequence":5,"stage":"setup-started","mode":"global-setup","pid":9188}
+{"sequence":6,"stage":"setup-completed","mode":"global-setup","pid":9188}
+{"sequence":7,"stage":"teardown-started","mode":"global-setup","pid":9188}
+{"sequence":8,"stage":"completed","mode":"global-setup","pid":9188,"globalSetupExecuted":true,"teardownCompleted":true}

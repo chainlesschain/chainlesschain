@@ -357,6 +357,9 @@ jobs:
           pattern: session-message-fabric-*-${{ env.CC_SESSION_MESSAGE_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/session-message-fabric-evidence
 
+      - name: Install verifier workspace dependencies
+        run: npm ci --ignore-scripts --legacy-peer-deps --workspace packages/cli --include-workspace-root=false
+
       - name: Verify complete Linux, Windows and macOS evidence
         shell: bash
         env:

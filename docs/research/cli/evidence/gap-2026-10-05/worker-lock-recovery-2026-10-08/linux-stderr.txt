@@ -1,0 +1,3 @@
+(node:25) ExperimentalWarning: CommonJS module /mnt/c/code/chainlesschain/packages/cli/src/lib/settings-authority-domain.cjs is loading ES Module /mnt/c/code/chainlesschain/packages/cli/src/lib/with-file-lock.js using require().
+Support for loading ES Module in require() is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

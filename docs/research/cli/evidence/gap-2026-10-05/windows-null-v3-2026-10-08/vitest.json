@@ -1,0 +1,682 @@
+{
+  "numTotalTestSuites": 8,
+  "numPassedTestSuites": 8,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 52,
+  "numPassedTests": 52,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1791444543810,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "operator acceptance pack"
+          ],
+          "fullName": "operator acceptance pack keeps cleanup within the outer task budget and a watchdog in the container",
+          "status": "passed",
+          "title": "keeps cleanup within the outer task budget and a watchdog in the container",
+          "duration": 9.756900000000087,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "operator acceptance pack"
+          ],
+          "fullName": "operator acceptance pack generates all 72 self-contained pinned scripts, without answer files or task results",
+          "status": "passed",
+          "title": "generates all 72 self-contained pinned scripts, without answer files or task results",
+          "duration": 29818.672300000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "operator acceptance pack"
+          ],
+          "fullName": "operator acceptance pack does not forward credentials, loaders or user configuration into candidate tests",
+          "status": "passed",
+          "title": "does not forward credentials, loaders or user configuration into candidate tests",
+          "duration": 3.1569999999992433,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "operator acceptance pack"
+          ],
+          "fullName": "operator acceptance pack requires a numeric operator identity without widening container capabilities",
+          "status": "passed",
+          "title": "requires a numeric operator identity without widening container capabilities",
+          "duration": 6.167199999999866,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "operator acceptance pack"
+          ],
+          "fullName": "operator acceptance pack requires one non-equivalent mutation match and preserves surrounding code",
+          "status": "passed",
+          "title": "requires one non-equivalent mutation match and preserves surrounding code",
+          "duration": 1.6481999999996333,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "real Vitest reports, not implementation-shaped success flags"
+          ],
+          "fullName": "real Vitest reports, not implementation-shaped success flags accepts an executed positive control and requires an assertion failure for a mutant",
+          "status": "passed",
+          "title": "accepts an executed positive control and requires an assertion failure for a mutant",
+          "duration": 7225.804199999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "real Vitest reports, not implementation-shaped success flags"
+          ],
+          "fullName": "real Vitest reports, not implementation-shaped success flags rejects skipped tests and loader/syntax failures",
+          "status": "passed",
+          "title": "rejects skipped tests and loader/syntax failures",
+          "duration": 3459.504000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "real Vitest reports, not implementation-shaped success flags"
+          ],
+          "fullName": "real Vitest reports, not implementation-shaped success flags recognizes real Promise matcher assertions while rejecting application errors",
+          "status": "passed",
+          "title": "recognizes real Promise matcher assertions while rejecting application errors",
+          "duration": 9115.802199999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791444545503,
+      "endTime": 1791444595144.8022,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/verify01-review-pack.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) accepts complete observations with confirmed settlement",
+          "status": "passed",
+          "title": "accepts complete observations with confirmed settlement",
+          "duration": 9.488299999999981,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) preserves access rejection for child-pipe-stdio",
+          "status": "passed",
+          "title": "preserves access rejection for child-pipe-stdio",
+          "duration": 2.267600000000016,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) preserves access rejection for child-fork-ipc",
+          "status": "passed",
+          "title": "preserves access rejection for child-fork-ipc",
+          "duration": 1.6460000000000719,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) distinguishes a timeout from access denial",
+          "status": "passed",
+          "title": "distinguishes a timeout from access denial",
+          "duration": 3.9107999999999947,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects an unconfirmed cleanupConfirmed fence",
+          "status": "passed",
+          "title": "rejects an unconfirmed cleanupConfirmed fence",
+          "duration": 1.0091000000001031,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects an unconfirmed loopbackExemptionAbsent fence",
+          "status": "passed",
+          "title": "rejects an unconfirmed loopbackExemptionAbsent fence",
+          "duration": 0.6515000000000555,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects grants, manifest substitution, raw tampering and summary substitution",
+          "status": "passed",
+          "title": "rejects grants, manifest substitution, raw tampering and summary substitution",
+          "duration": 7.6901000000000295,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects relabeled failure and downgraded success",
+          "status": "passed",
+          "title": "rejects relabeled failure and downgraded success",
+          "duration": 2.942099999999982,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects a rehashed TMP path escaping scratch",
+          "status": "passed",
+          "title": "rejects a rehashed TMP path escaping scratch",
+          "duration": 2.640800000000013,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects a rehashed HOME path escaping scratch",
+          "status": "passed",
+          "title": "rejects a rehashed HOME path escaping scratch",
+          "duration": 1.8263000000000602,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects a rehashed APPDATA path escaping scratch",
+          "status": "passed",
+          "title": "rejects a rehashed APPDATA path escaping scratch",
+          "duration": 1.6942000000000235,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects credentials and fabricated worker or child identities",
+          "status": "passed",
+          "title": "rejects credentials and fabricated worker or child identities",
+          "duration": 3.6654000000000906,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects omitted, duplicated or reordered probes after rehash",
+          "status": "passed",
+          "title": "rejects omitted, duplicated or reordered probes after rehash",
+          "duration": 2.130600000000072,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects a timed-out root despite successful-looking observations",
+          "status": "passed",
+          "title": "rejects a timed-out root despite successful-looking observations",
+          "duration": 0.6091999999999871,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) validates bounded partial journal prefixes without granting any capability",
+          "status": "passed",
+          "title": "validates bounded partial journal prefixes without granting any capability",
+          "duration": 2.4049999999999727,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) rejects rehashed journal identity/sequence/digest tampering and extra events",
+          "status": "passed",
+          "title": "rejects rehashed journal identity/sequence/digest tampering and extra events",
+          "duration": 3.5953000000000657,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native capability validator (synthetic unit controls, not native evidence)"
+          ],
+          "fullName": "native capability validator (synthetic unit controls, not native evidence) never accepts partial evidence before cleanup confirmation",
+          "status": "passed",
+          "title": "never accepts partial evidence before cleanup confirmation",
+          "duration": 0.6645000000000891,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) isolates all seven probes and validates the v2 report without trusting stored summaries",
+          "status": "passed",
+          "title": "isolates all seven probes and validates the v2 report without trusting stored summaries",
+          "duration": 257.85569999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) continues to fork IPC after cleanup-confirmed pipe timeout without granting partial support",
+          "status": "passed",
+          "title": "continues to fork IPC after cleanup-confirmed pipe timeout without granting partial support",
+          "duration": 261.5463,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) rejects incomplete aggregate labels on fully completed runs",
+          "status": "passed",
+          "title": "rejects incomplete aggregate labels on fully completed runs",
+          "duration": 202.0990999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) binds every Job to the aggregate platform",
+          "status": "passed",
+          "title": "binds every Job to the aggregate platform",
+          "duration": 203.55359999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) binds every Job to the aggregate architecture",
+          "status": "passed",
+          "title": "binds every Job to the aggregate architecture",
+          "duration": 190.68319999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) binds every Job to the aggregate nodeVersion",
+          "status": "passed",
+          "title": "binds every Job to the aggregate nodeVersion",
+          "duration": 176.89609999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) binds every Job to the aggregate osRelease",
+          "status": "passed",
+          "title": "binds every Job to the aggregate osRelease",
+          "duration": 188.90110000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) rejects a rehashed sha256 runtime substitution between Jobs",
+          "status": "passed",
+          "title": "rejects a rehashed sha256 runtime substitution between Jobs",
+          "duration": 181.15700000000015,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) rejects a rehashed bytes runtime substitution between Jobs",
+          "status": "passed",
+          "title": "rejects a rehashed bytes runtime substitution between Jobs",
+          "duration": 202.21230000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) executes only the selected child probe in the generated fixture (VM mocks)",
+          "status": "passed",
+          "title": "executes only the selected child probe in the generated fixture (VM mocks)",
+          "duration": 267.43809999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) stops before another Job when cleanup validation fails",
+          "status": "passed",
+          "title": "stops before another Job when cleanup validation fails",
+          "duration": 233.26069999999982,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) stops before another Job when journal validation fails",
+          "status": "passed",
+          "title": "stops before another Job when journal validation fails",
+          "duration": 172.9644000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) archives factory failure and refuses to overwrite evidence",
+          "status": "passed",
+          "title": "archives factory failure and refuses to overwrite evidence",
+          "duration": 31.677400000000034,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a stage when native settlement is unconfirmed",
+          "status": "passed",
+          "title": "retains a stage when native settlement is unconfirmed",
+          "duration": 15.019100000000435,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) rejects unbounded deadlines before policy issuance",
+          "status": "passed",
+          "title": "rejects unbounded deadlines before policy issuance",
+          "duration": 1.1432000000004336,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a cleanup-confirmed incomplete stage and bounds partial journal reads",
+          "status": "passed",
+          "title": "retains a cleanup-confirmed incomplete stage and bounds partial journal reads",
+          "duration": 64.77019999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a cleanup-confirmed incomplete stage and bounds descriptor-projection journal reads",
+          "status": "passed",
+          "title": "retains a cleanup-confirmed incomplete stage and bounds descriptor-projection journal reads",
+          "duration": 89.54379999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a cleanup-confirmed incomplete stage and bounds descriptor-substitution journal reads",
+          "status": "passed",
+          "title": "retains a cleanup-confirmed incomplete stage and bounds descriptor-substitution journal reads",
+          "duration": 38.00790000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a cleanup-confirmed incomplete stage and bounds oversize journal reads",
+          "status": "passed",
+          "title": "retains a cleanup-confirmed incomplete stage and bounds oversize journal reads",
+          "duration": 35.79340000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "native runner failure preservation (mocked factory)"
+          ],
+          "fullName": "native runner failure preservation (mocked factory) retains a cleanup-confirmed incomplete stage and bounds hardlink journal reads",
+          "status": "passed",
+          "title": "retains a cleanup-confirmed incomplete stage and bounds hardlink journal reads",
+          "duration": 33.654199999999946,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791444596091,
+      "endTime": 1791444598989.6543,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/windows-native-evaluator-capabilities.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator rejects forged policy, reused destinations, excessive files, path aliases and hardlinks",
+          "status": "passed",
+          "title": "rejects forged policy, reused destinations, excessive files, path aliases and hardlinks",
+          "duration": 14.424099999999726,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator attests native directory identity without accepting it as a regular file",
+          "status": "passed",
+          "title": "attests native directory identity without accepting it as a regular file",
+          "duration": 2867.1074,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator executes a real staged Node check with immutable source/control and writable scratch on '.NET Framework'",
+          "status": "passed",
+          "title": "executes a real staged Node check with immutable source/control and writable scratch on '.NET Framework'",
+          "duration": 23343.812299999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator preserves supervisor diagnostics when native settlement is missing",
+          "status": "passed",
+          "title": "preserves supervisor diagnostics when native settlement is missing",
+          "duration": 1708.4995000000017,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator rejects changed staged source before target creation instead of blessing its old digest",
+          "status": "passed",
+          "title": "rejects changed staged source before target creation instead of blessing its old digest",
+          "duration": 15609.8036,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator attests zero-capability network policy without loopback exemptions and records real TCP failures",
+          "status": "passed",
+          "title": "attests zero-capability network policy without loopback exemptions and records real TCP failures",
+          "duration": 14482.9476,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "private staged Windows native evaluator"
+          ],
+          "fullName": "private staged Windows native evaluator fences a detached AppContainer descendant after the evaluator exits",
+          "status": "passed",
+          "title": "fences a detached AppContainer descendant after the evaluator exits",
+          "duration": 11051.809699999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791444546423,
+      "endTime": 1791444615501.8098,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/windows-native-evaluator.test.js"
+    }
+  ]
+}

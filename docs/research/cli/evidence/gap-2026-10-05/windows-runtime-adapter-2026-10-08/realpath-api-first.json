@@ -1,0 +1,210 @@
+{
+  "schema": "chainlesschain.windows-realpath-api-diagnostic/v1",
+  "startedAt": "2026-10-08T05:35:37.760Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "fixtureSourceDigest": "sha256:a7254e019d970fb94ef23b484d8219c6c09470c677df6b83d7172c3f500f3f0a",
+  "fixtureDigest": "sha256:514dea9a53763a719ce15b44e2ffe37a5c8c480c1dfdb57b7a8fbf43b6d708e8",
+  "diagnosticCompleted": true,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT",
+  "manifestDigest": "sha256:181ed54e998e78cb3d1fe7eb12bc3471acd7801f56f20a7d1619fba307d99f1d",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_REALPATH_API:{\"label\":\"scratch-libuv\",\"pid\":25008,\"tokenIsAppContainer\":1,\"share\":0,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":94,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-C8mWtT\\\\scratch\\\\tmp\"}]}\nCC_REALPATH_API:{\"label\":\"workspace-libuv\",\"pid\":25008,\"tokenIsAppContainer\":1,\"share\":0,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":106,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-C8mWtT\\\\workspace\\\\reference.txt\"}]}\nCC_REALPATH_API:{\"label\":\"scratch-shared\",\"pid\":25008,\"tokenIsAppContainer\":1,\"share\":7,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":94,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-C8mWtT\\\\scratch\\\\tmp\"}]}\nCC_REALPATH_API:{\"label\":\"workspace-shared\",\"pid\":25008,\"tokenIsAppContainer\":1,\"share\":7,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":106,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-C8mWtT\\\\workspace\\\\reference.txt\"}]}\nCC_REALPATH_CHILD:{\"pid\":24012,\"status\":0,\"signal\":null,\"error\":null}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "181ed54e998e78cb3d1fe7eb12bc3471acd7801f56f20a7d1619fba307d99f1d",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 24012,
+    "appContainerSid": "S-1-15-2-1424133066-1504353297-2155103625-479477802-2893978429-4281590126-241247687",
+    "wallTimeMs": 10000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "observations": [
+    {
+      "label": "scratch-libuv",
+      "pid": 25008,
+      "tokenIsAppContainer": 1,
+      "share": 0,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 94,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\scratch\\tmp"
+        }
+      ]
+    },
+    {
+      "label": "workspace-libuv",
+      "pid": 25008,
+      "tokenIsAppContainer": 1,
+      "share": 0,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 106,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\workspace\\reference.txt"
+        }
+      ]
+    },
+    {
+      "label": "scratch-shared",
+      "pid": 25008,
+      "tokenIsAppContainer": 1,
+      "share": 7,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 94,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\scratch\\tmp"
+        }
+      ]
+    },
+    {
+      "label": "workspace-shared",
+      "pid": 25008,
+      "tokenIsAppContainer": 1,
+      "share": 7,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 106,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\workspace\\reference.txt"
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-08T05:35:48.762Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "1125899914428127",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 3,
+    "fileBytes": 7146,
+    "directoryCount": 4,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-C8mWtT\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "1407374891138786",
+        "bytes": 470,
+        "sha256": "870291978f258ec786c442d6d204cc3ba5199bb414c9a3ebdd24867d1a5a71b8"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true,
+  "admissionEligible": false
+}

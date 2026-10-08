@@ -1,0 +1,274 @@
+{
+  "schema": "chainlesschain.native-capsule-workspace-readback/v1",
+  "capturedAt": "2026-10-08T04:04:53.578Z",
+  "baselineCommit": "c2d74e9a008d76626bbc8f6462a29ffdd06234c4",
+  "dirty": true,
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "signedReleaseGate": false,
+  "records": [
+    {
+      "name": "transport",
+      "original": ".work/native-capsule-transport-2026-10-08.json",
+      "originalDigest": "sha256:3ce080b4d97bb8bdfc13e0ceabb92cbf694482b5c4cfcd1e31ea353c7aa15980",
+      "archived": "transport.json",
+      "archivedDigest": "sha256:8af16a2b0836dd36a2d956369d9599d85c872fff6522845875413325459b7c68",
+      "diagnosticCompleted": null,
+      "executionStatus": 0,
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "transport-tampered",
+      "original": ".work/native-capsule-transport-2026-10-08.json.tampered-file.json",
+      "originalDigest": "sha256:33154999d3bc3d6315d218b829bedf382f8b31d476ff7c008cf4dee94d9c4f2f",
+      "archived": "transport-tampered.json",
+      "archivedDigest": "sha256:e95ea399d7db4374801235a4b3ff7f31778c020049ec81196de869f27aedd5cb",
+      "diagnosticCompleted": null,
+      "executionStatus": 125,
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "transport-unlisted",
+      "original": ".work/native-capsule-transport-2026-10-08.json.unlisted-entry.json",
+      "originalDigest": "sha256:09e32f4b0997d19cef1f4fa38d9c21e6c44b08051bbb3cea86a8cc39671ba174",
+      "archived": "transport-unlisted.json",
+      "archivedDigest": "sha256:4f9af45e705ac8a7cb10c7105635995a4b175953ff731e9698bdf4c01f6cb75e",
+      "diagnosticCompleted": null,
+      "executionStatus": 125,
+      "cleanupConfirmed": true
+    },
+    {
+      "name": "import-restricted",
+      "original": ".work/native-capsule-package-import-2026-10-08/report.json",
+      "originalDigest": "sha256:daa98ae8daddf793a0a140854af7306fc1bd1f47376c9bbfa99248f26ebf3dec",
+      "archived": "import-restricted.json",
+      "archivedDigest": "sha256:c38db05f26878132d4e5a990224ebbf8d76fdfef6899eedbb45a5fe3293dff6f",
+      "diagnosticCompleted": false,
+      "executionStatus": null,
+      "cleanupConfirmed": null
+    },
+    {
+      "name": "import-native-first",
+      "original": ".work/native-capsule-package-import-2026-10-08-native/report.json",
+      "originalDigest": "sha256:c0307384aec3ff1bf703c846440e25775a483a7d987df972a174a6ddc904fc76",
+      "archived": "import-native-first.json",
+      "archivedDigest": "sha256:1301af038cfba6056bc3714d43a32418d498e3c18bd079516c4854ef7b138488",
+      "diagnosticCompleted": false,
+      "executionStatus": 125,
+      "cleanupConfirmed": true,
+      "artifacts": [
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-native\\capsule-journal.jsonl",
+          "originalDigest": "sha256:e2df86c2bb8d7aad3d8f71d4ddbb97790eb7d819338e2025c3102a9b56bf7aa3",
+          "archived": "import-native-first-capsule-journal.jsonl",
+          "archivedDigest": "sha256:e2df86c2bb8d7aad3d8f71d4ddbb97790eb7d819338e2025c3102a9b56bf7aa3"
+        },
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-native\\stdout.txt",
+          "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "archived": "import-native-first-stdout.txt",
+          "archivedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-native\\stderr.txt",
+          "originalDigest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5",
+          "archived": "import-native-first-stderr.txt",
+          "archivedDigest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5"
+        }
+      ]
+    },
+    {
+      "name": "import-native-stage2",
+      "original": ".work/native-capsule-package-import-2026-10-08-stage2/report.json",
+      "originalDigest": "sha256:70b99b526c8296c9e01b142c332457a2d3848612d4298c965cda24cbce83d6f4",
+      "archived": "import-native-stage2.json",
+      "archivedDigest": "sha256:8b6b3fd589ffc387573d148a58e051cf2664cd5d626aab67f88c19fd00ffd10e",
+      "diagnosticCompleted": false,
+      "executionStatus": 125,
+      "cleanupConfirmed": true,
+      "artifacts": [
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-stage2\\capsule-journal.jsonl",
+          "originalDigest": "sha256:36b94bc60f269a6c7c34e9a4e0545bcc6612cb9f5443a77b2ff041c701136319",
+          "archived": "import-native-stage2-capsule-journal.jsonl",
+          "archivedDigest": "sha256:36b94bc60f269a6c7c34e9a4e0545bcc6612cb9f5443a77b2ff041c701136319"
+        },
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-stage2\\stdout.txt",
+          "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "archived": "import-native-stage2-stdout.txt",
+          "archivedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "original": ".work\\native-capsule-package-import-2026-10-08-stage2\\stderr.txt",
+          "originalDigest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5",
+          "archived": "import-native-stage2-stderr.txt",
+          "archivedDigest": "sha256:cff2b79c1f471edd2766f786fe44a984a52ede3cf817598257754c03c1cd1ff5"
+        }
+      ]
+    },
+    {
+      "name": "global-setup",
+      "original": ".work/native-capsule-global-setup-2026-10-08/report.json",
+      "originalDigest": "sha256:c8cee2c62b5a0732443279c344b7f0aaad43a28f8470697d6a61b8594b64dd84",
+      "archived": "global-setup.json",
+      "archivedDigest": "sha256:d78ef043679c315020cacd78761f7ba9c77950c962273c0f3b081051e386d6cd",
+      "diagnosticCompleted": false,
+      "executionStatus": 1,
+      "cleanupConfirmed": true,
+      "artifacts": [
+        {
+          "original": ".work\\native-capsule-global-setup-2026-10-08\\capsule-journal.jsonl",
+          "originalDigest": "sha256:23dfa82a34292a79af53c9037a829caeba326cdaad946315ffc3a2950a885199",
+          "archived": "global-setup-capsule-journal.jsonl",
+          "archivedDigest": "sha256:2e808e2990e183229a005dbbe91c22c7ab427a481b269e4b51b5658510b5988a"
+        },
+        {
+          "original": ".work\\native-capsule-global-setup-2026-10-08\\stdout.txt",
+          "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "archived": "global-setup-stdout.txt",
+          "archivedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "original": ".work\\native-capsule-global-setup-2026-10-08\\stderr.txt",
+          "originalDigest": "sha256:c336219055c4912087018ea926452666943c46cd55a0b3e44d39243e90339465",
+          "archived": "global-setup-stderr.txt",
+          "archivedDigest": "sha256:4bb10a2c2d07294bf102aea82e5152fdad017f201b8c6837118daa6c959ef6e8"
+        }
+      ]
+    },
+    {
+      "name": "addon-first",
+      "original": ".work/native-capsule-addon-load-2026-10-08/report.json",
+      "originalDigest": "sha256:75f02e7d9457af29a116688914d3e4ec79696e44e3fd2e12778210391b84e3b6",
+      "archived": "addon-first.json",
+      "archivedDigest": "sha256:6df28cee47fdd7dc416ab63741d8c783398c40fa5c2670230a74dab5a8e3b41c",
+      "diagnosticCompleted": false,
+      "executionStatus": 1,
+      "cleanupConfirmed": true,
+      "artifacts": [
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08\\capsule-journal.jsonl",
+          "originalDigest": "sha256:66911b0a06317f67542e9b7e44981cd007e5e6da9b6ce6203cd1f13b301be468",
+          "archived": "addon-first-capsule-journal.jsonl",
+          "archivedDigest": "sha256:aa46968c565ffb7d27b32c611ddb245aa53ff9f284ecc97a66dce48c31945bde"
+        },
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08\\stdout.txt",
+          "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "archived": "addon-first-stdout.txt",
+          "archivedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08\\stderr.txt",
+          "originalDigest": "sha256:a24fce12425c5bbe41a4bdb1c5558c0bfa5be9d31d3c3c0fb043b131bfddb7ac",
+          "archived": "addon-first-stderr.txt",
+          "archivedDigest": "sha256:5df43eb44e198db2b119564426a5a8724862e7a2a86506a78ad85cf6e4ae460d"
+        }
+      ]
+    },
+    {
+      "name": "addon-complete",
+      "original": ".work/native-capsule-addon-load-2026-10-08-v2/report.json",
+      "originalDigest": "sha256:e4d8089e48450fe497c31fa37c7c962dd77b100e1ef914b9cec12302ea8da69a",
+      "archived": "addon-complete.json",
+      "archivedDigest": "sha256:07d4d0df88f7099f977ef7d5bf54128dc3b331154d1a39f9bd4c3fe2fac39656",
+      "diagnosticCompleted": true,
+      "executionStatus": 0,
+      "cleanupConfirmed": true,
+      "artifacts": [
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08-v2\\capsule-journal.jsonl",
+          "originalDigest": "sha256:47664cb93075c7ce9dea124394cfec16e7d7ec5bc54d59512ed6a15abc5ca3b8",
+          "archived": "addon-complete-capsule-journal.jsonl",
+          "archivedDigest": "sha256:06ce715129fa96626bb8cd2b187685ad48ead6c740b1b7a66a634bd39c809769"
+        },
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08-v2\\stdout.txt",
+          "originalDigest": "sha256:e3142494cf79cc5390a27a6ccfb1e77bb9eb0b67769da8d8c3b7339f749a7ec2",
+          "archived": "addon-complete-stdout.txt",
+          "archivedDigest": "sha256:e3142494cf79cc5390a27a6ccfb1e77bb9eb0b67769da8d8c3b7339f749a7ec2"
+        },
+        {
+          "original": ".work\\native-capsule-addon-load-2026-10-08-v2\\stderr.txt",
+          "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "archived": "addon-complete-stderr.txt",
+          "archivedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "currentSources": [
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:14d1166e9aa2d3e50660c384f03ac404ec6f5d5ab35a2616f9bcdaacde6c5a12"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:ae1d468fce99a4a4a75b78805f24e043c8e16bc110821ae0df17bab54b5abbd7"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:4d43480259112a7f58828a52d4b12fc74df4310bef1ab8a8ca8e6fbbe152f581"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:6517007066b72fbac458455fbb20d88729723ff30c4520ccdd092fffb455bc42"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-capsule.mjs",
+      "digest": "sha256:d98acec102ba656923ab3b11528f0fe749d6ccf5f45f50ef28429ca0ef11f8c1"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-toolchain.mjs",
+      "digest": "sha256:74c8b69264761b4d241fffce62ff54f9214839b21971e1b1786bbd1e1637cabe"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+      "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-registry-content.mjs",
+      "digest": "sha256:1286bb889b710dc6fba9c914f212d253c728cad60d4755d4ed8df87a584eb5f3"
+    },
+    {
+      "file": "packages/cli/test-node/windows-native-capsule-live.node-test.mjs",
+      "digest": "sha256:5bd3a2815e73bb00bae8f4ddae9ef7efb557e292dbb21e593effe9e2aa393fb4"
+    }
+  ],
+  "conclusions": {
+    "transport81Files12MiBPassed": true,
+    "tamperingRejectedBeforeTarget": true,
+    "unlistedRejectedBeforeTarget": true,
+    "packageImport": "TIMED_OUT_AT_VITEST_IMPORT",
+    "globalSetup": "EPERM_AT_NATIVE_REALPATH",
+    "addonDiagnostic": "COMPLETE_WITH_TWO_LOADED_ONE_BLOCKED",
+    "addonAbiVerified": false,
+    "vitestSmoke": "NOT_RUN_PRECONDITION_FAILED"
+  },
+  "tests": {
+    "nodeContracts": {
+      "passed": 153,
+      "failed": 0,
+      "skipped": 0
+    },
+    "nativeTransport": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "vitestRegression": {
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "notes": [
+    "Archived reports are redacted summaries, not original capability/admission inputs.",
+    "Manifest/inventory descriptor bodies remain in the original operator evidence; their original digests are retained.",
+    "Attempt source identities and currentSources are separate; historical attempts do not certify later code.",
+    "The 153 Node tests and 52 Vitest tests are distinct; final bounded-reader native regression is separately recorded.",
+    "Windows 10/Node 22.22.2 does not substitute for frozen Windows 11 24H2/Node 22.12.0."
+  ]
+}

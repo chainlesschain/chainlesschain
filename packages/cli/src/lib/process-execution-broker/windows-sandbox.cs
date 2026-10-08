@@ -484,6 +484,64 @@ namespace ChainlessChain.WindowsSandbox
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern UInt32 GetFileType(IntPtr handle);
 
+        [DllImport("ntdll.dll")]
+        private static extern Int32 NtQueryObject(IntPtr handle, Int32 informationClass,
+            IntPtr information, UInt32 size, out UInt32 returned);
+
+        [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationFile")]
+        private static extern Int32 NtQueryFileMode(IntPtr handle, out IO_STATUS_BLOCK status,
+            out UInt32 mode, UInt32 size, Int32 informationClass);
+
+        // This path is reachable only for the separately gated experimental v3.
+        // Kernel object identity, exact rights, and synchronous mode are proved
+        // before either extra handle is placed in the root inheritance list.
+        private static void VerifyNullObjectString(IntPtr handle, int kind, string expected)
+        {
+            IntPtr buffer = Marshal.AllocHGlobal(4096);
+            try
+            {
+                UInt32 returned;
+                if (NtQueryObject(handle, kind, buffer, 4096, out returned) != 0 || returned > 4096)
+                    throw new InvalidDataException("Null object query failed");
+                int length = (UInt16)Marshal.ReadInt16(buffer);
+                int maximum = (UInt16)Marshal.ReadInt16(buffer, 2);
+                IntPtr value = Marshal.ReadIntPtr(buffer, IntPtr.Size == 8 ? 8 : 4);
+                long offset = value.ToInt64() - buffer.ToInt64();
+                if (length != expected.Length * 2 || maximum < length || offset < IntPtr.Size * 2 ||
+                    offset > 4096 - maximum || Marshal.PtrToStringUni(value, length / 2) != expected)
+                    throw new InvalidDataException("Null object identity differs");
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+
+        private static IntPtr PrepareExperimentalNull(UInt32 access, List<IntPtr> owned)
+        {
+            SECURITY_ATTRIBUTES attributes = new SECURITY_ATTRIBUTES();
+            attributes.nLength = checked((UInt32)Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)));
+            attributes.bInheritHandle = true;
+            IntPtr handle = CreateFile("NUL", access, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                ref attributes, OPEN_EXISTING, 0, IntPtr.Zero);
+            if (IsInvalidHandle(handle)) ThrowLastError("CreateFile(experimental Null)");
+            owned.Add(handle);
+            if (GetFileType(handle) != 2) throw new InvalidDataException("Null is not a character device");
+            VerifyNullObjectString(handle, 1, "\\Device\\Null");
+            VerifyNullObjectString(handle, 2, "File");
+            IntPtr basic = Marshal.AllocHGlobal(256);
+            try
+            {
+                UInt32 returned;
+                if (NtQueryObject(handle, 0, basic, 56, out returned) != 0 || returned < 8 || returned > 256 ||
+                    unchecked((UInt32)Marshal.ReadInt32(basic, 4)) != access)
+                    throw new InvalidDataException("Null granted access differs");
+            }
+            finally { Marshal.FreeHGlobal(basic); }
+            IO_STATUS_BLOCK status;
+            UInt32 mode;
+            if (NtQueryFileMode(handle, out status, out mode, 4, 16) != 0 || mode != 0x20)
+                throw new InvalidDataException("Null synchronous mode differs");
+            return handle;
+        }
+
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr CreateFile(
             string fileName,
@@ -3029,9 +3087,19 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr standardError,
             int nodeIpcFd,
             IntPtr entrySnapshotHandle,
+            IntPtr experimentalNullRead,
+            IntPtr experimentalNullWrite,
             out IntPtr handleBytes)
         {
             List<IntPtr> handles = new List<IntPtr>();
+            if (!IsInvalidHandle(experimentalNullRead) || !IsInvalidHandle(experimentalNullWrite))
+            {
+                if (IsInvalidHandle(experimentalNullRead) || IsInvalidHandle(experimentalNullWrite) ||
+                    experimentalNullRead == experimentalNullWrite)
+                    throw new InvalidDataException("Experimental Null pair is incomplete");
+                handles.Add(experimentalNullRead);
+                handles.Add(experimentalNullWrite);
+            }
             handles.Add(standardInput);
             if (!handles.Contains(standardOutput))
                 handles.Add(standardOutput);
@@ -3268,6 +3336,26 @@ namespace ChainlessChain.WindowsSandbox
         }
 
         [DataContract]
+        public sealed class NativeCapsuleRuntimeSpec
+        {
+            [DataMember] public string platform { get; set; }
+            [DataMember] public string architecture { get; set; }
+            [DataMember] public string nodeVersion { get; set; }
+            [DataMember] public string modulesAbi { get; set; }
+            [DataMember] public string executableDigest { get; set; }
+        }
+
+        [DataContract]
+        public sealed class NativeCapsuleBindingSpec
+        {
+            [DataMember] public string inventoryDigest { get; set; }
+            [DataMember] public string lockDigest { get; set; }
+            [DataMember] public string planDigest { get; set; }
+            [DataMember] public string projectCommit { get; set; }
+            [DataMember] public NativeCapsuleRuntimeSpec runtime { get; set; }
+        }
+
+        [DataContract]
         public sealed class NativeEvaluatorSpec
         {
             [DataMember] public int version { get; set; }
@@ -3281,6 +3369,8 @@ namespace ChainlessChain.WindowsSandbox
             [DataMember] public EvaluatorPathSpec runtime { get; set; }
             [DataMember] public EvaluatorPathSpec[] directories { get; set; }
             [DataMember] public EvaluatorPathSpec[] files { get; set; }
+            [DataMember] public NativeCapsuleBindingSpec capsuleBinding { get; set; }
+            [DataMember] public string experimentalNullDeviceProfile { get; set; }
         }
 
         private static bool SameEvaluatorPath(string left, string right)
@@ -3328,15 +3418,39 @@ namespace ChainlessChain.WindowsSandbox
             string[] arguments, string workingDirectory, string appSid, int wallTimeMs,
             List<IntPtr> guards, ref bool rootAttested)
         {
-            if (spec.version != 1 || !IsLowercaseSha256(spec.manifestDigest) || spec.runtime == null ||
-                spec.directories == null || spec.directories.Length < 4 || spec.directories.Length > 128 ||
-                spec.files == null || spec.files.Length < 2 || spec.files.Length > 65 ||
+            bool capsule = spec.version == 2;
+            if (spec.experimentalNullDeviceProfile != null &&
+                (capsule || spec.experimentalNullDeviceProfile != "chainlesschain/windows-node-runtime-adapter@3"))
+                throw new InvalidDataException("Unsupported experimental Null profile");
+            int maxDirectories = capsule ? 20000 : 128;
+            int maxFiles = capsule ? 20001 : 65;
+            long maxFileBytes = capsule ? 32L * 1024 * 1024 : 1024 * 1024;
+            long maxTotalBytes = capsule ? 512L * 1024 * 1024 : 8 * 1024 * 1024;
+            if ((spec.version != 1 && !capsule) || !IsLowercaseSha256(spec.manifestDigest) || spec.runtime == null ||
+                spec.directories == null || spec.directories.Length < 4 || spec.directories.Length > maxDirectories ||
+                spec.files == null || spec.files.Length < 2 || spec.files.Length > maxFiles ||
                 wallTimeMs < 1 || spec.wallTimeMs != wallTimeMs || String.IsNullOrWhiteSpace(appSid))
                 throw new InvalidDataException("Native evaluator manifest is incomplete");
+            if (capsule)
+            {
+                NativeCapsuleBindingSpec binding = spec.capsuleBinding;
+                if (binding == null || binding.runtime == null ||
+                    !IsPrefixedSha256(binding.inventoryDigest) || !IsPrefixedSha256(binding.lockDigest) ||
+                    !IsPrefixedSha256(binding.planDigest) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.projectCommit ?? "", "^[a-f0-9]{40}$") ||
+                    binding.runtime.platform != "win32" ||
+                    (binding.runtime.architecture != "x64" && binding.runtime.architecture != "arm64" && binding.runtime.architecture != "ia32") ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.runtime.nodeVersion ?? "", "^v[0-9]+\\.[0-9]+\\.[0-9]+$") ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(binding.runtime.modulesAbi ?? "", "^[0-9]+$") ||
+                    binding.runtime.executableDigest != "sha256:" + spec.runtime.sha256)
+                    throw new InvalidDataException("Native capsule inventory/runtime binding is incomplete");
+            }
+            else if (spec.capsuleBinding != null)
+                throw new InvalidDataException("v1 evaluator cannot accept a capsule binding");
             string root = NormalizeLocalDosPath(spec.root, null, "Native evaluator stage");
             string expectedParent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
             if (!SameEvaluatorPath(Path.GetDirectoryName(root), expectedParent) ||
-                !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(root), "^cc-native-evaluator-[A-Za-z0-9_-]{6}$") ||
+                !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(root), capsule ? "^cc-native-capsule-[A-Za-z0-9_-]{6}$" : "^cc-native-evaluator-[A-Za-z0-9_-]{6}$") ||
                 !SameEvaluatorPath(spec.workspace, Path.Combine(root, "workspace")) ||
                 !SameEvaluatorPath(spec.control, Path.Combine(root, "control")) ||
                 !SameEvaluatorPath(spec.scratch, Path.Combine(root, "scratch")) ||
@@ -3368,10 +3482,11 @@ namespace ChainlessChain.WindowsSandbox
             {
                 string full = Path.GetFullPath(file.path);
                 if ((!full.StartsWith(spec.workspace + "\\", StringComparison.OrdinalIgnoreCase) && !SameEvaluatorPath(full, spec.check)) ||
-                    !expected.Add(full) || file.bytes < 0 || file.bytes > 1024 * 1024)
+                    !expected.Add(full) || file.bytes < 0 || file.bytes > maxFileBytes ||
+                    (SameEvaluatorPath(full, spec.check) && file.bytes > 1024 * 1024))
                     throw new InvalidDataException("Native evaluator file is outside its read-only roots or exceeds bounds");
                 total = checked(total + file.bytes);
-                if (total > 8 * 1024 * 1024) throw new InvalidDataException("Native evaluator tree exceeds byte bound");
+                if (total > maxTotalBytes) throw new InvalidDataException("Native evaluator tree exceeds byte bound");
                 VerifyEvaluatorPath(file, HoldEvaluatorPath(full, false, guards), false);
             }
             if (!expected.Contains(spec.check) || !expected.Contains(spec.workspace) || !expected.Contains(spec.control) || !expected.Contains(spec.scratch))
@@ -3417,6 +3532,12 @@ namespace ChainlessChain.WindowsSandbox
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
             runtimeSecurity.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.ReadAndExecute, AccessControlType.Allow));
             SetEvaluatorAccessControl(spec.runtime.path, runtimeSecurity);
+        }
+
+        private static bool IsPrefixedSha256(string value)
+        {
+            return value != null && value.StartsWith("sha256:", StringComparison.Ordinal) &&
+                IsLowercaseSha256(value.Substring(7));
         }
 
         private static void SetEvaluatorAccessControl(string path, FileSystemSecurity security)
@@ -3582,6 +3703,7 @@ namespace ChainlessChain.WindowsSandbox
             int entrySnapshotFd = -1;
             byte[] entrySnapshot = null;
             List<IntPtr> ownedStandardHandles = new List<IntPtr>();
+            IntPtr experimentalNullRead = IntPtr.Zero, experimentalNullWrite = IntPtr.Zero;
             List<LaunchPathLock> launchPathLocks = new List<LaunchPathLock>();
             PROCESS_INFORMATION processInfo = new PROCESS_INFORMATION();
             bool useAppContainer =
@@ -3673,6 +3795,16 @@ namespace ChainlessChain.WindowsSandbox
                     targetEnvironment["SystemRoot"] = Path.GetDirectoryName(Environment.SystemDirectory);
                     targetEnvironment["WINDIR"] = Path.GetDirectoryName(Environment.SystemDirectory);
                     targetEnvironment["PATH"] = Path.GetDirectoryName(application);
+                    // Only the guarded evaluator exposes this attested identity;
+                    // an inherited caller value is never used as its authority.
+                    targetEnvironment["CC_WINDOWS_APPCONTAINER_SID"] = expectedAppContainerSid;
+                    if (nativeEvaluator.experimentalNullDeviceProfile != null)
+                    {
+                        experimentalNullRead = PrepareExperimentalNull(0x120089, ownedStandardHandles);
+                        experimentalNullWrite = PrepareExperimentalNull(0x120196, ownedStandardHandles);
+                        targetEnvironment["CC_WINDOWS_NULL_READ_V3"] = experimentalNullRead.ToInt64().ToString("x");
+                        targetEnvironment["CC_WINDOWS_NULL_WRITE_V3"] = experimentalNullWrite.ToInt64().ToString("x");
+                    }
                     ConfigureAppContainerEnvironment(targetEnvironment);
                 }
                 environmentBuffer =
@@ -3855,6 +3987,8 @@ namespace ChainlessChain.WindowsSandbox
                     startup.StartupInfo.hStdError,
                     nodeIpcFd,
                     entrySnapshotReadHandle,
+                    experimentalNullRead,
+                    experimentalNullWrite,
                     out inheritedHandleBytes);
                 attributeList = BuildProcessAttributeList(
                     inheritedHandleBuffer,

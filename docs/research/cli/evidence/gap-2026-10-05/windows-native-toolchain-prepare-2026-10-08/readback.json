@@ -1,0 +1,95 @@
+{
+  "schema": "chainlesschain.native-toolchain-preparation-readback/v1",
+  "archivedAt": "2026-10-08T03:29:39.598Z",
+  "formalSample": false,
+  "admissionEligible": false,
+  "executionStatus": "NOT_RUN",
+  "trusted": false,
+  "nativeAclAssessed": false,
+  "addonAbiVerified": false,
+  "fullReviewPackReady": false,
+  "attempts": [
+    {
+      "label": "first",
+      "source": ".work/native-toolchain-prepare-2026-10-08-astra/preparation.json",
+      "digest": "sha256:be68ce83db82eb9ac5cf99bbbd716aaf14aeebae621134e4bb0eda1a4880d0e9",
+      "status": "FAILED_RETAINED",
+      "packages": 24,
+      "files": 1983,
+      "totalBytes": 58012285,
+      "failedPackage": "node_modules/@types/chai",
+      "lockedIntegrityMatches": true
+    },
+    {
+      "label": "typed-root",
+      "source": ".work/native-toolchain-prepare-2026-10-08-typed-root/preparation.json",
+      "digest": "sha256:729ccb2446f5185e7c88f65e3d5a1e6d9998884852b482a9e9a51259acfcddb7",
+      "status": "FAILED_RETAINED",
+      "packages": 40,
+      "files": 2239,
+      "totalBytes": 63096526,
+      "failedPackage": "node_modules/agent-base",
+      "lockedIntegrityMatches": true
+    }
+  ],
+  "scope": "Frozen dependency and Git bytes only; no npm/install/lifecycle/import/addon/native execution.",
+  "parserChange": "Strict single NAME/ root allowed only for locked @types/NAME, with metadata identity, sha512, same-root and all path/link/count/byte checks preserved.",
+  "remainingBlocker": "agent-base@7.1.4 archive contains both package/./dist/index.js and package/dist/index.js; original dot-alias rejection preserved.",
+  "sourceBinding": "Current snapshots match typed-root preparation code. Historical first-run parser source was not separately captured; its raw report and rejected tarball are retained.",
+  "tests": {
+    "status": 0,
+    "stderr": ""
+  },
+  "artifacts": [
+    {
+      "path": "first.preparation.redacted.json",
+      "bytes": 575746,
+      "digest": "sha256:a58af208cdc447deceaceeb3933149abc75793d6421d49d170b706174f46aa07"
+    },
+    {
+      "path": "first.rejected.tgz",
+      "bytes": 9924,
+      "digest": "sha256:5f0c52e34238e17d2d9a2d6e9b85530765afae645f265e0e14263ebeecdd7f94"
+    },
+    {
+      "path": "first.tar-header-diagnostic.json",
+      "bytes": 1665,
+      "digest": "sha256:18e5fc23711ed2e8d2cf8c19f78f6c749ae2acd091fcf5b6875e15a53b164e98"
+    },
+    {
+      "path": "typed-root.preparation.redacted.json",
+      "bytes": 630383,
+      "digest": "sha256:5f48c8114141437876c2eed26d28bf12792e77e5d18e811c16d10b18578be3a1"
+    },
+    {
+      "path": "typed-root.rejected.tgz",
+      "bytes": 7812,
+      "digest": "sha256:7dd4a61668a9a4e8d4e903f1a254f94d53dafd3f316f2b9b597c5ad8c79cb57e"
+    },
+    {
+      "path": "typed-root.tar-header-diagnostic.json",
+      "bytes": 2859,
+      "digest": "sha256:afdaecc724891adee8af80c340f82b558a6784afb7f38b9e47227146d3f0f9a9"
+    },
+    {
+      "path": "snapshot/verify01-native-toolchain-prepare.mjs",
+      "bytes": 17768,
+      "digest": "sha256:6bf50333724d3aa1ec2b46a77b0203c840d581379a4d5b58d779ebe205d94e6c"
+    },
+    {
+      "path": "snapshot/verify01-registry-content.mjs",
+      "bytes": 9697,
+      "digest": "sha256:77ad3ac1a5767b20c1cb0f9f8b02ccf48f36580e07227557adb0e26c402823cd"
+    },
+    {
+      "path": "snapshot/verify01-native-toolchain-prepare.node-test.mjs",
+      "bytes": 11548,
+      "digest": "sha256:066ff973c464bfbd113e21a45af3f19742cdb8a11c3a4bdb992a653de250abad"
+    },
+    {
+      "path": "node-tests.tap",
+      "bytes": 13377,
+      "digest": "sha256:77f3632cca4a1e6d91110ac78cf04fcf977b765f4887558170d3944f8775223b"
+    }
+  ]
+}

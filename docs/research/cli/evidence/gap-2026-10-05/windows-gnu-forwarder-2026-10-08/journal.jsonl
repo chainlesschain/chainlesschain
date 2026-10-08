@@ -1,0 +1,7 @@
+{"sequence":0,"stage":"started","pid":20840}
+{"sequence":1,"stage":"without-forwarder-rejected","pid":20840}
+{"sequence":2,"stage":"forwarder-loaded","pid":20840,"native":{"pid":20840,"appContainerSid":"S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791","capabilityCount":0,"inJob":true,"forwardedSymbols":41,"sameFunctionAddresses":true}}
+{"sequence":3,"stage":"addon-loaded","pid":20840}
+{"sequence":4,"stage":"parsed-sync","pid":20840,"bytes":168,"digest":"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35"}
+{"sequence":5,"stage":"parsed-async","pid":20840,"bytes":168,"digest":"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35"}
+{"sequence":6,"stage":"completed","pid":20840,"native":{"pid":20840,"appContainerSid":"S-1-15-2-1381207952-400213463-1155591376-1004748876-1341528898-2364416107-301990791","capabilityCount":0,"inJob":true,"forwardedSymbols":41,"sameFunctionAddresses":true},"missingDllRejected":true,"parseBytes":168,"parseDigest":"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35","asyncDigest":"sha256:f498ae4db00a25ed85053cdba098cdb03da94787cb89b32680276af822da0d35","hashes":{"xxhashBase16":"2109c9fcc8c72313b44d193fff26f891","xxhashBase36":"b8o6skfu8ubtkyilf15ggmgir","xxhashBase64Url":"hCcn8yMcjE7RNGT__JviR"},"invalidRejected":true,"changedInputDiffers":true}

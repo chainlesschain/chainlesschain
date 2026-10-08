@@ -271,3 +271,46 @@ PR 的 publish-staleness 门发现 VS Code 源码变更未递增版本。候选�
 CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与已 drain 的 CLI 协议 exit 0 分别记录，不宣称六宿主都自然退出。本地 Windows 两阶段正常退出的证据仅适用于该本地尝试。上述 CI 使用确定性 peer，IntelliJ 2024.2 是最低 API 诊断宿主，不等于冻结的正式 2025.2 环境、公开安装验收或 provider 实测。专项矩阵通过也不替代 CLI CI、CLI Strict Sandbox 等准确发布提交的完整门。
 
 当前仍需独立完成：正式 36+9 provider/首次安装样本、账号与账单、Linux Docker review pack 整包执行及人工签核、Windows/macOS native reviewed 验收与 durable 后端实现、真人辅助技术听测、8h/24h 观察及获批性能 SLO。完整跨机器云 resume 仍为需求条件项。上述项目没有被 fixture、Astra 代码审查或局部 CI 标为完成。
+
+## 14. 2026-10-08 原生工具链胶囊与剩余验收
+
+本轮在 `feature/cli-ide-gap-completion-20261008` 新增冻结工具链准备、逐包 registry 字节核对、原 Git 源码闭包、独立 v2 AppContainer 运输及原始诊断回读。真实准备为 191 包、8,369 文件、111,823,724 字节；原 v1 64 文件/8 MiB 边界保留，v2 81 文件/12 MiB 与两项目标创建前拒绝已经实跑。最终 Node 合同 153、原生运输 3、Vitest 回归 52，共 208 项通过、零跳过。完整细节和失败材料见[验证第 12 节](./cli-ide-gap-validation-2026-10-05.md#12-2026-10-08-冻结原生工具链与-appcontainer-胶囊)。
+
+| 任务                    | 本轮状态                                                                | 尚需完成                                                                          |
+| ----------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| VERIFY-02               | 冻结准备/registry/胶囊运输接线完成；实际导入与原 setup 已尝试并保留失败 | Rollup 管道兼容、native canonical 支持、locked setup/config/full review、独立签核 |
+| PLATFORM-02             | Windows 一次性 v2 隔离、身份与清理合同补齐，未授予额外权限              | Windows/macOS durable authority、活跃网络撤销及崩溃恢复                           |
+| VERIFY-IDE-02           | 双 IDE 既有修复与历史实测保留；共享评测后端新增真实材料                 | 正式 36+9、目标宿主、官方账号/账单、真人听测、长时观察与 SLO                      |
+| MODEL-03/PERF-02/MCP-02 | 原实现和已归档网关/参考服务实测保留                                     | 官方新模型/账号/OAuth/账单验收仍独立开放                                          |
+| RELEASE                 | 工作区 helper 重建与源码摘要检查通过；三系统/Windows 专项 CI 接线已补   | 准确提交完整 Actions 与后续明确授权的 OIDC 发布；本轮未发布                       |
+| CLOUD-02                | 现 self-hosted handoff 合同保留                                         | 完整云端连续恢复继续作为需求条件项                                                |
+
+一次性胶囊和 addon 诊断没有关闭整套 native review：实际管道导入 exit 125、globalSetup native realpath exit 1、GNU addon 加载失败均保留；Parcel/MSVC 成功与整体 `addonAbiVerified=false` 同时记录。正式样本维持 `NOT_RUN`，预算 $99 与原分母不变。Windows 10/Node 22.22.2 本地结果不替代冻结宿主，也不复用其他提交的成功作为当前发布资格。
+
+## 15. 2026-10-08 实验 runtime 与已通过的冻结 setup
+
+独立管道 v1/private canonical v2 已实现并在真实 AppContainer 中验证。原七项 capability 的历史失败与 v1/v2 运输边界保留；只有显式实验 harness 加载 addon，生产权限和整包 `capabilities={}` 未改变。Windows NODE_OPTIONS、监督器最小环境 SID、strict extended drive prefix 和真实 transient counters 的接线/验证缺陷均已修，失败原件逐轮归档。
+
+| 任务          | 最新完成情况                                                                                                                            | 继续开放                                                                |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| VERIFY-02     | 冻结 Vitest/Vite/happy-dom 导入与原 globalSetup/teardown 实跑成功；profile/checker/根身份/实际子进程回执和 Job 清理均核对               | NUL、冻结原 forks/config/full review、整体 GNU addon ABI、人工签核      |
+| PLATFORM-02   | 当前进程 IAT 适配、真实规范 NT/FileId 私有根证明、root 外实际句柄拒绝；helper 身份字段与防篡改回归通过                                  | Windows/macOS durable authority、网络撤销与崩溃恢复，不用一次性隔离替代 |
+| VERIFY-IDE-02 | 共享工具链的两个前序本地阻塞已有执行结果，既有双 IDE 功能与诊断继续保留                                                                 | 正式目标宿主/36+9/公开首次安装、真人辅助技术、长时性能与 SLO            |
+| 工程验证      | Node 391、实际 helper 回归 3、Vitest 52，共 **446 项通过、零跳过**；构建/source contract、lint/格式、spawn inventory、workflow 语法通过 | 新准确提交完整 Actions；不把旧运行或 rebuilt binary 借作新源码证明      |
+| CI 反馈       | 旧准确提交 Strict/Safety/Host Diagnostics/Recovery 成功；实际 CLI CI 浅 checkout 和 Reliability 汇总缺 verifier dependency 两项失败已修 | 新准确提交完整 CI 回读；本轮没有发布                                    |
+
+源码、原始诊断/构建摘要、失败与当前准入边界见[验证第 13 节](./cli-ide-gap-validation-2026-10-05.md#13-2026-10-08-独立实验-runtime-与冻结-setup)和[证据索引](./cli/evidence/gap-2026-10-05/windows-runtime-adapter-2026-10-08/README.md)。v2 的成功不升级为正式 native backend，规范证明只覆盖真实目标和已观察的显式 preload 子进程。独立 NUL 下一版需真实设备权限与每次启动的精确继承；官方账号/账单、人工签核和正式环境仍需用户提供，36+9 保持 NOT_RUN。
+
+## 16. 2026-10-08 NUL 设备与受控 Node 后代
+
+新增独立实验 profile `chainlesschain/windows-node-runtime-adapter@3`：监督器验证真正的 `\Device\Null` 对象和精确读写权限，仅该显式 factory 传入两个 Null 句柄。runtime 为每次受控 Node 启动复制并核对 CRT stdio，改写继承表并传入精确 HANDLE_LIST；不支持的 executable、detached/breakaway、未知 stdio 和缺 trusted preload 继续拒绝。旧 factory、原七项能力与整包 `capabilities={}` 保留。
+
+| 任务          | 最新完成情况                                                                                                                       | 继续开放                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| VERIFY-02     | 独立 NUL/受控 Node 启动工程在本地真实隔离中通过；两层后代、三并发、六 PID/十二 phase 回执和 Job 清理完整                           | esbuild 报告祖先目录读取拒绝、冻结 config/default forks/full review、GNU addon 整体 ABI、人工签核 |
+| PLATFORM-02   | Null 真设备和精确继承证明；父进程保留真实可继承 Event，子进程有界内核句柄快照排除其继承；未知形状拒绝                              | 同类型句柄复用仍 unsupported；非 Node 后代；Windows/macOS durable authority、网络撤销和崩溃恢复   |
+| VERIFY-IDE-02 | 共享评测原生后端新增可回读材料；原双 IDE 工程和历史宿主结果保留                                                                    | 正式双 IDE 任务/公开首次安装、目标环境、真人听测、8h/24h 与获批 SLO                               |
+| 工程验证      | 最终 Node **517**、当前 helper 实际 transport **3**、Vitest **52**，共 **572 项通过、零跳过**；新增 childErrors 门禁和五类拒绝反例 | 新准确提交完整 Actions；当前 native v3 运行没有执行 pipe/realpath 分支                            |
+| CI/发行       | 前序 `1e5477aebe` 的 Strict/Safety/Reliability/Host Diagnostics 均成功，CLI CI 已发现 Linux Worker 结算竞态失败                                              | 当前 v3 须自身准确提交验证；本轮未合并、发布或新增付费请求                                        |
+
+实际失败和构建/源码摘要见[验证第 14 节](./cli-ide-gap-validation-2026-10-05.md#14-2026-10-08-nul-设备与精确后代继承)、[证据 README](./cli/evidence/gap-2026-10-05/windows-null-v3-2026-10-08/README.md)。最后的 preload 仅做 Prettier 整理，但仍重新执行真实诊断并保存新原件；历史构建回执的 preload 摘要不冒充新运行源码。冻结 esbuild/config 的失败不通过修改原包、改 forks 为 threads 或扩大父目录 ACL 消除。36+9、$99 预算和正式 observations 保持原状；NUL 子项的局部验证没有关闭完整 VERIFY-01。

@@ -1,0 +1,221 @@
+{
+  "schema": "chainlesschain.windows-null-v3-readback/v1",
+  "collectedAt": "2026-10-08T07:44:38.741Z",
+  "derived": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "originals": [
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-style/report.json",
+      "bytes": 78609,
+      "digest": "sha256:66d8ed113c30b8d198ca12d4295289c7bfdf4dfbe4f7c4e9535df6c64e430b1d"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-style/journal.jsonl",
+      "bytes": 11289,
+      "digest": "sha256:eef4d17a7161b1e0b3de8be8a2cc41a820fdb2871c9d17f99e5f8b147dfc4840"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-style/stdout.txt",
+      "bytes": 1811,
+      "digest": "sha256:5c8625a58d57701a3887192051690aebe37364dc9695a2025b54e06a352d967b"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-final-style/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/windows-null-v3-final-regression-2026-10-08.tap",
+      "bytes": 82646,
+      "digest": "sha256:9408dfe41bfb01947501f03170cd0339dee8e4c178c0119fc8a12e914c0802b1"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "final-style.json",
+      "bytes": 77596,
+      "digest": "sha256:c565462a1ff6868f9ad214d62e4e4979500e875c6d6f822e3fd06193fd76ad4e",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-style-journal.jsonl",
+      "bytes": 11271,
+      "digest": "sha256:1901aa56c10eb824bdc17a79e0807cb37b7e9b616bdacdc1ba3e64378c00385b",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-style-stdout.txt",
+      "bytes": 1808,
+      "digest": "sha256:09e3be68993b8c7c7a6f8238f4b3b209a51abf03a5e643ed8be94e176fb88ec1",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "final-style-stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "node-final-regression.tap",
+      "bytes": 82646,
+      "digest": "sha256:9408dfe41bfb01947501f03170cd0339dee8e4c178c0119fc8a12e914c0802b1",
+      "derived": true,
+      "admissionEligible": false
+    }
+  ],
+  "sourcesAtReadback": [
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-diagnostic.mjs",
+      "digest": "sha256:34fb6821470666e2549980d445f59aee3247ad19dbca81d8eb0c8e2bbd121f1e"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-result.mjs",
+      "digest": "sha256:3d787654251a8f8bc4948452be09f8a9c1c0bdd383f17f95b029f4e43639ecbe"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-fixtures.mjs",
+      "digest": "sha256:366af0e94cec49b30dd1236eced389132d3d1993633e525dbd73e3deb94d718f"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.cpp",
+      "digest": "sha256:5d71ba4b0a15c873dc8e2d352a40a35d8cd13c2d6704686c8f1a5146bb4ebad8"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.h",
+      "digest": "sha256:ed162f4bd8717cfc3d4bdbd4e302ad682b4a303f4653e86a652306be9d97cafa"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-preload.cjs",
+      "digest": "sha256:ac9cfb6d818d378f79127a93f3167161eb9e5f08b98f08fdcea186969b81c7ab"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:809315088a2fa4d00ec467d5487c1346322b8e11912c34dbd7abe0213bdce3a2"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:d1734f440aa747de167e7e609ad7a61b78a28205acb3595f3b253b04a292b170"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:a14939bd67ac9526f34a29c93ed9359e105b7e4fd45c3f1c4a3445d65a867115"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:1b50b2026f04fbb3a756835392d972ba95211a9af2c743795c3fba00670dcf5d"
+    }
+  ],
+  "previousReadbackDigest": "sha256:0ef12d24110d0ee9b49d29618da3d5df2ee6f0a9f60e9aa1906813a0b8c5e358",
+  "addonDigest": "sha256:185a7de91942526c345618e051e96860964f8bb6fce096d543d3e783fc2beeb0",
+  "checks": {
+    "independentlyRevalidated": true,
+    "stagedBytesVerified": true,
+    "sourceBytesVerified": true,
+    "completion": {
+      "pid": 19760,
+      "nested": 25892,
+      "concurrent": [
+        30268,
+        21320,
+        29168
+      ],
+      "native": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@3",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 19760,
+        "appContainerSid": "S-1-15-2-3356038103-3742854141-1962901903-2900475445-353861543-431541188-3768559614",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 5,
+        "originalCreateNamedPipeA": "00007FFE65062E20",
+        "originalCreateFileA": "00007FFE65024E90",
+        "pipeSlot": "00007FF6CBB677B8",
+        "fileSlot": "00007FF6CBB67560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFE65025110",
+        "finalPathSlot": "00007FF6CBB67820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-x0k1T4",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-x0k1T4",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "c7e07400000007000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 18,
+        "nullMapped": 18,
+        "nullRejected": 0,
+        "launches": 7,
+        "launched": 4,
+        "launchRejected": 3,
+        "launchError": 50,
+        "launchStage": "launch-stdio",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    },
+    "processes": 6,
+    "phaseReceipts": 12,
+    "childErrorsEmpty": true,
+    "cleanupConfirmed": true,
+    "pipeRealpathExecutedInThisRun": false,
+    "nodeTests": 517,
+    "nativeTransportTests": 3,
+    "vitestTests": 52,
+    "distinctTests": 572
+  },
+  "changes": [
+    "Require an empty childErrors array; five additional negative tests",
+    "Prettier-only preload changes; new actual native execution and receipt source digests",
+    "Same native binary as initial type snapshot; original build-record preload hash remains historical"
+  ],
+  "limits": [
+    "Windows 10 / Node 22.22.2 only",
+    "Controlled Node descendants only",
+    "Same Event type at numeric trap handle unsupported",
+    "esbuild reported ancestor directory read remains blocked",
+    "Non-hermetic build; no general runtime or formal review admission"
+  ]
+}

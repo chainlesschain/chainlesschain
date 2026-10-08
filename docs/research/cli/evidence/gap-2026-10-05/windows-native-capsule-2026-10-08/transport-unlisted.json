@@ -1,0 +1,28 @@
+{
+  "kind": "unlisted-entry",
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "registryContentVerified": false,
+  "manifestDigest": "sha256:a1641d3501467a0f5fe1f74012564b88340ab4058e270d8ff20c32749b9f74ee",
+  "execution": {
+    "status": 125,
+    "stdout": "",
+    "stderr": "CC_WINDOWS_SANDBOX_ERROR: Native evaluator tree has an unlisted entry\r\n"
+  },
+  "settlement": {
+    "manifestDigest": "a1641d3501467a0f5fe1f74012564b88340ab4058e270d8ff20c32749b9f74ee",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 0,
+    "appContainerSid": "S-1-15-2-1774201055-3293973188-1860528131-3040243712-4067539927-2430944157-2531744327",
+    "wallTimeMs": 10000,
+    "targetExitCode": 125,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": true
+  },
+  "passed": true,
+  "archivedSummary": true,
+  "usableForAdmission": false,
+  "originalReportDigest": "sha256:09e32f4b0997d19cef1f4fa38d9c21e6c44b08051bbb3cea86a8cc39671ba174"
+}

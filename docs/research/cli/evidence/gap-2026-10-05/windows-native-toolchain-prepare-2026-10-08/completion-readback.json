@@ -1,0 +1,139 @@
+{
+  "schema": "chainlesschain.native-toolchain-preparation-completion/v1",
+  "archivedAt": "2026-10-08T03:34:14.382Z",
+  "priorReadback": "readback.json",
+  "formalSample": false,
+  "admissionEligible": false,
+  "providerAssessed": false,
+  "executionStatus": "NOT_RUN",
+  "trusted": false,
+  "nativeAclAssessed": false,
+  "addonAbiVerified": false,
+  "fullReviewPackReady": false,
+  "status": "PREPARED_NOT_EXECUTED",
+  "sourceTree": ".work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree",
+  "registryDirectory": ".work/native-toolchain-prepare-2026-10-08-canonical-pairs/tarballs",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+  "registryManifestDigest": "sha256:40f48cf9bbdcf754f9e9fad91ddde1f020f520710a3444552c5c86ac625ee2c2",
+  "frozenSourceManifestDigest": "sha256:6bac37320878cb461545c82066639e193a44902a72aa140066b14032f4aa4ea5",
+  "packages": 191,
+  "files": 8369,
+  "totalBytes": 111823724,
+  "compressedBytes": 19718256,
+  "normalizations": [
+    {
+      "packagePath": "node_modules/agent-base",
+      "artifactDigest": "sha256:7dd4a61668a9a4e8d4e903f1a254f94d53dafd3f316f2b9b597c5ad8c79cb57e",
+      "normalizations": [
+        {
+          "kind": "identical-root-dot-file-pair",
+          "rawPath": "package/./dist/index.js",
+          "canonicalPath": "package/dist/index.js",
+          "bytes": 7324,
+          "digest": "sha256:c6503bd5e007db8b73fedf07b6eaaf4a94d5541953f0d06c8a17d1644c29a0c5"
+        }
+      ]
+    },
+    {
+      "packagePath": "node_modules/http-proxy-agent",
+      "artifactDigest": "sha256:785f73faa92bfba8d61da20bf59325ab2b3dca1bbc0bbac523406f404d8a6f02",
+      "normalizations": [
+        {
+          "kind": "identical-root-dot-file-pair",
+          "rawPath": "package/./dist/index.js",
+          "canonicalPath": "package/dist/index.js",
+          "bytes": 6088,
+          "digest": "sha256:fd33b43da34da60d4914780e13fae5d52a7faaa996d687eea5335128de148627"
+        }
+      ]
+    },
+    {
+      "packagePath": "node_modules/https-proxy-agent",
+      "artifactDigest": "sha256:960f89e8e5240882f64249d04a538421dd39d62ffacc138544647cc3251bc0e0",
+      "normalizations": [
+        {
+          "kind": "identical-root-dot-file-pair",
+          "rawPath": "package/./dist/index.js",
+          "canonicalPath": "package/dist/index.js",
+          "bytes": 7451,
+          "digest": "sha256:30165586fac3becbc9dbf2b7b5bdaa802a77ac34af9926208f6e94a3bd87ef31"
+        }
+      ]
+    }
+  ],
+  "decoderVariant": "Only a single package/./PATH and package/PATH pair of ordinary files with exactly identical bytes can decode to one canonical file. Missing partner, traversal, multiple/nested dot components, case alias, raw duplicate, different bytes and all links are rejected; installed path validation remains unchanged.",
+  "historicalFailuresPreserved": true,
+  "inventory": {
+    "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+    "status": "INVENTORIED_NOT_EXECUTABLE",
+    "registryContentVerified": true,
+    "addons": 3,
+    "blockers": [
+      "NATIVE_CAPSULE_EXECUTION_NOT_VERIFIED",
+      "LOCKED_TEST_SUPPORT_EXECUTION_NOT_VERIFIED",
+      "ADDON_ABI_NOT_VERIFIED"
+    ],
+    "path": "successful-inventory.utf8.json"
+  },
+  "tests": {
+    "status": 0,
+    "tests": 85,
+    "passed": 85,
+    "skipped": 0,
+    "stderr": ""
+  },
+  "artifacts": [
+    {
+      "path": "canonical-pairs.preparation.redacted.json",
+      "bytes": 1951428,
+      "digest": "sha256:531a5027dd41d49a33bb58c084c4c0887092872c53258c3366a50502cf164a1d"
+    },
+    {
+      "path": "registry-artifacts.json",
+      "bytes": 17565,
+      "digest": "sha256:40f48cf9bbdcf754f9e9fad91ddde1f020f520710a3444552c5c86ac625ee2c2"
+    },
+    {
+      "path": "frozen-source-files.json",
+      "bytes": 362081,
+      "digest": "sha256:6bac37320878cb461545c82066639e193a44902a72aa140066b14032f4aa4ea5"
+    },
+    {
+      "path": "snapshot-canonical-pairs/verify01-native-toolchain-prepare.mjs",
+      "bytes": 17824,
+      "digest": "sha256:2a2eb75c001d3d3caab77789b729756009b026a392eb8d06a28ddd5d171a24be"
+    },
+    {
+      "path": "snapshot-canonical-pairs/verify01-registry-content.mjs",
+      "bytes": 11391,
+      "digest": "sha256:3f0e6febd8863356852ea27ebc6448c99b6528ff6740d8290ffb704a3bd05573"
+    },
+    {
+      "path": "snapshot-canonical-pairs/verify01-native-toolchain-prepare.node-test.mjs",
+      "bytes": 14027,
+      "digest": "sha256:b806598db7a9e1d631f18288df77b557fb3412c598e0c9ab59c4ef55c34a9d0b"
+    },
+    {
+      "path": "successful-inventory.json",
+      "bytes": 3397140,
+      "digest": "sha256:fa8cb09932f097a1db2f96274bf17700b032c68501deb711d688f9f48bc7fe94"
+    },
+    {
+      "path": "node-tests-canonical-pairs.tap",
+      "bytes": 15429,
+      "digest": "sha256:2b263af496f11e4df4cf1a473b56924ed60da8e4a285df88b76719f2cc682e92"
+    },
+    {
+      "path": "successful-inventory.utf8.json",
+      "bytes": 1659550,
+      "digest": "sha256:0b7beadfc829ef83f18106aaccaee2cbcf5ad050630aa363a06ebeeee8687dc1",
+      "source": {
+        "path": "successful-inventory.json",
+        "digest": "sha256:fa8cb09932f097a1db2f96274bf17700b032c68501deb711d688f9f48bc7fe94",
+        "encoding": "UTF-16LE with BOM (PowerShell capture)"
+      },
+      "transformation": "JSON reserialized as UTF-8; inventory semantics unchanged"
+    }
+  ]
+}

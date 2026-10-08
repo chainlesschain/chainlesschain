@@ -1,0 +1,449 @@
+TAP version 13
+# Subtest: dependency resolution preserves closest nested and hoisted original lock paths
+ok 1 - dependency resolution preserves closest nested and hoisted original lock paths
+  ---
+  duration_ms: 34.8269
+  type: 'test'
+  ...
+# Subtest: cycles terminate and required/optional peers resolve from frozen installation
+ok 2 - cycles terminate and required/optional peers resolve from frozen installation
+  ---
+  duration_ms: 0.6334
+  type: 'test'
+  ...
+# Subtest: optional platform artifacts omitted but required mismatches and missing dependencies fail
+ok 3 - optional platform artifacts omitted but required mismatches and missing dependencies fail
+  ---
+  duration_ms: 1.3407
+  type: 'test'
+  ...
+# Subtest: rejects linked package
+ok 4 - rejects linked package
+  ---
+  duration_ms: 0.3804
+  type: 'test'
+  ...
+# Subtest: rejects HTTP artifact
+ok 5 - rejects HTTP artifact
+  ---
+  duration_ms: 0.2733
+  type: 'test'
+  ...
+# Subtest: rejects foreign artifact host
+ok 6 - rejects foreign artifact host
+  ---
+  duration_ms: 0.3245
+  type: 'test'
+  ...
+# Subtest: rejects URL credentials
+ok 7 - rejects URL credentials
+  ---
+  duration_ms: 0.2383
+  type: 'test'
+  ...
+# Subtest: rejects missing integrity
+ok 8 - rejects missing integrity
+  ---
+  duration_ms: 0.2437
+  type: 'test'
+  ...
+# Subtest: rejects lock resolution with incompatible version
+ok 9 - rejects lock resolution with incompatible version
+  ---
+  duration_ms: 1.7024
+  type: 'test'
+  ...
+# Subtest: safe writer names reject traversal, aliases and Windows special paths
+ok 10 - safe writer names reject traversal, aliases and Windows special paths
+  ---
+  duration_ms: 0.7713
+  type: 'test'
+  ...
+# Subtest: extraction exposes bytes only after the same complete registry validation
+ok 11 - extraction exposes bytes only after the same complete registry validation
+  ---
+  duration_ms: 5.3702
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects symlink
+ok 12 - new extraction API still rejects symlink
+  ---
+  duration_ms: 2.1476
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects path traversal
+ok 13 - new extraction API still rejects path traversal
+  ---
+  duration_ms: 1.0225
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects case alias
+ok 14 - new extraction API still rejects case alias
+  ---
+  duration_ms: 1.3447
+  type: 'test'
+  ...
+# Subtest: bad integrity and trailing malformed entry cannot expose earlier file bytes
+ok 15 - bad integrity and trailing malformed entry cannot expose earlier file bytes
+  ---
+  duration_ms: 1.6393
+  type: 'test'
+  ...
+# Subtest: supports DefinitelyTyped NAME root only for independently locked @types/NAME
+ok 16 - supports DefinitelyTyped NAME root only for independently locked @types/NAME
+  ---
+  duration_ms: 3.1844
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix unknown
+ok 17 - rejects unknown or root-like DefinitelyTyped prefix unknown
+  ---
+  duration_ms: 0.5089
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix chai-other
+ok 18 - rejects unknown or root-like DefinitelyTyped prefix chai-other
+  ---
+  duration_ms: 0.419
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix Chai
+ok 19 - rejects unknown or root-like DefinitelyTyped prefix Chai
+  ---
+  duration_ms: 0.397
+  type: 'test'
+  ...
+# Subtest: rejects mixed package and DefinitelyTyped roots in either order
+ok 20 - rejects mixed package and DefinitelyTyped roots in either order
+  ---
+  duration_ms: 1.2039
+  type: 'test'
+  ...
+# Subtest: DefinitelyTyped root cannot bypass frozen metadata name/version
+ok 21 - DefinitelyTyped root cannot bypass frozen metadata name/version
+  ---
+  duration_ms: 1.0685
+  type: 'test'
+  ...
+# Subtest: prepares exact package paths without lifecycle, links, imports or addon execution
+ok 22 - prepares exact package paths without lifecycle, links, imports or addon execution
+  ---
+  duration_ms: 65.3706
+  type: 'test'
+  ...
+# Subtest: refuses an existing destination and preserves its files
+ok 23 - refuses an existing destination and preserves its files
+  ---
+  duration_ms: 32.394
+  type: 'test'
+  ...
+# Subtest: failed integrity retains raw downloaded artifact and failure report without extracting package
+ok 24 - failed integrity retains raw downloaded artifact and failure report without extracting package
+  ---
+  duration_ms: 36.2042
+  type: 'test'
+  ...
+# Subtest: complete registry bytes verify content without granting native execution
+ok 25 - complete registry bytes verify content without granting native execution
+  ---
+  duration_ms: 402.1693
+  type: 'test'
+  ...
+# Subtest: tarball integrity mismatch cannot be replaced by installed file hashes
+ok 26 - tarball integrity mismatch cannot be replaced by installed file hashes
+  ---
+  duration_ms: 388.4714
+  type: 'test'
+  ...
+# Subtest: registry verification requires the entire installed package population
+ok 27 - registry verification requires the entire installed package population
+  ---
+  duration_ms: 436.3383
+  type: 'test'
+  ...
+# Subtest: repeating another package's artifact does not fill a missing package
+ok 28 - repeating another package's artifact does not fill a missing package
+  ---
+  duration_ms: 346.024
+  type: 'test'
+  ...
+# Subtest: installed script modification fails against verified tarball bytes
+ok 29 - installed script modification fails against verified tarball bytes
+  ---
+  duration_ms: 370.3081
+  type: 'test'
+  ...
+# Subtest: derived addon is not silently exempted from registry byte verification
+ok 30 - derived addon is not silently exempted from registry byte verification
+  ---
+  duration_ms: 362.4126
+  type: 'test'
+  ...
+# Subtest: artifact bindings cannot traverse links or escape the artifact root
+ok 31 - artifact bindings cannot traverse links or escape the artifact root
+  ---
+  duration_ms: 344.9061
+  type: 'test'
+  ...
+# Subtest: bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+ok 32 - bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+  ---
+  duration_ms: 645.6048
+  type: 'test'
+  ...
+# Subtest: addon bytes are hashed and ABI remains unverified without loading the binary
+ok 33 - addon bytes are hashed and ABI remains unverified without loading the binary
+  ---
+  duration_ms: 335.7766
+  type: 'test'
+  ...
+# Subtest: caller digest cannot replace exact frozen Git lock bytes
+ok 34 - caller digest cannot replace exact frozen Git lock bytes
+  ---
+  duration_ms: 68.8869
+  type: 'test'
+  ...
+# Subtest: changed frozen setup is rejected without executing it
+ok 35 - changed frozen setup is rejected without executing it
+  ---
+  duration_ms: 59.6628
+  type: 'test'
+  ...
+# Subtest: rejects version rather than promoting a development tree
+ok 36 - rejects version rather than promoting a development tree
+  ---
+  duration_ms: 59.3834
+  type: 'test'
+  ...
+# Subtest: rejects identity rather than promoting a development tree
+ok 37 - rejects identity rather than promoting a development tree
+  ---
+  duration_ms: 58.2646
+  type: 'test'
+  ...
+# Subtest: rejects missing-integrity rather than promoting a development tree
+ok 38 - rejects missing-integrity rather than promoting a development tree
+  ---
+  duration_ms: 59.4348
+  type: 'test'
+  ...
+# Subtest: rejects linked-lock rather than promoting a development tree
+ok 39 - rejects linked-lock rather than promoting a development tree
+  ---
+  duration_ms: 59.1982
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-package rather than promoting a development tree
+ok 40 - rejects unlocked-package rather than promoting a development tree
+  ---
+  duration_ms: 55.7226
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-file rather than promoting a development tree
+ok 41 - rejects unlocked-file rather than promoting a development tree
+  ---
+  duration_ms: 60.0275
+  type: 'test'
+  ...
+# Subtest: hard-linked package bytes are forbidden
+ok 42 - hard-linked package bytes are forbidden
+  ---
+  duration_ms: 56.6654
+  type: 'test'
+  ...
+# Subtest: development dependency junction cannot redirect inventory outside its root
+ok 43 - development dependency junction cannot redirect inventory outside its root
+  ---
+  duration_ms: 53.0512
+  type: 'test'
+  ...
+# Subtest: case-alias package entries are rejected on every filesystem
+ok 44 - case-alias package entries are rejected on every filesystem
+  ---
+  duration_ms: 375.6286
+  type: 'test'
+  ...
+# case-alias enumeration: case-folding volume
+# Subtest: reserved device package entries are rejected on every filesystem
+ok 45 - reserved device package entries are rejected on every filesystem
+  ---
+  duration_ms: 68.1126
+  type: 'test'
+  ...
+# Subtest: verified tarball matches every installed file without extraction
+ok 46 - verified tarball matches every installed file without extraction
+  ---
+  duration_ms: 6.9841
+  type: 'test'
+  ...
+# Subtest: rejects changed compressed bytes before decompression
+ok 47 - rejects changed compressed bytes before decompression
+  ---
+  duration_ms: 1.3638
+  type: 'test'
+  ...
+# Subtest: requires canonical frozen-lock sha512 integrity
+ok 48 - requires canonical frozen-lock sha512 integrity
+  ---
+  duration_ms: 2.1999
+  type: 'test'
+  ...
+# Subtest: matching compressed integrity cannot conceal modified installed files
+ok 49 - matching compressed integrity cannot conceal modified installed files
+  ---
+  duration_ms: 1.1307
+  type: 'test'
+  ...
+# Subtest: missing and extra installed files are both rejected
+ok 50 - missing and extra installed files are both rejected
+  ---
+  duration_ms: 1.702
+  type: 'test'
+  ...
+# Subtest: package metadata must match locked name and version
+ok 51 - package metadata must match locked name and version
+  ---
+  duration_ms: 1.2683
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 1
+ok 52 - rejects link, special file, or extension 1
+  ---
+  duration_ms: 0.741
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 2
+ok 53 - rejects link, special file, or extension 2
+  ---
+  duration_ms: 0.7258
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 3
+ok 54 - rejects link, special file, or extension 3
+  ---
+  duration_ms: 0.9769
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 4
+ok 55 - rejects link, special file, or extension 4
+  ---
+  duration_ms: 1.0268
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 6
+ok 56 - rejects link, special file, or extension 6
+  ---
+  duration_ms: 0.6959
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension g
+ok 57 - rejects link, special file, or extension g
+  ---
+  duration_ms: 1.05
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension L
+ok 58 - rejects link, special file, or extension L
+  ---
+  duration_ms: 1.0837
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/../escape
+ok 59 - rejects unsafe path package/../escape
+  ---
+  duration_ms: 0.9019
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/./alias
+ok 60 - rejects unsafe path package/./alias
+  ---
+  duration_ms: 1.4332
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/a\\b
+ok 61 - rejects unsafe path package/a\\b
+  ---
+  duration_ms: 2.724
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/NUL.txt
+ok 62 - rejects unsafe path package/NUL.txt
+  ---
+  duration_ms: 0.6409
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/trailing.
+ok 63 - rejects unsafe path package/trailing.
+  ---
+  duration_ms: 0.595
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path outside/file
+ok 64 - rejects unsafe path outside/file
+  ---
+  duration_ms: 0.5776
+  type: 'test'
+  ...
+# Subtest: rejects duplicate and case-alias archive paths
+ok 65 - rejects duplicate and case-alias archive paths
+  ---
+  duration_ms: 0.8253
+  type: 'test'
+  ...
+# Subtest: installed snapshot independently rejects duplicate paths
+ok 66 - installed snapshot independently rejects duplicate paths
+  ---
+  duration_ms: 0.3803
+  type: 'test'
+  ...
+# Subtest: PAX long UTF-8 paths are compared without extracting them
+ok 67 - PAX long UTF-8 paths are compared without extracting them
+  ---
+  duration_ms: 1.142
+  type: 'test'
+  ...
+# Subtest: PAX cannot introduce path traversal
+ok 68 - PAX cannot introduce path traversal
+  ---
+  duration_ms: 0.8397
+  type: 'test'
+  ...
+# Subtest: malformed PAX lengths and unsupported fields fail
+ok 69 - malformed PAX lengths and unsupported fields fail
+  ---
+  duration_ms: 1.1153
+  type: 'test'
+  ...
+# Subtest: checks tar header checksum even after compressed integrity matches
+ok 70 - checks tar header checksum even after compressed integrity matches
+  ---
+  duration_ms: 0.5625
+  type: 'test'
+  ...
+# Subtest: requires complete end markers and rejects trailing nonzero data
+ok 71 - requires complete end markers and rejects trailing nonzero data
+  ---
+  duration_ms: 0.845
+  type: 'test'
+  ...
+# Subtest: matching integrity does not permit invalid gzip
+ok 72 - matching integrity does not permit invalid gzip
+  ---
+  duration_ms: 1.2968
+  type: 'test'
+  ...
+# Subtest: rejects oversized compressed input before hashing
+ok 73 - rejects oversized compressed input before hashing
+  ---
+  duration_ms: 0.6154
+  type: 'test'
+  ...
+1..73
+# tests 73
+# suites 0
+# pass 73
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4907.56

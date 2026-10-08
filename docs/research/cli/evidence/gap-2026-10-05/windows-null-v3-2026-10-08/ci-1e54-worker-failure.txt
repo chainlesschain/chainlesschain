@@ -1,0 +1,21 @@
+2026-10-08T06:59:26.7380984Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-08T06:59:26.7381760Z 
+2026-10-08T06:59:26.7385031Z  FAIL  __tests__/unit/settings-permission-runtime.test.js > production persistent settings permission runtime > uses official child/Worker writers and observes actual connection teardown, or refuses unsupported platforms
+2026-10-08T06:59:26.7393104Z SyntaxError: Unexpected end of JSON input
+2026-10-08T06:59:26.7394319Z  ❯ __tests__/unit/settings-permission-runtime.test.js:86:25
+2026-10-08T06:59:26.7424881Z      84|     });
+2026-10-08T06:59:26.7425698Z      85|     expect(result.status, result.stderr).toBe(0);
+2026-10-08T06:59:26.7426835Z      86|     const report = JSON.parse(result.stdout);
+2026-10-08T06:59:26.7428232Z        |                         ^
+2026-10-08T06:59:26.7441033Z      87|     expect(report.supported).toBe(process.platform === "linux");
+2026-10-08T06:59:26.7442630Z      88|     if (report.supported) {
+2026-10-08T06:59:26.7442911Z 
+2026-10-08T06:59:26.7443184Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+2026-10-08T06:59:26.7443414Z 
+2026-10-08T06:59:26.7443422Z 
+2026-10-08T06:59:26.7452854Z  Test Files  1 failed | 440 passed (441)
+2026-10-08T06:59:26.7494079Z       Tests  1 failed | 8542 passed | 15 skipped (8558)
+2026-10-08T06:59:26.7495052Z    Start at  06:55:17
+2026-10-08T06:59:26.7501039Z    Duration  249.47s (transform 14.56s, setup 6.73s, import 112.24s, tests 318.05s, environment 55ms)
+2026-10-08T06:59:26.7503369Z 
+2026-10-08T06:59:28.2111091Z JUNIT report written to /home/runner/work/chainlesschain/chainlesschain/packages/cli/test-results/unit-2.xml

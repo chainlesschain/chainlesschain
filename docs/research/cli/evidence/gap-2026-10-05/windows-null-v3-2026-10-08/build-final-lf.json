@@ -1,0 +1,234 @@
+{
+  "schema": "chainlesschain.windows-node-null-adapter-build/v3",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "startedAt": "2026-10-08T07:49:16.498Z",
+  "commands": [
+    {
+      "executable": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "--version"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "clang version 23.1.3 (https://github.com/llvm/llvm-project.git 0d261d1ca552c95a8f007e061c787ac7132fbcbc)\nTarget: x86_64-w64-windows-gnu\nThread model: posix\nInstalledDir: C:/code/chainlesschain/.work/toolchains/llvm-mingw-20261006/llvm-mingw-20261006-ucrt-x86_64/bin\nConfiguration file: C:/code/chainlesschain/.work/toolchains/llvm-mingw-20261006/llvm-mingw-20261006-ucrt-x86_64/bin/x86_64-w64-windows-gnu.cfg\n",
+      "stderr": ""
+    },
+    {
+      "executable": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "{REPOSITORY}\\packages\\cli\\scripts\\diagnostics\\windows-node-null-v3.cpp",
+        "-ladvapi32",
+        "-o",
+        "{REPOSITORY}\\.work\\null-v3-build-final-lf\\windows-node-null-v3.node"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "executable": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-DCC_RUNTIME_ADAPTER_SELF_TEST",
+        "-I",
+        "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "{REPOSITORY}\\packages\\cli\\scripts\\diagnostics\\windows-node-null-v3.cpp",
+        "-ladvapi32",
+        "-o",
+        "{REPOSITORY}\\.work\\null-v3-build-final-lf\\windows-node-null-v3-selftest.exe"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "executable": "{REPOSITORY}\\.work\\null-v3-build-final-lf\\windows-node-null-v3-selftest.exe",
+      "args": [],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"nullObjectAccessMode\":true,\"wrongRightsAndTypesRejected\":true,\"exactNullMapping\":true,\"eofAndFullWrite\":true,\"crtShapeNegatives\":true,\"breakawayRejected\":true,\"boundedSnapshotTypes\":true,\"sameEventTypeNotExcluded\":true,\"missingOrDifferentTypeExcluded\":true}\r\n{\"parserCases\":21,\"readonlySwapAndRollback\":true,\"privateRealpathBoundaryAndIdentity\":true,\"realpathSizeContract\":true,\"outsideAndHardlinkRejected\":true,\"wrongPidRejected\":true,\"retryRejected\":true,\"patches\":0}\r\n",
+      "stderr": "Null probe type=2 basic=0 access=120089 modeStatus=0 mode=20 nameStatus=0 name=\\Device\\Null nameOkay=1 typeOkay=1\r\nNull probe type=2 basic=0 access=120196 modeStatus=0 mode=20 nameStatus=0 name=\\Device\\Null nameOkay=1 typeOkay=1\r\n"
+    }
+  ],
+  "completed": true,
+  "attestationScope": "recorded source, Node headers, compiler executables/DLLs, runtime and output bytes; not a hermetic toolchain closure",
+  "reproducibility": "original linker flags retained; PE timestamps can change output hashes between builds; attest each produced binary independently",
+  "source": {
+    "path": "{REPOSITORY}\\packages\\cli\\scripts\\diagnostics\\windows-node-null-v3.cpp",
+    "bytes": 47405,
+    "digest": "sha256:c9281636f70838f6eab2df5258f839a4b99bfddde46aa9ba91be18f1434879ae"
+  },
+  "nullHeader": {
+    "path": "{REPOSITORY}\\packages\\cli\\scripts\\diagnostics\\windows-node-null-v3.h",
+    "bytes": 25196,
+    "digest": "sha256:1967d34cfc5bf7c22d305bfa6d51575a6fe8eeb3c328c21e49f44f87c271fa84"
+  },
+  "preload": {
+    "path": "{REPOSITORY}\\packages\\cli\\scripts\\diagnostics\\windows-node-null-v3-preload.cjs",
+    "bytes": 8611,
+    "digest": "sha256:ac9cfb6d818d378f79127a93f3167161eb9e5f08b98f08fdcea186969b81c7ab"
+  },
+  "node": {
+    "version": "v22.22.2",
+    "modulesAbi": "127",
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "nodeHeaders": [
+    {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api.h",
+      "bytes": 10370,
+      "digest": "sha256:2d4560831e525b47b060ec8a0864ab73993df9e20215ce9f0fe7b24cd31af32a"
+    },
+    {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api_types.h",
+      "bytes": 1825,
+      "digest": "sha256:088766b3cf1f0cd9b292c361ad30f7a04e7cc6db35a20ca52c572c1adf9635e7"
+    },
+    {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api.h",
+      "bytes": 31770,
+      "digest": "sha256:582e64ead4d5fdf663e2bd934f2fc97e8e155a7740d28995830393d19d089705"
+    },
+    {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api_types.h",
+      "bytes": 7603,
+      "digest": "sha256:05e3d86e24c814f94a8b52b6a70cec11d7e91c810008253553528637e3a15b2f"
+    },
+    {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_version.h",
+      "bytes": 4243,
+      "digest": "sha256:0b388ee0595dee5cbe601e3e96cee5377a1e25f8f299b474f605445b68797eda"
+    }
+  ],
+  "compilerFiles": [
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "bytes": 13824,
+      "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\clang-23.exe",
+      "bytes": 95744,
+      "digest": "sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\ld.lld.exe",
+      "bytes": 5184512,
+      "digest": "sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libLLVM-23.dll",
+      "bytes": 77676032,
+      "digest": "sha256:7913a4fecb6172756dbb35d08ac487fb0b0f0642e7adee166305984f3fa96511"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libc++.dll",
+      "bytes": 2000384,
+      "digest": "sha256:81fb50f0866840d7e5a1d35d48cf31adc02f623a61d8b77daf62881e1e59401b"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang-cpp.dll",
+      "bytes": 49639936,
+      "digest": "sha256:de0e788d706e25df582ffba132c50ed57568cb669d09acd78cba84b0b5a04d48"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang_rt.asan_dynamic-x86_64.dll",
+      "bytes": 1466368,
+      "digest": "sha256:23f93e1d3f4b13a5a8447f78c2bcd08ab1c98fd891ea785b8fa395030d17c05d"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libffi-8.dll",
+      "bytes": 64512,
+      "digest": "sha256:ea32ce9aad2fd63ca7064b23a3b3ac68e98ea73b8fe171d2cfc9e9a10ce7fc85"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\liblldb.dll",
+      "bytes": 17090560,
+      "digest": "sha256:e9d268f9156fac6b7bd4cf299a0f3881d4e5de07b99652cbb5632ad6048e71cb"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libomp.dll",
+      "bytes": 948224,
+      "digest": "sha256:2bbae398a027e33936be6882daa010533934c4daa40013e3077a31cbb5876b79"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.14.dll",
+      "bytes": 5108224,
+      "digest": "sha256:37f48732aaa305ad257f8d09ab26f03c03573fb0aea02273048014c0d3e06fd1"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.dll",
+      "bytes": 73216,
+      "digest": "sha256:6368eeb3c56200a7aa9033cc49a71b8bae3545dccb903f2b70056d464b052865"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libunwind.dll",
+      "bytes": 183808,
+      "digest": "sha256:b0636a4281610124704adb2be2edf5642e830d86c68b7f27dbc9c8154705a780"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libwinpthread-1.dll",
+      "bytes": 293888,
+      "digest": "sha256:7658f9e5e89213af287d342c554b8abcb5b2700b4a44d02184b56004b104ceec"
+    }
+  ],
+  "compilerVersion": "clang version 23.1.3 (https://github.com/llvm/llvm-project.git 0d261d1ca552c95a8f007e061c787ac7132fbcbc)\nTarget: x86_64-w64-windows-gnu\nThread model: posix\nInstalledDir: C:/code/chainlesschain/.work/toolchains/llvm-mingw-20261006/llvm-mingw-20261006-ucrt-x86_64/bin\nConfiguration file: C:/code/chainlesschain/.work/toolchains/llvm-mingw-20261006/llvm-mingw-20261006-ucrt-x86_64/bin/x86_64-w64-windows-gnu.cfg\n",
+  "nullSelftestEvidence": {
+    "nullObjectAccessMode": true,
+    "wrongRightsAndTypesRejected": true,
+    "exactNullMapping": true,
+    "eofAndFullWrite": true,
+    "crtShapeNegatives": true,
+    "breakawayRejected": true,
+    "boundedSnapshotTypes": true,
+    "sameEventTypeNotExcluded": true,
+    "missingOrDifferentTypeExcluded": true
+  },
+  "selftestEvidence": {
+    "parserCases": 21,
+    "readonlySwapAndRollback": true,
+    "privateRealpathBoundaryAndIdentity": true,
+    "realpathSizeContract": true,
+    "outsideAndHardlinkRejected": true,
+    "wrongPidRejected": true,
+    "retryRejected": true,
+    "patches": 0
+  },
+  "outputs": [
+    {
+      "path": "{REPOSITORY}\\.work\\null-v3-build-final-lf\\windows-node-null-v3.node",
+      "bytes": 561152,
+      "digest": "sha256:f0c02a6219f10b9fd1d43898a24e8c6506f86b37062b3163b3b70c3cd3fc461d"
+    },
+    {
+      "path": "{REPOSITORY}\\.work\\null-v3-build-final-lf\\windows-node-null-v3-selftest.exe",
+      "bytes": 594432,
+      "digest": "sha256:4d8de0ad61fec51dafba8e33c744f6c9d1dfb354adfbf0a0ec1caea0dc30bd23"
+    }
+  ],
+  "finishedAt": "2026-10-08T07:49:30.901Z"
+}

@@ -1,0 +1,96 @@
+{
+  "schema": "chainlesschain.windows-node-runtime-diagnostic/v2",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "capabilities": {},
+  "startedAt": "2026-10-08T05:54:09.494Z",
+  "platform": "win32",
+  "architecture": "x64",
+  "nodeVersion": "v22.22.2",
+  "osRelease": "10.0.19045",
+  "runtimeDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+  "adapterManifestRaw": "{\"schema\":\"chainlesschain/windows-node-runtime-adapter@2\",\"experimental\":true,\"admissionEligible\":false,\"expectedSidEnvironment\":\"CC_WINDOWS_APPCONTAINER_SID\",\"nodeVersion\":\"22.22.2\",\"nodeModuleVersion\":\"127\",\"runtime\":{\"path\":\"../../control/node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\"},\"addon\":{\"path\":\"windows-node-runtime-adapter.node\",\"sha256\":\"1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99\"},\"preload\":{\"path\":\"windows-node-runtime-preload.cjs\",\"sha256\":\"02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452\"},\"receiptDirectory\":\"../../scratch/adapter-receipts\"}\n",
+  "addonDigest": "sha256:1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99",
+  "preloadDigest": "sha256:02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452",
+  "inputDigest": "0c070aca91cd185da03d1d7296054eef82b67ed2f40b479712e21f505572f57a",
+  "diagnosticCompleted": false,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6",
+  "manifestDigest": "sha256:60e906a034055cba59e7c655fa798b38d17eb83b9ffa29cf7eabc446e41fb0fb",
+  "execution": {
+    "status": 1,
+    "signal": null,
+    "error": null,
+    "stdout": "",
+    "stderr": "Error: Adapter rejected installation at private-root-proof (Win32 0)\n    at Object.<anonymous> ({PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\workspace\\adapter\\windows-node-runtime-preload.cjs:152:36)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\n    at require (node:internal/modules/helpers:147:16)\n    at {PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\control\\check.cjs:13:16\n"
+  },
+  "settlement": {
+    "manifestDigest": "60e906a034055cba59e7c655fa798b38d17eb83b9ffa29cf7eabc446e41fb0fb",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 22764,
+    "appContainerSid": "S-1-15-2-3742431945-3829412308-3262438564-2453627618-1584643115-761682193-1557373374",
+    "wallTimeMs": 15000,
+    "targetExitCode": 1,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "journalDigest": "sha256:3c85285b1e4fa57ba34ab80e5a03526b6a1a7ce83f8ee021388e77627cf33ecc",
+  "journalRaw": "{\"seq\":0,\"stage\":\"started\",\"pid\":22764}\n{\"seq\":1,\"stage\":\"failed\",\"pid\":22764,\"error\":\"Adapter rejected installation at private-root-proof (Win32 0)\"}\n",
+  "adapterReceipts": [],
+  "error": "Experimental runtime diagnostic: execution or scope/cleanup differs",
+  "finishedAt": "2026-10-08T05:54:26.383Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "3377699728113764",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 5,
+    "fileBytes": 532544,
+    "directoryCount": 5,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\workspace\\adapter\\windows-node-runtime-adapter.node",
+        "dev": "38182903",
+        "ino": "3096224751403110",
+        "bytes": 516608,
+        "sha256": "1916c0ec386356ab8ec7fd59cf6d918a328779957ddd7a8a6b4e4baacfbd6a99"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\workspace\\adapter\\windows-node-runtime-preload.cjs",
+        "dev": "38182903",
+        "ino": "3096224751403111",
+        "bytes": 8027,
+        "sha256": "02782b94f3a85ab4a97036c2f50e6d55350b9f014b3ce078ef5b6f1c50b0b452"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\workspace\\adapter\\windows-node-runtime-adapter.manifest.json",
+        "dev": "38182903",
+        "ino": "3659174704824424",
+        "bytes": 641,
+        "sha256": "ac32f157243b6ed0ea07de9c8e916f3ea5331b72f92297ab8c437416332c0cf4"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-OdsGt6\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "3377699728113770",
+        "bytes": 6678,
+        "sha256": "521b245a6e9f9c8c1263141cb4278b9117e4f879440cb044563097b0fbb72fef"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true
+}

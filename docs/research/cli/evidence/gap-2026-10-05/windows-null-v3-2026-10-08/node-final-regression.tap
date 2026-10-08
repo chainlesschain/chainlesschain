@@ -1,0 +1,3113 @@
+TAP version 13
+# Subtest: completion binds real exit, empty Job, unique frame, runtime and journal
+ok 1 - completion binds real exit, empty Job, unique frame, runtime and journal
+  ---
+  duration_ms: 11.4973
+  type: 'test'
+  ...
+# Subtest: capsule rejects exit rather than promoting exit zero
+ok 2 - capsule rejects exit rather than promoting exit zero
+  ---
+  duration_ms: 4.557
+  type: 'test'
+  ...
+# Subtest: capsule rejects cleanup rather than promoting exit zero
+ok 3 - capsule rejects cleanup rather than promoting exit zero
+  ---
+  duration_ms: 1.1476
+  type: 'test'
+  ...
+# Subtest: capsule rejects pid rather than promoting exit zero
+ok 4 - capsule rejects pid rather than promoting exit zero
+  ---
+  duration_ms: 0.7699
+  type: 'test'
+  ...
+# Subtest: capsule rejects runtime rather than promoting exit zero
+ok 5 - capsule rejects runtime rather than promoting exit zero
+  ---
+  duration_ms: 0.7272
+  type: 'test'
+  ...
+# Subtest: capsule rejects sequence rather than promoting exit zero
+ok 6 - capsule rejects sequence rather than promoting exit zero
+  ---
+  duration_ms: 0.6365
+  type: 'test'
+  ...
+# Subtest: capsule rejects duplicate-frame rather than promoting exit zero
+ok 7 - capsule rejects duplicate-frame rather than promoting exit zero
+  ---
+  duration_ms: 0.7095
+  type: 'test'
+  ...
+# Subtest: capsule rejects missing-frame rather than promoting exit zero
+ok 8 - capsule rejects missing-frame rather than promoting exit zero
+  ---
+  duration_ms: 0.7138
+  type: 'test'
+  ...
+# Subtest: capsule rejects partial-journal rather than promoting exit zero
+ok 9 - capsule rejects partial-journal rather than promoting exit zero
+  ---
+  duration_ms: 1.456
+  type: 'test'
+  ...
+# Subtest: capsule rejects false-setup rather than promoting exit zero
+ok 10 - capsule rejects false-setup rather than promoting exit zero
+  ---
+  duration_ms: 1.9334
+  type: 'test'
+  ...
+# Subtest: capsule rejects scope rather than promoting exit zero
+ok 11 - capsule rejects scope rather than promoting exit zero
+  ---
+  duration_ms: 0.8094
+  type: 'test'
+  ...
+# Subtest: capsule rejects manifest rather than promoting exit zero
+ok 12 - capsule rejects manifest rather than promoting exit zero
+  ---
+  duration_ms: 0.4695
+  type: 'test'
+  ...
+# Subtest: capsule rejects inventory rather than promoting exit zero
+ok 13 - capsule rejects inventory rather than promoting exit zero
+  ---
+  duration_ms: 0.4754
+  type: 'test'
+  ...
+# Subtest: an empty addon population does not certify an ABI
+ok 14 - an empty addon population does not certify an ABI
+  ---
+  duration_ms: 1.2116
+  type: 'test'
+  ...
+# Subtest: mixed addon outcomes retain every locked binary (none)
+ok 15 - mixed addon outcomes retain every locked binary (none)
+  ---
+  duration_ms: 2.0343
+  type: 'test'
+  ...
+# Subtest: mixed addon outcomes retain every locked binary (hide-blocked)
+ok 16 - mixed addon outcomes retain every locked binary (hide-blocked)
+  ---
+  duration_ms: 10.6572
+  type: 'test'
+  ...
+# Subtest: mixed addon outcomes retain every locked binary (claim-all-loaded)
+ok 17 - mixed addon outcomes retain every locked binary (claim-all-loaded)
+  ---
+  duration_ms: 1.6298
+  type: 'test'
+  ...
+# Subtest: threads smoke must execute exactly one test with the frozen config
+ok 18 - threads smoke must execute exactly one test with the frozen config
+  ---
+  duration_ms: 1.1035
+  type: 'test'
+  ...
+# Subtest: fixed checker modes parse and retain the original config and explicit diagnostic pool
+ok 19 - fixed checker modes parse and retain the original config and explicit diagnostic pool
+  ---
+  duration_ms: 5.0324
+  type: 'test'
+  ...
+# Subtest: an inventory JSON cannot be supplied as a staging ticket
+ok 20 - an inventory JSON cannot be supplied as a staging ticket
+  ---
+  duration_ms: 1.146
+  type: 'test'
+  ...
+# Subtest: oversize journals are rejected before parsing
+ok 21 - oversize journals are rejected before parsing
+  ---
+  duration_ms: 0.7517
+  type: 'test'
+  ...
+# Subtest: a replaced journal cannot keep its original evidence digest
+ok 22 - a replaced journal cannot keep its original evidence digest
+  ---
+  duration_ms: 0.8265
+  type: 'test'
+  ...
+# Subtest: a complete-looking import cannot hide an intermediate failed stage
+ok 23 - a complete-looking import cannot hide an intermediate failed stage
+  ---
+  duration_ms: 1.199
+  type: 'test'
+  ...
+# Subtest: a complete-looking import cannot hide an intermediate unknown stage
+ok 24 - a complete-looking import cannot hide an intermediate unknown stage
+  ---
+  duration_ms: 0.8487
+  type: 'test'
+  ...
+# Subtest: Vitest cannot pass with a missing actual start stage
+ok 25 - Vitest cannot pass with a missing actual start stage
+  ---
+  duration_ms: 1.4408
+  type: 'test'
+  ...
+# Subtest: Vitest cannot pass with a duplicate actual start stage
+ok 26 - Vitest cannot pass with a duplicate actual start stage
+  ---
+  duration_ms: 0.8832
+  type: 'test'
+  ...
+# Subtest: native admission selects the 12 frozen Windows task samples without reallocating the population
+ok 27 - native admission selects the 12 frozen Windows task samples without reallocating the population
+  ---
+  duration_ms: 103.0681
+  type: 'test'
+  ...
+# Subtest: matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+ok 28 - matching runtime never admits unimplemented toolchain or silently replaces the forks pool
+  ---
+  duration_ms: 241.201
+  type: 'test'
+  ...
+# Subtest: Windows 10 and a newer Node retain the actual frozen target mismatch
+ok 29 - Windows 10 and a newer Node retain the actual frozen target mismatch
+  ---
+  duration_ms: 63.4574
+  type: 'test'
+  ...
+# Subtest: foreign platforms and Linux-only journal baseline remain separate explicit blockers
+ok 30 - foreign platforms and Linux-only journal baseline remain separate explicit blockers
+  ---
+  duration_ms: 140.0354
+  type: 'test'
+  ...
+# Subtest: incomplete capability reports remain incomplete despite a caller's supported declarations
+ok 31 - incomplete capability reports remain incomplete despite a caller's supported declarations
+  ---
+  duration_ms: 195.671
+  type: 'test'
+  ...
+# Subtest: input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+ok 32 - input validation cannot substitute first-install samples, missing IDs, or a forged complete report
+  ---
+  duration_ms: 415.6032
+  type: 'test'
+  ...
+# Subtest: isolated v2 partial reports never grant caller-supplied capabilities
+ok 33 - isolated v2 partial reports never grant caller-supplied capabilities
+  ---
+  duration_ms: 81.9171
+  type: 'test'
+  ...
+# Subtest: isolated v2 completed declarations must contain all independent native runs
+ok 34 - isolated v2 completed declarations must contain all independent native runs
+  ---
+  duration_ms: 102.9261
+  type: 'test'
+  ...
+# Subtest: explicit Windows generation fails before creating scripts and rejects Docker bindings
+ok 35 - explicit Windows generation fails before creating scripts and rejects Docker bindings
+  ---
+  duration_ms: 81.6806
+  type: 'test'
+  ...
+# Subtest: real CLI exposes Windows admission without generating a Docker pack or starting a native task
+ok 36 - real CLI exposes Windows admission without generating a Docker pack or starting a native task
+  ---
+  duration_ms: 748.0072
+  type: 'test'
+  ...
+# Subtest: requires original frozen setup completion plus independent installed and exit root proofs
+ok 37 - requires original frozen setup completion plus independent installed and exit root proofs
+  ---
+  duration_ms: 16.3593
+  type: 'test'
+  ...
+# Subtest: retains real libuv transient failure counters without erasing successful execution
+ok 38 - retains real libuv transient failure counters without erasing successful execution
+  ---
+  duration_ms: 2.109
+  type: 'test'
+  ...
+# Subtest: does not expose threads smoke as an adapted frozen forks contract
+ok 39 - does not expose threads smoke as an adapted frozen forks contract
+  ---
+  duration_ms: 1.6498
+  type: 'test'
+  ...
+# Subtest: requires child phase pairs to use the parent's kernel root identity
+ok 40 - requires child phase pairs to use the parent's kernel root identity
+  ---
+  duration_ms: 2.6111
+  type: 'test'
+  ...
+# Subtest: rejects a valid manifest containing substituted profile artifact 0
+ok 41 - rejects a valid manifest containing substituted profile artifact 0
+  ---
+  duration_ms: 2.0262
+  type: 'test'
+  ...
+# Subtest: rejects a valid manifest containing substituted profile artifact 1
+ok 42 - rejects a valid manifest containing substituted profile artifact 1
+  ---
+  duration_ms: 1.9911
+  type: 'test'
+  ...
+# Subtest: rejects a valid manifest containing substituted profile artifact 2
+ok 43 - rejects a valid manifest containing substituted profile artifact 2
+  ---
+  duration_ms: 2.3165
+  type: 'test'
+  ...
+# Subtest: rejects a valid manifest containing substituted profile artifact 3
+ok 44 - rejects a valid manifest containing substituted profile artifact 3
+  ---
+  duration_ms: 1.9238
+  type: 'test'
+  ...
+# Subtest: rejects profile substitution
+ok 45 - rejects profile substitution
+  ---
+  duration_ms: 2.3184
+  type: 'test'
+  ...
+# Subtest: rejects formal promotion
+ok 46 - rejects formal promotion
+  ---
+  duration_ms: 2.2252
+  type: 'test'
+  ...
+# Subtest: rejects admission promotion
+ok 47 - rejects admission promotion
+  ---
+  duration_ms: 1.1793
+  type: 'test'
+  ...
+# Subtest: rejects capability promotion
+ok 48 - rejects capability promotion
+  ---
+  duration_ms: 0.8401
+  type: 'test'
+  ...
+# Subtest: rejects full descendants claim
+ok 49 - rejects full descendants claim
+  ---
+  duration_ms: 0.7967
+  type: 'test'
+  ...
+# Subtest: rejects unrun setup
+ok 50 - rejects unrun setup
+  ---
+  duration_ms: 1.0622
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed Job
+ok 51 - rejects unconfirmed Job
+  ---
+  duration_ms: 1.317
+  type: 'test'
+  ...
+# Subtest: rejects wrong inventory
+ok 52 - rejects wrong inventory
+  ---
+  duration_ms: 1.3281
+  type: 'test'
+  ...
+# Subtest: rejects missing receipt
+ok 53 - rejects missing receipt
+  ---
+  duration_ms: 1.7321
+  type: 'test'
+  ...
+# Subtest: rejects extra duplicate receipt
+ok 54 - rejects extra duplicate receipt
+  ---
+  duration_ms: 7.1578
+  type: 'test'
+  ...
+# Subtest: rejects duplicate phase pair
+ok 55 - rejects duplicate phase pair
+  ---
+  duration_ms: 4.9331
+  type: 'test'
+  ...
+# Subtest: rejects unobserved parent
+ok 56 - rejects unobserved parent
+  ---
+  duration_ms: 1.3359
+  type: 'test'
+  ...
+# Subtest: rejects wrong runtime
+ok 57 - rejects wrong runtime
+  ---
+  duration_ms: 1.239
+  type: 'test'
+  ...
+# Subtest: rejects wrong preload
+ok 58 - rejects wrong preload
+  ---
+  duration_ms: 1.1673
+  type: 'test'
+  ...
+# Subtest: rejects wrong manifest
+ok 59 - rejects wrong manifest
+  ---
+  duration_ms: 1.1241
+  type: 'test'
+  ...
+# Subtest: rejects wrong PID token
+ok 60 - rejects wrong PID token
+  ---
+  duration_ms: 1.1049
+  type: 'test'
+  ...
+# Subtest: rejects outside root proof
+ok 61 - rejects outside root proof
+  ---
+  duration_ms: 1.1194
+  type: 'test'
+  ...
+# Subtest: rejects opened NT proof
+ok 62 - rejects opened NT proof
+  ---
+  duration_ms: 1.2253
+  type: 'test'
+  ...
+# Subtest: rejects unpinned root
+ok 63 - rejects unpinned root
+  ---
+  duration_ms: 1.2117
+  type: 'test'
+  ...
+# Subtest: rejects unverified reparse policy
+ok 64 - rejects unverified reparse policy
+  ---
+  duration_ms: 1.2387
+  type: 'test'
+  ...
+# Subtest: rejects changed kernel root identity
+ok 65 - rejects changed kernel root identity
+  ---
+  duration_ms: 1.3849
+  type: 'test'
+  ...
+# Subtest: rejects adapter installation failure
+ok 66 - rejects adapter installation failure
+  ---
+  duration_ms: 1.217
+  type: 'test'
+  ...
+# Subtest: rejects observed process nonzero exit
+ok 67 - rejects observed process nonzero exit
+  ---
+  duration_ms: 1.4622
+  type: 'test'
+  ...
+# Subtest: dependency resolution preserves closest nested and hoisted original lock paths
+ok 68 - dependency resolution preserves closest nested and hoisted original lock paths
+  ---
+  duration_ms: 65.7531
+  type: 'test'
+  ...
+# Subtest: cycles terminate and required/optional peers resolve from frozen installation
+ok 69 - cycles terminate and required/optional peers resolve from frozen installation
+  ---
+  duration_ms: 1.7298
+  type: 'test'
+  ...
+# Subtest: optional platform artifacts omitted but required mismatches and missing dependencies fail
+ok 70 - optional platform artifacts omitted but required mismatches and missing dependencies fail
+  ---
+  duration_ms: 3.0853
+  type: 'test'
+  ...
+# Subtest: rejects linked package
+ok 71 - rejects linked package
+  ---
+  duration_ms: 1.5419
+  type: 'test'
+  ...
+# Subtest: rejects HTTP artifact
+ok 72 - rejects HTTP artifact
+  ---
+  duration_ms: 0.6922
+  type: 'test'
+  ...
+# Subtest: rejects foreign artifact host
+ok 73 - rejects foreign artifact host
+  ---
+  duration_ms: 2.032
+  type: 'test'
+  ...
+# Subtest: rejects URL credentials
+ok 74 - rejects URL credentials
+  ---
+  duration_ms: 0.6301
+  type: 'test'
+  ...
+# Subtest: rejects missing integrity
+ok 75 - rejects missing integrity
+  ---
+  duration_ms: 0.5629
+  type: 'test'
+  ...
+# Subtest: rejects lock resolution with incompatible version
+ok 76 - rejects lock resolution with incompatible version
+  ---
+  duration_ms: 2.3713
+  type: 'test'
+  ...
+# Subtest: safe writer names reject traversal, aliases and Windows special paths
+ok 77 - safe writer names reject traversal, aliases and Windows special paths
+  ---
+  duration_ms: 4.1629
+  type: 'test'
+  ...
+# Subtest: extraction exposes bytes only after the same complete registry validation
+ok 78 - extraction exposes bytes only after the same complete registry validation
+  ---
+  duration_ms: 15.9087
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects symlink
+ok 79 - new extraction API still rejects symlink
+  ---
+  duration_ms: 3.6648
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects path traversal
+ok 80 - new extraction API still rejects path traversal
+  ---
+  duration_ms: 3.0743
+  type: 'test'
+  ...
+# Subtest: new extraction API still rejects case alias
+ok 81 - new extraction API still rejects case alias
+  ---
+  duration_ms: 3.3354
+  type: 'test'
+  ...
+# Subtest: bad integrity and trailing malformed entry cannot expose earlier file bytes
+ok 82 - bad integrity and trailing malformed entry cannot expose earlier file bytes
+  ---
+  duration_ms: 2.7861
+  type: 'test'
+  ...
+# Subtest: supports DefinitelyTyped NAME root only for independently locked @types/NAME
+ok 83 - supports DefinitelyTyped NAME root only for independently locked @types/NAME
+  ---
+  duration_ms: 20.9077
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix unknown
+ok 84 - rejects unknown or root-like DefinitelyTyped prefix unknown
+  ---
+  duration_ms: 1.1631
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix chai-other
+ok 85 - rejects unknown or root-like DefinitelyTyped prefix chai-other
+  ---
+  duration_ms: 3.6137
+  type: 'test'
+  ...
+# Subtest: rejects unknown or root-like DefinitelyTyped prefix Chai
+ok 86 - rejects unknown or root-like DefinitelyTyped prefix Chai
+  ---
+  duration_ms: 0.9699
+  type: 'test'
+  ...
+# Subtest: rejects mixed package and DefinitelyTyped roots in either order
+ok 87 - rejects mixed package and DefinitelyTyped roots in either order
+  ---
+  duration_ms: 2.6851
+  type: 'test'
+  ...
+# Subtest: DefinitelyTyped root cannot bypass frozen metadata name/version
+ok 88 - DefinitelyTyped root cannot bypass frozen metadata name/version
+  ---
+  duration_ms: 3.2187
+  type: 'test'
+  ...
+# Subtest: decodes only an exact byte-identical root-dot/canonical file pair in either order
+ok 89 - decodes only an exact byte-identical root-dot/canonical file pair in either order
+  ---
+  duration_ms: 4.297
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects missing canonical partner
+ok 90 - root-dot variant rejects missing canonical partner
+  ---
+  duration_ms: 1.6189
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects different same-size content
+ok 91 - root-dot variant rejects different same-size content
+  ---
+  duration_ms: 1.293
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects different size
+ok 92 - root-dot variant rejects different size
+  ---
+  duration_ms: 1.2289
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects case alias partner
+ok 93 - root-dot variant rejects case alias partner
+  ---
+  duration_ms: 1.1632
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects repeated raw alias
+ok 94 - root-dot variant rejects repeated raw alias
+  ---
+  duration_ms: 1.7053
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects repeated canonical
+ok 95 - root-dot variant rejects repeated canonical
+  ---
+  duration_ms: 1.6171
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects multiple dot components
+ok 96 - root-dot variant rejects multiple dot components
+  ---
+  duration_ms: 1.7074
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects nested dot component
+ok 97 - root-dot variant rejects nested dot component
+  ---
+  duration_ms: 2.133
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects parent traversal
+ok 98 - root-dot variant rejects parent traversal
+  ---
+  duration_ms: 1.0662
+  type: 'test'
+  ...
+# Subtest: root-dot variant rejects directory alias
+ok 99 - root-dot variant rejects directory alias
+  ---
+  duration_ms: 1.0054
+  type: 'test'
+  ...
+# Subtest: installed snapshot paths still reject a root-dot alias despite valid tar pair
+ok 100 - installed snapshot paths still reject a root-dot alias despite valid tar pair
+  ---
+  duration_ms: 1.0734
+  type: 'test'
+  ...
+# Subtest: prepares exact package paths without lifecycle, links, imports or addon execution
+ok 101 - prepares exact package paths without lifecycle, links, imports or addon execution
+  ---
+  duration_ms: 155.7279
+  type: 'test'
+  ...
+# Subtest: refuses an existing destination and preserves its files
+ok 102 - refuses an existing destination and preserves its files
+  ---
+  duration_ms: 109.9664
+  type: 'test'
+  ...
+# Subtest: failed integrity retains raw downloaded artifact and failure report without extracting package
+ok 103 - failed integrity retains raw downloaded artifact and failure report without extracting package
+  ---
+  duration_ms: 113.846
+  type: 'test'
+  ...
+# Subtest: complete registry bytes verify content without granting native execution
+ok 104 - complete registry bytes verify content without granting native execution
+  ---
+  duration_ms: 1094.3717
+  type: 'test'
+  ...
+# Subtest: tarball integrity mismatch cannot be replaced by installed file hashes
+ok 105 - tarball integrity mismatch cannot be replaced by installed file hashes
+  ---
+  duration_ms: 1195.1227
+  type: 'test'
+  ...
+# Subtest: registry verification requires the entire installed package population
+ok 106 - registry verification requires the entire installed package population
+  ---
+  duration_ms: 865.3153
+  type: 'test'
+  ...
+# Subtest: repeating another package's artifact does not fill a missing package
+ok 107 - repeating another package's artifact does not fill a missing package
+  ---
+  duration_ms: 592.1289
+  type: 'test'
+  ...
+# Subtest: installed script modification fails against verified tarball bytes
+ok 108 - installed script modification fails against verified tarball bytes
+  ---
+  duration_ms: 495.9567
+  type: 'test'
+  ...
+# Subtest: derived addon is not silently exempted from registry byte verification
+ok 109 - derived addon is not silently exempted from registry byte verification
+  ---
+  duration_ms: 367.0004
+  type: 'test'
+  ...
+# Subtest: artifact bindings cannot traverse links or escape the artifact root
+ok 110 - artifact bindings cannot traverse links or escape the artifact root
+  ---
+  duration_ms: 525.1757
+  type: 'test'
+  ...
+# Subtest: bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+ok 111 - bounded read-only inventory binds lock, runtime, files and frozen support without granting execution
+  ---
+  duration_ms: 832.7523
+  type: 'test'
+  ...
+# Subtest: addon bytes are hashed and ABI remains unverified without loading the binary
+ok 112 - addon bytes are hashed and ABI remains unverified without loading the binary
+  ---
+  duration_ms: 438.2763
+  type: 'test'
+  ...
+# Subtest: caller digest cannot replace exact frozen Git lock bytes
+ok 113 - caller digest cannot replace exact frozen Git lock bytes
+  ---
+  duration_ms: 76.7609
+  type: 'test'
+  ...
+# Subtest: changed frozen setup is rejected without executing it
+ok 114 - changed frozen setup is rejected without executing it
+  ---
+  duration_ms: 71.5171
+  type: 'test'
+  ...
+# Subtest: rejects version rather than promoting a development tree
+ok 115 - rejects version rather than promoting a development tree
+  ---
+  duration_ms: 65.479
+  type: 'test'
+  ...
+# Subtest: rejects identity rather than promoting a development tree
+ok 116 - rejects identity rather than promoting a development tree
+  ---
+  duration_ms: 98.4641
+  type: 'test'
+  ...
+# Subtest: rejects missing-integrity rather than promoting a development tree
+ok 117 - rejects missing-integrity rather than promoting a development tree
+  ---
+  duration_ms: 112.1394
+  type: 'test'
+  ...
+# Subtest: rejects linked-lock rather than promoting a development tree
+ok 118 - rejects linked-lock rather than promoting a development tree
+  ---
+  duration_ms: 129.1237
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-package rather than promoting a development tree
+ok 119 - rejects unlocked-package rather than promoting a development tree
+  ---
+  duration_ms: 117.4801
+  type: 'test'
+  ...
+# Subtest: rejects unlocked-file rather than promoting a development tree
+ok 120 - rejects unlocked-file rather than promoting a development tree
+  ---
+  duration_ms: 137.2512
+  type: 'test'
+  ...
+# Subtest: hard-linked package bytes are forbidden
+ok 121 - hard-linked package bytes are forbidden
+  ---
+  duration_ms: 155.9853
+  type: 'test'
+  ...
+# Subtest: development dependency junction cannot redirect inventory outside its root
+ok 122 - development dependency junction cannot redirect inventory outside its root
+  ---
+  duration_ms: 94.9097
+  type: 'test'
+  ...
+# Subtest: case-alias package entries are rejected on every filesystem
+ok 123 - case-alias package entries are rejected on every filesystem
+  ---
+  duration_ms: 714.3521
+  type: 'test'
+  ...
+# case-alias enumeration: case-folding volume
+# Subtest: reserved device package entries are rejected on every filesystem
+ok 124 - reserved device package entries are rejected on every filesystem
+  ---
+  duration_ms: 123.9084
+  type: 'test'
+  ...
+# Subtest: verified tarball matches every installed file without extraction
+ok 125 - verified tarball matches every installed file without extraction
+  ---
+  duration_ms: 24.313
+  type: 'test'
+  ...
+# Subtest: rejects changed compressed bytes before decompression
+ok 126 - rejects changed compressed bytes before decompression
+  ---
+  duration_ms: 2.6862
+  type: 'test'
+  ...
+# Subtest: requires canonical frozen-lock sha512 integrity
+ok 127 - requires canonical frozen-lock sha512 integrity
+  ---
+  duration_ms: 5.6182
+  type: 'test'
+  ...
+# Subtest: matching compressed integrity cannot conceal modified installed files
+ok 128 - matching compressed integrity cannot conceal modified installed files
+  ---
+  duration_ms: 2.9741
+  type: 'test'
+  ...
+# Subtest: missing and extra installed files are both rejected
+ok 129 - missing and extra installed files are both rejected
+  ---
+  duration_ms: 4.1526
+  type: 'test'
+  ...
+# Subtest: package metadata must match locked name and version
+ok 130 - package metadata must match locked name and version
+  ---
+  duration_ms: 2.5723
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 1
+ok 131 - rejects link, special file, or extension 1
+  ---
+  duration_ms: 2.5572
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 2
+ok 132 - rejects link, special file, or extension 2
+  ---
+  duration_ms: 3.3715
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 3
+ok 133 - rejects link, special file, or extension 3
+  ---
+  duration_ms: 3.4612
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 4
+ok 134 - rejects link, special file, or extension 4
+  ---
+  duration_ms: 2.5859
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension 6
+ok 135 - rejects link, special file, or extension 6
+  ---
+  duration_ms: 1.5002
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension g
+ok 136 - rejects link, special file, or extension g
+  ---
+  duration_ms: 1.2083
+  type: 'test'
+  ...
+# Subtest: rejects link, special file, or extension L
+ok 137 - rejects link, special file, or extension L
+  ---
+  duration_ms: 3.2643
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/../escape
+ok 138 - rejects unsafe path package/../escape
+  ---
+  duration_ms: 3.9898
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/./alias
+ok 139 - rejects unsafe path package/./alias
+  ---
+  duration_ms: 1.6412
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/a\\b
+ok 140 - rejects unsafe path package/a\\b
+  ---
+  duration_ms: 2.9653
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/NUL.txt
+ok 141 - rejects unsafe path package/NUL.txt
+  ---
+  duration_ms: 1.1657
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path package/trailing.
+ok 142 - rejects unsafe path package/trailing.
+  ---
+  duration_ms: 1.0514
+  type: 'test'
+  ...
+# Subtest: rejects unsafe path outside/file
+ok 143 - rejects unsafe path outside/file
+  ---
+  duration_ms: 0.953
+  type: 'test'
+  ...
+# Subtest: rejects duplicate and case-alias archive paths
+ok 144 - rejects duplicate and case-alias archive paths
+  ---
+  duration_ms: 1.591
+  type: 'test'
+  ...
+# Subtest: installed snapshot independently rejects duplicate paths
+ok 145 - installed snapshot independently rejects duplicate paths
+  ---
+  duration_ms: 1.0407
+  type: 'test'
+  ...
+# Subtest: PAX long UTF-8 paths are compared without extracting them
+ok 146 - PAX long UTF-8 paths are compared without extracting them
+  ---
+  duration_ms: 3.8581
+  type: 'test'
+  ...
+# Subtest: PAX cannot introduce path traversal
+ok 147 - PAX cannot introduce path traversal
+  ---
+  duration_ms: 1.8685
+  type: 'test'
+  ...
+# Subtest: malformed PAX lengths and unsupported fields fail
+ok 148 - malformed PAX lengths and unsupported fields fail
+  ---
+  duration_ms: 15.571
+  type: 'test'
+  ...
+# Subtest: checks tar header checksum even after compressed integrity matches
+ok 149 - checks tar header checksum even after compressed integrity matches
+  ---
+  duration_ms: 1.4853
+  type: 'test'
+  ...
+# Subtest: requires complete end markers and rejects trailing nonzero data
+ok 150 - requires complete end markers and rejects trailing nonzero data
+  ---
+  duration_ms: 2.204
+  type: 'test'
+  ...
+# Subtest: matching integrity does not permit invalid gzip
+ok 151 - matching integrity does not permit invalid gzip
+  ---
+  duration_ms: 2.7079
+  type: 'test'
+  ...
+# Subtest: rejects oversized compressed input before hashing
+ok 152 - rejects oversized compressed input before hashing
+  ---
+  duration_ms: 0.7338
+  type: 'test'
+  ...
+# Subtest: binds actual stdin digest and both output channels without granting capability
+ok 153 - binds actual stdin digest and both output channels without granting capability
+  ---
+  duration_ms: 8.0603
+  type: 'test'
+  ...
+# Subtest: rejects missing stdin bytes
+ok 154 - rejects missing stdin bytes
+  ---
+  duration_ms: 1.4937
+  type: 'test'
+  ...
+# Subtest: rejects substituted stdin content
+ok 155 - rejects substituted stdin content
+  ---
+  duration_ms: 0.6922
+  type: 'test'
+  ...
+# Subtest: rejects wrong child parent
+ok 156 - rejects wrong child parent
+  ---
+  duration_ms: 4.2747
+  type: 'test'
+  ...
+# Subtest: rejects same child as evaluator
+ok 157 - rejects same child as evaluator
+  ---
+  duration_ms: 0.8452
+  type: 'test'
+  ...
+# Subtest: rejects substituted runtime
+ok 158 - rejects substituted runtime
+  ---
+  duration_ms: 0.9396
+  type: 'test'
+  ...
+# Subtest: rejects wrong runtime version
+ok 159 - rejects wrong runtime version
+  ---
+  duration_ms: 1.0088
+  type: 'test'
+  ...
+# Subtest: rejects lost stderr
+ok 160 - rejects lost stderr
+  ---
+  duration_ms: 0.6523
+  type: 'test'
+  ...
+# Subtest: rejects ignore mode
+ok 161 - rejects ignore mode
+  ---
+  duration_ms: 1.5502
+  type: 'test'
+  ...
+# Subtest: rejects descriptor leak
+ok 162 - rejects descriptor leak
+  ---
+  duration_ms: 1.7651
+  type: 'test'
+  ...
+# Subtest: rejects child failure
+ok 163 - rejects child failure
+  ---
+  duration_ms: 1.0236
+  type: 'test'
+  ...
+# Subtest: rejects timeout
+ok 164 - rejects timeout
+  ---
+  duration_ms: 0.558
+  type: 'test'
+  ...
+# Subtest: rejects duplicate observation
+ok 165 - rejects duplicate observation
+  ---
+  duration_ms: 0.378
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed cleanup
+ok 166 - rejects unconfirmed cleanup
+  ---
+  duration_ms: 0.3458
+  type: 'test'
+  ...
+# Subtest: rejects granted capabilities
+ok 167 - rejects granted capabilities
+  ---
+  duration_ms: 0.4351
+  type: 'test'
+  ...
+# Subtest: rejects loopback exemption
+ok 168 - rejects loopback exemption
+  ---
+  duration_ms: 0.4694
+  type: 'test'
+  ...
+# Subtest: rejects substituted manifest
+ok 169 - rejects substituted manifest
+  ---
+  duration_ms: 0.5123
+  type: 'test'
+  ...
+# Subtest: real host control transports binary input and both outputs through file descriptors
+ok 170 - real host control transports binary input and both outputs through file descriptors
+  ---
+  duration_ms: 948.4045
+  type: 'test'
+  ...
+# Subtest: keeps host controls distinct from native Win32 error observations
+ok 171 - keeps host controls distinct from native Win32 error observations
+  ---
+  duration_ms: 9.0312
+  type: 'test'
+  ...
+# Subtest: rejects root identity API records
+ok 172 - rejects root identity API records
+  ---
+  duration_ms: 1.1822
+  type: 'test'
+  ...
+# Subtest: rejects mixed identity API records
+ok 173 - rejects mixed identity API records
+  ---
+  duration_ms: 0.5082
+  type: 'test'
+  ...
+# Subtest: rejects host impersonation API records
+ok 174 - rejects host impersonation API records
+  ---
+  duration_ms: 0.5075
+  type: 'test'
+  ...
+# Subtest: rejects open handle API records
+ok 175 - rejects open handle API records
+  ---
+  duration_ms: 2.6686
+  type: 'test'
+  ...
+# Subtest: rejects fake error API records
+ok 176 - rejects fake error API records
+  ---
+  duration_ms: 0.5466
+  type: 'test'
+  ...
+# Subtest: rejects fake success API records
+ok 177 - rejects fake success API records
+  ---
+  duration_ms: 0.4857
+  type: 'test'
+  ...
+# Subtest: rejects duplicate API records
+ok 178 - rejects duplicate API records
+  ---
+  duration_ms: 0.6626
+  type: 'test'
+  ...
+# Subtest: rejects missing API records
+ok 179 - rejects missing API records
+  ---
+  duration_ms: 1.2879
+  type: 'test'
+  ...
+# Subtest: rejects reordered API records
+ok 180 - rejects reordered API records
+  ---
+  duration_ms: 5.9966
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed cleanupConfirmed
+ok 181 - rejects unconfirmed cleanupConfirmed
+  ---
+  duration_ms: 1.4297
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed loopbackExemptionAbsent
+ok 182 - rejects unconfirmed loopbackExemptionAbsent
+  ---
+  duration_ms: 0.3852
+  type: 'test'
+  ...
+# Subtest: rejects timeout, grants, substituted manifest and missing child/file records
+ok 183 - rejects timeout, grants, substituted manifest and missing child/file records
+  ---
+  duration_ms: 2.4631
+  type: 'test'
+  ...
+# Subtest: pins the investigated upstream release and the two independent code paths
+ok 184 - pins the investigated upstream release and the two independent code paths
+  ---
+  duration_ms: 0.9894
+  type: 'test'
+  ...
+# Subtest: Null profile is a separate integrity-bound factory and leaves ordinary v1 unchanged
+ok 185 - Null profile is a separate integrity-bound factory and leaves ordinary v1 unchanged
+  ---
+  duration_ms: 3085.3712
+  type: 'test'
+  ...
+# Subtest: fixed preload verifies identities and records actual process installation and exit
+ok 186 - fixed preload verifies identities and records actual process installation and exit
+  ---
+  duration_ms: 22.2373
+  type: 'test'
+  ...
+# Subtest: child contract uses fixed runtime/preload and explicitly requires each child receipt
+ok 187 - child contract uses fixed runtime/preload and explicitly requires each child receipt
+  ---
+  duration_ms: 5.1324
+  type: 'test'
+  ...
+# Subtest: actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+ok 188 - actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+  ---
+  duration_ms: 508.2684
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: node.exe
+ok 189 - tampered fixed bytes rejected before loading addon: node.exe
+  ---
+  duration_ms: 5.8513
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-null-v3.node
+ok 190 - tampered fixed bytes rejected before loading addon: windows-node-null-v3.node
+  ---
+  duration_ms: 3.3044
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-null-v3-preload.cjs
+ok 191 - tampered fixed bytes rejected before loading addon: windows-node-null-v3-preload.cjs
+  ---
+  duration_ms: 4.8526
+  type: 'test'
+  ...
+# Subtest: arbitrary addon path rejected before native load
+ok 192 - arbitrary addon path rejected before native load
+  ---
+  duration_ms: 3.2011
+  type: 'test'
+  ...
+# Subtest: runtime traversal variant rejected before native load
+ok 193 - runtime traversal variant rejected before native load
+  ---
+  duration_ms: 2.7059
+  type: 'test'
+  ...
+# Subtest: preload absolute variant rejected before native load
+ok 194 - preload absolute variant rejected before native load
+  ---
+  duration_ms: 3.6062
+  type: 'test'
+  ...
+# Subtest: receipt directory escape rejected before native load
+ok 195 - receipt directory escape rejected before native load
+  ---
+  duration_ms: 4.039
+  type: 'test'
+  ...
+# Subtest: alternate SID environment rejected before native load
+ok 196 - alternate SID environment rejected before native load
+  ---
+  duration_ms: 3.9216
+  type: 'test'
+  ...
+# Subtest: module ABI mismatch rejected before native load
+ok 197 - module ABI mismatch rejected before native load
+  ---
+  duration_ms: 2.6714
+  type: 'test'
+  ...
+# Subtest: Node version mismatch rejected before native load
+ok 198 - Node version mismatch rejected before native load
+  ---
+  duration_ms: 2.9177
+  type: 'test'
+  ...
+# Subtest: formal admission claim rejected before native load
+ok 199 - formal admission claim rejected before native load
+  ---
+  duration_ms: 2.9591
+  type: 'test'
+  ...
+# Subtest: runtime loaded from another path rejected before native load
+ok 200 - runtime loaded from another path rejected before native load
+  ---
+  duration_ms: 3.2306
+  type: 'test'
+  ...
+# Subtest: missing supervisor SID rejected before native load
+ok 201 - missing supervisor SID rejected before native load
+  ---
+  duration_ms: 3.7196
+  type: 'test'
+  ...
+# Subtest: malformed SID rejected before native load
+ok 202 - malformed SID rejected before native load
+  ---
+  duration_ms: 3.6071
+  type: 'test'
+  ...
+# Subtest: unsupported platform rejected before native load
+ok 203 - unsupported platform rejected before native load
+  ---
+  duration_ms: 2.2276
+  type: 'test'
+  ...
+# Subtest: unsupported architecture rejected before native load
+ok 204 - unsupported architecture rejected before native load
+  ---
+  duration_ms: 2.3677
+  type: 'test'
+  ...
+# Subtest: linked addon rejected before native load
+ok 205 - linked addon rejected before native load
+  ---
+  duration_ms: 2.7314
+  type: 'test'
+  ...
+# Subtest: symlinked addon rejected before native load
+ok 206 - symlinked addon rejected before native load
+  ---
+  duration_ms: 9.24
+  type: 'test'
+  ...
+# Subtest: symlinked receipt directory rejected before native load
+ok 207 - symlinked receipt directory rejected before native load
+  ---
+  duration_ms: 3.1726
+  type: 'test'
+  ...
+# Subtest: mismatched native pid receipt rejected
+ok 208 - mismatched native pid receipt rejected
+  ---
+  duration_ms: 3.2821
+  type: 'test'
+  ...
+# Subtest: mismatched native appContainerSid receipt rejected
+ok 209 - mismatched native appContainerSid receipt rejected
+  ---
+  duration_ms: 2.8494
+  type: 'test'
+  ...
+# Subtest: mismatched native capabilityCount receipt rejected
+ok 210 - mismatched native capabilityCount receipt rejected
+  ---
+  duration_ms: 2.9817
+  type: 'test'
+  ...
+# Subtest: mismatched native inJob receipt rejected
+ok 211 - mismatched native inJob receipt rejected
+  ---
+  duration_ms: 3.0311
+  type: 'test'
+  ...
+# Subtest: mismatched native state receipt rejected
+ok 212 - mismatched native state receipt rejected
+  ---
+  duration_ms: 3.2975
+  type: 'test'
+  ...
+# Subtest: mismatched native patches receipt rejected
+ok 213 - mismatched native patches receipt rejected
+  ---
+  duration_ms: 3.8584
+  type: 'test'
+  ...
+# Subtest: mismatched native installError receipt rejected
+ok 214 - mismatched native installError receipt rejected
+  ---
+  duration_ms: 9.0544
+  type: 'test'
+  ...
+# Subtest: mismatched native admissionEligible receipt rejected
+ok 215 - mismatched native admissionEligible receipt rejected
+  ---
+  duration_ms: 3.0079
+  type: 'test'
+  ...
+# Subtest: mismatched native supportedPrivateRealpath receipt rejected
+ok 216 - mismatched native supportedPrivateRealpath receipt rejected
+  ---
+  duration_ms: 3.5306
+  type: 'test'
+  ...
+# Subtest: preexisting receipt is preserved and causes fail closed
+ok 217 - preexisting receipt is preserved and causes fail closed
+  ---
+  duration_ms: 3.3646
+  type: 'test'
+  ...
+# Subtest: exit does not accept a failed or partial native installation
+ok 218 - exit does not accept a failed or partial native installation
+  ---
+  duration_ms: 3.2071
+  type: 'test'
+  ...
+# Subtest: changed guarded-file identity rejects before loading addon
+ok 219 - changed guarded-file identity rejects before loading addon
+  ---
+  duration_ms: 3.0702
+  type: 'test'
+  ...
+# Subtest: invalid private-root dos proof rejected
+ok 220 - invalid private-root dos proof rejected
+  ---
+  duration_ms: 4.3404
+  type: 'test'
+  ...
+# Subtest: invalid private-root nt proof rejected
+ok 221 - invalid private-root nt proof rejected
+  ---
+  duration_ms: 3.4411
+  type: 'test'
+  ...
+# Subtest: invalid private-root normalizedNtFlags proof rejected
+ok 222 - invalid private-root normalizedNtFlags proof rejected
+  ---
+  duration_ms: 5.7691
+  type: 'test'
+  ...
+# Subtest: invalid private-root handlePinned proof rejected
+ok 223 - invalid private-root handlePinned proof rejected
+  ---
+  duration_ms: 4.5226
+  type: 'test'
+  ...
+# Subtest: invalid private-root volumeSerial proof rejected
+ok 224 - invalid private-root volumeSerial proof rejected
+  ---
+  duration_ms: 3.9482
+  type: 'test'
+  ...
+# Subtest: invalid private-root fileId proof rejected
+ok 225 - invalid private-root fileId proof rejected
+  ---
+  duration_ms: 3.0078
+  type: 'test'
+  ...
+# Subtest: invalid private-root ancestorAuthority proof rejected
+ok 226 - invalid private-root ancestorAuthority proof rejected
+  ---
+  duration_ms: 2.8758
+  type: 'test'
+  ...
+# Subtest: invalid private-root componentPolicy proof rejected
+ok 227 - invalid private-root componentPolicy proof rejected
+  ---
+  duration_ms: 2.8744
+  type: 'test'
+  ...
+# Subtest: changed root kernel identity is rejected at exit
+ok 228 - changed root kernel identity is rejected at exit
+  ---
+  duration_ms: 9.2263
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered readAttested
+ok 229 - Null object/rights/mode proof rejects altered readAttested
+  ---
+  duration_ms: 5.9587
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered writeAttested
+ok 230 - Null object/rights/mode proof rejects altered writeAttested
+  ---
+  duration_ms: 4.3096
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered object
+ok 231 - Null object/rights/mode proof rejects altered object
+  ---
+  duration_ms: 3.16
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered readAccess
+ok 232 - Null object/rights/mode proof rejects altered readAccess
+  ---
+  duration_ms: 8.6456
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered writeAccess
+ok 233 - Null object/rights/mode proof rejects altered writeAccess
+  ---
+  duration_ms: 5.012
+  type: 'test'
+  ...
+# Subtest: Null object/rights/mode proof rejects altered mode
+ok 234 - Null object/rights/mode proof rejects altered mode
+  ---
+  duration_ms: 5.9482
+  type: 'test'
+  ...
+# Subtest: Null attestation is required at process exit
+ok 235 - Null attestation is required at process exit
+  ---
+  duration_ms: 12.9905
+  type: 'test'
+  ...
+# Subtest: binds six observed processes, true Null objects, exact source and two-level/parallel inheritance
+ok 236 - binds six observed processes, true Null objects, exact source and two-level/parallel inheritance
+  ---
+  duration_ms: 24.92
+  type: 'test'
+  ...
+# Subtest: excludes a reused numeric value when its kernel object type differs from the retained Event
+ok 237 - excludes a reused numeric value when its kernel object type differs from the retained Event
+  ---
+  duration_ms: 9.4664
+  type: 'test'
+  ...
+# Subtest: rejects missing child error collection
+ok 238 - rejects missing child error collection
+  ---
+  duration_ms: 3.7086
+  type: 'test'
+  ...
+# Subtest: rejects null child error collection
+ok 239 - rejects null child error collection
+  ---
+  duration_ms: 2.6844
+  type: 'test'
+  ...
+# Subtest: rejects invalid child error collection
+ok 240 - rejects invalid child error collection
+  ---
+  duration_ms: 3.0247
+  type: 'test'
+  ...
+# Subtest: rejects observed child error
+ok 241 - rejects observed child error
+  ---
+  duration_ms: 3.1369
+  type: 'test'
+  ...
+# Subtest: rejects unknown child error
+ok 242 - rejects unknown child error
+  ---
+  duration_ms: 20.5277
+  type: 'test'
+  ...
+# Subtest: rejects formal promotion
+ok 243 - rejects formal promotion
+  ---
+  duration_ms: 2.9494
+  type: 'test'
+  ...
+# Subtest: rejects admission promotion
+ok 244 - rejects admission promotion
+  ---
+  duration_ms: 3.9656
+  type: 'test'
+  ...
+# Subtest: rejects capability promotion
+ok 245 - rejects capability promotion
+  ---
+  duration_ms: 6.8441
+  type: 'test'
+  ...
+# Subtest: rejects unassessed provider claim
+ok 246 - rejects unassessed provider claim
+  ---
+  duration_ms: 2.049
+  type: 'test'
+  ...
+# Subtest: rejects nonWindows
+ok 247 - rejects nonWindows
+  ---
+  duration_ms: 2.8105
+  type: 'test'
+  ...
+# Subtest: rejects wrong architecture
+ok 248 - rejects wrong architecture
+  ---
+  duration_ms: 2.6493
+  type: 'test'
+  ...
+# Subtest: rejects wrong runtime version
+ok 249 - rejects wrong runtime version
+  ---
+  duration_ms: 1.915
+  type: 'test'
+  ...
+# Subtest: rejects wrong ABI
+ok 250 - rejects wrong ABI
+  ---
+  duration_ms: 1.8368
+  type: 'test'
+  ...
+# Subtest: rejects missing source records
+ok 251 - rejects missing source records
+  ---
+  duration_ms: 2.1241
+  type: 'test'
+  ...
+# Subtest: rejects duplicate source records
+ok 252 - rejects duplicate source records
+  ---
+  duration_ms: 2.1153
+  type: 'test'
+  ...
+# Subtest: rejects malformed source digest
+ok 253 - rejects malformed source digest
+  ---
+  duration_ms: 2.023
+  type: 'test'
+  ...
+# Subtest: rejects wrong recorded preload
+ok 254 - rejects wrong recorded preload
+  ---
+  duration_ms: 2.1841
+  type: 'test'
+  ...
+# Subtest: rejects workspace outside root
+ok 255 - rejects workspace outside root
+  ---
+  duration_ms: 3.3799
+  type: 'test'
+  ...
+# Subtest: rejects wrong checker location
+ok 256 - rejects wrong checker location
+  ---
+  duration_ms: 1.8557
+  type: 'test'
+  ...
+# Subtest: rejects missing directory population
+ok 257 - rejects missing directory population
+  ---
+  duration_ms: 1.7664
+  type: 'test'
+  ...
+# Subtest: rejects duplicate directory
+ok 258 - rejects duplicate directory
+  ---
+  duration_ms: 1.801
+  type: 'test'
+  ...
+# Subtest: rejects missing directory identity
+ok 259 - rejects missing directory identity
+  ---
+  duration_ms: 1.7906
+  type: 'test'
+  ...
+# Subtest: rejects zero file identity
+ok 260 - rejects zero file identity
+  ---
+  duration_ms: 2.0653
+  type: 'test'
+  ...
+# Subtest: rejects missing file size
+ok 261 - rejects missing file size
+  ---
+  duration_ms: 2.024
+  type: 'test'
+  ...
+# Subtest: rejects oversized addon
+ok 262 - rejects oversized addon
+  ---
+  duration_ms: 1.9727
+  type: 'test'
+  ...
+# Subtest: rejects substituted checker
+ok 263 - rejects substituted checker
+  ---
+  duration_ms: 3.4294
+  type: 'test'
+  ...
+# Subtest: rejects truncated checker
+ok 264 - rejects truncated checker
+  ---
+  duration_ms: 2.5874
+  type: 'test'
+  ...
+# Subtest: rejects changed root file ID
+ok 265 - rejects changed root file ID
+  ---
+  duration_ms: 4.325
+  type: 'test'
+  ...
+# Subtest: rejects changed root volume
+ok 266 - rejects changed root volume
+  ---
+  duration_ms: 2.6985
+  type: 'test'
+  ...
+# Subtest: rejects network capability
+ok 267 - rejects network capability
+  ---
+  duration_ms: 1.8793
+  type: 'test'
+  ...
+# Subtest: rejects loopback exemption
+ok 268 - rejects loopback exemption
+  ---
+  duration_ms: 9.8957
+  type: 'test'
+  ...
+# Subtest: rejects missing cleanup
+ok 269 - rejects missing cleanup
+  ---
+  duration_ms: 2.2552
+  type: 'test'
+  ...
+# Subtest: rejects child nonzero exit
+ok 270 - rejects child nonzero exit
+  ---
+  duration_ms: 4.5619
+  type: 'test'
+  ...
+# Subtest: rejects unexpected stderr
+ok 271 - rejects unexpected stderr
+  ---
+  duration_ms: 4.2384
+  type: 'test'
+  ...
+# Subtest: rejects missing frame
+ok 272 - rejects missing frame
+  ---
+  duration_ms: 3.3673
+  type: 'test'
+  ...
+# Subtest: rejects duplicate frame
+ok 273 - rejects duplicate frame
+  ---
+  duration_ms: 3.0531
+  type: 'test'
+  ...
+# Subtest: rejects unbounded completion
+ok 274 - rejects unbounded completion
+  ---
+  duration_ms: 2.6422
+  type: 'test'
+  ...
+# Subtest: rejects missing journal
+ok 275 - rejects missing journal
+  ---
+  duration_ms: 4.6978
+  type: 'test'
+  ...
+# Subtest: rejects journal digest replacement
+ok 276 - rejects journal digest replacement
+  ---
+  duration_ms: 2.8144
+  type: 'test'
+  ...
+# Subtest: rejects failure stage hidden
+ok 277 - rejects failure stage hidden
+  ---
+  duration_ms: 4.384
+  type: 'test'
+  ...
+# Subtest: rejects reordered stage
+ok 278 - rejects reordered stage
+  ---
+  duration_ms: 3.2974
+  type: 'test'
+  ...
+# Subtest: rejects child PID overwrites parent journal
+ok 279 - rejects child PID overwrites parent journal
+  ---
+  duration_ms: 5.0183
+  type: 'test'
+  ...
+# Subtest: rejects incorrect intermediate counters
+ok 280 - rejects incorrect intermediate counters
+  ---
+  duration_ms: 5.0471
+  type: 'test'
+  ...
+# Subtest: rejects missing exit phase
+ok 281 - rejects missing exit phase
+  ---
+  duration_ms: 2.9245
+  type: 'test'
+  ...
+# Subtest: rejects extra fake process phase
+ok 282 - rejects extra fake process phase
+  ---
+  duration_ms: 2.5393
+  type: 'test'
+  ...
+# Subtest: rejects missing observation
+ok 283 - rejects missing observation
+  ---
+  duration_ms: 3.8499
+  type: 'test'
+  ...
+# Subtest: rejects duplicate child modes
+ok 284 - rejects duplicate child modes
+  ---
+  duration_ms: 2.6803
+  type: 'test'
+  ...
+# Subtest: rejects grandchild parent replaced
+ok 285 - rejects grandchild parent replaced
+  ---
+  duration_ms: 2.5419
+  type: 'test'
+  ...
+# Subtest: rejects PID collision
+ok 286 - rejects PID collision
+  ---
+  duration_ms: 3.2179
+  type: 'test'
+  ...
+# Subtest: rejects root parent points to descendant
+ok 287 - rejects root parent points to descendant
+  ---
+  duration_ms: 4.4062
+  type: 'test'
+  ...
+# Subtest: rejects Null is a disk file
+ok 288 - rejects Null is a disk file
+  ---
+  duration_ms: 3.0351
+  type: 'test'
+  ...
+# Subtest: rejects wrong Null read rights
+ok 289 - rejects wrong Null read rights
+  ---
+  duration_ms: 3.5784
+  type: 'test'
+  ...
+# Subtest: rejects missing write attributes
+ok 290 - rejects missing write attributes
+  ---
+  duration_ms: 3.9078
+  type: 'test'
+  ...
+# Subtest: rejects asynchronous Null mode
+ok 291 - rejects asynchronous Null mode
+  ---
+  duration_ms: 3.5761
+  type: 'test'
+  ...
+# Subtest: rejects unattested Null
+ok 292 - rejects unattested Null
+  ---
+  duration_ms: 3.4196
+  type: 'test'
+  ...
+# Subtest: rejects wrong child token
+ok 293 - rejects wrong child token
+  ---
+  duration_ms: 3.8152
+  type: 'test'
+  ...
+# Subtest: rejects child outside Job
+ok 294 - rejects child outside Job
+  ---
+  duration_ms: 2.9971
+  type: 'test'
+  ...
+# Subtest: rejects partial hooks
+ok 295 - rejects partial hooks
+  ---
+  duration_ms: 3.684
+  type: 'test'
+  ...
+# Subtest: rejects counter regression
+ok 296 - rejects counter regression
+  ---
+  duration_ms: 8.3858
+  type: 'test'
+  ...
+# Subtest: rejects nonEOF Null input
+ok 297 - rejects nonEOF Null input
+  ---
+  duration_ms: 4.7637
+  type: 'test'
+  ...
+# Subtest: rejects partial Null write
+ok 298 - rejects partial Null write
+  ---
+  duration_ms: 4.8579
+  type: 'test'
+  ...
+# Subtest: rejects fake trap namespace
+ok 299 - rejects fake trap namespace
+  ---
+  duration_ms: 4.1683
+  type: 'test'
+  ...
+# Subtest: rejects trap was noninheritable
+ok 300 - rejects trap was noninheritable
+  ---
+  duration_ms: 5.3047
+  type: 'test'
+  ...
+# Subtest: rejects trap prematurely closed
+ok 301 - rejects trap prematurely closed
+  ---
+  duration_ms: 5.884
+  type: 'test'
+  ...
+# Subtest: rejects child inherited trap
+ok 302 - rejects child inherited trap
+  ---
+  duration_ms: 10.0249
+  type: 'test'
+  ...
+# Subtest: rejects same Event type cannot prove exclusion
+ok 303 - rejects same Event type cannot prove exclusion
+  ---
+  duration_ms: 15.0391
+  type: 'test'
+  ...
+# Subtest: rejects present without type
+ok 304 - rejects present without type
+  ---
+  duration_ms: 6.0468
+  type: 'test'
+  ...
+# Subtest: rejects absent with stale type
+ok 305 - rejects absent with stale type
+  ---
+  duration_ms: 3.8497
+  type: 'test'
+  ...
+# Subtest: rejects wrong expected kernel type
+ok 306 - rejects wrong expected kernel type
+  ---
+  duration_ms: 3.8765
+  type: 'test'
+  ...
+# Subtest: rejects missing type evidence
+ok 307 - rejects missing type evidence
+  ---
+  duration_ms: 4.1316
+  type: 'test'
+  ...
+# Subtest: rejects unbounded handle snapshot
+ok 308 - rejects unbounded handle snapshot
+  ---
+  duration_ms: 5.7308
+  type: 'test'
+  ...
+# Subtest: rejects fake snapshot method
+ok 309 - rejects fake snapshot method
+  ---
+  duration_ms: 3.326
+  type: 'test'
+  ...
+# Subtest: bounded file reader preserves bytes and rejects hardlinks and oversize inputs
+ok 310 - bounded file reader preserves bytes and rejects hardlinks and oversize inputs
+  ---
+  duration_ms: 13.1739
+  type: 'test'
+  ...
+# Subtest: binds sync, async and fork observations to all eight process receipts and journal
+ok 311 - binds sync, async and fork observations to all eight process receipts and journal
+  ---
+  duration_ms: 15.0367
+  type: 'test'
+  ...
+# Subtest: rejects formal sample promotion
+ok 312 - rejects formal sample promotion
+  ---
+  duration_ms: 6.279
+  type: 'test'
+  ...
+# Subtest: rejects admission promotion
+ok 313 - rejects admission promotion
+  ---
+  duration_ms: 0.7585
+  type: 'test'
+  ...
+# Subtest: rejects provider claim
+ok 314 - rejects provider claim
+  ---
+  duration_ms: 0.7577
+  type: 'test'
+  ...
+# Subtest: rejects capability promotion
+ok 315 - rejects capability promotion
+  ---
+  duration_ms: 1.0651
+  type: 'test'
+  ...
+# Subtest: rejects bad digest
+ok 316 - rejects bad digest
+  ---
+  duration_ms: 0.7387
+  type: 'test'
+  ...
+# Subtest: rejects missing cleanup
+ok 317 - rejects missing cleanup
+  ---
+  duration_ms: 1.0888
+  type: 'test'
+  ...
+# Subtest: rejects target failure
+ok 318 - rejects target failure
+  ---
+  duration_ms: 1.0589
+  type: 'test'
+  ...
+# Subtest: rejects unexpected stderr
+ok 319 - rejects unexpected stderr
+  ---
+  duration_ms: 3.1115
+  type: 'test'
+  ...
+# Subtest: rejects network capability
+ok 320 - rejects network capability
+  ---
+  duration_ms: 1.7439
+  type: 'test'
+  ...
+# Subtest: rejects loopback exemption
+ok 321 - rejects loopback exemption
+  ---
+  duration_ms: 1.5118
+  type: 'test'
+  ...
+# Subtest: rejects duplicated completion
+ok 322 - rejects duplicated completion
+  ---
+  duration_ms: 0.8542
+  type: 'test'
+  ...
+# Subtest: rejects target substitution
+ok 323 - rejects target substitution
+  ---
+  duration_ms: 0.7847
+  type: 'test'
+  ...
+# Subtest: rejects unused server hook
+ok 324 - rejects unused server hook
+  ---
+  duration_ms: 0.6743
+  type: 'test'
+  ...
+# Subtest: rejects unused client hook
+ok 325 - rejects unused client hook
+  ---
+  duration_ms: 1.6313
+  type: 'test'
+  ...
+# Subtest: rejects nonisolated native token
+ok 326 - rejects nonisolated native token
+  ---
+  duration_ms: 0.75
+  type: 'test'
+  ...
+# Subtest: rejects wrong child content
+ok 327 - rejects wrong child content
+  ---
+  duration_ms: 0.7025
+  type: 'test'
+  ...
+# Subtest: rejects missing child
+ok 328 - rejects missing child
+  ---
+  duration_ms: 0.9749
+  type: 'test'
+  ...
+# Subtest: rejects duplicate child PID
+ok 329 - rejects duplicate child PID
+  ---
+  duration_ms: 0.7906
+  type: 'test'
+  ...
+# Subtest: rejects child parent substitution
+ok 330 - rejects child parent substitution
+  ---
+  duration_ms: 0.6248
+  type: 'test'
+  ...
+# Subtest: rejects missing child preload
+ok 331 - rejects missing child preload
+  ---
+  duration_ms: 0.7756
+  type: 'test'
+  ...
+# Subtest: rejects missing child exit
+ok 332 - rejects missing child exit
+  ---
+  duration_ms: 1.4347
+  type: 'test'
+  ...
+# Subtest: rejects duplicate receipts
+ok 333 - rejects duplicate receipts
+  ---
+  duration_ms: 0.87
+  type: 'test'
+  ...
+# Subtest: rejects wrong child SID
+ok 334 - rejects wrong child SID
+  ---
+  duration_ms: 0.7
+  type: 'test'
+  ...
+# Subtest: rejects wrong runtime
+ok 335 - rejects wrong runtime
+  ---
+  duration_ms: 0.6993
+  type: 'test'
+  ...
+# Subtest: rejects wrong preload
+ok 336 - rejects wrong preload
+  ---
+  duration_ms: 0.7355
+  type: 'test'
+  ...
+# Subtest: rejects wrong manifest
+ok 337 - rejects wrong manifest
+  ---
+  duration_ms: 0.9178
+  type: 'test'
+  ...
+# Subtest: rejects host executable
+ok 338 - rejects host executable
+  ---
+  duration_ms: 1.2628
+  type: 'test'
+  ...
+# Subtest: rejects child install error
+ok 339 - rejects child install error
+  ---
+  duration_ms: 0.8581
+  type: 'test'
+  ...
+# Subtest: rejects child exit failure
+ok 340 - rejects child exit failure
+  ---
+  duration_ms: 0.8004
+  type: 'test'
+  ...
+# Subtest: rejects negative counter
+ok 341 - rejects negative counter
+  ---
+  duration_ms: 0.8466
+  type: 'test'
+  ...
+# Subtest: rejects regressed counter
+ok 342 - rejects regressed counter
+  ---
+  duration_ms: 0.8148
+  type: 'test'
+  ...
+# Subtest: rejects missing journal
+ok 343 - rejects missing journal
+  ---
+  duration_ms: 0.6265
+  type: 'test'
+  ...
+# Subtest: rejects journal substitution
+ok 344 - rejects journal substitution
+  ---
+  duration_ms: 0.5973
+  type: 'test'
+  ...
+# Subtest: rejects journal failure stage
+ok 345 - rejects journal failure stage
+  ---
+  duration_ms: 1.1961
+  type: 'test'
+  ...
+# Subtest: rejects missing journal stage
+ok 346 - rejects missing journal stage
+  ---
+  duration_ms: 0.9071
+  type: 'test'
+  ...
+# Subtest: rejects journal reorder
+ok 347 - rejects journal reorder
+  ---
+  duration_ms: 0.8568
+  type: 'test'
+  ...
+# Subtest: rejects journal PID substitution
+ok 348 - rejects journal PID substitution
+  ---
+  duration_ms: 0.8004
+  type: 'test'
+  ...
+# Subtest: rejects journal child substitution
+ok 349 - rejects journal child substitution
+  ---
+  duration_ms: 0.8137
+  type: 'test'
+  ...
+# Subtest: rejects journal/frame data mismatch
+ok 350 - rejects journal/frame data mismatch
+  ---
+  duration_ms: 0.8086
+  type: 'test'
+  ...
+# Subtest: rejects journal installation mismatch
+ok 351 - rejects journal installation mismatch
+  ---
+  duration_ms: 0.87
+  type: 'test'
+  ...
+# Subtest: fixed preload verifies identities and records actual process installation and exit
+ok 352 - fixed preload verifies identities and records actual process installation and exit
+  ---
+  duration_ms: 22.0517
+  type: 'test'
+  ...
+# Subtest: child contract uses fixed runtime/preload and explicitly requires each child receipt
+ok 353 - child contract uses fixed runtime/preload and explicitly requires each child receipt
+  ---
+  duration_ms: 4.9152
+  type: 'test'
+  ...
+# Subtest: actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+ok 354 - actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+  ---
+  duration_ms: 372.1354
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: node.exe
+ok 355 - tampered fixed bytes rejected before loading addon: node.exe
+  ---
+  duration_ms: 4.55
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-pipe-adapter.node
+ok 356 - tampered fixed bytes rejected before loading addon: windows-node-pipe-adapter.node
+  ---
+  duration_ms: 3.0437
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-pipe-preload.cjs
+ok 357 - tampered fixed bytes rejected before loading addon: windows-node-pipe-preload.cjs
+  ---
+  duration_ms: 3.2657
+  type: 'test'
+  ...
+# Subtest: arbitrary addon path rejected before native load
+ok 358 - arbitrary addon path rejected before native load
+  ---
+  duration_ms: 3.0794
+  type: 'test'
+  ...
+# Subtest: runtime traversal variant rejected before native load
+ok 359 - runtime traversal variant rejected before native load
+  ---
+  duration_ms: 2.8726
+  type: 'test'
+  ...
+# Subtest: preload absolute variant rejected before native load
+ok 360 - preload absolute variant rejected before native load
+  ---
+  duration_ms: 5.1667
+  type: 'test'
+  ...
+# Subtest: receipt directory escape rejected before native load
+ok 361 - receipt directory escape rejected before native load
+  ---
+  duration_ms: 3.7275
+  type: 'test'
+  ...
+# Subtest: alternate SID environment rejected before native load
+ok 362 - alternate SID environment rejected before native load
+  ---
+  duration_ms: 5.027
+  type: 'test'
+  ...
+# Subtest: module ABI mismatch rejected before native load
+ok 363 - module ABI mismatch rejected before native load
+  ---
+  duration_ms: 4.2418
+  type: 'test'
+  ...
+# Subtest: Node version mismatch rejected before native load
+ok 364 - Node version mismatch rejected before native load
+  ---
+  duration_ms: 2.5702
+  type: 'test'
+  ...
+# Subtest: formal admission claim rejected before native load
+ok 365 - formal admission claim rejected before native load
+  ---
+  duration_ms: 2.4215
+  type: 'test'
+  ...
+# Subtest: runtime loaded from another path rejected before native load
+ok 366 - runtime loaded from another path rejected before native load
+  ---
+  duration_ms: 3.0138
+  type: 'test'
+  ...
+# Subtest: missing supervisor SID rejected before native load
+ok 367 - missing supervisor SID rejected before native load
+  ---
+  duration_ms: 2.6485
+  type: 'test'
+  ...
+# Subtest: malformed SID rejected before native load
+ok 368 - malformed SID rejected before native load
+  ---
+  duration_ms: 2.7692
+  type: 'test'
+  ...
+# Subtest: unsupported platform rejected before native load
+ok 369 - unsupported platform rejected before native load
+  ---
+  duration_ms: 2.2584
+  type: 'test'
+  ...
+# Subtest: unsupported architecture rejected before native load
+ok 370 - unsupported architecture rejected before native load
+  ---
+  duration_ms: 2.2025
+  type: 'test'
+  ...
+# Subtest: linked addon rejected before native load
+ok 371 - linked addon rejected before native load
+  ---
+  duration_ms: 2.8948
+  type: 'test'
+  ...
+# Subtest: symlinked addon rejected before native load
+ok 372 - symlinked addon rejected before native load
+  ---
+  duration_ms: 3.2049
+  type: 'test'
+  ...
+# Subtest: symlinked receipt directory rejected before native load
+ok 373 - symlinked receipt directory rejected before native load
+  ---
+  duration_ms: 4.8145
+  type: 'test'
+  ...
+# Subtest: mismatched native pid receipt rejected
+ok 374 - mismatched native pid receipt rejected
+  ---
+  duration_ms: 4.8205
+  type: 'test'
+  ...
+# Subtest: mismatched native appContainerSid receipt rejected
+ok 375 - mismatched native appContainerSid receipt rejected
+  ---
+  duration_ms: 3.4329
+  type: 'test'
+  ...
+# Subtest: mismatched native capabilityCount receipt rejected
+ok 376 - mismatched native capabilityCount receipt rejected
+  ---
+  duration_ms: 4.0856
+  type: 'test'
+  ...
+# Subtest: mismatched native inJob receipt rejected
+ok 377 - mismatched native inJob receipt rejected
+  ---
+  duration_ms: 2.9305
+  type: 'test'
+  ...
+# Subtest: mismatched native state receipt rejected
+ok 378 - mismatched native state receipt rejected
+  ---
+  duration_ms: 5.1156
+  type: 'test'
+  ...
+# Subtest: mismatched native patches receipt rejected
+ok 379 - mismatched native patches receipt rejected
+  ---
+  duration_ms: 3.9042
+  type: 'test'
+  ...
+# Subtest: mismatched native installError receipt rejected
+ok 380 - mismatched native installError receipt rejected
+  ---
+  duration_ms: 2.6886
+  type: 'test'
+  ...
+# Subtest: mismatched native admissionEligible receipt rejected
+ok 381 - mismatched native admissionEligible receipt rejected
+  ---
+  duration_ms: 3.4372
+  type: 'test'
+  ...
+# Subtest: preexisting receipt is preserved and causes fail closed
+ok 382 - preexisting receipt is preserved and causes fail closed
+  ---
+  duration_ms: 3.7009
+  type: 'test'
+  ...
+# Subtest: exit does not accept a failed or partial native installation
+ok 383 - exit does not accept a failed or partial native installation
+  ---
+  duration_ms: 3.5117
+  type: 'test'
+  ...
+# Subtest: changed guarded-file identity rejects before loading addon
+ok 384 - changed guarded-file identity rejects before loading addon
+  ---
+  duration_ms: 4.7969
+  type: 'test'
+  ...
+# Subtest: complete bounded runtime evidence validates without admitting a formal capability
+ok 385 - complete bounded runtime evidence validates without admitting a formal capability
+  ---
+  duration_ms: 24.1558
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator accepts installation and exit without asserting descendant completeness
+ok 386 - standalone observed-process validator accepts installation and exit without asserting descendant completeness
+  ---
+  duration_ms: 6.3801
+  type: 'test'
+  ...
+# Subtest: observed receipt uses the supervisor's explicit Node version
+ok 387 - observed receipt uses the supervisor's explicit Node version
+  ---
+  duration_ms: 4.0078
+  type: 'test'
+  ...
+# Subtest: pipe-busy retries remain evidence and do not invalidate successful process operation
+ok 388 - pipe-busy retries remain evidence and do not invalidate successful process operation
+  ---
+  duration_ms: 9.1181
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects wrong identity
+ok 389 - standalone observed-process validator rejects wrong identity
+  ---
+  duration_ms: 2.3396
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects partial patch
+ok 390 - standalone observed-process validator rejects partial patch
+  ---
+  duration_ms: 2.8836
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects wrong root
+ok 391 - standalone observed-process validator rejects wrong root
+  ---
+  duration_ms: 2.4452
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects wrong proof digest
+ok 392 - standalone observed-process validator rejects wrong proof digest
+  ---
+  duration_ms: 2.6332
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects wrong binary hash
+ok 393 - standalone observed-process validator rejects wrong binary hash
+  ---
+  duration_ms: 2.7501
+  type: 'test'
+  ...
+# Subtest: standalone observed-process validator rejects failed exit
+ok 394 - standalone observed-process validator rejects failed exit
+  ---
+  duration_ms: 2.6842
+  type: 'test'
+  ...
+# Subtest: formal sample is rejected
+ok 395 - formal sample is rejected
+  ---
+  duration_ms: 2.1889
+  type: 'test'
+  ...
+# Subtest: admission enabled is rejected
+ok 396 - admission enabled is rejected
+  ---
+  duration_ms: 1.8665
+  type: 'test'
+  ...
+# Subtest: promoted capability is rejected
+ok 397 - promoted capability is rejected
+  ---
+  duration_ms: 1.897
+  type: 'test'
+  ...
+# Subtest: unconfirmed cleanup is rejected
+ok 398 - unconfirmed cleanup is rejected
+  ---
+  duration_ms: 3.7214
+  type: 'test'
+  ...
+# Subtest: nonzero capabilities is rejected
+ok 399 - nonzero capabilities is rejected
+  ---
+  duration_ms: 1.4192
+  type: 'test'
+  ...
+# Subtest: loopback exemption is rejected
+ok 400 - loopback exemption is rejected
+  ---
+  duration_ms: 1.5834
+  type: 'test'
+  ...
+# Subtest: timed out execution is rejected
+ok 401 - timed out execution is rejected
+  ---
+  duration_ms: 1.6061
+  type: 'test'
+  ...
+# Subtest: hidden stderr is rejected
+ok 402 - hidden stderr is rejected
+  ---
+  duration_ms: 1.9116
+  type: 'test'
+  ...
+# Subtest: wrong runtime hash is rejected
+ok 403 - wrong runtime hash is rejected
+  ---
+  duration_ms: 1.8564
+  type: 'test'
+  ...
+# Subtest: wrong binary hash is rejected
+ok 404 - wrong binary hash is rejected
+  ---
+  duration_ms: 1.3811
+  type: 'test'
+  ...
+# Subtest: wrong preload hash is rejected
+ok 405 - wrong preload hash is rejected
+  ---
+  duration_ms: 1.5151
+  type: 'test'
+  ...
+# Subtest: changed native manifest is rejected
+ok 406 - changed native manifest is rejected
+  ---
+  duration_ms: 2.0971
+  type: 'test'
+  ...
+# Subtest: changed raw adapter manifest is rejected
+ok 407 - changed raw adapter manifest is rejected
+  ---
+  duration_ms: 2.4925
+  type: 'test'
+  ...
+# Subtest: wrong input digest is rejected
+ok 408 - wrong input digest is rejected
+  ---
+  duration_ms: 2.1411
+  type: 'test'
+  ...
+# Subtest: duplicate output frame is rejected
+ok 409 - duplicate output frame is rejected
+  ---
+  duration_ms: 1.9346
+  type: 'test'
+  ...
+# Subtest: missing child receipt is rejected
+ok 410 - missing child receipt is rejected
+  ---
+  duration_ms: 2.8371
+  type: 'test'
+  ...
+# Subtest: duplicate child receipt is rejected
+ok 411 - duplicate child receipt is rejected
+  ---
+  duration_ms: 7.0236
+  type: 'test'
+  ...
+# Subtest: wrong receipt parent is rejected
+ok 412 - wrong receipt parent is rejected
+  ---
+  duration_ms: 2.3027
+  type: 'test'
+  ...
+# Subtest: wrong receipt executable is rejected
+ok 413 - wrong receipt executable is rejected
+  ---
+  duration_ms: 1.9573
+  type: 'test'
+  ...
+# Subtest: wrong receipt manifest hash is rejected
+ok 414 - wrong receipt manifest hash is rejected
+  ---
+  duration_ms: 2.7513
+  type: 'test'
+  ...
+# Subtest: wrong receipt root hash is rejected
+ok 415 - wrong receipt root hash is rejected
+  ---
+  duration_ms: 3.0396
+  type: 'test'
+  ...
+# Subtest: wrong child SID is rejected
+ok 416 - wrong child SID is rejected
+  ---
+  duration_ms: 2.2128
+  type: 'test'
+  ...
+# Subtest: partial child patch is rejected
+ok 417 - partial child patch is rejected
+  ---
+  duration_ms: 5.4232
+  type: 'test'
+  ...
+# Subtest: failed child exit is rejected
+ok 418 - failed child exit is rejected
+  ---
+  duration_ms: 6.542
+  type: 'test'
+  ...
+# Subtest: unused child realpath adapter is rejected
+ok 419 - unused child realpath adapter is rejected
+  ---
+  duration_ms: 2.0958
+  type: 'test'
+  ...
+# Subtest: missing journal is rejected
+ok 420 - missing journal is rejected
+  ---
+  duration_ms: 4.3065
+  type: 'test'
+  ...
+# Subtest: changed journal bytes is rejected
+ok 421 - changed journal bytes is rejected
+  ---
+  duration_ms: 2.3625
+  type: 'test'
+  ...
+# Subtest: wrong target PID is rejected
+ok 422 - wrong target PID is rejected
+  ---
+  duration_ms: 2.5079
+  type: 'test'
+  ...
+# Subtest: root prefix outside is rejected
+ok 423 - root prefix outside is rejected
+  ---
+  duration_ms: 1.9733
+  type: 'test'
+  ...
+# Subtest: opened rather than canonical name is rejected
+ok 424 - opened rather than canonical name is rejected
+  ---
+  duration_ms: 13.4643
+  type: 'test'
+  ...
+# Subtest: unpinned root is rejected
+ok 425 - unpinned root is rejected
+  ---
+  duration_ms: 1.7111
+  type: 'test'
+  ...
+# Subtest: bad file identity is rejected
+ok 426 - bad file identity is rejected
+  ---
+  duration_ms: 2.1403
+  type: 'test'
+  ...
+# Subtest: unused pipe hooks is rejected
+ok 427 - unused pipe hooks is rejected
+  ---
+  duration_ms: 2.0711
+  type: 'test'
+  ...
+# Subtest: invalid pipe failure count is rejected
+ok 428 - invalid pipe failure count is rejected
+  ---
+  duration_ms: 2.0599
+  type: 'test'
+  ...
+# Subtest: wrong child data is rejected
+ok 429 - wrong child data is rejected
+  ---
+  duration_ms: 1.9795
+  type: 'test'
+  ...
+# Subtest: duplicate child PID is rejected
+ok 430 - duplicate child PID is rejected
+  ---
+  duration_ms: 2.6194
+  type: 'test'
+  ...
+# Subtest: missing fork is rejected
+ok 431 - missing fork is rejected
+  ---
+  duration_ms: 1.9095
+  type: 'test'
+  ...
+# Subtest: wrong canonical child file is rejected
+ok 432 - wrong canonical child file is rejected
+  ---
+  duration_ms: 2.1594
+  type: 'test'
+  ...
+# Subtest: wrong workspace realpath is rejected
+ok 433 - wrong workspace realpath is rejected
+  ---
+  duration_ms: 3.9864
+  type: 'test'
+  ...
+# Subtest: realpath did not reach hook is rejected
+ok 434 - realpath did not reach hook is rejected
+  ---
+  duration_ms: 2.0561
+  type: 'test'
+  ...
+# Subtest: outside realpath succeeded is rejected
+ok 435 - outside realpath succeeded is rejected
+  ---
+  duration_ms: 1.6888
+  type: 'test'
+  ...
+# Subtest: outside open failed before hook is rejected
+ok 436 - outside open failed before hook is rejected
+  ---
+  duration_ms: 1.8602
+  type: 'test'
+  ...
+# Subtest: outside handle wrongly mapped is rejected
+ok 437 - outside handle wrongly mapped is rejected
+  ---
+  duration_ms: 2.3937
+  type: 'test'
+  ...
+# Subtest: fake outside path inside root is rejected
+ok 438 - fake outside path inside root is rejected
+  ---
+  duration_ms: 2.3742
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide failed middle phase
+ok 439 - rehashing cannot hide failed middle phase
+  ---
+  duration_ms: 6.1158
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide reordered phase
+ok 440 - rehashing cannot hide reordered phase
+  ---
+  duration_ms: 2.5497
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide missing phase
+ok 441 - rehashing cannot hide missing phase
+  ---
+  duration_ms: 2.4962
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide wrong journal PID
+ok 442 - rehashing cannot hide wrong journal PID
+  ---
+  duration_ms: 4.0104
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide different child completion
+ok 443 - rehashing cannot hide different child completion
+  ---
+  duration_ms: 3.1018
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide changed canonical result
+ok 444 - rehashing cannot hide changed canonical result
+  ---
+  duration_ms: 2.3703
+  type: 'test'
+  ...
+# Subtest: rehashing cannot hide changed completion
+ok 445 - rehashing cannot hide changed completion
+  ---
+  duration_ms: 3.2579
+  type: 'test'
+  ...
+# Subtest: fixed preload verifies identities and records actual process installation and exit
+ok 446 - fixed preload verifies identities and records actual process installation and exit
+  ---
+  duration_ms: 26.3506
+  type: 'test'
+  ...
+# Subtest: child contract uses fixed runtime/preload and explicitly requires each child receipt
+ok 447 - child contract uses fixed runtime/preload and explicitly requires each child receipt
+  ---
+  duration_ms: 9.5706
+  type: 'test'
+  ...
+# Subtest: actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+ok 448 - actual Node NODE_OPTIONS parser loads the contract's quoted path containing spaces
+  ---
+  duration_ms: 504.3369
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: node.exe
+ok 449 - tampered fixed bytes rejected before loading addon: node.exe
+  ---
+  duration_ms: 5.408
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-runtime-adapter.node
+ok 450 - tampered fixed bytes rejected before loading addon: windows-node-runtime-adapter.node
+  ---
+  duration_ms: 3.4219
+  type: 'test'
+  ...
+# Subtest: tampered fixed bytes rejected before loading addon: windows-node-runtime-preload.cjs
+ok 451 - tampered fixed bytes rejected before loading addon: windows-node-runtime-preload.cjs
+  ---
+  duration_ms: 3.3378
+  type: 'test'
+  ...
+# Subtest: arbitrary addon path rejected before native load
+ok 452 - arbitrary addon path rejected before native load
+  ---
+  duration_ms: 6.2125
+  type: 'test'
+  ...
+# Subtest: runtime traversal variant rejected before native load
+ok 453 - runtime traversal variant rejected before native load
+  ---
+  duration_ms: 2.8782
+  type: 'test'
+  ...
+# Subtest: preload absolute variant rejected before native load
+ok 454 - preload absolute variant rejected before native load
+  ---
+  duration_ms: 3.8925
+  type: 'test'
+  ...
+# Subtest: receipt directory escape rejected before native load
+ok 455 - receipt directory escape rejected before native load
+  ---
+  duration_ms: 4.9826
+  type: 'test'
+  ...
+# Subtest: alternate SID environment rejected before native load
+ok 456 - alternate SID environment rejected before native load
+  ---
+  duration_ms: 3.2028
+  type: 'test'
+  ...
+# Subtest: module ABI mismatch rejected before native load
+ok 457 - module ABI mismatch rejected before native load
+  ---
+  duration_ms: 2.5875
+  type: 'test'
+  ...
+# Subtest: Node version mismatch rejected before native load
+ok 458 - Node version mismatch rejected before native load
+  ---
+  duration_ms: 2.5677
+  type: 'test'
+  ...
+# Subtest: formal admission claim rejected before native load
+ok 459 - formal admission claim rejected before native load
+  ---
+  duration_ms: 2.7336
+  type: 'test'
+  ...
+# Subtest: runtime loaded from another path rejected before native load
+ok 460 - runtime loaded from another path rejected before native load
+  ---
+  duration_ms: 3.9143
+  type: 'test'
+  ...
+# Subtest: missing supervisor SID rejected before native load
+ok 461 - missing supervisor SID rejected before native load
+  ---
+  duration_ms: 3.4777
+  type: 'test'
+  ...
+# Subtest: malformed SID rejected before native load
+ok 462 - malformed SID rejected before native load
+  ---
+  duration_ms: 3.6505
+  type: 'test'
+  ...
+# Subtest: unsupported platform rejected before native load
+ok 463 - unsupported platform rejected before native load
+  ---
+  duration_ms: 3.2606
+  type: 'test'
+  ...
+# Subtest: unsupported architecture rejected before native load
+ok 464 - unsupported architecture rejected before native load
+  ---
+  duration_ms: 2.9165
+  type: 'test'
+  ...
+# Subtest: linked addon rejected before native load
+ok 465 - linked addon rejected before native load
+  ---
+  duration_ms: 5.9823
+  type: 'test'
+  ...
+# Subtest: symlinked addon rejected before native load
+ok 466 - symlinked addon rejected before native load
+  ---
+  duration_ms: 3.2897
+  type: 'test'
+  ...
+# Subtest: symlinked receipt directory rejected before native load
+ok 467 - symlinked receipt directory rejected before native load
+  ---
+  duration_ms: 3.8429
+  type: 'test'
+  ...
+# Subtest: mismatched native pid receipt rejected
+ok 468 - mismatched native pid receipt rejected
+  ---
+  duration_ms: 5.5151
+  type: 'test'
+  ...
+# Subtest: mismatched native appContainerSid receipt rejected
+ok 469 - mismatched native appContainerSid receipt rejected
+  ---
+  duration_ms: 7.2917
+  type: 'test'
+  ...
+# Subtest: mismatched native capabilityCount receipt rejected
+ok 470 - mismatched native capabilityCount receipt rejected
+  ---
+  duration_ms: 5.487
+  type: 'test'
+  ...
+# Subtest: mismatched native inJob receipt rejected
+ok 471 - mismatched native inJob receipt rejected
+  ---
+  duration_ms: 5.6771
+  type: 'test'
+  ...
+# Subtest: mismatched native state receipt rejected
+ok 472 - mismatched native state receipt rejected
+  ---
+  duration_ms: 3.4314
+  type: 'test'
+  ...
+# Subtest: mismatched native patches receipt rejected
+ok 473 - mismatched native patches receipt rejected
+  ---
+  duration_ms: 3.3081
+  type: 'test'
+  ...
+# Subtest: mismatched native installError receipt rejected
+ok 474 - mismatched native installError receipt rejected
+  ---
+  duration_ms: 3.5548
+  type: 'test'
+  ...
+# Subtest: mismatched native admissionEligible receipt rejected
+ok 475 - mismatched native admissionEligible receipt rejected
+  ---
+  duration_ms: 4.465
+  type: 'test'
+  ...
+# Subtest: mismatched native supportedPrivateRealpath receipt rejected
+ok 476 - mismatched native supportedPrivateRealpath receipt rejected
+  ---
+  duration_ms: 5.1332
+  type: 'test'
+  ...
+# Subtest: preexisting receipt is preserved and causes fail closed
+ok 477 - preexisting receipt is preserved and causes fail closed
+  ---
+  duration_ms: 3.5664
+  type: 'test'
+  ...
+# Subtest: exit does not accept a failed or partial native installation
+ok 478 - exit does not accept a failed or partial native installation
+  ---
+  duration_ms: 3.7546
+  type: 'test'
+  ...
+# Subtest: changed guarded-file identity rejects before loading addon
+ok 479 - changed guarded-file identity rejects before loading addon
+  ---
+  duration_ms: 4.2365
+  type: 'test'
+  ...
+# Subtest: invalid private-root dos proof rejected
+ok 480 - invalid private-root dos proof rejected
+  ---
+  duration_ms: 3.3115
+  type: 'test'
+  ...
+# Subtest: invalid private-root nt proof rejected
+ok 481 - invalid private-root nt proof rejected
+  ---
+  duration_ms: 2.731
+  type: 'test'
+  ...
+# Subtest: invalid private-root normalizedNtFlags proof rejected
+ok 482 - invalid private-root normalizedNtFlags proof rejected
+  ---
+  duration_ms: 2.7917
+  type: 'test'
+  ...
+# Subtest: invalid private-root handlePinned proof rejected
+ok 483 - invalid private-root handlePinned proof rejected
+  ---
+  duration_ms: 2.6648
+  type: 'test'
+  ...
+# Subtest: invalid private-root volumeSerial proof rejected
+ok 484 - invalid private-root volumeSerial proof rejected
+  ---
+  duration_ms: 3.0961
+  type: 'test'
+  ...
+# Subtest: invalid private-root fileId proof rejected
+ok 485 - invalid private-root fileId proof rejected
+  ---
+  duration_ms: 3.2159
+  type: 'test'
+  ...
+# Subtest: invalid private-root ancestorAuthority proof rejected
+ok 486 - invalid private-root ancestorAuthority proof rejected
+  ---
+  duration_ms: 2.0596
+  type: 'test'
+  ...
+# Subtest: invalid private-root componentPolicy proof rejected
+ok 487 - invalid private-root componentPolicy proof rejected
+  ---
+  duration_ms: 1.9382
+  type: 'test'
+  ...
+# Subtest: changed root kernel identity is rejected at exit
+ok 488 - changed root kernel identity is rejected at exit
+  ---
+  duration_ms: 2.2154
+  type: 'test'
+  ...
+# Subtest: retains denied DOS and successful normalized NT outcomes as distinct observations
+ok 489 - retains denied DOS and successful normalized NT outcomes as distinct observations
+  ---
+  duration_ms: 14.4815
+  type: 'test'
+  ...
+# Subtest: can observe an open failure without converting it into a canonical success
+ok 490 - can observe an open failure without converting it into a canonical success
+  ---
+  duration_ms: 1.5018
+  type: 'test'
+  ...
+# Subtest: rejects missing control
+ok 491 - rejects missing control
+  ---
+  duration_ms: 12.1091
+  type: 'test'
+  ...
+# Subtest: rejects extra control
+ok 492 - rejects extra control
+  ---
+  duration_ms: 9.8757
+  type: 'test'
+  ...
+# Subtest: rejects control reorder
+ok 493 - rejects control reorder
+  ---
+  duration_ms: 0.9444
+  type: 'test'
+  ...
+# Subtest: rejects control label substitution
+ok 494 - rejects control label substitution
+  ---
+  duration_ms: 0.5574
+  type: 'test'
+  ...
+# Subtest: rejects fixture PID mismatch
+ok 495 - rejects fixture PID mismatch
+  ---
+  duration_ms: 0.8336
+  type: 'test'
+  ...
+# Subtest: rejects parent PID used as fixture
+ok 496 - rejects parent PID used as fixture
+  ---
+  duration_ms: 0.5735
+  type: 'test'
+  ...
+# Subtest: rejects unbound spawned process
+ok 497 - rejects unbound spawned process
+  ---
+  duration_ms: 1.6537
+  type: 'test'
+  ...
+# Subtest: rejects missing child status
+ok 498 - rejects missing child status
+  ---
+  duration_ms: 2.3042
+  type: 'test'
+  ...
+# Subtest: rejects child nonzero exit
+ok 499 - rejects child nonzero exit
+  ---
+  duration_ms: 1.4201
+  type: 'test'
+  ...
+# Subtest: rejects supervisor PID mismatch
+ok 500 - rejects supervisor PID mismatch
+  ---
+  duration_ms: 0.7581
+  type: 'test'
+  ...
+# Subtest: rejects non AppContainer token
+ok 501 - rejects non AppContainer token
+  ---
+  duration_ms: 5.8455
+  type: 'test'
+  ...
+# Subtest: rejects wrong libuv share mode
+ok 502 - rejects wrong libuv share mode
+  ---
+  duration_ms: 0.5379
+  type: 'test'
+  ...
+# Subtest: rejects unclosed handle
+ok 503 - rejects unclosed handle
+  ---
+  duration_ms: 0.4689
+  type: 'test'
+  ...
+# Subtest: rejects missing query
+ok 504 - rejects missing query
+  ---
+  duration_ms: 0.4885
+  type: 'test'
+  ...
+# Subtest: rejects wrong flags
+ok 505 - rejects wrong flags
+  ---
+  duration_ms: 0.4591
+  type: 'test'
+  ...
+# Subtest: rejects wrong canonical kind
+ok 506 - rejects wrong canonical kind
+  ---
+  duration_ms: 0.4574
+  type: 'test'
+  ...
+# Subtest: rejects success with error
+ok 507 - rejects success with error
+  ---
+  duration_ms: 0.4462
+  type: 'test'
+  ...
+# Subtest: rejects failure with path
+ok 508 - rejects failure with path
+  ---
+  duration_ms: 0.538
+  type: 'test'
+  ...
+# Subtest: rejects success length mismatch
+ok 509 - rejects success length mismatch
+  ---
+  duration_ms: 0.7408
+  type: 'test'
+  ...
+# Subtest: rejects oversized result
+ok 510 - rejects oversized result
+  ---
+  duration_ms: 1.1382
+  type: 'test'
+  ...
+# Subtest: rejects nonzero target exit
+ok 511 - rejects nonzero target exit
+  ---
+  duration_ms: 0.5054
+  type: 'test'
+  ...
+# Subtest: rejects unexpected stderr
+ok 512 - rejects unexpected stderr
+  ---
+  duration_ms: 0.3574
+  type: 'test'
+  ...
+# Subtest: rejects unconfirmed cleanup
+ok 513 - rejects unconfirmed cleanup
+  ---
+  duration_ms: 0.3476
+  type: 'test'
+  ...
+# Subtest: rejects network capability
+ok 514 - rejects network capability
+  ---
+  duration_ms: 0.4731
+  type: 'test'
+  ...
+# Subtest: rejects loopback exemption
+ok 515 - rejects loopback exemption
+  ---
+  duration_ms: 0.3457
+  type: 'test'
+  ...
+# Subtest: rejects manifest substitution
+ok 516 - rejects manifest substitution
+  ---
+  duration_ms: 0.3489
+  type: 'test'
+  ...
+# Subtest: rejects unbound manifest digest
+ok 517 - rejects unbound manifest digest
+  ---
+  duration_ms: 0.3172
+  type: 'test'
+  ...
+1..517
+# tests 517
+# suites 0
+# pass 517
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8778.526

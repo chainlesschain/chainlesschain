@@ -1,0 +1,25 @@
+{
+  "kind": "tampered-file",
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "registryContentVerified": false,
+  "manifestDigest": "sha256:141c23f921a04d9b66387c9bdf384e7e331090fc9c77583c5a3e5a8a0eb10792",
+  "execution": {
+    "status": 125,
+    "stdout": "",
+    "stderr": "CC_WINDOWS_SANDBOX_ERROR: Native evaluator file identity or link count changed\r\n"
+  },
+  "settlement": {
+    "manifestDigest": "141c23f921a04d9b66387c9bdf384e7e331090fc9c77583c5a3e5a8a0eb10792",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 0,
+    "appContainerSid": "S-1-15-2-172111915-1904258616-3074040409-2203895980-2108733814-2882823675-1759367045",
+    "wallTimeMs": 10000,
+    "targetExitCode": 125,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": true
+  },
+  "passed": true
+}

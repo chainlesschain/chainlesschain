@@ -4,8 +4,65 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { EventEmitter } from "node:events";
+import workerHarness from "../fixtures/settings-permission-runtime-worker.cjs";
 import persistentSettings from "../../src/lib/settings-permission-authority.cjs";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+
+describe("settings writer Worker settlement", () => {
+  it("observes a queued message and exit emitted before promise continuations", async () => {
+    const worker = new EventEmitter();
+    const result = workerHarness.observeSettingsWriterWorker(worker);
+    const report = { result: { added: true } };
+    // This is Node's legal kOnExit ordering: drainMessagePort, then emit exit.
+    worker.emit("message", report);
+    worker.emit("exit", 0);
+    await expect(result).resolves.toBe(report);
+    expect(worker.eventNames()).toEqual([]);
+  });
+
+  it("does not treat a message as completed until the Worker exits", async () => {
+    const worker = new EventEmitter();
+    let settled = false;
+    const result = workerHarness.observeSettingsWriterWorker(worker);
+    result.then(() => (settled = true));
+    worker.emit("message", { result: { added: true } });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    worker.emit("exit", 0);
+    await result;
+    expect(settled).toBe(true);
+  });
+
+  it.each([
+    ["no result", [], 0, "returned 0 results"],
+    ["duplicate result", [{}, {}], 0, "returned 2 results"],
+    ["failed exit", [{}], 1, "exited with code 1"],
+  ])(
+    "rejects %s instead of silently losing the probe report",
+    async (_label, messages, code, error) => {
+      const worker = new EventEmitter();
+      const result = workerHarness.observeSettingsWriterWorker(worker);
+      for (const message of messages) worker.emit("message", message);
+      worker.emit("exit", code);
+      await expect(result).rejects.toThrow(error);
+      expect(worker.eventNames()).toEqual([]);
+    },
+  );
+
+  it.each(["error", "messageerror"])(
+    "preserves the original %s after exit",
+    async (event) => {
+      const worker = new EventEmitter();
+      const result = workerHarness.observeSettingsWriterWorker(worker);
+      const failure = new Error("official writer failed");
+      worker.emit(event, failure);
+      worker.emit("exit", 1);
+      await expect(result).rejects.toBe(failure);
+      expect(worker.eventNames()).toEqual([]);
+    },
+  );
+});
 
 describe("production persistent settings permission runtime", () => {
   it.skipIf(process.platform !== "linux")(

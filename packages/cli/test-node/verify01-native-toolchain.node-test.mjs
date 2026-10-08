@@ -48,7 +48,7 @@ test("complete registry bytes verify content without granting native execution",
   assert.ok(
     !report.blockers.includes("REGISTRY_CONTENT_VERIFICATION_REQUIRED"),
   );
-  assert.ok(report.blockers.includes("NATIVE_CAPSULE_BACKEND_NOT_IMPLEMENTED"));
+  assert.ok(report.blockers.includes("NATIVE_CAPSULE_EXECUTION_NOT_VERIFIED"));
 });
 
 test("tarball integrity mismatch cannot be replaced by installed file hashes", (t) => {

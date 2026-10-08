@@ -1,0 +1,1075 @@
+{
+  "schema": "chainlesschain.windows-native-capsule-transport-live/v1",
+  "startedAt": "2026-10-08T06:10:37.131Z",
+  "formalSample": false,
+  "providerAssessed": false,
+  "registryContentVerified": false,
+  "fullReviewPackReady": false,
+  "platform": "win32",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "nodeVersion": "v22.22.2",
+  "modulesAbi": "127",
+  "sourceFiles": 81,
+  "sourceBytes": 12582912,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n",
+  "manifest": {
+    "version": 2,
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "lockDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "planDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "projectCommit": "4444444444444444444444444444444444444444",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\control\\check.cjs",
+    "wallTimeMs": 10000,
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "844424937764588",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n",
+        "dev": "38182903",
+        "ino": "2251799821317837"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\control",
+        "dev": "38182903",
+        "ino": "844424937764560"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\scratch",
+        "dev": "38182903",
+        "ino": "844424937764586"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace",
+        "dev": "38182903",
+        "ino": "1688849867896527"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules",
+        "dev": "38182903",
+        "ino": "844424937764589"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule",
+        "dev": "38182903",
+        "ino": "844424937764590"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f0",
+        "dev": "38182903",
+        "ino": "1688849867896560"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f1",
+        "dev": "38182903",
+        "ino": "1688849867896570"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f2",
+        "dev": "38182903",
+        "ino": "844424937764606"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f3",
+        "dev": "38182903",
+        "ino": "844424937764608"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f4",
+        "dev": "38182903",
+        "ino": "844424937764610"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f5",
+        "dev": "38182903",
+        "ino": "2533274798028554"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f6",
+        "dev": "38182903",
+        "ino": "1407374891185939"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f7",
+        "dev": "38182903",
+        "ino": "1125899914475287"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f8",
+        "dev": "38182903",
+        "ino": "844424937764633"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f9",
+        "dev": "38182903",
+        "ino": "844424937764635"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f10",
+        "dev": "38182903",
+        "ino": "844424937764637"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f11",
+        "dev": "38182903",
+        "ino": "1407374891185956"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f12",
+        "dev": "38182903",
+        "ino": "1125899914475310"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f13",
+        "dev": "38182903",
+        "ino": "4503599635003194"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f14",
+        "dev": "38182903",
+        "ino": "844424937764668"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f15",
+        "dev": "38182903",
+        "ino": "1407374891185983"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f16",
+        "dev": "38182903",
+        "ino": "1125899914475329"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f17",
+        "dev": "38182903",
+        "ino": "844424937764700"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f18",
+        "dev": "38182903",
+        "ino": "1407374891186014"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f19",
+        "dev": "38182903",
+        "ino": "844424937764705"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f20",
+        "dev": "38182903",
+        "ino": "844424937764707"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f21",
+        "dev": "38182903",
+        "ino": "1125899914475365"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f22",
+        "dev": "38182903",
+        "ino": "844424937764712"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f23",
+        "dev": "38182903",
+        "ino": "844424937764714"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f24",
+        "dev": "38182903",
+        "ino": "844424937764716"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f25",
+        "dev": "38182903",
+        "ino": "1407374891186034"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f26",
+        "dev": "38182903",
+        "ino": "1407374891186036"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f27",
+        "dev": "38182903",
+        "ino": "1125899914475404"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f28",
+        "dev": "38182903",
+        "ino": "1407374891186083"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f29",
+        "dev": "38182903",
+        "ino": "1125899914475436"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f30",
+        "dev": "38182903",
+        "ino": "1688849867896755"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f31",
+        "dev": "38182903",
+        "ino": "844424937764789"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f32",
+        "dev": "38182903",
+        "ino": "1125899914475447"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f33",
+        "dev": "38182903",
+        "ino": "844424937764794"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f34",
+        "dev": "38182903",
+        "ino": "1125899914475453"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f35",
+        "dev": "38182903",
+        "ino": "1125899914475457"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f36",
+        "dev": "38182903",
+        "ino": "844424937764804"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f37",
+        "dev": "38182903",
+        "ino": "1125899914475462"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f38",
+        "dev": "38182903",
+        "ino": "844424937764809"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f39",
+        "dev": "38182903",
+        "ino": "844424937764811"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f40",
+        "dev": "38182903",
+        "ino": "844424937764813"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f41",
+        "dev": "38182903",
+        "ino": "844424937764815"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f42",
+        "dev": "38182903",
+        "ino": "844424937764817"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f43",
+        "dev": "38182903",
+        "ino": "844424937764819"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f44",
+        "dev": "38182903",
+        "ino": "844424937764821"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f45",
+        "dev": "38182903",
+        "ino": "844424937764823"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f46",
+        "dev": "38182903",
+        "ino": "844424937764825"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f47",
+        "dev": "38182903",
+        "ino": "844424937764827"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f48",
+        "dev": "38182903",
+        "ino": "844424937764829"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f49",
+        "dev": "38182903",
+        "ino": "844424937764832"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f50",
+        "dev": "38182903",
+        "ino": "844424937764834"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f51",
+        "dev": "38182903",
+        "ino": "844424937764836"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f52",
+        "dev": "38182903",
+        "ino": "844424937764838"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f53",
+        "dev": "38182903",
+        "ino": "844424937764840"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f54",
+        "dev": "38182903",
+        "ino": "844424937764842"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f55",
+        "dev": "38182903",
+        "ino": "844424937764844"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f56",
+        "dev": "38182903",
+        "ino": "844424937764846"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f57",
+        "dev": "38182903",
+        "ino": "844424937764848"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f58",
+        "dev": "38182903",
+        "ino": "844424937764850"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f59",
+        "dev": "38182903",
+        "ino": "1125899914475508"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f60",
+        "dev": "38182903",
+        "ino": "844424937764854"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f61",
+        "dev": "38182903",
+        "ino": "844424937764856"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f62",
+        "dev": "38182903",
+        "ino": "844424937764858"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f63",
+        "dev": "38182903",
+        "ino": "844424937764860"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f64",
+        "dev": "38182903",
+        "ino": "844424937764862"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f65",
+        "dev": "38182903",
+        "ino": "844424937764864"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f66",
+        "dev": "38182903",
+        "ino": "844424937764866"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f67",
+        "dev": "38182903",
+        "ino": "844424937764868"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f68",
+        "dev": "38182903",
+        "ino": "844424937764870"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f69",
+        "dev": "38182903",
+        "ino": "844424937764872"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f70",
+        "dev": "38182903",
+        "ino": "844424937764875"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f71",
+        "dev": "38182903",
+        "ino": "844424937764878"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f72",
+        "dev": "38182903",
+        "ino": "844424937764881"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f73",
+        "dev": "38182903",
+        "ino": "844424937764884"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f74",
+        "dev": "38182903",
+        "ino": "844424937764886"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f75",
+        "dev": "38182903",
+        "ino": "844424937764890"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f76",
+        "dev": "38182903",
+        "ino": "844424937764892"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f77",
+        "dev": "38182903",
+        "ino": "844424937764894"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f78",
+        "dev": "38182903",
+        "ino": "1125899914475553"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f79",
+        "dev": "38182903",
+        "ino": "844424937764899"
+      }
+    ],
+    "files": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f0\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764593",
+        "bytes": 131072,
+        "sha256": "fa43239bcee7b97ca62f007cc68487560a39e19f74f3dde7486db3f98df8e471"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f1\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475261",
+        "bytes": 131072,
+        "sha256": "4017b7a27f5d49ed213ab864b83f7d1f706ecc1039001dadcffed8df6bccddd1"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f2\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764607",
+        "bytes": 131072,
+        "sha256": "964e0165a36948b60ea2e603b1641612b64713783b789275dc51b4f260d5e0a1"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f3\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764609",
+        "bytes": 131072,
+        "sha256": "aaf6a8ab7f17b35353821ff0e7bf75abc68f963b2db36c3a1ddb27e382037c89"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f4\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475267",
+        "bytes": 131072,
+        "sha256": "1c18829c0c3a2c957b96fa74974c0255cde14cfd92d9bf29bcb9766382391a32"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f5\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475282",
+        "bytes": 131072,
+        "sha256": "621e2bd7c5e79444a4beaa5782f70028877450be4dae38e69417030b0ed98364"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f6\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764630",
+        "bytes": 131072,
+        "sha256": "facea79731674ae6f9d1564041a9fa24bb69ab03f78508c54f30daf923b15438"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f7\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764632",
+        "bytes": 131072,
+        "sha256": "51b1754edc87242e9dd3190af0d6bbc796d258fd14cc6bac980cded045b19824"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f8\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764634",
+        "bytes": 131072,
+        "sha256": "5c78072c8b0471d147dfc9b2c1cdd996546a44331b3753ccfb594619e1a5eac4"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f9\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764636",
+        "bytes": 131072,
+        "sha256": "d693d44d8478475adfae30336c111ec5bc69f61ea934b46d66857c1b3ea81607"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f10\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764640",
+        "bytes": 131072,
+        "sha256": "23e126f09a5b7b481ed7732e865e0ef57d5c62053599530fbd7d9b413f863185"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f11\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891185965",
+        "bytes": 131072,
+        "sha256": "eaf0544e066636822c6b952f6ba2047eec50ce378867985f78e451be4477693b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f12\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891185977",
+        "bytes": 131072,
+        "sha256": "a9d436eef49c42246cf6a2ceb0e8f065544b0f1e9a7a987cd0e4d4f863c98d01"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f13\\index.txt",
+        "dev": "38182903",
+        "ino": "2533274798028603",
+        "bytes": 131072,
+        "sha256": "77283b415caad926739dd46d233709e574955039eeafc2959d5affccd01eae07"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f14\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891185981",
+        "bytes": 131072,
+        "sha256": "3b7bd4aa6265261ef22b922443f7c0ca4c3d880690a7411c3e4839dd1841e786"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f15\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764672",
+        "bytes": 131072,
+        "sha256": "3fe0aa5079e456a37e67ba63dea2e40f8a9077ef42b944da864a0a05ec151543"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f16\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764675",
+        "bytes": 131072,
+        "sha256": "add003c49a576b3154d188b91144bf32715286df35ad759c38bfb159dac3a71f"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f17\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764701",
+        "bytes": 131072,
+        "sha256": "51caac4c4a2a04ba6ec6d56b20b017456aa31bf8232f06ec3d78297c920ea831"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f18\\index.txt",
+        "dev": "38182903",
+        "ino": "1688849867896672",
+        "bytes": 131072,
+        "sha256": "3608c5b2af206b935b49350c907870aedfc05ae0746fd710ef515a6bfa163464"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f19\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764706",
+        "bytes": 131072,
+        "sha256": "f63776d7df004b1d43b39e00ef8143dcf8cde4bd97812bb456089b81412896f5"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f20\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764708",
+        "bytes": 131072,
+        "sha256": "f0eef3b8eedfcecaf5545af3ef048784e91c3749a2ac3ce0126f259d0d44e636"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f21\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764711",
+        "bytes": 131072,
+        "sha256": "a4ae639acc0678b51339feba9816928c684f0251e26516a3879ac83188919789"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f22\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764713",
+        "bytes": 131072,
+        "sha256": "a1e3d0bc7e98d62d646092f953f7dc486268ef2c66f78841c8c9af5f7550c349"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f23\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764715",
+        "bytes": 131072,
+        "sha256": "f9141cb2f32b9643bd96011f8084fbec4caafbddff4419194b09ce32808dc3e4"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f24\\index.txt",
+        "dev": "38182903",
+        "ino": "4785074611713901",
+        "bytes": 131072,
+        "sha256": "80417729a1c2e32e63f3708ddff12c15a30312e23006cb0a046d051ac1849456"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f25\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891186035",
+        "bytes": 131072,
+        "sha256": "13f7346f69df6acdeb145093de1773b6effd63fe661dbcc0e46ee0dded9d9379"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f26\\index.txt",
+        "dev": "38182903",
+        "ino": "1970324844607370",
+        "bytes": 131072,
+        "sha256": "5551339c28f321dfb93faf511759c4d1b38d911ee88e09afb9e240029d105345"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f27\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764749",
+        "bytes": 131072,
+        "sha256": "69e7c3f154dc08c75e15c22928ebae87727ffeb1ba04a12bd085ed3a7a5a6cea"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f28\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891186084",
+        "bytes": 131072,
+        "sha256": "2240b40920e1b7c33e61118a0efea3e52f9f241509a608efbb5a97ad69ff8dc9"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f29\\index.txt",
+        "dev": "38182903",
+        "ino": "2814749774739378",
+        "bytes": 131072,
+        "sha256": "48095802a0d6f79cfe7c5fe58b0fb561be2d5e4ec38ecceda0cd82f273ab4946"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f30\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764788",
+        "bytes": 131072,
+        "sha256": "5642def0bdff84d14eb740a03452629fc143b215672f78eb0924ab1d388f052d"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f31\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764790",
+        "bytes": 131072,
+        "sha256": "7b010a975f13b6806c74604251c97285126ef8c721ca5436be1cb3cfe3a28749"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f32\\index.txt",
+        "dev": "38182903",
+        "ino": "2533274798028729",
+        "bytes": 131072,
+        "sha256": "e94f5162353c4eadcc9e62d4bf7cb5c3a363c698b4be27726ff4006016c0f160"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f33\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475451",
+        "bytes": 131072,
+        "sha256": "303487028313d8c3f2fdb9d60aed4450c93d9ea79e606d744acedf65450fad90"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f34\\index.txt",
+        "dev": "38182903",
+        "ino": "2251799821318078",
+        "bytes": 131072,
+        "sha256": "204377474ae9d10e5b77b2b2c96ce6e6bb6c56b4fd71c9a05fc335e95608891b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f35\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891186114",
+        "bytes": 131072,
+        "sha256": "760c78487b5d374bdb2d5d74e6ac5edee3a250c1c261399f35b286a754fa967f"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f36\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475461",
+        "bytes": 131072,
+        "sha256": "468bd5a6b2dd5740a048b32fc4bb2c3f196d97f048a4f372d1615bccaaee6d77"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f37\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764808",
+        "bytes": 131072,
+        "sha256": "7b7583e85bd0ef91ad7e9a9464743c1962dd60f28e5f07c1460f9ab9dfa3474b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f38\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764810",
+        "bytes": 131072,
+        "sha256": "1faf08b1b35324dff33668ae0ffb960cb1ee31e8f3133e3eed5ba511ce204d90"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f39\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764812",
+        "bytes": 131072,
+        "sha256": "3817c2ae140463c58830ee36d0684b9ffbd94dd19e41f9bfaeb22d81f8170fd0"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f40\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764814",
+        "bytes": 131072,
+        "sha256": "7321f6cef38cc9809449fbf3931d1a2c2bb70470cf35d28a3922202feccbbf8a"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f41\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764816",
+        "bytes": 131072,
+        "sha256": "d43fc2cd840f79b984247ae11614220bc05ce28ec4a78776b3f5eb2000835c39"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f42\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764818",
+        "bytes": 131072,
+        "sha256": "7c302fe938a60bbd4360cc3103dfc5888376bfc45ae7e7b695d261ebf137a113"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f43\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764820",
+        "bytes": 131072,
+        "sha256": "a10cea0311e5fc2a87fff841fc7fd2723897cfc145424a240b2df8c728414925"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f44\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764822",
+        "bytes": 131072,
+        "sha256": "e30c68bf0c08b8effe9824defa18455cf488bc9586d336b2ae3e1ef32dd5b5d2"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f45\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764824",
+        "bytes": 131072,
+        "sha256": "dac9b575d063e7a709dc2258c4c750e7a1e1e2c16b846d21d482451cf3d4740a"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f46\\index.txt",
+        "dev": "38182903",
+        "ino": "1407374891186138",
+        "bytes": 131072,
+        "sha256": "a278e36d2ca27aaebc8a5644ce2bc8576e319b79643fb64d68dca9da9fbcccb7"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f47\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764828",
+        "bytes": 131072,
+        "sha256": "58b7d7e404f5cf8bbe6aef46c7262213e218d0c84d21d951389f81f06dd8e539"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f48\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764831",
+        "bytes": 131072,
+        "sha256": "42b2f62042de1defb606014209ee8ec394992e8c740ef5702c4506188de213c5"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f49\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764833",
+        "bytes": 131072,
+        "sha256": "1c6482ba5ae9a322a8262ccd5fe3a49996a1bdd09ca8000706ce8ffeb6923e91"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f50\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764835",
+        "bytes": 131072,
+        "sha256": "0fa87da363292376acf6154161054c771ed109a2098ebb87c84dedaa9e0a3b42"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f51\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764837",
+        "bytes": 131072,
+        "sha256": "d62ce94d68397e8d7a6338bc505598ac1af046964179cee286c4bd5d0f4e0112"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f52\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764839",
+        "bytes": 131072,
+        "sha256": "2987bdbb64d8399a32a32f068f4e9632468bf61b928e0f0c2e601589d8c06259"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f53\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764841",
+        "bytes": 131072,
+        "sha256": "bbb7db09e2fb035116cd756847b2647c6aa9555b7a714ef0b6e69dc172707caf"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f54\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764843",
+        "bytes": 131072,
+        "sha256": "4ee5cf86ccde2a9334356cb495218d4969c59bd701e86da3df4bf82b16b27e26"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f55\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764845",
+        "bytes": 131072,
+        "sha256": "87d9ce0aef7baa5a949f3b52c2d88f8d5c66905a1229d46258899b27ccb7fc1f"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f56\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764847",
+        "bytes": 131072,
+        "sha256": "bb8afb7d59ce1df8071ab2f16c183f09da7406349328669c72757b2ecb852171"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f57\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764849",
+        "bytes": 131072,
+        "sha256": "a866980a9c28b64fb487fa7d1fc952782d33234827465ab9291338551e37f85b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f58\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764851",
+        "bytes": 131072,
+        "sha256": "a629aec8e0eb66f571f36d73736bd419de4212855274a026707abe1648515658"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f59\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764853",
+        "bytes": 131072,
+        "sha256": "5f249269b5c11ca29a3946ce92191c90eebd63a7247c806d5e706875de31302c"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f60\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764855",
+        "bytes": 131072,
+        "sha256": "54580441346801ad6c7a352748d9f09dfa580ca2525b5a5f042c5a7bbf293d13"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f61\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475513",
+        "bytes": 131072,
+        "sha256": "e665203bb0ea771064f2d8969ac9872bcf64b7bad3d4fb457ab36f3dce6cc792"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f62\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475515",
+        "bytes": 131072,
+        "sha256": "85b47a3f7a55655eef0c0452765504285cdb0c2bc6a7713bb2e944b2c39a73a0"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f63\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764861",
+        "bytes": 131072,
+        "sha256": "bc7c9bf78b15c56aa7945c4b99564bda7331fde7fa355105cec9164972f69bb9"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f64\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764863",
+        "bytes": 131072,
+        "sha256": "d2e3f3709d10c5371cb39ddce17284b91d531b6d53a7e7d007f42ecf93d141e1"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f65\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764865",
+        "bytes": 131072,
+        "sha256": "02c9a68f567b8ec215d893cde67ae2da41ba3c9b838d0ba4d3d04ab3cdc58da6"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f66\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764867",
+        "bytes": 131072,
+        "sha256": "97eb39e6f0fb754d60677c47fc58038027025b6351fdc5887e54aea232a5e07b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f67\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764869",
+        "bytes": 131072,
+        "sha256": "d87438b22de89f463fb38ac6aefedd43cbb2ca934b34374391cb94bc784948b3"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f68\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764871",
+        "bytes": 131072,
+        "sha256": "041ae98d0af9ca59d54f7cb1f2f519e925fb7d206868b6c38ccff6aa5eb9f4c3"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f69\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764873",
+        "bytes": 131072,
+        "sha256": "8ba4c23e7330e251794950863926eb4f4ea97de92b24867f0150d961cc5503df"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f70\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764876",
+        "bytes": 131072,
+        "sha256": "2b552fa3081dc77d4310d9e31830020c30ddfdf09ab7333df5f8e22b3127d1d2"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f71\\index.txt",
+        "dev": "38182903",
+        "ino": "5629499541846031",
+        "bytes": 131072,
+        "sha256": "ab3d7a0bc4f921296719fcc2d8fd2b9a702779218944905f0f554eaea123fb4b"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f72\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764882",
+        "bytes": 131072,
+        "sha256": "5e19a67c37e013507bf7a652ac1f2ecf5e9907a37a1b07152e250dd6a2ed1a79"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f73\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764885",
+        "bytes": 131072,
+        "sha256": "11b68385bf644f6aa599866b682d1b8d8da0f0ef26674c5ca7c6329f5cb99ad0"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f74\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764888",
+        "bytes": 131072,
+        "sha256": "cdc6d412a15b9bf2869234c8d1c60bb4ce7ef2140f438e60bb1de4bd72e8c31d"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f75\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475547",
+        "bytes": 131072,
+        "sha256": "5d1e028f4dd4d7340af7e3c777b4bd885307ee643baf32a33323137052fe13d5"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f76\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764893",
+        "bytes": 131072,
+        "sha256": "100f47ee44d8557c6f48f169639441bcae155792a100622eb37f4a7298a76de1"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f77\\index.txt",
+        "dev": "38182903",
+        "ino": "1125899914475551",
+        "bytes": 131072,
+        "sha256": "0e3dd2ecfd2a65d8c773781668502d39445c98ebaf9c51fc40d1bb4505f4f758"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f78\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764898",
+        "bytes": 131072,
+        "sha256": "fc91031ff32d48b68b4aa54df95d36bf88c2b326c0dc6779b6163dc8a840ee01"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\node_modules\\@capsule\\f79\\index.txt",
+        "dev": "38182903",
+        "ino": "844424937764900",
+        "bytes": 131072,
+        "sha256": "367ec19ec290e11a292b04338390558c856170218fe85d21a0278dd6c1d68b02"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\workspace\\large.bin",
+        "dev": "38182903",
+        "ino": "844424937764901",
+        "bytes": 2097152,
+        "sha256": "2813be2b4227e8f9ae70a71bc1776aff26f6aa3b92d1d8ba5061196cb1be1ee7"
+      },
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-capsule-k3377n\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "1125899914475558",
+        "bytes": 811,
+        "sha256": "0cfafe25c0a41e784fd2131155b7cdae078d6176cd8eff14baa99049ec309a98"
+      }
+    ]
+  },
+  "manifestDigest": "sha256:350d1b4f5f64851d45569b7a0f5f26253da572bf1499b8584f8b0368e8eb576a",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"pid\":29380,\"appContainerSid\":\"S-1-15-2-183505332-363440606-3013661035-849190922-1465968070-67104296-1067876386\",\"files\":81,\"largeBytes\":2097152,\"readOnly\":true,\"scratchWritable\":true}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "350d1b4f5f64851d45569b7a0f5f26253da572bf1499b8584f8b0368e8eb576a",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 29380,
+    "appContainerSid": "S-1-15-2-183505332-363440606-3013661035-849190922-1465968070-67104296-1067876386",
+    "wallTimeMs": 10000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "passed": true,
+  "finishedAt": "2026-10-08T06:10:59.018Z"
+}

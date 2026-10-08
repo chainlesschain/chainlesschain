@@ -1,0 +1,178 @@
+{
+  "schema": "chainlesschain.windows-pipe-diagnostic-archive/v1",
+  "archivedAt": "2026-10-08T03:20:02.695Z",
+  "admissionEligible": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackAssessed": false,
+  "capabilities": {},
+  "helperProvenance": "All-file native run used the existing v1 helper. Concurrent v2 development is outside this evidence; no final v2 source/helper verification is claimed.",
+  "helperPostRunReadback": {
+    "observedBeforeV2Rebuild": true,
+    "executionTimeAttestation": false,
+    "dllDigest": "sha256:9fc4bc15dec2ad0888c00b42205a64c66767c3ea0f1193e08ea249785a3d8259",
+    "exeDigest": "sha256:842ee6d72c67a63ee07186aa254659d9f9a037598382410e318fdf8c76918416"
+  },
+  "conclusions": {
+    "ordinaryLibuvPipeNames": "ERROR_ACCESS_DENIED observed three times",
+    "localNames": "CreateNamedPipe succeeded; connection and IPC semantics not assessed",
+    "ignoreStdin": "NUL denied with Win32 5 / Node EPERM",
+    "exactAllFileStdio": "97 binary stdin bytes verified by digest; stdout/stderr, child identity and 3 closed descriptors verified",
+    "nativeSettlement": "10-second Job, zero capabilities, absent loopback exemption, cleanup confirmed",
+    "frozenHostMismatch": "Observed Windows 10 build 19045; frozen Windows 11 24H2 remains unverified"
+  },
+  "tests": {
+    "status": 0,
+    "tests": 32,
+    "passed": 32,
+    "skipped": 0,
+    "stderr": ""
+  },
+  "artifacts": [
+    {
+      "path": "pipe-api-2026-10-07.redacted.json",
+      "bytes": 12045,
+      "digest": "sha256:16ab0dafa3c3e3f441f27661b09297263c6dbdbc651012716a14d1aabc694315"
+    },
+    {
+      "path": "pipe-api-2026-10-07.stdout.redacted.txt",
+      "bytes": 1297,
+      "digest": "sha256:437d573bfd38ad9c7a33fcbb967323fb79d32ea9fcc7664e3140e602ea472ee1",
+      "source": {
+        "report": ".work/windows-pipe-api-2026-10-07-final/report.json",
+        "field": "execution.stdout",
+        "originalDigest": "sha256:437d573bfd38ad9c7a33fcbb967323fb79d32ea9fcc7664e3140e602ea472ee1",
+        "admissionEligible": false
+      }
+    },
+    {
+      "path": "pipe-api-2026-10-07.stderr.redacted.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": {
+        "report": ".work/windows-pipe-api-2026-10-07-final/report.json",
+        "field": "execution.stderr",
+        "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "admissionEligible": false
+      }
+    },
+    {
+      "path": "all-file-stdio-native-2026-10-08.redacted.json",
+      "bytes": 6982,
+      "digest": "sha256:00dccfa6198fa108c1aba2e1b2179fc581d65d9689877a1b87b0cddbf5f0f4ab"
+    },
+    {
+      "path": "all-file-stdio-native-2026-10-08.stdout.redacted.txt",
+      "bytes": 513,
+      "digest": "sha256:09c09043613781819862a5587cb58755fe618ff55547aa14449ce08fee95fdc4",
+      "source": {
+        "report": ".work/windows-all-file-stdio-2026-10-08-native/report.json",
+        "field": "execution.stdout",
+        "originalDigest": "sha256:6a241f859526a4abe60b2f518a8d6ca4661b3f4b2f45e941acd3c92f17afe850",
+        "admissionEligible": false
+      }
+    },
+    {
+      "path": "all-file-stdio-native-2026-10-08.stderr.redacted.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": {
+        "report": ".work/windows-all-file-stdio-2026-10-08-native/report.json",
+        "field": "execution.stderr",
+        "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "admissionEligible": false
+      }
+    },
+    {
+      "path": "all-file-stdio-restricted-failure-2026-10-08.redacted.json",
+      "bytes": 5625,
+      "digest": "sha256:37ed12a9d95889efb82715ce1d7049d638a6586755cf9f84cabef7c917270afe"
+    },
+    {
+      "path": "historical-readback.json",
+      "bytes": 1962,
+      "digest": "sha256:01574f2278f99b36806e2a0a63ba44e536d6b7be67eccedeaabe2e01d3e373b5",
+      "source": {
+        "path": ".work/windows-pipe-api-2026-10-07-readback.json",
+        "digest": "sha256:01574f2278f99b36806e2a0a63ba44e536d6b7be67eccedeaabe2e01d3e373b5"
+      }
+    },
+    {
+      "path": "upstream/pipe.c",
+      "bytes": 80675,
+      "digest": "sha256:4d370ce0bc10f8ae429f8acb2c7688d74b753e0177f347f5f3d337647e77ca38",
+      "source": {
+        "path": ".work/node-pinned-libuv-pipe.c",
+        "digest": "sha256:4d370ce0bc10f8ae429f8acb2c7688d74b753e0177f347f5f3d337647e77ca38"
+      }
+    },
+    {
+      "path": "upstream/process-stdio.c",
+      "bytes": 12646,
+      "digest": "sha256:7367280da2315b8cf16d42870a972164763b1967f8e39bd141b27726237872d8",
+      "source": {
+        "path": ".work/node-pinned-libuv-process-stdio.c",
+        "digest": "sha256:7367280da2315b8cf16d42870a972164763b1967f8e39bd141b27726237872d8"
+      }
+    },
+    {
+      "path": "upstream/SHASUMS256.txt",
+      "bytes": 3777,
+      "digest": "sha256:62a55cf160c9005f0e0f0067f30b74ba8081320117c6fee6ce2938604e669d10",
+      "source": {
+        "path": ".work/node-v22.22.2-SHASUMS256.txt",
+        "digest": "sha256:62a55cf160c9005f0e0f0067f30b74ba8081320117c6fee6ce2938604e669d10"
+      }
+    },
+    {
+      "path": "snapshot/windows-appcontainer-pipe-diagnostic.mjs",
+      "bytes": 13648,
+      "digest": "sha256:5a54b470a943e2a0ae49b5239c73f9867ea007c4414ed5f7542fdfa5117cffec",
+      "source": {
+        "path": "packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs",
+        "digest": "sha256:5a54b470a943e2a0ae49b5239c73f9867ea007c4414ed5f7542fdfa5117cffec"
+      }
+    },
+    {
+      "path": "snapshot/windows-pipe-api-probe.cs",
+      "bytes": 3895,
+      "digest": "sha256:b6aa75eb9dda0b889cef324fd48e831f000e851bfdef42f086f2324640a2e7f7",
+      "source": {
+        "path": "packages/cli/scripts/diagnostics/windows-pipe-api-probe.cs",
+        "digest": "sha256:b6aa75eb9dda0b889cef324fd48e831f000e851bfdef42f086f2324640a2e7f7"
+      }
+    },
+    {
+      "path": "snapshot/windows-appcontainer-pipe-diagnostic.node-test.mjs",
+      "bytes": 5258,
+      "digest": "sha256:f885dbc4cbbeceb62c6f4b67fe7cfbba3cf9e57d9a724ebffc71a6c40d1c8245",
+      "source": {
+        "path": "packages/cli/test-node/windows-appcontainer-pipe-diagnostic.node-test.mjs",
+        "digest": "sha256:f885dbc4cbbeceb62c6f4b67fe7cfbba3cf9e57d9a724ebffc71a6c40d1c8245"
+      }
+    },
+    {
+      "path": "snapshot/windows-all-file-stdio-diagnostic.mjs",
+      "bytes": 8697,
+      "digest": "sha256:d19fc7561ed17d29e16e3f862b360d60409abdae0218997be5a1022c6a59f989",
+      "source": {
+        "path": "packages/cli/scripts/windows-all-file-stdio-diagnostic.mjs",
+        "digest": "sha256:d19fc7561ed17d29e16e3f862b360d60409abdae0218997be5a1022c6a59f989"
+      }
+    },
+    {
+      "path": "snapshot/windows-all-file-stdio-diagnostic.node-test.mjs",
+      "bytes": 5652,
+      "digest": "sha256:3c1e5897b5f5803f214d284e98ab25bc64f4d069755c61e3e264149d2723de7b",
+      "source": {
+        "path": "packages/cli/test-node/windows-all-file-stdio-diagnostic.node-test.mjs",
+        "digest": "sha256:3c1e5897b5f5803f214d284e98ab25bc64f4d069755c61e3e264149d2723de7b"
+      }
+    },
+    {
+      "path": "node-tests.tap",
+      "bytes": 4643,
+      "digest": "sha256:3dd3c16dcf6bca22d03d683adfec92df1bc2b1792eb8e7748a31d37a7456fe33"
+    }
+  ]
+}

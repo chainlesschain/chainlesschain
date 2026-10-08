@@ -1,0 +1,442 @@
+{
+  "schema": "chainlesschain.windows-null-v3-readback/v1",
+  "collectedAt": "2026-10-08T07:35:25.536Z",
+  "derived": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "originals": [
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-02/report.json",
+      "bytes": 19623,
+      "digest": "sha256:0503b7fbcaa24b2ea1d56354c8fca3dc8f02b257e2a46971fb819b7f1b216651"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-03/report.json",
+      "bytes": 69385,
+      "digest": "sha256:8254b22c4d2bdcc6e58f7cf3605b2e04b800175079a0d59c81b4bb538d1259ca"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-04/report.json",
+      "bytes": 71366,
+      "digest": "sha256:9c99de5e2189ee5dd6b231f89056af8fe9073e0329907f6e7c5c3035e14d3bef"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-final/report.json",
+      "bytes": 71402,
+      "digest": "sha256:0ecb3aadd11b003f78d0d8dc4aecce45f1716aece40f61c500704ca9c330c600"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-unlisted/report.json",
+      "bytes": 23204,
+      "digest": "sha256:f5db5c1712d3c9699dc77ae6568692721995451e17d1fe2ef94421888c7bab8e"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-actual-snapshot/report.json",
+      "bytes": 73542,
+      "digest": "sha256:02a13130657bb9d5489ba40089be20438a0dd15d994e5fec370fce318badd7f3"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-validated/report.json",
+      "bytes": 28483,
+      "digest": "sha256:c0ea65bcda78c0002e073882bd79323a79e1f62bc666af87e74ca379a704e22c"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-validated/journal.jsonl",
+      "bytes": 6476,
+      "digest": "sha256:37f3175fa8f8dbd6ac792cb73f73a6bcb2f3cad070a5493d8b340b0668d728f0"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-validated/stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-validated/stderr.txt",
+      "bytes": 755,
+      "digest": "sha256:86cb611b26c680b618aba662352f0265668a08b8f6684c2d172437c9ce01a91c"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-type-proof/report.json",
+      "bytes": 78513,
+      "digest": "sha256:c35a6a39f5ead66eb73c8ae6c9bb4101f595c47b55594c09ce52fdb4269ee528"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-type-proof/journal.jsonl",
+      "bytes": 11273,
+      "digest": "sha256:3854b83d6b4e9c1d1bd53c2af66d5bb1fea12c2d70048abfd66c156b9196974a"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-type-proof/stdout.txt",
+      "bytes": 1807,
+      "digest": "sha256:46ac2853f2ec1f2a106c099b3d1e4ce62452d201a8b8183fb4d019345fa13c23"
+    },
+    {
+      "file": ".work/windows-null-v3-2026-10-08-type-proof/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-frozen-config-v2/report.json",
+      "bytes": 3148742,
+      "digest": "sha256:7320e7c639f5ad2e68a8091364c7fbf32cc1dcf6ad3ba7975fc6d01a89bb6fdd"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-frozen-config-v2/journal.jsonl",
+      "bytes": 763,
+      "digest": "sha256:d182ff08571784cf2fdcdaac9cdcff90b8d0da70a90500ecc13168b11b22c721"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-frozen-config-v2/stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/windows-native-runtime-capsule-2026-10-08-frozen-config-v2/stderr.txt",
+      "bytes": 1774,
+      "digest": "sha256:67750a4b82e337c3e40714b104ba61411eaa36feec53a6b0ea27810ce31351ae"
+    },
+    {
+      "file": ".work/native-null-v3/.work/null-v3-build-type-snapshot/build-report.json",
+      "bytes": 11479,
+      "digest": "sha256:e9cac7a7d69ec1ea2f5f4c8925ac49e3ab299ac455169d031c72123eecd55401"
+    },
+    {
+      "file": ".work/windows-null-v3-capsule-regression-2026-10-08.json",
+      "bytes": 46712,
+      "digest": "sha256:cac2d80bbff596e3931ca214d455c3159d21a9ed8a50faa9270b82c5025218f5"
+    },
+    {
+      "file": ".work/windows-null-v3-capsule-regression-2026-10-08.json.tampered-file.json",
+      "bytes": 910,
+      "digest": "sha256:2a552443f0e2774a635233ffdc07b03eb742fc337c785092612b689e074b2ed2"
+    },
+    {
+      "file": ".work/windows-null-v3-capsule-regression-2026-10-08.json.unlisted-entry.json",
+      "bytes": 901,
+      "digest": "sha256:352326631b4da570e8190c1b0bb5eb0cc3fc7c69bab7bc33db82e552495caf02"
+    },
+    {
+      "file": ".work/windows-null-v3-vitest-2026-10-08.json",
+      "bytes": 20779,
+      "digest": "sha256:c0d2855279b3b9d0f85ed16560305a0f7b408e5f521bf5507d71ae436a57e6ae"
+    },
+    {
+      "file": ".work/windows-null-v3-regression-2026-10-08.tap",
+      "bytes": 81927,
+      "digest": "sha256:d9991911b75cc4050de43505f2729046fcdab890c57118932596f95db9281cd9"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "prototype-02.json",
+      "bytes": 18721,
+      "digest": "sha256:2b8f1904051cb762f73942a8997220f09e8e71f9e6bc9d61954955ae2d3e1f32",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "prototype-03.json",
+      "bytes": 68407,
+      "digest": "sha256:e75918b0ca4e3ab5408fdbbd8c0502c3a20914ea6c199e2d0ff2453a9f66472c",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "prototype-04.json",
+      "bytes": 70381,
+      "digest": "sha256:f7c27c57aa8b294df3504049f6dfac4e43735d744ccff4f351e9b235cdd374b9",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "prototype-final.json",
+      "bytes": 70416,
+      "digest": "sha256:a2ad37ded97958d19904f353621d660dd1f7af83419325661c21f7185a7f43f7",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "strict-handle-failure.json",
+      "bytes": 22296,
+      "digest": "sha256:a8ab9825c6a432803f72c75af8ce5d977d5f1ee8f9dde35bf260f23038272d03",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "absence-only-snapshot.json",
+      "bytes": 72557,
+      "digest": "sha256:4da8c524676188271c32c007e30cf1c9262b4de4bdf89b9959777af0692b71e7",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "numeric-reuse-failure.json",
+      "bytes": 27569,
+      "digest": "sha256:e446d261d70289ab8810e77e93faed48424c0c89e0e03d841590819b50301042",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "numeric-reuse-failure-journal.jsonl",
+      "bytes": 6461,
+      "digest": "sha256:4b0fe43557f7eaebd19ab0142d3b418a444192870d237ed0bc6b79c63df15555",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "numeric-reuse-failure-stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "numeric-reuse-failure-stderr.txt",
+      "bytes": 753,
+      "digest": "sha256:c33d1489c981f58131d2c7b034ade658e92bdbcc0e337b4d016ef1ab4d6bc6fb",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "type-proof.json",
+      "bytes": 77520,
+      "digest": "sha256:36e76d08f21a37205bb60a8ea7d084b157f40d1295a48c74affb8522879b3150",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "type-proof-journal.jsonl",
+      "bytes": 11255,
+      "digest": "sha256:ec3dfe3b6eb5b98596c9c5636b54f9d7f6f1bec8983c546d9e06b57cb6d67fc0",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "type-proof-stdout.txt",
+      "bytes": 1804,
+      "digest": "sha256:9f05057894b53b33b61c0aa05d8a76fb7fd8bf145e829817b1813a503117c44e",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "type-proof-stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "frozen-config-v2-failure.json",
+      "bytes": 2862074,
+      "digest": "sha256:0d0b526828aa3cc8e718c4243cf0f58b69d6a52686d4fcc3e8b58dba3b26979c",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "frozen-config-v2-failure-journal.jsonl",
+      "bytes": 763,
+      "digest": "sha256:d182ff08571784cf2fdcdaac9cdcff90b8d0da70a90500ecc13168b11b22c721",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "frozen-config-v2-failure-stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "frozen-config-v2-failure-stderr.txt",
+      "bytes": 1759,
+      "digest": "sha256:844d3f85bd22c99cdb74da4a57a9f6ae41d6cb914379468acaf12273dbfd6cbb",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "build-type-snapshot.json",
+      "bytes": 11134,
+      "digest": "sha256:8143d47aab150a6a41fa6ad9f248b3d7759b781d6792e159cb72a321617aa435",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport.json",
+      "bytes": 46187,
+      "digest": "sha256:d43c04abc990a5f5851d47cff60022655332ab0f9ac8a608f2d210b50a8a0532",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport-tampered.json",
+      "bytes": 910,
+      "digest": "sha256:2a552443f0e2774a635233ffdc07b03eb742fc337c785092612b689e074b2ed2",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "transport-unlisted.json",
+      "bytes": 901,
+      "digest": "sha256:352326631b4da570e8190c1b0bb5eb0cc3fc7c69bab7bc33db82e552495caf02",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "vitest.json",
+      "bytes": 28294,
+      "digest": "sha256:ab4cb42c7370c0293b0b19fd51bbb9e125d011713736614e2e567724fe47ceec",
+      "derived": true,
+      "admissionEligible": false
+    },
+    {
+      "file": "node-regression.tap",
+      "bytes": 81927,
+      "digest": "sha256:d9991911b75cc4050de43505f2729046fcdab890c57118932596f95db9281cd9",
+      "derived": true,
+      "admissionEligible": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "type-proof",
+      "independentlyRevalidated": true,
+      "processes": 6,
+      "phaseReceipts": 12,
+      "cleanupConfirmed": true,
+      "capabilities": {},
+      "rootPid": 28284,
+      "trapResults": [
+        {
+          "pid": 17388,
+          "mode": "grandchild",
+          "trap": {
+            "handle": "28c",
+            "objectName": "\\Sessions\\1\\AppContainerNamedObjects\\S-1-15-2-44580603-165867735-1655452672-262520514-2519302681-2916495858-2492954192\\cc-null-v3-unlisted-28284-326140000",
+            "present": true,
+            "typeIndex": 37,
+            "expectedTypeIndex": 16,
+            "inherited": false,
+            "method": "own-process-handle-snapshot",
+            "handleCount": 164
+          }
+        },
+        {
+          "pid": 20148,
+          "mode": "concurrent-2",
+          "trap": {
+            "handle": "28c",
+            "objectName": "\\Sessions\\1\\AppContainerNamedObjects\\S-1-15-2-44580603-165867735-1655452672-262520514-2519302681-2916495858-2492954192\\cc-null-v3-unlisted-28284-326140000",
+            "present": true,
+            "typeIndex": 37,
+            "expectedTypeIndex": 16,
+            "inherited": false,
+            "method": "own-process-handle-snapshot",
+            "handleCount": 164
+          }
+        },
+        {
+          "pid": 28016,
+          "mode": "concurrent-0",
+          "trap": {
+            "handle": "28c",
+            "objectName": "\\Sessions\\1\\AppContainerNamedObjects\\S-1-15-2-44580603-165867735-1655452672-262520514-2519302681-2916495858-2492954192\\cc-null-v3-unlisted-28284-326140000",
+            "present": true,
+            "typeIndex": 37,
+            "expectedTypeIndex": 16,
+            "inherited": false,
+            "method": "own-process-handle-snapshot",
+            "handleCount": 164
+          }
+        },
+        {
+          "pid": 2824,
+          "mode": "nested",
+          "trap": {
+            "handle": "28c",
+            "objectName": "\\Sessions\\1\\AppContainerNamedObjects\\S-1-15-2-44580603-165867735-1655452672-262520514-2519302681-2916495858-2492954192\\cc-null-v3-unlisted-28284-326140000",
+            "present": false,
+            "typeIndex": null,
+            "expectedTypeIndex": 16,
+            "inherited": false,
+            "method": "own-process-handle-snapshot",
+            "handleCount": 164
+          }
+        },
+        {
+          "pid": 9704,
+          "mode": "concurrent-1",
+          "trap": {
+            "handle": "28c",
+            "objectName": "\\Sessions\\1\\AppContainerNamedObjects\\S-1-15-2-44580603-165867735-1655452672-262520514-2519302681-2916495858-2492954192\\cc-null-v3-unlisted-28284-326140000",
+            "present": false,
+            "typeIndex": null,
+            "expectedTypeIndex": 16,
+            "inherited": false,
+            "method": "own-process-handle-snapshot",
+            "handleCount": 164
+          }
+        }
+      ],
+      "pipeRealpathExecutedInThisRun": false
+    }
+  ],
+  "sourcesAtReadback": [
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-diagnostic.mjs",
+      "digest": "sha256:34fb6821470666e2549980d445f59aee3247ad19dbca81d8eb0c8e2bbd121f1e"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-null-v3-result.mjs",
+      "digest": "sha256:07d572383315de40c953bb37ed6008c378e97e671805b6712a8a3ac6dd0f3d0d"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-fixtures.mjs",
+      "digest": "sha256:366af0e94cec49b30dd1236eced389132d3d1993633e525dbd73e3deb94d718f"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.cpp",
+      "digest": "sha256:5d71ba4b0a15c873dc8e2d352a40a35d8cd13c2d6704686c8f1a5146bb4ebad8"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3.h",
+      "digest": "sha256:ed162f4bd8717cfc3d4bdbd4e302ad682b4a303f4653e86a652306be9d97cafa"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-null-v3-preload.cjs",
+      "digest": "sha256:13857ca15d8e9652ff29c6e3478c383bc71e1ecd92a01b295a56035f479421b9"
+    },
+    {
+      "file": "packages/cli/scripts/build-windows-node-null-v3.mjs",
+      "digest": "sha256:d9195b04e40d2b5f8b01f6ec105b047e39145c946f2a1a15f7f11eed4474d0e6"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-native-evaluator.js",
+      "digest": "sha256:809315088a2fa4d00ec467d5487c1346322b8e11912c34dbd7abe0213bdce3a2"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs",
+      "digest": "sha256:d1734f440aa747de167e7e609ad7a61b78a28205acb3595f3b253b04a292b170"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.exe",
+      "digest": "sha256:a14939bd67ac9526f34a29c93ed9359e105b7e4fd45c3f1c4a3445d65a867115"
+    },
+    {
+      "file": "packages/cli/src/lib/process-execution-broker/windows-sandbox-helper.dll",
+      "digest": "sha256:1b50b2026f04fbb3a756835392d972ba95211a9af2c743795c3fba00670dcf5d"
+    }
+  ],
+  "addonDigest": "sha256:185a7de91942526c345618e051e96860964f8bb6fce096d543d3e783fc2beeb0",
+  "limits": [
+    "local Windows 10 / Node 22.22.2 only",
+    "only controlled Node descendant launches supported",
+    "same Event type at reused numeric handle remains unsupported",
+    "single 1 MiB own-handle snapshot; no invalid-handle queries",
+    "v3 run does not exercise pipe/private-realpath",
+    "esbuild ancestor enumeration remains blocked",
+    "non-hermetic toolchain; no official review admission or formal 36+9",
+    "public derivatives are not admission tickets"
+  ]
+}

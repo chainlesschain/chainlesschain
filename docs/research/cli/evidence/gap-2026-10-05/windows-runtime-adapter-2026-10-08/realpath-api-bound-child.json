@@ -1,0 +1,210 @@
+{
+  "schema": "chainlesschain.windows-realpath-api-diagnostic/v1",
+  "startedAt": "2026-10-08T05:55:37.219Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "architecture": "x64",
+  "osRelease": "10.0.19045",
+  "formalSample": false,
+  "providerAssessed": false,
+  "fullReviewPackReady": false,
+  "capabilities": {},
+  "fixtureSourceDigest": "sha256:a7254e019d970fb94ef23b484d8219c6c09470c677df6b83d7172c3f500f3f0a",
+  "fixtureDigest": "sha256:c2885d7788c51f03bfb43edfd098e1350ad2afbb56aa9cdf4e26bd0720b442d2",
+  "diagnosticCompleted": true,
+  "stage": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e",
+  "manifestDigest": "sha256:f611624e49dbcfad1257f119d68c5653b04bc316659e7d44f83fd7f193608cbc",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_REALPATH_API:{\"label\":\"scratch-libuv\",\"pid\":2180,\"tokenIsAppContainer\":1,\"share\":0,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":94,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-abvM2e\\\\scratch\\\\tmp\"}]}\nCC_REALPATH_API:{\"label\":\"workspace-libuv\",\"pid\":2180,\"tokenIsAppContainer\":1,\"share\":0,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":106,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-abvM2e\\\\workspace\\\\reference.txt\"}]}\nCC_REALPATH_API:{\"label\":\"scratch-shared\",\"pid\":2180,\"tokenIsAppContainer\":1,\"share\":7,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":94,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-abvM2e\\\\scratch\\\\tmp\"}]}\nCC_REALPATH_API:{\"label\":\"workspace-shared\",\"pid\":2180,\"tokenIsAppContainer\":1,\"share\":7,\"openSucceeded\":true,\"openError\":0,\"handleClosed\":true,\"queries\":[{\"kind\":\"normalized-dos\",\"flags\":0,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"opened-dos\",\"flags\":8,\"success\":false,\"win32Error\":5,\"length\":0,\"path\":\"\"},{\"kind\":\"normalized-nt\",\"flags\":2,\"success\":true,\"win32Error\":0,\"length\":106,\"path\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-native-evaluator-abvM2e\\\\workspace\\\\reference.txt\"}]}\nCC_REALPATH_CHILD:{\"pid\":28076,\"fixturePid\":2180,\"status\":0,\"signal\":null,\"error\":null}\n",
+    "stderr": ""
+  },
+  "settlement": {
+    "manifestDigest": "f611624e49dbcfad1257f119d68c5653b04bc316659e7d44f83fd7f193608cbc",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 28076,
+    "appContainerSid": "S-1-15-2-3100994561-4265288109-2505492126-2429032044-1138711862-774386586-2438821061",
+    "wallTimeMs": 10000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "observations": [
+    {
+      "label": "scratch-libuv",
+      "pid": 2180,
+      "tokenIsAppContainer": 1,
+      "share": 0,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 94,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\scratch\\tmp"
+        }
+      ]
+    },
+    {
+      "label": "workspace-libuv",
+      "pid": 2180,
+      "tokenIsAppContainer": 1,
+      "share": 0,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 106,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\workspace\\reference.txt"
+        }
+      ]
+    },
+    {
+      "label": "scratch-shared",
+      "pid": 2180,
+      "tokenIsAppContainer": 1,
+      "share": 7,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 94,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\scratch\\tmp"
+        }
+      ]
+    },
+    {
+      "label": "workspace-shared",
+      "pid": 2180,
+      "tokenIsAppContainer": 1,
+      "share": 7,
+      "openSucceeded": true,
+      "openError": 0,
+      "handleClosed": true,
+      "queries": [
+        {
+          "kind": "normalized-dos",
+          "flags": 0,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "opened-dos",
+          "flags": 8,
+          "success": false,
+          "win32Error": 5,
+          "length": 0,
+          "path": ""
+        },
+        {
+          "kind": "normalized-nt",
+          "flags": 2,
+          "success": true,
+          "win32Error": 0,
+          "length": 106,
+          "path": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\workspace\\reference.txt"
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-08T05:56:01.648Z",
+  "manifestSummary": {
+    "version": 1,
+    "root": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e",
+    "workspace": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\workspace",
+    "control": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\control",
+    "scratch": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\scratch",
+    "check": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\control\\check.cjs",
+    "runtime": {
+      "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "3096224751403181",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "fileCount": 3,
+    "fileBytes": 7168,
+    "directoryCount": 4,
+    "capsuleBinding": null,
+    "profileAndCheckerFiles": [
+      {
+        "path": "{PRIVATE_USER}\\AppData\\Local\\Temp\\cc-native-evaluator-abvM2e\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "3659174704824494",
+        "bytes": 492,
+        "sha256": "b4f24c076afd8be4b9f6e5de243042b25e02c7a3a6de0c03bf80de0a5f070b29"
+      }
+    ],
+    "completeManifestOmitted": true
+  },
+  "derived": true,
+  "admissionEligible": false
+}

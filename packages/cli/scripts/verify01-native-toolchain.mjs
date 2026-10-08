@@ -296,35 +296,68 @@ export function inspectNativeToolchain({
   let registryChecks = null;
   if (registry !== undefined) {
     requireCondition(
-      registry && typeof registry.root === "string" && path.isAbsolute(registry.root) &&
-        Array.isArray(registry.artifacts) && registry.artifacts.length === packages.length,
+      registry &&
+        typeof registry.root === "string" &&
+        path.isAbsolute(registry.root) &&
+        Array.isArray(registry.artifacts) &&
+        registry.artifacts.length === packages.length,
       "one registry artifact for every installed package is required",
     );
     const artifactRoot = path.resolve(registry.root);
     const artifactRootStat = fs.lstatSync(artifactRoot, { bigint: true });
-    requireCondition(artifactRootStat.isDirectory() && !artifactRootStat.isSymbolicLink() &&
-      fs.realpathSync.native(artifactRoot).toLowerCase() === artifactRoot.toLowerCase(), "plain registry artifact root required");
+    requireCondition(
+      artifactRootStat.isDirectory() &&
+        !artifactRootStat.isSymbolicLink() &&
+        fs.realpathSync.native(artifactRoot).toLowerCase() ===
+          artifactRoot.toLowerCase(),
+      "plain registry artifact root required",
+    );
     const byPackage = new Map();
     for (const artifact of registry.artifacts) {
-      requireCondition(artifact && typeof artifact.packagePath === "string" &&
-        packages.some((entry) => entry.path === artifact.packagePath) &&
-        !byPackage.has(artifact.packagePath), "unknown or duplicate registry package binding");
+      requireCondition(
+        artifact &&
+          typeof artifact.packagePath === "string" &&
+          packages.some((entry) => entry.path === artifact.packagePath) &&
+          !byPackage.has(artifact.packagePath),
+        "unknown or duplicate registry package binding",
+      );
       byPackage.set(artifact.packagePath, artifact.file);
     }
     registryChecks = packages.map((entry) => {
-      const installedFiles = files.filter((file) => {
-        if (!file.path.startsWith(`${entry.path}/`)) return false;
-        return !packages.some((nested) => nested.path.startsWith(`${entry.path}/`) &&
-          file.path.startsWith(`${nested.path}/`));
-      }).map((file) => ({ ...file, path: file.path.slice(entry.path.length + 1) }));
+      const installedFiles = files
+        .filter((file) => {
+          if (!file.path.startsWith(`${entry.path}/`)) return false;
+          return !packages.some(
+            (nested) =>
+              nested.path.startsWith(`${entry.path}/`) &&
+              file.path.startsWith(`${nested.path}/`),
+          );
+        })
+        .map((file) => ({
+          ...file,
+          path: file.path.slice(entry.path.length + 1),
+        }));
       const artifactFile = plainPath(artifactRoot, byPackage.get(entry.path));
-      const verified = verifyRegistryPackageContent({ tarball: readPlain(artifactFile),
-        integrity: entry.integrity, installedFiles, packageName: entry.name, packageVersion: entry.version });
-      return { packagePath: entry.path, artifact: byPackage.get(entry.path), ...verified };
+      const verified = verifyRegistryPackageContent({
+        tarball: readPlain(artifactFile),
+        integrity: entry.integrity,
+        installedFiles,
+        packageName: entry.name,
+        packageVersion: entry.version,
+      });
+      return {
+        packagePath: entry.path,
+        artifact: byPackage.get(entry.path),
+        ...verified,
+      };
     });
     const after = fs.lstatSync(artifactRoot, { bigint: true });
-    requireCondition(after.dev === artifactRootStat.dev && after.ino === artifactRootStat.ino &&
-      !after.isSymbolicLink(), "registry artifact root changed");
+    requireCondition(
+      after.dev === artifactRootStat.dev &&
+        after.ino === artifactRootStat.ino &&
+        !after.isSymbolicLink(),
+      "registry artifact root changed",
+    );
     inventory.registryChecks = registryChecks;
   }
   return {
@@ -340,8 +373,10 @@ export function inspectNativeToolchain({
     formalSample: false,
     providerAssessed: false,
     blockers: [
-      ...(registryChecks === null ? ["REGISTRY_CONTENT_VERIFICATION_REQUIRED"] : []),
-      "NATIVE_CAPSULE_BACKEND_NOT_IMPLEMENTED",
+      ...(registryChecks === null
+        ? ["REGISTRY_CONTENT_VERIFICATION_REQUIRED"]
+        : []),
+      "NATIVE_CAPSULE_EXECUTION_NOT_VERIFIED",
       "LOCKED_TEST_SUPPORT_EXECUTION_NOT_VERIFIED",
       ...(addons.length ? ["ADDON_ABI_NOT_VERIFIED"] : []),
     ],
@@ -370,15 +405,33 @@ if (
       );
     else {
       let registry;
-      if (["tarball-dir", "tarball-manifest", "tarball-manifest-digest"].some((key) => values[key] !== undefined)) {
-        requireCondition(values["tarball-dir"] && values["tarball-manifest"] && values["tarball-manifest-digest"],
-          "tarball directory, manifest and independent digest are all required");
+      if (
+        ["tarball-dir", "tarball-manifest", "tarball-manifest-digest"].some(
+          (key) => values[key] !== undefined,
+        )
+      ) {
+        requireCondition(
+          values["tarball-dir"] &&
+            values["tarball-manifest"] &&
+            values["tarball-manifest-digest"],
+          "tarball directory, manifest and independent digest are all required",
+        );
         const bytes = readPlain(path.resolve(values["tarball-manifest"]));
-        requireCondition(evalDigest(bytes) === values["tarball-manifest-digest"], "registry manifest digest differs");
+        requireCondition(
+          evalDigest(bytes) === values["tarball-manifest-digest"],
+          "registry manifest digest differs",
+        );
         const manifest = JSON.parse(bytes.toString("utf8"));
-        requireCondition(manifest.schema === "chainlesschain.native-review-registry-artifacts/v1" && Array.isArray(manifest.artifacts),
-          "registry manifest schema differs");
-        registry = { root: values["tarball-dir"], artifacts: manifest.artifacts };
+        requireCondition(
+          manifest.schema ===
+            "chainlesschain.native-review-registry-artifacts/v1" &&
+            Array.isArray(manifest.artifacts),
+          "registry manifest schema differs",
+        );
+        registry = {
+          root: values["tarball-dir"],
+          artifacts: manifest.artifacts,
+        };
       }
       console.log(
         JSON.stringify(
