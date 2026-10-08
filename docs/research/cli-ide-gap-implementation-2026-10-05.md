@@ -346,3 +346,5 @@ Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时�
 独立非管理员监督器在原始child HANDLE上安装私有映射，冻结esbuild实际bundle成功，零capabilities/leaf/精确5句柄/父映射不变/child退出与空Job证明成立。主agent复核后的未入Job真实负例也确认退出，61项合同在两个Node runtime通过；保持NOT_ADMITTED，完整service/config/default forks/review仍开放。见[验证第18节](./cli-ide-gap-validation-2026-10-05.md#18-2026-10-08-私有-esbuild-leaf-与发布候选)。
 
 用户已授权测试成功后配对发布。CLI0.166.94 / VSCode0.37.139 / JetBrains0.4.157候选已同步，10个固定子包真实下载及下游版本验证完成，无需新子包发布。Doctor推荐值跨类常量内联问题已修复；本机74项CLI、21项VSCode、946项Java+1445项smoke及ZIP构建通过。仍须最终准确SHA完整CLI/IDE矩阵，未发布且未写正式36+9 observations。
+
+最终 v3 已按新源码重新编译、真实运行并归档，旧 v2 保留历史。旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 见[验证18.3–18.4](./cli-ide-gap-validation-2026-10-05.md#183-最终源码字节重新验证)。

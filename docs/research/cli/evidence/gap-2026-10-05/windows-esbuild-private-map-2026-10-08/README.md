@@ -17,3 +17,5 @@
 复核发现并修正空Job误代替未入Job child退出，以及两次unknown错误误证明父映射未变。最后同一supervisor二进制真实创建child23712后停止在入Job前：原始HANDLE兜底终止成功、Wait0、exit125、Job0，cleanup和profile删除成立。该负例completed=false，不改写成成功bundle样本。
 
 编译器及邻近DLL字节有记录，compiler closure仍非hermetic。没有全用户/全局盘符、祖先ACL扩大、API结果翻译、冻结源码改写、生产准入或正式observations。
+
+最终候选去掉 shim 文件末尾多余空行后重新编译并真实运行，最新字节绑定见 [final-v3/report.json](./final-v3/report.json)（SHA256 `e0e346fa05b7df5fc90a87e538188afa2d11a0c27361c0097f88b3bf860e6a02`）及 [final-v3/readback.json](./final-v3/readback.json)。root19628 / child23440 / exit0，20条真实 trace、父映射明确 absent、原始进程 HANDLE 与空 Job 清理成立；同一新二进制的未入 Job 负例 child25900 / exit125 清理成立。61项合同再次通过。v2 原件保留为历史，当前源码/driver/二进制/staged 以 v3 回读为准，仍 **NOT_ADMITTED**。

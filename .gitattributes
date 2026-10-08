@@ -105,3 +105,6 @@ docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/** -text !e
 # Worker/lock and independent GNU diagnostic receipts retain captured bytes.
 docs/research/cli/evidence/gap-2026-10-05/worker-lock-recovery-2026-10-08/** -text !eol -whitespace
 docs/research/cli/evidence/gap-2026-10-05/windows-gnu-forwarder-2026-10-08/** -text !eol -whitespace
+
+# Private native namespace evidence remains bound to the original captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/windows-esbuild-private-map-2026-10-08/** -text !eol -whitespace

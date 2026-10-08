@@ -169,4 +169,3 @@ BOOL WINAPI DllMain(HINSTANCE,DWORD reason,LPVOID) {
   else if(reason==DLL_PROCESS_DETACH&&installed){record("exit",nullptr,TRUE,0);FlushFileBuffers(trace);}
   return TRUE;
 }
-

@@ -384,8 +384,10 @@ test("installed snapshot paths still reject a root-dot alias despite valid tar p
 });
 
 async function preparedFixture({ corrupt = false, existing = false } = {}) {
-  const directory = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-prepare-contract-"),
+  // Runner temp paths may contain platform aliases (for example macOS /var).
+  // Give production validation a canonical destination without weakening it.
+  const directory = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-prepare-contract-")),
   );
   const output = path.join(directory, "new-output");
   const tarballs = new Map(),
@@ -458,6 +460,30 @@ test("refuses an existing destination and preserves its files", async () => {
       "keep",
     );
   } finally {
+    fs.rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+test("refuses a symlink or junction output parent before creating any output", async () => {
+  const fixture = await preparedFixture();
+  const parent = path.join(fixture.directory, "real-parent");
+  const alias = path.join(fixture.directory, "alias-parent");
+  try {
+    fs.mkdirSync(parent);
+    fs.symlinkSync(
+      parent,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    await assert.rejects(
+      prepareNativeToolchain({
+        ...fixture.options,
+        output: path.join(alias, "new-output"),
+      }),
+      /output parent is a path alias/,
+    );
+    assert.deepEqual(fs.readdirSync(parent), []);
+  } finally {
+    if (fs.existsSync(alias)) fs.unlinkSync(alias);
     fs.rmSync(fixture.directory, { recursive: true, force: true });
   }
 });

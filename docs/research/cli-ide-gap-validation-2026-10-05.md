@@ -587,3 +587,13 @@ Astra新增独立非管理员直启监督器、固定shim、driver和结果校�
 候选本机CLI相关74项、VSCode21项通过；JetBrains946项JUnit通过/3跳过、1445项smoke assertions及ZIP构建成功。第一次JetBrains候选失败暴露Doctor跨类常量内联保留0.166.90而升级推荐已94；改为共享运行时访问器，保留原测试，重新构建通过。后续完整准确SHA的CLI双门与IDE宿主矩阵才作发布依据，不借用91924f202e的旧完整Strict结果。
 
 正式36+9的NOT_RUN、$99预算、原分母和observations保持冻结。发布继续OIDC、子包→CLI→IDE顺序；本节是准备记录，尚未声称候选已发布。
+
+### 18.3 最终源码字节重新验证
+
+shim EOF 多余空行移除后重编译并真实运行 v3，root19628 / child23440 / exit0、20条 trace、父映射明确 absent、原始 HANDLE 与 Job 清理成立；未入 Job 负例 child25900 / exit125 也确认清理。最新 [v3 原件](./cli/evidence/gap-2026-10-05/windows-esbuild-private-map-2026-10-08/final-v3/report.json) SHA256 `e0e346fa05b7df5fc90a87e538188afa2d11a0c27361c0097f88b3bf860e6a02`，源码/driver/实际二进制/staged 一致，61项合同通过。v2 保留历史，不能借用旧摘要绑定新源码。
+
+旧 `91924f202e` 的 CLI CI #37779105012 最终失败：Windows/macOS 工具链准备测试输出父目录被判定为 path alias，导致后续验证未运行和 PM 三系统汇总拒绝；即使原 Strict 全部成功，也未取得双门通过。该失败必须修正后用最终准确 SHA 重跑完整门。
+
+### 18.4 跨平台准备 fixture 修正
+
+旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 macOS /var 与 Windows runner 临时目录可以具有平台别名；fixture 对自己新建的临时目录使用 `fs.realpathSync.native` 后传入准备器。新增实建 symlink/junction 的拒绝测试，确认目标目录没有新增文件。生产准备器零修改，原失败/负例断言保留。Prettier、定向 ESLint 通过。
