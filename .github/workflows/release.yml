@@ -1,5 +1,10 @@
 name: Release
 
+# Keep retries serial while draft assets are mutable.
+concurrency:
+  group: product-release-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
 on:
   push:
     tags:
@@ -68,7 +73,6 @@ jobs:
             node -e 'const p=require(process.argv[1]); if(p.name!==process.argv[2] || p.version!==process.argv[3]) throw new Error("Public package identity mismatch")' "$PACKAGE_ROOT/package.json" "$PACKAGE_NAME" "$PACKAGE_VERSION"
             echo "Verified public archive $SPEC"
           done
-
 
   # Build for Windows
   build-windows:
@@ -585,6 +589,8 @@ jobs:
           path: |
             desktop-app-vue/out/build/*.dmg
             desktop-app-vue/out/build/*.dmg.blockmap
+            desktop-app-vue/out/build/*-mac.zip
+            desktop-app-vue/out/build/*-mac.zip.blockmap
             desktop-app-vue/out/build/latest-mac.yml
           if-no-files-found: error
           retention-days: 7
@@ -879,7 +885,15 @@ jobs:
           IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
+          set -euo pipefail
+          for required in IOS_CERTIFICATE_BASE64 IOS_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 IOS_TEAM_ID; do
+            if [ -z "${!required}" ]; then
+              echo "::error::Product releases require configured iOS signing: $required is missing"
+              exit 1
+            fi
+          done
           if [ -n "$IOS_CERTIFICATE_BASE64" ]; then
             KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
             security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
@@ -968,6 +982,24 @@ jobs:
             -exportOptionsPlist ExportOptions.plist \
             2>&1 | tee build/xcodebuild-export.log
           ls -la build/output/
+
+      - name: Verify signed iOS distribution artifact
+        working-directory: ios-app
+        env:
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test "$SIGNING_AVAILABLE" = true
+          test -s build/output/ChainlessChain.ipa
+          VERIFY_ROOT=$(mktemp -d)
+          trap 'rm -rf "$VERIFY_ROOT"' EXIT
+          unzip -q build/output/ChainlessChain.ipa -d "$VERIFY_ROOT"
+          APP="$VERIFY_ROOT/Payload/ChainlessChain.app"
+          test -s "$APP/embedded.mobileprovision"
+          codesign --verify --deep --strict "$APP"
+          codesign -d --verbose=4 "$APP" 2> "$VERIFY_ROOT/signature.txt"
+          grep -Fx "TeamIdentifier=$IOS_TEAM_ID" "$VERIFY_ROOT/signature.txt"
+          grep -Eq '^Authority=(Apple Distribution|iPhone Distribution):' "$VERIFY_ROOT/signature.txt"
 
       - name: Build iOS app for Simulator (unsigned fallback)
         if: env.SIGNING_AVAILABLE != 'true'
@@ -1060,6 +1092,13 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+          for required in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!required}" ]; then
+              echo "::error::Product releases require configured Android release signing: $required is missing"
+              exit 1
+            fi
+          done
           cd android-app
           if [ -n "$KEYSTORE_BASE64" ]; then
             # Decode release keystore from secrets
@@ -1128,22 +1167,39 @@ jobs:
 
       - name: Verify cc bundle packed into APKs (hard gate)
         working-directory: android-app
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          # Fail the build if any release APK is missing the cc bundle asset.
-          # Prevents silently shipping bundle-less APKs (the v5.0.3.108 defect).
-          fail=0
-          for apk in app/build/outputs/apk/release/*.apk; do
-            if unzip -l "$apk" 2>/dev/null | grep -q 'assets/local-terminal/cc-cli.tgz'; then
-              echo "✅ $(basename "$apk"): cc-cli.tgz present"
-            else
-              echo "❌ $(basename "$apk"): cc-cli.tgz MISSING"
-              fail=1
-            fi
+          set -euo pipefail
+          test "$SIGNING_TYPE" = release
+          EXPECTED_BUNDLE=$(awk '$2 == "cc-cli.tgz" { print $1 }' binaries-manifest.txt)
+          test "${#EXPECTED_BUNDLE}" -eq 64
+          APKSIGNER=$(find "${ANDROID_HOME:?}/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          test -x "$APKSIGNER"
+          keytool -exportcert -rfc -keystore keystore.jks -alias "$KEY_ALIAS" \
+            -storepass:env KEYSTORE_PASSWORD > "$RUNNER_TEMP/android-release-certificate.pem"
+          EXPECTED_CERT=$(openssl x509 -in "$RUNNER_TEMP/android-release-certificate.pem" -outform DER | sha256sum | cut -d ' ' -f1)
+          for name in app-arm64-v8a-release.apk app-armeabi-v7a-release.apk app-universal-release.apk; do
+            apk="app/build/outputs/apk/release/$name"
+            test -s "$apk"
+            "$APKSIGNER" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/apk-signature.txt"
+            grep -Fx "Signer #1 certificate SHA-256 digest: $EXPECTED_CERT" "$RUNNER_TEMP/apk-signature.txt"
+            ACTUAL_BUNDLE=$(unzip -p "$apk" assets/local-terminal/cc-cli.tgz | sha256sum | cut -d ' ' -f1)
+            test "$ACTUAL_BUNDLE" = "$EXPECTED_BUNDLE"
+            echo "Verified release signature and pinned CLI bundle: $name"
           done
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::One or more release APKs are missing the cc bundle (assets/local-terminal/cc-cli.tgz). The downloadInternalBinaries staging step did not take effect."
-            exit 1
-          fi
+          aab=app/build/outputs/bundle/release/app-release.aab
+          test -s "$aab"
+          jarsigner -verify -strict -keystore keystore.jks -storepass:env KEYSTORE_PASSWORD \
+            "$aab" "$KEY_ALIAS" > "$RUNNER_TEMP/aab-signature.txt"
+          grep -q 'jar verified\.' "$RUNNER_TEMP/aab-signature.txt"
+          keytool -printcert -jarfile "$aab" -rfc > "$RUNNER_TEMP/aab-certificate.pem"
+          ACTUAL_CERT=$(openssl x509 -in "$RUNNER_TEMP/aab-certificate.pem" -outform DER | sha256sum | cut -d ' ' -f1)
+          test "$ACTUAL_CERT" = "$EXPECTED_CERT"
+          ACTUAL_BUNDLE=$(unzip -p "$aab" base/assets/local-terminal/cc-cli.tgz | sha256sum | cut -d ' ' -f1)
+          test "$ACTUAL_BUNDLE" = "$EXPECTED_BUNDLE"
+          echo "Verified release signature and pinned CLI bundle: app-release.aab"
 
       - name: List build outputs
         if: always()
@@ -1172,11 +1228,8 @@ jobs:
   # Create GitHub Release
   create-release:
     needs: [build-windows, build-macos, build-linux, build-android, build-ios]
-    # Require all three desktop builds to succeed: a partial release that's
-    # missing latest-mac.yml or latest-linux.yml leaves users on those
-    # platforms unable to discover updates. iOS/Android jobs are best-effort
-    # (they use separate signing flows that can fail without blocking desktop).
-    if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' && needs.build-macos.result == 'success' }}
+    # Immutable product releases require every desktop and mobile producer.
+    if: ${{ always() && !cancelled() && needs.build-windows.result == 'success' && needs.build-linux.result == 'success' && needs.build-macos.result == 'success' && needs.build-android.result == 'success' && needs.build-ios.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       # `contents: write` for `gh release create` (required).
@@ -1202,6 +1255,28 @@ jobs:
 
       - name: Display artifact structure
         run: ls -R artifacts/
+
+      - name: Install pinned release metadata parser
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const lock = require('./package-lock.json');
+          const yaml = lock.packages['node_modules/yaml'];
+          if (!yaml?.integrity || !yaml.resolved || Object.keys(yaml.dependencies || {}).length) {
+            throw new Error('Expected a dependency-free YAML parser pinned by the root lockfile');
+          }
+          const root = path.join(process.env.RUNNER_TEMP, 'product-release-verifier');
+          const pkg = { name: 'product-release-verifier', version: '1.0.0', private: true, dependencies: { yaml: yaml.version } };
+          fs.mkdirSync(root, { recursive: true });
+          fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(pkg));
+          fs.writeFileSync(path.join(root, 'package-lock.json'), JSON.stringify({ name: pkg.name, version: pkg.version, lockfileVersion: 3, packages: { '': pkg, 'node_modules/yaml': { version: yaml.version, resolved: yaml.resolved, integrity: yaml.integrity, bin: yaml.bin, engines: yaml.engines } } }));
+          NODE
+          npm ci --prefix "$RUNNER_TEMP/product-release-verifier" --ignore-scripts --no-audit --no-fund
+
+      - name: Validate product asset failure gates
+        run: NODE_PATH="$RUNNER_TEMP/product-release-verifier/node_modules" node --test scripts/__tests__/verify-product-release-assets.test.cjs
 
       - name: Get version
         id: version
@@ -1319,12 +1394,17 @@ jobs:
           # itself (latest-linux.yml carries blockMapSize for it).
           for f in artifacts/**/*.exe artifacts/**/*.exe.blockmap \
                    artifacts/**/*.dmg artifacts/**/*.dmg.blockmap \
+                   artifacts/macos-artifacts/**/*-mac.zip artifacts/macos-artifacts/**/*-mac.zip.blockmap \
                    artifacts/**/*.AppImage \
                    artifacts/**/*.deb artifacts/**/*.rpm \
                    artifacts/**/latest.yml artifacts/**/latest-mac.yml artifacts/**/latest-linux.yml \
-                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa \
-                   artifacts/**/ChainlessChain-ios-simulator.zip; do
-            [ -f "$f" ] && cp "$f" release-assets/
+                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa; do
+            [ -f "$f" ] || continue
+            if [ -e "release-assets/$(basename "$f")" ]; then
+              echo "::error::Duplicate release asset basename: $(basename "$f")"
+              exit 1
+            fi
+            cp "$f" release-assets/
           done
 
           echo "Release assets:"
@@ -1345,6 +1425,39 @@ jobs:
             fail=1
           fi
           [ $fail -eq 0 ] || exit 1
+
+          # Artifact upload success does not prove that every release target exists.
+          ELECTRON_VER=$(node -p "require('./desktop-app-vue/package.json').version")
+          LINUX_NAME=$(node -p "require('./desktop-app-vue/package.json').name")
+          for required in \
+            "ChainlessChain-Setup-$ELECTRON_VER.exe" \
+            "ChainlessChain-Portable-$ELECTRON_VER.exe" \
+            "ChainlessChain-$ELECTRON_VER.dmg" \
+            "ChainlessChain-$ELECTRON_VER-arm64.dmg" \
+            "ChainlessChain-$ELECTRON_VER.AppImage" \
+            "${LINUX_NAME}_${ELECTRON_VER}_amd64.deb" \
+            "${LINUX_NAME}-${ELECTRON_VER}.x86_64.rpm" \
+            latest.yml latest-mac.yml latest-linux.yml \
+            app-arm64-v8a-release.apk app-armeabi-v7a-release.apk \
+            app-universal-release.apk app-release.aab ChainlessChain.ipa; do
+            if [ ! -s "release-assets/$required" ]; then
+              echo "::error::Missing or empty required product asset: $required"
+              exit 1
+            fi
+          done
+          node desktop-app-vue/scripts/verify-release-artifacts.js --dir release-assets
+
+          NODE_PATH="$RUNNER_TEMP/product-release-verifier/node_modules" \
+            node scripts/verify-product-release-assets.cjs local release-assets \
+              "${{ steps.version.outputs.VERSION }}" "$GITHUB_SHA" product-release-assets.json
+
+      - name: Upload exact release asset integrity receipt
+        uses: actions/upload-artifact@v6
+        with:
+          name: product-release-assets-${{ github.sha }}
+          path: product-release-assets.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Create Release with artifacts (DRAFT)
         env:
@@ -1560,12 +1673,34 @@ jobs:
   # update-changelog all succeed. Skip when user explicitly wanted a
   # draft (workflow_dispatch with inputs.draft=true).
   finalize-release:
-    needs: [create-release, verify-cli-release, update-changelog]
-    if: ${{ always() && needs.create-release.result == 'success' && needs.verify-cli-release.result == 'success' && needs.update-changelog.result == 'success' }}
+    needs:
+      [
+        create-release,
+        verify-cli-release,
+        update-changelog,
+        build-windows,
+        build-macos,
+        build-linux,
+        build-android,
+        build-ios,
+      ]
+    if: ${{ always() && !cancelled() && needs.create-release.result == 'success' && needs.verify-cli-release.result == 'success' && needs.update-changelog.result == 'success' && needs.build-windows.result == 'success' && needs.build-macos.result == 'success' && needs.build-linux.result == 'success' && needs.build-android.result == 'success' && needs.build-ios.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
+      - name: Checkout exact product source and tags
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download exact asset integrity receipt
+        uses: actions/download-artifact@v7
+        with:
+          name: product-release-assets-${{ github.sha }}
+          path: product-release-receipt
+
       - name: Resolve version
         id: version
         run: |
@@ -1591,6 +1726,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$VERSION" > product-release-public-readback.json
+          if TAG_SHA=$(git rev-parse "${VERSION}^{commit}" 2>/dev/null); then
+            test "$TAG_SHA" = "$GITHUB_SHA"
+          else
+            # A dispatch-created draft may create its tag only when published.
+            node -e 'const r=require("./product-release-public-readback.json"); if (!r.draft || r.target_commitish !== process.env.GITHUB_SHA) throw new Error("Draft product target SHA mismatch")'
+          fi
+          node scripts/verify-product-release-assets.cjs remote \
+            product-release-receipt/product-release-assets.json \
+            product-release-public-readback.json "$VERSION" "$GITHUB_SHA"
           # Idempotent: only flip on draft. On a post-finalize rerun (state 3
           # in create-release), the release is already published — any edit
           # would fail under GitHub's immutable-releases feature.
@@ -1601,4 +1747,22 @@ jobs:
           else
             echo "✅ Release ${VERSION} was already published (rerun) — nothing to flip"
           fi
+          git fetch --no-tags origin "refs/tags/$VERSION:refs/tags/$VERSION"
+          test "$(git rev-parse "${VERSION}^{commit}")" = "$GITHUB_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$VERSION" > product-release-final-readback.json
+          node scripts/verify-product-release-assets.cjs remote \
+            product-release-receipt/product-release-assets.json \
+            product-release-final-readback.json "$VERSION" "$GITHUB_SHA"
+          node -e 'const r=require("./product-release-final-readback.json"); if (r.draft || !r.immutable) throw new Error("Product release is not publicly finalized and immutable")'
           echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
+
+      - name: Upload final product release readback
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: product-release-public-readback-${{ github.sha }}
+          path: |
+            product-release-public-readback.json
+            product-release-final-readback.json
+          if-no-files-found: ignore
+          retention-days: 90

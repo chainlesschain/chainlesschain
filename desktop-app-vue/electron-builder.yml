@@ -123,6 +123,10 @@ mac:
       arch:
         - x64
         - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
   icon: icon.icns
   category: public.app-category.productivity
   hardenedRuntime: true
