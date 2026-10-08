@@ -1,0 +1,261 @@
+{
+  "schema": "chainlesschain.esbuild-direct-supervisor-development-catalog/v1",
+  "experimental": true,
+  "status": "NOT_ADMITTED",
+  "entries": [
+    {
+      "label": "a",
+      "reportPath": ".work/esbuild-direct-supervisor-20261008-a/report.json",
+      "reportDigest": "sha256:164804116cd674955399fd288c8fa36bb055924ce6224ba4796f403b658bf820",
+      "completed": false,
+      "error": "compile failed",
+      "observation": null,
+      "sources": [
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor.cpp",
+            "digest": "sha256:e80d7f63adf661b42b632876b78355ec1f1aec6ee22a701b0405aa0c7e4d6743",
+            "bytes": 16825
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-a/esbuild-direct-supervisor.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-shim.cpp",
+            "digest": "sha256:79bbd4c21abc6987558af54c9ea6d2a0c3a49616a98003fa0ca6c6d16818308e",
+            "bytes": 10838
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-a/esbuild-direct-supervisor-shim.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-driver.mjs",
+            "digest": "sha256:e68ca92814bf1ce706e87e75faae89b8e4ff73841dd12adae72a1c1dec8b5c12",
+            "bytes": 3900
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-a/esbuild-direct-supervisor-driver.mjs"
+        }
+      ]
+    },
+    {
+      "label": "b",
+      "reportPath": ".work/esbuild-direct-supervisor-20261008-b/report.json",
+      "reportDigest": "sha256:61b828d83ac23a1274e8f5ba07572fe0bdb5ea02e5238ec8bc6b4632410f3535",
+      "completed": false,
+      "error": "compile failed",
+      "observation": null,
+      "sources": [
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor.cpp",
+            "digest": "sha256:b7903e4543c66055014f4c267a14888ad2a133a39c788c55265d36fe9341dd7d",
+            "bytes": 17220
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-b/esbuild-direct-supervisor.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-shim.cpp",
+            "digest": "sha256:79bbd4c21abc6987558af54c9ea6d2a0c3a49616a98003fa0ca6c6d16818308e",
+            "bytes": 10838
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-b/esbuild-direct-supervisor-shim.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-driver.mjs",
+            "digest": "sha256:e68ca92814bf1ce706e87e75faae89b8e4ff73841dd12adae72a1c1dec8b5c12",
+            "bytes": 3900
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-b/esbuild-direct-supervisor-driver.mjs"
+        }
+      ]
+    },
+    {
+      "label": "c",
+      "reportPath": ".work/esbuild-direct-supervisor-20261008-c/report.json",
+      "reportDigest": "sha256:03b383e154d71572aa4ac3212747d247bc2c761f49b66b49ea9cd99da478ecbf",
+      "completed": false,
+      "error": "direct native proof incomplete",
+      "observation": {
+        "experimental": true,
+        "status": "NOT_ADMITTED",
+        "completed": false,
+        "stage": "pin-root-image",
+        "error": 0,
+        "setterStatus": 2147483647,
+        "hostNonElevatedUnrestricted": true,
+        "rootPid": 18208,
+        "childPid": 0,
+        "childExit": 4294967295,
+        "childTokenProven": false,
+        "appContainerSid": "S-1-15-2-2652388483-2783834887-563962131-275504250-2359026449-2398896842-2325430504",
+        "capabilityCount": null,
+        "imagePinned": false,
+        "leafRestricted": false,
+        "exactHandleCount": 0,
+        "mapPrepared": false,
+        "mapInstalled": false,
+        "parentMapUnchanged": false,
+        "cleanupConfirmed": true,
+        "profileDeleted": true,
+        "loopbackExemptionAbsent": true
+      },
+      "sources": [
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor.cpp",
+            "digest": "sha256:633262b55090e0c0905d1ed1f3c400feaa8a0a3df2cf3afd1c82a2ad782d48bf",
+            "bytes": 17031
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-c/esbuild-direct-supervisor.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-shim.cpp",
+            "digest": "sha256:79bbd4c21abc6987558af54c9ea6d2a0c3a49616a98003fa0ca6c6d16818308e",
+            "bytes": 10838
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-c/esbuild-direct-supervisor-shim.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-driver.mjs",
+            "digest": "sha256:e68ca92814bf1ce706e87e75faae89b8e4ff73841dd12adae72a1c1dec8b5c12",
+            "bytes": 3900
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-c/esbuild-direct-supervisor-driver.mjs"
+        }
+      ]
+    },
+    {
+      "label": "d",
+      "reportPath": ".work/esbuild-direct-supervisor-20261008-d/report.json",
+      "reportDigest": "sha256:cae961cb4953b733ae03e1c0ab4c3aeb195d8a313c966a32ba24914c703bf3dd",
+      "completed": false,
+      "error": "direct native proof incomplete",
+      "observation": {
+        "experimental": true,
+        "status": "NOT_ADMITTED",
+        "completed": false,
+        "stage": "create-leaf",
+        "error": 203,
+        "setterStatus": 2147483647,
+        "hostNonElevatedUnrestricted": true,
+        "rootPid": 28596,
+        "childPid": 0,
+        "childExit": 4294967295,
+        "childTokenProven": false,
+        "appContainerSid": "S-1-15-2-2268035066-1436204169-1654099139-1530436207-1797331975-2087163776-2976639068",
+        "capabilityCount": null,
+        "imagePinned": true,
+        "leafRestricted": false,
+        "exactHandleCount": 0,
+        "mapPrepared": true,
+        "mapInstalled": false,
+        "parentMapUnchanged": false,
+        "cleanupConfirmed": true,
+        "profileDeleted": true,
+        "loopbackExemptionAbsent": true
+      },
+      "sources": [
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor.cpp",
+            "digest": "sha256:bc1a54a7bfa9313d417561869226574d4e936a905bfab3a0e30a2f151bed82ee",
+            "bytes": 17076
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-d/esbuild-direct-supervisor.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-shim.cpp",
+            "digest": "sha256:79bbd4c21abc6987558af54c9ea6d2a0c3a49616a98003fa0ca6c6d16818308e",
+            "bytes": 10838
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-d/esbuild-direct-supervisor-shim.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-driver.mjs",
+            "digest": "sha256:e68ca92814bf1ce706e87e75faae89b8e4ff73841dd12adae72a1c1dec8b5c12",
+            "bytes": 3900
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-d/esbuild-direct-supervisor-driver.mjs"
+        }
+      ]
+    },
+    {
+      "label": "e",
+      "reportPath": ".work/esbuild-direct-supervisor-20261008-e/report.json",
+      "reportDigest": "sha256:8241abb9704b609ca419bc3cb0857469026f9dd38c83b7565c2ff84ca8ffc458",
+      "completed": true,
+      "error": null,
+      "observation": {
+        "experimental": true,
+        "status": "NOT_ADMITTED",
+        "completed": true,
+        "stage": "completed",
+        "error": 0,
+        "setterStatus": 0,
+        "hostNonElevatedUnrestricted": true,
+        "rootPid": 18584,
+        "childPid": 21164,
+        "childExit": 0,
+        "childTokenProven": true,
+        "appContainerSid": "S-1-15-2-2462607876-1163653927-3517457484-4109236278-918482271-402658992-1149668486",
+        "capabilityCount": 0,
+        "imagePinned": true,
+        "leafRestricted": true,
+        "exactHandleCount": 5,
+        "mapPrepared": true,
+        "mapInstalled": true,
+        "parentMapUnchanged": true,
+        "cleanupConfirmed": true,
+        "profileDeleted": true,
+        "loopbackExemptionAbsent": true
+      },
+      "sources": [
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor.cpp",
+            "digest": "sha256:bacd4011197bc3496b98a593312e588d2b282dca6a5d8931c0932ab20cef7f55",
+            "bytes": 17433
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-e/esbuild-direct-supervisor.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-shim.cpp",
+            "digest": "sha256:79bbd4c21abc6987558af54c9ea6d2a0c3a49616a98003fa0ca6c6d16818308e",
+            "bytes": 10838
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-e/esbuild-direct-supervisor-shim.cpp"
+        },
+        {
+          "source": {
+            "path": "C:\\code\\chainlesschain\\.work\\esbuild-direct-supervisor-driver.mjs",
+            "digest": "sha256:083431ba5a438b639f8ad289dd75b4d3e98a632f5132230e902176f38f426489",
+            "bytes": 3909
+          },
+          "archivedExactBytes": true,
+          "path": ".work/esbuild-direct-supervisor-20261008-e/esbuild-direct-supervisor-driver.mjs"
+        }
+      ]
+    }
+  ]
+}

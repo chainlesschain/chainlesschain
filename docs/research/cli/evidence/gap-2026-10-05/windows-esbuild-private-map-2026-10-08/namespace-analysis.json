@@ -1,0 +1,144 @@
+{
+  "schema": "chainlesschain.esbuild-namespace-design-evidence/v2",
+  "experimental": true,
+  "status": "NOT_ADMITTED",
+  "authorityProof": false,
+  "formalSample": false,
+  "sources": [
+    {
+      "file": ".work/esbuild-fs-real-0.28.1.go",
+      "url": "https://raw.githubusercontent.com/evanw/esbuild/v0.28.1/internal/fs/fs_real.go",
+      "sha256": "2f47f6f75b15d58d150d74c5b1da77e2941d2df15d065bda5b859844b1a03872"
+    },
+    {
+      "file": ".work/esbuild-resolver-0.28.1.go",
+      "url": "https://raw.githubusercontent.com/evanw/esbuild/v0.28.1/internal/resolver/resolver.go",
+      "sha256": "758f2f716fae45b81bb73b3cc7318e99a4f408eb037612b7aab8bd4b6b4449d4"
+    },
+    {
+      "file": ".work/esbuild-filepath-0.28.1.go",
+      "url": "https://raw.githubusercontent.com/evanw/esbuild/v0.28.1/internal/fs/filepath.go",
+      "sha256": "db28412aabf47996cd5d7c058ece86177216e5e8e9cfd4ce812bc760f3bc75b5"
+    }
+  ],
+  "observations": {
+    "traceReport": ".work/esbuild-api-trace-20261008-apc-detached-final/report.json",
+    "requestedMetadataPath": {
+      "value": "C:\\Users",
+      "codeUnits": [
+        67,
+        58,
+        92,
+        85,
+        115,
+        101,
+        114,
+        115
+      ],
+      "desiredAccess": 0,
+      "error": 5,
+      "count": 2
+    },
+    "requestedDirectoryPath": {
+      "value": "C:\\",
+      "codeUnits": [
+        67,
+        58,
+        92
+      ],
+      "desiredAccess": 2147483648,
+      "error": 5,
+      "count": 1
+    },
+    "canonicalClaimForDeniedRequests": false
+  },
+  "sourceExplanation": [
+    {
+      "file": "fs_real.go",
+      "lines": [
+        99,
+        130,
+        350,
+        353,
+        362
+      ],
+      "finding": "Working-directory EvalSymlinks is best effort; real ReadDirectory opens the directory then calls Readdirnames(-1)."
+    },
+    {
+      "file": "filepath.go",
+      "lines": [
+        159,
+        228,
+        247
+      ],
+      "finding": "EvalSymlinks walks each component using os.Lstat and resolves any real symlink with os.Readlink. Access-zero failures are consistent with metadata canonicalization but no stack trace was captured."
+    },
+    {
+      "file": "resolver.go",
+      "lines": [
+        1533,
+        1538,
+        1547,
+        1591,
+        1592,
+        1593,
+        1600,
+        1622,
+        1635
+      ],
+      "finding": "dirInfoUncached recursively resolves the parent to volume root before reading the child. It uses directory contents for symlink, package.json, tsconfig/jsconfig, browser scope and node_modules decisions. Generic-read root denial cannot be repaired by metadata-only success."
+    }
+  ],
+  "nextExperiment": {
+    "strategy": "Child-only unnamed NT object directory as ProcessDeviceMap with X: targeting the held guarded capsule root NT path. Preserve zero capabilities, exact inherited stdio/trace handles, leaf policy and cleanup. Verify root FileId and NT path through X: before setting child cwd, then use real unmodified esbuild over X:\\workspace\\entry.js.",
+    "forbidden": [
+      "Global or user-session DefineDosDevice/SUBST",
+      "Ancestor ACL expansion",
+      "Error translation",
+      "Synthetic directory entries",
+      "Frozen package/config mutation"
+    ],
+    "limits": [
+      "Windows 10 undocumented native API support and AppContainer permission must be measured.",
+      "Independent bundle-entry proof only; service protocol and frozen config/full review remain separate.",
+      "Source explanation is design evidence, not a stack trace or a namespace authority proof."
+    ]
+  },
+  "feasibility": {
+    "rejection": {
+      "path": ".work/esbuild-device-map-20261008-d/report.json",
+      "digest": "sha256:87fbd4f86821fe051a119a99a11e062ed4fcd14585afe2dd580ff9b8332a3695",
+      "readback": ".work/esbuild-device-map-20261008-d/readback.json",
+      "readbackDigest": "sha256:1e21a3b8dfff384e3eab69d0e8eccb35b593c3ea8b09a71029920fa297055716"
+    },
+    "hostAbiControl": {
+      "path": ".work/esbuild-device-map-host-control.json",
+      "digest": "sha256:78f1d429585108f6d31d8512db72a85d16c421a5a85f4837ee8083f2253ec62e",
+      "observation": "Same self-map setter class 23, read-only access 3 and input size 8 succeeds in a non-elevated, non-AppContainer, non-restricted throwaway process. Empty private map only; no drive link created."
+    },
+    "conclusion": "Observed LowBox callers were denied for both child and self setter attempts. Do not infer a general Windows API restriction or a supported supervisor path.",
+    "remainingEngineering": [
+      "Integrate a versioned supervised esbuild service contract while keeping original supervisor-owned process handles and byte-bound private root authority.",
+      "Bind physical/virtual path coordinates across the service protocol and frozen vitest config without changing frozen files or substituting canonical proofs.",
+      "Measure complete frozen config/default forks/full review with inherited namespace and result checks; the standalone immutable-entry proof does not satisfy those gates.",
+      "Production native allowlists and formal platform admission remain unchanged."
+    ]
+  },
+  "previousAnalysisDigest": "sha256:3903f88b9a1cbd8440550f47100a543c3e1c4231ccd2f04369d2ae50e4391a65",
+  "directSupervisorProof": {
+    "path": ".work/esbuild-private-map-20261008-final/report.json",
+    "digest": "sha256:52e05549f01906f02d7a93464edc33b79fba4e65bf9f9ab811e40ee413bf041e",
+    "readback": ".work/esbuild-private-map-20261008-final/readback.json",
+    "readbackDigest": "sha256:22fe6668c1ad33dc1187246fafaa19b4dd212ce2bbd0004e2aa962cb96e08b3a",
+    "scope": "Independent immutable entry.js bundle only. Non-elevated full-user supervisor creates the suspended zero-capability AppContainer leaf itself, then sets its private map through the original process handle. No PID-based request authority.",
+    "nativeApiResult": "NtSetInformationProcess(ProcessDeviceMap) succeeds from the original full-user creator; both earlier LowBox caller attempts remain actual ACCESS_DENIED results.",
+    "negativeControls": [
+      "C:\\ root GENERIC_READ actually denied with error 5",
+      "X:\\workspace file creation actually denied with error 5",
+      "X:\\workspace\\..\\.. resolves to held private root NT path"
+    ],
+    "bundleDigest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+    "developmentCatalog": ".work/esbuild-direct-supervisor-catalog-20261008.json",
+    "developmentCatalogDigest": "sha256:48e1e6f46c95e41e680cbc971e2a9959fec459a3f34f8fab3803e1314f1b2eee"
+  }
+}

@@ -340,3 +340,9 @@ CI 初始阶段的强制回收状态按原值保留；IDE owner 退出状态与�
 `fd713e0e72`在零capability AppContainer得到11条esbuild API记录，消除本机DLL_INIT_FAILED；esbuild仍exit1/NOT_ADMITTED，完整config/default forks/review开放。34项trace+36项GNU合同通过，见[验证第17节](./cli-ide-gap-validation-2026-10-05.md#17-2026-10-08-设置锁公平性与-esbuild-启动取证)。
 
 Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时验收继续开放；无付费请求或发布。
+
+## 19. 2026-10-08 私有 esbuild leaf 与配对发布准备
+
+独立非管理员监督器在原始child HANDLE上安装私有映射，冻结esbuild实际bundle成功，零capabilities/leaf/精确5句柄/父映射不变/child退出与空Job证明成立。主agent复核后的未入Job真实负例也确认退出，61项合同在两个Node runtime通过；保持NOT_ADMITTED，完整service/config/default forks/review仍开放。见[验证第18节](./cli-ide-gap-validation-2026-10-05.md#18-2026-10-08-私有-esbuild-leaf-与发布候选)。
+
+用户已授权测试成功后配对发布。CLI0.166.94 / VSCode0.37.139 / JetBrains0.4.157候选已同步，10个固定子包真实下载及下游版本验证完成，无需新子包发布。Doctor推荐值跨类常量内联问题已修复；本机74项CLI、21项VSCode、946项Java+1445项smoke及ZIP构建通过。仍须最终准确SHA完整CLI/IDE矩阵，未发布且未写正式36+9 observations。

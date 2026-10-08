@@ -1,0 +1,13 @@
+{
+  "experimental": true,
+  "status": "NOT_ADMITTED",
+  "nativeAdmissionProof": false,
+  "scope": "Throwaway host process self-map ABI control. Unnamed empty map, no drive links. No user/global/parent map mutation.",
+  "sourceDigest": "sha256:b008a17578dfcfd154a92bf925ef42592d90f5a9d5f333d513a4068fb4fc3624",
+  "binaryDigest": "sha256:2be18e41c4c70f77de4d57cad2a4c07959e46d9d8789dee7d039995b77ac1753",
+  "statusCode": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "{\"hostOnlyControl\":true,\"capabilityProof\":false,\"createStatus\":0,\"setterStatus\":0,\"grantedAccess\":3,\"inputBytes\":8,\"appContainer\":false,\"elevated\":false,\"restricted\":false,\"elevationType\":3}\r\n",
+  "stderr": ""
+}

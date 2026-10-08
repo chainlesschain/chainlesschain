@@ -1,0 +1,337 @@
+{
+  "schema": "chainlesschain.windows-esbuild-private-map-feasibility/v1",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "status": "NOT_ADMITTED",
+  "resultTranslation": false,
+  "completed": false,
+  "runtime": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "esbuild": {
+    "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+    "bytes": 11670528,
+    "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+  },
+  "checkDigest": "sha256:fb0ba9b6daa63a8f4afdc98dfa0a1471d7578401288916a4e89f397ab3b82012",
+  "commands": [
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\.work\\esbuild-device-map-native\\windows-esbuild-trace-launcher.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-device-map-20261008-d\\esbuild-trace-launcher.node"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "executable": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\.work\\esbuild-device-map-native\\windows-esbuild-trace-shim.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-device-map-20261008-d\\esbuild-trace-shim.dll"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "startedAt": "2026-10-08T12:58:36.290Z",
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-device-map-native\\windows-esbuild-trace-launcher.cpp",
+      "bytes": 13463,
+      "digest": "sha256:66c2a3997b39031b1f3ac88bc860b0bfe6b1451b15ae4f2117e78f524c20aed7"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-device-map-native\\windows-esbuild-trace-shim.cpp",
+      "bytes": 11127,
+      "digest": "sha256:45a897b804227ce1392274d4b1b9fc0558f4453a2079ef3cc02aa0548217153c"
+    }
+  ],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\.work\\esbuild-device-map-experiment.mjs",
+    "bytes": 10005,
+    "digest": "sha256:908c826f03524d757919f15f3ecb9ef36816c29761e65056832bec6fd43757b3"
+  },
+  "headers": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api.h",
+      "bytes": 10370,
+      "digest": "sha256:2d4560831e525b47b060ec8a0864ab73993df9e20215ce9f0fe7b24cd31af32a"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_api_types.h",
+      "bytes": 1825,
+      "digest": "sha256:088766b3cf1f0cd9b292c361ad30f7a04e7cc6db35a20ca52c572c1adf9635e7"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api.h",
+      "bytes": 31770,
+      "digest": "sha256:582e64ead4d5fdf663e2bd934f2fc97e8e155a7740d28995830393d19d089705"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\js_native_api_types.h",
+      "bytes": 7603,
+      "digest": "sha256:05e3d86e24c814f94a8b52b6a70cec11d7e91c810008253553528637e3a15b2f"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node\\node_version.h",
+      "bytes": 4243,
+      "digest": "sha256:0b388ee0595dee5cbe601e3e96cee5377a1e25f8f299b474f605445b68797eda"
+    }
+  ],
+  "compiler": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+      "bytes": 13824,
+      "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\clang-23.exe",
+      "bytes": 95744,
+      "digest": "sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\ld.lld.exe",
+      "bytes": 5184512,
+      "digest": "sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libc++.dll",
+      "bytes": 2000384,
+      "digest": "sha256:81fb50f0866840d7e5a1d35d48cf31adc02f623a61d8b77daf62881e1e59401b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang-cpp.dll",
+      "bytes": 49639936,
+      "digest": "sha256:de0e788d706e25df582ffba132c50ed57568cb669d09acd78cba84b0b5a04d48"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libclang_rt.asan_dynamic-x86_64.dll",
+      "bytes": 1466368,
+      "digest": "sha256:23f93e1d3f4b13a5a8447f78c2bcd08ab1c98fd891ea785b8fa395030d17c05d"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libffi-8.dll",
+      "bytes": 64512,
+      "digest": "sha256:ea32ce9aad2fd63ca7064b23a3b3ac68e98ea73b8fe171d2cfc9e9a10ce7fc85"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\liblldb.dll",
+      "bytes": 17090560,
+      "digest": "sha256:e9d268f9156fac6b7bd4cf299a0f3881d4e5de07b99652cbb5632ad6048e71cb"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libLLVM-23.dll",
+      "bytes": 77676032,
+      "digest": "sha256:7913a4fecb6172756dbb35d08ac487fb0b0f0642e7adee166305984f3fa96511"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libomp.dll",
+      "bytes": 948224,
+      "digest": "sha256:2bbae398a027e33936be6882daa010533934c4daa40013e3077a31cbb5876b79"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.14.dll",
+      "bytes": 5108224,
+      "digest": "sha256:37f48732aaa305ad257f8d09ab26f03c03573fb0aea02273048014c0d3e06fd1"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libpython3.dll",
+      "bytes": 73216,
+      "digest": "sha256:6368eeb3c56200a7aa9033cc49a71b8bae3545dccb903f2b70056d464b052865"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libunwind.dll",
+      "bytes": 183808,
+      "digest": "sha256:b0636a4281610124704adb2be2edf5642e830d86c68b7f27dbc9c8154705a780"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\libwinpthread-1.dll",
+      "bytes": 293888,
+      "digest": "sha256:7658f9e5e89213af287d342c554b8abcb5b2700b4a44d02184b56004b104ceec"
+    }
+  ],
+  "compilerScope": "recorded source, header, compiler and adjacent DLL bytes; not hermetic",
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-device-map-20261008-d\\esbuild-trace-launcher.node",
+      "bytes": 750592,
+      "digest": "sha256:d395733cae7119d722d986919f2d4d8caba74a45e8b033a99fedf48fea10428b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-device-map-20261008-d\\esbuild-trace-shim.dll",
+      "bytes": 54272,
+      "digest": "sha256:03a91519cad5b5aa1e8aea5903ec1bdbfb75b0917963155c5c51abc2c5fa7a59"
+    }
+  ],
+  "sourceRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-trace-source-DjcB7Y",
+  "manifest": {
+    "version": 2,
+    "capsuleBinding": {
+      "inventoryDigest": "sha256:cafedb837fdda4b3413b1ffe8456c0a3fe6a75058e929ead0eaaf4e8721e1293",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr",
+    "workspace": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace",
+    "control": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\control",
+    "scratch": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\scratch",
+    "check": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\control\\check.cjs",
+    "wallTimeMs": 15000,
+    "runtime": {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\control\\node.exe",
+      "dev": "38182903",
+      "ino": "4222124657716134",
+      "bytes": 87074816,
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+    },
+    "directories": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr",
+        "dev": "38182903",
+        "ino": "3940649681005470"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\control",
+        "dev": "38182903",
+        "ino": "3096224750873508"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\scratch",
+        "dev": "38182903",
+        "ino": "3940649681005477"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace",
+        "dev": "38182903",
+        "ino": "3377699727584160"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace\\adapter",
+        "dev": "38182903",
+        "ino": "3940649681005487"
+      }
+    ],
+    "files": [
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace\\esbuild.exe",
+        "dev": "38182903",
+        "ino": "3377699727584168",
+        "bytes": 11670528,
+        "sha256": "ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace\\entry.js",
+        "dev": "38182903",
+        "ino": "4222124657716141",
+        "bytes": 26,
+        "sha256": "a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace\\adapter\\esbuild-trace-launcher.node",
+        "dev": "38182903",
+        "ino": "3940649681005489",
+        "bytes": 750592,
+        "sha256": "d395733cae7119d722d986919f2d4d8caba74a45e8b033a99fedf48fea10428b"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\workspace\\adapter\\esbuild-trace-shim.dll",
+        "dev": "38182903",
+        "ino": "2533274797452215",
+        "bytes": 54272,
+        "sha256": "03a91519cad5b5aa1e8aea5903ec1bdbfb75b0917963155c5c51abc2c5fa7a59"
+      },
+      {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-native-capsule-HVODCr\\control\\check.cjs",
+        "dev": "38182903",
+        "ino": "6473924471401409",
+        "bytes": 308,
+        "sha256": "fb0ba9b6daa63a8f4afdc98dfa0a1471d7578401288916a4e89f397ab3b82012"
+      }
+    ]
+  },
+  "manifestDigest": "sha256:ef56228122b72ec8989ed97609b7c04f9459b10fead47b3592f061d8ee59aaf3",
+  "execution": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "CC_ESBUILD_TRACE:{\"stage\":\"completed\",\"error\":0,\"completed\":true,\"rootPid\":25824,\"childPid\":27072,\"childExit\":1,\"appContainerSid\":\"S-1-15-2-2435239352-2820421878-2177699234-1170641544-2611102204-1292522060-3323904775\",\"capabilityCount\":0,\"rootTokenProven\":true,\"childTokenProven\":true,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandles\":true,\"consoleMode\":\"detached\",\"loaderStrategy\":\"primary-thread-apc\",\"mapPrepared\":true,\"parentMapUnchanged\":true}\n",
+    "stderr": "X [ERROR] Cannot read directory \"../../../../../../..\": Access is denied.\n\nX [ERROR] Could not resolve \"X:\\\\workspace\\\\entry.js\"\n\n2 errors\n"
+  },
+  "settlement": {
+    "manifestDigest": "ef56228122b72ec8989ed97609b7c04f9459b10fead47b3592f061d8ee59aaf3",
+    "cleanupConfirmed": true,
+    "capabilityCount": 0,
+    "loopbackExemptionAbsent": true,
+    "targetPid": 25824,
+    "appContainerSid": "S-1-15-2-2435239352-2820421878-2177699234-1170641544-2611102204-1292522060-3323904775",
+    "wallTimeMs": 15000,
+    "targetExitCode": 0,
+    "supervisorUserSidSha256": "a01d668db323994a2cb9b8669512110d8469179b7b999f5de851fc91d1a8662e",
+    "executionFailed": false
+  },
+  "launcherObservation": {
+    "stage": "completed",
+    "error": 0,
+    "completed": true,
+    "rootPid": 25824,
+    "childPid": 27072,
+    "childExit": 1,
+    "appContainerSid": "S-1-15-2-2435239352-2820421878-2177699234-1170641544-2611102204-1292522060-3323904775",
+    "capabilityCount": 0,
+    "rootTokenProven": true,
+    "childTokenProven": true,
+    "imagePinned": true,
+    "leafRestricted": true,
+    "exactHandles": true,
+    "consoleMode": "detached",
+    "loaderStrategy": "primary-thread-apc",
+    "mapPrepared": true,
+    "parentMapUnchanged": true
+  },
+  "traceRaw": "{\"sequence\":1,\"pid\":27072,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":27072,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":27072,\"api\":\"device-map-self-install\",\"requestedPath\":\"\",\"success\":false,\"error\":3221225506,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":27072,\"api\":\"device-map-root-failed\",\"requestedPath\":\"\",\"success\":false,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n",
+  "traceDigest": "sha256:1d3750accb44d5e24cf6894e6fbc52df6c992361216b97c0cc0fdef29e5d42b9",
+  "error": "esbuild API trace: child map proof",
+  "finishedAt": "2026-10-08T12:58:56.326Z"
+}

@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.139] - Pair with strict settings write fairness (2026-10-08)
+
+- Recommend CLI `0.166.94` after its public npm release and this extension's
+  exact-commit release gates pass.
+- The paired CLI reduces contention between concurrent permission-rule writes
+  while retaining the two-second lock deadline, synchronous revocation and
+  unknown-commit handling.
+- Retain the base bridge compatibility floor and live input receipt/mode
+  capability diagnostics.
+
 ## [0.37.138] - Pair with bounded investigation recovery (2026-10-08)
 
 - Recommend CLI `0.166.93`, Session Core `0.3.18`, and Context Memory Kernel

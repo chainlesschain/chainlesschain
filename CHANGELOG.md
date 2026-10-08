@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.94: concurrent settings writes and native diagnostics
+
+- Reduce disk contention while waiting for a live settings lock and yield after
+  each synchronous permission-rule update so existing writers can acquire it.
+  Retain the two-second acquisition deadline, strict owner identity and
+  synchronous authority revocation.
+- Repair the independent Windows esbuild diagnostic's startup and preserve
+  actual API failures and cleanup evidence. This diagnostic does not grant
+  production native-review admission.
+- Pair VS Code `0.37.139` and JetBrains `0.4.157` after CLI publication and
+  exact-commit release validation.
+
 ### Fixed - cc CLI 0.166.93: bounded investigations and release evidence
 
 - Bound repeated IDE evidence inspections and all phases of authenticated

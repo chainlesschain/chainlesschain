@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.157] - Pair with strict settings write fairness (2026-10-08)
+
+- Recommend CLI `0.166.94` after its public npm release and this plugin's
+  exact-commit release gates pass.
+- Keep Doctor and the upgrade prompt on the same current CLI recommendation,
+  including artifacts produced by incremental builds.
+- Refresh the compiled recommendation and upgrade guidance for concurrent
+  permission-rule writes while retaining the compatibility floor and
+  live capability diagnostics.
+
 ## [0.4.156] - Pair with bounded investigation recovery (2026-10-08)
 
 - Recommend CLI `0.166.93`, Session Core `0.3.18`, and Context Memory Kernel
