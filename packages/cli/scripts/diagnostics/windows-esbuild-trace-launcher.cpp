@@ -86,38 +86,38 @@ static napi_value run(napi_env env,napi_callback_info){
     startup.StartupInfo.hStdInput=stdio[0];startup.StartupInfo.hStdOutput=stdio[1];startup.StartupInfo.hStdError=stdio[2];startup.lpAttributeList=attributes;
     std::wstring command=L"\""+application+L"\" \""+workspace+L"\\entry.js\" --bundle --platform=node --outfile=\""+root+L"\\scratch\\bundle.js\"";
     stage="create-suspended";
+    // CREATE_NO_WINDOW still requests console initialization. With the leaf
+    // process policy this exits before the shim on this host (0xC0000142).
+    // DETACHED_PROCESS avoids that console; all stdio remains explicit handles.
     BOOL ok=CreateProcessW(application.c_str(),command.data(),nullptr,nullptr,TRUE,
-      CREATE_SUSPENDED|CREATE_UNICODE_ENVIRONMENT|EXTENDED_STARTUPINFO_PRESENT|CREATE_NO_WINDOW,environment.data(),workspace.c_str(),&startup.StartupInfo,&child);
+      CREATE_SUSPENDED|CREATE_UNICODE_ENVIRONMENT|EXTENDED_STARTUPINFO_PRESENT|DETACHED_PROCESS,environment.data(),workspace.c_str(),&startup.StartupInfo,&child);
     failure=ok?0:GetLastError();DeleteProcThreadAttributeList(attributes);if(!ok)return false;created=true;
     handles.add(child.hProcess);handles.add(child.hThread);
     stage="child-token-image";
     WCHAR actual[4096]={};DWORD actualChars=4096;
     if(!tokenProof(child.hProcess,childSid)||childSid!=sid)return false;childTokenProven=true;
     if(!QueryFullProcessImageNameW(child.hProcess,0,actual,&actualChars)||application!=actual)return false;
-    stage="remote-load";
+    stage="queue-primary-loader";
     SIZE_T size=(shim.size()+1)*sizeof(WCHAR),written=0;
     void* remote=VirtualAllocEx(child.hProcess,nullptr,size,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
     if(!remote)return false;
     if(!WriteProcessMemory(child.hProcess,remote,shim.c_str(),size,&written)||written!=size)return false;
-    auto loader=reinterpret_cast<LPTHREAD_START_ROUTINE>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"),"LoadLibraryW"));
-    HANDLE thread=handles.add(CreateRemoteThread(child.hProcess,nullptr,0,loader,remote,0,nullptr));
-    if(!thread)return false;
-    if(WaitForSingleObject(thread,3000)!=WAIT_OBJECT_0){failure=WAIT_TIMEOUT;return false;}
-    DWORD loadedModule=0;
-    if(!GetExitCodeThread(thread,&loadedModule)||!loadedModule){failure=ERROR_DLL_INIT_FAILED;return false;}
-    stage="process-loader-status";DWORD currentExit=0;if(!GetExitCodeProcess(child.hProcess,&currentExit)||currentExit!=STILL_ACTIVE){failure=currentExit;return false;}
-    if(!VirtualFreeEx(child.hProcess,remote,0,MEM_RELEASE))return false;
+    // Initialize the AppContainer on the original primary thread, then load
+    // the shim before entering Go. Keep its path allocation until child exit.
+    auto loader=reinterpret_cast<PAPCFUNC>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"),"LoadLibraryW"));
+    if(!loader||!QueueUserAPC(loader,child.hThread,reinterpret_cast<ULONG_PTR>(remote)))return false;
     stage="resume";
     if(ResumeThread(child.hThread)!=1)return false;
     stage="wait";
     if(WaitForSingleObject(child.hProcess,5000)!=WAIT_OBJECT_0){failure=WAIT_TIMEOUT;return false;}
     if(!GetExitCodeProcess(child.hProcess,&childExit))return false;
+    stage="child-exit-status";if(childExit>1){failure=childExit;return false;}
     stage="completed";return true;
   };
   complete=work();if(!complete&&!failure)failure=GetLastError();
   if(created&&!complete){TerminateProcess(child.hProcess,125);WaitForSingleObject(child.hProcess,3000);GetExitCodeProcess(child.hProcess,&childExit);}
   char sidText[256]={},json[1024]={};WideCharToMultiByte(CP_UTF8,0,sid.c_str(),-1,sidText,sizeof(sidText),nullptr,nullptr);
-  std::snprintf(json,sizeof(json),"{\"stage\":\"%s\",\"error\":%lu,\"completed\":%s,\"rootPid\":%lu,\"childPid\":%lu,\"childExit\":%lu,\"appContainerSid\":\"%s\",\"capabilityCount\":%s,\"rootTokenProven\":%s,\"childTokenProven\":%s,\"imagePinned\":%s,\"leafRestricted\":%s,\"exactHandles\":%s}",
+  std::snprintf(json,sizeof(json),"{\"stage\":\"%s\",\"error\":%lu,\"completed\":%s,\"rootPid\":%lu,\"childPid\":%lu,\"childExit\":%lu,\"appContainerSid\":\"%s\",\"capabilityCount\":%s,\"rootTokenProven\":%s,\"childTokenProven\":%s,\"imagePinned\":%s,\"leafRestricted\":%s,\"exactHandles\":%s,\"consoleMode\":\"detached\",\"loaderStrategy\":\"primary-thread-apc\"}",
     stage,failure,complete?"true":"false",GetCurrentProcessId(),child.dwProcessId,childExit,sidText,rootTokenProven?"0":"null",rootTokenProven?"true":"false",childTokenProven?"true":"false",imagePinned?"true":"false",created?"true":"false",created?"true":"false");
   return resultString(env,json);
 }

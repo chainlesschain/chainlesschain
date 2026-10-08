@@ -111,6 +111,9 @@ export function inspectEsbuildTrace(report) {
   insist(
     launcher.completed === true &&
       launcher.stage === "completed" &&
+      launcher.error === 0 &&
+      launcher.consoleMode === "detached" &&
+      launcher.loaderStrategy === "primary-thread-apc" &&
       launcher.rootPid === report.settlement.targetPid &&
       launcher.childPid !== launcher.rootPid &&
       Number.isSafeInteger(launcher.childPid) &&
