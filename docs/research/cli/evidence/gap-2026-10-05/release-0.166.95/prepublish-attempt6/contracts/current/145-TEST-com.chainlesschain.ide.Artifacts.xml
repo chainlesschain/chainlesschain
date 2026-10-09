@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ArtifactsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.034">
+  <properties/>
+  <testcase name="toColumnsShapesMetadataOnly()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.007"/>
+  <testcase name="storedPathAndDefaultDir()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.011"/>
+  <testcase name="describeCarriesDetailAndExpiry()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.002"/>
+  <testcase name="previewClassByMimeThenExtension()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.0"/>
+  <testcase name="formatSizeHuman()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.0"/>
+  <testcase name="ccArgsMatchTheCliSurface()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.0"/>
+  <testcase name="filterByKindAndQuery()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.001"/>
+  <testcase name="parseCanonicalWorkbenchCarriesLineageHistoryAndRecovery()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.003"/>
+  <testcase name="parseListReadsAllFieldsAndSortsNewestFirst()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.002"/>
+  <testcase name="parseListToleratesMalformedAndOddShapes()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.001"/>
+  <testcase name="actionDerivationPerPreviewClass()" classname="com.chainlesschain.ide.ArtifactsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

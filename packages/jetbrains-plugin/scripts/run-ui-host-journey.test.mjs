@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
 import {
   isRobotStartupFailure,
+  captureHostDiagnostics,
   createFakeCliEnvironment,
   findPluginArchive,
   verifyModelConfigurationFixtureLedger,
@@ -18,6 +26,79 @@ import {
   WORKBENCH_READINESS_MAXIMUM_SAMPLES,
   WORKBENCH_READINESS_MINIMUM_SAMPLES,
 } from "./run-ui-host-journey.mjs";
+
+function diagnosticFixture(t) {
+  const root = realpathSync(
+    mkdtempSync(path.join(os.tmpdir(), "cc-jb-capture-")),
+  );
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const sandbox = path.join(root, "sandbox");
+  const capture = path.join(root, "capture");
+  mkdirSync(path.join(sandbox, "IC-2024.2", "log_runIdeForUiTests"), {
+    recursive: true,
+  });
+  mkdirSync(capture);
+  writeFileSync(
+    path.join(capture, "host-events.jsonl"),
+    JSON.stringify({
+      schema: "chainlesschain.ui-event-diagnostic/v1",
+      stage: "RECEIVED",
+      type: "approval_request",
+    }) + "\n",
+  );
+  return {
+    root,
+    sandbox,
+    capture,
+    logs: path.join(sandbox, "IC-2024.2", "log_runIdeForUiTests"),
+  };
+}
+
+test("host capture preserves complete original IDE log bytes and rotations", (t) => {
+  const fixture = diagnosticFixture(t);
+  // Exceeds the generic diagnostic text tail limit and includes non-UTF8 bytes.
+  const original = Buffer.concat([
+    Buffer.from([0xff, 0xfe]),
+    Buffer.alloc(300_000, 65),
+    Buffer.from("\r\n"),
+  ]);
+  writeFileSync(path.join(fixture.logs, "idea.log"), original);
+  writeFileSync(path.join(fixture.logs, "idea.log.1"), "previous phase\r\n");
+  const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+  assert.equal(result.complete, true);
+  assert.equal(result.files.length, 3);
+  const entry = result.files.find((file) => file.source?.endsWith("/idea.log"));
+  assert.equal(entry.originalBytes, true);
+  assert.equal(entry.bytes, original.length);
+  assert.deepEqual(
+    readFileSync(path.join(fixture.capture, entry.path)),
+    original,
+  );
+  assert.equal(
+    JSON.parse(readFileSync(path.join(fixture.capture, "capture-status.json")))
+      .complete,
+    true,
+  );
+});
+
+test("diagnostic write failures never report a complete capture", (t) => {
+  const fixture = diagnosticFixture(t);
+  writeFileSync(path.join(fixture.logs, "idea.log"), "IDE log\n");
+  const result = captureHostDiagnostics(
+    fixture.sandbox,
+    fixture.capture,
+    "[cc-ui-event-diagnostic-write-failed] stage=RENDER_FAILED failureClass=java.io.IOException",
+  );
+  assert.equal(result.complete, false);
+  assert.deepEqual(result.failures, ["event-diagnostic-write-failed"]);
+});
+
+test("missing idea.log is retained as a capture failure rather than success", (t) => {
+  const fixture = diagnosticFixture(t);
+  const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+  assert.equal(result.complete, false);
+  assert.deepEqual(result.failures, ["original-idea-log-capture-failed"]);
+});
 
 test("canonical recovery isolates real CLI storage outside the log worktree", (t) => {
   const root = mkdtempSync(path.join(os.tmpdir(), "cc-jb-isolation-"));

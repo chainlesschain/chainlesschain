@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdeToolsPreviewTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:44" hostname="DESKTOP-MTMV2RE" time="0.003">
+  <properties/>
+  <testcase name="toolIsOnlyExposedWhenTheFacadeSupportsIt()" classname="com.chainlesschain.ide.IdeToolsPreviewTest" time="0.001"/>
+  <testcase name="passesFacadeStateThroughAndDegradesOnNull()" classname="com.chainlesschain.ide.IdeToolsPreviewTest" time="0.0"/>
+  <testcase name="defaultFacadeContractIsWellFormedAndUnsupported()" classname="com.chainlesschain.ide.IdeToolsPreviewTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

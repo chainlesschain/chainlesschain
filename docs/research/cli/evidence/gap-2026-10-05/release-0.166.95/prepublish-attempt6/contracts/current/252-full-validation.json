@@ -1,0 +1,714 @@
+{
+  "capturedAt": "2026-10-09T17:31:14.751Z",
+  "stage": "Local dirty candidate after approval-layout and opt-in diagnostics changes",
+  "jdk": "21.0.12.1",
+  "standardJUnitHeadless": true,
+  "uiSmokeTestHeadlessChanged": false,
+  "junit": {
+    "files": 113,
+    "tests": 955,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3
+  },
+  "smoke": {
+    "passedAssertions": 1445,
+    "failedAssertions": 0
+  },
+  "originalCiFailureReproduced": false,
+  "realIdeExecuted": false,
+  "sourceFiles": [
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatCardsLayout.java",
+      "sha256": "8f1902826aed0cde24d6ec6547f4a812e9c1bcc367b05bf3751b7f4d41f0491b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+      "sha256": "43039db47afd4a8781682b47611652b19656d4c0f334b830cf4b28f8fb63f80f"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+    }
+  ],
+  "files": [
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ActivityLogTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ActivityLogTest.xml",
+      "bytes": 1227,
+      "sha256": "4c2ee4c5d08128f8c5ba028f7b5477d7e44d21cc78058342a745568036139361"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "bytes": 2268,
+      "sha256": "41e22f3376eb11802227b13866f3e6e59053040da2d69ffef0136959531664d9"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.AgentTerminationTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.AgentTerminationTest.xml",
+      "bytes": 963,
+      "sha256": "ca820f311dec6efdb45f17b0ab1ecf462374b79fbdd8a708f36d206d72e09ba2"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ApprovalGrantsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ApprovalGrantsTest.xml",
+      "bytes": 598,
+      "sha256": "9c51ad3ff2389e4cd87939e1135aece3ee8fd1606d1a906ff758de264067ca41"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ApprovalResponsesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ApprovalResponsesTest.xml",
+      "bytes": 1069,
+      "sha256": "177f38643a68cbceb65d65b711390316b5d46d9a525037e144f9c104b64fa2d8"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ApprovalSettlementRegistryTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ApprovalSettlementRegistryTest.xml",
+      "bytes": 799,
+      "sha256": "30ad94f95c80b2817e0283fcb3bc8dd6b7bc9be35a28a3f5eb4d071f8c74c998"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ArtifactsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ArtifactsTest.xml",
+      "bytes": 1617,
+      "sha256": "0d9b0a0eb0f8ad8e3d3378948d822b150de019fbaab2bc97eaffc7f5f38f08d3"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.AutoExecGuardTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.AutoExecGuardTest.xml",
+      "bytes": 1047,
+      "sha256": "8ced3c2f5d251303596acca933246cf80ac942955a1fef5186bd1a736230636f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.AutomationCenterTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.AutomationCenterTest.xml",
+      "bytes": 1390,
+      "sha256": "d39ea54887ccf49a54ee22e19dd7f15b7c45fba0b2ae2ec30359b0a47c0a0955"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.BackgroundAgentsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.BackgroundAgentsTest.xml",
+      "bytes": 1777,
+      "sha256": "59eba6d727cea9c01dc29b6d3f56dbf7801ff8fc2c781fd2a8b584d98f313df2"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.BridgeSecurityPolicyTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.BridgeSecurityPolicyTest.xml",
+      "bytes": 917,
+      "sha256": "86922c92ad50f9a1970c83cf045c7634a606fd18a442cbd4373ac52a8f931371"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.CapabilityNegotiationTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.CapabilityNegotiationTest.xml",
+      "bytes": 2044,
+      "sha256": "1c8365eade75e6f2511373a8e52b578501bb0c882e74fdcd7ca312a05440e429"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.CcAutomaticCompletionPolicyTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.CcAutomaticCompletionPolicyTest.xml",
+      "bytes": 1388,
+      "sha256": "46a607feb109334ae4806ed4e2f3215ee01d042f0fdbcf9c2bfca0fa68c58e94"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.CcCompletionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.CcCompletionTest.xml",
+      "bytes": 1999,
+      "sha256": "74f0ffd1b6cac9471e1e34f6575fc9b83ba034f0aeba0a1c3d21ab0a3de47607"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ChatDraftStoreTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ChatDraftStoreTest.xml",
+      "bytes": 1408,
+      "sha256": "90e262cb016f5e83c104f5b7b336ef8600596a16c186f9ed220affa403a1129b"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ChatEventsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ChatEventsTest.xml",
+      "bytes": 4316,
+      "sha256": "93530796c253361edc38605c6df21c7d5d9809b34c61eac6eda02f128ebc3d5f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ChromeConnectorTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ChromeConnectorTest.xml",
+      "bytes": 656,
+      "sha256": "dc793343ce976d02aec4252c7fd55e751fed3e06e012c85290fbcbdbd1884c08"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.CliIdentityProbeTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.CliIdentityProbeTest.xml",
+      "bytes": 631,
+      "sha256": "0d353fed2b86e4980638a5caaf328f3f358b6a3f27b8f8a2825fa8feb1603c34"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.CliVersionCheckTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.CliVersionCheckTest.xml",
+      "bytes": 1346,
+      "sha256": "13de7c1989cac9bbec302d80c7ee35a08d3131785a990a7e3f9c1a61bf90fd86"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ContextCenterTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ContextCenterTest.xml",
+      "bytes": 962,
+      "sha256": "e668a57dacb27f2535a9f16392e5aecb8eba2723df930b29449d50a19133260f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ContextExternalSourcesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ContextExternalSourcesTest.xml",
+      "bytes": 615,
+      "sha256": "b5192be0ef21a42183bca127e6d0ac444c98c02549faed35918310612527a6d5"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ContextMemoryAuthorityTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ContextMemoryAuthorityTest.xml",
+      "bytes": 633,
+      "sha256": "32998e5b57e2400a96568743e52fbe0960d078f7351c1bf27c5e3315427a71ac"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ContextMemoryProjectionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ContextMemoryProjectionTest.xml",
+      "bytes": 635,
+      "sha256": "67cc359bd2f185415f718fa804d0f8ef461600c997ed69e62c69953844cd16aa"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ContextStatusTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ContextStatusTest.xml",
+      "bytes": 810,
+      "sha256": "f96dbb108b5617b37cd93a20a7662d45d9ca0f8e416f3d8ada048f726ca07f4e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ConversationManagerTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ConversationManagerTest.xml",
+      "bytes": 2276,
+      "sha256": "1a7dedcd83d55683b20271a53c7fcdfa6d1e5b9591dd3624713c63123859337c"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DashboardHtmlTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DashboardHtmlTest.xml",
+      "bytes": 1207,
+      "sha256": "025012e2f352528c843a13775aba126c0315ef604142db36b2acd8e9efa4c65a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DeepLinkTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DeepLinkTest.xml",
+      "bytes": 1615,
+      "sha256": "1100d1db23efb8dde8e137ebaa77a54f4c89799344430097d51300de11e5e477"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DeliveryWorkflowTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DeliveryWorkflowTest.xml",
+      "bytes": 1186,
+      "sha256": "e915dc6d916edabdb1b928ca580846b109f3dc1e9f9c1997d5c852fc7f1e5135"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DiagnosticBundleExportTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DiagnosticBundleExportTest.xml",
+      "bytes": 608,
+      "sha256": "32210dd46573409a734ca7ed08098e177edf2dac0ba930436e2e41d90e96d3ed"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest.xml",
+      "bytes": 1265,
+      "sha256": "1ada58e0612af2bc5c6a8dfa7170998928bfa49467b78b5a01a3901436d3c60a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DiffApplyGuardTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DiffApplyGuardTest.xml",
+      "bytes": 2076,
+      "sha256": "0febafd0032b00473c1c08366fd0b072e742c15791d6b4acb1ce6de5a3aff42a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DiffHunksTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DiffHunksTest.xml",
+      "bytes": 1199,
+      "sha256": "79aae542685aa9005bf6edd40c8711086a4003e2cfbd51fb24244508e580359a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.DiffReviewAuditTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.DiffReviewAuditTest.xml",
+      "bytes": 879,
+      "sha256": "39ff5b53a675b6bb89df71210b3ad23ef12b22e972c9e096c0a2424e40790bf3"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ElicitationSchemaTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ElicitationSchemaTest.xml",
+      "bytes": 759,
+      "sha256": "689abde1a1ff84e66cfb857b27e5fe61e77fbd9398d1707393212241b45c0636"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.EvolutionDeploymentConfigTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.EvolutionDeploymentConfigTest.xml",
+      "bytes": 929,
+      "sha256": "7b178f6648797d9555c87c3c6d272a4ce12012c130c4b6a6ffbea9802d6c116e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.EvolutionWorkbenchSessionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.EvolutionWorkbenchSessionTest.xml",
+      "bytes": 801,
+      "sha256": "454f74d0502a3c1e98d163ba917e7dab25c144d7162d42c00733c478b92d7f79"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.EvolutionWorkbenchTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.EvolutionWorkbenchTest.xml",
+      "bytes": 1869,
+      "sha256": "5c9f1817df5f319d67b0d4b88cc742f6d8054b2211a93cbb30a7fdf41ea5c91d"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.FixWithCcTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.FixWithCcTest.xml",
+      "bytes": 1105,
+      "sha256": "23d52abf4a86d955fe9a68f26115a87ef5a3c3c8c7d9e58db57bb71c5f00b381"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeCapabilitiesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeCapabilitiesTest.xml",
+      "bytes": 575,
+      "sha256": "b304451cceb9bacfa4519eae890578aab42f9291bc2d376455532ab02dc2410c"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeContextV2Test.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeContextV2Test.xml",
+      "bytes": 1265,
+      "sha256": "48dbe26a39a4fe26a7c70cc6293b965adc72133a8f5ae8cf9c52a563b7090755"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeDoctorTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeDoctorTest.xml",
+      "bytes": 1050,
+      "sha256": "71b8fdf65df7f03a6d153d60607698a399637e2519939fa181968be2c39db2f0"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+      "bytes": 2863,
+      "sha256": "95c7f1fdfb355bd5347016eafa0d0e42a2b8275de55173c4295e9f8f9c101d43"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeQualityToolsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeQualityToolsTest.xml",
+      "bytes": 585,
+      "sha256": "78dfd385765d430e7363e254dda10a7631e8b05e5125833f3ea9fda0b468c19f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeSessionIndexTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeSessionIndexTest.xml",
+      "bytes": 1637,
+      "sha256": "334a41fe30d7d94de11ffc4c9b10691ba08bf85ec0bd40b47d37dd41520ec2cc"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeToolAdmissionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeToolAdmissionTest.xml",
+      "bytes": 482,
+      "sha256": "9011b4c10d2d4148473f227164d0a3a9880ce314dc395ee8c5ff2e18586237ed"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeToolsPreviewTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeToolsPreviewTest.xml",
+      "bytes": 739,
+      "sha256": "931f3798d12d044d3d16a85ee5be03fc0859949f62caced929fea987277b803f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IdeToolsTerminalTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IdeToolsTerminalTest.xml",
+      "bytes": 853,
+      "sha256": "8000d1896f0a10585a060104886ceb61a85310122501ea65dae56cc899304450"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ImageAttachmentsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ImageAttachmentsTest.xml",
+      "bytes": 1434,
+      "sha256": "f68caef9a1d4e75fa2ba1e7b766f8fc02fdf3d51e1de2a53afa8369ded3e761c"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ImageFileSnapshotTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ImageFileSnapshotTest.xml",
+      "bytes": 938,
+      "sha256": "d48618e1d4a88688885862a8701d62b63c4003a4edf06f5a0d194861b987665e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "bytes": 1765,
+      "sha256": "898ef7ca88e4415fe24364649b161ed966f558bf5ab9fdff437b92d1a1ca7d9b"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.IntrospectArgsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.IntrospectArgsTest.xml",
+      "bytes": 1243,
+      "sha256": "1720982385b004842d3e00cf22ccfbb1860124c18638d6306fd8f66a4bd6d074"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "bytes": 3411,
+      "sha256": "2b830613285f0236e08a81fc0f0f8694b8ec4247ddc4dfde61c557579870db6d"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "bytes": 800,
+      "sha256": "43ba8799be5ebd6e6f3bd53d0263769f85b5294054e66124b98f40e148dd88a2"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+      "bytes": 2377,
+      "sha256": "607c7d219e8c3b3d803e43031d45e20bd1dee71b6e578ddcad5e50413613fe85"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ManagedCliTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ManagedCliTest.xml",
+      "bytes": 9848,
+      "sha256": "844744d15a549d1a2ad13045bd81c78964f3938997cb39271267b97edf525902"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.MarkdownLiteTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.MarkdownLiteTest.xml",
+      "bytes": 1249,
+      "sha256": "e7e98921c1ab9ccee81b51842f023bcdf2b96c383ce2b0ebbf99b79f0b44cbb1"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.MentionsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.MentionsTest.xml",
+      "bytes": 2127,
+      "sha256": "a6d153143719c59d087e23ca0dad6fd720fc241031c75da74873ef7de2d72213"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.MiniJsonTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.MiniJsonTest.xml",
+      "bytes": 1649,
+      "sha256": "2c35e49b5e580de2397628d3cbd4a20a121364b128732d645275327bfe300ed6"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.MultiDiffTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.MultiDiffTest.xml",
+      "bytes": 2506,
+      "sha256": "19b3b7e72ee415a6de4fec9b53c3e69f716117e229c88c4f380435b0b85afa53"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.NdjsonLineBufferTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.NdjsonLineBufferTest.xml",
+      "bytes": 965,
+      "sha256": "b31d72530599ef7cf5a4fb31838cadea9946ec3e3cad0ad702da8eadce45519d"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "bytes": 965,
+      "sha256": "6267acf970eb93c353e858e006284972fb107e145d7fa3ac9b9279de3f613352"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PlanReviewTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PlanReviewTest.xml",
+      "bytes": 1389,
+      "sha256": "f9ac6beb41e9e7711c4591879b9d37590dc128df394a8bc558f30c87d54bf27e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PluginManagerTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PluginManagerTest.xml",
+      "bytes": 1074,
+      "sha256": "0a3aff6f4be1b835ab1d3060b0b347d8c67a6ae3ef2e0906a504865070e0ea6c"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PluginQualityTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PluginQualityTest.xml",
+      "bytes": 3360,
+      "sha256": "8f68f9be2fc2c1d7ec05fe7534be86be6fdd0a9e6f1e1fe20e617c91cd506ba2"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PolicyViewerTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PolicyViewerTest.xml",
+      "bytes": 2098,
+      "sha256": "26a6b4b761bf3d59fc943fe4644f6dac8b15eb5496149d4967c3cbcd78c95845"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PrStatusTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PrStatusTest.xml",
+      "bytes": 661,
+      "sha256": "0d63574996332ba78a8f32b6cfca80689d495a4cd32b3e46fb2ab61b2454bc0e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.PreviewDetectTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.PreviewDetectTest.xml",
+      "bytes": 1742,
+      "sha256": "8029c52dfe32ceb506bcb1470e139a58f1055e3e6cb9eb15e83489f2854a6ca7"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ProcessTreeTerminationTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ProcessTreeTerminationTest.xml",
+      "bytes": 807,
+      "sha256": "a9a41fcdb68138a94be7b8c5c22be0c6ed0cdc1e084be1441c53a38d8505d426"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ProjectMemoryTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ProjectMemoryTest.xml",
+      "bytes": 1114,
+      "sha256": "f2d676e330d9c3fceaa04e7f5c507fb05d3271c991090fce94e7c50583c85dec"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ProtocolFixturesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ProtocolFixturesTest.xml",
+      "bytes": 1436,
+      "sha256": "48c584c094809cd73113ba8bbe30b9ab84528de104ee96dcd173cdb75dbd4450"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.QrCodeTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.QrCodeTest.xml",
+      "bytes": 947,
+      "sha256": "07ee5a65f8b737a358900459e66224cb0a632ab3795bf8bd9bcaee209cb2a13f"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.QuestionDraftContractTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.QuestionDraftContractTest.xml",
+      "bytes": 1411,
+      "sha256": "e9c037744ec6c8644c80efdd71a1e071ca5969df074be99cee4262122496b2c5"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.QuestionDraftRegistryTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.QuestionDraftRegistryTest.xml",
+      "bytes": 1840,
+      "sha256": "4ac3cd9ccb4908032b3119570bd4fb343289ae6dff3c18a4f6b47de4fef83e08"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.QuestionDraftStoreTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.QuestionDraftStoreTest.xml",
+      "bytes": 960,
+      "sha256": "72dcf92be841d897918ac35a4f6bef197604095f6faf270fe28297279f521315"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RemoteDoctorFixesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RemoteDoctorFixesTest.xml",
+      "bytes": 2475,
+      "sha256": "729934bcde0fa35b7404545f9df1a727f5dda58c19f01b3986bb8ffaa2961c48"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RemoteDoctorTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RemoteDoctorTest.xml",
+      "bytes": 1154,
+      "sha256": "ee2dfd606ae250c55398a1d1c15cddb1d7816ebda560bb64b05a7a0961f1e6b6"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RemoteHandoffTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RemoteHandoffTest.xml",
+      "bytes": 1718,
+      "sha256": "f36339fa586073b9fc6aeea0c78a83d5aad9af10eb65454325b103c2acb51971"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.ReviewNoteTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.ReviewNoteTest.xml",
+      "bytes": 1588,
+      "sha256": "485f749d4338c4571494d3b2829c68b3515e3d47088daf766e05ad44a9e40460"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RewindCommandsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RewindCommandsTest.xml",
+      "bytes": 2528,
+      "sha256": "2fae394bd71c2683cf208b1142ead843ceded4502d8c1bad5395695681f76cdc"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RuntimeCompatibilityTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RuntimeCompatibilityTest.xml",
+      "bytes": 2001,
+      "sha256": "bf7c48382e0a58a77a60a6aea7ef7ae8d4989165c8fc4741e3568c2116e327a9"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.RuntimeEnvironmentTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.RuntimeEnvironmentTest.xml",
+      "bytes": 720,
+      "sha256": "2425207a5c0d607fc3934809ce4b8dc997ab590eb92e63b4f3777d9e679bdd97"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SemanticToolsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SemanticToolsTest.xml",
+      "bytes": 4129,
+      "sha256": "4c841c4bfc7904cea72a8d408acc2e9c187b30487baa0a9df134e0a1cd21784a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionArgsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionArgsTest.xml",
+      "bytes": 1752,
+      "sha256": "370b1b14e3b03e1eea45103af5638d43c25d47f75c6a004ce4fc7bbf1f4c03d5"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionHistoryReaderTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionHistoryReaderTest.xml",
+      "bytes": 1096,
+      "sha256": "a4c866b75e2eab38c23e2bba6c08df9578fc131bfdd206b9eb934a03ae063a29"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionListTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionListTest.xml",
+      "bytes": 1168,
+      "sha256": "03446525a5fb45784e835af422727b5c706ff26a13ff0ff908a0a53ca3e12067"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionProjectionTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionProjectionTest.xml",
+      "bytes": 1221,
+      "sha256": "439b2f1937def4e20fe2ba57f8cd7c796934369b6313cb7e4428f7c36fe10ff4"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionTranscriptChangesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionTranscriptChangesTest.xml",
+      "bytes": 798,
+      "sha256": "d287d2586c3f7fbee050fe24de0b4459280bef1eb8a2e06330e982968402737a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionTranscriptPageTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionTranscriptPageTest.xml",
+      "bytes": 932,
+      "sha256": "0daea498d53fa099d40054f6824b3b13d61206d86e10f5883c3cdd80c6de7c67"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SessionsWorkbenchTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SessionsWorkbenchTest.xml",
+      "bytes": 2375,
+      "sha256": "6a3f61b85e823478353fd380c93eb0d14d60133c10f32cf0667c1c757c5ba891"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SkillRetrievalTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SkillRetrievalTest.xml",
+      "bytes": 1156,
+      "sha256": "0962266c47d8d9a0f6a536daf034e77937d6a46f7c8d9ff18c130864f841a343"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.SlashCommandsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.SlashCommandsTest.xml",
+      "bytes": 2063,
+      "sha256": "7c2441d3d95c504cc44afacef77a1540fc6796fd48eef388af4db5d7bed545cc"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.StatusBarTextTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.StatusBarTextTest.xml",
+      "bytes": 1252,
+      "sha256": "885b769c1283c524927ba7b3bcae1daf60178108f2a8b80f8d490049d245a4df"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.TeamControlTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.TeamControlTest.xml",
+      "bytes": 2757,
+      "sha256": "c7ca801b4a41686d7846fae4135470b2c2e97649439ddd4c83f7c211e6e88f0e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.TeamMonitorTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.TeamMonitorTest.xml",
+      "bytes": 1509,
+      "sha256": "5ae9fe2b975d1f536bc721d5be9fd53dfa8f146b821713d0bd39f99217fb6937"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.TranscriptCapTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.TranscriptCapTest.xml",
+      "bytes": 1473,
+      "sha256": "88defd4364e91195b4c5a1f7e51eb6164389837ef353d12ad9f3ec155da190fc"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.TranscriptReferencesTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.TranscriptReferencesTest.xml",
+      "bytes": 612,
+      "sha256": "7b19deb884105df1cdfc6355ba2a955d18db6f8e7b07751358d1eda09452388b"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "bytes": 921,
+      "sha256": "c4eabaab1e12de0da51e041531c6203f4baaf7e636401a52944b1e6a6f1868e4"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.UsageReportTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.UsageReportTest.xml",
+      "bytes": 2196,
+      "sha256": "b3b541d92da92e413b0038a4cf7ca199fbcaa3d02a02ba2fa359bcf35ea8e62c"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.Verify01ProtocolCaptureTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.Verify01ProtocolCaptureTest.xml",
+      "bytes": 796,
+      "sha256": "d409a831231a9ff845bf61b77e1c9f27cb2c472095a737e3a8003a8edebae5c1"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.WhatsNewTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.WhatsNewTest.xml",
+      "bytes": 1305,
+      "sha256": "87e650b680421f2f2587c42786888740a7eb025426a32998613b40d103f11c9a"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.WindowsOwnerOnlyAclTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.WindowsOwnerOnlyAclTest.xml",
+      "bytes": 908,
+      "sha256": "7711bcf021c050690c90309d63d4a73cad026b1c4619e770e8c37d01ea822488"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest.xml",
+      "bytes": 493,
+      "sha256": "5d183d42840bfb7a0c2d485acefaabf3725ebe2e4d4f3e2762c2179f48b9187e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.WorkspaceMentionIndexTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.WorkspaceMentionIndexTest.xml",
+      "bytes": 795,
+      "sha256": "12006a969eb7401f58a6be2dad494cf3008c1b2dc01f6266e71df7a87bb1f327"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.WorktreeTasksTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.WorktreeTasksTest.xml",
+      "bytes": 1401,
+      "sha256": "a82ff1201e88236ec6b396fd729f5e24e31f76dbb2d58e5014edaca0b7d32bc5"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest.xml",
+      "bytes": 543,
+      "sha256": "83eccc5b33494ac55511e05e5d5eb00a7f16d089a114fa57f0e7d96edc70d657"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatCardsLayoutTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatCardsLayoutTest.xml",
+      "bytes": 639,
+      "sha256": "da21e956169b34773897bcad310b7245aa79e3a4151e54d9e20ec5469ba37e3e"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "bytes": 1011,
+      "sha256": "6610a64db30ea8ec91171750bec64b7f70f05ecd2f12cf5fba83ada55a7d5884"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatHistorySyncTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatHistorySyncTest.xml",
+      "bytes": 1149,
+      "sha256": "72d2c5c1e5040f4cd1edda139a924ac5faff400ccb3e0b0fdabaab41a60f509d"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "bytes": 1785,
+      "sha256": "0fb60c8cd11e6fafc2f6ea8345c1bcbf9d0115be71135b267ab43e15b7062b76"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "bytes": 1836,
+      "sha256": "7b97f000275bcda954d5da0c60b78e3be864eb876b59dd3975195a2f0902c414"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.ChatTranscriptTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.ChatTranscriptTest.xml",
+      "bytes": 1548,
+      "sha256": "62628c38d2ec893dd401e29789212cfa1a4c91131f89c69098e7d4eb4811b6b3"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.QuestionFormViewTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.QuestionFormViewTest.xml",
+      "bytes": 1451,
+      "sha256": "aee41d08144aaba75dcf7927dc3c0e56f7ca0dc54fad75613cac0c8e38d24cb4"
+    },
+    {
+      "path": "full-junit/TEST-com.chainlesschain.ide.intellij.SessionUxEvidenceTest.xml",
+      "source": "packages\\jetbrains-plugin\\build\\test-results\\test\\TEST-com.chainlesschain.ide.intellij.SessionUxEvidenceTest.xml",
+      "bytes": 491,
+      "sha256": "f7caa4f92a6c74e0f26c4979b852df6c5988a2c2272dbb98544d3361ac8ed5f0"
+    }
+  ]
+}

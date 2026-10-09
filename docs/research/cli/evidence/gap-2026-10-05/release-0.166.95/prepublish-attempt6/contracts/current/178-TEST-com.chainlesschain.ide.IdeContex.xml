@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdeContextV2Test" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:42" hostname="DESKTOP-MTMV2RE" time="0.013">
+  <properties/>
+  <testcase name="workspaceDigestIsOrderIndependentAndContentFree()" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.002"/>
+  <testcase name="coreReadToolsAttachMetadataWhenFacadeSupportsIt()" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.002"/>
+  <testcase name="writeReviewToolsAttachSourceTargetAndWorkspaceMetadata()" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.003"/>
+  <testcase name="live dirty document in sorted Windows roots" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.001"/>
+  <testcase name="workspace-level capture without a document" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.001"/>
+  <testcase name="no workspace is explicit and content free" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.0"/>
+  <testcase name="filesystem root remains a real workspace" classname="com.chainlesschain.ide.IdeContextV2Test" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

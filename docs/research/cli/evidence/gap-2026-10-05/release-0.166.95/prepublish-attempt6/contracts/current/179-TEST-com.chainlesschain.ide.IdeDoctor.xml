@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdeDoctorTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:42" hostname="DESKTOP-MTMV2RE" time="0.009">
+  <properties/>
+  <testcase name="buildJetbrainsArgs()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.001"/>
+  <testcase name="formatReportWhenDownFlagsStoppedAndPlaceholdersEmptySections()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.003"/>
+  <testcase name="buildDoctorArgs()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.0"/>
+  <testcase name="confirmedRuntimeShowsReceiptsAndEffectiveMode()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.001"/>
+  <testcase name="buildStatusArgs()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.0"/>
+  <testcase name="formatReportWhenUpShowsPortAndPassesSectionsThrough()" classname="com.chainlesschain.ide.IdeDoctorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

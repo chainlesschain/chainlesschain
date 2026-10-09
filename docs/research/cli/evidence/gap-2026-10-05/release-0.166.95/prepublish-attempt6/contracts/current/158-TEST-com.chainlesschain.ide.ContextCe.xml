@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ContextCenterTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.015">
+  <properties/>
+  <testcase name="ideToolProjectsHostCandidates()" classname="com.chainlesschain.ide.ContextCenterTest" time="0.009"/>
+  <testcase name="preferencesAreNormalizedAndUpdated()" classname="com.chainlesschain.ide.ContextCenterTest" time="0.0"/>
+  <testcase name="generatedIdsAreStableAndContentFree()" classname="com.chainlesschain.ide.ContextCenterTest" time="0.001"/>
+  <testcase name="pin remove priority and fixed-budget trimming" classname="com.chainlesschain.ide.ContextCenterTest" time="0.0"/>
+  <testcase name="UTF-8 trimming does not split a code point" classname="com.chainlesschain.ide.ContextCenterTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ProtocolFixturesTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.017">
+  <properties/>
+  <testcase name="maps session-lifecycle.ndjson" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.004"/>
+  <testcase name="maps assistant-stream.ndjson" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.002"/>
+  <testcase name="maps tools.ndjson" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.001"/>
+  <testcase name="maps interaction.ndjson" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.002"/>
+  <testcase name="maps misc.ndjson" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.003"/>
+  <testcase name="preservesCausalEquivalentProjectionsAcrossLegalInterleavings()" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.002"/>
+  <testcase name="ignoresUnknownEventTypes()" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.0"/>
+  <testcase name="sharedFixturesExistAndAreWellFormed()" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.001"/>
+  <testcase name="toleratesAdditiveSeqAndToolIdFields()" classname="com.chainlesschain.ide.ProtocolFixturesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PluginQualityTest" tests="24" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.012">
+  <properties/>
+  <testcase name="lspUnknownWhenNoLiveStatusData()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="flagsBrokenFromValidateErrors()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="formatCountsShowsOnlyNonZeroTypes()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="lspUnavailableWhenOwnServerDidNotResolve()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="describeRendersFlagsCountsAndErrors()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="describeRendersUnreadableEmptyAndProbeWarningStates()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="flagsUnusedOnlyWhenEveryComponentCountIsZero()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="lspNoneWhenPluginDeclaresNoLsp()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="lspOkWhenEveryDeclaredServerResolved()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="rowsNullWhenPluginListUnreadable()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="lspOnlyPluginIsNotUnused()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="parseValidateReturnsNullForUnreadableOutput()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="lspUnknownWhenStatusRowIsADifferentServer()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="parseValidateFallsBackToCommandAsLspId()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="lspUnknownWhenLanguageIdAbsentFromProbe()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="missingValidationEntryAlsoDegrades()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="discoveryLevelInvalidPluginIsBrokenWithoutValidate()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="parseValidateNormalizesCountsErrorsAndLsp()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="parseStatusReturnsNullWhenProbeUnreadable()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="degradesHonestlyWhenValidateOutputMissing()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="summaryLineCountsCategories()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <testcase name="neverEmitsAFabricatedSlowFlag()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="parseStatusUsesStrictBooleanAvailability()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.001"/>
+  <testcase name="buildsValidateAndStatusArgs()" classname="com.chainlesschain.ide.PluginQualityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

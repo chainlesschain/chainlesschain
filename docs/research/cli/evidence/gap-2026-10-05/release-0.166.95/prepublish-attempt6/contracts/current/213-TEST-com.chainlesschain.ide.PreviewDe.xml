@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PreviewDetectTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.007">
+  <properties/>
+  <testcase name="detectServerUrlStripsAnsiColors()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.001"/>
+  <testcase name="detectServerUrlReturnsNullForNonMatches()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="detectServerUrlParsesNextBanner()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="pickDevScriptFallsBackToRecognizedDevTool()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.002"/>
+  <testcase name="detectServerUrlTrimsTrailingPunctuation()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="detectServerUrlParsesViteBanner()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.001"/>
+  <testcase name="pickDevScriptReturnsNullWhenNothingFits()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.001"/>
+  <testcase name="detectServerUrlInTextReturnsNullWhenNoUrl()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="detectServerUrlInTextReturnsFirstMatch()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="detectServerUrlRewritesWildcardHostToLocalhost()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <testcase name="pickDevScriptPrefersConventionalNameByPriority()" classname="com.chainlesschain.ide.PreviewDetectTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

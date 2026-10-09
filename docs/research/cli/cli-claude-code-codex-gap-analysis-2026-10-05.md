@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-10 审批卡布局与阶段取证**：候选 `8e53836210` 的 ARM64 10/10 成功，IDE 主矩阵 Windows 2025.2 在寻找审批按钮时失败，尚未进入恢复菜单；CLI 已接收权限消息并输出审批请求，IDE 的消费/渲染机制未确认。受控 Swing 合同另证明滚动窗格验证边界可保留零高度，已补外层布局验证；增加默认关闭的事件阶段观察、失败组件树及原始 IDE 日志。局部合同、952 个 Java 用例通过 / 3 个原有 POSIX 跳过、1,445 项 smoke 断言通过，均不替代新提交真实宿主门。见[验证 20.19](../cli-ide-gap-validation-2026-10-05.md#2019-windows-20252-审批卡取证与布局验证)，尚未发布。
+
 > **2026-10-10 归档路径修正**：候选 `9f4df1157e` 的 Windows job 在 Git checkout 阶段因六份 receipt 长路径失败，尚未运行测试。已只缩短六份归档文件名，保留全部原始字节、来源路径、摘要和原 journey manifest，路径映射与失败原件见[验证 20.18](../cli-ide-gap-validation-2026-10-05.md#2018-windows-检出失败与归档路径映射)。测试驱动源码未改，新提交仍须完整门，尚未发布。
 
 > **2026-10-10 ARM64 弹窗测试驱动修正**：候选 `a3f3ed3dd1` 的 Windows ARM64 JetBrains 真实旅程 7/8 通过，第三轮恢复动作菜单未出现；前两轮 preview/confirm 已完成，第三轮尚无恢复请求，根因未确认。测试驱动将目标复核、唯一项选择及真实 Enter 放入同一 EDT 操作，保持原 45 秒预算、下一菜单及 preview/confirm 断言，无 retry；新增状态与焦点诊断。编译通过，实际编译脚本的 Rhino/Swing/EDT 合同 10/10，Java 重载已独立回读；这些不替代真实 IDE。见[验证 20.17](../cli-ide-gap-validation-2026-10-05.md#2017-windows-arm64-jetbrains-弹窗调度诊断)，新提交须完整矩阵，CLI/IDE 尚未发布。

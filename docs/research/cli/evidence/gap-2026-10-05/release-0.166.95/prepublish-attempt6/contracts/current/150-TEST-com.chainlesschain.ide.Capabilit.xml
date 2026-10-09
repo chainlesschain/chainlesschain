@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.CapabilityNegotiationTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.027">
+  <properties/>
+  <testcase name="fixtureIsPresentAndNonEmpty()" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.002"/>
+  <testcase name="no client offer keeps full v1 behavior" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.003"/>
+  <testcase name="matching v1 client, all features accepted" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="client narrows features to a subset" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="client omits features field, accepts all offered" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="newer client offers v2, server maxes at v1 (client downgrades)" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="N/N-1: server speaks v2, v1-only client negotiates down to v1" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="both on v2, v2-only feature survives" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="incompatible: client too new (min 3, server max 2)" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.006"/>
+  <testcase name="incompatible: client too old (max 1, server min 2)" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="client requests a feature the server does not offer (ignored)" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <testcase name="protocolFeaturesAdvertisePermissionDecisions()" classname="com.chainlesschain.ide.CapabilityNegotiationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

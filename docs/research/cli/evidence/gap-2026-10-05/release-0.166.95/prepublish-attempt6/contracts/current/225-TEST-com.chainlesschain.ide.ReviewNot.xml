@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ReviewNoteTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.004">
+  <properties/>
+  <testcase name="fullWidthColonAnchors()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.001"/>
+  <testcase name="blankInputEndsTheLoop()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="anchorWithoutNoteTextIsAGeneralNote()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="singleLineAnchorIsZeroBasedWithLineText()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.001"/>
+  <testcase name="endLineClampsToLastLine()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="zeroLineIsNotAnAnchor()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="plainNoteHasNoAnchor()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="outOfRangeStartDegradesToGeneralNote()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="reversedRangeIsForgiven()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="anchorsResolveAgainstTheReviewedTextItWasGiven()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.0"/>
+  <testcase name="rangeAnchorSpansLines()" classname="com.chainlesschain.ide.ReviewNoteTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

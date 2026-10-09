@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.LockfileAclTest" tests="13" skipped="2" failures="0" errors="0" timestamp="2026-10-09T17:29:17" hostname="DESKTOP-MTMV2RE" time="46.897">
+  <properties/>
+  <testcase name="pruneKeepsLiveWriterTempAndRemovesDeadWriterTemp(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="10.477"/>
+  <testcase name="pruneSkipsFilesWhenDirectoryOwnerCheckFails(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="0.005"/>
+  <testcase name="failedDirectoryCheckPreservesExistingLockfile(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="1.565"/>
+  <testcase name="posixModesAreExactForDirectoryAndPublishedFile(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="0.003">
+    <skipped/>
+  </testcase>
+  <testcase name="directoryAlsoGetsOwnerOnlyAclOnWindows(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="8.3"/>
+  <testcase name="compatibilityProbeReportsMissingTargetAsUnsecured(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="1.835"/>
+  <testcase name="onlyExplicitManagedPolicyMayDowngradePermissionFailure(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="2.747"/>
+  <testcase name="unreadableManagedPolicyFailsBeforePublication(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="0.005"/>
+  <testcase name="tokenIsWrittenOnlyAfterEmptyTempFileIsChecked(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="2.693"/>
+  <testcase name="writeSucceedsAndFileCarriesTokenOnEveryPlatform(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="8.975"/>
+  <testcase name="compatibilityProbeDoesNotPretendWindowsAclExistsOnPosix(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="0.002">
+    <skipped/>
+  </testcase>
+  <testcase name="windowsAclLeavesOwnerOnlyEntries(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="8.764"/>
+  <testcase name="permissionFailureBlocksPublicationByDefault(Path)" classname="com.chainlesschain.ide.LockfileAclTest" time="1.524"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[[chainlesschain-ide] managed policy permits an insecure IDE bridge lockfile after permission verification failed: C:\Users\longfa\AppData\Local\Temp\junit536694719940685419\ide (denied)
+]]></system-err>
+</testsuite>

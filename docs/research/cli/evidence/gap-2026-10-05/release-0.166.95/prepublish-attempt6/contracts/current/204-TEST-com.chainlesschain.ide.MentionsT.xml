@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.MentionsTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.008">
+  <properties/>
+  <testcase name="dedupeMentionItemsKeepsFirstPerValue()" classname="com.chainlesschain.ide.MentionsTest" time="0.001"/>
+  <testcase name="deriveFoldersRootOnlyNullAndCap()" classname="com.chainlesschain.ide.MentionsTest" time="0.001"/>
+  <testcase name="formatSymbolItemsSkipsNamelessAndBuildsRelPathLabel()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="filterFilesSubstringMatchAndCaseInsensitive()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="detectAtTokenRejectsGluedAtAndNonCaretToken()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="deriveFoldersNormalizesBackslashes()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="detectAtTokenAfterSpaceAndAtStart()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="filterFilesRanksBasenamePrefixFirst()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="filterFilesEmptyPrefixReturnsFirstN()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="ideMentionMatchesByPrefix()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="applyMentionSplicesWithTrailingSpace()" classname="com.chainlesschain.ide.MentionsTest" time="0.001"/>
+  <testcase name="deriveFoldersReturnsUniqueSortedAncestors()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="symbolKindLabelMapping()" classname="com.chainlesschain.ide.MentionsTest" time="0.001"/>
+  <testcase name="formatInsertReferenceLineRanges()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <testcase name="filterFilesFolderRanksByLastSegment()" classname="com.chainlesschain.ide.MentionsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

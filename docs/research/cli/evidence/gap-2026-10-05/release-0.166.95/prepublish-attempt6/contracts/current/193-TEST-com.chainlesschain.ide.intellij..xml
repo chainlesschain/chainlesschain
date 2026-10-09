@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.intellij.ChatHistoryViewTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:16" hostname="DESKTOP-MTMV2RE" time="0.318">
+  <properties/>
+  <testcase name="restoresTwoIndependentTabsAndBackgroundFinalTextOffEdt()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.01"/>
+  <testcase name="failuresAndQueueRejectionKeepReadableContentAndShowAnError()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.008"/>
+  <testcase name="selectedTextSurvivesAutomaticRefreshAndManualLatestCanReplaceIt()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.075"/>
+  <testcase name="olderPagesKeepTheLiveTranscriptSeparateAndReturnWithoutReplay()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.15"/>
+  <testcase name="stoppingKeepsTransientFailureTextAndCancelsAutomaticReplacement()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.006"/>
+  <testcase name="completedOldSessionReadCannotReappearAfterResetOrDispose()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.008"/>
+  <testcase name="lateReadsDoNotOverwriteNewLiveOutputAndRefreshAfterIdle()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.006"/>
+  <testcase name="entireBoundedHistoryPageRemainsReadablePastTheLiveDocumentCap()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.027"/>
+  <testcase name="automaticRefreshDoesNotMoveAReaderAwayFromOlderLiveText()" classname="com.chainlesschain.ide.intellij.ChatHistoryViewTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

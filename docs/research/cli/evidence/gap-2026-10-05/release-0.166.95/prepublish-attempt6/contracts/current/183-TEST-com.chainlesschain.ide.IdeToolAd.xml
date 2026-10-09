@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdeToolAdmissionTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:44" hostname="DESKTOP-MTMV2RE" time="0.001">
+  <properties/>
+  <testcase name="environmentEnvelopeIsEnforcedAttributedAndHostBounded()" classname="com.chainlesschain.ide.IdeToolAdmissionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

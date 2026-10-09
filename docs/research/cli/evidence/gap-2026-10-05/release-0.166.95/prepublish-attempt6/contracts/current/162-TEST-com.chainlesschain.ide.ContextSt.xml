@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ContextStatusTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.003">
+  <properties/>
+  <testcase name="missingComponentsCountAsZero()" classname="com.chainlesschain.ide.ContextStatusTest" time="0.001"/>
+  <testcase name="sumsAllFourUsageComponents()" classname="com.chainlesschain.ide.ContextStatusTest" time="0.001"/>
+  <testcase name="overflowWhenTotalExceedsWindow()" classname="com.chainlesschain.ide.ContextStatusTest" time="0.0"/>
+  <testcase name="nullWhenInputsCannotProduceAStatus()" classname="com.chainlesschain.ide.ContextStatusTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

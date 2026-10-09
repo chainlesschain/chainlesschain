@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.DiffReviewAuditTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.015">
+  <properties/>
+  <testcase name="recordsHunksAndBoundedComments()" classname="com.chainlesschain.ide.DiffReviewAuditTest" time="0.006"/>
+  <testcase name="recordsLifecycleIntentWithoutInventingDeletedFinalContent()" classname="com.chainlesschain.ide.DiffReviewAuditTest" time="0.004"/>
+  <testcase name="recordsUserEditedAcceptanceWithoutEmbeddingContents()" classname="com.chainlesschain.ide.DiffReviewAuditTest" time="0.002"/>
+  <testcase name="fingerprintMatchesTheJavascriptTwin()" classname="com.chainlesschain.ide.DiffReviewAuditTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

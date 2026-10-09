@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SlashCommandsTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.007">
+  <properties/>
+  <testcase name="filterReReturnsRejectReviewRetryRewindInMenuOrder()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="cliArgumentTokenizerPreservesWindowsPathsAndQuotedValues()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.001"/>
+  <testcase name="sessionCommandsUseVsCodeDescriptionsAndLiveSessionRoutes()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.001"/>
+  <testcase name="filterNarrowerPrefixesDisambiguate()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.001"/>
+  <testcase name="sessionEventPreservesArgumentsAndCorrelationId()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="filterCoMatchesCompactContextCostInMenuOrder()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.001"/>
+  <testcase name="labelFormatsCommandAndHelp()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="cliValidationMatchesVsCodeReadOnlyPluginPolicy()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="filterCompNarrowsToCompactOnly()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="detectSlashTokenReturnsNullWhenNotABareLeadingToken()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="detectSlashTokenReturnsBareLeadingPrefix()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <testcase name="filterEmptyPrefixReturnsAllAndNoMatchIsEmpty()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.001"/>
+  <testcase name="resumeAliasAndHelpComeFromTheSameManifest()" classname="com.chainlesschain.ide.SlashCommandsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

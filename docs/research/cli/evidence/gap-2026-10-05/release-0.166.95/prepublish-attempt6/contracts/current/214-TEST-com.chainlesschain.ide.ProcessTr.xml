@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ProcessTreeTerminationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.106">
+  <properties/>
+  <testcase name="inabilityToInspectTheTreeCannotClaimSuccessfulExit()" classname="com.chainlesschain.ide.ProcessTreeTerminationTest" time="0.001"/>
+  <testcase name="failedTerminationRetainsOrphanHandlesForAnExplicitRetry()" classname="com.chainlesschain.ide.ProcessTreeTerminationTest" time="0.052"/>
+  <testcase name="waitsForTheObservedDescendantAfterTheWrapperExitsAndEscalates()" classname="com.chainlesschain.ide.ProcessTreeTerminationTest" time="0.053"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

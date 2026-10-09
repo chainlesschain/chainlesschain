@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.DeepLinkTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.007">
+  <properties/>
+  <testcase name="roundTripsWindowsSpacedAndCjkPaths()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.001"/>
+  <testcase name="leadingSlashStrippedAndCaseInsensitive()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <testcase name="noParamsOrBlankPromptYieldsNullPrompt()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <testcase name="resumesValidSessionAndRejectsJunk()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.001"/>
+  <testcase name="acceptsSafeModesButNeverBypass()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <testcase name="returnsWorkspaceVerbatim()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.001"/>
+  <testcase name="combinesAllParamsInOneLink()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <testcase name="unsupportedActionReturnsNull()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.001"/>
+  <testcase name="carriesFileWithLineAndDropsLoneLine()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.001"/>
+  <testcase name="openWithPromptCarriesTheDecodedPrompt()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <testcase name="bareNullOrBlankTargetMapsToOpen()" classname="com.chainlesschain.ide.DeepLinkTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

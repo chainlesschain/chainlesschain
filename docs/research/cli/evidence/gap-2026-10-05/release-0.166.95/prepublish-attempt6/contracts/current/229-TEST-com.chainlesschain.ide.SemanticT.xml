@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SemanticToolsTest" tests="31" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:05" hostname="DESKTOP-MTMV2RE" time="0.025">
+  <properties/>
+  <testcase name="invalidArgsSurfaceAsIllegalArgument()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.002"/>
+  <testcase name="renamePreviewWithNothingFoundIsEmptyButWellFormed()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="renamePreviewToolComposesSymbolAndReferences()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="stripHtmlHandlesBlocksAndScripts()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="symbolInfoWhitelistsKnownKeys()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="missingOrBlankPathRejected()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="shapedResultsSurviveMiniJsonRoundTrip()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="emptyDefinitionsCarryReason()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="hoverCapsLongText()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.005"/>
+  <testcase name="referencesAtCollectBoundFlagLowerBound()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="renamePreviewGroupsCountsAndNeverMutates()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="clampMaxBehavior()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="projectModelNullDegrades()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="doublesFromJsonAreAccepted()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="hoverStripsHtmlAndDecodesEntities()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="symbolInfoNullOrNamelessDegrades()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="definitionsCappedAtMax()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="zeroBasedInputIsRejectedWithContractInMessage()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="renamePreviewCapsFileList()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.003"/>
+  <testcase name="callHierarchyCapsEachDirection()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="hoverNullDegradesWithReason()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="referencesUnderMaxAreNotTruncated()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="toolsAreOnlyExposedWhenTheFacadeIsProvided()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="nonNumericLineRejected()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="referencesOverMaxAreCappedWithTotal()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="validPositionParses()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="positionSchemasDeclareRequiredsAndDocumentOneBased()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="findReferencesHonorsMaxArgument()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="semanticResultsCarryAdditiveContextFromTheEditor()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <testcase name="projectModelCapsDependenciesPerModule()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.001"/>
+  <testcase name="callHierarchyReasonPassthroughAndNullDegrade()" classname="com.chainlesschain.ide.SemanticToolsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

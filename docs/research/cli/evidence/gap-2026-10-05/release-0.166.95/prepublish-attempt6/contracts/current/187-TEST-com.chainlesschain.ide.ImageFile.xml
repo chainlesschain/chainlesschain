@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ImageFileSnapshotTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:44" hostname="DESKTOP-MTMV2RE" time="0.034">
+  <properties/>
+  <testcase name="readsMultipleChunksAndRejectsNonregularOrOversizeFiles()" classname="com.chainlesschain.ide.ImageFileSnapshotTest" time="0.017"/>
+  <testcase name="validatesTheSnapshotBytesEvenIfTheSourceChangesLater()" classname="com.chainlesschain.ide.ImageFileSnapshotTest" time="0.004"/>
+  <testcase name="rejectsGrowthAfterTheFirstChunkWithoutFollowingTheGrowingFile()" classname="com.chainlesschain.ide.ImageFileSnapshotTest" time="0.006"/>
+  <testcase name="rejectsSameSizeModificationAndCancellationBetweenChunks()" classname="com.chainlesschain.ide.ImageFileSnapshotTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

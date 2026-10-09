@@ -1,0 +1,23 @@
+{
+  "schema": "astra.actual-generated-script-review/v1",
+  "target": "UiFailureDiagnostics.snapshotScript",
+  "scope": "Actual compiled generator and actual Rhino 1.7.15 plus Swing EDT; headless contract checks, not a real IDE or original CI reproduction",
+  "finalReport": "corrected-final/report.json",
+  "passed": 6,
+  "total": 6,
+  "sourceSha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17",
+  "classSha256": "d183d7824081eb7f30d54e7c98b1c0bccc56b7f8b2b7e18d2aca6bf5c9400072",
+  "actualScriptSha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c",
+  "sourceBinding": "corrected/source-binding.json confirms independently javac-compiled preserved source returns byte-identical script to the Gradle class",
+  "adaptation": "Unmodified script used for EDT JSON String and non-EDT rejection. Tree cases replace only var windows=java.awt.Window.getWindows(); with var windows=roots;. Injected RootPanel overrides isShowing=true; descendants are actual Swing components with real bounds and visibleRect calculations. No fake IDE or owner class was introduced.",
+  "discoveredAndFixed": "Old class omitted nodes after count reached 6000 while reporting truncated=false; actual 6001-node run reproduced it. Root corrected truncation, final run reports nodes6000/children5999/truncated=true. Old class/script/failing report retained; old source snapshot was already corrected and explicitly marked not bound to that old class.",
+  "reflectionReview": {
+    "method": "Read-only review of generated JS, source and javap of actual compiled owner/registry/conversation classes",
+    "confirmedDeclaredFields": ["ConversationView.sendInFlight", "ConversationView.disposed", "ConversationView.turnActive", "ConversationView.sessionGeneration", "ConversationView.conv", "ConversationView.approvalCards", "ConversationView.approvalSettlements", "ApprovalSettlementRegistry.approvals"],
+    "confirmedPublicFields": ["ConversationManager.Conversation.sessionId", "ConversationManager.Conversation.session"],
+    "fieldAbsenceHandling": "scalar fields catch errors as field:<name>; conversation fields/session calls catch as conversation-session; card ids/settlements catch as approval-state; captured listener field access catches as listener-owner. No setters, button action calls, approval state transitions or retries are added.",
+    "runtimeErrorCase": "Actual script with a Swing Send button whose listener accessor throws returns an errors entry and leaves text/bounds unchanged. This tests the inspection error boundary, not live IDE owner reflection.",
+    "limitation": "No actual ConversationView instance was instantiated or discovered inside a real IDEA Window. Runtime classloader/accessibility and owner discovery remain real-host evidence requirements; ownerCount=0 is not proof of a conversation capture."
+  },
+  "restrictions": "No tracked source changes, Gradle invocation, GUI launch, Git action or retry added by this review."
+}

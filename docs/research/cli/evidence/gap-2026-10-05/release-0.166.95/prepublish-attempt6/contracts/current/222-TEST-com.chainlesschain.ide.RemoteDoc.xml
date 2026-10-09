@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RemoteDoctorFixesTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.01">
+  <properties/>
+  <testcase name="dedupesPortsAcrossMultipleFirewallChecks()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.002"/>
+  <testcase name="classifiesRealChecksIntoThreeTiers()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.001"/>
+  <testcase name="extractsOnlyDigitsValidatedInRangePorts()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="wslConfigPatchHasExactIniPathAndPostStep()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="remoteDevCheckAbsentOnALocalIde()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="scriptIsDeterministicAndNullWithoutFirewallCheck()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="generatesElevationCheckedIdempotentAsciiScript()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.001"/>
+  <testcase name="neverExecutesTamperedFixText()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="unknownCheckIdsWithAFixDegradeToCopyOnly()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="remoteDevCheckDegradesToCopyOnlyDocsPointerInTheFixFlow()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="remoteDevClientEmitsInfoCheckWithoutDegradingLevel()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.001"/>
+  <testcase name="wslConfigPatchNullWithoutWslNetworkingCheck()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="missingCliMapsToAllowlistedInstallCommand()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="skipsOkLevelAndFixlessChecks()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.001"/>
+  <testcase name="stoppedBridgeMapsToExistingRestartPathNoShell()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <testcase name="embedsNothingFromHostileCheckText()" classname="com.chainlesschain.ide.RemoteDoctorFixesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

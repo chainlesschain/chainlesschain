@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ChromeConnectorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.003">
+  <properties/>
+  <testcase name="rendersStateReport()" classname="com.chainlesschain.ide.ChromeConnectorTest" time="0.001"/>
+  <testcase name="buildsCliArgv()" classname="com.chainlesschain.ide.ChromeConnectorTest" time="0.0"/>
+  <testcase name="parsesTolerantly()" classname="com.chainlesschain.ide.ChromeConnectorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

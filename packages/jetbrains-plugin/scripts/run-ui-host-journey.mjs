@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   createWriteStream,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -138,10 +142,15 @@ function openProcessLogs(logRoot, label) {
 
 function launchGradle(args, logRoot, label, options = {}) {
   const logs = openProcessLogs(logRoot, label);
-  const captured = { stdout: "", stderr: "" };
+  const captured = { stdout: "", stderr: "", diagnosticWriteFailed: false };
   const capture = (stream, chunk) => {
     const limit = 250_000;
     captured[stream] = `${captured[stream]}${String(chunk)}`.slice(-limit);
+    if (
+      stream === "stderr" &&
+      captured.stderr.includes("[cc-ui-event-diagnostic-write-failed]")
+    )
+      captured.diagnosticWriteFailed = true;
   };
   const child = spawn(gradleExecutable(), args, {
     cwd: PACKAGE_ROOT,
@@ -675,6 +684,115 @@ export function findPluginArchive(distributions, version) {
   return existsSync(archive) ? archive : null;
 }
 
+/** Preserve unmodified IDE logs separately from the collector's redacted text copies. */
+export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
+  if (
+    !path.isAbsolute(captureRoot) ||
+    realpathSync(captureRoot) !== captureRoot
+  )
+    throw new Error("unsafe-capture-root");
+  const status = {
+    schema: "chainlesschain.ui-host-capture/v1",
+    complete: false,
+    scope:
+      "Metadata event trace and original IDE log bytes after this host phase stopped",
+    files: [],
+    failures: [],
+  };
+  const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+  try {
+    if (
+      !path.isAbsolute(sandboxRoot) ||
+      realpathSync(sandboxRoot) !== sandboxRoot
+    )
+      throw new Error("unsafe-sandbox-root");
+    const trace = path.join(captureRoot, "host-events.jsonl");
+    if (!lstatSync(trace).isFile() || lstatSync(trace).isSymbolicLink())
+      throw new Error("unsafe-event-trace");
+    const bytes = readFileSync(trace);
+    const records = bytes
+      .toString("utf8")
+      .trim()
+      .split(/\r?\n/u)
+      .filter(Boolean)
+      .map(JSON.parse);
+    if (
+      !records.length ||
+      records.some(
+        (record) => record.schema !== "chainlesschain.ui-event-diagnostic/v1",
+      )
+    )
+      throw new Error("missing-or-invalid-event-trace");
+    writeFileSync(path.join(captureRoot, "host-events.jsonl.bin"), bytes, {
+      mode: 0o600,
+      flag: "wx",
+    });
+    status.files.push({
+      path: "host-events.jsonl.bin",
+      source: "host-events.jsonl",
+      bytes: bytes.length,
+      sha256: digest(bytes),
+      originalBytes: true,
+    });
+  } catch {
+    status.failures.push("event-trace-or-capture-root-unavailable");
+  }
+  if (stderr.includes("[cc-ui-event-diagnostic-write-failed]"))
+    status.failures.push("event-diagnostic-write-failed");
+  try {
+    if (
+      !path.isAbsolute(sandboxRoot) ||
+      realpathSync(sandboxRoot) !== sandboxRoot
+    )
+      throw new Error("unsafe-sandbox-root");
+    const logs = [];
+    const visit = (directory, depth) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const file = path.join(directory, entry.name);
+        if (
+          entry.isDirectory() &&
+          depth < 2 &&
+          (depth === 0 || /^log(?:_|$)/u.test(entry.name))
+        )
+          visit(file, depth + 1);
+        else if (/^idea(?:\.\d+)?\.log(?:\.\d+)?$/u.test(entry.name)) {
+          if (!entry.isFile() || entry.isSymbolicLink())
+            throw new Error("unsafe-idea-log");
+          logs.push(file);
+        }
+      }
+    };
+    visit(sandboxRoot, 0);
+    if (!logs.length) throw new Error("missing-idea-log");
+    for (const [index, source] of logs.sort().entries()) {
+      const bytes = readFileSync(source);
+      if (bytes.length > 20 * 1024 * 1024)
+        throw new Error("idea-log-exceeds-artifact-limit");
+      const name = `idea-${String(index + 1).padStart(3, "0")}.log.bin`;
+      writeFileSync(path.join(captureRoot, name), bytes, {
+        mode: 0o600,
+        flag: "wx",
+      });
+      status.files.push({
+        path: name,
+        source: path.relative(sandboxRoot, source).replaceAll("\\", "/"),
+        bytes: bytes.length,
+        sha256: digest(bytes),
+        originalBytes: true,
+      });
+    }
+  } catch {
+    status.failures.push("original-idea-log-capture-failed");
+  }
+  status.complete = status.failures.length === 0;
+  writeFileSync(
+    path.join(captureRoot, "capture-status.json"),
+    `${JSON.stringify(status, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600, flag: "wx" },
+  );
+  return status;
+}
+
 async function writeEvidence(options, result, startedAt, logRoot) {
   const evidenceModule = path.join(
     REPO_ROOT,
@@ -881,8 +999,17 @@ export async function runJourney(options) {
     for (const phase of ["initial", "restart"]) {
       for (let attempt = 1; attempt <= 2; attempt += 1) {
         const suffix = attempt === 1 ? "" : `-retry-${attempt}`;
+        const captureRoot = path.join(
+          logRoot,
+          `host-capture-${phase}${suffix}`,
+        );
+        mkdirSync(captureRoot, { recursive: true, mode: 0o700 });
         const launched = launchGradle(
-          ["runIdeForUiTests", ...gradleOptions],
+          [
+            "runIdeForUiTests",
+            ...gradleOptions,
+            `-Dui.event.captureRoot=${captureRoot}`,
+          ],
           logRoot,
           `sandbox-ide-${phase}${suffix}`,
           {
@@ -929,6 +1056,29 @@ export async function runJourney(options) {
         } finally {
           await stopProcessTree(ideProcess);
           ideProcess = null;
+          try {
+            const capture = captureHostDiagnostics(
+              path.join(
+                PACKAGE_ROOT,
+                "build",
+                "idea-sandbox",
+                path.basename(logRoot).replaceAll(".", "-"),
+              ),
+              captureRoot,
+              launched.captured.diagnosticWriteFailed
+                ? "[cc-ui-event-diagnostic-write-failed]"
+                : "",
+            );
+            if (!capture.complete) {
+              process.stderr.write(
+                `[jetbrains-ui-host] incomplete host diagnostics: ${capture.failures.join(", ")}\n`,
+              );
+            }
+          } catch (captureError) {
+            process.stderr.write(
+              `[jetbrains-ui-host] diagnostic capture failed: ${captureError.message}\n`,
+            );
+          }
         }
         await waitForRobotStopped(options.robotUrl);
         if (!phaseError) break;

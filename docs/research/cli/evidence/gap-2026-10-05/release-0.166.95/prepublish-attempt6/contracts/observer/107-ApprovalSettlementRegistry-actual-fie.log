@@ -1,0 +1,15 @@
+Compiled from "ApprovalSettlementRegistry.java"
+public final class com.chainlesschain.ide.ApprovalSettlementRegistry {
+  private final java.util.Map<java.lang.String, com.chainlesschain.ide.ApprovalSettlementRegistry$Status> approvals;
+  public com.chainlesschain.ide.ApprovalSettlementRegistry();
+  public synchronized boolean open(java.lang.String);
+  public synchronized boolean beginDecision(java.lang.String);
+  public synchronized java.util.List<java.lang.String> beginInterrupt();
+  public synchronized boolean complete(java.lang.String, com.chainlesschain.ide.ApprovalSettlementRegistry$Status, boolean);
+  public synchronized boolean resolve(java.lang.String);
+  public synchronized void invalidateAll();
+  public synchronized int size();
+  public synchronized com.chainlesschain.ide.ApprovalSettlementRegistry$Status status(java.lang.String);
+  private synchronized boolean begin(java.lang.String, com.chainlesschain.ide.ApprovalSettlementRegistry$Status);
+  private static java.lang.String normalize(java.lang.String);
+}

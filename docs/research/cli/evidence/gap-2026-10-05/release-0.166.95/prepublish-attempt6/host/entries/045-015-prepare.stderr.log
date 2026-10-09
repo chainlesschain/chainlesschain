@@ -1,0 +1,5 @@
+2026-10-09 16:57:53,873 [    599]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition for key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrains.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.registry.RegistryKeyBean.overrides for more details.
+2026-10-09 16:57:54,716 [   1442]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: C:\Users\runneradmin\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shared-indexes
+2026-10-09 16:58:07,236 [  13962]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-09 16:58:07,237 [  13963]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-09 16:58:14,058 [  20784]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.browser.jcef.headless.enabled=false'

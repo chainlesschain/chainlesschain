@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SessionTranscriptChangesTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.029">
+  <properties/>
+  <testcase name="latestSnapshotRequiresConsistentSyncCursorAndOlderMustNotClaimOne()" classname="com.chainlesschain.ide.SessionTranscriptChangesTest" time="0.002"/>
+  <testcase name="readsRealCliBatchesMetadataAndRewind()" classname="com.chainlesschain.ide.SessionTranscriptChangesTest" time="0.01"/>
+  <testcase name="rejectsBadSessionHeadRangeIdentityAndContinuation()" classname="com.chainlesschain.ide.SessionTranscriptChangesTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

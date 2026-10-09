@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.MiniJsonTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.009">
+  <properties/>
+  <testcase name="parseTrailingContentThrows()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.001"/>
+  <testcase name="parseArrayYieldsList()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="stringifyNaNAndInfinityBecomeNull()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="stringifyFiniteDoublesRenderWholeNumbersWithoutDecimal()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="parseIntegerYieldsLongAndDecimalYieldsDouble()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="arrayOnePastCapThrowsCatchableIllegalArgument()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.001"/>
+  <testcase name="stringifyEscapesSpecialCharacters()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.001"/>
+  <testcase name="nestingAtTheCapParses()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="objectPastCapThrowsCatchableIllegalArgument()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.002"/>
+  <testcase name="parseObjectExposesTypedValues()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.0"/>
+  <testcase name="wideFlatSiblingsParseBecauseDepthResets()" classname="com.chainlesschain.ide.MiniJsonTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

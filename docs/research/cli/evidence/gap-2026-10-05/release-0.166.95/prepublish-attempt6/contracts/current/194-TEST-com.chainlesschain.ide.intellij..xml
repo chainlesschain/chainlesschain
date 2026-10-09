@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:17" hostname="DESKTOP-MTMV2RE" time="0.44">
+  <properties/>
+  <testcase name="mergesSourceBoundFinalSegmentsAndRepeatedTextWithoutLosingToolsOrDiagnostics()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.029"/>
+  <testcase name="preservesActualSelectionWhenRowsAreInsertedBeforeIt()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.005"/>
+  <testcase name="savedRowBudgetEvictsTextAndSelectionDefersEviction()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.016"/>
+  <testcase name="metadataEvictionDuringMergeCannotOrphanAnIdentifiedSavedCandidate()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.323"/>
+  <testcase name="cancellingUndispatchedInputRemovesOnlyItsUnconfirmedReservation()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.015"/>
+  <testcase name="verifiedRewindWaitsForConflictingSelectionAndRetainsUnassociatedText()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.015"/>
+  <testcase name="anAppendAtSelectionEndDoesNotExtendTheSelection()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.005"/>
+  <testcase name="neverAssociatesByEqualTextOrWrongChildAndCanAssociateARepeatedReceiptLater()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.009"/>
+  <testcase name="selectionCannotAllowTheDocumentToGrowBeyondItsBudget()" classname="com.chainlesschain.ide.intellij.ChatTranscriptSyncTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

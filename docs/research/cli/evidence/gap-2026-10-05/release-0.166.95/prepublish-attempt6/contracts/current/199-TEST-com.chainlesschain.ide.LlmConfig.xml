@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.LlmConfigTest" tests="23" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:29:16" hostname="DESKTOP-MTMV2RE" time="0.484">
+  <properties/>
+  <testcase name="ollamaPresetNeedsNoKeyWhileVolcengineDoes()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.002"/>
+  <testcase name="volcenginePresetUsesRequestedDefaultModel()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="parseLlmProviderModelBlankBecomesNull()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="connectionUsesOneAtomicStdinWriteAndRedactedReadback()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="presetsAreStructurallyWellFormed()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="remoteHttpAndSpecificOperationPathsAreRejectedBeforeWriting()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="malformedConfigurationReadDoesNotExposePayload()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="visionWriteFailureOrStaleReadbackDoesNotInvalidateSessions()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="credentialOnlySaveInvalidatesExistingSessionsAfterReadback()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="buildConfigSetArgsEmitsVisionModelWhenPresent()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="failedConfigurationReadReportsExitWithoutLeakingOutput()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.247"/>
+  <testcase name="configurationJsonSurvivesLargeStderrWarnings()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.218"/>
+  <testcase name="failedAtomicSaveDoesNotRunOtherWritesOrEchoTheKey()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="chatReadsTheSameSingleCliSnapshotAsTheFormWithoutForwardingKeys()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="successfulExitWithoutMatchingReadbackIsNotReportedAsSaved()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="parseLlmProviderModelProviderOnlyLeavesModelNull()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="looksLikeLlmConfigErrorTrueForAuthAndKeyFailures()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="parseLlmProviderModelExtractsBothFields()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="buildConfigSetArgsOmitsBlankVisionModel()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="looksLikeLlmConfigErrorFalseForNonAuthAndNull()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <testcase name="parseLlmProviderModelNoLlmOrBadJsonYieldsNulls()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="suggestVisionModelVolcengineDistinctOthersBlank()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.0"/>
+  <testcase name="visionClearIsReadBackBeforeInvalidatingEverySession()" classname="com.chainlesschain.ide.LlmConfigTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

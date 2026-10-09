@@ -1,0 +1,9 @@
+{
+  "sourceSha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17",
+  "classSha256": "6092058675afe1696c7935ed2ee389460029b2c4006a7e70c22fec5a55c0dff3",
+  "classModified": "2026-10-09T17:20:50.318Z",
+  "actualScriptSha256": "4d3a2c972d2d24014dc1f44b8571c68097e46cbaf5636d8c54b7450c76d40b1d",
+  "rhinoSha256": "2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63",
+  "label": "before-root-recompile",
+  "sourceClassBinding": "Not matched: source snapshot already contains root correction, while preserved old class still exhibits truncation bug. Actual old script was exported from that preserved class."
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SessionsWorkbenchTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.008">
+  <properties/>
+  <testcase name="backgroundWithoutSessionIdDoesNotAbsorb()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.001"/>
+  <testcase name="relativeTimeBuckets()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="backgroundRowsFlagCanonicalBlockingSignals()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.001"/>
+  <testcase name="ideRowsCarryStatusAndApprovalFlag()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="scaleGateKeepsAndFiltersAtLeast128Sessions()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.002"/>
+  <testcase name="warningsRenderFirstAndCarryNoActions()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="remoteRowsFromStatusJson()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.001"/>
+  <testcase name="chatRowsParseAndDeriveActions()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="displayColumnsArePlainText()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="malformedSourcesYieldEmptyNotThrow()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="timestampFormatsTolerated()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.001"/>
+  <testcase name="ideIndexRowAnnotatesSameIdChatRow()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="filterIsCaseInsensitiveOverTitleWorkspaceId()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="sortWaitingApprovalThenRunningThenActivity()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.001"/>
+  <testcase name="backgroundRowsDeriveStateDependentActions()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <testcase name="backgroundRowAbsorbsItsChatRow()" classname="com.chainlesschain.ide.SessionsWorkbenchTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

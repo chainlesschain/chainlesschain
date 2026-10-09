@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.TranscriptCapTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:12" hostname="DESKTOP-MTMV2RE" time="0.009">
+  <properties/>
+  <testcase name="degenerateCapsRemoveEverythingOverZero()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="overCapWithNoRunTrimsExactlyTheExcess()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="staleRunStartIsIgnoredWhenNotInRun()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="duringRunNeverTrimsPastRunStart()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="runAtZeroLeavesNothingRemovable()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="withinOrAtCapRemovesNothing()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="sixtyFourMebibyteEntryKeepsBoundedHeadTailAndVisibleMarker()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.007"/>
+  <testcase name="defaultCapIsPositiveAndSelfConsistent()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <testcase name="duringRunTrimsFullExcessWhenRunStartExceedsIt()" classname="com.chainlesschain.ide.TranscriptCapTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

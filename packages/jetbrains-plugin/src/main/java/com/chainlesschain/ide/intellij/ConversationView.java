@@ -5,6 +5,8 @@ import com.chainlesschain.ide.AgentChatSession;
 import com.chainlesschain.ide.InputDispatch;
 import com.chainlesschain.ide.ApprovalGrants;
 import com.chainlesschain.ide.ApprovalSettlementRegistry;
+import com.chainlesschain.ide.UiEventDiagnostics;
+import com.chainlesschain.ide.UiEventDiagnostics.Stage;
 import com.chainlesschain.ide.ChatEvents;
 import com.chainlesschain.ide.ContextMemoryProjection;
 import com.chainlesschain.ide.ContextStatus;
@@ -2053,8 +2055,13 @@ final class ConversationView {
         String leanEnv = com.chainlesschain.ide.ProjectMemory.leanContextEnvValue(
                 CcSettings.getInstance().isLeanContextEnabled());
         if (leanEnv != null) o.extraEnv.put("CC_PROJECT_MEMORY", leanEnv);
-        o.onEvent = event -> {
-            if (disposed || sessionGeneration != generation) return;
+        o.onEvent = event -> UiEventDiagnostics.observeFailure(
+                Stage.CALLBACK_FAILED, event, generation, conv.sessionId, () -> {
+            UiEventDiagnostics.record(Stage.RECEIVED, event, generation, conv.sessionId, null);
+            if (disposed || sessionGeneration != generation) {
+                UiEventDiagnostics.record(Stage.STALE_RECEIVE, event, generation, conv.sessionId, null);
+                return;
+            }
             if (event != null && "result".equals(event.get("type")) && event.get("session_id") != null
                     && !java.util.Objects.equals(conv.sessionId, event.get("session_id"))) return;
             if (event != null && "worklog_saved".equals(event.get("type"))) {
@@ -2156,12 +2163,25 @@ final class ConversationView {
                 });
                 return;
             }
-            final Map<String, Object> ui = ChatEvents.mapAgentEvent(event, turnState());
+            final Map<String, Object> ui;
+            try {
+                ui = ChatEvents.mapAgentEvent(event, turnState());
+            } catch (RuntimeException | Error failure) {
+                UiEventDiagnostics.record(Stage.MAP_FAILED, event, generation, conv.sessionId, failure);
+                throw failure;
+            }
+            UiEventDiagnostics.record(Stage.MAPPED, ui, generation, conv.sessionId, null);
             if (ui == null) return;
             // Rendering plan events may update an open review document.
             // Use the IDE write-safe event context, not a plain AWT callback.
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (disposed || sessionGeneration != generation) return;
+            UiEventDiagnostics.observeFailure(Stage.SCHEDULE_FAILED, ui, generation, conv.sessionId, () ->
+            ApplicationManager.getApplication().invokeLater(() -> UiEventDiagnostics.observeFailure(
+                    Stage.RENDER_FAILED, ui, generation, conv.sessionId, () -> {
+                UiEventDiagnostics.record(Stage.EDT_ENTERED, ui, generation, conv.sessionId, null);
+                if (disposed || sessionGeneration != generation) {
+                    UiEventDiagnostics.record(Stage.STALE_EDT, ui, generation, conv.sessionId, null);
+                    return;
+                }
                 transcript.owned(generation, conv.sessionId);
                 com.chainlesschain.ide.TranscriptReferences refs = com.chainlesschain.ide.TranscriptReferences.result(event, conv.sessionId);
                 if (refs != null && event.get("result") instanceof String finalText) {
@@ -2174,8 +2194,10 @@ final class ConversationView {
                     ui.put("terminalDiagnostic", diagnostic);
                 }
                 render(ui);
-            });
-        };
+                UiEventDiagnostics.record(Stage.RENDER_RETURNED, ui, generation, conv.sessionId, null);
+            })));
+            UiEventDiagnostics.record(Stage.SCHEDULED, ui, generation, conv.sessionId, null);
+        });
         o.onExit = code -> SwingUtilities.invokeLater(() ->
         {
             capabilities.completeExceptionally(new IOException("Agent exited before input acknowledgement"));
@@ -2356,10 +2378,10 @@ final class ConversationView {
                     event -> sendQuestion(entry, event), () -> openQuestionUrl(entry), drafts::copyQuestionText,
                     () -> {
                         QuestionFormView dismissed = questionCards.remove(entry);
-                        if (dismissed != null) { dismissed.dispose(); cardsPanel.remove(dismissed.component()); cardsPanel.revalidate(); cardsPanel.repaint(); }
+                        if (dismissed != null) { dismissed.dispose(); cardsPanel.remove(dismissed.component()); ChatCardsLayout.refresh(cardsPanel); }
                     });
             questionCards.put(entry, form); cardsPanel.add(form.component());
-            cardsPanel.revalidate(); cardsPanel.repaint();
+            ChatCardsLayout.refresh(cardsPanel);
             transcript.announce("Agent question", String.valueOf(ui.get("question")), "question:" + ui.get("id"));
         } catch (IOException error) { append("⚠ Cannot display question: " + error.getMessage() + "\n"); }
     }
@@ -2374,7 +2396,7 @@ final class ConversationView {
             }
             item.getValue().refresh(); return false;
         });
-        cardsPanel.revalidate(); cardsPanel.repaint();
+        ChatCardsLayout.refresh(cardsPanel);
     }
 
     private void sendQuestion(QuestionDraftRegistry.Entry entry, Map<String, Object> event) {
@@ -2448,9 +2470,13 @@ final class ConversationView {
     /** Tool-permission approval card → sends a canonical structured decision. */
     @SuppressWarnings("unchecked")
     private void showApprovalCard(Map<String, Object> ui) {
+        UiEventDiagnostics.record(Stage.CARD_ENTERED, ui, sessionGeneration, conv.sessionId, null);
         final String id = ui.get("id") == null ? "" : String.valueOf(ui.get("id")).trim();
         if (id.isEmpty() || approvalCards.containsKey(id)
-                || !approvalSettlements.open(id)) return;
+                || !approvalSettlements.open(id)) {
+            UiEventDiagnostics.record(Stage.CARD_SKIPPED, ui, sessionGeneration, conv.sessionId, null);
+            return;
+        }
 
         StringBuilder q = new StringBuilder("Allow ");
         q.append(ui.get("tool") != null ? ui.get("tool") : "tool");
@@ -2507,8 +2533,8 @@ final class ConversationView {
                 ? new ApprovalCard(card, approve, deny, cancel)
                 : new ApprovalCard(card, approve, grant, deny, cancel));
         cardsPanel.add(card);
-        cardsPanel.revalidate();
-        cardsPanel.repaint();
+        UiEventDiagnostics.record(Stage.CARD_ADDED, ui, sessionGeneration, conv.sessionId, null);
+        ChatCardsLayout.refresh(cardsPanel);
     }
 
     private void showGrantDecision(
@@ -2612,8 +2638,7 @@ final class ConversationView {
         ApprovalCard card = approvalCards.remove(id);
         if (card != null) {
             cardsPanel.remove(card.component);
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
+            ChatCardsLayout.refresh(cardsPanel);
         }
     }
 
@@ -2629,8 +2654,7 @@ final class ConversationView {
             cardsPanel.remove(card.component);
         }
         approvalCards.clear();
-        cardsPanel.revalidate();
-        cardsPanel.repaint();
+        ChatCardsLayout.refresh(cardsPanel);
     }
 
     /** Plan card with the step list + Approve/Reject → sends {type:plan,action}. */
@@ -2712,8 +2736,7 @@ final class ConversationView {
 
         planCard = card;
         cardsPanel.add(card);
-        cardsPanel.revalidate();
-        cardsPanel.repaint();
+        ChatCardsLayout.refresh(cardsPanel);
     }
 
     private void respondPlan(String action) {
@@ -3031,8 +3054,7 @@ final class ConversationView {
         if (planCard != null) {
             cardsPanel.remove(planCard);
             planCard = null;
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
+            ChatCardsLayout.refresh(cardsPanel);
         }
     }
 

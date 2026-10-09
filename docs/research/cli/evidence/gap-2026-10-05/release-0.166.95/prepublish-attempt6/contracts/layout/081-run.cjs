@@ -1,0 +1,19 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
+const dir=__dirname,jdk=path.resolve('.work/jdk21-release-validation/jdk-21.0.12.1+1/bin');
+const source='packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java';
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const sourceBefore=hash(source),runs=[];
+for(const [name,command,args] of [
+ ['compile',path.join(jdk,'javac.exe'),[path.join(dir,'ApprovalLayoutProbe.java')]],
+ ['probe',path.join(jdk,'java.exe'),['-Djava.awt.headless=true','-cp',dir,'ApprovalLayoutProbe']],
+ ['validate-root-bytecode',path.join(jdk,'javap.exe'),['-p','-c','javax.swing.SwingUtilities']],
+]){
+ const r=spawnSync(command,args,{windowsHide:true,timeout:30000,maxBuffer:2*1024*1024});fs.writeFileSync(path.join(dir,name+'.stdout.txt'),r.stdout||'');fs.writeFileSync(path.join(dir,name+'.stderr.txt'),r.stderr||'');runs.push({name,command,args,status:r.status,signal:r.signal,error:r.error?.message||null});assert.equal(r.status,0);assert.equal(r.signal,null);
+}
+const rows=fs.readFileSync(path.join(dir,'probe.stdout.txt'),'utf8').trim().split(/\r?\n/).map(JSON.parse);
+assert.ok(rows.every(row=>row.edt&&row.headless&&row.windows===0&&row.scrollValidateRoot));
+assert.equal(rows[1].scrollHeight,0);assert.equal(rows[1].scrollPreferredHeight,126);assert.equal(rows[1].approveVisibleHeight,0);
+assert.equal(rows[2].scrollHeight,0);assert.equal(rows[3].scrollHeight,126);assert.equal(rows[3].approveVisibleHeight,26);
+assert.equal(hash(source),sourceBefore);
+const report={capturedAt:new Date().toISOString(),productionSource:{path:source,sha256:sourceBefore,unchanged:true},probeSourceSha256:hash(path.join(dir,'ApprovalLayoutProbe.java')),jdkJavaSha256:hash(path.join(jdk,'java.exe')),runs,rows,layoutMechanismDemonstrated:true,originalCiFailureReproduced:false,realIdeUsed:false,visibleWindowsCreated:0,productionChanged:false,limitations:['Actual Swing components, BoxLayout, BorderLayout, JScrollPane/JViewport, JButton and Container.validate execute on the real EDT.','Windowless headless hierarchy is not admitted to the standard RepaintManager validation queue. The harness explicitly schedules validate() on the real nearest validate root; automatic IDE validation scheduling is not reproduced.','No showing/layout/bounds methods are mocked. Label preferred size is a fixed representative input, not an actual IDE HTML approval payload.','The setup starts after an empty cards area has received a full outer layout. It does not establish that this state or scheduling occurred in the failed CI host.','The old failed GUI evidence still does not prove host event consumption, card construction or component geometry.'],recommendation:'For this reproduced hierarchy, revalidate on southWrap (the first ancestor outside cardsScroll) reaches the outer JRootPane validate root and recalculates BorderLayout.NORTH preferred height. cardsPanel or cardsScroll revalidate alone leaves its height unchanged. Capture real failure tree and scheduling diagnostics before attributing the CI failure to this mechanism.',exploration:['PowerShell unquoted -Djava.awt.headless=true initially parsed incorrectly; corrected by spawn argument array.','A parentless JRootPane.addNotify initially threw NullPointerException; corrected with an ordinary AWT Panel parent, no Window.','Standard RepaintManager flush in the no-Window hierarchy does not admit validation roots; verified by javap getValidateRoot requiring a Window/Applet ancestor, so it is not used as evidence of actual automatic scheduling.']};
+fs.writeFileSync(path.join(dir,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:true,rows,originalCiFailureReproduced:false,productionChanged:false}));

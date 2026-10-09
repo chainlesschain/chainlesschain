@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.MultiDiffTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.012">
+  <properties/>
+  <testcase name="normalizesPosixAndGitFileModes()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="fileLabelRendersNewFlag()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="changesetSummaryFlagsUnchangedFile()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="reviewPlanUsesDiskBytesWhenBaselineIsMissing()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="modeChangeDegradesExplicitlyWhenTheHostCannotApplyIt()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="reviewPlanBoundsCountAndAggregateBytesDeterministically()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="changesetSummaryTotalsAddedRemovedAndFlagsNewFile()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="reviewPlanUsesFullDiskSizeWithABoundedProbe()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="selectWritesNullSelectsAllChangedAndDropsNoOps()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="normalizeDedupesLastWriteWinsAndDropsInvalid()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="largeLineMatrixSummaryUsesBoundedDiffHunks()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="preservesMixedLifecycleIntentInLabelsAndSelectedWrites()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="selectWritesEmptySelectionWritesNothing()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="reviewPlanPartitionsBinaryLargeAndReviewableEntries()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="selectWritesSubsetDropsNoOpAndKeepsPicked()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <testcase name="fileLabelRendersCounts()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.001"/>
+  <testcase name="malformedLifecycleEntriesAreSkippedWithoutContent()" classname="com.chainlesschain.ide.MultiDiffTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

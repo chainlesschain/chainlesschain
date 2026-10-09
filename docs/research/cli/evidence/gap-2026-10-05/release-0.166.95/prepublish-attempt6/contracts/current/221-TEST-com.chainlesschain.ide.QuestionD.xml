@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.QuestionDraftStoreTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.165">
+  <properties/>
+  <testcase name="schemaV1MigratesAndQuestionIdentityBudgetsAndCorruptionFailClosed()" classname="com.chainlesschain.ide.QuestionDraftStoreTest" time="0.094"/>
+  <testcase name="failedRenameLeavesPreviousQuestionFields()" classname="com.chainlesschain.ide.QuestionDraftStoreTest" time="0.012"/>
+  <testcase name="independentQuestionWritesPreserveComposerAndInputReceiptsAndArchiveCannotRevert()" classname="com.chainlesschain.ide.QuestionDraftStoreTest" time="0.039"/>
+  <testcase name="questionsAloneKeepADraftDiscoverableUntilExplicitDiscard()" classname="com.chainlesschain.ide.QuestionDraftStoreTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

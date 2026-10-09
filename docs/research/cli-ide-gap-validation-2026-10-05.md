@@ -825,3 +825,17 @@ Astra 核对官方 IDEA build **262.8665.337**、commit `15645ead6f20019cc2537db
 准确候选 `9f4df1157e493daaee137655c4e1d37c066c50e8` 的 CLI CI run `37957249938`、Windows unit shard 2 job `113911369726` 在 checkout 阶段报六份新 receipt 路径 `Filename too long`，相对路径均 **236 字符**。其他 Windows 与 ARM64 job 也在 checkout 失败；这些 job 尚未执行测试，后续报告缺失只是结果，未生成 SDK 或 UI 新旅程结果。原日志 **21075 bytes**、SHA256 `40d103ac38bd72468cd439103dac77672093c1a264e17b6a10d460f2b028712f`，原始 API、独立 annotations、原日志 API 的首次 403 和后续成功获取[分别保存](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt5/manifest.json)。CLI/ARM64 快照仍未完成，不把它们作为成功门。
 
 仅将 attempt4 的六份归档 basename 缩为 `011-receipt.json` 至 `016-receipt.json`，最长相对路径降为 **202 字符**；全部 **72 份**原件再次逐源/目标摘要与字节核对通过。当前 manifest 明确原归档路径、实际归档路径、artifact 来源、大小和摘要；原 artifact journey manifest 不改，映射归档不等于原提取树。旧 attempt4 manifest 原字节保存在第五候选中，与其原 SHA256 绑定。UI 测试驱动、原生产代码、合同脚本、期限和断言未改，不重复计数合同；新提交须完整准确 SHA 验证。版本尚未发布，冻结 36+9、预算、observations 和所有独立验收边界保持原状态。
+
+### 20.19 Windows 2025.2 审批卡取证与布局验证
+
+准确候选 `8e538362109dbe0bf455d4f72dcab865962e668c` 的 ARM64 完整门 **10/10** 成功；IDE Extensions run `37958205583` 为 **16 success / 1 failure / 2 skip**，Windows 2025.2 job `113925289634` 的真实 UI **7/8**，在 `IdeUiSmokeTest.java:161` 寻找 `Approve Once` 超过原 **45 秒**。此前恢复菜单 helper 尚未执行，ARM64 通过不能覆盖它。原日志 **128202 bytes**、SHA256 `bd1eb10a33a3e325e82dd8a492e36339b47587c6f2747446cef3efbd27da3700`，完整终态、早期快照及[原件清单](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt6/manifest.json)均保存；归档采用短路径及 source 映射。
+
+artifact `11632252463` **1905026 bytes**、ZIP SHA256 `c0de3e3330aa052fc78f66dbcaa24711ae7774c4dc3d6f749b25622a3a09c2cd` 与 GitHub 元数据匹配；原 journey **28/28** 文件、artifactBundleDigest 与 evidenceDigest 全部一致。协议显示同一进程 1952 在 **17:00:55.009Z** 接收权限消息、**55.271Z** 确认接受、**55.997Z** 输出 `approval_request`，之后没有 approval 回复。截图无审批卡。fixture 的 stdout.write 先于 trace，仍不证明 IDE 已消费；无原 DOM、host render 或 idea.log，不能将发送丢失、Vulkan 警告、卡片清理或特定布局机制认定为原 CI 根因。
+
+独立真实 JDK21 Swing/EDT 合同另证实 card layout 缺陷：BoxLayout cardsPanel 位于 JScrollPane 验证根内，增删卡后内层验证不重新分配外层 BorderLayout 的高度，preferred 为 126 而 viewport 为 0；验证 southWrap 后 viewport 为 126、按钮 visibleRect 高度为 26。无 Window 的层级需控制最近验证根的调度，组件与几何计算真实，未复现原 CI。新增纯 Swing `ChatCardsLayout.refresh` 在八处卡片增删后同时验证内层及滚动窗格外的布局区域；两个实际 helper 合同覆盖新增、真实单次按钮回调、移除空间回收和多卡 320 高度下 composer 可见，不修改审批状态、事件含义或期限。
+
+默认关闭的 `UiEventDiagnostics` 仅在显式隔离 JVM capture 目录下记录白名单标量元数据和 receive/map/EDT/render/card 阶段，禁录 prompt/command/异常 message，原 RuntimeException/Error 继续传播。失败组件树读取实际 showing/bounds/visibleRect、owner 字段及 card/settlement 状态；限制节点与深度，缺字段/检查错误单独入 errors，ownerCount=0 不证明成功捕获。原功能失败、按钮断言和 **45 秒**期限保持，没有新增 journey retry。IDE 日志/轮转与事件 trace 以 `.bin` 原字节保存；诊断缺失独立报告，不覆盖原功能结果，restart 无 onEvent 也不伪造事件。
+
+本机 UI 编译通过，Java **113 XML / 955 用例：952 通过、3 原有 POSIX 跳过、0 failure/error**；三个跳过为 IdePathGuard 的 POSIX symlink 与 LockfileAcl 两个 POSIX 方法，原 assumptions 不变。smoke **1445 项断言全部通过**，不与 JUnit 合并计数。初次布局合同使用 headful AWT peer 初始化失败原件保留，标准纯 JUnit worker 显式 headless 后通过；真实 uiSmokeTest worker 不改为 headless。定向布局 **2/2**、事件观察 **4/4** 是上述全套的子集；driver **13/13** 与实际编译脚本 Rhino/Swing **6/6** 单独记载，均非真实 IDE。旧 snapshot 节点上限漏报 truncated 的实测失败与修正原件保存；新脚本源码与独立编译后的输出逐字节相同，真实 IDE owner 发现/反射仍待宿主验证。
+
+实际新版采集器到 evidence writer 的合同完整保留 **757780 bytes trace** 与 **300004 bytes IDE log**，来源摘要和 metadata 一致、未截断/改写；合同输入不能冒充原 CI 日志。候选修正尚未发布，新准确提交仍须 CLI CI/Strict、IDE 主门与 ARM64 完整矩阵。冻结 36+9、$99、窗口、分母、observations、原 Windows review 与平台、账户、人工、长时验收状态保持。

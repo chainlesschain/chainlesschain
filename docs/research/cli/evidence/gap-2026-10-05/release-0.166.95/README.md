@@ -2,6 +2,16 @@
 
 候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
 
+## 第六候选：Windows 2025.2 审批控件与布局
+
+准确候选 `8e538362109dbe0bf455d4f72dcab865962e668c` 的 ARM64 完整门 **10/10** 成功，包括此前失败的 Windows JetBrains 2026.2.0.1 恢复菜单旅程；但 IDE Extensions run `37958205583` 的 Windows 2025.2 job `113925289634` 在 `Approve Once` 控件查找上超过原 **45 秒**。真实 UI **7 通过 / 1 失败**，整体 IDE 为 **16 success / 1 failure / 2 skip**；不能用 ARM64 成功替代该失败。原日志 **128202 bytes**、SHA256 `bd1eb10a33a3e325e82dd8a492e36339b47587c6f2747446cef3efbd27da3700`；[第六候选原件](./prepublish-attempt6/manifest.json)保留完整失败与局部成功门的各自来源。
+
+artifact `11632252463` 的公开元数据、ZIP digest、原 journey **28/28** 文件及两项聚合 digest 均已核对。协议证实同一 CLI 进程接收权限消息、确认接受并输出审批请求，没有审批响应；截图没有审批卡。stdout.write 和原协议记录不能证明 IDE 已消费该事件。此失败尚未执行新 popup helper；缺少原现场 DOM、host 收包/render 与 idea.log，发送保护、Vulkan、卡片清理/布局等机制都不能据此认定为原 CI 根因。
+
+独立真实 Swing/EDT 合同证明现有 card viewport 结构的一项布局缺陷：仅验证滚动窗格内层，新增卡的 preferred height 已增长但实际 viewport 保留零高度；验证外层布局后按钮可见。新增 `ChatCardsLayout.refresh` 在八处卡片增删后验证外层区域；实际 helper 的两个合同覆盖卡显示、真实单次按钮回调、删除后的空间回收及多卡下 composer 可见。调度由无窗口合同控制，未复现原 CI。默认关闭的元数据观察记录 receive/map/EDT/render/card 边界与原异常；显式宿主诊断保留完整 IDE 日志、轮转及事件 trace 原字节，缺失单独标记，不改变原功能结果或重试条件。失败组件树仅作读取，ownerCount=0 不代表成功捕获 conversation。
+
+本机 UI 编译、Java 全套 **952 通过 / 3 原有 POSIX 跳过**、smoke **1445/1445**，原首轮 headful peer 初始化失败与 headless 修正分别保留；真实 IDE 的 uiSmokeTest JVM 未设 headless。事件观察合同 **4/4**、driver **13/13**、实际编译脚本 Rhino/Swing 合同 **6/6**；旧节点上限漏标 truncated 的失败也留存。真实收录链路完整保留 **757780 bytes trace** 与 **300004 bytes idea.log** 合同输入，不能冒充原 CI 现场日志。所有本地合同不相加为正式样本，新提交仍须完整门。当前版本尚未发布，正式 36+9、冻结 review 及独立平台/账单/人工/长时验收状态不变。
+
 ## 第五候选：Windows Git 检出与归档路径
 
 准确候选 `9f4df1157e493daaee137655c4e1d37c066c50e8` 的 CLI CI Windows unit shard 2 job `113911369726` 在 checkout 阶段失败；日志明确六份新增 receipt 的 **236 字符相对路径**触发 `Filename too long`。ARM64 Windows 与其他 Windows job 也在 checkout 失败，后续报告缺失是未执行测试的后果，尚无 SDK 或新 UI 旅程结果。[第五候选原件](./prepublish-attempt5/manifest.json)保存准确提交 API、checkout 日志及独立 annotations；原日志 SHA256 `40d103ac38bd72468cd439103dac77672093c1a264e17b6a10d460f2b028712f`。矩阵快照未完成，不是成功门。

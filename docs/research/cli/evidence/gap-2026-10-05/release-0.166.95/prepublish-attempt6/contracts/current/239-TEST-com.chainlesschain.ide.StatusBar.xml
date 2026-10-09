@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.StatusBarTextTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.002">
+  <properties/>
+  <testcase name="labelRunningWithElevatedModesAppendsMarker()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="tooltipRunningBypassHasEndpointLoudFlagRestoreHintAndClickLast()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="modeSuffixIsQuietForDefaultNullAndUnknown()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="labelStoppedWhenPortNonPositive()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="labelStoppedStillSurfacesElevatedMode()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="labelRunningDefaultShowsPortOnly()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.0"/>
+  <testcase name="tooltipStoppedDefaultDescribesStoppedAndNormalMode()" classname="com.chainlesschain.ide.StatusBarTextTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

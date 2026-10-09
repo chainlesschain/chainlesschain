@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.TeamMonitorTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:12" hostname="DESKTOP-MTMV2RE" time="0.003">
+  <properties/>
+  <testcase name="parsesMembersAndBudgetAndReportsThem()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <testcase name="unknownMailboxVersionFailsOnlyTheMetadataProjectionClosed()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.001"/>
+  <testcase name="parseIsTolerantOfBadInput()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <testcase name="parseFlattensTasksAndLeaseMetadata()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <testcase name="emptyTaskListParsesOkAndSummarizesToZeroPercent()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.001"/>
+  <testcase name="statesWithoutMembersOrBudgetKeepTheOldReportShape()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <testcase name="projectsCli01662MailboxHealthWithoutRetainingMessageContent()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.001"/>
+  <testcase name="summarizeCountsAndSplitsLiveVsStaleLeases()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <testcase name="formatReportShowsHeaderHolderStaleAndRetry()" classname="com.chainlesschain.ide.TeamMonitorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

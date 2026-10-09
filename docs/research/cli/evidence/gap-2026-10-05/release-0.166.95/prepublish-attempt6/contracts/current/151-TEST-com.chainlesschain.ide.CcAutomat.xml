@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.016">
+  <properties/>
+  <testcase name="automaticModeDefaultsAreBounded()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.001"/>
+  <testcase name="inFlightDedupAndSlowResponseFallbackAreExplicit()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.007"/>
+  <testcase name="contextEligibilityAvoidsWhitespaceAndTinyFragments()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.001"/>
+  <testcase name="completionQualityRejectsProseDuplicatesAndOversizeResults()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.001"/>
+  <testcase name="rollingBudgetExpiresAfterOneHour()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.003"/>
+  <testcase name="latencyMetricsUseNearestRankP50AndP95()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.001"/>
+  <testcase name="exactContextCacheUsesTtlAndDoesNotSpendAnotherRequest()" classname="com.chainlesschain.ide.CcAutomaticCompletionPolicyTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

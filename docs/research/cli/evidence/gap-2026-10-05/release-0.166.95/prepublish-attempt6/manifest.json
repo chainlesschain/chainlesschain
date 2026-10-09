@@ -1,0 +1,2132 @@
+{
+  "schema": "chainlesschain.release-095-attempt6-archive/v1",
+  "capturedAt": "2026-10-09T17:31:55.523Z",
+  "releaseCommit": "8e538362109dbe0bf455d4f72dcab865962e668c",
+  "originalFailure": {
+    "workflowRunId": 37958205583,
+    "jobId": 113925289634,
+    "artifactId": 11632252463,
+    "host": "Windows x64 / JetBrains 2025.2",
+    "phase": "journey:permission",
+    "tests": {
+      "passed": 7,
+      "failed": 1
+    },
+    "failure": "Approve Once not discovered in original 45-second budget",
+    "mechanismConfirmed": false,
+    "stdoutBoundary": "Fixture stdout.write approval_request and input acceptance do not prove IDE host consumption, card construction, EDT completion or card geometry",
+    "missingOriginalEvidence": [
+      "Remote Robot DOM",
+      "IDE idea.log",
+      "host approval-event/render-stage/component geometry trace"
+    ],
+    "terminalWorkflow": {
+      "runId": 37958205583,
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": 19,
+      "counts": {
+        "success": 16,
+        "failure": 1,
+        "skipped": 2
+      },
+      "initialPartialSnapshotRetained": true
+    }
+  },
+  "cliSnapshot": {
+    "source": ".work/cli-sdk-8e538362-20261010/snapshot-2026-10-09T17-31-43.489Z.json",
+    "capturedAt": "2026-10-09T17:31:43.489Z",
+    "runId": 37958206137,
+    "status": "queued",
+    "conclusion": null,
+    "counts": {
+      "success": 51,
+      "in_progress": 10,
+      "queued": 6
+    },
+    "releaseEligible": false,
+    "note": "Partial snapshot retained at captured time; seven other successful workflows do not complete CLI or failed IDE gate"
+  },
+  "sevenSuccessfulGates": [
+    {
+      "name": "strict",
+      "runId": 37958205722,
+      "capturedAt": "2026-10-09T16:32:58.254Z",
+      "counts": {
+        "success": 5
+      },
+      "source": ".work/release-preflight-0.166.95/strict-8e5-final/readback.json"
+    },
+    {
+      "name": "quality",
+      "runId": 37958205705,
+      "capturedAt": "2026-10-09T16:57:36.526Z",
+      "counts": {
+        "success": 7,
+        "skipped": 2
+      },
+      "source": ".work/release-preflight-0.166.95/quality-8e5-final/readback.json"
+    },
+    {
+      "name": "model-catalog",
+      "runId": 37958206013,
+      "capturedAt": "2026-10-09T16:22:31.883Z",
+      "counts": {
+        "success": 1
+      },
+      "source": ".work/release-preflight-0.166.95/model-catalog-8e5-final/readback.json"
+    },
+    {
+      "name": "pr-tests",
+      "runId": 37958205536,
+      "capturedAt": "2026-10-09T17:23:51.073Z",
+      "counts": {
+        "success": 2
+      },
+      "source": ".work/release-preflight-0.166.95/pr-tests-8e5-final/readback.json"
+    },
+    {
+      "name": "ci-tests",
+      "runId": 37958205778,
+      "capturedAt": "2026-10-09T16:58:57.418Z",
+      "counts": {
+        "success": 13,
+        "skipped": 1
+      },
+      "source": ".work/release-preflight-0.166.95/ci-tests-8e5-final/readback.json"
+    },
+    {
+      "name": "full-tests",
+      "runId": 37958205844,
+      "capturedAt": "2026-10-09T16:50:05.144Z",
+      "counts": {
+        "success": 3,
+        "skipped": 1
+      },
+      "source": ".work/release-preflight-0.166.95/full-tests-8e5-final/readback.json"
+    },
+    {
+      "name": "safety",
+      "runId": 37958205616,
+      "capturedAt": "2026-10-09T16:51:26.374Z",
+      "counts": {
+        "success": 4
+      },
+      "source": ".work/release-preflight-0.166.95/safety-8e5-final/readback.json"
+    }
+  ],
+  "originalHostArtifacts": {
+    "manifestEntries": 28,
+    "entries": [
+      {
+        "originalPath": "diagnostics/001-fake-cli-bin_cc",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/001-fake-cli-bin_cc",
+        "bytes": 166,
+        "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+        "target": "host/entries/031-001-fake-cli-bin_cc"
+      },
+      {
+        "originalPath": "diagnostics/002-fake-cli-bin_cc.cmd",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/002-fake-cli-bin_cc.cmd",
+        "bytes": 161,
+        "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+        "target": "host/entries/032-002-fake-cli-bin_cc.cmd"
+      },
+      {
+        "originalPath": "diagnostics/003-fake-cli-bin_chainlesschain",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/003-fake-cli-bin_chainlesschain",
+        "bytes": 166,
+        "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+        "target": "host/entries/033-003-fake-cli-bin_chainlesschain"
+      },
+      {
+        "originalPath": "diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+        "bytes": 161,
+        "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+        "target": "host/entries/034-004-fake-cli-bin_chainlesschain.cmd"
+      },
+      {
+        "originalPath": "diagnostics/005-fake-cli-bin_clc",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/005-fake-cli-bin_clc",
+        "bytes": 166,
+        "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+        "target": "host/entries/035-005-fake-cli-bin_clc"
+      },
+      {
+        "originalPath": "diagnostics/006-fake-cli-bin_clc.cmd",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/006-fake-cli-bin_clc.cmd",
+        "bytes": 161,
+        "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+        "target": "host/entries/036-006-fake-cli-bin_clc.cmd"
+      },
+      {
+        "originalPath": "diagnostics/007-fake-cli-bin_clchain",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/007-fake-cli-bin_clchain",
+        "bytes": 166,
+        "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+        "target": "host/entries/037-007-fake-cli-bin_clchain"
+      },
+      {
+        "originalPath": "diagnostics/008-fake-cli-bin_clchain.cmd",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/008-fake-cli-bin_clchain.cmd",
+        "bytes": 161,
+        "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+        "target": "host/entries/038-008-fake-cli-bin_clchain.cmd"
+      },
+      {
+        "originalPath": "diagnostics/009-fake-cli-protocol.jsonl",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/009-fake-cli-protocol.jsonl",
+        "bytes": 9882,
+        "sha256": "8f2bb06e4d3f5878e0f525fa9542cfd5418e9ffcb97f0d3d82cdc646490412fe",
+        "target": "host/entries/039-009-fake-cli-protocol.jsonl"
+      },
+      {
+        "originalPath": "diagnostics/010-fake-cli-state.json",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/010-fake-cli-state.json",
+        "bytes": 46,
+        "sha256": "f7f46349009c5af3127e2bc996901e80e59e89a3325bb2e0bcc857d71dbbdd5e",
+        "target": "host/entries/040-010-fake-cli-state.json"
+      },
+      {
+        "originalPath": "diagnostics/011-fake-cli-state.json.receipts_28b790a4ab20a71b8523db683f07314c63dd63f22fa0174c5e08614f9753f83d.json",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/011-fake-cli-state.json.receipts_28b790a4ab20a71b8523db683f07314c63dd63f22fa0174c5e08614f9753f83d.json",
+        "bytes": 260,
+        "sha256": "b37cb5022f05874b899bc2bed2ade6847a70c3932e47427648a57ea39e870ba0",
+        "target": "host/entries/041-011-fake-cli-state.json.receipts_28b7.json"
+      },
+      {
+        "originalPath": "diagnostics/012-fake-cli-state.json.receipts_36c6f8b220fce6be4e8ff4b84a5f199efc28e7f94a539af665d08e7c388f687d.json",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/012-fake-cli-state.json.receipts_36c6f8b220fce6be4e8ff4b84a5f199efc28e7f94a539af665d08e7c388f687d.json",
+        "bytes": 260,
+        "sha256": "b79f625a1466fa53f78e30c970709eb846dd33986430e093d1b24d86da13ae9c",
+        "target": "host/entries/042-012-fake-cli-state.json.receipts_36c6.json"
+      },
+      {
+        "originalPath": "diagnostics/013-fake-cli-state.json.receipts_3ba5e0370b64459e4c70d74ff281fa8575e326dadad9b23d1efe80de3f79bad7.json",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/013-fake-cli-state.json.receipts_3ba5e0370b64459e4c70d74ff281fa8575e326dadad9b23d1efe80de3f79bad7.json",
+        "bytes": 260,
+        "sha256": "22ac7b6b8d7e7addfe4c1d7c0afb24843b1dfcae3121b9b0257153fe256981d9",
+        "target": "host/entries/043-013-fake-cli-state.json.receipts_3ba5.json"
+      },
+      {
+        "originalPath": "diagnostics/014-fake-cli-state.json.receipts_8c4e0310f71af5fdb8e1ba26e2b063bd05cd03695594d6525bb768ffe4206155.json",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/014-fake-cli-state.json.receipts_8c4e0310f71af5fdb8e1ba26e2b063bd05cd03695594d6525bb768ffe4206155.json",
+        "bytes": 260,
+        "sha256": "5913a3f2df2ec18b3817726a758664449bc960d3d0dac8ce4552918bed481467",
+        "target": "host/entries/044-014-fake-cli-state.json.receipts_8c4e.json"
+      },
+      {
+        "originalPath": "diagnostics/015-prepare.stderr.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/015-prepare.stderr.log",
+        "bytes": 991,
+        "sha256": "c40a3bfac8c41235d818ec68c3ad0f35d956254bb4d7d082275f54e5816f1423",
+        "target": "host/entries/045-015-prepare.stderr.log"
+      },
+      {
+        "originalPath": "diagnostics/016-prepare.stdout.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/016-prepare.stdout.log",
+        "bytes": 21310,
+        "sha256": "b4d446b96c4df73a7afbd1c4997639e4243f544674a912401a256340dd58c48f",
+        "target": "host/entries/046-016-prepare.stdout.log"
+      },
+      {
+        "originalPath": "diagnostics/017-sandbox-ide-initial.stderr.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/017-sandbox-ide-initial.stderr.log",
+        "bytes": 5054,
+        "sha256": "e7199c8fc06b9614ac35736746ad6dcba5fcf50e591a302b3487410a116233c3",
+        "target": "host/entries/047-017-sandbox-ide-initial.stderr.log"
+      },
+      {
+        "originalPath": "diagnostics/018-sandbox-ide-initial.stdout.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/018-sandbox-ide-initial.stdout.log",
+        "bytes": 1342,
+        "sha256": "1eb80678d1a8e25af9dd9b19bb4a8aa6e48a555200d7e5cad0fd216ef7032a1b",
+        "target": "host/entries/048-018-sandbox-ide-initial.stdout.log"
+      },
+      {
+        "originalPath": "diagnostics/019-ui-smoke-initial.stderr.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/019-ui-smoke-initial.stderr.log",
+        "bytes": 18452,
+        "sha256": "0e687d2dbe6d982b6c6ef2d6386d4f8ac6f9a4d61365ad63aa87145b9f501619",
+        "target": "host/entries/049-019-ui-smoke-initial.stderr.log"
+      },
+      {
+        "originalPath": "diagnostics/020-ui-smoke-initial.stdout.log",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/020-ui-smoke-initial.stdout.log",
+        "bytes": 14214,
+        "sha256": "e1a789e661fcac81dc5284e1cf3ad7d55cfa2a354f06c2dfb7368ad7ee38f64d",
+        "target": "host/entries/050-020-ui-smoke-initial.stdout.log"
+      },
+      {
+        "originalPath": "diagnostics/021-binary_output.bin",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/021-binary_output.bin",
+        "bytes": 435,
+        "sha256": "fa4fa31708a8cbfc584bedec613848a80c33e49bbba4d703a4865a86d42cdc48",
+        "target": "host/entries/051-021-binary_output.bin"
+      },
+      {
+        "originalPath": "diagnostics/022-binary_output.bin.idx",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/022-binary_output.bin.idx",
+        "bytes": 71,
+        "sha256": "a2c7e9c86284588aa02776d0c9282e725db91e3be897cbb51c27be4444f9e9d8",
+        "target": "host/entries/052-022-binary_output.bin.idx"
+      },
+      {
+        "originalPath": "diagnostics/023-binary_results.bin",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/023-binary_results.bin",
+        "bytes": 2511,
+        "sha256": "e1629102abe111f315c5efa7eee4eb1d7deddff19ca9e89d3d9690a52ebe5ca6",
+        "target": "host/entries/053-023-binary_results.bin"
+      },
+      {
+        "originalPath": "diagnostics/024-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/024-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "bytes": 2202,
+        "sha256": "40a6c5d2a9414f9e203dd1ef112c5aceae578015e922de7a8736428e9d159552",
+        "target": "host/entries/054-024-TEST-com.chainlesschain.ide.uites.xml"
+      },
+      {
+        "originalPath": "diagnostics/025-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "bytes": 648,
+        "sha256": "6f6c66e5a5c8cc6999dc3fd4a38ecdbf691abe960dda40c10e11d0b5c3784ce3",
+        "target": "host/entries/055-025-TEST-com.chainlesschain.ide.uites.xml"
+      },
+      {
+        "originalPath": "diagnostics/026-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/026-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+        "bytes": 1221,
+        "sha256": "97c445f1fd3dea89137a7cc8dd350e3d8f17581c078b269e3bdcf7b9bc909e60",
+        "target": "host/entries/056-026-TEST-com.chainlesschain.ide.uites.xml"
+      },
+      {
+        "originalPath": "diagnostics/027-chat-control-journey-1791565300500.png",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/027-chat-control-journey-1791565300500.png",
+        "bytes": 171352,
+        "sha256": "4f333a0f2d1c61534ab5ab4bf8095b8d616b483ea3fec00316abe7257cfb52ed",
+        "target": "host/entries/057-027-chat-control-journey-179156530050.png"
+      },
+      {
+        "originalPath": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+        "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+        "bytes": 1514916,
+        "sha256": "863550ed9a116399ac495d5ffa0394e30adf94f357a461c37b477b66710bab60",
+        "target": "host/entries/058-001-chainlesschain-ide-bridge-0.4.158.zip"
+      }
+    ],
+    "fullExtractionInventory": "Preserved unmodified in manifest-verification.json mapped below; unrelated extracted vendor/duplicate trees deliberately omitted",
+    "container": "artifact.zip is excluded with original digest bound in excludedBinaryFiles and download-verification.json"
+  },
+  "localEvidence": {
+    "state": "Dirty local source contracts, not committed release validation",
+    "layout": {
+      "realSwingEdt": true,
+      "controlledValidateRootScheduling": true,
+      "originalCiFailureReproduced": false,
+      "note": "No Window/Applet means standard RepaintManager queue is not used; real closest validate-root validate() is explicitly scheduled. Ancestor validation demonstrates a possible layout mechanism, not this CI cause."
+    },
+    "observer": {
+      "oldNodeLimitDefect": "Actual 6001-node contract exposed truncated=false after 6000-node omission; old failed raw report retained",
+      "correctedGeneratedScript": {
+        "passed": 6,
+        "total": 6
+      },
+      "adaptation": "Actual Rhino/Swing/EDT; tree cases inject roots and isShowing; no real IDE or ConversationView owner was instantiated",
+      "rawByteTransport": {
+        "hostEventTraceBytes": 757780,
+        "ideaLogBytes": 300004,
+        "passed": true,
+        "synthetic": true
+      }
+    },
+    "currentLayoutAndObserver": {
+      "firstAttemptPeerFailureRetained": true,
+      "secondAttempt": {
+        "layoutTests": 2,
+        "eventDiagnosticsTests": 4,
+        "failures": 0
+      },
+      "fullJavaAndSmoke": {
+        "source": ".work/approval-layout-current-validation-20261010/full-validation.json",
+        "junit": {
+          "files": 113,
+          "tests": 955,
+          "passed": 952,
+          "skipped": 3,
+          "failures": 0,
+          "errors": 0
+        },
+        "skippedCases": [
+          {
+            "file": "full-junit/TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+            "name": "symlinkEscapeIsCaught(Path)"
+          },
+          {
+            "file": "full-junit/TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+            "name": "posixModesAreExactForDirectoryAndPublishedFile(Path)"
+          },
+          {
+            "file": "full-junit/TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+            "name": "compatibilityProbeDoesNotPretendWindowsAclExistsOnPosix(Path)"
+          }
+        ],
+        "skipReason": "Existing POSIX-only assumptions in IdePathGuard and LockfileAcl, not new headless skips",
+        "smoke": {
+          "passedAssertions": 1445,
+          "failedAssertions": 0,
+          "evidence": "Reported in preserved full-validation.json and root tool presentation; no raw shell log was available or fabricated"
+        },
+        "sourceFiles": [
+          {
+            "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatCardsLayout.java",
+            "sha256": "8f1902826aed0cde24d6ec6547f4a812e9c1bcc367b05bf3751b7f4d41f0491b"
+          },
+          {
+            "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+            "sha256": "43039db47afd4a8781682b47611652b19656d4c0f334b830cf4b28f8fb63f80f"
+          },
+          {
+            "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+            "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+          }
+        ],
+        "scope": "Local dirty candidate after approval-layout and opt-in diagnostics changes",
+        "originalCiFailureReproduced": false,
+        "realIdeExecuted": false
+      }
+    }
+  },
+  "boundaries": {
+    "formalAcceptance": "NOT_RUN",
+    "nativeFullReview": "NOT_ADMITTED",
+    "frozenReviewUnchanged": true,
+    "publicationClaimed": false
+  },
+  "pathPolicy": {
+    "maximumRepositoryRelativePath": 190,
+    "actualMaximum": 143,
+    "flattened": true,
+    "originalSourcePathsRetained": true
+  },
+  "excludedBinaryFiles": [
+    {
+      "source": ".work/astra-win2025-8e5/artifact.zip",
+      "bytes": 1905026,
+      "sha256": "c0de3e3330aa052fc78f66dbcaa24711ae7774c4dc3d6f749b25622a3a09c2cd",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/approval-layout-contract/ApprovalLayoutProbe.class",
+      "bytes": 6049,
+      "sha256": "0ab4bb6b36f432028af989f2f37f5896fc7a236e0ad759fa225a637ba65dda72",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/approval-layout-contract/ApprovalLayoutProbe$1.class",
+      "bytes": 568,
+      "sha256": "4f83b6750216eb3c194308a364d5236bffcc53242c13879a0b8319ade23a761b",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/classes/com/chainlesschain/ide/uitest/UiFailureDiagnostics.class",
+      "bytes": 6781,
+      "sha256": "6092058675afe1696c7935ed2ee389460029b2c4006a7e70c22fec5a55c0dff3",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/classes/SnapshotContract.class",
+      "bytes": 10686,
+      "sha256": "c70d139fe7c916d5de2de93ae3f3a0803aa7854be415127fae93b89457015e3b",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/classes/SnapshotContract$Case.class",
+      "bytes": 282,
+      "sha256": "f64fbfeda746a68f42ac746b14666ff3c0566bc63e5d2c7244b22a5c2ccbcdf8",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/classes/SnapshotContract$RootPanel.class",
+      "bytes": 391,
+      "sha256": "5f16e7fc3ab03453e49ae4ef60285be87ae6fbbe7e350d957ffb8427d25e8e55",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/classes/com/chainlesschain/ide/uitest/UiFailureDiagnostics.class",
+      "bytes": 6843,
+      "sha256": "d183d7824081eb7f30d54e7c98b1c0bccc56b7f8b2b7e18d2aca6bf5c9400072",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/classes/SnapshotContract.class",
+      "bytes": 10686,
+      "sha256": "c70d139fe7c916d5de2de93ae3f3a0803aa7854be415127fae93b89457015e3b",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/classes/SnapshotContract$Case.class",
+      "bytes": 282,
+      "sha256": "f64fbfeda746a68f42ac746b14666ff3c0566bc63e5d2c7244b22a5c2ccbcdf8",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/classes/SnapshotContract$RootPanel.class",
+      "bytes": 391,
+      "sha256": "5f16e7fc3ab03453e49ae4ef60285be87ae6fbbe7e350d957ffb8427d25e8e55",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/com/chainlesschain/ide/uitest/UiFailureDiagnostics.class",
+      "bytes": 6577,
+      "sha256": "b996d74ec485e929a6d40a83f65c4a4a90614a7ce2e6a8e0f9bd44c40bd5dda0",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ExportSnapshot.class",
+      "bytes": 1164,
+      "sha256": "34f514218d0729b96fdfa7ab4f4581c48d64e46d6ee3d566780ba224f46f8d89",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/classes/com/chainlesschain/ide/uitest/UiFailureDiagnostics.class",
+      "bytes": 6843,
+      "sha256": "d183d7824081eb7f30d54e7c98b1c0bccc56b7f8b2b7e18d2aca6bf5c9400072",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/classes/SnapshotContract.class",
+      "bytes": 11400,
+      "sha256": "35d3e55cb6d560a63a39ea393656bd27a331cf50fc43143d666ffd5783d52bcc",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/classes/SnapshotContract$Case.class",
+      "bytes": 282,
+      "sha256": "f64fbfeda746a68f42ac746b14666ff3c0566bc63e5d2c7244b22a5c2ccbcdf8",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/classes/SnapshotContract$RootPanel.class",
+      "bytes": 391,
+      "sha256": "5f16e7fc3ab03453e49ae4ef60285be87ae6fbbe7e350d957ffb8427d25e8e55",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/classes/SnapshotContract$UnavailableListenersButton.class",
+      "bytes": 565,
+      "sha256": "1cc1d3e23cc721a29caeb999c364adea16efa52ffa76b726989b9f9945ea6d4a",
+      "reason": "Compiled binary or full artifact container deliberately not copied; source/metadata and selective original entries retained"
+    }
+  ],
+  "files": [
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-2025-8e5-failed/job.json",
+      "target": "api/host/001-job.json",
+      "bytes": 5085,
+      "sha256": "c0b7607f270fcf1edf67f8d78a27c71ef250ed5da573bc699450328bdf869c7d"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-2025-8e5-failed/job.log",
+      "target": "api/host/002-job.log",
+      "bytes": 128202,
+      "sha256": "bd1eb10a33a3e325e82dd8a492e36339b47587c6f2747446cef3efbd27da3700"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-2025-8e5-failed/readback.json",
+      "target": "api/host/003-readback.json",
+      "bytes": 345,
+      "sha256": "a7503297b9b067d08e27e69c97fd1fbe485790f6f27fbb2d245f5bbe29380c75"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-2025-8e5-failed/run.json",
+      "target": "api/host/004-run.json",
+      "bytes": 15288,
+      "sha256": "e2708114515db0ea0d45e62484f52762a6d19e6a22e255148e8876dbacc7a2db"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-windows-2025-failed/artifacts-1.json",
+      "target": "api/ide/005-artifacts-1.json",
+      "bytes": 7049,
+      "sha256": "1cf8892df09f22fe208b3b063eee12e9f58178b81d143e7440d99542cada88e7"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-windows-2025-failed/jobs-1.json",
+      "target": "api/ide/006-jobs-1.json",
+      "bytes": 35030,
+      "sha256": "5fa9d4cec0ae2091fad8e5981d7545aee9be0a571d408abd9d52ef52c79220ad"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-windows-2025-failed/readback.json",
+      "target": "api/ide/007-readback.json",
+      "bytes": 75131,
+      "sha256": "ed6b131b3f25697914db0e06aec090c93dcf45be72c0e400a3a5c3ec5ca68404"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-windows-2025-failed/run.json",
+      "target": "api/ide/008-run.json",
+      "bytes": 13742,
+      "sha256": "8221780bc4149253e73f8c9976acddc9728acc5a30f8f9bafed00f274834e127"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/strict-8e5-final/readback.json",
+      "target": "api/gates/009-readback.json",
+      "bytes": 53029,
+      "sha256": "9a788f47c0f2abacff42f418a8c466e83f3a761b5198f9821e642ddf06127573"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/quality-8e5-final/readback.json",
+      "target": "api/gates/010-readback.json",
+      "bytes": 40851,
+      "sha256": "d35efbbdb7fc6cfd8106104243da6ee2bc4db1925d2967d8af325f8116f4ac2c"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/model-catalog-8e5-final/readback.json",
+      "target": "api/gates/011-readback.json",
+      "bytes": 22099,
+      "sha256": "3ccaa8f0bd2c57570b66b20c7df56b54c9da60b5a05621fa2e4c2ee48fff973a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/pr-tests-8e5-final/readback.json",
+      "target": "api/gates/012-readback.json",
+      "bytes": 23432,
+      "sha256": "08534cdd91c2e142c6b93b527df7a727a4f7668a8e0a906e43646bb3c713f172"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ci-tests-8e5-final/readback.json",
+      "target": "api/gates/013-readback.json",
+      "bytes": 74379,
+      "sha256": "a5d98b6eec575ef6e5f3c1335688d35e42244f09aec8272889bd45d9440103e8"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/full-tests-8e5-final/readback.json",
+      "target": "api/gates/014-readback.json",
+      "bytes": 34136,
+      "sha256": "5643cbf7ae0d9367261e043beffe8ca3de7c1ddbd4a554e566d469c0e9b26aae"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/safety-8e5-final/readback.json",
+      "target": "api/gates/015-readback.json",
+      "bytes": 40054,
+      "sha256": "2b339cefbca29518bfef7e33937b6a38010b9ff1bcd8be373cf4d75d3d333f02"
+    },
+    {
+      "source": ".work/cli-sdk-8e538362-20261010/snapshot-2026-10-09T17-31-43.489Z.json",
+      "target": "api/cli/016-snapshot-2026-10-09T17-31-43.489Z.json",
+      "bytes": 250593,
+      "sha256": "06e9cc0e1e169cc94c600b031f20ce1291169b5f5a61a3629faad951d5bfcbf7"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/artifact-metadata.json",
+      "target": "host/metadata/017-artifact-metadata.json",
+      "bytes": 762,
+      "sha256": "294b99275bc1a097b8ff10f348ff79cafbee6031334569c68a9f3e0561414fed"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/check-diagnostic-evidence.mjs",
+      "target": "host/metadata/018-check-diagnostic-evidence.mjs",
+      "bytes": 2256,
+      "sha256": "4fcd38f6f7954b7264c6508abacccf84b8ac1a6a66998954d4f674dc6819c61a"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/check-large-trace-evidence.mjs",
+      "target": "host/metadata/019-check-large-trace-evidence.mjs",
+      "bytes": 2500,
+      "sha256": "dfc7d87637ec548244087defae0314038fd90f341565afb637fb03c1821dfe30"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnosis.json",
+      "target": "host/metadata/020-diagnosis.json",
+      "bytes": 2503,
+      "sha256": "6ffcad8d61ba6c1689ec8912eac6e6882cf5a4d21f6173cba24bdf51a2efa37d"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnostics-gradle-check.log",
+      "target": "host/metadata/021-diagnostics-gradle-check.log",
+      "bytes": 26952,
+      "sha256": "b9d2dd51e200ab2a32bc01f1b73283021eb3f2fdfb904e9d7fbd7f9b9bd62c99"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnostics-junit.xml",
+      "target": "host/metadata/022-diagnostics-junit.xml",
+      "bytes": 920,
+      "sha256": "be072dd5073efbb6fbbd6affdb858a92117f5a5b91d5714e2602a46b6447a272"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnostics-large-trace-contract.json",
+      "target": "host/metadata/023-diagnostics-large-trace-contract.json",
+      "bytes": 2101,
+      "sha256": "f8aaa9f550e4762f54a0882383f2cbb7a895817f720f822a186505030395af66"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnostics-node-check.log",
+      "target": "host/metadata/024-diagnostics-node-check.log",
+      "bytes": 5508,
+      "sha256": "1c0a8819a660f4490a1b003c1f71a06e36e9f2ae06293cf7e050b4dba4dbbaac"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/diagnostics-raw-byte-contract.json",
+      "target": "host/metadata/025-diagnostics-raw-byte-contract.json",
+      "bytes": 1415,
+      "sha256": "272c05e419088a18fd6daad9b1944575de5320b1ebc90daf2358c0ea17f38853"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/download-verification.json",
+      "target": "host/metadata/026-download-verification.json",
+      "bytes": 383,
+      "sha256": "8620c4c939957edb2f08b834c945ce341c9fd6497cdf6db0780206d5c400b00c"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/download.cjs",
+      "target": "host/metadata/027-download.cjs",
+      "bytes": 1271,
+      "sha256": "097a7949693043b70dd8929367641793e952559f4c27cd6629fb253400d4feaa"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/manifest-verification.json",
+      "target": "host/metadata/028-manifest-verification.json",
+      "bytes": 23198,
+      "sha256": "82f22430ea9dd3167868092d620dce13f58aec82e862d6a3cb1722e46c935cb2"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/verify.cjs",
+      "target": "host/metadata/029-verify.cjs",
+      "bytes": 2314,
+      "sha256": "c00abe5c01db643b203eb16cd8ab2bcfd8f1f30f85f9a8893af6894f10efcead"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/journey-evidence.json",
+      "target": "host/030-journey-evidence.json",
+      "bytes": 9760,
+      "sha256": "ac49ea26ff099b087f0707a97099932fe5f5d7829995054256c2ca062a8eb898"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/001-fake-cli-bin_cc",
+      "target": "host/entries/031-001-fake-cli-bin_cc",
+      "bytes": 166,
+      "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/002-fake-cli-bin_cc.cmd",
+      "target": "host/entries/032-002-fake-cli-bin_cc.cmd",
+      "bytes": 161,
+      "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/003-fake-cli-bin_chainlesschain",
+      "target": "host/entries/033-003-fake-cli-bin_chainlesschain",
+      "bytes": 166,
+      "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "target": "host/entries/034-004-fake-cli-bin_chainlesschain.cmd",
+      "bytes": 161,
+      "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/005-fake-cli-bin_clc",
+      "target": "host/entries/035-005-fake-cli-bin_clc",
+      "bytes": 166,
+      "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/006-fake-cli-bin_clc.cmd",
+      "target": "host/entries/036-006-fake-cli-bin_clc.cmd",
+      "bytes": 161,
+      "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/007-fake-cli-bin_clchain",
+      "target": "host/entries/037-007-fake-cli-bin_clchain",
+      "bytes": 166,
+      "sha256": "aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/008-fake-cli-bin_clchain.cmd",
+      "target": "host/entries/038-008-fake-cli-bin_clchain.cmd",
+      "bytes": 161,
+      "sha256": "c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/009-fake-cli-protocol.jsonl",
+      "target": "host/entries/039-009-fake-cli-protocol.jsonl",
+      "bytes": 9882,
+      "sha256": "8f2bb06e4d3f5878e0f525fa9542cfd5418e9ffcb97f0d3d82cdc646490412fe"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/010-fake-cli-state.json",
+      "target": "host/entries/040-010-fake-cli-state.json",
+      "bytes": 46,
+      "sha256": "f7f46349009c5af3127e2bc996901e80e59e89a3325bb2e0bcc857d71dbbdd5e"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/011-fake-cli-state.json.receipts_28b790a4ab20a71b8523db683f07314c63dd63f22fa0174c5e08614f9753f83d.json",
+      "target": "host/entries/041-011-fake-cli-state.json.receipts_28b7.json",
+      "bytes": 260,
+      "sha256": "b37cb5022f05874b899bc2bed2ade6847a70c3932e47427648a57ea39e870ba0"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/012-fake-cli-state.json.receipts_36c6f8b220fce6be4e8ff4b84a5f199efc28e7f94a539af665d08e7c388f687d.json",
+      "target": "host/entries/042-012-fake-cli-state.json.receipts_36c6.json",
+      "bytes": 260,
+      "sha256": "b79f625a1466fa53f78e30c970709eb846dd33986430e093d1b24d86da13ae9c"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/013-fake-cli-state.json.receipts_3ba5e0370b64459e4c70d74ff281fa8575e326dadad9b23d1efe80de3f79bad7.json",
+      "target": "host/entries/043-013-fake-cli-state.json.receipts_3ba5.json",
+      "bytes": 260,
+      "sha256": "22ac7b6b8d7e7addfe4c1d7c0afb24843b1dfcae3121b9b0257153fe256981d9"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/014-fake-cli-state.json.receipts_8c4e0310f71af5fdb8e1ba26e2b063bd05cd03695594d6525bb768ffe4206155.json",
+      "target": "host/entries/044-014-fake-cli-state.json.receipts_8c4e.json",
+      "bytes": 260,
+      "sha256": "5913a3f2df2ec18b3817726a758664449bc960d3d0dac8ce4552918bed481467"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/015-prepare.stderr.log",
+      "target": "host/entries/045-015-prepare.stderr.log",
+      "bytes": 991,
+      "sha256": "c40a3bfac8c41235d818ec68c3ad0f35d956254bb4d7d082275f54e5816f1423"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/016-prepare.stdout.log",
+      "target": "host/entries/046-016-prepare.stdout.log",
+      "bytes": 21310,
+      "sha256": "b4d446b96c4df73a7afbd1c4997639e4243f544674a912401a256340dd58c48f"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/017-sandbox-ide-initial.stderr.log",
+      "target": "host/entries/047-017-sandbox-ide-initial.stderr.log",
+      "bytes": 5054,
+      "sha256": "e7199c8fc06b9614ac35736746ad6dcba5fcf50e591a302b3487410a116233c3"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/018-sandbox-ide-initial.stdout.log",
+      "target": "host/entries/048-018-sandbox-ide-initial.stdout.log",
+      "bytes": 1342,
+      "sha256": "1eb80678d1a8e25af9dd9b19bb4a8aa6e48a555200d7e5cad0fd216ef7032a1b"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/019-ui-smoke-initial.stderr.log",
+      "target": "host/entries/049-019-ui-smoke-initial.stderr.log",
+      "bytes": 18452,
+      "sha256": "0e687d2dbe6d982b6c6ef2d6386d4f8ac6f9a4d61365ad63aa87145b9f501619"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/020-ui-smoke-initial.stdout.log",
+      "target": "host/entries/050-020-ui-smoke-initial.stdout.log",
+      "bytes": 14214,
+      "sha256": "e1a789e661fcac81dc5284e1cf3ad7d55cfa2a354f06c2dfb7368ad7ee38f64d"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/021-binary_output.bin",
+      "target": "host/entries/051-021-binary_output.bin",
+      "bytes": 435,
+      "sha256": "fa4fa31708a8cbfc584bedec613848a80c33e49bbba4d703a4865a86d42cdc48"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/022-binary_output.bin.idx",
+      "target": "host/entries/052-022-binary_output.bin.idx",
+      "bytes": 71,
+      "sha256": "a2c7e9c86284588aa02776d0c9282e725db91e3be897cbb51c27be4444f9e9d8"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/023-binary_results.bin",
+      "target": "host/entries/053-023-binary_results.bin",
+      "bytes": 2511,
+      "sha256": "e1629102abe111f315c5efa7eee4eb1d7deddff19ca9e89d3d9690a52ebe5ca6"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/024-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "target": "host/entries/054-024-TEST-com.chainlesschain.ide.uites.xml",
+      "bytes": 2202,
+      "sha256": "40a6c5d2a9414f9e203dd1ef112c5aceae578015e922de7a8736428e9d159552"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/025-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "target": "host/entries/055-025-TEST-com.chainlesschain.ide.uites.xml",
+      "bytes": 648,
+      "sha256": "6f6c66e5a5c8cc6999dc3fd4a38ecdbf691abe960dda40c10e11d0b5c3784ce3"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/026-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "target": "host/entries/056-026-TEST-com.chainlesschain.ide.uites.xml",
+      "bytes": 1221,
+      "sha256": "97c445f1fd3dea89137a7cc8dd350e3d8f17581c078b269e3bdcf7b9bc909e60"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/diagnostics/027-chat-control-journey-1791565300500.png",
+      "target": "host/entries/057-027-chat-control-journey-179156530050.png",
+      "bytes": 171352,
+      "sha256": "4f333a0f2d1c61534ab5ab4bf8095b8d616b483ea3fec00316abe7257cfb52ed"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/extracted/ide-journey/Windows-2025.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "target": "host/entries/058-001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1514916,
+      "sha256": "863550ed9a116399ac495d5ffa0394e30adf94f357a461c37b477b66710bab60"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/archive/diagnostics/001-capture-status.json",
+      "target": "diagnostics/large/059-001-capture-status.json",
+      "bytes": 664,
+      "sha256": "eade90cf9dceb1e5b4018c57838b4b6f2aebac2d55c3de23dc5c9d3f10cba279"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/archive/diagnostics/002-host-events.jsonl",
+      "target": "diagnostics/large/060-002-host-events.jsonl",
+      "bytes": 757780,
+      "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/archive/diagnostics/003-host-events.jsonl.bin",
+      "target": "diagnostics/large/061-003-host-events.jsonl.bin",
+      "bytes": 757780,
+      "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/archive/diagnostics/004-idea-001.log.bin",
+      "target": "diagnostics/large/062-004-idea-001.log.bin",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/capture/capture-status.json",
+      "target": "diagnostics/large/063-capture-status.json",
+      "bytes": 664,
+      "sha256": "eade90cf9dceb1e5b4018c57838b4b6f2aebac2d55c3de23dc5c9d3f10cba279"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/capture/host-events.jsonl",
+      "target": "diagnostics/large/064-host-events.jsonl",
+      "bytes": 757780,
+      "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/capture/host-events.jsonl.bin",
+      "target": "diagnostics/large/065-host-events.jsonl.bin",
+      "bytes": 757780,
+      "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/capture/idea-001.log.bin",
+      "target": "diagnostics/large/066-idea-001.log.bin",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/large-trace-contract-MT9uRj/sandbox/IC-2024.2/log_runIdeForUiTests/idea.log",
+      "target": "diagnostics/large/067-idea.log",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/archive/diagnostics/001-capture-status.json",
+      "target": "diagnostics/raw/068-001-capture-status.json",
+      "bytes": 590,
+      "sha256": "141c726eb8de100609d7e829d32e2c9bc5d9f7ea8b15a75980c63de69737d6a3"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/archive/diagnostics/002-host-events.jsonl",
+      "target": "diagnostics/raw/069-002-host-events.jsonl",
+      "bytes": 96,
+      "sha256": "8be8d3a7e14ed25dfdea765599d338fe9134e12b2765d19cf9b810720fff59b4"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/archive/diagnostics/003-idea-001.log.bin",
+      "target": "diagnostics/raw/070-003-idea-001.log.bin",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/capture/capture-status.json",
+      "target": "diagnostics/raw/071-capture-status.json",
+      "bytes": 590,
+      "sha256": "141c726eb8de100609d7e829d32e2c9bc5d9f7ea8b15a75980c63de69737d6a3"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/capture/host-events.jsonl",
+      "target": "diagnostics/raw/072-host-events.jsonl",
+      "bytes": 96,
+      "sha256": "8be8d3a7e14ed25dfdea765599d338fe9134e12b2765d19cf9b810720fff59b4"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/capture/idea-001.log.bin",
+      "target": "diagnostics/raw/073-idea-001.log.bin",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/astra-win2025-8e5/raw-log-contract-eKJUOX/sandbox/IC-2024.2/log_runIdeForUiTests/idea.log",
+      "target": "diagnostics/raw/074-idea.log",
+      "bytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322"
+    },
+    {
+      "source": ".work/approval-layout-contract/ApprovalLayoutProbe.java",
+      "target": "contracts/layout/075-ApprovalLayoutProbe.java",
+      "bytes": 3961,
+      "sha256": "e7f86781aa6a7741b95ec8a620c1017e2db66befa8ee73efc1767e7b9b9f2dbe"
+    },
+    {
+      "source": ".work/approval-layout-contract/compile.stderr.txt",
+      "target": "contracts/layout/076-compile.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/approval-layout-contract/compile.stdout.txt",
+      "target": "contracts/layout/077-compile.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/approval-layout-contract/probe.stderr.txt",
+      "target": "contracts/layout/078-probe.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/approval-layout-contract/probe.stdout.txt",
+      "target": "contracts/layout/079-probe.stdout.txt",
+      "bytes": 1213,
+      "sha256": "aa7a36023b3231457a02463356ec969f3b66f0ac918b8028f151ac22ad3e0ced"
+    },
+    {
+      "source": ".work/approval-layout-contract/report.json",
+      "target": "contracts/layout/080-report.json",
+      "bytes": 5143,
+      "sha256": "b38e46d36cf0113786387c2d80bb20fb82aef0156319843bc8319f845d8b95fc"
+    },
+    {
+      "source": ".work/approval-layout-contract/run.cjs",
+      "target": "contracts/layout/081-run.cjs",
+      "bytes": 3898,
+      "sha256": "a51ed26fe6855e666bf7b2291776454c758f928aaec5f6b8ba866d9e841bfda7"
+    },
+    {
+      "source": ".work/approval-layout-contract/validate-root-bytecode.stderr.txt",
+      "target": "contracts/layout/082-validate-root-bytecode.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/approval-layout-contract/validate-root-bytecode.stdout.txt",
+      "target": "contracts/layout/083-validate-root-bytecode.stdout.txt",
+      "bytes": 145908,
+      "sha256": "0128335382cf56fd848da16e062caec06d49e64f2f396c10390a206da5e8fe0b"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/actual-script.js",
+      "target": "contracts/observer/084-actual-script.js",
+      "bytes": 5189,
+      "sha256": "4d3a2c972d2d24014dc1f44b8571c68097e46cbaf5636d8c54b7450c76d40b1d"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/compile.stderr.log",
+      "target": "contracts/observer/085-compile.stderr.log",
+      "bytes": 1653,
+      "sha256": "55d4e94f1d26c75fd0a9aa17954b7f4cd52b8f536a9890afb7090fb39e0ecda7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/compile.stdout.log",
+      "target": "contracts/observer/086-compile.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/geometry.json",
+      "target": "contracts/observer/087-geometry.json",
+      "bytes": 868,
+      "sha256": "1760f69e2a0e854dd763b8b760b9c20088c2afcdcb8fac7e54f63dc86af79148"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/injected-roots-script.js",
+      "target": "contracts/observer/088-injected-roots-script.js",
+      "bytes": 5166,
+      "sha256": "38bb86db63457bfd6ad0e220ec6a85736a9c828dd6ec10d35d0142104b42f36d"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/metadata.json",
+      "target": "contracts/observer/089-metadata.json",
+      "bytes": 638,
+      "sha256": "3875ff3ce0d0b5c357f9b35934bc42ecafeb242ba9c2d44ac4b18e6f80433eb5"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/node-limit.json",
+      "target": "contracts/observer/090-node-limit.json",
+      "bytes": 1878216,
+      "sha256": "35452821856da9b02b642fa5139a8e74546e32a0fb71fde4f4f910ed872dd157"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/report.json",
+      "target": "contracts/observer/091-report.json",
+      "bytes": 3226,
+      "sha256": "56ba72812f599a9eb5a9d164f8d85b7cf8e7539009eb82358b805e15baf5dc32"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/run.stderr.log",
+      "target": "contracts/observer/092-run.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/run.stdout.log",
+      "target": "contracts/observer/093-run.stdout.log",
+      "bytes": 1907,
+      "sha256": "f0c425ac567c6d302b911ce26f4a31501ebee144ad56c672006f4d17e95b8a67"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/before-root-recompile/UiFailureDiagnostics.source.java",
+      "target": "contracts/observer/094-UiFailureDiagnostics.source.java",
+      "bytes": 7980,
+      "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/bind-source.mjs",
+      "target": "contracts/observer/095-bind-source.mjs",
+      "bytes": 2690,
+      "sha256": "31702850b8c76371e299e102384cec8775e95fa0a49e108109ad6a2bc7507f36"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/actual-script.js",
+      "target": "contracts/observer/096-actual-script.js",
+      "bytes": 5251,
+      "sha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/compile.stderr.log",
+      "target": "contracts/observer/097-compile.stderr.log",
+      "bytes": 1653,
+      "sha256": "55d4e94f1d26c75fd0a9aa17954b7f4cd52b8f536a9890afb7090fb39e0ecda7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/compile.stdout.log",
+      "target": "contracts/observer/098-compile.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/geometry.json",
+      "target": "contracts/observer/099-geometry.json",
+      "bytes": 868,
+      "sha256": "0d471780ebde7c52a007c1bc2dfb45814fede5ae9f706ec8360449578e2e5534"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/injected-roots-script.js",
+      "target": "contracts/observer/100-injected-roots-script.js",
+      "bytes": 5228,
+      "sha256": "8e3501c106f5b63a674711902e4a8a960105794e4a4381d82369ae6f61533fd7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/metadata.json",
+      "target": "contracts/observer/101-metadata.json",
+      "bytes": 421,
+      "sha256": "8cdcdc525389bad75c6c30d8df749afbf0b85afe5ea22ab44a09fce2c9c3fe7b"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/node-limit.json",
+      "target": "contracts/observer/102-node-limit.json",
+      "bytes": 1878215,
+      "sha256": "38374fa9c0d6a67848694e14db7b9e377901f37e417092873d87c90cd82bee05"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/report.json",
+      "target": "contracts/observer/103-report.json",
+      "bytes": 3211,
+      "sha256": "c7769ebaceacabf875e5e278110cd67e9f232b28a00b06b57888b7fa7f08e988"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/run.stderr.log",
+      "target": "contracts/observer/104-run.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/run.stdout.log",
+      "target": "contracts/observer/105-run.stdout.log",
+      "bytes": 1865,
+      "sha256": "16ea32d5969bf9fd62d979ae510f301608003bcf9d9efe64b7f9013013e5222f"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ApprovalSettlementRegistry-actual-fields.stderr.log",
+      "target": "contracts/observer/106-ApprovalSettlementRegistry-actual-fie.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ApprovalSettlementRegistry-actual-fields.stdout.log",
+      "target": "contracts/observer/107-ApprovalSettlementRegistry-actual-fie.log",
+      "bytes": 1047,
+      "sha256": "f8dc0ae69c97e0fcb1015002ae3e42484df28d72184f939310ea9a60d6f0c2b1"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/compile-source.stderr.log",
+      "target": "contracts/observer/108-compile-source.stderr.log",
+      "bytes": 1653,
+      "sha256": "55d4e94f1d26c75fd0a9aa17954b7f4cd52b8f536a9890afb7090fb39e0ecda7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/compile-source.stdout.log",
+      "target": "contracts/observer/109-compile-source.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ConversationManager-Conversation-actual-fields.stderr.log",
+      "target": "contracts/observer/110-ConversationManager-Conversation-actu.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ConversationManager-Conversation-actual-fields.stdout.log",
+      "target": "contracts/observer/111-ConversationManager-Conversation-actu.log",
+      "bytes": 711,
+      "sha256": "e1505df66b74f1dcbe4ebd118b0591ced8e6d14f42b28de3096d534c8090d196"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ConversationView-actual-fields.stderr.log",
+      "target": "contracts/observer/112-ConversationView-actual-fields.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/ConversationView-actual-fields.stdout.log",
+      "target": "contracts/observer/113-ConversationView-actual-fields.stdout.log",
+      "bytes": 24553,
+      "sha256": "47f915806ed6e2441ee9baead4bdfc9472c050b9f5c515ca6e93f34a5d7a6fa3"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/export-source.stderr.log",
+      "target": "contracts/observer/114-export-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/export-source.stdout.log",
+      "target": "contracts/observer/115-export-source.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/source-generated-script.js",
+      "target": "contracts/observer/116-source-generated-script.js",
+      "bytes": 5251,
+      "sha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding/UiFailureDiagnostics.java",
+      "target": "contracts/observer/117-UiFailureDiagnostics.java",
+      "bytes": 7980,
+      "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/source-binding.json",
+      "target": "contracts/observer/118-source-binding.json",
+      "bytes": 393,
+      "sha256": "7c87a922fb60b1550813a9f3f1d8feaa972db2fab87e398144def96b33534e67"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected/UiFailureDiagnostics.source.java",
+      "target": "contracts/observer/119-UiFailureDiagnostics.source.java",
+      "bytes": 7980,
+      "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/actual-script.js",
+      "target": "contracts/observer/120-actual-script.js",
+      "bytes": 5251,
+      "sha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/compile.stderr.log",
+      "target": "contracts/observer/121-compile.stderr.log",
+      "bytes": 1653,
+      "sha256": "55d4e94f1d26c75fd0a9aa17954b7f4cd52b8f536a9890afb7090fb39e0ecda7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/compile.stdout.log",
+      "target": "contracts/observer/122-compile.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/geometry.json",
+      "target": "contracts/observer/123-geometry.json",
+      "bytes": 868,
+      "sha256": "94a5dae318a300956b35f759ca882973689b6747318339e1eea2f67b688420f1"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/injected-roots-script.js",
+      "target": "contracts/observer/124-injected-roots-script.js",
+      "bytes": 5228,
+      "sha256": "8e3501c106f5b63a674711902e4a8a960105794e4a4381d82369ae6f61533fd7"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/metadata.json",
+      "target": "contracts/observer/125-metadata.json",
+      "bytes": 427,
+      "sha256": "969067d68621ad1e21f7030c88f16a654a467c33499967cfadea848bd0026578"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/node-limit.json",
+      "target": "contracts/observer/126-node-limit.json",
+      "bytes": 1878215,
+      "sha256": "24529507ab9fa8943f2e8de687de909955943972b8b591ec5351885c27d596e6"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/report.json",
+      "target": "contracts/observer/127-report.json",
+      "bytes": 5400,
+      "sha256": "c8271f9911da768e415982502fb365e39bca806b2ffb5aeb9abac296b85e6fe8"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/run.stderr.log",
+      "target": "contracts/observer/128-run.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/run.stdout.log",
+      "target": "contracts/observer/129-run.stdout.log",
+      "bytes": 2964,
+      "sha256": "5235ce0643bfca769c6655b62eb5db2ecb24add736fbe25ad08844bd97165574"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/corrected-final/UiFailureDiagnostics.source.java",
+      "target": "contracts/observer/130-UiFailureDiagnostics.source.java",
+      "bytes": 7980,
+      "sha256": "2a821119e16b0dd4bc6ac1583314939bef63dac74dee3a5c92bc0fc366012b17"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/review.json",
+      "target": "contracts/observer/131-review.json",
+      "bytes": 2982,
+      "sha256": "0ad0795fafefbcad599382017f9e797773804fae9d67cf291cfe19fcac1eaa0c"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/run.mjs",
+      "target": "contracts/observer/132-run.mjs",
+      "bytes": 2355,
+      "sha256": "44636661c3ec6c70bacb01e130a6b75ee661dccf2421c1a7e0e7a28641fb0b3c"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/src/ExportSnapshot.java",
+      "target": "contracts/observer/133-ExportSnapshot.java",
+      "bytes": 436,
+      "sha256": "b8263500dcf3ac7aa5141794d9b4affd0b5290d740f6182652171c3d2084e834"
+    },
+    {
+      "source": ".work/astra-ui-failure-script-20261010/src/SnapshotContract.java",
+      "target": "contracts/observer/134-SnapshotContract.java",
+      "bytes": 7287,
+      "sha256": "3efbd587f88055e1ef77e24920203fa59f24a850eb95b921c267519903ced286"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/attempt1-junit.xml",
+      "target": "contracts/current/135-attempt1-junit.xml",
+      "bytes": 5154,
+      "sha256": "a43ea70750b38f35af3d1a569ce08fc5248d18b964cc7228b979e349d33ba1a9"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/attempt1-source.java",
+      "target": "contracts/current/136-attempt1-source.java",
+      "bytes": 6505,
+      "sha256": "e2328fea4609417759a7a2013838021cd9def255a668eb8d1afc77dc798dc15c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/attempt2-event-diagnostics-junit.xml",
+      "target": "contracts/current/137-attempt2-event-diagnostics-junit.xml",
+      "bytes": 921,
+      "sha256": "d932782cea948016db3e1e063004148df08904b6a506b18cd0de6e979ce99cbe"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/attempt2-junit.xml",
+      "target": "contracts/current/138-attempt2-junit.xml",
+      "bytes": 639,
+      "sha256": "646205c4b624bb4f74a02d5f05a3ce7436ae311db37fbba89848f1597541e9d8"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ActivityLogTest.xml",
+      "target": "contracts/current/139-TEST-com.chainlesschain.ide.ActivityL.xml",
+      "bytes": 1227,
+      "sha256": "4c2ee4c5d08128f8c5ba028f7b5477d7e44d21cc78058342a745568036139361"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "target": "contracts/current/140-TEST-com.chainlesschain.ide.AgentChat.xml",
+      "bytes": 2268,
+      "sha256": "41e22f3376eb11802227b13866f3e6e59053040da2d69ffef0136959531664d9"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.AgentTerminationTest.xml",
+      "target": "contracts/current/141-TEST-com.chainlesschain.ide.AgentTerm.xml",
+      "bytes": 963,
+      "sha256": "ca820f311dec6efdb45f17b0ab1ecf462374b79fbdd8a708f36d206d72e09ba2"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ApprovalGrantsTest.xml",
+      "target": "contracts/current/142-TEST-com.chainlesschain.ide.ApprovalG.xml",
+      "bytes": 598,
+      "sha256": "9c51ad3ff2389e4cd87939e1135aece3ee8fd1606d1a906ff758de264067ca41"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ApprovalResponsesTest.xml",
+      "target": "contracts/current/143-TEST-com.chainlesschain.ide.ApprovalR.xml",
+      "bytes": 1069,
+      "sha256": "177f38643a68cbceb65d65b711390316b5d46d9a525037e144f9c104b64fa2d8"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ApprovalSettlementRegistryTest.xml",
+      "target": "contracts/current/144-TEST-com.chainlesschain.ide.ApprovalS.xml",
+      "bytes": 799,
+      "sha256": "30ad94f95c80b2817e0283fcb3bc8dd6b7bc9be35a28a3f5eb4d071f8c74c998"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ArtifactsTest.xml",
+      "target": "contracts/current/145-TEST-com.chainlesschain.ide.Artifacts.xml",
+      "bytes": 1617,
+      "sha256": "0d9b0a0eb0f8ad8e3d3378948d822b150de019fbaab2bc97eaffc7f5f38f08d3"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.AutoExecGuardTest.xml",
+      "target": "contracts/current/146-TEST-com.chainlesschain.ide.AutoExecG.xml",
+      "bytes": 1047,
+      "sha256": "8ced3c2f5d251303596acca933246cf80ac942955a1fef5186bd1a736230636f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.AutomationCenterTest.xml",
+      "target": "contracts/current/147-TEST-com.chainlesschain.ide.Automatio.xml",
+      "bytes": 1390,
+      "sha256": "d39ea54887ccf49a54ee22e19dd7f15b7c45fba0b2ae2ec30359b0a47c0a0955"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.BackgroundAgentsTest.xml",
+      "target": "contracts/current/148-TEST-com.chainlesschain.ide.Backgroun.xml",
+      "bytes": 1777,
+      "sha256": "59eba6d727cea9c01dc29b6d3f56dbf7801ff8fc2c781fd2a8b584d98f313df2"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.BridgeSecurityPolicyTest.xml",
+      "target": "contracts/current/149-TEST-com.chainlesschain.ide.BridgeSec.xml",
+      "bytes": 917,
+      "sha256": "86922c92ad50f9a1970c83cf045c7634a606fd18a442cbd4373ac52a8f931371"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.CapabilityNegotiationTest.xml",
+      "target": "contracts/current/150-TEST-com.chainlesschain.ide.Capabilit.xml",
+      "bytes": 2044,
+      "sha256": "1c8365eade75e6f2511373a8e52b578501bb0c882e74fdcd7ca312a05440e429"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.CcAutomaticCompletionPolicyTest.xml",
+      "target": "contracts/current/151-TEST-com.chainlesschain.ide.CcAutomat.xml",
+      "bytes": 1388,
+      "sha256": "46a607feb109334ae4806ed4e2f3215ee01d042f0fdbcf9c2bfca0fa68c58e94"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.CcCompletionTest.xml",
+      "target": "contracts/current/152-TEST-com.chainlesschain.ide.CcComplet.xml",
+      "bytes": 1999,
+      "sha256": "74f0ffd1b6cac9471e1e34f6575fc9b83ba034f0aeba0a1c3d21ab0a3de47607"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ChatDraftStoreTest.xml",
+      "target": "contracts/current/153-TEST-com.chainlesschain.ide.ChatDraft.xml",
+      "bytes": 1408,
+      "sha256": "90e262cb016f5e83c104f5b7b336ef8600596a16c186f9ed220affa403a1129b"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ChatEventsTest.xml",
+      "target": "contracts/current/154-TEST-com.chainlesschain.ide.ChatEvent.xml",
+      "bytes": 4316,
+      "sha256": "93530796c253361edc38605c6df21c7d5d9809b34c61eac6eda02f128ebc3d5f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ChromeConnectorTest.xml",
+      "target": "contracts/current/155-TEST-com.chainlesschain.ide.ChromeCon.xml",
+      "bytes": 656,
+      "sha256": "dc793343ce976d02aec4252c7fd55e751fed3e06e012c85290fbcbdbd1884c08"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.CliIdentityProbeTest.xml",
+      "target": "contracts/current/156-TEST-com.chainlesschain.ide.CliIdenti.xml",
+      "bytes": 631,
+      "sha256": "0d353fed2b86e4980638a5caaf328f3f358b6a3f27b8f8a2825fa8feb1603c34"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.CliVersionCheckTest.xml",
+      "target": "contracts/current/157-TEST-com.chainlesschain.ide.CliVersio.xml",
+      "bytes": 1346,
+      "sha256": "13de7c1989cac9bbec302d80c7ee35a08d3131785a990a7e3f9c1a61bf90fd86"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ContextCenterTest.xml",
+      "target": "contracts/current/158-TEST-com.chainlesschain.ide.ContextCe.xml",
+      "bytes": 962,
+      "sha256": "e668a57dacb27f2535a9f16392e5aecb8eba2723df930b29449d50a19133260f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ContextExternalSourcesTest.xml",
+      "target": "contracts/current/159-TEST-com.chainlesschain.ide.ContextEx.xml",
+      "bytes": 615,
+      "sha256": "b5192be0ef21a42183bca127e6d0ac444c98c02549faed35918310612527a6d5"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ContextMemoryAuthorityTest.xml",
+      "target": "contracts/current/160-TEST-com.chainlesschain.ide.ContextMe.xml",
+      "bytes": 633,
+      "sha256": "32998e5b57e2400a96568743e52fbe0960d078f7351c1bf27c5e3315427a71ac"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ContextMemoryProjectionTest.xml",
+      "target": "contracts/current/161-TEST-com.chainlesschain.ide.ContextMe.xml",
+      "bytes": 635,
+      "sha256": "67cc359bd2f185415f718fa804d0f8ef461600c997ed69e62c69953844cd16aa"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ContextStatusTest.xml",
+      "target": "contracts/current/162-TEST-com.chainlesschain.ide.ContextSt.xml",
+      "bytes": 810,
+      "sha256": "f96dbb108b5617b37cd93a20a7662d45d9ca0f8e416f3d8ada048f726ca07f4e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ConversationManagerTest.xml",
+      "target": "contracts/current/163-TEST-com.chainlesschain.ide.Conversat.xml",
+      "bytes": 2276,
+      "sha256": "1a7dedcd83d55683b20271a53c7fcdfa6d1e5b9591dd3624713c63123859337c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DashboardHtmlTest.xml",
+      "target": "contracts/current/164-TEST-com.chainlesschain.ide.Dashboard.xml",
+      "bytes": 1207,
+      "sha256": "025012e2f352528c843a13775aba126c0315ef604142db36b2acd8e9efa4c65a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DeepLinkTest.xml",
+      "target": "contracts/current/165-TEST-com.chainlesschain.ide.DeepLinkT.xml",
+      "bytes": 1615,
+      "sha256": "1100d1db23efb8dde8e137ebaa77a54f4c89799344430097d51300de11e5e477"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DeliveryWorkflowTest.xml",
+      "target": "contracts/current/166-TEST-com.chainlesschain.ide.DeliveryW.xml",
+      "bytes": 1186,
+      "sha256": "e915dc6d916edabdb1b928ca580846b109f3dc1e9f9c1997d5c852fc7f1e5135"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DiagnosticBundleExportTest.xml",
+      "target": "contracts/current/167-TEST-com.chainlesschain.ide.Diagnosti.xml",
+      "bytes": 608,
+      "sha256": "32210dd46573409a734ca7ed08098e177edf2dac0ba930436e2e41d90e96d3ed"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest.xml",
+      "target": "contracts/current/168-TEST-com.chainlesschain.ide.Diagnosti.xml",
+      "bytes": 1265,
+      "sha256": "1ada58e0612af2bc5c6a8dfa7170998928bfa49467b78b5a01a3901436d3c60a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DiffApplyGuardTest.xml",
+      "target": "contracts/current/169-TEST-com.chainlesschain.ide.DiffApply.xml",
+      "bytes": 2076,
+      "sha256": "0febafd0032b00473c1c08366fd0b072e742c15791d6b4acb1ce6de5a3aff42a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DiffHunksTest.xml",
+      "target": "contracts/current/170-TEST-com.chainlesschain.ide.DiffHunks.xml",
+      "bytes": 1199,
+      "sha256": "79aae542685aa9005bf6edd40c8711086a4003e2cfbd51fb24244508e580359a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.DiffReviewAuditTest.xml",
+      "target": "contracts/current/171-TEST-com.chainlesschain.ide.DiffRevie.xml",
+      "bytes": 879,
+      "sha256": "39ff5b53a675b6bb89df71210b3ad23ef12b22e972c9e096c0a2424e40790bf3"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ElicitationSchemaTest.xml",
+      "target": "contracts/current/172-TEST-com.chainlesschain.ide.Elicitati.xml",
+      "bytes": 759,
+      "sha256": "689abde1a1ff84e66cfb857b27e5fe61e77fbd9398d1707393212241b45c0636"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.EvolutionDeploymentConfigTest.xml",
+      "target": "contracts/current/173-TEST-com.chainlesschain.ide.Evolution.xml",
+      "bytes": 929,
+      "sha256": "7b178f6648797d9555c87c3c6d272a4ce12012c130c4b6a6ffbea9802d6c116e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.EvolutionWorkbenchSessionTest.xml",
+      "target": "contracts/current/174-TEST-com.chainlesschain.ide.Evolution.xml",
+      "bytes": 801,
+      "sha256": "454f74d0502a3c1e98d163ba917e7dab25c144d7162d42c00733c478b92d7f79"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.EvolutionWorkbenchTest.xml",
+      "target": "contracts/current/175-TEST-com.chainlesschain.ide.Evolution.xml",
+      "bytes": 1869,
+      "sha256": "5c9f1817df5f319d67b0d4b88cc742f6d8054b2211a93cbb30a7fdf41ea5c91d"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.FixWithCcTest.xml",
+      "target": "contracts/current/176-TEST-com.chainlesschain.ide.FixWithCc.xml",
+      "bytes": 1105,
+      "sha256": "23d52abf4a86d955fe9a68f26115a87ef5a3c3c8c7d9e58db57bb71c5f00b381"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeCapabilitiesTest.xml",
+      "target": "contracts/current/177-TEST-com.chainlesschain.ide.IdeCapabi.xml",
+      "bytes": 575,
+      "sha256": "b304451cceb9bacfa4519eae890578aab42f9291bc2d376455532ab02dc2410c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeContextV2Test.xml",
+      "target": "contracts/current/178-TEST-com.chainlesschain.ide.IdeContex.xml",
+      "bytes": 1265,
+      "sha256": "48dbe26a39a4fe26a7c70cc6293b965adc72133a8f5ae8cf9c52a563b7090755"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeDoctorTest.xml",
+      "target": "contracts/current/179-TEST-com.chainlesschain.ide.IdeDoctor.xml",
+      "bytes": 1050,
+      "sha256": "71b8fdf65df7f03a6d153d60607698a399637e2519939fa181968be2c39db2f0"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+      "target": "contracts/current/180-TEST-com.chainlesschain.ide.IdePathGu.xml",
+      "bytes": 2863,
+      "sha256": "95c7f1fdfb355bd5347016eafa0d0e42a2b8275de55173c4295e9f8f9c101d43"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeQualityToolsTest.xml",
+      "target": "contracts/current/181-TEST-com.chainlesschain.ide.IdeQualit.xml",
+      "bytes": 585,
+      "sha256": "78dfd385765d430e7363e254dda10a7631e8b05e5125833f3ea9fda0b468c19f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeSessionIndexTest.xml",
+      "target": "contracts/current/182-TEST-com.chainlesschain.ide.IdeSessio.xml",
+      "bytes": 1637,
+      "sha256": "334a41fe30d7d94de11ffc4c9b10691ba08bf85ec0bd40b47d37dd41520ec2cc"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeToolAdmissionTest.xml",
+      "target": "contracts/current/183-TEST-com.chainlesschain.ide.IdeToolAd.xml",
+      "bytes": 482,
+      "sha256": "9011b4c10d2d4148473f227164d0a3a9880ce314dc395ee8c5ff2e18586237ed"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeToolsPreviewTest.xml",
+      "target": "contracts/current/184-TEST-com.chainlesschain.ide.IdeToolsP.xml",
+      "bytes": 739,
+      "sha256": "931f3798d12d044d3d16a85ee5be03fc0859949f62caced929fea987277b803f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IdeToolsTerminalTest.xml",
+      "target": "contracts/current/185-TEST-com.chainlesschain.ide.IdeToolsT.xml",
+      "bytes": 853,
+      "sha256": "8000d1896f0a10585a060104886ceb61a85310122501ea65dae56cc899304450"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ImageAttachmentsTest.xml",
+      "target": "contracts/current/186-TEST-com.chainlesschain.ide.ImageAtta.xml",
+      "bytes": 1434,
+      "sha256": "f68caef9a1d4e75fa2ba1e7b766f8fc02fdf3d51e1de2a53afa8369ded3e761c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ImageFileSnapshotTest.xml",
+      "target": "contracts/current/187-TEST-com.chainlesschain.ide.ImageFile.xml",
+      "bytes": 938,
+      "sha256": "d48618e1d4a88688885862a8701d62b63c4003a4edf06f5a0d194861b987665e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "target": "contracts/current/188-TEST-com.chainlesschain.ide.InputDisp.xml",
+      "bytes": 1765,
+      "sha256": "898ef7ca88e4415fe24364649b161ed966f558bf5ab9fdff437b92d1a1ca7d9b"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest.xml",
+      "target": "contracts/current/189-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 543,
+      "sha256": "83eccc5b33494ac55511e05e5d5eb00a7f16d089a114fa57f0e7d96edc70d657"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatCardsLayoutTest.xml",
+      "target": "contracts/current/190-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 639,
+      "sha256": "da21e956169b34773897bcad310b7245aa79e3a4151e54d9e20ec5469ba37e3e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "target": "contracts/current/191-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1011,
+      "sha256": "6610a64db30ea8ec91171750bec64b7f70f05ecd2f12cf5fba83ada55a7d5884"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatHistorySyncTest.xml",
+      "target": "contracts/current/192-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1149,
+      "sha256": "72d2c5c1e5040f4cd1edda139a924ac5faff400ccb3e0b0fdabaab41a60f509d"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "target": "contracts/current/193-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1785,
+      "sha256": "0fb60c8cd11e6fafc2f6ea8345c1bcbf9d0115be71135b267ab43e15b7062b76"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "target": "contracts/current/194-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1836,
+      "sha256": "7b97f000275bcda954d5da0c60b78e3be864eb876b59dd3975195a2f0902c414"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.ChatTranscriptTest.xml",
+      "target": "contracts/current/195-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1548,
+      "sha256": "62628c38d2ec893dd401e29789212cfa1a4c91131f89c69098e7d4eb4811b6b3"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.QuestionFormViewTest.xml",
+      "target": "contracts/current/196-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 1451,
+      "sha256": "aee41d08144aaba75dcf7927dc3c0e56f7ca0dc54fad75613cac0c8e38d24cb4"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.intellij.SessionUxEvidenceTest.xml",
+      "target": "contracts/current/197-TEST-com.chainlesschain.ide.intellij..xml",
+      "bytes": 491,
+      "sha256": "f7caa4f92a6c74e0f26c4979b852df6c5988a2c2272dbb98544d3361ac8ed5f0"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.IntrospectArgsTest.xml",
+      "target": "contracts/current/198-TEST-com.chainlesschain.ide.Introspec.xml",
+      "bytes": 1243,
+      "sha256": "1720982385b004842d3e00cf22ccfbb1860124c18638d6306fd8f66a4bd6d074"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "target": "contracts/current/199-TEST-com.chainlesschain.ide.LlmConfig.xml",
+      "bytes": 3411,
+      "sha256": "2b830613285f0236e08a81fc0f0f8694b8ec4247ddc4dfde61c557579870db6d"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "target": "contracts/current/200-TEST-com.chainlesschain.ide.LlmConnec.xml",
+      "bytes": 800,
+      "sha256": "43ba8799be5ebd6e6f3bd53d0263769f85b5294054e66124b98f40e148dd88a2"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+      "target": "contracts/current/201-TEST-com.chainlesschain.ide.LockfileA.xml",
+      "bytes": 2377,
+      "sha256": "607c7d219e8c3b3d803e43031d45e20bd1dee71b6e578ddcad5e50413613fe85"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ManagedCliTest.xml",
+      "target": "contracts/current/202-TEST-com.chainlesschain.ide.ManagedCl.xml",
+      "bytes": 9848,
+      "sha256": "844744d15a549d1a2ad13045bd81c78964f3938997cb39271267b97edf525902"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.MarkdownLiteTest.xml",
+      "target": "contracts/current/203-TEST-com.chainlesschain.ide.MarkdownL.xml",
+      "bytes": 1249,
+      "sha256": "e7e98921c1ab9ccee81b51842f023bcdf2b96c383ce2b0ebbf99b79f0b44cbb1"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.MentionsTest.xml",
+      "target": "contracts/current/204-TEST-com.chainlesschain.ide.MentionsT.xml",
+      "bytes": 2127,
+      "sha256": "a6d153143719c59d087e23ca0dad6fd720fc241031c75da74873ef7de2d72213"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.MiniJsonTest.xml",
+      "target": "contracts/current/205-TEST-com.chainlesschain.ide.MiniJsonT.xml",
+      "bytes": 1649,
+      "sha256": "2c35e49b5e580de2397628d3cbd4a20a121364b128732d645275327bfe300ed6"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.MultiDiffTest.xml",
+      "target": "contracts/current/206-TEST-com.chainlesschain.ide.MultiDiff.xml",
+      "bytes": 2506,
+      "sha256": "19b3b7e72ee415a6de4fec9b53c3e69f716117e229c88c4f380435b0b85afa53"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.NdjsonLineBufferTest.xml",
+      "target": "contracts/current/207-TEST-com.chainlesschain.ide.NdjsonLin.xml",
+      "bytes": 965,
+      "sha256": "b31d72530599ef7cf5a4fb31838cadea9946ec3e3cad0ad702da8eadce45519d"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "target": "contracts/current/208-TEST-com.chainlesschain.ide.Permissio.xml",
+      "bytes": 965,
+      "sha256": "6267acf970eb93c353e858e006284972fb107e145d7fa3ac9b9279de3f613352"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PlanReviewTest.xml",
+      "target": "contracts/current/209-TEST-com.chainlesschain.ide.PlanRevie.xml",
+      "bytes": 1389,
+      "sha256": "f9ac6beb41e9e7711c4591879b9d37590dc128df394a8bc558f30c87d54bf27e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PluginManagerTest.xml",
+      "target": "contracts/current/210-TEST-com.chainlesschain.ide.PluginMan.xml",
+      "bytes": 1074,
+      "sha256": "0a3aff6f4be1b835ab1d3060b0b347d8c67a6ae3ef2e0906a504865070e0ea6c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PluginQualityTest.xml",
+      "target": "contracts/current/211-TEST-com.chainlesschain.ide.PluginQua.xml",
+      "bytes": 3360,
+      "sha256": "8f68f9be2fc2c1d7ec05fe7534be86be6fdd0a9e6f1e1fe20e617c91cd506ba2"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PolicyViewerTest.xml",
+      "target": "contracts/current/212-TEST-com.chainlesschain.ide.PolicyVie.xml",
+      "bytes": 2098,
+      "sha256": "26a6b4b761bf3d59fc943fe4644f6dac8b15eb5496149d4967c3cbcd78c95845"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PreviewDetectTest.xml",
+      "target": "contracts/current/213-TEST-com.chainlesschain.ide.PreviewDe.xml",
+      "bytes": 1742,
+      "sha256": "8029c52dfe32ceb506bcb1470e139a58f1055e3e6cb9eb15e83489f2854a6ca7"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ProcessTreeTerminationTest.xml",
+      "target": "contracts/current/214-TEST-com.chainlesschain.ide.ProcessTr.xml",
+      "bytes": 807,
+      "sha256": "a9a41fcdb68138a94be7b8c5c22be0c6ed0cdc1e084be1441c53a38d8505d426"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ProjectMemoryTest.xml",
+      "target": "contracts/current/215-TEST-com.chainlesschain.ide.ProjectMe.xml",
+      "bytes": 1114,
+      "sha256": "f2d676e330d9c3fceaa04e7f5c507fb05d3271c991090fce94e7c50583c85dec"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ProtocolFixturesTest.xml",
+      "target": "contracts/current/216-TEST-com.chainlesschain.ide.ProtocolF.xml",
+      "bytes": 1436,
+      "sha256": "48c584c094809cd73113ba8bbe30b9ab84528de104ee96dcd173cdb75dbd4450"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.PrStatusTest.xml",
+      "target": "contracts/current/217-TEST-com.chainlesschain.ide.PrStatusT.xml",
+      "bytes": 661,
+      "sha256": "0d63574996332ba78a8f32b6cfca80689d495a4cd32b3e46fb2ab61b2454bc0e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.QrCodeTest.xml",
+      "target": "contracts/current/218-TEST-com.chainlesschain.ide.QrCodeTes.xml",
+      "bytes": 947,
+      "sha256": "07ee5a65f8b737a358900459e66224cb0a632ab3795bf8bd9bcaee209cb2a13f"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.QuestionDraftContractTest.xml",
+      "target": "contracts/current/219-TEST-com.chainlesschain.ide.QuestionD.xml",
+      "bytes": 1411,
+      "sha256": "e9c037744ec6c8644c80efdd71a1e071ca5969df074be99cee4262122496b2c5"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.QuestionDraftRegistryTest.xml",
+      "target": "contracts/current/220-TEST-com.chainlesschain.ide.QuestionD.xml",
+      "bytes": 1840,
+      "sha256": "4ac3cd9ccb4908032b3119570bd4fb343289ae6dff3c18a4f6b47de4fef83e08"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.QuestionDraftStoreTest.xml",
+      "target": "contracts/current/221-TEST-com.chainlesschain.ide.QuestionD.xml",
+      "bytes": 960,
+      "sha256": "72dcf92be841d897918ac35a4f6bef197604095f6faf270fe28297279f521315"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RemoteDoctorFixesTest.xml",
+      "target": "contracts/current/222-TEST-com.chainlesschain.ide.RemoteDoc.xml",
+      "bytes": 2475,
+      "sha256": "729934bcde0fa35b7404545f9df1a727f5dda58c19f01b3986bb8ffaa2961c48"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RemoteDoctorTest.xml",
+      "target": "contracts/current/223-TEST-com.chainlesschain.ide.RemoteDoc.xml",
+      "bytes": 1154,
+      "sha256": "ee2dfd606ae250c55398a1d1c15cddb1d7816ebda560bb64b05a7a0961f1e6b6"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RemoteHandoffTest.xml",
+      "target": "contracts/current/224-TEST-com.chainlesschain.ide.RemoteHan.xml",
+      "bytes": 1718,
+      "sha256": "f36339fa586073b9fc6aeea0c78a83d5aad9af10eb65454325b103c2acb51971"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.ReviewNoteTest.xml",
+      "target": "contracts/current/225-TEST-com.chainlesschain.ide.ReviewNot.xml",
+      "bytes": 1588,
+      "sha256": "485f749d4338c4571494d3b2829c68b3515e3d47088daf766e05ad44a9e40460"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RewindCommandsTest.xml",
+      "target": "contracts/current/226-TEST-com.chainlesschain.ide.RewindCom.xml",
+      "bytes": 2528,
+      "sha256": "2fae394bd71c2683cf208b1142ead843ceded4502d8c1bad5395695681f76cdc"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RuntimeCompatibilityTest.xml",
+      "target": "contracts/current/227-TEST-com.chainlesschain.ide.RuntimeCo.xml",
+      "bytes": 2001,
+      "sha256": "bf7c48382e0a58a77a60a6aea7ef7ae8d4989165c8fc4741e3568c2116e327a9"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.RuntimeEnvironmentTest.xml",
+      "target": "contracts/current/228-TEST-com.chainlesschain.ide.RuntimeEn.xml",
+      "bytes": 720,
+      "sha256": "2425207a5c0d607fc3934809ce4b8dc997ab590eb92e63b4f3777d9e679bdd97"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SemanticToolsTest.xml",
+      "target": "contracts/current/229-TEST-com.chainlesschain.ide.SemanticT.xml",
+      "bytes": 4129,
+      "sha256": "4c841c4bfc7904cea72a8d408acc2e9c187b30487baa0a9df134e0a1cd21784a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionArgsTest.xml",
+      "target": "contracts/current/230-TEST-com.chainlesschain.ide.SessionAr.xml",
+      "bytes": 1752,
+      "sha256": "370b1b14e3b03e1eea45103af5638d43c25d47f75c6a004ce4fc7bbf1f4c03d5"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionHistoryReaderTest.xml",
+      "target": "contracts/current/231-TEST-com.chainlesschain.ide.SessionHi.xml",
+      "bytes": 1096,
+      "sha256": "a4c866b75e2eab38c23e2bba6c08df9578fc131bfdd206b9eb934a03ae063a29"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionListTest.xml",
+      "target": "contracts/current/232-TEST-com.chainlesschain.ide.SessionLi.xml",
+      "bytes": 1168,
+      "sha256": "03446525a5fb45784e835af422727b5c706ff26a13ff0ff908a0a53ca3e12067"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionProjectionTest.xml",
+      "target": "contracts/current/233-TEST-com.chainlesschain.ide.SessionPr.xml",
+      "bytes": 1221,
+      "sha256": "439b2f1937def4e20fe2ba57f8cd7c796934369b6313cb7e4428f7c36fe10ff4"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionsWorkbenchTest.xml",
+      "target": "contracts/current/234-TEST-com.chainlesschain.ide.SessionsW.xml",
+      "bytes": 2375,
+      "sha256": "6a3f61b85e823478353fd380c93eb0d14d60133c10f32cf0667c1c757c5ba891"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionTranscriptChangesTest.xml",
+      "target": "contracts/current/235-TEST-com.chainlesschain.ide.SessionTr.xml",
+      "bytes": 798,
+      "sha256": "d287d2586c3f7fbee050fe24de0b4459280bef1eb8a2e06330e982968402737a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SessionTranscriptPageTest.xml",
+      "target": "contracts/current/236-TEST-com.chainlesschain.ide.SessionTr.xml",
+      "bytes": 932,
+      "sha256": "0daea498d53fa099d40054f6824b3b13d61206d86e10f5883c3cdd80c6de7c67"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SkillRetrievalTest.xml",
+      "target": "contracts/current/237-TEST-com.chainlesschain.ide.SkillRetr.xml",
+      "bytes": 1156,
+      "sha256": "0962266c47d8d9a0f6a536daf034e77937d6a46f7c8d9ff18c130864f841a343"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.SlashCommandsTest.xml",
+      "target": "contracts/current/238-TEST-com.chainlesschain.ide.SlashComm.xml",
+      "bytes": 2063,
+      "sha256": "7c2441d3d95c504cc44afacef77a1540fc6796fd48eef388af4db5d7bed545cc"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.StatusBarTextTest.xml",
+      "target": "contracts/current/239-TEST-com.chainlesschain.ide.StatusBar.xml",
+      "bytes": 1252,
+      "sha256": "885b769c1283c524927ba7b3bcae1daf60178108f2a8b80f8d490049d245a4df"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.TeamControlTest.xml",
+      "target": "contracts/current/240-TEST-com.chainlesschain.ide.TeamContr.xml",
+      "bytes": 2757,
+      "sha256": "c7ca801b4a41686d7846fae4135470b2c2e97649439ddd4c83f7c211e6e88f0e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.TeamMonitorTest.xml",
+      "target": "contracts/current/241-TEST-com.chainlesschain.ide.TeamMonit.xml",
+      "bytes": 1509,
+      "sha256": "5ae9fe2b975d1f536bc721d5be9fd53dfa8f146b821713d0bd39f99217fb6937"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.TranscriptCapTest.xml",
+      "target": "contracts/current/242-TEST-com.chainlesschain.ide.Transcrip.xml",
+      "bytes": 1473,
+      "sha256": "88defd4364e91195b4c5a1f7e51eb6164389837ef353d12ad9f3ec155da190fc"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.TranscriptReferencesTest.xml",
+      "target": "contracts/current/243-TEST-com.chainlesschain.ide.Transcrip.xml",
+      "bytes": 612,
+      "sha256": "7b19deb884105df1cdfc6355ba2a955d18db6f8e7b07751358d1eda09452388b"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "target": "contracts/current/244-TEST-com.chainlesschain.ide.UiEventDi.xml",
+      "bytes": 921,
+      "sha256": "c4eabaab1e12de0da51e041531c6203f4baaf7e636401a52944b1e6a6f1868e4"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.UsageReportTest.xml",
+      "target": "contracts/current/245-TEST-com.chainlesschain.ide.UsageRepo.xml",
+      "bytes": 2196,
+      "sha256": "b3b541d92da92e413b0038a4cf7ca199fbcaa3d02a02ba2fa359bcf35ea8e62c"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.Verify01ProtocolCaptureTest.xml",
+      "target": "contracts/current/246-TEST-com.chainlesschain.ide.Verify01P.xml",
+      "bytes": 796,
+      "sha256": "d409a831231a9ff845bf61b77e1c9f27cb2c472095a737e3a8003a8edebae5c1"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.WhatsNewTest.xml",
+      "target": "contracts/current/247-TEST-com.chainlesschain.ide.WhatsNewT.xml",
+      "bytes": 1305,
+      "sha256": "87e650b680421f2f2587c42786888740a7eb025426a32998613b40d103f11c9a"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.WindowsOwnerOnlyAclTest.xml",
+      "target": "contracts/current/248-TEST-com.chainlesschain.ide.WindowsOw.xml",
+      "bytes": 908,
+      "sha256": "7711bcf021c050690c90309d63d4a73cad026b1c4619e770e8c37d01ea822488"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest.xml",
+      "target": "contracts/current/249-TEST-com.chainlesschain.ide.Workspace.xml",
+      "bytes": 493,
+      "sha256": "5d183d42840bfb7a0c2d485acefaabf3725ebe2e4d4f3e2762c2179f48b9187e"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.WorkspaceMentionIndexTest.xml",
+      "target": "contracts/current/250-TEST-com.chainlesschain.ide.Workspace.xml",
+      "bytes": 795,
+      "sha256": "12006a969eb7401f58a6be2dad494cf3008c1b2dc01f6266e71df7a87bb1f327"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-junit/TEST-com.chainlesschain.ide.WorktreeTasksTest.xml",
+      "target": "contracts/current/251-TEST-com.chainlesschain.ide.WorktreeT.xml",
+      "bytes": 1401,
+      "sha256": "a82ff1201e88236ec6b396fd729f5e24e31f76dbb2d58e5014edaca0b7d32bc5"
+    },
+    {
+      "source": ".work/approval-layout-current-validation-20261010/full-validation.json",
+      "target": "contracts/current/252-full-validation.json",
+      "bytes": 37894,
+      "sha256": "856a8450b29f7cfe0f5c42f8be6a9136b1fce6c28cab09ecde5c7f5957fa6783"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-terminal-failed/artifacts-1.json",
+      "target": "api/terminal/253-artifacts-1.json",
+      "bytes": 17016,
+      "sha256": "ca50dc4ad580a6ce4bf9f996397da9ded0e9cdcd8147df99b66251d774862902"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-terminal-failed/jobs-1.json",
+      "target": "api/terminal/254-jobs-1.json",
+      "bytes": 64623,
+      "sha256": "575d30a88e248b420e522dd4da226d6755de865de99a768faef9a099772c3e7f"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-terminal-failed/readback.json",
+      "target": "api/terminal/255-readback.json",
+      "bytes": 128994,
+      "sha256": "eeb8e4190392a4b5d59a7bc91c250d84f3085595d045689f6f77059fabd5fb4e"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-8e5-terminal-failed/run.json",
+      "target": "api/terminal/256-run.json",
+      "bytes": 13750,
+      "sha256": "afda8a7abc15f12701b321d6a1df49d44d859eceadd61cc0d70c609bbcecf506"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-arm64-8e5-final/artifacts-1.json",
+      "target": "api/arm64/257-artifacts-1.json",
+      "bytes": 8050,
+      "sha256": "a72618c6a9f132b92778d777e5f883103546a9c6cda2532c4625c266309589b1"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-arm64-8e5-final/jobs-1.json",
+      "target": "api/arm64/258-jobs-1.json",
+      "bytes": 38520,
+      "sha256": "33d16bb32c47b168f4bf402ea5efa9bd2bcdd2af071c4debe3c392cd812eab73"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-arm64-8e5-final/readback.json",
+      "target": "api/arm64/259-readback.json",
+      "bytes": 81495,
+      "sha256": "c131efdf69fcb8c9a3afcfaed22e15505f234672a4a91f3e53dfb66864191b17"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-arm64-8e5-final/run.json",
+      "target": "api/arm64/260-run.json",
+      "bytes": 13766,
+      "sha256": "ac8480516e46511caad689f4df702729f2bbac8b97217083b7ba1e3cbdc62352"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-8e5-final/job.json",
+      "target": "api/arm64-job/261-job.json",
+      "bytes": 5745,
+      "sha256": "66ac31c5c785851840ac00e3b237d5f4ad3f1181626d21a5ce3a86719e26c19d"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-8e5-final/job.log",
+      "target": "api/arm64-job/262-job.log",
+      "bytes": 231353,
+      "sha256": "fafce0d6a084d3595aa25c2e4819050097447500467e4b7aea6758786380815c"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-8e5-final/readback.json",
+      "target": "api/arm64-job/263-readback.json",
+      "bytes": 338,
+      "sha256": "4d8f82c6e05ed9aa13c401b420d6641a921959cc223515709f7bcabb3ac85608"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-8e5-final/run.json",
+      "target": "api/arm64-job/264-run.json",
+      "bytes": 15304,
+      "sha256": "8902ca51af1dede4ed7f80372d97260c0fce8c9061922fe948de3d7558348d13"
+    }
+  ],
+  "supplementedAt": "2026-10-09T17:36:48.638Z",
+  "additionalSuccessfulArm64Scope": {
+    "releaseCommit": "8e538362109dbe0bf455d4f72dcab865962e668c",
+    "runId": 37958205507,
+    "counts": {
+      "success": 10
+    },
+    "jobId": 113914568763,
+    "jobName": "JetBrains ARM64 (windows, 2026.2.0.1)",
+    "jobLogBytes": 231353,
+    "jobLogSha256": "fafce0d6a084d3595aa25c2e4819050097447500467e4b7aea6758786380815c",
+    "scope": "Separate exact-commit ARM64 host success, including Windows ARM64 JetBrains 2026.2.0.1 using the new popup helper",
+    "doesNotSatisfyFailedHost": "Does not cover or replace Windows x64 JetBrains 2025.2 failure in IDE Extensions run 37958205583 / job 113925289634",
+    "files": [
+      "api/arm64/257-artifacts-1.json",
+      "api/arm64/258-jobs-1.json",
+      "api/arm64/259-readback.json",
+      "api/arm64/260-run.json",
+      "api/arm64-job/261-job.json",
+      "api/arm64-job/262-job.log",
+      "api/arm64-job/263-readback.json",
+      "api/arm64-job/264-run.json"
+    ]
+  }
+}

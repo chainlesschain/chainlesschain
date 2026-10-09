@@ -1,0 +1,191 @@
+{
+  "scope": "Actual generated JS from compiled class, actual Rhino 1.7.15 and Swing EDT, headless. Geometry cases replace only Window.getWindows() with injected roots; RootPanel overrides isShowing. No real Window, IDE, or ConversationView owner instantiated.",
+  "results": [
+    {
+      "name": "unmodified script runs on real EDT and returns JSON String",
+      "details": {
+        "schema": "chainlesschain.ui-failure-swing/v1",
+        "capturedAtMillis": "1791566775025",
+        "readOnly": true,
+        "nodeLimit": 6000,
+        "depthLimit": 50,
+        "truncated": false,
+        "windows": [],
+        "conversations": [],
+        "errors": [],
+        "nodes": 0,
+        "ownerCount": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "unmodified script refuses non-EDT",
+      "details": "Error: Swing diagnostics require EDT (actual-UiFailureDiagnostics.snapshotScript#3)",
+      "pass": true
+    },
+    {
+      "name": "actual Swing tree geometry, clipping and no action dispatch",
+      "details": {
+        "schema": "chainlesschain.ui-failure-swing/v1",
+        "capturedAtMillis": "1791566775188",
+        "readOnly": true,
+        "nodeLimit": 6000,
+        "depthLimit": 50,
+        "truncated": false,
+        "windows": [
+          {
+            "className": "SnapshotContract$RootPanel",
+            "visible": true,
+            "showing": true,
+            "enabled": true,
+            "valid": false,
+            "bounds": {
+              "x": 0,
+              "y": 0,
+              "width": 100,
+              "height": 80
+            },
+            "preferred": {
+              "width": 100,
+              "height": 80
+            },
+            "children": [
+              {
+                "className": "javax.swing.JButton",
+                "visible": true,
+                "showing": false,
+                "enabled": true,
+                "valid": false,
+                "bounds": {
+                  "x": 80,
+                  "y": 10,
+                  "width": 60,
+                  "height": 30
+                },
+                "preferred": {
+                  "width": 114,
+                  "height": 26
+                },
+                "children": [],
+                "accessibleName": "Approve Once",
+                "buttonText": "Approve Once",
+                "validateRoot": false,
+                "visibleRect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 20,
+                  "height": 30
+                }
+              }
+            ],
+            "validateRoot": false,
+            "visibleRect": {
+              "x": 0,
+              "y": 0,
+              "width": 100,
+              "height": 80
+            }
+          }
+        ],
+        "conversations": [],
+        "errors": [],
+        "nodes": 2,
+        "ownerCount": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "6001-node tree advertises node-limit truncation",
+      "details": {
+        "children": 5999,
+        "nodes": 6000
+      },
+      "pass": true
+    },
+    {
+      "name": "unavailable listener inspection is recorded in errors without changing controls",
+      "details": {
+        "schema": "chainlesschain.ui-failure-swing/v1",
+        "capturedAtMillis": "1791566776811",
+        "readOnly": true,
+        "nodeLimit": 6000,
+        "depthLimit": 50,
+        "truncated": false,
+        "windows": [
+          {
+            "className": "SnapshotContract$RootPanel",
+            "visible": true,
+            "showing": true,
+            "enabled": true,
+            "valid": false,
+            "bounds": {
+              "x": 0,
+              "y": 0,
+              "width": 100,
+              "height": 80
+            },
+            "preferred": {
+              "width": 100,
+              "height": 80
+            },
+            "children": [
+              {
+                "className": "SnapshotContract$UnavailableListenersButton",
+                "visible": true,
+                "showing": false,
+                "enabled": true,
+                "valid": false,
+                "bounds": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 80,
+                  "height": 26
+                },
+                "preferred": {
+                  "width": 63,
+                  "height": 26
+                },
+                "children": [],
+                "accessibleName": "Send",
+                "buttonText": "Send",
+                "validateRoot": false,
+                "visibleRect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 80,
+                  "height": 26
+                }
+              }
+            ],
+            "validateRoot": false,
+            "visibleRect": {
+              "x": 0,
+              "y": 0,
+              "width": 100,
+              "height": 80
+            }
+          }
+        ],
+        "conversations": [],
+        "errors": [
+          {
+            "where": "component:SnapshotContract$UnavailableListenersButton",
+            "error": "JavaException: java.lang.IllegalStateException: controlled listener inspection failure"
+          }
+        ],
+        "nodes": 2,
+        "ownerCount": 0
+      },
+      "pass": true
+    },
+    {
+      "name": "deep tree advertises depth truncation",
+      "details": {
+        "nodes": 51
+      },
+      "pass": true
+    }
+  ],
+  "passed": 6,
+  "total": 6
+}

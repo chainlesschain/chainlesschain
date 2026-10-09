@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.WhatsNewTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:12" hostname="DESKTOP-MTMV2RE" time="0.004">
+  <properties/>
+  <testcase name="parseChangelogJsonToleratesBadInput()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.001"/>
+  <testcase name="changelogToTextRendersReleasesAndInstalledMarker()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.001"/>
+  <testcase name="upgradeNudgeFiresOnlyOnARealUpgrade()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.0"/>
+  <testcase name="buildChangelogArgsPassesLimit()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.0"/>
+  <testcase name="buildChangelogArgsDefaultsNonPositiveLimit()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.001"/>
+  <testcase name="parseChangelogJsonKeepsValidReleases()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.0"/>
+  <testcase name="supportsChangelogGatesOnMinVersion()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.0"/>
+  <testcase name="changelogToTextHeaderOnlyWhenNoReleases()" classname="com.chainlesschain.ide.WhatsNewTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

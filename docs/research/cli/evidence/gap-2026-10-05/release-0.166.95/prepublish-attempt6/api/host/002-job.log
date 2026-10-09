@@ -1,0 +1,1356 @@
+﻿2026-10-09T16:53:19.4116735Z Current runner version: '2.337.0'
+2026-10-09T16:53:19.4138277Z ##[group]Runner Image Provisioner
+2026-10-09T16:53:19.4138950Z Hosted Compute Agent
+2026-10-09T16:53:19.4139381Z Version: 20260901.588
+2026-10-09T16:53:19.4139853Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-09T16:53:19.4140440Z Build Date: 2026-09-01T19:56:44Z
+2026-10-09T16:53:19.4140974Z Worker ID: {dd2a899d-f331-4da7-a3df-1359369727e2}
+2026-10-09T16:53:19.4141532Z Azure Region: westus3
+2026-10-09T16:53:19.4141951Z ##[endgroup]
+2026-10-09T16:53:19.4143001Z ##[group]Operating System
+2026-10-09T16:53:19.4143491Z Microsoft Windows Server 2025
+2026-10-09T16:53:19.4143956Z 10.0.26100
+2026-10-09T16:53:19.4144353Z Datacenter
+2026-10-09T16:53:19.4144746Z ##[endgroup]
+2026-10-09T16:53:19.4145127Z ##[group]Runner Image
+2026-10-09T16:53:19.4145586Z Image: windows-2025-vs2026
+2026-10-09T16:53:19.4146065Z Version: 20260925.250.1
+2026-10-09T16:53:19.4147283Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-09T16:53:19.4148509Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-09T16:53:19.4149306Z ##[endgroup]
+2026-10-09T16:53:19.4150128Z ##[group]GITHUB_TOKEN Permissions
+2026-10-09T16:53:19.4151877Z Contents: read
+2026-10-09T16:53:19.4152317Z Metadata: read
+2026-10-09T16:53:19.4152768Z ##[endgroup]
+2026-10-09T16:53:19.4154480Z Secret source: Actions
+2026-10-09T16:53:19.4155426Z Cache mode: write
+2026-10-09T16:53:19.4155972Z Prepare workflow directory
+2026-10-09T16:53:19.4607563Z Prepare all required actions
+2026-10-09T16:53:19.4649951Z Getting action download info
+2026-10-09T16:53:19.7696286Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-09T16:53:19.9160423Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+2026-10-09T16:53:20.6907989Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-09T16:53:20.8330469Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-09T16:53:21.3693627Z Complete job name: JetBrains real host (windows-latest, 2025.2)
+2026-10-09T16:53:21.5122808Z ##[group]Run actions/checkout@v5
+2026-10-09T16:53:21.5124879Z with:
+2026-10-09T16:53:21.5125839Z   ref: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:21.5127124Z   repository: chainlesschain/chainlesschain
+2026-10-09T16:53:21.5137467Z   token: ***
+2026-10-09T16:53:21.5138315Z   ssh-strict: true
+2026-10-09T16:53:21.5139176Z   ssh-user: git
+2026-10-09T16:53:21.5140056Z   persist-credentials: true
+2026-10-09T16:53:21.5141035Z   clean: true
+2026-10-09T16:53:21.5141924Z   sparse-checkout-cone-mode: true
+2026-10-09T16:53:21.5143000Z   fetch-depth: 1
+2026-10-09T16:53:21.5143879Z   fetch-tags: false
+2026-10-09T16:53:21.5144808Z   show-progress: true
+2026-10-09T16:53:21.5145747Z   lfs: false
+2026-10-09T16:53:21.5146573Z   submodules: false
+2026-10-09T16:53:21.5147474Z   set-safe-directory: true
+2026-10-09T16:53:21.5148665Z   allow-unsafe-pr-checkout: false
+2026-10-09T16:53:21.5150062Z env:
+2026-10-09T16:53:21.5150834Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:53:21.5152068Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:21.5153658Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:21.5154981Z ##[endgroup]
+2026-10-09T16:53:21.6576763Z Syncing repository: chainlesschain/chainlesschain
+2026-10-09T16:53:21.6578814Z ##[group]Getting Git version info
+2026-10-09T16:53:21.6579707Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-09T16:53:21.7988505Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-09T16:53:22.5234887Z git version 2.55.0.windows.5
+2026-10-09T16:53:22.5276192Z ##[endgroup]
+2026-10-09T16:53:22.5292716Z Temporarily overriding HOME='D:\a\_temp\b2e803f0-e7f5-4ff7-b76e-79e4bfa9b34a' before making global git config changes
+2026-10-09T16:53:22.5295365Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T16:53:22.5301998Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-09T16:53:22.7271963Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-09T16:53:22.7277296Z ##[group]Initializing the repository
+2026-10-09T16:53:22.7284832Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-09T16:53:22.8085248Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-09T16:53:22.8130291Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-09T16:53:22.8727404Z ##[endgroup]
+2026-10-09T16:53:22.8727886Z ##[group]Disabling automatic garbage collection
+2026-10-09T16:53:22.8735536Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-09T16:53:22.8994948Z ##[endgroup]
+2026-10-09T16:53:22.8995527Z ##[group]Setting up auth
+2026-10-09T16:53:22.9006647Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T16:53:22.9264043Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-09T16:53:24.7323516Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T16:53:24.7586096Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-09T16:53:25.2142713Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T16:53:25.2407513Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-09T16:53:25.7220446Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-09T16:53:25.7515564Z ##[endgroup]
+2026-10-09T16:53:25.7516119Z ##[group]Fetching the repository
+2026-10-09T16:53:25.7527683Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:37.1123293Z From https://github.com/chainlesschain/chainlesschain
+2026-10-09T16:53:37.1124077Z  * branch              8e538362109dbe0bf455d4f72dcab865962e668c -> FETCH_HEAD
+2026-10-09T16:53:37.1157064Z ##[endgroup]
+2026-10-09T16:53:37.1157535Z ##[group]Determining the checkout info
+2026-10-09T16:53:37.1159804Z ##[endgroup]
+2026-10-09T16:53:37.1170229Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-09T16:53:37.1556816Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-09T16:53:37.1820104Z ##[group]Checking out the ref
+2026-10-09T16:53:37.1828625Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:38.3327803Z Updating files:  16% (3855/22951)
+2026-10-09T16:53:38.5978720Z Updating files:  17% (3902/22951)
+2026-10-09T16:53:38.6443557Z Updating files:  18% (4132/22951)
+2026-10-09T16:53:38.6973463Z Updating files:  19% (4361/22951)
+2026-10-09T16:53:38.7541728Z Updating files:  20% (4591/22951)
+2026-10-09T16:53:38.8093891Z Updating files:  21% (4820/22951)
+2026-10-09T16:53:38.8635980Z Updating files:  22% (5050/22951)
+2026-10-09T16:53:38.9220270Z Updating files:  23% (5279/22951)
+2026-10-09T16:53:38.9787339Z Updating files:  24% (5509/22951)
+2026-10-09T16:53:39.0346995Z Updating files:  25% (5738/22951)
+2026-10-09T16:53:39.0911755Z Updating files:  26% (5968/22951)
+2026-10-09T16:53:39.1438158Z Updating files:  27% (6197/22951)
+2026-10-09T16:53:39.1976135Z Updating files:  28% (6427/22951)
+2026-10-09T16:53:39.2541090Z Updating files:  29% (6656/22951)
+2026-10-09T16:53:39.3106597Z Updating files:  30% (6886/22951)
+2026-10-09T16:53:39.3326906Z Updating files:  31% (7115/22951)
+2026-10-09T16:53:39.3672574Z Updating files:  31% (7196/22951)
+2026-10-09T16:53:39.4199750Z Updating files:  32% (7345/22951)
+2026-10-09T16:53:39.4705536Z Updating files:  33% (7574/22951)
+2026-10-09T16:53:39.5261402Z Updating files:  34% (7804/22951)
+2026-10-09T16:53:39.5799374Z Updating files:  35% (8033/22951)
+2026-10-09T16:53:39.6357202Z Updating files:  36% (8263/22951)
+2026-10-09T16:53:40.0062390Z Updating files:  37% (8492/22951)
+2026-10-09T16:53:40.0529064Z Updating files:  38% (8722/22951)
+2026-10-09T16:53:40.1032445Z Updating files:  39% (8951/22951)
+2026-10-09T16:53:40.1543695Z Updating files:  40% (9181/22951)
+2026-10-09T16:53:40.2129180Z Updating files:  41% (9410/22951)
+2026-10-09T16:53:40.2611144Z Updating files:  42% (9640/22951)
+2026-10-09T16:53:40.3166951Z Updating files:  43% (9869/22951)
+2026-10-09T16:53:40.3333044Z Updating files:  44% (10099/22951)
+2026-10-09T16:53:40.3667811Z Updating files:  44% (10175/22951)
+2026-10-09T16:53:40.4259856Z Updating files:  45% (10328/22951)
+2026-10-09T16:53:40.4894390Z Updating files:  46% (10558/22951)
+2026-10-09T16:53:40.5618272Z Updating files:  47% (10787/22951)
+2026-10-09T16:53:40.6309502Z Updating files:  48% (11017/22951)
+2026-10-09T16:53:40.6931927Z Updating files:  49% (11246/22951)
+2026-10-09T16:53:40.7586449Z Updating files:  50% (11476/22951)
+2026-10-09T16:53:40.8115826Z Updating files:  51% (11706/22951)
+2026-10-09T16:53:40.8633113Z Updating files:  52% (11935/22951)
+2026-10-09T16:53:40.9368834Z Updating files:  53% (12165/22951)
+2026-10-09T16:53:41.0142989Z Updating files:  54% (12394/22951)
+2026-10-09T16:53:41.4340064Z Updating files:  55% (12624/22951)
+2026-10-09T16:53:41.5739186Z Updating files:  55% (12697/22951)
+2026-10-09T16:53:42.0512894Z Updating files:  56% (12853/22951)
+2026-10-09T16:53:42.3622104Z Updating files:  57% (13083/22951)
+2026-10-09T16:53:42.6985226Z Updating files:  57% (13233/22951)
+2026-10-09T16:53:42.9592833Z Updating files:  58% (13312/22951)
+2026-10-09T16:53:43.0253661Z Updating files:  59% (13542/22951)
+2026-10-09T16:53:43.0993907Z Updating files:  60% (13771/22951)
+2026-10-09T16:53:43.1698926Z Updating files:  61% (14001/22951)
+2026-10-09T16:53:43.2582285Z Updating files:  62% (14230/22951)
+2026-10-09T16:53:43.3172165Z Updating files:  63% (14460/22951)
+2026-10-09T16:53:43.3645421Z Updating files:  64% (14689/22951)
+2026-10-09T16:53:43.3692258Z Updating files:  64% (14900/22951)
+2026-10-09T16:53:43.4330692Z Updating files:  65% (14919/22951)
+2026-10-09T16:53:43.4801945Z Updating files:  66% (15148/22951)
+2026-10-09T16:53:43.5376921Z Updating files:  67% (15378/22951)
+2026-10-09T16:53:43.6358714Z Updating files:  68% (15607/22951)
+2026-10-09T16:53:43.6914969Z Updating files:  69% (15837/22951)
+2026-10-09T16:53:43.7443341Z Updating files:  70% (16066/22951)
+2026-10-09T16:53:43.9256584Z Updating files:  71% (16296/22951)
+2026-10-09T16:53:43.9819647Z Updating files:  72% (16525/22951)
+2026-10-09T16:53:44.0318547Z Updating files:  73% (16755/22951)
+2026-10-09T16:53:44.0836271Z Updating files:  74% (16984/22951)
+2026-10-09T16:53:44.1384249Z Updating files:  75% (17214/22951)
+2026-10-09T16:53:44.1919719Z Updating files:  76% (17443/22951)
+2026-10-09T16:53:44.2427921Z Updating files:  77% (17673/22951)
+2026-10-09T16:53:44.2926078Z Updating files:  78% (17902/22951)
+2026-10-09T16:53:44.3455921Z Updating files:  79% (18132/22951)
+2026-10-09T16:53:44.3652705Z Updating files:  80% (18361/22951)
+2026-10-09T16:53:44.4003276Z Updating files:  80% (18446/22951)
+2026-10-09T16:53:44.4523554Z Updating files:  81% (18591/22951)
+2026-10-09T16:53:44.5090697Z Updating files:  82% (18820/22951)
+2026-10-09T16:53:44.5716604Z Updating files:  83% (19050/22951)
+2026-10-09T16:53:44.6348506Z Updating files:  84% (19279/22951)
+2026-10-09T16:53:44.6979059Z Updating files:  85% (19509/22951)
+2026-10-09T16:53:44.7582989Z Updating files:  86% (19738/22951)
+2026-10-09T16:53:44.8140832Z Updating files:  87% (19968/22951)
+2026-10-09T16:53:44.8716020Z Updating files:  88% (20197/22951)
+2026-10-09T16:53:44.9296928Z Updating files:  89% (20427/22951)
+2026-10-09T16:53:44.9806689Z Updating files:  90% (20656/22951)
+2026-10-09T16:53:45.0334870Z Updating files:  91% (20886/22951)
+2026-10-09T16:53:45.0899023Z Updating files:  92% (21115/22951)
+2026-10-09T16:53:45.1402188Z Updating files:  93% (21345/22951)
+2026-10-09T16:53:45.1972409Z Updating files:  94% (21574/22951)
+2026-10-09T16:53:45.4059308Z Updating files:  95% (21804/22951)
+2026-10-09T16:53:45.4391811Z Updating files:  95% (21908/22951)
+2026-10-09T16:53:45.4909904Z Updating files:  96% (22033/22951)
+2026-10-09T16:53:45.5412591Z Updating files:  97% (22263/22951)
+2026-10-09T16:53:45.5938183Z Updating files:  98% (22492/22951)
+2026-10-09T16:53:45.6456586Z Updating files:  99% (22722/22951)
+2026-10-09T16:53:45.6456959Z Updating files: 100% (22951/22951)
+2026-10-09T16:53:45.6457242Z Updating files: 100% (22951/22951), done.
+2026-10-09T16:53:45.6803020Z Note: switching to '8e538362109dbe0bf455d4f72dcab865962e668c'.
+2026-10-09T16:53:45.6803406Z 
+2026-10-09T16:53:45.6803678Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-09T16:53:45.6804081Z changes and commit them, and you can discard any commits you make in this
+2026-10-09T16:53:45.6804440Z state without impacting any branches by switching back to a branch.
+2026-10-09T16:53:45.6804649Z 
+2026-10-09T16:53:45.6804788Z If you want to create a new branch to retain commits you create, you may
+2026-10-09T16:53:45.6805109Z do so (now or later) by using -c with the switch command. Example:
+2026-10-09T16:53:45.6805289Z 
+2026-10-09T16:53:45.6805411Z   git switch -c <new-branch-name>
+2026-10-09T16:53:45.6805536Z 
+2026-10-09T16:53:45.6805616Z Or undo this operation with:
+2026-10-09T16:53:45.6805731Z 
+2026-10-09T16:53:45.6805789Z   git switch -
+2026-10-09T16:53:45.6805879Z 
+2026-10-09T16:53:45.6806280Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-09T16:53:45.6806513Z 
+2026-10-09T16:53:45.6806677Z HEAD is now at 8e538362 fix(ci): shorten Windows evidence archive paths
+2026-10-09T16:53:45.6990551Z ##[endgroup]
+2026-10-09T16:53:45.7277915Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-09T16:53:45.7505972Z 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:45.7932679Z ##[group]Run actions/setup-java@v5
+2026-10-09T16:53:45.7933113Z with:
+2026-10-09T16:53:45.7933269Z   distribution: temurin
+2026-10-09T16:53:45.7933440Z   java-version: 21
+2026-10-09T16:53:45.7933681Z   java-package: jdk
+2026-10-09T16:53:45.7933914Z   check-latest: false
+2026-10-09T16:53:45.7934070Z   set-default: true
+2026-10-09T16:53:45.7934237Z   verify-signature: false
+2026-10-09T16:53:45.7934399Z   server-id: github
+2026-10-09T16:53:45.7934553Z   server-username: GITHUB_ACTOR
+2026-10-09T16:53:45.7934738Z   server-password: GITHUB_TOKEN
+2026-10-09T16:53:45.7934914Z   overwrite-settings: true
+2026-10-09T16:53:45.7935100Z   job-status: success
+2026-10-09T16:53:45.7937130Z   token: ***
+2026-10-09T16:53:45.7937296Z   show-download-progress: false
+2026-10-09T16:53:45.7937491Z env:
+2026-10-09T16:53:45.7937632Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:53:45.7937858Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:45.7938215Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:45.7938444Z ##[endgroup]
+2026-10-09T16:53:45.9490391Z ##[group]Installed distributions
+2026-10-09T16:53:45.9861774Z Resolved Java 21.0.12+101.0 from tool-cache
+2026-10-09T16:53:45.9862244Z Setting Java 21.0.12+101.0 as the default
+2026-10-09T16:53:45.9881925Z Creating toolchains.xml for JDK version 21 from temurin
+2026-10-09T16:53:45.9949964Z Writing to C:\Users\runneradmin\.m2\toolchains.xml
+2026-10-09T16:53:45.9952602Z 
+2026-10-09T16:53:45.9952721Z Java configuration:
+2026-10-09T16:53:45.9953117Z   Distribution: temurin
+2026-10-09T16:53:45.9953397Z   Version: 21.0.12+101.0
+2026-10-09T16:53:45.9953801Z   Path: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:53:45.9954157Z 
+2026-10-09T16:53:45.9954496Z ##[endgroup]
+2026-10-09T16:53:45.9977491Z Creating settings.xml with server-id: github
+2026-10-09T16:53:45.9977787Z Writing to C:\Users\runneradmin\.m2\settings.xml
+2026-10-09T16:53:45.9978358Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-09T16:53:46.0272405Z ##[group]Run actions/setup-node@v5
+2026-10-09T16:53:46.0272670Z with:
+2026-10-09T16:53:46.0272830Z   node-version: 22.12.0
+2026-10-09T16:53:46.0273015Z   always-auth: false
+2026-10-09T16:53:46.0273176Z   check-latest: false
+2026-10-09T16:53:46.0275205Z   token: ***
+2026-10-09T16:53:46.0275376Z   package-manager-cache: true
+2026-10-09T16:53:46.0275556Z env:
+2026-10-09T16:53:46.0275700Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:53:46.0275922Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:46.0276207Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:46.0276538Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:53:46.0276932Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:53:46.0277258Z   MAVEN_ARGS: -ntp
+2026-10-09T16:53:46.0277411Z ##[endgroup]
+2026-10-09T16:53:46.1869947Z Attempting to download 22.12.0...
+2026-10-09T16:53:46.2019650Z (node:8556) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-09T16:53:46.2020230Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-09T16:53:47.1703482Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-win32-x64.7z
+2026-10-09T16:53:47.5598049Z Extracting ...
+2026-10-09T16:53:49.8903448Z Adding to the cache ...
+2026-10-09T16:53:55.4496222Z ##[group]Environment details
+2026-10-09T16:53:56.5215724Z node: v22.12.0
+2026-10-09T16:53:56.5215958Z npm: 10.9.0
+2026-10-09T16:53:56.5216117Z yarn: 1.22.22
+2026-10-09T16:53:56.5216537Z ##[endgroup]
+2026-10-09T16:53:56.5549092Z ##[group]Run npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+2026-10-09T16:53:56.5549939Z [36;1mnpm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund[0m
+2026-10-09T16:53:56.6337626Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-09T16:53:56.6337912Z env:
+2026-10-09T16:53:56.6338104Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:53:56.6338342Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:56.6338635Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:53:56.6338973Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:53:56.6339376Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:53:56.6339684Z   MAVEN_ARGS: -ntp
+2026-10-09T16:53:56.6339846Z ##[endgroup]
+2026-10-09T16:53:58.2955096Z npm warn EBADENGINE Unsupported engine {
+2026-10-09T16:53:58.2955531Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+2026-10-09T16:53:58.2955928Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+2026-10-09T16:53:58.2956337Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-09T16:53:58.2956614Z npm warn EBADENGINE }
+2026-10-09T16:53:58.3007996Z npm warn EBADENGINE Unsupported engine {
+2026-10-09T16:53:58.3010103Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+2026-10-09T16:53:58.3010664Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+2026-10-09T16:53:58.3011253Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-09T16:53:58.3011683Z npm warn EBADENGINE }
+2026-10-09T16:54:08.7393472Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-09T16:54:10.2519390Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-09T16:54:16.3588219Z 
+2026-10-09T16:54:16.3589021Z added 550 packages in 19s
+2026-10-09T16:54:16.4176789Z ##[group]Run node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs
+2026-10-09T16:54:16.4178194Z [36;1mnode --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs packages/jetbrains-plugin/scripts/conversation-recovery-evidence.test.mjs packages/jetbrains-plugin/scripts/native-transcript-evidence.test.mjs[0m
+2026-10-09T16:54:16.4233482Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-09T16:54:16.4233755Z env:
+2026-10-09T16:54:16.4233909Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:54:16.4234149Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:54:16.4234449Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:54:16.4234792Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:54:16.4235258Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:54:16.4235572Z   MAVEN_ARGS: -ntp
+2026-10-09T16:54:16.4235735Z ##[endgroup]
+2026-10-09T16:54:16.7008025Z TAP version 13
+2026-10-09T16:54:16.8093683Z # Subtest: v2 proves Stop before init, late capability completion and cancelled draft recovery
+2026-10-09T16:54:16.8106442Z ok 1 - v2 proves Stop before init, late capability completion and cancelled draft recovery
+2026-10-09T16:54:16.8119814Z   ---
+2026-10-09T16:54:16.8127771Z   duration_ms: 6.8174
+2026-10-09T16:54:16.8128282Z   ...
+2026-10-09T16:54:16.8129043Z # Subtest: v3 proves an explicit next send receives a soft first Stop on the same child
+2026-10-09T16:54:16.8134519Z ok 2 - v3 proves an explicit next send receives a soft first Stop on the same child
+2026-10-09T16:54:16.8164155Z   ---
+2026-10-09T16:54:16.8173403Z   duration_ms: 2.8102
+2026-10-09T16:54:16.8173870Z   ...
+2026-10-09T16:54:16.8174573Z # Subtest: v3 associates fixture events with an observed descendant of a stable launcher
+2026-10-09T16:54:16.8179015Z ok 3 - v3 associates fixture events with an observed descendant of a stable launcher
+2026-10-09T16:54:16.8179659Z   ---
+2026-10-09T16:54:16.8180032Z   duration_ms: 2.203
+2026-10-09T16:54:16.8180436Z   ...
+2026-10-09T16:54:16.8180880Z # Subtest: v3 rejects missing continuation
+2026-10-09T16:54:16.8181439Z ok 4 - v3 rejects missing continuation
+2026-10-09T16:54:16.8181872Z   ---
+2026-10-09T16:54:16.8182216Z   duration_ms: 0.5539
+2026-10-09T16:54:16.8182590Z   ...
+2026-10-09T16:54:16.8183012Z # Subtest: v3 rejects stale interrupt marker
+2026-10-09T16:54:16.8183710Z ok 5 - v3 rejects stale interrupt marker
+2026-10-09T16:54:16.8184377Z   ---
+2026-10-09T16:54:16.8184608Z   duration_ms: 0.7433
+2026-10-09T16:54:16.8184856Z   ...
+2026-10-09T16:54:16.8185248Z # Subtest: v3 rejects force-stopped next turn
+2026-10-09T16:54:16.8185680Z ok 6 - v3 rejects force-stopped next turn
+2026-10-09T16:54:16.8186010Z   ---
+2026-10-09T16:54:16.8186252Z   duration_ms: 9.891
+2026-10-09T16:54:16.8186493Z   ...
+2026-10-09T16:54:16.8186769Z # Subtest: v3 rejects replacement child
+2026-10-09T16:54:16.8187150Z ok 7 - v3 rejects replacement child
+2026-10-09T16:54:16.8188048Z   ---
+2026-10-09T16:54:16.8188674Z   duration_ms: 1.0335
+2026-10-09T16:54:16.8188936Z   ...
+2026-10-09T16:54:16.8189220Z # Subtest: v3 rejects dead child
+2026-10-09T16:54:16.8189587Z ok 8 - v3 rejects dead child
+2026-10-09T16:54:16.8189872Z   ---
+2026-10-09T16:54:16.8190108Z   duration_ms: 1.0402
+2026-10-09T16:54:16.8190348Z   ...
+2026-10-09T16:54:16.8190644Z # Subtest: v3 rejects missing process tree
+2026-10-09T16:54:16.8191050Z ok 9 - v3 rejects missing process tree
+2026-10-09T16:54:16.8191364Z   ---
+2026-10-09T16:54:16.8191581Z   duration_ms: 2.2544
+2026-10-09T16:54:16.8191829Z   ...
+2026-10-09T16:54:16.8192138Z # Subtest: v3 rejects unrelated fixture process
+2026-10-09T16:54:16.8192585Z ok 10 - v3 rejects unrelated fixture process
+2026-10-09T16:54:16.8196050Z   ---
+2026-10-09T16:54:16.8196559Z   duration_ms: 1.8659
+2026-10-09T16:54:16.8197027Z   ...
+2026-10-09T16:54:16.8197371Z # Subtest: v3 rejects still active after Stop
+2026-10-09T16:54:16.8197811Z ok 11 - v3 rejects still active after Stop
+2026-10-09T16:54:16.8198152Z   ---
+2026-10-09T16:54:16.8198377Z   duration_ms: 2.0001
+2026-10-09T16:54:16.8198621Z   ...
+2026-10-09T16:54:16.8198930Z # Subtest: v3 rejects missing soft interrupt
+2026-10-09T16:54:16.8199358Z ok 12 - v3 rejects missing soft interrupt
+2026-10-09T16:54:16.8199675Z   ---
+2026-10-09T16:54:16.8199894Z   duration_ms: 1.3864
+2026-10-09T16:54:16.8200141Z   ...
+2026-10-09T16:54:16.8200494Z # Subtest: v3 rejects early interrupt during preparation
+2026-10-09T16:54:16.8201007Z ok 13 - v3 rejects early interrupt during preparation
+2026-10-09T16:54:16.8201374Z   ---
+2026-10-09T16:54:16.8201589Z   duration_ms: 0.7814
+2026-10-09T16:54:16.8201820Z   ...
+2026-10-09T16:54:16.8202115Z # Subtest: v3 rejects missing terminal result
+2026-10-09T16:54:16.8202551Z ok 14 - v3 rejects missing terminal result
+2026-10-09T16:54:16.8202890Z   ---
+2026-10-09T16:54:16.8203115Z   duration_ms: 0.7104
+2026-10-09T16:54:16.8203352Z   ...
+2026-10-09T16:54:16.8203648Z # Subtest: v3 rejects another child result
+2026-10-09T16:54:16.8204055Z ok 15 - v3 rejects another child result
+2026-10-09T16:54:16.8204375Z   ---
+2026-10-09T16:54:16.8204586Z   duration_ms: 0.6465
+2026-10-09T16:54:16.8204822Z   ...
+2026-10-09T16:54:16.8205142Z # Subtest: v3 rejects unexpected restart replay
+2026-10-09T16:54:16.8205595Z ok 16 - v3 rejects unexpected restart replay
+2026-10-09T16:54:16.8205935Z   ---
+2026-10-09T16:54:16.8206160Z   duration_ms: 0.794
+2026-10-09T16:54:16.8206382Z   ...
+2026-10-09T16:54:16.8206659Z # Subtest: rejects missing Stop proof
+2026-10-09T16:54:16.8207038Z ok 17 - rejects missing Stop proof
+2026-10-09T16:54:16.8207327Z   ---
+2026-10-09T16:54:16.8207549Z   duration_ms: 0.5188
+2026-10-09T16:54:16.8207789Z   ...
+2026-10-09T16:54:16.8208059Z # Subtest: rejects Stop after init
+2026-10-09T16:54:16.8208411Z ok 18 - rejects Stop after init
+2026-10-09T16:54:16.8208686Z   ---
+2026-10-09T16:54:16.8208915Z   duration_ms: 0.9449
+2026-10-09T16:54:16.8209153Z   ...
+2026-10-09T16:54:16.8209416Z # Subtest: rejects no pending send
+2026-10-09T16:54:16.8209766Z ok 19 - rejects no pending send
+2026-10-09T16:54:16.8210038Z   ---
+2026-10-09T16:54:16.8210245Z   duration_ms: 0.4298
+2026-10-09T16:54:16.8210476Z   ...
+2026-10-09T16:54:16.8210797Z # Subtest: rejects still sending after Stop
+2026-10-09T16:54:16.8211212Z ok 20 - rejects still sending after Stop
+2026-10-09T16:54:16.8211520Z   ---
+2026-10-09T16:54:16.8211735Z   duration_ms: 0.5003
+2026-10-09T16:54:16.8211980Z   ...
+2026-10-09T16:54:16.8212267Z # Subtest: rejects lost cancelled composer
+2026-10-09T16:54:16.8212666Z ok 21 - rejects lost cancelled composer
+2026-10-09T16:54:16.8212974Z   ---
+2026-10-09T16:54:16.8213445Z   duration_ms: 0.6718
+2026-10-09T16:54:16.8213677Z   ...
+2026-10-09T16:54:16.8213986Z # Subtest: rejects unexpected saved message
+2026-10-09T16:54:16.8214386Z ok 22 - rejects unexpected saved message
+2026-10-09T16:54:16.8214688Z   ---
+2026-10-09T16:54:16.8214902Z   duration_ms: 0.476
+2026-10-09T16:54:16.8218036Z   ...
+2026-10-09T16:54:16.8218667Z # Subtest: rejects cancelled session auto-started
+2026-10-09T16:54:16.8219172Z ok 23 - rejects cancelled session auto-started
+2026-10-09T16:54:16.8219526Z   ---
+2026-10-09T16:54:16.8219758Z   duration_ms: 1.359
+2026-10-09T16:54:16.8220003Z   ...
+2026-10-09T16:54:16.8220290Z # Subtest: rejects history still loading
+2026-10-09T16:54:16.8220677Z ok 24 - rejects history still loading
+2026-10-09T16:54:16.8220986Z   ---
+2026-10-09T16:54:16.8221200Z   duration_ms: 0.679
+2026-10-09T16:54:16.8221440Z   ...
+2026-10-09T16:54:16.8221728Z # Subtest: rejects lost init completion
+2026-10-09T16:54:16.8222120Z ok 25 - rejects lost init completion
+2026-10-09T16:54:16.8222422Z   ---
+2026-10-09T16:54:16.8222656Z   duration_ms: 0.4473
+2026-10-09T16:54:16.8223634Z   ...
+2026-10-09T16:54:16.8223943Z # Subtest: rejects wrong gate nonce
+2026-10-09T16:54:16.8224294Z ok 26 - rejects wrong gate nonce
+2026-10-09T16:54:16.8224636Z   ---
+2026-10-09T16:54:16.8230832Z   duration_ms: 0.3604
+2026-10-09T16:54:16.8232625Z   ...
+2026-10-09T16:54:16.8267163Z # Subtest: rejects unobserved release
+2026-10-09T16:54:16.8267725Z ok 27 - rejects unobserved release
+2026-10-09T16:54:16.8268011Z   ---
+2026-10-09T16:54:16.8268241Z   duration_ms: 0.2946
+2026-10-09T16:54:16.8268493Z   ...
+2026-10-09T16:54:16.8268731Z # Subtest: rejects early init
+2026-10-09T16:54:16.8269052Z ok 28 - rejects early init
+2026-10-09T16:54:16.8270607Z   ---
+2026-10-09T16:54:16.8270908Z   duration_ms: 1.2693
+2026-10-09T16:54:16.8274065Z   ...
+2026-10-09T16:54:16.8274384Z # Subtest: rejects automatic cancelled input
+2026-10-09T16:54:16.8275079Z ok 29 - rejects automatic cancelled input
+2026-10-09T16:54:16.8276150Z   ---
+2026-10-09T16:54:16.8277177Z   duration_ms: 0.4141
+2026-10-09T16:54:16.8277445Z   ...
+2026-10-09T16:54:16.8277912Z # Subtest: accepts native recovery with same saved identities, new process and no replay
+2026-10-09T16:54:16.8278720Z ok 30 - accepts native recovery with same saved identities, new process and no replay
+2026-10-09T16:54:16.8279223Z   ---
+2026-10-09T16:54:16.8279450Z   duration_ms: 0.2453
+2026-10-09T16:54:16.8279693Z   ...
+2026-10-09T16:54:16.8280002Z # Subtest: rejects non-package installation
+2026-10-09T16:54:16.8280420Z ok 31 - rejects non-package installation
+2026-10-09T16:54:16.8280735Z   ---
+2026-10-09T16:54:16.8280951Z   duration_ms: 0.2735
+2026-10-09T16:54:16.8281189Z   ...
+2026-10-09T16:54:16.8281489Z # Subtest: rejects changed installed artifact
+2026-10-09T16:54:16.8281902Z ok 32 - rejects changed installed artifact
+2026-10-09T16:54:16.8282222Z   ---
+2026-10-09T16:54:16.8285232Z   duration_ms: 1.1629
+2026-10-09T16:54:16.8285500Z   ...
+2026-10-09T16:54:16.8288718Z # Subtest: rejects same process
+2026-10-09T16:54:16.8289118Z ok 33 - rejects same process
+2026-10-09T16:54:16.8289418Z   ---
+2026-10-09T16:54:16.8289654Z   duration_ms: 0.3127
+2026-10-09T16:54:16.8289904Z   ...
+2026-10-09T16:54:16.8290200Z # Subtest: rejects different profile
+2026-10-09T16:54:16.8290571Z ok 34 - rejects different profile
+2026-10-09T16:54:16.8290855Z   ---
+2026-10-09T16:54:16.8291072Z   duration_ms: 0.3714
+2026-10-09T16:54:16.8291306Z   ...
+2026-10-09T16:54:16.8291576Z # Subtest: rejects duplicate rows
+2026-10-09T16:54:16.8291930Z ok 35 - rejects duplicate rows
+2026-10-09T16:54:16.8292206Z   ---
+2026-10-09T16:54:16.8292418Z   duration_ms: 0.2475
+2026-10-09T16:54:16.8292659Z   ...
+2026-10-09T16:54:16.8292954Z # Subtest: rejects changed saved identity
+2026-10-09T16:54:16.8293781Z ok 36 - rejects changed saved identity
+2026-10-09T16:54:16.8294331Z   ---
+2026-10-09T16:54:16.8294668Z   duration_ms: 0.6461
+2026-10-09T16:54:16.8295019Z   ...
+2026-10-09T16:54:16.8295405Z # Subtest: rejects hidden transcript
+2026-10-09T16:54:16.8298886Z ok 37 - rejects hidden transcript
+2026-10-09T16:54:16.8299346Z   ---
+2026-10-09T16:54:16.8299691Z   duration_ms: 0.313
+2026-10-09T16:54:16.8300039Z   ...
+2026-10-09T16:54:16.8300430Z # Subtest: rejects unrendered row
+2026-10-09T16:54:16.8300939Z ok 38 - rejects unrendered row
+2026-10-09T16:54:16.8333093Z   ---
+2026-10-09T16:54:16.8333373Z   duration_ms: 0.4065
+2026-10-09T16:54:16.8333643Z   ...
+2026-10-09T16:54:16.8333900Z # Subtest: rejects draft loss
+2026-10-09T16:54:16.8334226Z ok 39 - rejects draft loss
+2026-10-09T16:54:16.8334487Z   ---
+2026-10-09T16:54:16.8334715Z   duration_ms: 0.3973
+2026-10-09T16:54:16.8334963Z   ...
+2026-10-09T16:54:16.8335248Z # Subtest: rejects draft replay
+2026-10-09T16:54:16.8335587Z ok 40 - rejects draft replay
+2026-10-09T16:54:16.8335858Z   ---
+2026-10-09T16:54:16.8336083Z   duration_ms: 0.4446
+2026-10-09T16:54:16.8336335Z   ...
+2026-10-09T16:54:16.8336626Z # Subtest: rejects foreground completion
+2026-10-09T16:54:16.8337025Z ok 41 - rejects foreground completion
+2026-10-09T16:54:16.8337915Z   ---
+2026-10-09T16:54:16.8338170Z   duration_ms: 1.0942
+2026-10-09T16:54:16.8338418Z   ...
+2026-10-09T16:54:16.8338715Z # Subtest: rejects wrong foreground tab
+2026-10-09T16:54:16.8339109Z ok 42 - rejects wrong foreground tab
+2026-10-09T16:54:16.8339406Z   ---
+2026-10-09T16:54:16.8339620Z   duration_ms: 0.308
+2026-10-09T16:54:16.8339856Z   ...
+2026-10-09T16:54:16.8340167Z # Subtest: rejects missing durable completion
+2026-10-09T16:54:16.8340608Z ok 43 - rejects missing durable completion
+2026-10-09T16:54:16.8340933Z   ---
+2026-10-09T16:54:16.8341148Z   duration_ms: 2.0074
+2026-10-09T16:54:16.8341388Z   ...
+2026-10-09T16:54:16.8341704Z # Subtest: rejects missing actual history command
+2026-10-09T16:54:16.8342146Z ok 44 - rejects missing actual history command
+2026-10-09T16:54:16.8342486Z   ---
+2026-10-09T16:54:16.8342697Z   duration_ms: 0.3799
+2026-10-09T16:54:16.8342934Z   ...
+2026-10-09T16:54:16.8444769Z # Subtest: recomputes native timing metrics from strict disk readback without granting an SLO pass
+2026-10-09T16:54:16.8445558Z ok 45 - recomputes native timing metrics from strict disk readback without granting an SLO pass
+2026-10-09T16:54:16.8446065Z   ---
+2026-10-09T16:54:16.8446259Z   duration_ms: 8.357
+2026-10-09T16:54:16.8446539Z   ...
+2026-10-09T16:54:16.8447092Z # Subtest: rejects wrong-host, headless, incomplete, reordered, forged and unsafe metrics
+2026-10-09T16:54:16.8447731Z ok 46 - rejects wrong-host, headless, incomplete, reordered, forged and unsafe metrics
+2026-10-09T16:54:16.8448065Z   ---
+2026-10-09T16:54:16.8448281Z   duration_ms: 15.7557
+2026-10-09T16:54:16.8448499Z   ...
+2026-10-09T16:54:16.8465145Z # Subtest: retains measured selection and scroll regressions as failures of behavior, not lost observations
+2026-10-09T16:54:16.8466618Z ok 47 - retains measured selection and scroll regressions as failures of behavior, not lost observations
+2026-10-09T16:54:16.8467251Z   ---
+2026-10-09T16:54:16.8467524Z   duration_ms: 1.766
+2026-10-09T16:54:16.8467792Z   ...
+2026-10-09T16:54:16.8468484Z # Subtest: rejects the observed 115-character onboarding interference instead of accepting contaminated timing
+2026-10-09T16:54:16.8469554Z ok 48 - rejects the observed 115-character onboarding interference instead of accepting contaminated timing
+2026-10-09T16:54:16.8470682Z   ---
+2026-10-09T16:54:16.8470910Z   duration_ms: 3.4767
+2026-10-09T16:54:16.8471143Z   ...
+2026-10-09T16:54:16.8471675Z # Subtest: requires observed initialization and idle state before any native measurement
+2026-10-09T16:54:16.8472512Z ok 49 - requires observed initialization and idle state before any native measurement
+2026-10-09T16:54:16.8473007Z   ---
+2026-10-09T16:54:16.8473226Z   duration_ms: 1.7219
+2026-10-09T16:54:16.8473470Z   ...
+2026-10-09T16:54:16.8473946Z # Subtest: canonical recovery isolates real CLI storage outside the log worktree
+2026-10-09T16:54:16.8474680Z ok 50 - canonical recovery isolates real CLI storage outside the log worktree
+2026-10-09T16:54:16.8475149Z   ---
+2026-10-09T16:54:16.8475379Z   duration_ms: 14.112
+2026-10-09T16:54:16.8475617Z   ...
+2026-10-09T16:54:16.8476009Z # Subtest: recognizes the UI test's Remote Robot startup timeout
+2026-10-09T16:54:16.8476566Z ok 51 - recognizes the UI test's Remote Robot startup timeout
+2026-10-09T16:54:16.8477991Z   ---
+2026-10-09T16:54:16.8478225Z   duration_ms: 0.5809
+2026-10-09T16:54:16.8478466Z   ...
+2026-10-09T16:54:16.8478999Z # Subtest: binds host evidence to the requested plugin archive even when old builds remain
+2026-10-09T16:54:16.8479800Z ok 52 - binds host evidence to the requested plugin archive even when old builds remain
+2026-10-09T16:54:16.8480303Z   ---
+2026-10-09T16:54:16.8480530Z   duration_ms: 5.7513
+2026-10-09T16:54:16.8480778Z   ...
+2026-10-09T16:54:16.8481187Z # Subtest: recognizes the host driver's Remote Robot startup timeout
+2026-10-09T16:54:16.8481817Z ok 53 - recognizes the host driver's Remote Robot startup timeout
+2026-10-09T16:54:16.8482205Z   ---
+2026-10-09T16:54:16.8482628Z   duration_ms: 0.3228
+2026-10-09T16:54:16.8482860Z   ...
+2026-10-09T16:54:16.8483262Z # Subtest: recognizes an IDE process that exits during startup
+2026-10-09T16:54:16.8483775Z ok 54 - recognizes an IDE process that exits during startup
+2026-10-09T16:54:16.8484153Z   ---
+2026-10-09T16:54:16.8484363Z   duration_ms: 0.1528
+2026-10-09T16:54:16.8484587Z   ...
+2026-10-09T16:54:16.8484920Z # Subtest: does not retry a real journey assertion failure
+2026-10-09T16:54:16.8485364Z ok 55 - does not retry a real journey assertion failure
+2026-10-09T16:54:16.8485668Z   ---
+2026-10-09T16:54:16.8485867Z   duration_ms: 0.3778
+2026-10-09T16:54:16.8486073Z   ...
+2026-10-09T16:54:16.8486515Z # Subtest: requires actual session replacement and restart after one confirmed model save
+2026-10-09T16:54:16.8487207Z ok 56 - requires actual session replacement and restart after one confirmed model save
+2026-10-09T16:54:16.8487652Z   ---
+2026-10-09T16:54:16.8487872Z   duration_ms: 8.1417
+2026-10-09T16:54:16.8488093Z   ...
+2026-10-09T16:54:16.8488517Z # Subtest: requires audited readiness and quiescence before 100 SLA samples
+2026-10-09T16:54:16.8489175Z ok 57 - requires audited readiness and quiescence before 100 SLA samples
+2026-10-09T16:54:16.8489603Z   ---
+2026-10-09T16:54:16.8489820Z   duration_ms: 6.9289
+2026-10-09T16:54:16.8490049Z   ...
+2026-10-09T16:54:16.8490679Z # Subtest: rejects a measurement that starts before the quiescence proof
+2026-10-09T16:54:16.8491292Z ok 58 - rejects a measurement that starts before the quiescence proof
+2026-10-09T16:54:16.8491694Z   ---
+2026-10-09T16:54:16.8491895Z   duration_ms: 2.9961
+2026-10-09T16:54:16.8492109Z   ...
+2026-10-09T16:54:16.8492541Z # Subtest: rejects readiness records that continue after the stable condition
+2026-10-09T16:54:16.8493200Z ok 59 - rejects readiness records that continue after the stable condition
+2026-10-09T16:54:16.8493615Z   ---
+2026-10-09T16:54:16.8493811Z   duration_ms: 2.4478
+2026-10-09T16:54:16.8494038Z   ...
+2026-10-09T16:54:16.8494235Z 1..59
+2026-10-09T16:54:16.8494444Z # tests 59
+2026-10-09T16:54:16.8494652Z # suites 0
+2026-10-09T16:54:16.8494850Z # pass 59
+2026-10-09T16:54:16.8495065Z # fail 0
+2026-10-09T16:54:16.8495278Z # cancelled 0
+2026-10-09T16:54:16.8495492Z # skipped 0
+2026-10-09T16:54:16.8495710Z # todo 0
+2026-10-09T16:54:16.8495962Z # duration_ms 168.1132
+2026-10-09T16:54:16.9763303Z ##[group]Run node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs --ide-version 2025.2 --release-commit 8e538362109dbe0bf455d4f72dcab865962e668c --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/Windows-2025.2
+2026-10-09T16:54:16.9764678Z [36;1mnode packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs --ide-version 2025.2 --release-commit 8e538362109dbe0bf455d4f72dcab865962e668c --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/Windows-2025.2[0m
+2026-10-09T16:54:16.9827461Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-09T16:54:16.9827738Z env:
+2026-10-09T16:54:16.9827884Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T16:54:16.9828114Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:54:16.9828416Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T16:54:16.9828751Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:54:16.9829367Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T16:54:16.9829684Z   MAVEN_ARGS: -ntp
+2026-10-09T16:54:16.9829836Z ##[endgroup]
+2026-10-09T16:54:20.9202333Z Downloading https://services.gradle.org/distributions/gradle-8.7-bin.zip
+2026-10-09T16:54:25.2385847Z ............10%.............20%.............30%.............40%............50%.............60%.............70%.............80%.............90%............100%
+2026-10-09T16:54:27.1022859Z 
+2026-10-09T16:54:27.1023490Z Welcome to Gradle 8.7!
+2026-10-09T16:54:27.1023736Z 
+2026-10-09T16:54:27.1023956Z Here are the highlights of this release:
+2026-10-09T16:54:27.1024830Z  - Compiling and testing with Java 22
+2026-10-09T16:54:27.1025267Z  - Cacheable Groovy script compilation
+2026-10-09T16:54:27.1025692Z  - New methods in lazy collection properties
+2026-10-09T16:54:27.1025944Z 
+2026-10-09T16:54:27.1026304Z For more details see https://docs.gradle.org/8.7/release-notes.html
+2026-10-09T16:54:27.1026705Z 
+2026-10-09T16:54:27.3055116Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-09T16:54:31.2016880Z Daemon will be stopped at the end of the build 
+2026-10-09T16:54:33.0981996Z Calculating task graph as no cached configuration is available for tasks: compileUiTestJava buildPlugin
+2026-10-09T16:55:20.1057699Z 
+2026-10-09T16:55:20.1096198Z > Configure project :
+2026-10-09T16:55:20.1105222Z w: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/build.gradle.kts:214:13: 'ide(IntelliJPlatformType, String, Boolean = ..., ProductMode = ...): Unit' is deprecated. Please use the create(type, version, configure) method with a configuration lambda instead.
+2026-10-09T16:56:32.0153854Z 
+2026-10-09T16:56:32.0196777Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-09T16:56:32.1261603Z > Task :compileUiTestKotlin NO-SOURCE
+2026-10-09T16:56:32.1433638Z > Task :generatePluginMetadata
+2026-10-09T16:56:32.3254330Z 
+2026-10-09T16:56:32.3288923Z > Task :initializeIntellijPlatformPlugin
+2026-10-09T16:56:32.3491600Z [org.jetbrains.intellij.platform] IntelliJ Platform Gradle Plugin is outdated: 2.7.2. Update `org.jetbrains.intellij.platform` to: 2.19.0
+2026-10-09T16:56:32.4085584Z 
+2026-10-09T16:56:32.4226275Z > Task :generateManifest
+2026-10-09T16:56:32.4256561Z 
+2026-10-09T16:56:32.4498705Z > Task :patchPluginXml
+2026-10-09T16:56:32.4525107Z [org.jetbrains.intellij.platform] Patching plugin.xml: value of 'change-notes[
+2026-10-09T16:56:32.4647949Z         <b>0.4.29 / 0.4.30</b> � fix: <b>"Configure LLM" now pre-fills your config</b>
+2026-10-09T16:56:32.4833511Z         � no more re-typing model+key. The wizard pre-fills your current model, base
+2026-10-09T16:56:32.4986696Z         URL and vision model, pre-selects your current provider (? ??), and lets you
+2026-10-09T16:56:32.5267378Z         <b>leave the API key blank to keep the stored one</b> (only required when there's
+2026-10-09T16:56:32.5289146Z         no key yet or you switch providers). The config itself was never lost � it lives
+2026-10-09T16:56:32.5289964Z         in <code>~/.chainlesschain/config.json</code> and survives CLI updates; the
+2026-10-09T16:56:32.5290671Z         wizard just didn't pre-fill it. (Mirrors the VS Code 0.34.0 fix. 0.4.30 adds
+2026-10-09T16:56:32.5291383Z         this very change-note, which 0.4.29 omitted.)
+2026-10-09T16:56:32.5291851Z         <br/><br/>
+2026-10-09T16:56:32.5292393Z         <b>0.4.28</b> � docs: the Marketplace "What's New" now lists every release
+2026-10-09T16:56:32.5293131Z         (it had silently stopped at 0.4.19 � change-notes are no longer missed).
+2026-10-09T16:56:32.5293587Z         <br/><br/>
+2026-10-09T16:56:32.5294093Z         <b>0.4.27</b> � cleared the 2 deprecated-API usages the Marketplace verifier
+2026-10-09T16:56:32.5295049Z         flagged (now <code>URI.toURL()</code> + a combo-box dialog), so the plugin
+2026-10-09T16:56:32.5295593Z         stays compatible with future IntelliJ releases.
+2026-10-09T16:56:32.5295938Z         <br/><br/>
+2026-10-09T16:56:32.5296426Z         <b>0.4.26</b> � fix: no more false "???? cc CLI" when <code>cc</code> IS
+2026-10-09T16:56:32.5297054Z         installed. The version probe timeout went 5s ? 12s (cold starts), and since
+2026-10-09T16:56:32.5297709Z         <code>cc</code> is also the C compiler's name, the plugin now resolves the
+2026-10-09T16:56:32.5382468Z         binary with fallback (<code>cc ? chainlesschain ? clc ? clchain</code>) and
+2026-10-09T16:56:32.6033175Z         uses it for the chat spawn and every probe.
+2026-10-09T16:56:32.6180892Z         <br/><br/>
+2026-10-09T16:56:32.6342244Z         <b>0.4.25</b> � the agent can actually ask you a question:
+2026-10-09T16:56:32.6375056Z         <code>ask_user_question</code> now pops a dialog (single-choice / multi-select
+2026-10-09T16:56:32.6464079Z         checkboxes / free-text input) so the agent can clarify instead of guessing.
+2026-10-09T16:56:32.6484394Z         Requires <code>cc</code> ? 0.162.95.
+2026-10-09T16:56:32.6694090Z         <br/><br/>
+2026-10-09T16:56:32.6728797Z         <b>0.4.24</b> � fix: a graceful "couldn't ask in the panel" degradation no
+2026-10-09T16:56:32.6785379Z         longer renders as a scary <b>? ask_user_question</b> failure.
+2026-10-09T16:56:32.6898602Z         <br/><br/>
+2026-10-09T16:56:32.6986266Z         <b>0.4.23</b> � new <b>? LLM ? ?? cc ??�</b> menu item (check on demand),
+2026-10-09T16:56:32.7004593Z         plus a clear hint when the <code>cc</code> CLI isn't installed.
+2026-10-09T16:56:32.7064860Z         <br/><br/>
+2026-10-09T16:56:32.7171983Z         <b>0.4.22</b> � you're now told when a newer <code>cc</code> CLI is published
+2026-10-09T16:56:32.7208032Z         on npm, so you don't silently miss new features.
+2026-10-09T16:56:32.7346373Z         <br/><br/>
+2026-10-09T16:56:32.7540632Z         <b>0.4.21</b> � fix: reconfiguring the LLM now restarts the running chat so it
+2026-10-09T16:56:32.7579322Z         picks up the new provider/model/key (no more "?????? / ??????").
+2026-10-09T16:56:32.7585725Z         <br/><br/>
+2026-10-09T16:56:32.7633103Z         <b>0.4.20</b> � new <code>/review</code> command: review your uncommitted git
+2026-10-09T16:56:32.7633808Z         diff right from the chat (matches the VS Code panel).
+2026-10-09T16:56:32.7634221Z         <br/><br/>
+2026-10-09T16:56:32.7634780Z         <b>0.4.19</b> � fix: the suggested vision model now matches the CLI's
+2026-10-09T16:56:32.7635448Z         actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
+2026-10-09T16:56:32.7636046Z         older snapshot, so the prefilled value equals what
+2026-10-09T16:56:32.7636483Z         <code>cc agent --image</code> uses.
+2026-10-09T16:56:32.7636823Z         <br/><br/>
+2026-10-09T16:56:32.7638426Z         <b>0.4.18</b> � dedicated image-recognition (vision) model entry: the
+2026-10-09T16:56:32.7639420Z         <b>? LLM</b> button is now a small menu (configure full LLM <i>or</i> just
+2026-10-09T16:56:32.7640085Z         the vision model), plus a <b>Tools ? Configure Vision Model</b> action.
+2026-10-09T16:56:32.7640761Z         Set <code>llm.visionModel</code> without re-running the whole wizard or
+2026-10-09T16:56:32.7641357Z         re-typing your API key; blank reverts to the text model.
+2026-10-09T16:56:32.7703749Z         <br/><br/>
+2026-10-09T16:56:32.7724451Z         <b>0.4.17</b> � first-run nudge: when no LLM provider is configured yet,
+2026-10-09T16:56:32.7725538Z         the chat panel now shows a dim hint pointing at the <b>? LLM</b> button
+2026-10-09T16:56:32.7797274Z         instead of staying blank until the first turn fails with a 401 (VS Code
+2026-10-09T16:56:32.7819208Z         onboarding parity).
+2026-10-09T16:56:32.7865798Z         <br/><br/>
+2026-10-09T16:56:32.7870320Z         <b>0.4.16</b> � chat panel LLM UX: (1) paste screenshots � Ctrl/Cmd+V an
+2026-10-09T16:56:32.7870975Z         image to attach it to your next message (vision); (2) a <b>? LLM</b>
+2026-10-09T16:56:32.7871625Z         quick-entry button by Send opens the provider/model wizard, and auth
+2026-10-09T16:56:32.7872308Z         failures (401/403/missing key) now hint at it; (3) the wizard can set a
+2026-10-09T16:56:32.7873074Z         separate <b>image-recognition (vision) model</b> � text and vision models
+2026-10-09T16:56:32.7873642Z         no longer have to be the same.
+2026-10-09T16:56:32.7874199Z         <br/><br/>
+2026-10-09T16:56:32.7874714Z         <b>0.4.15</b> � multi-line chat composer: the input now wraps across
+2026-10-09T16:56:32.7875400Z         lines � <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
+2026-10-09T16:56:32.7876039Z         parity).
+2026-10-09T16:56:32.7876283Z         <br/><br/>
+2026-10-09T16:56:32.7876822Z         <b>0.4.14</b> � extended-thinking reasoning (with <code>/think</code>) now
+2026-10-09T16:56:32.7877497Z         streams into the transcript dimmed/italic, set apart from the answer
+2026-10-09T16:56:32.7877978Z         (VS Code parity).
+2026-10-09T16:56:32.7878251Z         <br/><br/>
+2026-10-09T16:56:32.7878761Z         <b>0.4.13</b> � Markdown rendering in the chat transcript: fenced/inline
+2026-10-09T16:56:32.7879368Z         <code>code</code> (monospace) and <b>bold</b> now render instead of raw
+2026-10-09T16:56:32.7879982Z         markers (VS Code parity). Streaming stays plain, then snaps to styled.
+2026-10-09T16:56:32.7880433Z         <br/><br/>
+2026-10-09T16:56:32.7880915Z         <b>0.4.12</b> � "Fix with ChainlessChain" intention: on an error/warning
+2026-10-09T16:56:32.7881833Z         line, Alt+Enter offers a quick-fix that seeds the chat with a fix request
+2026-10-09T16:56:32.7882479Z         scoped to that file + those problems (VS Code parity).
+2026-10-09T16:56:32.7882891Z         <br/><br/>
+2026-10-09T16:56:32.7883501Z         <b>0.4.11</b> � slash-command autocomplete: typing <code>/</code> at the
+2026-10-09T16:56:32.7884112Z         start of the chat input pops a chooser of the panel's commands
+2026-10-09T16:56:32.7884770Z         (<code>/new</code>, <code>/compact</code>, <code>/think</code>, �),
+2026-10-09T16:56:32.7885262Z         filtered as you type (VS Code parity).
+2026-10-09T16:56:32.7885606Z         <br/><br/>
+2026-10-09T16:56:32.7886054Z         <b>0.4.10</b> � fix: wrap the diff-review document reads
+2026-10-09T16:56:32.7886611Z         (<code>openDiff</code>/<code>openMultiDiff</code>) in a read action.
+2026-10-09T16:56:32.7887234Z         Since 2026.2 the EDT no longer grants implicit read access, so building
+2026-10-09T16:56:32.7887864Z         the diff threw "Read access is allowed from inside read-action only" on
+2026-10-09T16:56:32.7888378Z         2026.2+. No behavior change on 2025.x.
+2026-10-09T16:56:32.7888729Z         <br/><br/>
+2026-10-09T16:56:32.7889227Z         <b>0.4.9</b> � fix: the chat tool window now deterministically uses the
+2026-10-09T16:56:32.7890104Z         LLM provider you configured (<code>cc config</code> / Configure LLM),
+2026-10-09T16:56:32.7890725Z         reading <code>~/.chainlesschain/config.json</code> and passing it
+2026-10-09T16:56:32.7891375Z         explicitly to <code>cc agent</code> � no more spurious
+2026-10-09T16:56:32.7891956Z         <code>Anthropic error: 401</code> when another provider is configured.
+2026-10-09T16:56:32.7892421Z         <br/><br/>
+2026-10-09T16:56:32.7892905Z         <b>0.4.8</b> � <code>/compact</code> in the chat tool window (Claude-Code
+2026-10-09T16:56:32.7893537Z         IDE parity): trims the live conversation history between turns (no extra
+2026-10-09T16:56:32.7894518Z         LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0
+2026-10-09T16:56:32.7894956Z         feature.
+2026-10-09T16:56:32.7895204Z         <br/><br/>
+2026-10-09T16:56:32.7895735Z         <b>0.4.7</b> � cleared the remaining API-compatibility flags the Plugin
+2026-10-09T16:56:32.7914599Z         Verifier reported on 2026.x: the @-mention list renderer no longer uses a
+2026-10-09T16:56:32.7941809Z         scheduled-for-removal helper, and the deprecated terminal customizer was
+2026-10-09T16:56:32.8000031Z         removed (a <code>cc</code> you run in a terminal still auto-connects via the
+2026-10-09T16:56:32.8000772Z         bridge's discovery lockfile).
+2026-10-09T16:56:32.8017229Z         <br/><br/>
+2026-10-09T16:56:32.8115794Z         <b>0.4.6</b> � newer-IDE compatibility: removed the last deprecated-API
+2026-10-09T16:56:32.8125697Z         usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
+2026-10-09T16:56:32.8132949Z         reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
+2026-10-09T16:56:32.8133913Z         <br/><br/>
+2026-10-09T16:56:32.8134544Z         <b>0.4.5</b> � reverted the experimental 0.4.4 <code>getTerminalOutput</code>
+2026-10-09T16:56:32.8135521Z         tool: the terminal API it used is not stable across IDE versions and caused
+2026-10-09T16:56:32.8136225Z         errors on some builds. Everything else is unchanged from 0.4.3.
+2026-10-09T16:56:32.8136659Z         <br/><br/>
+2026-10-09T16:56:32.8137192Z         <b>0.4.3</b> � the <code>@</code>-mention symbol completion now covers
+2026-10-09T16:56:32.8137890Z         <b>methods/functions</b> too (not just classes) � type a method name to
+2026-10-09T16:56:32.8138425Z         reference the file where it's defined.
+2026-10-09T16:56:32.8138770Z         <br/><br/>
+2026-10-09T16:56:32.8139263Z         <b>0.4.2</b> � the <code>@</code>-mention popup now includes project class
+2026-10-09T16:56:32.8139900Z         symbols (type a class name to reference the file where it's defined),
+2026-10-09T16:56:32.8140540Z         alongside <code>@selection</code>/<code>@diagnostics</code> and files.
+2026-10-09T16:56:32.8140989Z         <br/><br/>
+2026-10-09T16:56:32.8141500Z         <b>0.4.1</b> � expanded the plugin description / what's-new (no functional
+2026-10-09T16:56:32.8152292Z         change since 0.4.0).
+2026-10-09T16:56:32.8152581Z         <br/><br/>
+2026-10-09T16:56:32.8153006Z         <b>0.4.0</b> � VS Code feature parity.
+2026-10-09T16:56:32.8153330Z         <ul>
+2026-10-09T16:56:32.8153837Z           <li>Multi-conversation <b>tabs</b> (one agent per tab, resume across restarts).</li>
+2026-10-09T16:56:32.8154715Z           <li><b>Approval modes</b> (<code>/auto</code>�<code>/bypass</code>�<code>/normal</code>)
+2026-10-09T16:56:32.8155904Z               and <b>extended thinking</b> (<code>/think</code>�<code>/ultrathink</code>�<code>/think-off</code>),
+2026-10-09T16:56:32.8156745Z               plus <code>/new</code> <code>/stop</code> <code>/cost</code> <code>/context</code>
+2026-10-09T16:56:32.8157994Z               <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+2026-10-09T16:56:32.8158651Z           <li><b>Interactive plan &amp; approval cards</b> (Approve/Deny buttons).</li>
+2026-10-09T16:56:32.8159681Z           <li>Editor <b>Explain / Refactor</b> actions, <code>@file#L</code> reference
+2026-10-09T16:56:32.8160418Z               insertion (<code>Ctrl/Cmd+Alt+K</code>), and an <code>@</code>-mention popup.</li>
+2026-10-09T16:56:32.8161266Z           <li>Native diff "<b>Request changes�</b>" with inline notes, and batch
+2026-10-09T16:56:32.8161957Z               <b>openMultiDiff</b> multi-file review.</li>
+2026-10-09T16:56:32.8162465Z           <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
+2026-10-09T16:56:32.8163094Z           <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
+2026-10-09T16:56:32.8163572Z         </ul>
+2026-10-09T16:56:32.8185982Z     ]' tag will be set to '<b>[0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)</b><br/><ul><li>Recommend CLI <code>0.166.95</code> after its public npm release and this extension's exact-commit release gates pass.</li><li>Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.</li><li>Retain the compatibility floor and runtime capability diagnostics; experimental native review and durable Windows/macOS recovery remain outside release acceptance.</li></ul><br/><b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br/><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br/><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br/><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul><br/><b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br/><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul>'
+2026-10-09T16:56:32.8215674Z 
+2026-10-09T16:56:32.8215839Z > Task :processResources
+2026-10-09T16:56:38.9020918Z > Task :compileUiTestJava
+2026-10-09T16:57:01.9935410Z > Task :compileKotlin
+2026-10-09T16:57:04.0937407Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:123:34 Redundant '?'
+2026-10-09T16:57:04.0940789Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:127:28 Redundant '?'
+2026-10-09T16:57:04.0948423Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:135:31 Redundant '?'
+2026-10-09T16:57:04.0951543Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:137:36 Redundant '?'
+2026-10-09T16:57:04.0955212Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:144:28 Redundant '?'
+2026-10-09T16:57:04.0956964Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:147:27 Redundant '?'
+2026-10-09T16:57:04.0959526Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:150:31 Redundant '?'
+2026-10-09T16:57:04.0963565Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:156:29 Redundant '?'
+2026-10-09T16:57:04.0965475Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:163:29 Redundant '?'
+2026-10-09T16:57:04.0970114Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:166:35 Redundant '?'
+2026-10-09T16:57:04.0972702Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:184:32 Redundant '?'
+2026-10-09T16:57:04.0975338Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:211:33 Redundant '?'
+2026-10-09T16:57:04.0977473Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:260:34 Redundant '?'
+2026-10-09T16:57:04.0979616Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:293:28 Redundant '?'
+2026-10-09T16:57:04.0981641Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:301:40 Redundant '?'
+2026-10-09T16:57:04.0984949Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:303:35 Redundant '?'
+2026-10-09T16:57:04.0989991Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:310:33 Redundant '?'
+2026-10-09T16:57:04.0994419Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:314:31 Redundant '?'
+2026-10-09T16:57:04.1000808Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:324:47 Redundant '?'
+2026-10-09T16:57:04.1012296Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:326:31 Redundant '?'
+2026-10-09T16:57:04.1022840Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:327:36 Redundant '?'
+2026-10-09T16:57:04.1032607Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:360:28 Redundant '?'
+2026-10-09T16:57:04.1036516Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:373:27 Redundant '?'
+2026-10-09T16:57:04.1041054Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:374:40 Redundant '?'
+2026-10-09T16:57:04.1047438Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:384:31 Redundant '?'
+2026-10-09T16:57:04.1049363Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:385:33 Redundant '?'
+2026-10-09T16:57:04.1051222Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:421:29 Redundant '?'
+2026-10-09T16:57:04.1052833Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:427:32 Redundant '?'
+2026-10-09T16:57:04.1053893Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:428:32 Redundant '?'
+2026-10-09T16:57:04.1054854Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:429:34 Redundant '?'
+2026-10-09T16:57:04.1056044Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:435:28 Redundant '?'
+2026-10-09T16:57:04.1057280Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:443:32 Redundant '?'
+2026-10-09T16:57:04.1058634Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:448:31 Redundant '?'
+2026-10-09T16:57:04.1059770Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:474:28 Redundant '?'
+2026-10-09T16:57:04.1060598Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:487:25 Redundant '?'
+2026-10-09T16:57:04.1061458Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:527:30 Redundant '?'
+2026-10-09T16:57:04.1062967Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:530:36 Redundant '?'
+2026-10-09T16:57:04.1064142Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:602:24 Redundant '?'
+2026-10-09T16:57:04.1064855Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:603:34 Redundant '?'
+2026-10-09T16:57:04.1065725Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:632:27 Redundant '?'
+2026-10-09T16:57:04.1066796Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:633:28 Redundant '?'
+2026-10-09T16:57:04.1067743Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:639:26 Redundant '?'
+2026-10-09T16:57:04.1068848Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:669:30 Redundant '?'
+2026-10-09T16:57:04.1069979Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:694:25 Redundant '?'
+2026-10-09T16:57:04.1070947Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:717:25 Redundant '?'
+2026-10-09T16:57:04.1072123Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:780:41 Redundant '?'
+2026-10-09T16:57:04.1072949Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:797:25 Redundant '?'
+2026-10-09T16:57:04.1074031Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:808:26 Redundant '?'
+2026-10-09T16:57:04.1074929Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:810:39 Redundant '?'
+2026-10-09T16:57:04.1075997Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:819:24 Redundant '?'
+2026-10-09T16:57:04.1076993Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:824:27 Redundant '?'
+2026-10-09T16:57:04.1077926Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:839:26 Redundant '?'
+2026-10-09T16:57:04.1079288Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:998:37 Redundant '?'
+2026-10-09T16:57:04.1080092Z w: file:///D:/a/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:1022:28 Redundant '?'
+2026-10-09T16:57:04.1081677Z w: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/src/main/kotlin/com/chainlesschain/ide/intellij/CcInlineCompletionProvider.kt:52:40 Unnecessary safe call on a non-null receiver of type PsiFile
+2026-10-09T16:57:04.1083836Z w: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/src/main/kotlin/com/chainlesschain/ide/intellij/CcInlineCompletionProvider.kt:54:32 Unnecessary safe call on a non-null receiver of type PsiFile
+2026-10-09T16:57:34.2933725Z 
+2026-10-09T16:57:34.2935724Z > Task :compileJava
+2026-10-09T16:57:49.6929002Z > Task :classes
+2026-10-09T16:57:49.6938456Z > Task :instrumentCode SKIPPED
+2026-10-09T16:57:49.8924078Z > Task :jar
+2026-10-09T16:57:50.5929396Z > Task :composedJar
+2026-10-09T16:57:50.6926912Z > Task :prepareSandbox
+2026-10-09T16:57:53.8933022Z 2026-10-09 16:57:53,873 [    599]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition for key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrains.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.registry.RegistryKeyBean.overrides for more details.
+2026-10-09T16:57:53.8936219Z 
+2026-10-09T16:57:53.8982901Z > Task :buildSearchableOptions
+2026-10-09T16:57:54.7928510Z 2026-10-09 16:57:54,716 [   1442]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: C:\Users\runneradmin\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shared-indexes
+2026-10-09T16:58:07.2922280Z 2026-10-09 16:58:07,236 [  13962]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-09T16:58:07.2923150Z 2026-10-09 16:58:07,237 [  13963]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-09T16:58:14.0922386Z 2026-10-09 16:58:14,058 [  20784]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.browser.jcef.headless.enabled=false'
+2026-10-09T16:58:15.8228585Z Found 220 configurables
+2026-10-09T16:58:16.7921369Z save to D:\a\chainlesschain\chainlesschain\packages\jetbrains-plugin\build\tmp\buildSearchableOptions
+2026-10-09T16:58:17.5929616Z 
+2026-10-09T16:58:17.5931678Z > Task :prepareJarSearchableOptions
+2026-10-09T16:58:17.5932162Z > Task :jarSearchableOptions
+2026-10-09T16:58:17.6990667Z > Task :buildPlugin
+2026-10-09T16:58:17.7026543Z 
+2026-10-09T16:58:17.7031992Z BUILD SUCCESSFUL in 3m 57s
+2026-10-09T16:58:17.7088731Z 16 actionable tasks: 16 executed
+2026-10-09T16:58:17.7090071Z Configuration cache entry stored.
+2026-10-09T16:58:18.5109817Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-09T16:58:20.0078415Z Daemon will be stopped at the end of the build 
+2026-10-09T16:58:21.4096117Z Calculating task graph as no cached configuration is available for tasks: runIdeForUiTests
+2026-10-09T16:59:59.2291303Z [org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module java-frontback is not found: C:/Users/runneradmin/.gradle/caches/transforms-4/f272b127be9ffadc342cb1014bebcce1/transformed/ideaIC-2025.2-win/plugins/java/lib/java-frontback.jar
+2026-10-09T16:59:59.2314025Z [org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jetbrains.kotlinx.metadata.jvm is not found: C:/Users/runneradmin/.gradle/caches/transforms-4/f272b127be9ffadc342cb1014bebcce1/transformed/ideaIC-2025.2-win/plugins/java/lib/jetbrains.kotlinx.metadata.jvm.jar
+2026-10-09T17:00:01.1190771Z > Task :initializeIntellijPlatformPlugin
+2026-10-09T17:00:01.1193865Z > Task :patchPluginXml UP-TO-DATE
+2026-10-09T17:00:01.1195485Z > Task :generateManifest UP-TO-DATE
+2026-10-09T17:00:01.1197419Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-09T17:00:01.3209426Z > Task :compileKotlin UP-TO-DATE
+2026-10-09T17:00:01.3237117Z > Task :compileJava UP-TO-DATE
+2026-10-09T17:00:01.3252253Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-09T17:00:01.3252846Z > Task :processResources UP-TO-DATE
+2026-10-09T17:00:01.3253549Z > Task :classes UP-TO-DATE
+2026-10-09T17:00:01.4144670Z > Task :instrumentCode SKIPPED
+2026-10-09T17:00:01.4145383Z > Task :jar UP-TO-DATE
+2026-10-09T17:00:01.4148733Z > Task :composedJar UP-TO-DATE
+2026-10-09T17:00:01.4149219Z > Task :prepareSandbox UP-TO-DATE
+2026-10-09T17:00:01.4149672Z > Task :buildSearchableOptions UP-TO-DATE
+2026-10-09T17:00:01.4150033Z > Task :prepareJarSearchableOptions UP-TO-DATE
+2026-10-09T17:00:01.4150382Z > Task :jarSearchableOptions UP-TO-DATE
+2026-10-09T17:00:01.4150696Z > Task :buildPlugin UP-TO-DATE
+2026-10-09T17:00:03.5114534Z > Task :prepareSandbox_runIdeForUiTests
+2026-10-09T17:00:03.6064885Z > Task :installUiJourneyPlugin
+2026-10-09T17:00:05.5254058Z 
+2026-10-09T17:00:05.5256993Z > Task :runIdeForUiTests
+2026-10-09T17:00:05.5258768Z [0.009s][warning][cds] Archived non-system classes are disabled because the java.system.class.loader property is specified (value = "com.intellij.util.lang.PathClassLoader"). To use archived non-system classes, this property must not be set
+2026-10-09T17:00:06.4276556Z 2026-10-09 17:00:06,327 [   2314]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: C:\Users\runneradmin\.gradle\caches\transforms-4\f272b127be9ffadc342cb1014bebcce1\transformed\ideaIC-2025.2-win\jdk-shared-indexes
+2026-10-09T17:00:08.2720668Z 2026-10-09 17:00:08,184 [   4171]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=org.jetbrains.kotlin.idea.search.refIndex.KotlinCompilerReferenceIndexService, plugin=org.jetbrains.kotlin)
+2026-10-09T17:00:08.2724083Z 2026-10-09 17:00:08,184 [   4171]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=com.jetbrains.rdserver.toolWindow.BackendServerToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09T17:00:08.2938860Z 2026-10-09 17:00:08,184 [   4171]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.users.BackendUserManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09T17:00:08.2941485Z 2026-10-09 17:00:08,184 [   4171]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.ports.CwmPortForwardingToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09T17:00:08.2993048Z 2026-10-09 17:00:08,184 [   4171]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.FollowMeManagerService, plugin=com.jetbrains.codeWithMe)
+2026-10-09T17:00:09.9406906Z 2026-10-09 17:00:09,896 [   5883]   WARN - #c.i.s.c.i.StationSocketConnectionLoop - Discovery connection failed with AnnotatedConnectException(ConnectException) (Connection refused: connect: C:\Users\RUNNER~1\AppData\Local\Temp\jb.station.runneradmin.sock)
+2026-10-09T17:00:13.5040442Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-09T17:00:16.1453072Z Daemon will be stopped at the end of the build 
+2026-10-09T17:00:17.5563766Z Calculating task graph as no cached configuration is available for tasks: uiSmokeTest
+2026-10-09T17:00:20.4363215Z 2026-10-09 17:00:20,338 [  16325]   WARN - #c.i.s.c.i.StationSocketConnectionLoop - RecentProjects connection failed with AnnotatedConnectException(ConnectException) (Connection refused: connect: C:\Users\RUNNER~1\AppData\Local\Temp\jb.station.runneradmin.sock)
+2026-10-09T17:00:29.6252324Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-09T17:00:29.6295038Z > Task :initializeIntellijPlatformPlugin
+2026-10-09T17:00:29.6313249Z > Task :compileUiTestKotlin NO-SOURCE
+2026-10-09T17:00:29.9555473Z 
+2026-10-09T17:00:29.9593710Z > Task :patchPluginXml
+2026-10-09T17:00:29.9612847Z [org.jetbrains.intellij.platform] Patching plugin.xml: value of 'change-notes[
+2026-10-09T17:00:29.9636212Z         <b>0.4.29 / 0.4.30</b> � fix: <b>"Configure LLM" now pre-fills your config</b>
+2026-10-09T17:00:29.9652012Z         � no more re-typing model+key. The wizard pre-fills your current model, base
+2026-10-09T17:00:29.9720312Z         URL and vision model, pre-selects your current provider (? ??), and lets you
+2026-10-09T17:00:29.9772657Z         <b>leave the API key blank to keep the stored one</b> (only required when there's
+2026-10-09T17:00:30.0145821Z         no key yet or you switch providers). The config itself was never lost � it lives
+2026-10-09T17:00:30.0194482Z         in <code>~/.chainlesschain/config.json</code> and survives CLI updates; the
+2026-10-09T17:00:30.0300349Z         wizard just didn't pre-fill it. (Mirrors the VS Code 0.34.0 fix. 0.4.30 adds
+2026-10-09T17:00:30.0306489Z         this very change-note, which 0.4.29 omitted.)
+2026-10-09T17:00:30.0310595Z         <br/><br/>
+2026-10-09T17:00:30.0316838Z         <b>0.4.28</b> � docs: the Marketplace "What's New" now lists every release
+2026-10-09T17:00:30.0326780Z         (it had silently stopped at 0.4.19 � change-notes are no longer missed).
+2026-10-09T17:00:30.0337263Z         <br/><br/>
+2026-10-09T17:00:30.0339920Z         <b>0.4.27</b> � cleared the 2 deprecated-API usages the Marketplace verifier
+2026-10-09T17:00:30.0343742Z         flagged (now <code>URI.toURL()</code> + a combo-box dialog), so the plugin
+2026-10-09T17:00:30.0351613Z         stays compatible with future IntelliJ releases.
+2026-10-09T17:00:30.0356255Z         <br/><br/>
+2026-10-09T17:00:30.0356962Z         <b>0.4.26</b> � fix: no more false "???? cc CLI" when <code>cc</code> IS
+2026-10-09T17:00:30.0386169Z         installed. The version probe timeout went 5s ? 12s (cold starts), and since
+2026-10-09T17:00:30.0482970Z         <code>cc</code> is also the C compiler's name, the plugin now resolves the
+2026-10-09T17:00:30.0496700Z         binary with fallback (<code>cc ? chainlesschain ? clc ? clchain</code>) and
+2026-10-09T17:00:30.0501589Z         uses it for the chat spawn and every probe.
+2026-10-09T17:00:30.0505032Z         <br/><br/>
+2026-10-09T17:00:30.0512251Z         <b>0.4.25</b> � the agent can actually ask you a question:
+2026-10-09T17:00:30.0519344Z         <code>ask_user_question</code> now pops a dialog (single-choice / multi-select
+2026-10-09T17:00:30.0522339Z         checkboxes / free-text input) so the agent can clarify instead of guessing.
+2026-10-09T17:00:30.0525185Z         Requires <code>cc</code> ? 0.162.95.
+2026-10-09T17:00:30.0604280Z         <br/><br/>
+2026-10-09T17:00:30.0883025Z         <b>0.4.24</b> � fix: a graceful "couldn't ask in the panel" degradation no
+2026-10-09T17:00:30.0953848Z         longer renders as a scary <b>? ask_user_question</b> failure.
+2026-10-09T17:00:30.1081299Z         <br/><br/>
+2026-10-09T17:00:30.1095594Z         <b>0.4.23</b> � new <b>? LLM ? ?? cc ??�</b> menu item (check on demand),
+2026-10-09T17:00:30.1147704Z         plus a clear hint when the <code>cc</code> CLI isn't installed.
+2026-10-09T17:00:30.1149610Z         <br/><br/>
+2026-10-09T17:00:30.1155892Z         <b>0.4.22</b> � you're now told when a newer <code>cc</code> CLI is published
+2026-10-09T17:00:30.1157294Z         on npm, so you don't silently miss new features.
+2026-10-09T17:00:30.1161813Z         <br/><br/>
+2026-10-09T17:00:30.1162707Z         <b>0.4.21</b> � fix: reconfiguring the LLM now restarts the running chat so it
+2026-10-09T17:00:30.1163862Z         picks up the new provider/model/key (no more "?????? / ??????").
+2026-10-09T17:00:30.1164467Z         <br/><br/>
+2026-10-09T17:00:30.1165228Z         <b>0.4.20</b> � new <code>/review</code> command: review your uncommitted git
+2026-10-09T17:00:30.1165889Z         diff right from the chat (matches the VS Code panel).
+2026-10-09T17:00:30.1166299Z         <br/><br/>
+2026-10-09T17:00:30.1167131Z         <b>0.4.19</b> � fix: the suggested vision model now matches the CLI's
+2026-10-09T17:00:30.1168548Z         actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
+2026-10-09T17:00:30.1169363Z         older snapshot, so the prefilled value equals what
+2026-10-09T17:00:30.1170770Z         <code>cc agent --image</code> uses.
+2026-10-09T17:00:30.1171825Z         <br/><br/>
+2026-10-09T17:00:30.1194155Z         <b>0.4.18</b> � dedicated image-recognition (vision) model entry: the
+2026-10-09T17:00:30.1197122Z         <b>? LLM</b> button is now a small menu (configure full LLM <i>or</i> just
+2026-10-09T17:00:30.1197845Z         the vision model), plus a <b>Tools ? Configure Vision Model</b> action.
+2026-10-09T17:00:30.1199041Z         Set <code>llm.visionModel</code> without re-running the whole wizard or
+2026-10-09T17:00:30.1199760Z         re-typing your API key; blank reverts to the text model.
+2026-10-09T17:00:30.1200329Z         <br/><br/>
+2026-10-09T17:00:30.1201014Z         <b>0.4.17</b> � first-run nudge: when no LLM provider is configured yet,
+2026-10-09T17:00:30.1202389Z         the chat panel now shows a dim hint pointing at the <b>? LLM</b> button
+2026-10-09T17:00:30.1203159Z         instead of staying blank until the first turn fails with a 401 (VS Code
+2026-10-09T17:00:30.1203673Z         onboarding parity).
+2026-10-09T17:00:30.1203958Z         <br/><br/>
+2026-10-09T17:00:30.1204631Z         <b>0.4.16</b> � chat panel LLM UX: (1) paste screenshots � Ctrl/Cmd+V an
+2026-10-09T17:00:30.1205281Z         image to attach it to your next message (vision); (2) a <b>? LLM</b>
+2026-10-09T17:00:30.1206418Z         quick-entry button by Send opens the provider/model wizard, and auth
+2026-10-09T17:00:30.1207830Z         failures (401/403/missing key) now hint at it; (3) the wizard can set a
+2026-10-09T17:00:30.1218897Z         separate <b>image-recognition (vision) model</b> � text and vision models
+2026-10-09T17:00:30.1219701Z         no longer have to be the same.
+2026-10-09T17:00:30.1220128Z         <br/><br/>
+2026-10-09T17:00:30.1220851Z         <b>0.4.15</b> � multi-line chat composer: the input now wraps across
+2026-10-09T17:00:30.1221808Z         lines � <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
+2026-10-09T17:00:30.1222476Z         parity).
+2026-10-09T17:00:30.1222861Z         <br/><br/>
+2026-10-09T17:00:30.1223552Z         <b>0.4.14</b> � extended-thinking reasoning (with <code>/think</code>) now
+2026-10-09T17:00:30.1224373Z         streams into the transcript dimmed/italic, set apart from the answer
+2026-10-09T17:00:30.1224996Z         (VS Code parity).
+2026-10-09T17:00:30.1225459Z         <br/><br/>
+2026-10-09T17:00:30.1226134Z         <b>0.4.13</b> � Markdown rendering in the chat transcript: fenced/inline
+2026-10-09T17:00:30.1226923Z         <code>code</code> (monospace) and <b>bold</b> now render instead of raw
+2026-10-09T17:00:30.1227726Z         markers (VS Code parity). Streaming stays plain, then snaps to styled.
+2026-10-09T17:00:30.1228315Z         <br/><br/>
+2026-10-09T17:00:30.1229303Z         <b>0.4.12</b> � "Fix with ChainlessChain" intention: on an error/warning
+2026-10-09T17:00:30.1230329Z         line, Alt+Enter offers a quick-fix that seeds the chat with a fix request
+2026-10-09T17:00:30.1231037Z         scoped to that file + those problems (VS Code parity).
+2026-10-09T17:00:30.1231951Z         <br/><br/>
+2026-10-09T17:00:30.1233557Z         <b>0.4.11</b> � slash-command autocomplete: typing <code>/</code> at the
+2026-10-09T17:00:30.1263835Z         start of the chat input pops a chooser of the panel's commands
+2026-10-09T17:00:30.1264871Z         (<code>/new</code>, <code>/compact</code>, <code>/think</code>, �),
+2026-10-09T17:00:30.1265617Z         filtered as you type (VS Code parity).
+2026-10-09T17:00:30.1266113Z         <br/><br/>
+2026-10-09T17:00:30.1266722Z         <b>0.4.10</b> � fix: wrap the diff-review document reads
+2026-10-09T17:00:30.1267453Z         (<code>openDiff</code>/<code>openMultiDiff</code>) in a read action.
+2026-10-09T17:00:30.1268274Z         Since 2026.2 the EDT no longer grants implicit read access, so building
+2026-10-09T17:00:30.1269462Z         the diff threw "Read access is allowed from inside read-action only" on
+2026-10-09T17:00:30.1270153Z         2026.2+. No behavior change on 2025.x.
+2026-10-09T17:00:30.1270631Z         <br/><br/>
+2026-10-09T17:00:30.1271334Z         <b>0.4.9</b> � fix: the chat tool window now deterministically uses the
+2026-10-09T17:00:30.1272316Z         LLM provider you configured (<code>cc config</code> / Configure LLM),
+2026-10-09T17:00:30.1275346Z         reading <code>~/.chainlesschain/config.json</code> and passing it
+2026-10-09T17:00:30.1276525Z         explicitly to <code>cc agent</code> � no more spurious
+2026-10-09T17:00:30.1277210Z         <code>Anthropic error: 401</code> when another provider is configured.
+2026-10-09T17:00:30.1277713Z         <br/><br/>
+2026-10-09T17:00:30.1278302Z         <b>0.4.8</b> � <code>/compact</code> in the chat tool window (Claude-Code
+2026-10-09T17:00:30.1279035Z         IDE parity): trims the live conversation history between turns (no extra
+2026-10-09T17:00:30.1280038Z         LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0
+2026-10-09T17:00:30.1280489Z         feature.
+2026-10-09T17:00:30.1280763Z         <br/><br/>
+2026-10-09T17:00:30.1281304Z         <b>0.4.7</b> � cleared the remaining API-compatibility flags the Plugin
+2026-10-09T17:00:30.1281969Z         Verifier reported on 2026.x: the @-mention list renderer no longer uses a
+2026-10-09T17:00:30.1282644Z         scheduled-for-removal helper, and the deprecated terminal customizer was
+2026-10-09T17:00:30.1283373Z         removed (a <code>cc</code> you run in a terminal still auto-connects via the
+2026-10-09T17:00:30.1283948Z         bridge's discovery lockfile).
+2026-10-09T17:00:30.1284601Z         <br/><br/>
+2026-10-09T17:00:30.1285255Z         <b>0.4.6</b> � newer-IDE compatibility: removed the last deprecated-API
+2026-10-09T17:00:30.1285992Z         usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
+2026-10-09T17:00:30.1286729Z         reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
+2026-10-09T17:00:30.1287239Z         <br/><br/>
+2026-10-09T17:00:30.1287850Z         <b>0.4.5</b> � reverted the experimental 0.4.4 <code>getTerminalOutput</code>
+2026-10-09T17:00:30.1288568Z         tool: the terminal API it used is not stable across IDE versions and caused
+2026-10-09T17:00:30.1289235Z         errors on some builds. Everything else is unchanged from 0.4.3.
+2026-10-09T17:00:30.1289710Z         <br/><br/>
+2026-10-09T17:00:30.1290210Z         <b>0.4.3</b> � the <code>@</code>-mention symbol completion now covers
+2026-10-09T17:00:30.1290908Z         <b>methods/functions</b> too (not just classes) � type a method name to
+2026-10-09T17:00:30.1291455Z         reference the file where it's defined.
+2026-10-09T17:00:30.1291822Z         <br/><br/>
+2026-10-09T17:00:30.1292403Z         <b>0.4.2</b> � the <code>@</code>-mention popup now includes project class
+2026-10-09T17:00:30.1293034Z         symbols (type a class name to reference the file where it's defined),
+2026-10-09T17:00:30.1293667Z         alongside <code>@selection</code>/<code>@diagnostics</code> and files.
+2026-10-09T17:00:30.1294102Z         <br/><br/>
+2026-10-09T17:00:30.1294622Z         <b>0.4.1</b> � expanded the plugin description / what's-new (no functional
+2026-10-09T17:00:30.1295159Z         change since 0.4.0).
+2026-10-09T17:00:30.1295455Z         <br/><br/>
+2026-10-09T17:00:30.1295867Z         <b>0.4.0</b> � VS Code feature parity.
+2026-10-09T17:00:30.1296226Z         <ul>
+2026-10-09T17:00:30.1296740Z           <li>Multi-conversation <b>tabs</b> (one agent per tab, resume across restarts).</li>
+2026-10-09T17:00:30.1297687Z           <li><b>Approval modes</b> (<code>/auto</code>�<code>/bypass</code>�<code>/normal</code>)
+2026-10-09T17:00:30.1298605Z               and <b>extended thinking</b> (<code>/think</code>�<code>/ultrathink</code>�<code>/think-off</code>),
+2026-10-09T17:00:30.1299701Z               plus <code>/new</code> <code>/stop</code> <code>/cost</code> <code>/context</code>
+2026-10-09T17:00:30.1300349Z               <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+2026-10-09T17:00:30.1301567Z           <li><b>Interactive plan &amp; approval cards</b> (Approve/Deny buttons).</li>
+2026-10-09T17:00:30.1303604Z           <li>Editor <b>Explain / Refactor</b> actions, <code>@file#L</code> reference
+2026-10-09T17:00:30.1306971Z               insertion (<code>Ctrl/Cmd+Alt+K</code>), and an <code>@</code>-mention popup.</li>
+2026-10-09T17:00:30.1307842Z           <li>Native diff "<b>Request changes�</b>" with inline notes, and batch
+2026-10-09T17:00:30.1308442Z               <b>openMultiDiff</b> multi-file review.</li>
+2026-10-09T17:00:30.1309031Z           <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
+2026-10-09T17:00:30.1309727Z           <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
+2026-10-09T17:00:30.1310533Z         </ul>
+2026-10-09T17:00:30.1350526Z     ]' tag will be set to '<b>[0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)</b><br/><ul><li>Recommend CLI <code>0.166.95</code> after its public npm release and this extension's exact-commit release gates pass.</li><li>Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.</li><li>Retain the compatibility floor and runtime capability diagnostics; experimental native review and durable Windows/macOS recovery remain outside release acceptance.</li></ul><br/><b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br/><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br/><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br/><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul><br/><b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br/><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul>'
+2026-10-09T17:00:30.1398071Z 
+2026-10-09T17:00:30.1398332Z > Task :processUiTestResources
+2026-10-09T17:00:32.6078620Z > Task :compileUiTestJava
+2026-10-09T17:00:32.6079116Z > Task :uiTestClasses
+2026-10-09T17:00:51.1096170Z JCEF_I(00:51:023): Found free tcp-port 6188 for server.
+2026-10-09T17:00:51.1098256Z JCEF_I(00:51:024): Found free tcp-port 6189 for java-handlers.
+2026-10-09T17:00:51.1099565Z JCEF_V(00:51:036): Created CefServer instance. Transport port=6188 (backward port=6189). Params:
+2026-10-09T17:00:51.1102381Z [--no-proxy-server, --disable-features=SpareRendererForSitePerProcess, --disable-gpu-process-crash-limit, --disable-component-update, --autoplay-policy=no-user-gesture-required]| log_file=D:\a\chainlesschain\chainlesschain\packages\jetbrains-plugin\build\idea-sandbox\2025-2-1791564857258\IC-2024.2\log_runIdeForUiTests\jcef_4020.log, log_severity=LOGSEVERITY_DISABLE
+2026-10-09T17:00:52.7133506Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+2026-10-09T17:00:52.7134287Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+2026-10-09T17:00:52.7135575Z ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+2026-10-09T17:00:52.7136790Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+2026-10-09T17:00:52.7137416Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+2026-10-09T17:00:52.7138657Z ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+2026-10-09T17:00:52.8076641Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+2026-10-09T17:00:52.8078825Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+2026-10-09T17:00:52.8082512Z ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+2026-10-09T17:00:52.8084086Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+2026-10-09T17:00:52.8084692Z ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+2026-10-09T17:00:52.8085727Z ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+2026-10-09T17:00:55.8676228Z 2026-10-09 17:00:55,754 [  51741]   WARN - #org.intellij.plugins.markdown.ui.preview.jcef.impl.JcefBrowserPipeImpl - No subscribers for documentReady!
+2026-10-09T17:00:55.8915004Z Attached data: 
+2026-10-09T17:01:02.5454990Z > Task :uiSmokeTest
+2026-10-09T17:01:41.6390081Z 
+2026-10-09T17:01:41.7391803Z IdeUiSmokeTest > chainlessChainChatAndControlJourney() FAILED
+2026-10-09T17:01:41.7393356Z     com.intellij.remoterobot.utils.WaitForConditionTimeoutException: Exceeded timeout (PT45S) for condition function (Failed to find 'ComponentFixture' by '//div[@text='Approve Once']' in 45s) 
+2026-10-09T17:01:41.7394619Z         at app//com.intellij.remoterobot.utils.RepeatUtilsKt.waitFor(RepeatUtils.kt:51)
+2026-10-09T17:01:41.7396112Z         at app//com.intellij.remoterobot.utils.RepeatUtilsKt.waitFor$default(RepeatUtils.kt:37)
+2026-10-09T17:01:41.7397268Z         at app//com.intellij.remoterobot.SearchContext$find$1.invoke(SearchContext.kt:53)
+2026-10-09T17:01:41.7398115Z         at app//com.intellij.remoterobot.SearchContext$find$1.invoke(SearchContext.kt:51)
+2026-10-09T17:01:41.7398978Z         at app//com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step(StepWorker.kt:23)
+2026-10-09T17:01:41.7399897Z         at app//com.intellij.remoterobot.SearchContext$DefaultImpls.find(SearchContext.kt:51)
+2026-10-09T17:01:41.7400674Z         at app//com.intellij.remoterobot.RemoteRobot.find(RemoteRobot.kt:32)
+2026-10-09T17:01:41.7402076Z         at app//com.chainlesschain.ide.uitest.IdeUiSmokeTest.chainlessChainChatAndControlJourney(IdeUiSmokeTest.java:161)
+2026-10-09T17:01:41.7402781Z 
+2026-10-09T17:01:41.7403243Z NativeTranscriptProbeTest > acceptsOnlyTheCurrentValidatedFixtureIdentity() PASSED
+2026-10-09T17:01:42.0404633Z 
+2026-10-09T17:01:42.0405765Z NativeTranscriptProbeTest > rejectsEdtInvocationBeforeAttemptingAnyCliProbe() PASSED
+2026-10-09T17:01:42.0406549Z 
+2026-10-09T17:01:42.0406914Z PluginStartupContractTest > doesNotTreatAnUnexpectedNullResponseAsStartupReadiness() PASSED
+2026-10-09T17:01:42.0407265Z 
+2026-10-09T17:01:42.0407541Z PluginStartupContractTest > rejectsContractDriftImmediatelyAfterStartup() PASSED
+2026-10-09T17:01:42.0407837Z 
+2026-10-09T17:01:42.0408128Z PluginStartupContractTest > propagatesRemoteClassLoadingFailuresWithoutRetry() PASSED
+2026-10-09T17:01:42.0408441Z 
+2026-10-09T17:01:42.0408731Z PluginStartupContractTest > failsWithAReadinessDiagnosticIfTheLoaderNeverAppears() PASSED
+2026-10-09T17:01:42.2394679Z 
+2026-10-09T17:01:42.2396456Z PluginStartupContractTest > waitsForThePluginLoaderAfterTheFrameAppears() PASSED
+2026-10-09T17:01:42.4395563Z 
+2026-10-09T17:01:42.4396789Z 8 tests completed, 1 failed
+2026-10-09T17:01:42.6423936Z 
+2026-10-09T17:01:42.6424654Z > Task :uiSmokeTest FAILED
+2026-10-09T17:01:42.7593928Z 
+2026-10-09T17:01:42.7717282Z FAILURE: Build failed with an exception.
+2026-10-09T17:01:42.7718133Z 
+2026-10-09T17:01:42.7718425Z * What went wrong:
+2026-10-09T17:01:42.7728594Z Execution failed for task ':uiSmokeTest'.
+2026-10-09T17:01:42.7796942Z > There were failing tests. See the report at: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/index.html
+2026-10-09T17:01:42.7798310Z 
+2026-10-09T17:01:42.7802296Z * Try:
+2026-10-09T17:01:42.7802624Z > Run with --scan to get full insights.
+2026-10-09T17:01:42.7802851Z 
+2026-10-09T17:01:42.7802989Z * Exception is:
+2026-10-09T17:01:42.7803546Z org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':uiSmokeTest'.
+2026-10-09T17:01:42.7804606Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+2026-10-09T17:01:42.7806022Z 	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:282)
+2026-10-09T17:01:42.7807344Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+2026-10-09T17:01:42.7809153Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-10-09T17:01:42.7810642Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-10-09T17:01:42.7812310Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-10-09T17:01:42.7813902Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-10-09T17:01:42.7815202Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-10-09T17:01:42.7816411Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-10-09T17:01:42.7817616Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-10-09T17:01:42.7818729Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-10-09T17:01:42.7819805Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-10-09T17:01:42.7821057Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:200)
+2026-10-09T17:01:42.7823376Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:195)
+2026-10-09T17:01:42.7824728Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-10-09T17:01:42.7826768Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7828149Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+2026-10-09T17:01:42.7829460Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7830589Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-10-09T17:01:42.7831726Z 	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+2026-10-09T17:01:42.7833412Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-10-09T17:01:42.7834749Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-10-09T17:01:42.7835939Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-10-09T17:01:42.7837338Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-10-09T17:01:42.7838918Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-10-09T17:01:42.7840208Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:80)
+2026-10-09T17:01:42.7841685Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-10-09T17:01:42.7843218Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-10-09T17:01:42.7844550Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
+2026-10-09T17:01:42.7845626Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+2026-10-09T17:01:42.7848137Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-10-09T17:01:42.7851249Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+2026-10-09T17:01:42.7853550Z Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/index.html
+2026-10-09T17:01:42.7855546Z 	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+2026-10-09T17:01:42.7856589Z 	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+2026-10-09T17:01:42.7857568Z 	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+2026-10-09T17:01:42.7870676Z 	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+2026-10-09T17:01:42.7873039Z 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+2026-10-09T17:01:42.7875322Z 	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+2026-10-09T17:01:42.7879336Z 	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+2026-10-09T17:01:42.7882392Z 	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+2026-10-09T17:01:42.7883876Z 	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:29)
+2026-10-09T17:01:42.7885099Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:244)
+2026-10-09T17:01:42.7886130Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+2026-10-09T17:01:42.7887268Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+2026-10-09T17:01:42.7892607Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-10-09T17:01:42.7893902Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7895096Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+2026-10-09T17:01:42.7909617Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7911866Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+2026-10-09T17:01:42.7918446Z 	at org.gradle.internal.operations.DefaultBuildOperationExecutor.run(DefaultBuildOperationExecutor.java:68)
+2026-10-09T17:01:42.7919584Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+2026-10-09T17:01:42.7920629Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+2026-10-09T17:01:42.7922372Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+2026-10-09T17:01:42.7923306Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+2026-10-09T17:01:42.7924162Z 	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+2026-10-09T17:01:42.7925028Z 	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+2026-10-09T17:01:42.7925784Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+2026-10-09T17:01:42.7926734Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+2026-10-09T17:01:42.7928180Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:200)
+2026-10-09T17:01:42.7930193Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:195)
+2026-10-09T17:01:42.7934735Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-10-09T17:01:42.7956811Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7957877Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+2026-10-09T17:01:42.7958915Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.7959590Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-10-09T17:01:42.7960237Z 	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+2026-10-09T17:01:42.7961029Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+2026-10-09T17:01:42.7961526Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+2026-10-09T17:01:42.7962056Z 	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:41)
+2026-10-09T17:01:42.7962630Z 	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:74)
+2026-10-09T17:01:42.7963137Z 	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+2026-10-09T17:01:42.7963714Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+2026-10-09T17:01:42.7965248Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+2026-10-09T17:01:42.7965930Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+2026-10-09T17:01:42.7966566Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+2026-10-09T17:01:42.7967258Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+2026-10-09T17:01:42.7967951Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+2026-10-09T17:01:42.7968662Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:67)
+2026-10-09T17:01:42.7969399Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:45)
+2026-10-09T17:01:42.7970235Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+2026-10-09T17:01:42.7971072Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+2026-10-09T17:01:42.7971675Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+2026-10-09T17:01:42.7972379Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
+2026-10-09T17:01:42.7973017Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:101)
+2026-10-09T17:01:42.7973600Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:101)
+2026-10-09T17:01:42.7974034Z 	at org.gradle.internal.Try$Success.map(Try.java:164)
+2026-10-09T17:01:42.7974467Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:85)
+2026-10-09T17:01:42.7975024Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:74)
+2026-10-09T17:01:42.7975440Z 	at org.gradle.internal.Either$Left.fold(Either.java:115)
+2026-10-09T17:01:42.7975834Z 	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+2026-10-09T17:01:42.7976315Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+2026-10-09T17:01:42.7976809Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+2026-10-09T17:01:42.7977375Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+2026-10-09T17:01:42.7977982Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+2026-10-09T17:01:42.7978565Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:76)
+2026-10-09T17:01:42.7979135Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:54)
+2026-10-09T17:01:42.7979685Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:54)
+2026-10-09T17:01:42.7980196Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:36)
+2026-10-09T17:01:42.7981029Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+2026-10-09T17:01:42.7981868Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+2026-10-09T17:01:42.7982692Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+2026-10-09T17:01:42.7983516Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+2026-10-09T17:01:42.7984287Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+2026-10-09T17:01:42.7985106Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+2026-10-09T17:01:42.7985751Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+2026-10-09T17:01:42.7986291Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+2026-10-09T17:01:42.7986791Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:106)
+2026-10-09T17:01:42.7987264Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:55)
+2026-10-09T17:01:42.7987931Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+2026-10-09T17:01:42.7988771Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+2026-10-09T17:01:42.7989673Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+2026-10-09T17:01:42.7990395Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
+2026-10-09T17:01:42.7991207Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+2026-10-09T17:01:42.7991938Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+2026-10-09T17:01:42.7992693Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+2026-10-09T17:01:42.7993404Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+2026-10-09T17:01:42.7994053Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+2026-10-09T17:01:42.7994650Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+2026-10-09T17:01:42.7995296Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+2026-10-09T17:01:42.7995934Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+2026-10-09T17:01:42.7996538Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+2026-10-09T17:01:42.7997187Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+2026-10-09T17:01:42.7997783Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+2026-10-09T17:01:42.7998316Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+2026-10-09T17:01:42.7999006Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-10-09T17:01:42.7999809Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-10-09T17:01:42.8000744Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+2026-10-09T17:01:42.8001397Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+2026-10-09T17:01:42.8001920Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+2026-10-09T17:01:42.8002408Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+2026-10-09T17:01:42.8002873Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+2026-10-09T17:01:42.8003400Z 	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+2026-10-09T17:01:42.8004159Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+2026-10-09T17:01:42.8004877Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-10-09T17:01:42.8005603Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-10-09T17:01:42.8006349Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-10-09T17:01:42.8007090Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-10-09T17:01:42.8007758Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-10-09T17:01:42.8008416Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-10-09T17:01:42.8009172Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-10-09T17:01:42.8009797Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-10-09T17:01:42.8010402Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-10-09T17:01:42.8011372Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:200)
+2026-10-09T17:01:42.8012189Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:195)
+2026-10-09T17:01:42.8012906Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-10-09T17:01:42.8013532Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.8014182Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+2026-10-09T17:01:42.8014815Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-10-09T17:01:42.8015434Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-10-09T17:01:42.8016072Z 	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+2026-10-09T17:01:42.8016709Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-10-09T17:01:42.8017279Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-10-09T17:01:42.8017931Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-10-09T17:01:42.8018705Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-10-09T17:01:42.8019629Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-10-09T17:01:42.8021282Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:80)
+2026-10-09T17:01:42.8022321Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-10-09T17:01:42.8023231Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-10-09T17:01:42.8023959Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
+2026-10-09T17:01:42.8024544Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+2026-10-09T17:01:42.8025317Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-10-09T17:01:42.8025924Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+2026-10-09T17:01:42.8026224Z 
+2026-10-09T17:01:42.8026230Z 
+2026-10-09T17:01:42.8026331Z BUILD FAILED in 1m 33s
+2026-10-09T17:01:42.8026576Z 6 actionable tasks: 6 executed
+2026-10-09T17:01:42.8026819Z Configuration cache entry stored.
+2026-10-09T17:01:43.8074211Z [jetbrains-ui-host] evidence: D:\a\chainlesschain\chainlesschain\packages\jetbrains-plugin\build\reports\ide-journey\Windows-2025.2\journey-evidence.json (sha256:2430fc87438cf85a4b5288eda6ac83b1638bff6dbb98d6f15748f06bd2eb8562)
+2026-10-09T17:01:43.8084936Z [jetbrains-ui-host] FAIL Error: ui-smoke-initial failed with exit 1
+2026-10-09T17:01:43.8085756Z     at ChildProcess.<anonymous> (file:///D:/a/chainlesschain/chainlesschain/packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs:264:23)
+2026-10-09T17:01:43.8086608Z     at Object.onceWrapper (node:events:639:26)
+2026-10-09T17:01:43.8086972Z     at ChildProcess.emit (node:events:536:35)
+2026-10-09T17:01:43.8087311Z     at maybeClose (node:internal/child_process:1101:16)
+2026-10-09T17:01:43.8087703Z     at ChildProcess._handle.onexit (node:internal/child_process:304:5)
+2026-10-09T17:01:44.1465563Z ##[error]Process completed with exit code 1.
+2026-10-09T17:01:44.6225675Z ##[group]Run actions/upload-artifact@v6
+2026-10-09T17:01:44.6226257Z with:
+2026-10-09T17:01:44.6226526Z   name: jetbrains-Windows-2025.2-host-evidence-1
+2026-10-09T17:01:44.6227308Z   path: packages/jetbrains-plugin/build/reports/ide-journey/
+packages/jetbrains-plugin/build/reports/ui-host-driver/
+packages/jetbrains-plugin/build/reports/ui-smoke/
+packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+
+2026-10-09T17:01:44.6228025Z   if-no-files-found: error
+2026-10-09T17:01:44.6228209Z   compression-level: 6
+2026-10-09T17:01:44.6228415Z   overwrite: false
+2026-10-09T17:01:44.6228589Z   include-hidden-files: false
+2026-10-09T17:01:44.6228783Z env:
+2026-10-09T17:01:44.6228927Z   CC_UI_STREAM_PROFILE: 1
+2026-10-09T17:01:44.6229152Z   IDE_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T17:01:44.6229452Z   CC_RELEASE_COMMIT: 8e538362109dbe0bf455d4f72dcab865962e668c
+2026-10-09T17:01:44.6229856Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T17:01:44.6230263Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-09T17:01:44.6230568Z   MAVEN_ARGS: -ntp
+2026-10-09T17:01:44.6230723Z ##[endgroup]
+2026-10-09T17:01:46.8858581Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-09T17:01:46.8861545Z The least common ancestor is D:\a\chainlesschain\chainlesschain\packages\jetbrains-plugin\build\reports. This will be the root directory of the artifact
+2026-10-09T17:01:46.8862275Z With the provided path, there will be 58 files uploaded
+2026-10-09T17:01:46.8865791Z Artifact name is valid!
+2026-10-09T17:01:46.8867314Z Root directory input is valid!
+2026-10-09T17:01:47.4469819Z Beginning upload of artifact content to blob storage
+2026-10-09T17:01:48.4414428Z Uploaded bytes 1905026
+2026-10-09T17:01:48.4963716Z Finished uploading artifact content to blob storage!
+2026-10-09T17:01:48.4964758Z SHA256 digest of uploaded artifact zip is c0de3e3330aa052fc78f66dbcaa24711ae7774c4dc3d6f749b25622a3a09c2cd
+2026-10-09T17:01:48.4966465Z Finalizing artifact upload
+2026-10-09T17:01:48.8872160Z Artifact jetbrains-Windows-2025.2-host-evidence-1.zip successfully finalized. Artifact ID 11632252463
+2026-10-09T17:01:48.8873422Z Artifact jetbrains-Windows-2025.2-host-evidence-1 has been successfully uploaded! Final size is 1905026 bytes. Artifact ID is 11632252463
+2026-10-09T17:01:48.8880409Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37958205583/artifacts/11632252463
+2026-10-09T17:01:48.9729052Z Post job cleanup.
+2026-10-09T17:01:49.1662446Z Post job cleanup.
+2026-10-09T17:01:49.3172133Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-09T17:01:49.3407643Z git version 2.55.0.windows.5
+2026-10-09T17:01:49.3465516Z Temporarily overriding HOME='D:\a\_temp\4f8111c6-278a-435d-9c59-e72fc152d7ac' before making global git config changes
+2026-10-09T17:01:49.3466614Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T17:01:49.3474192Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-09T17:01:49.3999663Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T17:01:49.4259052Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-09T17:01:50.1423996Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T17:01:50.1632800Z http.https://github.com/.extraheader
+2026-10-09T17:01:50.1666726Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-09T17:01:50.1921364Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-09T17:01:50.6315725Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T17:01:50.6556907Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-09T17:01:51.1080399Z Cleaning up orphan processes

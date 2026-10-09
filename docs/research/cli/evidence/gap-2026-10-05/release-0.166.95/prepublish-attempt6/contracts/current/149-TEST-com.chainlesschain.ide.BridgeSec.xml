@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.BridgeSecurityPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.025">
+  <properties/>
+  <testcase name="missingManagedSettingsKeepsStrictDefault(Path)" classname="com.chainlesschain.ide.BridgeSecurityPolicyTest" time="0.011"/>
+  <testcase name="malformedManagedSettingsFailClosed(Path)" classname="com.chainlesschain.ide.BridgeSecurityPolicyTest" time="0.003"/>
+  <testcase name="lookalikeRootOrNonBooleanValuesCannotEnableDowngrade(Path)" classname="com.chainlesschain.ide.BridgeSecurityPolicyTest" time="0.004"/>
+  <testcase name="exactManagedIdeBridgeBooleanEnablesDowngrade(Path)" classname="com.chainlesschain.ide.BridgeSecurityPolicyTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

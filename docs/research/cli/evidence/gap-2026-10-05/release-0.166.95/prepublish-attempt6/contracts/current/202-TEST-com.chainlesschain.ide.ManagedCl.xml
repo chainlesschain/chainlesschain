@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ManagedCliTest" tests="74" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.073">
+  <properties/>
+  <testcase name="skipsLinksIgnoresGlobalPaxAndFlagsCorruption()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.006"/>
+  <testcase name="install_belowFloorRefusedAtPlanTimeNeverDownloads()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.003"/>
+  <testcase name="ustarPrefixIsPrepended()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="packageBinEntryPrefersCcThenPackageNameThenAny()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="install_writesStateShimsAndResolvableCommand()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.003"/>
+  <testcase name="first install — no previous state" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="upgrade records the outgoing version as rollback target" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="re-install of the SAME version keeps the old rollback target" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rollback to previous still on disk" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="rollback with no previous version" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rollback when the previous version dir was wiped" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rollback with no state at all" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="seam_usedOnlyWhenEveryGlobalProbeFails()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rejectsUnexpectedLayoutOutsidePackage()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="seam_usableGlobalWinsAndManagedNeverConsulted()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rollbackRefusesWhenPreviousVersionDirWasWiped()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.004"/>
+  <testcase name="allDirsArchiveIsEmptyPackage()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="sha512 match" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="sha1 match — uppercase expected hex is normalized" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="sha512 mismatch on tampered payload" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rejectsPaxSmuggledZipSlip()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="verifyTarball_failsOnRealDecodedByteFlip()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="launcherShimsRefuseUnquotablePathsFailClosed()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rejectsZipSlipTraversal()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="resolveManagedCommandQuotesWhitespaceShimOnWindowsOnly()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.002"/>
+  <testcase name="enforcesFileCountAndTotalSizeCaps()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="resolveManagedBinaryResolvesStateToNodeEntry()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="seam_explicitConfiguredPathWinsAndManagedNeverConsulted()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="installStateWriteIsLast_reinstallKeepsRollbackTarget()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.002"/>
+  <testcase name="seam_nullOrThrowingSupplierFallsThrough()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="upgradeRecordsRollbackTargetAndRollbackRestoresOneStep()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.004"/>
+  <testcase name="extractsNormalNpmLayout()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="shimNameAndCommandForSpawnQuotingRules()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="explicit usable setting wins outright" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="broken explicit path is NEVER silently replaced — managed only OFFERED" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="broken explicit + managed disabled — no offer, says why" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="broken explicit + no node on PATH — managed impossible, exact diagnostic" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="global at floor beats an installed managed copy" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="no floor — any global chainlesschain is usable" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="below-floor global yields to an installed managed copy" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="below-floor global with no managed install — used, managed offered" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="below-floor global + managed installed but DISABLED — global used" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="no global — installed managed copy is used" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="managed installed but node vanished from PATH — unusable, exact diagnostic" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="nothing anywhere — offer managed download" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="nothing anywhere + managed disabled — short-circuit, no offer" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="nothing anywhere + no node on PATH — managed impossible, says exactly that" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="defaultRootDirIsUnderUserHomeChainlesschainIde()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="resolveManagedCommandNullWithNoInstallOrCorruptState()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="missingFetchIoIsExplicitPlanFailure()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="resolveManagedBinaryNullOnMissingPieces()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="gnuLongLinkAppliesToFollowingEntry()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="sharedFixturesExistAndAreWellFormed()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.003"/>
+  <testcase name="managedNodeDiagnosticCases()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="parseStateJson_survivesCorruption()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="latest from version manifest — sha512 preferred over shasum" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="shasum-only manifest falls back to sha1 (lowercased hex)" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="packument + latest resolves through dist-tags" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="packument + exact pinned version" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="packument + unknown version → version-not-found" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="below floor rejected" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="at floor accepted" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="missing meta → no-registry-meta" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="manifest without dist → no-tarball" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="http tarball URL rejected fail-closed" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="wrong package name rejected" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="no integrity and no shasum → fail-closed" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="rejectsAbsoluteDriveLetterAndBackslashPaths()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="paxHeaderPathOverrideWins()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="chooseBinaryProbeStillPure()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="install_tamperedDownloadRejectedAtVerifyWritesNothing()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.001"/>
+  <testcase name="registryMetaUrlTargetsVersionManifest()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="httpsFetcherRefusesNonHttpsBeforeAnyNetwork()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <testcase name="launcherShimsWrapEntryInNodeForBothPlatforms()" classname="com.chainlesschain.ide.ManagedCliTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

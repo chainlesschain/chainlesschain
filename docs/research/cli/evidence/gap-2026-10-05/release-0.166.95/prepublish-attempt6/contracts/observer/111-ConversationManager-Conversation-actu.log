@@ -1,0 +1,14 @@
+Compiled from "ConversationManager.java"
+public final class com.chainlesschain.ide.ConversationManager$Conversation {
+  public final java.lang.String id;
+  public java.lang.String draftKey;
+  public java.lang.String title;
+  public volatile java.lang.String sessionId;
+  public volatile java.lang.Object session;
+  public volatile java.lang.Object turnState;
+  public volatile java.lang.String mode;
+  public final com.chainlesschain.ide.PermissionModeState modeState;
+  public volatile java.lang.String thinking;
+  public volatile java.lang.String goalCondition;
+  com.chainlesschain.ide.ConversationManager$Conversation(java.lang.String, java.lang.String, java.lang.String, java.lang.Object);
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.QuestionDraftRegistryTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.131">
+  <properties/>
+  <testcase name="failedLoadCanBeRetriedWithoutReplacingEditsOrTreatingUnreadableStorageAsEmpty()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.023"/>
+  <testcase name="mismatchedRequestSessionCannotAcquireResponseAuthority()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.002"/>
+  <testcase name="unboundQuestionsOnlyRetainValuesInSameLiveInstanceAndSchemaChangesArchiveTheOldForm()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.02"/>
+  <testcase name="replacementWhileSaveIsPendingRevokesOldResponseIncludingAnUnboundRequest()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.014"/>
+  <testcase name="restoresBoundFieldsAcrossHostCrashWithoutGrantingResponseAuthority()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.015"/>
+  <testcase name="saveFailureAllowsExplicitRetryButDeliveryFailureAndRejectionDoNot()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.013"/>
+  <testcase name="deferredQuestionsSurviveTurnEndButStopArchivesEverything()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.014"/>
+  <testcase name="reserveIsExclusiveAndRequiresDiskSuccessBeforeAOneTimeDispatch()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.014"/>
+  <testcase name="lateLoadAdoptsIdentityWithoutOverwritingEditsAndDetachArchivesAdoptedRecord()" classname="com.chainlesschain.ide.QuestionDraftRegistryTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

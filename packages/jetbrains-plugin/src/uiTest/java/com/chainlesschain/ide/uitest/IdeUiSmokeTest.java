@@ -21,9 +21,9 @@ import java.time.Instant;
  *
  * <p>The IDE is launched separately with the production plugin and a
  * deterministic stream-json peer placed at the front of PATH only for the
- * sandbox process. No production test hook is involved: CLI resolution,
- * process spawn, NDJSON transport, event mapping, Swing rendering, and control
- * replies all use the normal plugin path.
+ * sandbox process. CLI resolution, process spawn, NDJSON transport, event
+ * mapping, Swing rendering, and control replies use the normal plugin path.
+ * An opt-in observer can record boundary metadata without changing that path.
  *
  * <p>The journey covers streaming, retry, plan approval, tool permission,
  * interrupt escalation, child restart, session resume, the canonical
@@ -1242,16 +1242,27 @@ final class IdeUiSmokeTest {
     }
 
     private static void saveScreenshot(RemoteRobot robot, String name) {
+        Path dir = Paths.get("build", "reports", "ui-smoke");
+        String stem = name + "-" + System.currentTimeMillis();
         try {
-            Path dir = Paths.get("build", "reports", "ui-smoke");
             Files.createDirectories(dir);
-            Path file = dir.resolve(name + "-" + System.currentTimeMillis() + ".png");
+            Path file = dir.resolve(stem + ".png");
             if (!ImageIO.write(robot.getScreenshot(), "png", file.toFile())) {
                 throw new IOException("no PNG ImageIO writer is available");
             }
             System.err.println("[ui-smoke] failure screenshot: " + file.toAbsolutePath());
         } catch (Throwable t) {
             System.err.println("[ui-smoke] could not capture a screenshot: " + t);
+        }
+        try {
+            Files.createDirectories(dir);
+            // The host evidence collector retains .bin inputs byte-for-byte.
+            // A large JSON tree must not enter its text redaction/tail path.
+            Path file = dir.resolve(stem + ".swing.json.bin");
+            UiFailureDiagnostics.capture(robot, file);
+            System.err.println("[ui-smoke] failure Swing snapshot: " + file.toAbsolutePath());
+        } catch (Throwable t) {
+            System.err.println("[ui-smoke] could not capture Swing diagnostics: " + t);
         }
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:12" hostname="DESKTOP-MTMV2RE" time="1.169">
+  <properties/>
+  <testcase name="profiles100kPathsAndRapidQueries()" classname="com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest" time="1.169"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
