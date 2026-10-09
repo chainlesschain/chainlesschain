@@ -597,3 +597,11 @@ shim EOF 多余空行移除后重编译并真实运行 v3，root19628 / child234
 ### 18.4 跨平台准备 fixture 修正
 
 旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 macOS /var 与 Windows runner 临时目录可以具有平台别名；fixture 对自己新建的临时目录使用 `fs.realpathSync.native` 后传入准备器。新增实建 symlink/junction 的拒绝测试，确认目标目录没有新增文件。生产准备器零修改，原失败/负例断言保留。Prettier、定向 ESLint 通过。
+
+## 19. 2026-10-09 准确提交完整门与 OIDC 发行
+
+准确发行提交 `efcab5f632312aea433953157d52091f018f26ae` 的 CLI CI 71 个 job 全部成功，Strict 5 个 job 全部成功，IDE PR 实际宿主/构建门 18 成功、1 个非 tag Marketplace 验证跳过。GitHub macOS arm64 容量取消的 13 份原件均无 runner、无测试步骤；恢复保留原 63 个成功任务的执行时间，缺项实际执行，三个 verify-cli 首次执行于 attempt 4，同轮 PM 产物完整汇总。PR #423 已合并，原失败、恢复、完整工作流及 PR 1994 文件通过/7 跳过的原始计数出处见[发行证据](./cli/evidence/gap-2026-10-05/release-0.166.94/README.md)。
+
+CLI `0.166.94` 已通过 GitHub Actions OIDC 发布，公开 tarball 与候选完全一致，签名/provenance 有效。10 个既有子包版本复用，并实际完成 registry 下载/安装核验。VS Code 标签流程 #37824729954 为 11 成功/3 渠道跳过，JetBrains 标签流程 #37824729100 为 13 成功/6 渠道跳过；两个标签均固定于同一准确 SHA，上传前各自重新验证公开 CLI 和 10 个固定子包。
+
+Open VSX `0.37.139` 已公开，latest/listed/downloadable 均成立，公开 VSIX 与标签候选字节及内容摘要一致。JetBrains `0.4.157` 的 update `1189859` 已 approve/listed、未 hidden；公开 ZIP 的容器字节与标签 ZIP 有差异，全部解压 entry 的字节逐一相同，未将两者描述为原始 ZIP 字节一致。实际产物的 Doctor/推荐版本检查通过。Microsoft Marketplace 为未配置凭据的独立可选回填渠道，本轮未发布。正式 36+9、预算、observations 及未关闭工程/人工条件保持原状，无新增付费 provider 请求。

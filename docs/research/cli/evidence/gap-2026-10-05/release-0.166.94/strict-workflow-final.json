@@ -1,0 +1,1125 @@
+{
+  "collectedAt": "2026-10-08T19:07:53.334Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37794297542,
+    "name": "CLI Strict Sandbox",
+    "node_id": "WFR_kwLOQgDM2s8AAAAIzLc2xg",
+    "head_branch": "feature/cli-ide-gap-continuation-20261008",
+    "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+    "path": ".github/workflows/cli-strict-sandbox.yml",
+    "display_title": "fix(cli-ide): repair strict lock fairness and prepare paired 0.166.94 release",
+    "run_number": 1457,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 320531245,
+    "check_suite_id": 102393718524,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX1yQm_A",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542",
+    "pull_requests": [],
+    "created_at": "2026-10-08T14:39:48Z",
+    "updated_at": "2026-10-08T15:07:25Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-10-08T14:39:48Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102393718524",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/320531245",
+    "head_commit": {
+      "id": "efcab5f632312aea433953157d52091f018f26ae",
+      "tree_id": "d9f85a86e25ddfe6ea82c2d85f1f7d033d8f5a69",
+      "message": "fix(verify01): canonicalize preparation fixtures and bind final native evidence",
+      "timestamp": "2026-10-08T14:39:22Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113369600891,
+      "run_id": 37794297542,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrTew",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369600891",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542/job/113369600891",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:48Z",
+      "started_at": "2026-10-08T14:43:31Z",
+      "completed_at": "2026-10-08T14:52:24Z",
+      "name": "strict native boundary (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:43:32Z",
+          "completed_at": "2026-10-08T14:43:33Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:43:33Z",
+          "completed_at": "2026-10-08T14:43:54Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:43:54Z",
+          "completed_at": "2026-10-08T14:43:54Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:43:54Z",
+          "completed_at": "2026-10-08T14:44:08Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:44:08Z",
+          "completed_at": "2026-10-08T14:48:19Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:48:19Z",
+          "completed_at": "2026-10-08T14:48:29Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:48:29Z",
+          "completed_at": "2026-10-08T14:48:30Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T14:48:30Z",
+          "completed_at": "2026-10-08T14:48:31Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-08T14:48:31Z",
+          "completed_at": "2026-10-08T14:48:31Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T14:48:31Z",
+          "completed_at": "2026-10-08T14:48:41Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T14:48:41Z",
+          "completed_at": "2026-10-08T14:48:42Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T14:48:42Z",
+          "completed_at": "2026-10-08T14:50:58Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:50:58Z",
+          "completed_at": "2026-10-08T14:51:44Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:51:44Z",
+          "completed_at": "2026-10-08T14:52:15Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:52:15Z",
+          "completed_at": "2026-10-08T14:52:16Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-08T14:52:16Z",
+          "completed_at": "2026-10-08T14:52:16Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T14:52:16Z",
+          "completed_at": "2026-10-08T14:52:17Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-08T14:52:17Z",
+          "completed_at": "2026-10-08T14:52:17Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-10-08T14:52:17Z",
+          "completed_at": "2026-10-08T14:52:17Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-08T14:52:17Z",
+          "completed_at": "2026-10-08T14:52:20Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-08T14:52:20Z",
+          "completed_at": "2026-10-08T14:52:22Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-08T14:52:22Z",
+          "completed_at": "2026-10-08T14:52:22Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369600891",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385786,
+      "runner_name": "GitHub Actions 1000385786",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369601046,
+      "run_id": 37794297542,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrUFg",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369601046",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542/job/113369601046",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:48Z",
+      "started_at": "2026-10-08T15:04:21Z",
+      "completed_at": "2026-10-08T15:07:25Z",
+      "name": "macOS latest native capability",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:04:22Z",
+          "completed_at": "2026-10-08T15:04:23Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:04:23Z",
+          "completed_at": "2026-10-08T15:04:41Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:04:41Z",
+          "completed_at": "2026-10-08T15:04:41Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:04:41Z",
+          "completed_at": "2026-10-08T15:05:07Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:05:07Z",
+          "completed_at": "2026-10-08T15:07:16Z"
+        },
+        {
+          "name": "Probe current macOS Seatbelt capability with a real process",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:07:16Z",
+          "completed_at": "2026-10-08T15:07:17Z"
+        },
+        {
+          "name": "Upload capability evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:07:17Z",
+          "completed_at": "2026-10-08T15:07:19Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T15:07:19Z",
+          "completed_at": "2026-10-08T15:07:19Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T15:07:19Z",
+          "completed_at": "2026-10-08T15:07:20Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T15:07:20Z",
+          "completed_at": "2026-10-08T15:07:21Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369601046",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000385844,
+      "runner_name": "GitHub Actions 1000385844",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369601270,
+      "run_id": 37794297542,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrU9g",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369601270",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542/job/113369601270",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:48Z",
+      "started_at": "2026-10-08T14:45:06Z",
+      "completed_at": "2026-10-08T14:49:50Z",
+      "name": "strict native boundary (ubuntu-24.04)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:45:07Z",
+          "completed_at": "2026-10-08T14:45:08Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:45:08Z",
+          "completed_at": "2026-10-08T14:45:20Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:45:20Z",
+          "completed_at": "2026-10-08T14:45:20Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:45:20Z",
+          "completed_at": "2026-10-08T14:45:30Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:45:30Z",
+          "completed_at": "2026-10-08T14:46:43Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:46:43Z",
+          "completed_at": "2026-10-08T14:46:54Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:46:54Z",
+          "completed_at": "2026-10-08T14:46:54Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-08T14:46:54Z",
+          "completed_at": "2026-10-08T14:46:54Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T14:46:54Z",
+          "completed_at": "2026-10-08T14:47:08Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-08T14:47:08Z",
+          "completed_at": "2026-10-08T14:47:08Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-08T14:47:08Z",
+          "completed_at": "2026-10-08T14:47:08Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T14:47:08Z",
+          "completed_at": "2026-10-08T14:48:38Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:48:38Z",
+          "completed_at": "2026-10-08T14:48:52Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:48:52Z",
+          "completed_at": "2026-10-08T14:49:11Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:49:11Z",
+          "completed_at": "2026-10-08T14:49:11Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-08T14:49:11Z",
+          "completed_at": "2026-10-08T14:49:11Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T14:49:11Z",
+          "completed_at": "2026-10-08T14:49:12Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T14:49:12Z",
+          "completed_at": "2026-10-08T14:49:14Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T14:49:14Z",
+          "completed_at": "2026-10-08T14:49:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-08T14:49:47Z",
+          "completed_at": "2026-10-08T14:49:47Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-08T14:49:47Z",
+          "completed_at": "2026-10-08T14:49:48Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-08T14:49:48Z",
+          "completed_at": "2026-10-08T14:49:48Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369601270",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000385791,
+      "runner_name": "GitHub Actions 1000385791",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369601366,
+      "run_id": 37794297542,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrVVg",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369601366",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542/job/113369601366",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:48Z",
+      "started_at": "2026-10-08T14:40:19Z",
+      "completed_at": "2026-10-08T14:42:52Z",
+      "name": "strict native boundary (ubuntu-24.04-arm)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:40:20Z",
+          "completed_at": "2026-10-08T14:40:20Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:40:20Z",
+          "completed_at": "2026-10-08T14:40:24Z"
+        },
+        {
+          "name": "Verify exact source identity and native ARM64 runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:40:24Z",
+          "completed_at": "2026-10-08T14:40:24Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:40:24Z",
+          "completed_at": "2026-10-08T14:40:29Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:40:29Z",
+          "completed_at": "2026-10-08T14:41:44Z"
+        },
+        {
+          "name": "Record native environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:41:44Z",
+          "completed_at": "2026-10-08T14:41:44Z"
+        },
+        {
+          "name": "Verify synchronous settings authority on native ARM64",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:41:44Z",
+          "completed_at": "2026-10-08T14:41:44Z"
+        },
+        {
+          "name": "Verify native anonymous tmpfile support",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T14:41:44Z",
+          "completed_at": "2026-10-08T14:41:44Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-linux-bwrap",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T14:41:44Z",
+          "completed_at": "2026-10-08T14:41:59Z"
+        },
+        {
+          "name": "Record bubblewrap version",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T14:41:59Z",
+          "completed_at": "2026-10-08T14:41:59Z"
+        },
+        {
+          "name": "Run native broker and MCP capsule boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T14:41:59Z",
+          "completed_at": "2026-10-08T14:42:15Z"
+        },
+        {
+          "name": "Run native bubblewrap boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T14:42:15Z",
+          "completed_at": "2026-10-08T14:42:17Z"
+        },
+        {
+          "name": "Run native Docker egress boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:42:17Z",
+          "completed_at": "2026-10-08T14:42:45Z"
+        },
+        {
+          "name": "Upload native ARM64 evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:42:45Z",
+          "completed_at": "2026-10-08T14:42:45Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:42:45Z",
+          "completed_at": "2026-10-08T14:42:46Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-08T14:42:46Z",
+          "completed_at": "2026-10-08T14:42:50Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-08T14:42:50Z",
+          "completed_at": "2026-10-08T14:42:50Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-08T14:42:50Z",
+          "completed_at": "2026-10-08T14:42:50Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369601366",
+      "labels": [
+        "ubuntu-24.04-arm"
+      ],
+      "runner_id": 1000385768,
+      "runner_name": "GitHub Actions 1000385768",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369601931,
+      "run_id": 37794297542,
+      "workflow_name": "CLI Strict Sandbox",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297542",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrXiw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369601931",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297542/job/113369601931",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:48Z",
+      "started_at": "2026-10-08T14:41:14Z",
+      "completed_at": "2026-10-08T14:45:51Z",
+      "name": "strict native boundary (macos-15)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:41:14Z",
+          "completed_at": "2026-10-08T14:41:15Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:41:15Z",
+          "completed_at": "2026-10-08T14:41:29Z"
+        },
+        {
+          "name": "Verify exact source identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:41:29Z",
+          "completed_at": "2026-10-08T14:41:29Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:41:29Z",
+          "completed_at": "2026-10-08T14:41:38Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:41:38Z",
+          "completed_at": "2026-10-08T14:43:22Z"
+        },
+        {
+          "name": "Run mapped Claude security delta tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:43:22Z",
+          "completed_at": "2026-10-08T14:43:30Z"
+        },
+        {
+          "name": "Verify synchronous settings authority at supported Node floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:43:30Z",
+          "completed_at": "2026-10-08T14:43:31Z"
+        },
+        {
+          "name": "Verify Windows helper source contract",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-08T14:43:31Z",
+          "completed_at": "2026-10-08T14:43:31Z"
+        },
+        {
+          "name": "Set up Linux kernel sandbox backend",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-08T14:43:31Z",
+          "completed_at": "2026-10-08T14:43:31Z"
+        },
+        {
+          "name": "Verify native Windows capsule transport and unchanged v1 limits",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-08T14:43:31Z",
+          "completed_at": "2026-10-08T14:43:31Z"
+        },
+        {
+          "name": "Upload native Windows capsule transport evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-08T14:43:31Z",
+          "completed_at": "2026-10-08T14:43:31Z"
+        },
+        {
+          "name": "Run platform sandbox contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T14:43:31Z",
+          "completed_at": "2026-10-08T14:45:00Z"
+        },
+        {
+          "name": "Run background agent supervisor contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:45:00Z",
+          "completed_at": "2026-10-08T14:45:20Z"
+        },
+        {
+          "name": "Run native ProcessExecutionBroker strict boundary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:45:20Z",
+          "completed_at": "2026-10-08T14:45:28Z"
+        },
+        {
+          "name": "Produce advisory canonical SEC-DELTA fragment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:45:28Z",
+          "completed_at": "2026-10-08T14:45:29Z"
+        },
+        {
+          "name": "Capture macOS sandbox diagnostics",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-10-08T14:45:29Z",
+          "completed_at": "2026-10-08T14:45:29Z"
+        },
+        {
+          "name": "Upload strict sandbox result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T14:45:29Z",
+          "completed_at": "2026-10-08T14:45:30Z"
+        },
+        {
+          "name": "Run Linux bubblewrap filesystem and network boundary",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-08T14:45:30Z",
+          "completed_at": "2026-10-08T14:45:30Z"
+        },
+        {
+          "name": "Run Linux Docker egress boundary with real containers",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-10-08T14:45:30Z",
+          "completed_at": "2026-10-08T14:45:30Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-08T14:45:30Z",
+          "completed_at": "2026-10-08T14:45:44Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-08T14:45:44Z",
+          "completed_at": "2026-10-08T14:45:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-08T14:45:45Z",
+          "completed_at": "2026-10-08T14:45:48Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369601931",
+      "labels": [
+        "macos-15"
+      ],
+      "runner_id": 1000385772,
+      "runner_name": "GitHub Actions 1000385772",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "counts": {
+    "success": 5
+  }
+}

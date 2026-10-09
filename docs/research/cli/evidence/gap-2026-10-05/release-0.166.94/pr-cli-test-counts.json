@@ -1,0 +1,19 @@
+{
+  "collectedAt": "2026-10-08T19:07:58.547Z",
+  "sourceCommit": "efcab5f632312aea433953157d52091f018f26ae",
+  "workflowRun": 37794297680,
+  "job": 113369602144,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297680/job/113369602144",
+  "rawLog": {
+    "bytes": 7341180,
+    "sha256": "77ec0e2b71f79a1fc395de69837713f3041242f92544edf47d0e5f2243f48305"
+  },
+  "excerpts": [
+    "2026-10-08T15:47:39.1802496Z \u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1994 passed\u001b[39m\u001b[22m\u001b[2m | \u001b[22m\u001b[33m7 skipped\u001b[39m\u001b[90m (2001)\u001b[39m",
+    "2026-10-08T15:47:39.2176495Z \u001b[2m   Start at \u001b[22m 14:42:18",
+    "2026-10-08T15:47:39.2237312Z \u001b[2m   Duration \u001b[22m 3920.74s\u001b[2m (transform 49.18s, setup 33.99s, import 603.44s, tests 6760.11s, environment 264ms)\u001b[22m",
+    "2026-10-08T15:47:54.7881543Z \u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m2 passed\u001b[39m\u001b[22m\u001b[90m (2)\u001b[39m",
+    "2026-10-08T15:47:54.7881988Z \u001b[2m   Start at \u001b[22m 15:47:49",
+    "2026-10-08T15:47:54.7882478Z \u001b[2m   Duration \u001b[22m 3.08s\u001b[2m (transform 131ms, setup 0ms, import 681ms, tests 2.34s, environment 0ms)\u001b[22m"
+  ]
+}

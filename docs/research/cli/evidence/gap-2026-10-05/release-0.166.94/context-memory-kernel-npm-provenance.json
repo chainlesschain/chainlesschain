@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-08T18:21:35.817Z",
+  "verifier": "npm audit signatures --include-attestations",
+  "package": "@chainlesschain/context-memory-kernel",
+  "version": "0.1.8",
+  "sha512": "7de66903b7fb6f0adf476e9c9811dec406861d027ee3396c5be8c35b92e5c62329f04c9fef04c534a2b6ae347c8ed252c927ed25a0d47b8f761eed89a51112b8",
+  "repository": "https://github.com/chainlesschain/chainlesschain",
+  "workflow": ".github/workflows/npm-publish.yml",
+  "ref": "refs/tags/v-npm-0-166-93",
+  "commit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+  "builder": "https://github.com/actions/runner/github-hosted",
+  "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37711516449/attempts/1",
+  "runId": 37711516449,
+  "attempt": 1,
+  "anchorMode": "trusted-reuse",
+  "audit": {
+    "invalid": 0,
+    "missing": 0
+  },
+  "reuse": {
+    "packagePath": "packages/context-memory-kernel",
+    "anchorCommit": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7",
+    "anchorRef": "refs/tags/v-npm-0-166-93",
+    "anchorTree": "5f695b08c2c544796e5ed5e5283e0300fcbb2db3",
+    "currentCommit": "efcab5f632312aea433953157d52091f018f26ae",
+    "currentTree": "5f695b08c2c544796e5ed5e5283e0300fcbb2db3"
+  }
+}

@@ -1,0 +1,9 @@
+source_sha=efcab5f632312aea433953157d52091f018f26ae
+runner_arch=ARM64
+kernel=Linux 6.17.0-1022-azure aarch64 GNU/Linux
+node=v22.12.0
+tmp_fs=ext4
+tmpfile_flag=404000 nlink=0 size=5
+bubblewrap 0.11.2
+docker_image=node@sha256:a0ddbc73510e98f5e824fd64266ffe1c2c343ba9cf260d95ca2985ad632a3f3e
+docker_image_arch=arm64

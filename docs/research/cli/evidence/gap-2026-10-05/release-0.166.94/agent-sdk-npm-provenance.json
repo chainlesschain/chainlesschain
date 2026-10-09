@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-08T18:21:39.925Z",
+  "verifier": "npm audit signatures --include-attestations",
+  "package": "@chainlesschain/agent-sdk",
+  "version": "0.2.13",
+  "sha512": "536d07208b4b6e9c15d4b871dd090b0cd987bbf86c1e5abdd36bd4f8534fbb87b00cd1c1bbaa078407468ae0465f4302588d908d5ab0ceeb823adcb6a7ab9603",
+  "repository": "https://github.com/chainlesschain/chainlesschain",
+  "workflow": ".github/workflows/npm-publish.yml",
+  "ref": "refs/tags/v-npm-0-166-90",
+  "commit": "28cff6adc82a4f358d785baada110e48884527ea",
+  "builder": "https://github.com/actions/runner/github-hosted",
+  "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/37413002340/attempts/1",
+  "runId": 37413002340,
+  "attempt": 1,
+  "anchorMode": "trusted-reuse",
+  "audit": {
+    "invalid": 0,
+    "missing": 0
+  },
+  "reuse": {
+    "packagePath": "packages/agent-sdk",
+    "anchorCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+    "anchorRef": "refs/tags/v-npm-0-166-90",
+    "anchorTree": "df79c4a13570ffd852f18d569a01df26b0fc64e4",
+    "currentCommit": "efcab5f632312aea433953157d52091f018f26ae",
+    "currentTree": "df79c4a13570ffd852f18d569a01df26b0fc64e4"
+  }
+}

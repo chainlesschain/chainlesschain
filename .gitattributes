@@ -108,3 +108,6 @@ docs/research/cli/evidence/gap-2026-10-05/windows-gnu-forwarder-2026-10-08/** -t
 
 # Private native namespace evidence remains bound to the original captured bytes.
 docs/research/cli/evidence/gap-2026-10-05/windows-esbuild-private-map-2026-10-08/** -text !eol -whitespace
+
+# Release readback and host evidence retain their captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/** -text !eol -whitespace

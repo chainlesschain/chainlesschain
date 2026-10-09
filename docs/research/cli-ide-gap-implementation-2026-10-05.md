@@ -348,3 +348,7 @@ Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时�
 用户已授权测试成功后配对发布。CLI0.166.94 / VSCode0.37.139 / JetBrains0.4.157候选已同步，10个固定子包真实下载及下游版本验证完成，无需新子包发布。Doctor推荐值跨类常量内联问题已修复；本机74项CLI、21项VSCode、946项Java+1445项smoke及ZIP构建通过。仍须最终准确SHA完整CLI/IDE矩阵，未发布且未写正式36+9 observations。
 
 最终 v3 已按新源码重新编译、真实运行并归档，旧 v2 保留历史。旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 见[验证18.3–18.4](./cli-ide-gap-validation-2026-10-05.md#183-最终源码字节重新验证)。
+
+## 20. 2026-10-09 完整验证与配对发行
+
+准确提交 `efcab5f632` 的 CLI 双门、双 IDE 实际宿主/构建及相关恢复门已通过，PR #423 已合并。CLI `0.166.94` 已通过 OIDC 发布；配对 Open VSX `0.37.139` 已公开且 latest/listed，JetBrains `0.4.157` 已获批并公开上架。上传前的公开 CLI/子包回执、标签产物摘要及独立市场下载回读已归档；VSIX 原始字节一致，JetBrains 全部 entry 字节一致，其 ZIP 容器字节差异另行记录。见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)及[发行证据](./cli/evidence/gap-2026-10-05/release-0.166.94/README.md)。正式 36+9、Windows/macOS durable 后端、完整原生 review 与人工/长时验收仍未完成，不因发行改变状态。

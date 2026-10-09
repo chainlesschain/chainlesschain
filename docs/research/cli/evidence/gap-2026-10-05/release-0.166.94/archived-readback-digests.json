@@ -1,0 +1,307 @@
+{
+  "collectedAt": "2026-10-09T01:02:00.001Z",
+  "sourceCommit": "efcab5f632312aea433953157d52091f018f26ae",
+  "scope": "All captured evidence files recursively; excludes this index and the editorial README.",
+  "files": [
+    {
+      "path": "agent-protocol-npm-provenance.json",
+      "bytes": 1207,
+      "sha256": "9c5028e7af884a5d28282d1665a2e29bd3d35ed4aeac80a0a52a5e8bbab79da8"
+    },
+    {
+      "path": "agent-sdk-npm-provenance.json",
+      "bytes": 1197,
+      "sha256": "1d873c191f622d267e7ab2ac278867566f77ff0818b8ac17b63885d60e60d5e2"
+    },
+    {
+      "path": "chainlesschain-npm-provenance.json",
+      "bytes": 831,
+      "sha256": "1243b09107cc07a2f70a21123340b780b8c5a702af3a6d6422ee930b5b18f932"
+    },
+    {
+      "path": "chainlesschain-release.json",
+      "bytes": 2606,
+      "sha256": "e32eff091a2f381602b584eb37e927e61f7887b7c46c841efd26496c871a0744"
+    },
+    {
+      "path": "chainlesschain-sbom.cdx.json",
+      "bytes": 656823,
+      "sha256": "bb7ee8795b573979c1ffb23a530ed51db1df464b03bc9296689230a6abb39793"
+    },
+    {
+      "path": "child-registry-readback.json",
+      "bytes": 7865,
+      "sha256": "4d2ebd4902c8d56b23e223762749e41834dd0f9ecfbe4e8e74cacfc49bc95628"
+    },
+    {
+      "path": "ci-tests-workflow-final.json",
+      "bytes": 70461,
+      "sha256": "115980da0752d442d7a6915431cef9eb2bcd8a3785f405d33120c2321b9c88c9"
+    },
+    {
+      "path": "cli-ci-attempt1.json",
+      "bytes": 279044,
+      "sha256": "8d75647ba27e1b7968ab82ed0d74ac86e83fc9140b5cc690ef1f8317ee36c8c1"
+    },
+    {
+      "path": "cli-ci-attempt2.json",
+      "bytes": 288471,
+      "sha256": "b8cf18f3c4bf3e8f54240245341026c4ad675f57ab9d69399eb8fc04d81391cf"
+    },
+    {
+      "path": "cli-ci-attempt3.json",
+      "bytes": 290942,
+      "sha256": "6e380065bd9a1c212b5090166d5dcff496445c8a5562cc0b27f334290ab69c8c"
+    },
+    {
+      "path": "cli-ci-final.json",
+      "bytes": 326011,
+      "sha256": "dd706c1545b44c033bd86c33cad225c5c59f347dd5dfee59724e514d07e13667"
+    },
+    {
+      "path": "cli-public-child-install.json",
+      "bytes": 3282,
+      "sha256": "9aed1f5ecec62bdeb6b97fd9127d308d69dd23433617f6d8a8b73270dea2b41f"
+    },
+    {
+      "path": "cli-public-readback.json",
+      "bytes": 911,
+      "sha256": "d7105812d594aeb92436a3ddb905b35b16e859bc06366e1005e97a859d25111f"
+    },
+    {
+      "path": "clipboard-workflow-final.json",
+      "bytes": 32926,
+      "sha256": "47476c650d4e3031c43adfc0e4b4ebe364ce642995ec4c750aecf80947ba2e4a"
+    },
+    {
+      "path": "context-memory-kernel-npm-provenance.json",
+      "bytes": 1220,
+      "sha256": "9d2428e138c80e3a3235c2d3ff4504ce2bef7220dcc2fa270ebe0fd94b28714b"
+    },
+    {
+      "path": "exact-sha-release-gates.json",
+      "bytes": 923,
+      "sha256": "1960312e0ed3c3bd03f4f43d67dfdaef0196e4ecf435a8908fd6aaeafa36dcb5"
+    },
+    {
+      "path": "fairness-workflow-final.json",
+      "bytes": 32092,
+      "sha256": "f28342a14db72e1c25d9c7fe340efced6882198524f4f2cf16213f98b451862b"
+    },
+    {
+      "path": "full-tests-workflow-final.json",
+      "bytes": 31135,
+      "sha256": "5ec3848ac5c4b7538279fc6d25e07ecb430d5a29e2ab7fe9c52cde29913e3af3"
+    },
+    {
+      "path": "ide-pr-workflow-final.json",
+      "bytes": 112248,
+      "sha256": "e8ae488223030709a5f305c49fde308f71a817874ae732a27bdfbba07d9f5df9"
+    },
+    {
+      "path": "jetbrains-cli-prerequisite.json",
+      "bytes": 3505,
+      "sha256": "fe7d274b4e29fed209fd7ac0691eb71425e952bcdff78c74b12b5faab9eba43a"
+    },
+    {
+      "path": "jetbrains-marketplace-readback.json",
+      "bytes": 6288,
+      "sha256": "bdd280106e0a18a5814348a6f4e61e5b8f6950be42f4449628eb10896545fa79"
+    },
+    {
+      "path": "jetbrains-marketplace-updates.json",
+      "bytes": 81519,
+      "sha256": "59ae35536f9173cab6200cba6b75926ab9d80ef6693006db02cc0cea430db565"
+    },
+    {
+      "path": "jetbrains-pr-candidate-readback.json",
+      "bytes": 375,
+      "sha256": "487ae81fd119f1171fa987816a66390eb22b59480a2028501ade7a165b825732"
+    },
+    {
+      "path": "jetbrains-tag-artifact-readback.json",
+      "bytes": 1078,
+      "sha256": "59f1ab3d69568ec8875e7efbc1a0754c9fcca3daed70f14c4dec9440bd1f185d"
+    },
+    {
+      "path": "jetbrains-tag-workflow-final.json",
+      "bytes": 91207,
+      "sha256": "115d24b6c78c1ec9c0af81569f00b8e9aed23986ebc4c446275072d276ce4386"
+    },
+    {
+      "path": "keeper-workflow-final.json",
+      "bytes": 31262,
+      "sha256": "6970cb81a3ffcccaeadbdeb7b563332a6a7f113db76a824a0fa8ec0bf63ebcd6"
+    },
+    {
+      "path": "ledger-workflow-final.json",
+      "bytes": 32609,
+      "sha256": "9165d6b989c0d0e8711743af682bc3c697b98507273ded02e60afd82c85597d7"
+    },
+    {
+      "path": "macos-capacity-cancellations.json",
+      "bytes": 256823,
+      "sha256": "14ba366644a5067dcf7dcd25a657e7257862824aefc196817d74e9e4c7423c5b"
+    },
+    {
+      "path": "macos-latest-capability/macos-latest-sandbox-capability.json",
+      "bytes": 340,
+      "sha256": "3ace1b3b4ab9ca2dab991dcdf89cfe1dd5db415462a504ea2dde99ade55cb3e5"
+    },
+    {
+      "path": "npm-publish-final.json",
+      "bytes": 44430,
+      "sha256": "4ca8f7e2ed0f2f9189163320a9dd42261773ac06da0130c5caa0f62a550a5b32"
+    },
+    {
+      "path": "open-vsx-exact-metadata.json",
+      "bytes": 10883,
+      "sha256": "de20fb9a9fddebecbd94ab0ec8d9d90410c3579aa8f512a713984955f2f51155"
+    },
+    {
+      "path": "open-vsx-public-readback.json",
+      "bytes": 1068,
+      "sha256": "154768faf1a2aefce4566be5ebd464a5c091e13806835104e0b7a46a4ce5091c"
+    },
+    {
+      "path": "pr-cli-test-counts.json",
+      "bytes": 1245,
+      "sha256": "90d090d5e7b98b82051014787237130dc00f730832a227267734e5ec4825371b"
+    },
+    {
+      "path": "pr-tests-workflow-final.json",
+      "bytes": 22233,
+      "sha256": "cb90046e4fe1f92164810ef3755a7cf6bcbebaeacefc498d8e3b7d1c2f1fe68a"
+    },
+    {
+      "path": "quality-workflow-final.json",
+      "bytes": 39683,
+      "sha256": "f56635bd1f47bd93d82e0d76e887dd0b20786cba6cc1a6408a7190a3f00d6d21"
+    },
+    {
+      "path": "safety-workflow-final.json",
+      "bytes": 35042,
+      "sha256": "c1a8ecba8a9a6f33632c20f1c1537342d97b8417a700e2b4f48424662d9a25f8"
+    },
+    {
+      "path": "session-workflow-final.json",
+      "bytes": 27655,
+      "sha256": "14c52e5510bf11e9a3ec1ffd3ebf0749d0af0791481f40f4a6721e15b3a3a4af"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-macos-15/_temp/claude-security-map-macOS.json",
+      "bytes": 6974,
+      "sha256": "7ae1e18d44ca2b79b19d51c160aa4485b44ab50bd236df91054db5fda98ff912"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-macos-15/_temp/claude-security-map-tests-macOS.json",
+      "bytes": 299820,
+      "sha256": "0fb1b4b23e92c55e5cf7d0b144f2831a7659038703c935bd79d18e843e985261"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-macos-15/chainlesschain/chainlesschain/packages/cli/strict-sandbox-contract-result.json",
+      "bytes": 901554,
+      "sha256": "7f96987d1d70b8e9001a33a648cfeeed52200ac9b324434d9cddf91441361424"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-macos-15/chainlesschain/chainlesschain/packages/cli/strict-sandbox-result.json",
+      "bytes": 15821,
+      "sha256": "d7e72d36c768305c922a84d9603a62cc2f81dc91a8121ed7d6ac9d3c990ecefa"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04-arm/_temp/strict-linux-arm64-environment.txt",
+      "bytes": 312,
+      "sha256": "bcca1174418b00c04c7cc3af04529548342f7d4669fbc65743dfca706c1dbb68"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04-arm/_temp/strict-linux-arm64-sha256.txt",
+      "bytes": 326,
+      "sha256": "218d623980810ddd01803ee323b69e1e9a3c0b29234df842e6fde717438e228c"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04-arm/chainlesschain/chainlesschain/packages/cli/arm64-bwrap-result.json",
+      "bytes": 2417,
+      "sha256": "6bf3d46844513662da58e6880bac32b863e61e14fd8496fb46c5875435496c8c"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04-arm/chainlesschain/chainlesschain/packages/cli/arm64-docker-egress-result.json",
+      "bytes": 8823,
+      "sha256": "e6297827eb9de3fb64691b1851223fd6bdbbb82a5ba861ff5cd991e6b311f81c"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04-arm/chainlesschain/chainlesschain/packages/cli/arm64-native-sandbox-result.json",
+      "bytes": 15017,
+      "sha256": "14f9d88fc26f94597934746c2e914ebaac805aa0c88bc71590da4737a6d72e49"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04/_temp/claude-security-map-Linux.json",
+      "bytes": 6976,
+      "sha256": "45954c12647864b02883ea91e322a0a2e0199b9d400c97c7ead5db031b1ff9b1"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04/_temp/claude-security-map-tests-Linux.json",
+      "bytes": 299825,
+      "sha256": "c8edeed67309816bd8216a298f7ae48e1f0dc4a1072a3e4ad0644a9ac3f9a466"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04/chainlesschain/chainlesschain/packages/cli/strict-sandbox-contract-result.json",
+      "bytes": 901496,
+      "sha256": "4e35e9913958b5950a152d4f2a05a5979a838f703c8279692df6ac2737119b3e"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-ubuntu-24.04/chainlesschain/chainlesschain/packages/cli/strict-sandbox-result.json",
+      "bytes": 16012,
+      "sha256": "0598b1a4c2c09bc4bd4eee69e41d9729f047476e32f081acca23a7d823f670d5"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-windows-latest/_temp/claude-security-map-tests-Windows.json",
+      "bytes": 299544,
+      "sha256": "c41ae8c32d0f8927090d1a4a5cf66b814606a3004e5fde465b21603f1d9a22fd"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-windows-latest/_temp/claude-security-map-Windows.json",
+      "bytes": 6981,
+      "sha256": "9680f1d5d163450b898aaef6ed1e140ce4327bfc6891ed82b68b8d1b51c42afe"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-windows-latest/chainlesschain/chainlesschain/packages/cli/strict-sandbox-contract-result.json",
+      "bytes": 901188,
+      "sha256": "0617fd3da806ca498920faa9f87ca030f7aee3dc0143ffdc72c9e401b58d4869"
+    },
+    {
+      "path": "strict-artifacts/strict-sandbox-result-windows-latest/chainlesschain/chainlesschain/packages/cli/strict-sandbox-result.json",
+      "bytes": 15927,
+      "sha256": "4020d6fd5b7774649c6cf4c1581dd40247f9783d2eca10d3828d9cb9f43ff095"
+    },
+    {
+      "path": "strict-workflow-final.json",
+      "bytes": 46327,
+      "sha256": "72c544f58ffdc00648060e46c796254cc2eccc8a22f2bfcb5072a4c0d495ac4e"
+    },
+    {
+      "path": "vscode-cli-prerequisite.json",
+      "bytes": 3505,
+      "sha256": "334db106725ea8abf2a1626939123c7149e46d087e4ee3ac76e529eca923582f"
+    },
+    {
+      "path": "vscode-pr-candidate-manifest.json",
+      "bytes": 714,
+      "sha256": "b703ccf7c39bcbedfe2b38ad3c52ab4eadcab6be041c49266b129aa5a540d1e9"
+    },
+    {
+      "path": "vscode-tag-artifact-readback.json",
+      "bytes": 1232,
+      "sha256": "ebc71c88886bf54afdd50d6ee2097b1c4303698a37d736badc82dbcb4e1d0a05"
+    },
+    {
+      "path": "vscode-tag-candidate-manifest.json",
+      "bytes": 714,
+      "sha256": "0aafa968b9d2c4da072b574e48ef1defcf08737e2ed826937d72ebc77708edfc"
+    },
+    {
+      "path": "vscode-tag-workflow-final.json",
+      "bytes": 73688,
+      "sha256": "46097fa7cd8041f544d46df598bc8db6b2bf615c3b4ab41a8e948f793a3e8f41"
+    }
+  ]
+}
