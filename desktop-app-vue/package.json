@@ -257,7 +257,7 @@
     "get-port": "^7.1.0",
     "graphql": "^16.9.0",
     "gray-matter": "^4.0.3",
-    "handlebars": "^4.7.9",
+    "handlebars": "^4.7.10",
     "helia": "^5.1.0",
     "highlight.js": "^11.11.1",
     "ical-generator": "^4.1.0",
