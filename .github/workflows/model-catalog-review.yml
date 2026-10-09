@@ -10,6 +10,7 @@ on:
       - "packages/cli/src/lib/llm-pricing.js"
       - "packages/cli/scripts/review-model-catalog.mjs"
       - "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs"
+      - "packages/cli/__tests__/unit/model-catalog-review.test.js"
       - "packages/cli/__tests__/fixtures/model-catalog-review-*.json"
       - ".github/workflows/model-catalog-review.yml"
 
@@ -44,14 +45,21 @@ jobs:
       - name: Fetch official release notes
         if: github.event_name != 'pull_request'
         run: |
-          curl --fail --location --max-time 60 https://developers.openai.com/codex/changelog -o "$RUNNER_TEMP/model-catalog-review/codex.html"
+          # The mixed product changelog contains app/mobile releases, not an
+          # identifiable latest CLI version. Keep the official CLI API raw.
+          curl --fail --location --max-time 60 \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --dump-header "$RUNNER_TEMP/model-catalog-review/codex.headers" \
+            https://api.github.com/repos/openai/codex/releases/latest \
+            -o "$RUNNER_TEMP/model-catalog-review/codex.json"
           curl --fail --location --max-time 60 https://code.claude.com/docs/en/changelog.md -o "$RUNNER_TEMP/model-catalog-review/claude.md"
       - name: Detect releases requiring review
         if: github.event_name != 'pull_request'
         shell: bash
         run: >-
           node packages/cli/scripts/review-model-catalog.mjs
-          --codex "$RUNNER_TEMP/model-catalog-review/codex.html"
+          --codex "$RUNNER_TEMP/model-catalog-review/codex.json"
           --claude "$RUNNER_TEMP/model-catalog-review/claude.md"
           --expected-sha "${{ github.event.pull_request.head.sha || github.sha }}"
           --output "$RUNNER_TEMP/model-catalog-review/upstream.json" --fail-on-drift

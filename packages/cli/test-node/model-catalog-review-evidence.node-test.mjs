@@ -91,6 +91,43 @@ test("partial upstream capture is explicitly incomplete", (t) => {
   assert.equal(result.evidence.result.upstream.length, 1);
 });
 
+test("stable official GitHub JSON drift preserves raw bytes and completes review without enabling models", (t) => {
+  const codex = Buffer.from(
+    JSON.stringify({
+      tag_name: "rust-v0.160.1",
+      html_url: "https://github.com/openai/codex/releases/tag/rust-v0.160.1",
+      draft: false,
+      prerelease: false,
+      published_at: "2026-10-09T00:00:00Z",
+    }) + "\r\n",
+  );
+  const result = capture(t, ["--fail-on-drift"], {
+    codex,
+    claude: '<Update label="2.1.295">notes</Update>',
+  });
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.evidence.reviewCompleted, true);
+  assert.equal(result.evidence.upstreamSnapshotsComplete, true);
+  assert.equal(result.evidence.inputs.codex.digest, hash(codex));
+  assert.equal(result.evidence.inputs.codex.bytes, codex.length);
+  assert.equal(result.evidence.result.upstream[0].observedVersion, "0.160.1");
+  assert.equal(result.evidence.result.automaticEnablement, false);
+});
+
+test("wrong-repository release JSON remains a saved failed observation", (t) => {
+  const codex = JSON.stringify({
+    tag_name: "rust-v0.160.1",
+    html_url: "https://github.com/other/codex/releases/tag/rust-v0.160.1",
+    draft: false,
+    prerelease: false,
+  });
+  const result = capture(t, ["--fail-on-drift"], { codex });
+  assert.equal(result.status, 1);
+  assert.equal(result.evidence.reviewCompleted, false);
+  assert.equal(result.evidence.result, null);
+  assert.equal(result.evidence.inputs.codex.digest, hash(codex));
+});
+
 test("an upstream error page retains its bytes but cannot become completed review evidence", (t) => {
   const result = capture(t, [], { codex: "Rate limit exceeded" });
   assert.equal(result.status, 1);
