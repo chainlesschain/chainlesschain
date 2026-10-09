@@ -491,9 +491,9 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 581 | `const output = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 598 | `const output = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 615 | `const output = execFileSync("ps", ["-Ao", "pid=,comm="], {` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 9 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 143 | `return execFileSync("git", args, {` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 473 | `return spawn(executable, args, {` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 10 | `import { execFileSync, spawn } from "node:child_process";` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 144 | `return execFileSync("git", args, {` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 508 | `return spawn(executable, args, {` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 255 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 259 | `const status = execFileSync(` |

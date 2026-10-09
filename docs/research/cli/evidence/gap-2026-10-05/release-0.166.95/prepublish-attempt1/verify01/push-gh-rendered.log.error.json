@@ -1,0 +1,13 @@
+{
+  "args": [
+    "run",
+    "view",
+    "37912137912",
+    "--job",
+    "113764414327",
+    "--log"
+  ],
+  "status": 1,
+  "message": "Command failed: gh run view 37912137912 --job 113764414327 --log\nfailed to get run log: HTTP 403: Must have admin rights to Repository. (https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912137912/logs)\n",
+  "stderr": "failed to get run log: HTTP 403: Must have admin rights to Repository. (https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912137912/logs)\n"
+}

@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright E2E测试配置
@@ -11,7 +11,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   // 测试目录
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
+
+  // Keep CI commit metadata without copying the entire archived diagnostic
+  // patch into the HTML report. Playwright buffers that optional text in one
+  // string, which can exceed V8's limit before any test starts.
+  captureGitInfo: { diff: false },
 
   // 测试超时 (增加到60秒以适应LLM API响应时间)
   timeout: 60000,
@@ -31,35 +36,35 @@ export default defineConfig({
 
   // 报告器配置
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list'],
+    ["html", { outputFolder: "playwright-report" }],
+    ["json", { outputFile: "test-results/results.json" }],
+    ["list"],
   ],
 
   // 全局配置
   use: {
     // 基础URL（如果有web界面）
-    baseURL: 'http://localhost:5173',
+    baseURL: "http://localhost:5173",
 
     // 截图设置
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     // 视频设置
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
 
     // 追踪设置
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
   },
 
   // 项目配置
   projects: [
     {
-      name: 'electron-main',
+      name: "electron-main",
       // 只匹配 *.e2e.test.ts 和 *.e2e.test.js 文件
       // 排除其他测试框架的文件（如 Mocha, Vitest, Jest）
       testMatch: /.*\.e2e\.test\.(js|ts)$/,
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
       },
     },
   ],
@@ -67,9 +72,9 @@ export default defineConfig({
   // 明确忽略不兼容的测试文件
   testIgnore: [
     // Browser extension tests (use Jest/Puppeteer)
-    '**/browser-extension/**',
+    "**/browser-extension/**",
     // Desktop-app-vue tests are handled by that project's own config
-    '**/desktop-app-vue/**',
+    "**/desktop-app-vue/**",
   ],
 
   // E2E测试不需要webserver（直接测试Electron应用）

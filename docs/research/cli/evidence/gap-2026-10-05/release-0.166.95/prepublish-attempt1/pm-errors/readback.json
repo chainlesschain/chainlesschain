@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T12:13:29.996Z",
+  "sourceCommit": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "runId": 37912152813,
+  "jobId": 113761435956,
+  "jobName": "Error Scenario Tests",
+  "conclusion": "failure",
+  "bytes": 55081,
+  "sha256": "663e23d469d31cfe3429b6503efc837c43cb1f77fdfedc5be48e7fea0a4b446f"
+}

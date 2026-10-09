@@ -115,3 +115,7 @@ docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/** -text !eol -whites
 # Continuation diagnostics and captured sources keep their exact hashed bytes.
 docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-09/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-09/README.md -linguist-generated
+
+# Release 0.166.95 raw failure and publication receipts retain captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/README.md -linguist-generated

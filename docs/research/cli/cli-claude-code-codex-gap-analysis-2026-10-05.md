@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-09 发布候选首轮修复**：准确候选 d4b936395e 的 Strict、质量安全和常规测试通过，但 CLI Windows 并发 fixture 及 IDE 浏览器完整 diff 取证失败，已保留原件并修复；桌面 Playwright 超大自动报告 patch 的测试启动失败也已处理。定向回归与真实争用控制通过，修复后的新提交仍须完整发布矩阵；见[0.166.95 配对验证](./evidence/gap-2026-10-05/release-0.166.95/README.md)及[验证 20.14](../cli-ide-gap-validation-2026-10-05.md#2014-cli-016695-配对候选失败取证与修复)。当前尚未发布，正式验收与冻结反例状态不因修复改变。
+
 > **2026-10-09 新配对发布准备**：用户已授权功能测试通过后发布 CLI 与 IDE。候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`，双 IDE 推荐 CLI 同步；子 npm 包源码无变化，沿用已发布精确版本并重新核验。候选须取得准确提交的完整 CLI CI、CLI Strict Sandbox 与 IDE 宿主门，再由 GitHub Actions OIDC 发布 CLI，公开可取后发布 IDE。此处是准备记录，尚无新版本发布回执；本轮发布不改变正式验收及冻结反例矩阵的开放状态。
 
 > **2026-10-09 最终工程增量与 Git 提交**：已完成官方 stable 发布 JSON 来源、四处当前测试覆盖缺口回归、Handlebars 4.7.10 critical 修复及 custodian 自身崩溃的有限集合清理。原冻结 Windows 反例矩阵为 **6 检出 / 4 存活 / 4 因基线失败未运行**，完整 review 保持 `NOT_ADMITTED`，不能用当前新增回归改写旧结果。首批 `61d91325d0` 的 CLI CI 71 job / Strict 5 job 均完整通过；完成增量已分批提交，见[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)及[验证 20.8–20.13](../cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。最终 533 合同的默认沙箱/主机权限结果分别保存。正式 36+9、durable/WFP/macOS、账号账单与人工长时条件仍未结案，冻结预算与 observations 未改，本轮未发布。

@@ -1,0 +1,53 @@
+{
+  "scope": "Read-only diagnosis; no candidate source, version or documentation changes; no reruns triggered",
+  "headSha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "pr": {
+    "runId": 37912152369,
+    "jobId": 113762808250,
+    "jobName": "jetbrains (macos-15-intel)",
+    "conclusion": "failure",
+    "actualCheckoutSha": "b26d7135c25592fd17c8ae8cc25765cdb867df33",
+    "checkoutMeaning": "PR synthetic merge commit; run metadata head_sha is not the actual checkout commit",
+    "runnerAllocated": true,
+    "firstFailure": {
+      "step": "Run IntelliJ initial/restart capture",
+      "timeUtc": "2026-10-09T09:59:03.7386790Z",
+      "error": "initial IDE exited during startup",
+      "location": "packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:265",
+      "interpretation": "Gradle runIdeForUiTests process closed before robotReady. UI capture tests were not reached. Cause of process exit is unavailable because IDE/Gradle diagnostic artifacts were not uploaded."
+    },
+    "secondFailure": {
+      "step": "Preserve successful and failed attempts",
+      "timeUtc": "2026-10-09T09:59:36.8192860Z",
+      "error": "Failed to CreateArtifact: Unable to make request: ENOTFOUND",
+      "filesDiscovered": 8,
+      "interpretation": "Artifact transport DNS failure; does not establish the cause of the preceding IDE startup exit"
+    },
+    "missingEvidence": [
+      "Successful initial/restart journey",
+      "Identity discovery and repair journey: skipped",
+      "Bounded cold initialization and explicit retry: skipped",
+      "All macOS JetBrains diagnostic artifact contents"
+    ],
+    "otherJobs": "Remaining six jobs succeeded",
+    "artifactCount": 6
+  },
+  "push": {
+    "runId": 37912137912,
+    "jobId": 113764414327,
+    "jobName": "jetbrains (macos-15-intel)",
+    "conclusion": "success",
+    "allSevenJobsSucceeded": true,
+    "initialRestartStep": "success",
+    "identityStep": "success",
+    "coldInitializationStep": "success",
+    "artifactUploadStep": "success",
+    "macosArtifactId": 11610740499,
+    "macosArtifactName": "verify01-jetbrains-macos-15-intel-1",
+    "macosArtifactBytes": 809550,
+    "evidenceLimit": "Run/job/artifact API records captured. Push log requests returned HTTP 403; responses preserved. Artifact archive contents were not downloaded. Default push checkout targets the head commit according to the workflow, but direct checkout log was unavailable."
+  },
+  "classification": "Executed host startup failure of undetermined cause, followed by confirmed artifact DNS failure. Not a runner-capacity/no-runner cancellation; no demonstrated UI contract assertion failure.",
+  "nextAction": "Root instructed not to rerun old d4b936 candidate because CLI unit and IDE full-diff fixes will produce a new SHA with full matrices, including automatic VERIFY01. Preserve this failed attempt. On an unchanged candidate, only the failed macOS JetBrains job would need rerunning to fill the missing journeys and artifacts.",
+  "captureLimits": "Direct raw job-log endpoints returned HTTP 403. PR gh-rendered log was available and saved separately without claiming it is raw archive bytes. Hashes of captured payloads are in capture-manifest.json."
+}

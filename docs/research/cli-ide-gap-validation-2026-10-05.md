@@ -775,3 +775,13 @@ guard 的实际 4 个 PID 列表严格匹配四个原始创建对象，收尾 gu
 最终 10 文件 **533 个 Node 合同**：原 408 增加模型证据 2、op4 3 与独立 custodian 120。Windows Node 22.22.2 和 Linux Node 22.22.2 各 **533/533、零跳过**；Windows Node 22.12.0 默认沙箱实际 **520 通过/13 失败**，错误来自未修改的依赖 reader 对 `C:\Users\longfa` 祖先执行 `lstat EPERM`，并非本轮 op4 条件。原失败[报告/TAP](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final4-node22.12-windows.json)保留；按系统权限要求在主机权限下对同一来源复核为 [533/533](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final4-node22.12-windows-host.json)，源码前后稳定，未放宽 reader 或祖先 ACL。不能把 host 权限结果写成默认沙箱通过，也不把重复运行累计为新任务样本。
 
 模型目录 31 项 Vitest、Handlebars 实际新版 45 项模板、当前 argv 20 项/precedence 2 项与两个 IDE 文件各 2 项的回归分别保存；旧 408、415 与后续结果包含重叠，不相加为正式分母。所有本轮改动按完成批次提交到 Git，准确提交的后续 Actions 与原生/正式验收仍分开：受保护 durable 服务/authority/journal/WFP/macOS、冻结 Windows 完整失败基线和四个存活反例、官方账号账单、目标机器/独立人工/辅助技术/8h24h/SLO及 **36+9 / NOT_RUN** 未结案，本轮不发布。
+
+### 20.14 CLI 0.166.95 配对候选失败、取证与修复
+
+用户授权功能测试通过后发布 CLI 0.166.95、VS Code 0.37.140、JetBrains 0.4.158。首次准确候选 d4b936395ee40726bff956fd3adfd4f01ff24e77 的 Strict 五个 job、质量安全、常规与全套自动化已通过，但 CLI Windows unit 和 IDE 三平台 browser 失败，不能发布。
+
+Windows 并发 fixture 只对存活锁持有者导致的 STATE_LOCK_UNAVAILABLE 且明确 not-committed 做最多五次、十秒预算内重试，未知提交和其他错误仍失败；生产两秒锁期限不改。等待所有 child 后清理，保留四唯一 ID、generation 4→8 与四 revoked 断言。定向 14/14、真实强制四进程先争用超时再成功均通过。浏览器取证的完整二进制 diff 改为流式 SHA256，不截断字节、不改参数，退出错误或 signal 拒绝；65 MiB 加末尾标记、部分输出后失败及 ENOENT 合同和既有用例共 15/15 通过。
+
+桌面 E2E Linux 与 PM error/performance 在用例开始前被 Playwright 自动收集超大 patch 触发 V8 字符串限制；根配置关闭可选报告 diff 附件，保留 CI commit metadata 和全部测试。3 项 smoke、35 项 error/performance 收集成功，仅为配置检查，真实完整功能测试须由新提交 Actions 执行。VERIFY01 PR macOS 启动退出及上传 DNS 失败的原件和权限拒绝也保留，PR 实际 checkout 为 merge SHA；同 head 的 push 三项 macOS 旅程成功不替代新候选门。
+
+原始 CI API、JUnit、日志、受控争用诊断、来源摘要及失败边界见[配对发布证据](./cli/evidence/gap-2026-10-05/release-0.166.95/README.md)。版本/子包依赖一致性已核对，10 个固定子包公网下载与 SRI/依赖检查通过；源码未变化，不新增子包版本。后续取得准确提交 CLI CI、Strict 全矩阵与 IDE 宿主门后，才通过既有 OIDC 发布 CLI，公开可获取后发布 IDE。此处仍是候选修复记录，尚未发布；冻结正式 36+9、预算、observations、原冻结反例矩阵和平台/人工/账单/长时验收边界不变。

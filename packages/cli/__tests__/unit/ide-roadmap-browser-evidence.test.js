@@ -1,11 +1,14 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   BROWSER_EVIDENCE_WORKFLOW_PATH,
   BROWSER_EVIDENCE_WORKFLOW_PROVENANCE_SCHEMA,
   browserEvidenceArtifactName,
+  browserEvidenceDiffDigest,
   parseArgs as parseProducerArgs,
   removeBrowserEvidenceTemporaryRoot,
   scanArtifactJson,
@@ -52,6 +55,73 @@ afterEach(() => {
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+describe("browser evidence complete diff digest", () => {
+  it("hashes more than 64 MiB including the final bytes without changing git selectors", async () => {
+    const chunk = Buffer.alloc(1024 * 1024, 0xa5);
+    const hash = createHash("sha256");
+    for (let index = 0; index < 65; index++) hash.update(chunk);
+    hash.update("final-diff-bytes");
+    const digest = await browserEvidenceDiffDigest(
+      REPOSITORY_ROOT,
+      WORKFLOW_SHA,
+      HEAD_SHA,
+      (command, args, options) => {
+        expect(command).toBe("git");
+        expect(args).toEqual([
+          "diff",
+          "--binary",
+          "--no-ext-diff",
+          WORKFLOW_SHA,
+          HEAD_SHA,
+          "--",
+        ]);
+        expect(options.cwd).toBe(REPOSITORY_ROOT);
+        return spawn(
+          process.execPath,
+          [
+            "--input-type=module",
+            "-e",
+            'import fs from "node:fs"; const chunk = Buffer.alloc(1024 * 1024, 0xa5); for (let i = 0; i < 65; i++) fs.writeSync(1, chunk); fs.writeSync(1, "final-diff-bytes");',
+          ],
+          options,
+        );
+      },
+    );
+    expect(digest).toBe(`sha256:${hash.digest("hex")}`);
+  });
+
+  it("rejects a failed diff process even after it emits partial bytes", async () => {
+    await expect(
+      browserEvidenceDiffDigest(
+        REPOSITORY_ROOT,
+        WORKFLOW_SHA,
+        HEAD_SHA,
+        (_command, _args, options) =>
+          spawn(
+            process.execPath,
+            [
+              "-e",
+              'process.stdout.write("partial diff"); process.stderr.write("diff unavailable"); process.exitCode = 7;',
+            ],
+            options,
+          ),
+      ),
+    ).rejects.toThrow("git diff failed (7): diff unavailable");
+  });
+
+  it("rejects a diff command that cannot be spawned", async () => {
+    await expect(
+      browserEvidenceDiffDigest(
+        REPOSITORY_ROOT,
+        WORKFLOW_SHA,
+        HEAD_SHA,
+        (_command, _args, options) =>
+          spawn(path.join(temporaryRoot(), "missing-git"), [], options),
+      ),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
 });
 
 describe("browser evidence producer arguments and secret gate", () => {

@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-09 发布候选首轮修复**：准确候选 d4b936395e 的 Strict、质量安全和常规测试通过，但 CLI Windows 并发 fixture 及 IDE 浏览器完整 diff 取证失败，已保留原件并修复；桌面 Playwright 超大自动报告 patch 的测试启动失败也已处理。定向回归与真实争用控制通过，修复后的新提交仍须完整发布矩阵；见[0.166.95 配对验证](../cli/evidence/gap-2026-10-05/release-0.166.95/README.md)及[验证 20.14](../cli-ide-gap-validation-2026-10-05.md#2014-cli-016695-配对候选失败取证与修复)。当前尚未发布，正式验收与冻结反例状态不因修复改变。
+
 > **2026-10-09 新配对发布准备**：用户已授权功能测试通过后发布 CLI 与 IDE。候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`，双 IDE 推荐 CLI 同步；子 npm 包源码无变化，沿用已发布精确版本并重新核验。候选须取得准确提交的完整 CLI CI、CLI Strict Sandbox 与 IDE 宿主门，再由 GitHub Actions OIDC 发布 CLI，公开可取后发布 IDE。此处是准备记录，尚无新版本发布回执；本轮发布不改变正式验收及冻结反例矩阵的开放状态。
 
 > **2026-10-09 最终工程增量与 Git 提交**：已新增 foreign-session 模式 ACK 拒绝及 APNG 总 decodedPixels 40,000,000 边界回归，并接入既有 `test:unit`；当前独立副本能检出同一变异，生产实现和原冻结结果未改。共享 CLI 补齐官方发布 JSON 来源、依赖 critical 修复及 custodian 崩溃清理原语；原 Windows 矩阵 **6 检出 / 4 存活 / 4 因基线失败未运行**，继续 `NOT_ADMITTED`。已完成增量分批提交，见[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)与[验证 20.8–20.13](../cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。首批准确 SHA 的 CLI 双门已完整通过，不能转移为后续提交验证。正式双 IDE 36+9、持久平台后端、官方账单、目标宿主、独立人工/辅助技术/长时/SLO 未结案，本轮未发布。

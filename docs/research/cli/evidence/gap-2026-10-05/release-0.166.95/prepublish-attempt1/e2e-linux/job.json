@@ -1,0 +1,172 @@
+{
+  "id": 113759946941,
+  "run_id": 37912152844,
+  "workflow_name": "E2E Tests",
+  "head_branch": "feature/cli-ide-gap-completion-20261009",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152844",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAafJ8IvQ",
+  "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113759946941",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152844/job/113759946941",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-09T09:35:32Z",
+  "started_at": "2026-10-09T09:42:51Z",
+  "completed_at": "2026-10-09T09:47:24Z",
+  "name": "E2E Tests (Electron + Playwright) (ubuntu-latest, 22.x)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T09:42:52Z",
+      "completed_at": "2026-10-09T09:42:53Z"
+    },
+    {
+      "name": "Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-09T09:42:53Z",
+      "completed_at": "2026-10-09T09:43:09Z"
+    },
+    {
+      "name": "Setup Node.js 22.x",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-09T09:43:09Z",
+      "completed_at": "2026-10-09T09:43:17Z"
+    },
+    {
+      "name": "Install root dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-09T09:43:17Z",
+      "completed_at": "2026-10-09T09:44:09Z"
+    },
+    {
+      "name": "Install Electron runtime (Windows)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 5,
+      "started_at": "2026-10-09T09:44:09Z",
+      "completed_at": "2026-10-09T09:44:09Z"
+    },
+    {
+      "name": "Build desktop app main process",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-09T09:44:09Z",
+      "completed_at": "2026-10-09T09:44:10Z"
+    },
+    {
+      "name": "Build desktop app renderer",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-09T09:44:10Z",
+      "completed_at": "2026-10-09T09:46:50Z"
+    },
+    {
+      "name": "Cache Playwright browsers",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-09T09:46:50Z",
+      "completed_at": "2026-10-09T09:46:50Z"
+    },
+    {
+      "name": "Install Playwright browsers (cache miss)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-09T09:46:50Z",
+      "completed_at": "2026-10-09T09:47:15Z"
+    },
+    {
+      "name": "Install Playwright system deps only (cache hit, Linux)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 10,
+      "started_at": "2026-10-09T09:47:15Z",
+      "completed_at": "2026-10-09T09:47:15Z"
+    },
+    {
+      "name": "Install Xvfb for Linux",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-09T09:47:15Z",
+      "completed_at": "2026-10-09T09:47:16Z"
+    },
+    {
+      "name": "Run E2E smoke tests",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 12,
+      "started_at": "2026-10-09T09:47:16Z",
+      "completed_at": "2026-10-09T09:47:21Z"
+    },
+    {
+      "name": "Upload test results",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13,
+      "started_at": "2026-10-09T09:47:21Z",
+      "completed_at": "2026-10-09T09:47:21Z"
+    },
+    {
+      "name": "Upload HTML report",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-09T09:47:21Z",
+      "completed_at": "2026-10-09T09:47:21Z"
+    },
+    {
+      "name": "Post Cache Playwright browsers",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 26,
+      "started_at": "2026-10-09T09:47:21Z",
+      "completed_at": "2026-10-09T09:47:21Z"
+    },
+    {
+      "name": "Post Setup Node.js 22.x",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 27,
+      "started_at": "2026-10-09T09:47:21Z",
+      "completed_at": "2026-10-09T09:47:21Z"
+    },
+    {
+      "name": "Post Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 28,
+      "started_at": "2026-10-09T09:47:21Z",
+      "completed_at": "2026-10-09T09:47:22Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 29,
+      "started_at": "2026-10-09T09:47:22Z",
+      "completed_at": "2026-10-09T09:47:22Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113759946941",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000386668,
+  "runner_name": "GitHub Actions 1000386668",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

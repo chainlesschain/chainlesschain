@@ -62,10 +62,25 @@ describe("official scoped permission mutation authority", () => {
       import.meta.url,
     ).href;
     const source = `import { ScopedPermissionStore } from ${JSON.stringify(moduleUrl)};
+import { setTimeout as delay } from 'node:timers/promises';
 const store = new ScopedPermissionStore({ cwd: process.argv[1], filePath: process.argv[2] });
 const id = process.argv[3];
-if (id) store.revoke({ id });
-else console.log(store.add({ decision: 'allow', rule: 'Read', expiresAt: Date.now() + 60000 }).id);`;
+const deadline = performance.now() + 10000;
+for (let attempt = 1; attempt <= 5; attempt++) {
+  try {
+    if (id) store.revoke({ id });
+    else console.log(store.add({ decision: 'allow', rule: 'Read', expiresAt: Date.now() + 60000 }).id);
+    break;
+  } catch (error) {
+    // The production two-second lock deadline may expire behind a live owner
+    // on a loaded runner. Retry only an operation proven not to have committed.
+    if (error.code !== 'STATE_LOCK_UNAVAILABLE' ||
+        error.commitState !== 'not-committed' || error.lockOwner?.alive !== true ||
+        attempt === 5 || performance.now() + 2050 > deadline) throw error;
+    console.error('Retrying uncommitted scoped permission contention, attempt ' + attempt, error);
+    await delay(50);
+  }
+}`;
     const execute = (id) =>
       run(
         process.execPath,
@@ -79,13 +94,25 @@ else console.log(store.add({ decision: 'allow', rule: 'Read', expiresAt: Date.no
         ],
         { timeout: 15_000, windowsHide: true },
       );
-    const results = await Promise.all(
-      Array.from({ length: 4 }, () => execute()),
-    );
+    const settle = async (operations) => {
+      // Do not remove the shared directory while another real child is active.
+      const results = await Promise.allSettled(operations);
+      for (const result of results) {
+        const stderr =
+          result.status === "fulfilled"
+            ? result.value.stderr
+            : result.reason.stderr;
+        if (stderr) process.stderr.write(stderr);
+      }
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed) throw failed.reason;
+      return results.map((result) => result.value);
+    };
+    const results = await settle(Array.from({ length: 4 }, () => execute()));
     const ids = results.map((result) => result.stdout.trim());
     expect(new Set(ids).size).toBe(4);
     expect(store().list()).toMatchObject({ generation: 4 });
-    await Promise.all(ids.map(execute));
+    await settle(ids.map(execute));
     expect(store().list()).toMatchObject({ generation: 8 });
     expect(
       store()

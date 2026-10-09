@@ -1,0 +1,646 @@
+jetbrains (macos-15-intel)	UNKNOWN STEP	﻿2026-10-09T09:44:59.8504910Z Current runner version: '2.337.0'
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8587450Z ##[group]Runner Image Provisioner
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8592150Z Hosted Compute Agent
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8602050Z Version: 20260819.586
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8604370Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8606760Z Build Date: 2026-08-18T23:20:18Z
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8608690Z Worker ID: {b32d0283-731f-4f6f-b18c-10b78706c097}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8611020Z Azure Region: westus
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8612750Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8627930Z ##[group]Operating System
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8630630Z macOS
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8636250Z 15.7.9
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8639310Z 24G830
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8645490Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8647780Z ##[group]Runner Image
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8659000Z Image: macos-15
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8661530Z Version: 20260824.0482.1
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8742760Z Included Software: https://github.com/actions/runner-images/blob/macos-15/20260824.0482/images/macos/macos-15-Readme.md
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8749780Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15%2F20260824.0482
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8752780Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8759940Z ##[group]GITHUB_TOKEN Permissions
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8766080Z Contents: read
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8768310Z Metadata: read
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8770790Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8792920Z Secret source: Actions
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8796440Z Cache mode: write
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:44:59.8800080Z Prepare workflow directory
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:00.1479270Z Prepare all required actions
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:00.5954220Z Getting action download info
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:00.9948570Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:02.2896930Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:03.4099560Z Download action repository 'actions/download-artifact@v6' (SHA:018cc2cf5baa6db3ef3c5f8a56943fffe632ef53)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:05.6026990Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:06.6876040Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.3244420Z Complete job name: jetbrains (macos-15-intel)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4808060Z ##[group]Run actions/checkout@v5
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4809680Z with:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4810330Z   repository: chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4819500Z   token: ***
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4820160Z   ssh-strict: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4820770Z   ssh-user: git
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4821370Z   persist-credentials: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4822220Z   clean: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4822900Z   sparse-checkout-cone-mode: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4823690Z   fetch-depth: 1
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4824290Z   fetch-tags: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4824920Z   show-progress: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4825560Z   lfs: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4826140Z   submodules: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4826840Z   set-safe-directory: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4827550Z   allow-unsafe-pr-checkout: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:07.4829010Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.0080670Z Syncing repository: chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.0086380Z ##[group]Getting Git version info
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.0087710Z Working directory is '/Users/runner/work/chainlesschain/chainlesschain'
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.0089350Z [command]/usr/local/bin/git version
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.0387310Z git version 2.55.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2156730Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2775040Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/6bb4e84a-8705-41e8-ac5a-39224037cd7a/.gitconfig'
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2788930Z Temporarily overriding HOME='/Users/runner/work/_temp/6bb4e84a-8705-41e8-ac5a-39224037cd7a' before making global git config changes
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2800380Z Adding repository directory to the temporary git global config as a safe directory
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2812830Z [command]/usr/local/bin/git config --global --add safe.directory /Users/runner/work/chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2942710Z Deleting the contents of '/Users/runner/work/chainlesschain/chainlesschain'
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2945420Z ##[group]Initializing the repository
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2948590Z [command]/usr/local/bin/git init /Users/runner/work/chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2953960Z hint: Using 'master' as the name for the initial branch. This default branch name
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2981890Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.2996040Z hint: to use in all of your new repositories, which will suppress this warning,
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3125830Z hint: call:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3201330Z hint:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3220950Z hint: 	git config --global init.defaultBranch <name>
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3224700Z hint:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3226790Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3239180Z hint: 'development'. The just-created branch can be renamed via this command:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3283870Z hint:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3300150Z hint: 	git branch -m <name>
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3302630Z hint:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3305180Z hint: Disable this message with "git config set advice.defaultBranchName false"
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3308920Z Initialized empty Git repository in /Users/runner/work/chainlesschain/chainlesschain/.git/
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3318550Z [command]/usr/local/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3326770Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3329220Z ##[group]Disabling automatic garbage collection
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3331520Z [command]/usr/local/bin/git config --local gc.auto 0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3337350Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3339550Z ##[group]Setting up auth
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3341950Z [command]/usr/local/bin/git config --local --name-only --get-regexp core\.sshCommand
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.3353160Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.4106540Z [command]/usr/local/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.4223780Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:08.8511920Z [command]/usr/local/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:09.0523220Z [command]/usr/local/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:09.0648910Z [command]/usr/local/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:09.0685910Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:09.0689010Z ##[group]Fetching the repository
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:09.0693420Z [command]/usr/local/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b26d7135c25592fd17c8ae8cc25765cdb867df33:refs/remotes/pull/425/merge
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4897490Z From https://github.com/chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4901850Z  * [new ref]           b26d7135c25592fd17c8ae8cc25765cdb867df33 -> pull/425/merge
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4906890Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4932070Z ##[group]Determining the checkout info
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4933640Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.4939080Z [command]/usr/local/bin/git sparse-checkout disable
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.5071280Z [command]/usr/local/bin/git config --local --unset-all extensions.worktreeConfig
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.5186930Z ##[group]Checking out the ref
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:22.5194200Z [command]/usr/local/bin/git checkout --progress --force refs/remotes/pull/425/merge
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:23.6747830Z Updating files:   9% (2149/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:23.7639560Z Updating files:  10% (2273/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:23.8425270Z Updating files:  11% (2500/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.0525600Z Updating files:  12% (2728/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.1354540Z Updating files:  13% (2955/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.2345560Z Updating files:  14% (3182/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.3277110Z Updating files:  15% (3410/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.4088030Z Updating files:  16% (3637/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.4933340Z Updating files:  17% (3864/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.5736140Z Updating files:  18% (4091/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.5761500Z Updating files:  19% (4319/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.6523040Z Updating files:  19% (4327/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.8779620Z Updating files:  20% (4546/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:24.9284340Z Updating files:  21% (4773/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.0108130Z Updating files:  22% (5000/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.0999510Z Updating files:  23% (5228/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.1901270Z Updating files:  24% (5455/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.2683060Z Updating files:  25% (5682/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.3439600Z Updating files:  26% (5910/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.4147010Z Updating files:  27% (6137/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.5695000Z Updating files:  28% (6364/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.5757490Z Updating files:  29% (6591/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.6484970Z Updating files:  29% (6607/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.7297860Z Updating files:  30% (6819/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.8196770Z Updating files:  31% (7046/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.8998840Z Updating files:  32% (7273/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:25.9729130Z Updating files:  33% (7500/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.0638240Z Updating files:  34% (7728/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.1539910Z Updating files:  35% (7955/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.2500320Z Updating files:  36% (8182/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.4269480Z Updating files:  37% (8409/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.5297640Z Updating files:  38% (8637/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.6303970Z Updating files:  39% (8864/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.7030560Z Updating files:  39% (8969/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.7575650Z Updating files:  40% (9091/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.8672670Z Updating files:  41% (9319/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:26.9662230Z Updating files:  42% (9546/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.0692230Z Updating files:  43% (9773/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.2779700Z Updating files:  44% (10000/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.3761000Z Updating files:  45% (10228/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.4803320Z Updating files:  46% (10455/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.5781780Z Updating files:  47% (10682/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.7836760Z Updating files:  47% (10842/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:27.9132060Z Updating files:  48% (10909/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.0133200Z Updating files:  49% (11137/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.1011030Z Updating files:  50% (11364/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.1974870Z Updating files:  51% (11591/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.3741030Z Updating files:  52% (11819/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.4741550Z Updating files:  53% (12046/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.5782710Z Updating files:  54% (12273/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.5945820Z Updating files:  54% (12485/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:28.7741890Z Updating files:  55% (12500/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:29.7203600Z Updating files:  56% (12728/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:30.0623480Z Updating files:  56% (12889/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:30.5917810Z Updating files:  57% (12955/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:32.3797710Z Updating files:  57% (13016/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:33.0977450Z Updating files:  57% (13158/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:33.1349280Z Updating files:  57% (13168/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:34.4034470Z Updating files:  58% (13182/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:34.6147550Z Updating files:  58% (13195/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:36.4287120Z Updating files:  58% (13201/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:36.5941340Z Updating files:  58% (13225/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:37.6613130Z Updating files:  58% (13231/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:38.9813570Z Updating files:  58% (13309/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:39.1873440Z Updating files:  58% (13358/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:39.5855540Z Updating files:  59% (13409/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:39.5872260Z Updating files:  59% (13635/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:39.7424210Z Updating files:  60% (13637/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:40.6194770Z Updating files:  61% (13864/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:40.7582680Z Updating files:  61% (13941/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:40.9778400Z Updating files:  62% (14091/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.0937700Z Updating files:  63% (14319/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.2190650Z Updating files:  64% (14546/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.3445920Z Updating files:  65% (14773/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.4485790Z Updating files:  66% (15000/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.6160220Z Updating files:  67% (15228/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.6522720Z Updating files:  67% (15383/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.7704730Z Updating files:  68% (15455/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.8807730Z Updating files:  69% (15682/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:41.9974080Z Updating files:  70% (15909/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.1270980Z Updating files:  71% (16137/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.2453530Z Updating files:  72% (16364/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.3526570Z Updating files:  73% (16591/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.4709770Z Updating files:  74% (16818/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.5910550Z Updating files:  75% (17046/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.6489650Z Updating files:  75% (17152/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.7752500Z Updating files:  76% (17273/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:42.8936210Z Updating files:  77% (17500/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.0866700Z Updating files:  78% (17728/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.2246240Z Updating files:  79% (17955/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.3452560Z Updating files:  80% (18182/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.4610620Z Updating files:  81% (18409/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.5854520Z Updating files:  82% (18637/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.6247080Z Updating files:  82% (18795/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.8482520Z Updating files:  83% (18864/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:43.9811870Z Updating files:  84% (19091/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.1117320Z Updating files:  85% (19318/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.2293850Z Updating files:  86% (19546/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.3454410Z Updating files:  87% (19773/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.4701660Z Updating files:  88% (20000/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.5862680Z Updating files:  89% (20228/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.5965770Z Updating files:  89% (20434/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.7147180Z Updating files:  90% (20455/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:44.9068220Z Updating files:  91% (20682/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.1477600Z Updating files:  92% (20909/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.4716900Z Updating files:  93% (21137/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.5858880Z Updating files:  94% (21364/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.6064040Z Updating files:  94% (21552/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.7309070Z Updating files:  95% (21591/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:45.8692420Z Updating files:  96% (21818/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.0059690Z Updating files:  97% (22046/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.1213700Z Updating files:  98% (22273/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.2947170Z Updating files:  99% (22500/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.2949310Z Updating files: 100% (22727/22727)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.2951540Z Updating files: 100% (22727/22727), done.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.3718190Z HEAD is now at b26d7135 Merge d4b936395ee40726bff956fd3adfd4f01ff24e77 into 976c4f394fbab4fccc041787051f00abe08113c9
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.3901400Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.4134250Z [command]/usr/local/bin/git log -1 --format=%H
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.4339240Z b26d7135c25592fd17c8ae8cc25765cdb867df33
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5151000Z ##[group]Run actions/setup-node@v5
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5151910Z with:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5152610Z   node-version: 22.12.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5153560Z   always-auth: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5154270Z   check-latest: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5164350Z   token: ***
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5165150Z   package-manager-cache: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:46.5166230Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:47.0681720Z Attempting to download 22.12.0...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:47.1253410Z (node:1737) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:47.1275090Z (Use `node --trace-deprecation ...` to show where the warning was created)
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:47.9356970Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-darwin-x64.tar.gz
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:48.8098150Z Extracting ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:48.8387030Z [command]/usr/bin/tar xz --strip 1 -C /Users/runner/work/_temp/2065b94f-eb6a-42cd-aa64-40cba53bd996 -f /Users/runner/work/_temp/a30004b9-407e-42a2-9fea-7519e61c4df6
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:45:52.8158380Z Adding to the cache ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:06.3027100Z ##[group]Environment details
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3176610Z node: v22.12.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3185310Z npm: 10.9.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3188150Z yarn: 1.22.22
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3190480Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3529800Z ##[group]Run npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3533860Z [36;1mnpm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3669250Z shell: /bin/bash -e {0}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:07.3670090Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5538130Z npm warn EBADENGINE Unsupported engine {
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5542720Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5547820Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5550100Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5551750Z npm warn EBADENGINE }
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5739530Z npm warn EBADENGINE Unsupported engine {
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5742690Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5750060Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5761410Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:11.5765430Z npm warn EBADENGINE }
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:25.5469500Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:27.3605640Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.0656460Z 
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.0657850Z added 551 packages in 37s
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.1234340Z ##[group]Run node --test scripts/__tests__/verify01-diagnostic-process.test.mjs scripts/__tests__/verify01-diagnostic-evidence.test.mjs scripts/__tests__/verify01-diagnostic-command-drain.test.mjs scripts/__tests__/verify01-onboarding-fixture.test.mjs scripts/__tests__/verify01-cold-evidence.test.mjs scripts/__tests__/verify01-cold-boundaries.test.mjs scripts/__tests__/verify01-init-gate.test.mjs packages/vscode-extension/test/verify01-diagnostic.test.cjs packages/vscode-extension/test/verify01-config.test.cjs
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.1247420Z [36;1mnode --test scripts/__tests__/verify01-diagnostic-process.test.mjs scripts/__tests__/verify01-diagnostic-evidence.test.mjs scripts/__tests__/verify01-diagnostic-command-drain.test.mjs scripts/__tests__/verify01-onboarding-fixture.test.mjs scripts/__tests__/verify01-cold-evidence.test.mjs scripts/__tests__/verify01-cold-boundaries.test.mjs scripts/__tests__/verify01-init-gate.test.mjs packages/vscode-extension/test/verify01-diagnostic.test.cjs packages/vscode-extension/test/verify01-config.test.cjs[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.1374640Z shell: /bin/bash -e {0}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.1375360Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.3834130Z TAP version 13
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7500320Z # Subtest: live launcher accepts exactly the panel's permission modes without rewriting them
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7502540Z ok 1 - live launcher accepts exactly the panel's permission modes without rewriting them
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7609590Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7695290Z   duration_ms: 13.277147
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7826830Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7882600Z # Subtest: invalid CLI permission alias fails before VSIX lookup, host launch, or capture creation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.7973530Z ok 2 - invalid CLI permission alias fails before VSIX lookup, host launch, or capture creation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.8068540Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.8125940Z   duration_ms: 6.915716
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.8519260Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.9263580Z # Subtest: diagnostic supervisor preserves real successful exit
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.9479740Z ok 3 - diagnostic supervisor preserves real successful exit
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.9692900Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:45.9978790Z   duration_ms: 220.476302
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.0027360Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.5950030Z # Subtest: outer deadline requests bounded orderly IPC cleanup and remains failed
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.6220550Z ok 4 - outer deadline requests bounded orderly IPC cleanup and remains failed
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.6878580Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.7029420Z   duration_ms: 627.943604
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:46.7063680Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.4828660Z # Subtest: unresponsive launcher is force-cleaned after bounded cancellation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.5842210Z ok 5 - unresponsive launcher is force-cleaned after bounded cancellation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6200720Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6296480Z   duration_ms: 836.980169
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6304310Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6323770Z # Subtest: never-init and early-exit boundaries require actual retirement then one explicit retry
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6353210Z ok 6 - never-init and early-exit boundaries require actual retirement then one explicit retry
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6369890Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6375440Z   duration_ms: 11.953143
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6395170Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6455120Z # Subtest: an old instance receiving input or a live old node cannot pass replacement
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6491460Z ok 7 - an old instance receiving input or a live old node cannot pass replacement
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.6854970Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.7142530Z   duration_ms: 1.459941
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8145390Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8409390Z # Subtest: a released never-init gate and a shortened timeout are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8428970Z ok 8 - a released never-init gate and a shortened timeout are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8443820Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8625220Z   duration_ms: 1.107245
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.8814140Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9141670Z # Subtest: replacement cannot precede the confirmed exit or duplicate the retry
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9211370Z ok 9 - replacement cannot precede the confirmed exit or duplicate the retry
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9218690Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9229960Z   duration_ms: 0.755373
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9251280Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9264240Z # Subtest: early process exit must retain its distinct cause and code
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9473090Z ok 10 - early process exit must retain its distinct cause and code
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9475970Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9479350Z   duration_ms: 0.778119
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9481630Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9485120Z # Subtest: wrong-session input and an unrelated duplicate in the replacement instance are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9522050Z ok 11 - wrong-session input and an unrelated duplicate in the replacement instance are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9525340Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9527530Z   duration_ms: 1.228497
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9531280Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9534630Z # Subtest: reconciles all actual-child cases and retains the provider/performance boundary
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9538920Z ok 12 - reconciles all actual-child cases and retains the provider/performance boundary
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9542150Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9544520Z   duration_ms: 6.985231
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9547370Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9550590Z # Subtest: duplicate input or wrong-session dispatch cannot appear as zero automatic resends
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9555110Z ok 13 - duplicate input or wrong-session dispatch cannot appear as zero automatic resends
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9558460Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9560600Z   duration_ms: 1.199725
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9566100Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9568760Z # Subtest: late init dispatch before the explicit retry is rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9571410Z ok 14 - late init dispatch before the explicit retry is rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9573560Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9575130Z   duration_ms: 0.941137
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9576850Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9579550Z # Subtest: shortening the production timeout cannot pass the evidence gate
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9582360Z ok 15 - shortening the production timeout cannot pass the evidence gate
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9584530Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9586410Z   duration_ms: 0.512179
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9588820Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9591960Z # Subtest: a dead child and a replaced process instance are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9594700Z ok 16 - a dead child and a replaced process instance are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9598200Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9600200Z   duration_ms: 1.21992
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9602150Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9604210Z # Subtest: missing cases and manufactured gate records are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9606250Z ok 17 - missing cases and manufactured gate records are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9607100Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9607580Z   duration_ms: 0.528513
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9608100Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9609260Z # Subtest: a stale retry observation cannot legitimize an automatic dispatch after init
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9611010Z ok 18 - a stale retry observation cannot legitimize an automatic dispatch after init
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9612070Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9612550Z   duration_ms: 0.530191
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9613060Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9614100Z # Subtest: runtime constant changes and init from another child are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9616010Z ok 19 - runtime constant changes and init from another child are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9617340Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9617860Z   duration_ms: 0.658292
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9618380Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9619520Z # Subtest: waits for every real-close record including a command started while draining
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9621260Z ok 20 - waits for every real-close record including a command started while draining
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9622270Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9622750Z   duration_ms: 314.674941
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9623450Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9624400Z # Subtest: missing close acknowledgement exhausts the existing deadline
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9626630Z ok 21 - missing close acknowledgement exhausts the existing deadline
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9627560Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9628130Z   duration_ms: 149.761821
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9628680Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9629570Z # Subtest: nonzero and signal exits cannot authorize IDE cleanup
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9630810Z ok 22 - nonzero and signal exits cannot authorize IDE cleanup
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9631640Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9632090Z   duration_ms: 41.6007
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9632580Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9655880Z # Subtest: a partial completion line is not mistaken for a drained trace
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9658620Z ok 23 - a partial completion line is not mistaken for a drained trace
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9660030Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9660690Z   duration_ms: 164.647333
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9661480Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9663010Z # Subtest: a completion from a different command cannot release a pending command
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9688230Z ok 24 - a completion from a different command cannot release a pending command
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9689370Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9689900Z   duration_ms: 43.547657
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9690430Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9712160Z # Subtest: unused restored tabs are drained and retained without failing the target history
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9714280Z ok 25 - unused restored tabs are drained and retained without failing the target history
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9715330Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9715920Z   duration_ms: 13.406725
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9716480Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9717500Z # Subtest: diagnostic summary verifies raw capture and hashes every artifact
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9719870Z ok 26 - diagnostic summary verifies raw capture and hashes every artifact
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9720800Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9721220Z   duration_ms: 271.945165
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9721700Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9722450Z # Subtest: summary dropping explicit null is rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9723440Z ok 27 - summary dropping explicit null is rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9724150Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9724600Z   duration_ms: 13.548908
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9725110Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9726160Z # Subtest: VS Code UI action log is verified separately from protocol generations
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9727730Z ok 28 - VS Code UI action log is verified separately from protocol generations
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9728660Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9729150Z   duration_ms: 9.90586
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9729650Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9730720Z # Subtest: second raw generation and incomplete UI sequence are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9732140Z ok 29 - second raw generation and incomplete UI sequence are rejected
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9733020Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9733490Z   duration_ms: 47.900297
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9734050Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9735110Z # Subtest: archive refuses prior attempts and preserves hidden diagnostic files
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9736700Z ok 30 - archive refuses prior attempts and preserves hidden diagnostic files
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9737650Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9738120Z   duration_ms: 178.999425
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:47.9738640Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.0299980Z # Subtest: actual child preserves arguments with spaces and drains logs
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.0337600Z ok 31 - actual child preserves arguments with spaces and drains logs
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.0341180Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.0343050Z   duration_ms: 359.923555
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.0344860Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.6354520Z # Subtest: deadline kills an actual long-running child and requires exit acknowledgement
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.6379960Z ok 32 - deadline kills an actual long-running child and requires exit acknowledgement
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.6383420Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.6386000Z   duration_ms: 625.74009
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.6388140Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.8356360Z # Subtest: nonzero exit and unavailable executable cannot become success
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.8359700Z ok 33 - nonzero exit and unavailable executable cannot become success
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.8362280Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.8363950Z   duration_ms: 200.669347
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:48.8364770Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1463270Z # Subtest: owned cleanup terminates an actual descendant process
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1465230Z ok 34 - owned cleanup terminates an actual descendant process
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1466470Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1467190Z   duration_ms: 311.378498
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1468210Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1469630Z # Subtest: Windows batch quoting rejects expansion and command injection
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1471680Z ok 35 - Windows batch quoting rejects expansion and command injection
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1472960Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1473680Z   duration_ms: 0.720954
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:49.1474440Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.6712200Z # Subtest: POSIX confirms group disappearance after leader exits and descendant ignores TERM
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.6816730Z ok 36 - POSIX confirms group disappearance after leader exits and descendant ignores TERM
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.6829410Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.6847260Z   duration_ms: 3494.370451
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.6858380Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.7609100Z # Subtest: POSIX transient EPERM probe retains ownership until actual disappearance
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.7614230Z ok 37 - POSIX transient EPERM probe retains ownership until actual disappearance
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.7619960Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.7621780Z   duration_ms: 117.985158
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:46:52.7623510Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1857040Z # Subtest: POSIX persistent EPERM probes cannot fabricate cleanup confirmation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1936670Z ok 38 - POSIX persistent EPERM probes cannot fabricate cleanup confirmation
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1992350Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1995450Z   duration_ms: 13338.530855
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1996360Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.1998750Z # Subtest: Windows refuses long-host cleanup after its owner exits with a live descendant
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2001940Z ok 39 - Windows refuses long-host cleanup after its owner exits with a live descendant # SKIP
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2003540Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2004490Z   duration_ms: 5.175446
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2005200Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2007200Z # Subtest: Windows refuses failed termination and discovers a descendant born after the initial snapshot
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2011180Z ok 40 - Windows refuses failed termination and discovers a descendant born after the initial snapshot # SKIP
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2014430Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2015060Z   duration_ms: 5.581958
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2015750Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2016850Z # Subtest: actual Windows batch command handles spaced paths
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2019010Z ok 41 - actual Windows batch command handles spaced paths # SKIP
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2020240Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2020820Z   duration_ms: 1.447663
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.2021500Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.7566010Z # Subtest: graceful request waits for an actual child tree to exit normally
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.7640560Z ok 42 - graceful request waits for an actual child tree to exit normally
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.7662770Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.7668120Z   duration_ms: 629.715403
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:06.7728510Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0124350Z # Subtest: an acknowledged graceful request is not proof of exit and falls back to termination
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0159330Z ok 43 - an acknowledged graceful request is not proof of exit and falls back to termination
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0176290Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0206670Z   duration_ms: 255.222679
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0235010Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0242770Z # Subtest: Windows identity preparation refuses a departed owner and preserves failure evidence
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0247970Z ok 44 - Windows identity preparation refuses a departed owner and preserves failure evidence # SKIP
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0253280Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0255840Z   duration_ms: 0.212078
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.0260710Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2686930Z # Subtest: a hanging graceful request is bounded and aborted before fallback cleanup
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2724760Z ok 45 - a hanging graceful request is bounded and aborted before fallback cleanup
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2775850Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2802850Z   duration_ms: 258.25486
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2825860Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2838590Z # Subtest: Windows graceful owner exit cannot confirm a surviving detached descendant
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2843930Z ok 46 - Windows graceful owner exit cannot confirm a surviving detached descendant # SKIP
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2851050Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2874290Z   duration_ms: 0.238932
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2881090Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2916980Z # Subtest: init waits for the exact session and nonce, ignoring a stale release
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2922930Z ok 47 - init waits for the exact session and nonce, ignoring a stale release
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2926250Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2929560Z   duration_ms: 147.254613
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2934200Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2937240Z # Subtest: a never-released fixture has its own bounded deadline
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2939140Z ok 48 - a never-released fixture has its own bounded deadline
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2943060Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2947340Z   duration_ms: 69.729419
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2948790Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2951770Z # Subtest: invalid or unbounded fixture deadlines are refused
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2961930Z ok 49 - invalid or unbounded fixture deadlines are refused
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2964130Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2966080Z   duration_ms: 7.586141
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2968150Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2973810Z # Subtest: the actual peer can exit before init with a drained nonzero process result
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2976980Z ok 50 - the actual peer can exit before init with a drained nonzero process result
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2983550Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2986340Z   duration_ms: 263.132568
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2989620Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2993530Z # Subtest: actual explicit/global identity replacement leaves the managed command valid
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.2996350Z ok 51 - actual explicit/global identity replacement leaves the managed command valid
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3078940Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3105850Z   duration_ms: 1193.166784
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3129760Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3145800Z # Subtest: isolated PATH observes removal and repair without resolving a system compiler
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3154120Z ok 52 - isolated PATH observes removal and repair without resolving a system compiler
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3160670Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3172450Z   duration_ms: 1092.464958
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3178420Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3186210Z # Subtest: non-version banners cannot configure a fixture CLI
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3192160Z ok 53 - non-version banners cannot configure a fixture CLI
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3197220Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3200120Z   duration_ms: 12.855092
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3209160Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3211700Z # Subtest: PATH augmentation cannot resolve an alternate installed CLI name
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3213890Z ok 54 - PATH augmentation cannot resolve an alternate installed CLI name
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3225780Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3231300Z   duration_ms: 195.278441
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3242350Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3249740Z # Subtest: manager-path isolation preserves build PATH and the caller's environment
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3253670Z ok 55 - manager-path isolation preserves build PATH and the caller's environment
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3259210Z   ---
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3262250Z   duration_ms: 1.094429
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3266460Z   ...
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3269010Z 1..55
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3271870Z # tests 55
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3274530Z # suites 0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3353690Z # pass 50
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3395700Z # fail 0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3397820Z # cancelled 0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3404680Z # skipped 5
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3413730Z # todo 0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3422700Z # duration_ms 21936.134119
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3880550Z ##[group]Run actions/setup-java@v5
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3881490Z with:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3882100Z   distribution: temurin
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3882830Z   java-version: 21
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3883900Z   java-package: jdk
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3884510Z   check-latest: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3885150Z   set-default: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3885760Z   verify-signature: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3886570Z   server-id: github
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3887290Z   server-username: GITHUB_ACTOR
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3888200Z   server-password: GITHUB_TOKEN
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3889210Z   overwrite-settings: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3889890Z   job-status: success
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3898980Z   token: ***
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3899700Z   show-download-progress: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.3900750Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.8590230Z ##[group]Installed distributions
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.9594240Z Resolved Java 21.0.12+101.0 from tool-cache
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.9627540Z Setting Java 21.0.12+101.0 as the default
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.9704170Z Creating toolchains.xml for JDK version 21 from temurin
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.9777580Z Writing to /Users/runner/.m2/toolchains.xml
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:07.9937290Z 
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0036660Z Java configuration:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0059010Z   Distribution: temurin
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0087780Z   Version: 21.0.12+101.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0153400Z   Path: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0224370Z 
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0274860Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0358040Z Creating settings.xml with server-id: github
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0396590Z Writing to /Users/runner/.m2/settings.xml
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0447770Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0654860Z ##[group]Run chmod +x packages/jetbrains-plugin/gradlew
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0656400Z [36;1mchmod +x packages/jetbrains-plugin/gradlew[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0838290Z shell: /bin/bash -e {0}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0839340Z env:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0841010Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0843620Z   JAVA_HOME_21_X64: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0845520Z   MAVEN_ARGS: -ntp
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.0846290Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1503900Z ##[group]Run display=()
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1505060Z [36;1mdisplay=()[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1505970Z [36;1mif [[ "$RUNNER_OS" == "Linux" ]]; then[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1507590Z [36;1m  display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1509120Z [36;1mfi[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1510510Z [36;1m"${display[@]}" node packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs \[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1512660Z [36;1m  --ide-version 2024.2 --artifact-dir verify01-artifacts/jetbrains[0m
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1650680Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1651870Z env:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1653360Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1656470Z   JAVA_HOME_21_X64: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1658480Z   MAVEN_ARGS: -ntp
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:08.1670950Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:47:09.2816720Z Diagnostic evidence: /private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-jetbrains-ChfZlm
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:56:50.4970080Z Starting initial actual IDE
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:03.7386790Z {"root":"/private/var/folders/20/jp1_0n3n7kndh6rnbqb5344m0000gn/T/cc-verify01-jetbrains-ChfZlm","destination":"/Users/runner/work/chainlesschain/chainlesschain/verify01-artifacts/jetbrains","passed":false,"error":"Error: initial IDE exited during startup\n    at main (file:///Users/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/scripts/verify01-diagnostic.mjs:265:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"}
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:04.2575880Z ##[error]Process completed with exit code 1.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0829140Z ##[group]Run actions/upload-artifact@v6
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0856250Z with:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0882710Z   name: verify01-jetbrains-macos-15-intel-1
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0885940Z   path: verify01-artifacts/
+jetbrains (macos-15-intel)	UNKNOWN STEP	packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+jetbrains (macos-15-intel)	UNKNOWN STEP	packages/jetbrains-plugin/build/reports/ui-smoke/
+jetbrains (macos-15-intel)	UNKNOWN STEP	
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0910180Z   include-hidden-files: true
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0912180Z   if-no-files-found: warn
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0913640Z   compression-level: 6
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0915070Z   overwrite: false
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0916350Z env:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0940350Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0946060Z   JAVA_HOME_21_X64: /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/Contents/Home
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0972160Z   MAVEN_ARGS: -ntp
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:05.0997080Z ##[endgroup]
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:06.1409300Z Multiple search paths detected. Calculating the least common ancestor of all paths
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:06.1415450Z The least common ancestor is /Users/runner/work/chainlesschain/chainlesschain. This will be the root directory of the artifact
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:06.1417500Z With the provided path, there will be 8 files uploaded
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:06.1422280Z Artifact name is valid!
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:06.1423290Z Root directory input is valid!
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:36.8192860Z ##[error]Failed to CreateArtifact: Unable to make request: ENOTFOUND
+jetbrains (macos-15-intel)	UNKNOWN STEP	If you are using self-hosted runners, please make sure your runner has access to all GitHub endpoints: https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#communication-between-self-hosted-runners-and-github
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:37.2668470Z Post job cleanup.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:37.7105040Z Post job cleanup.
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:37.8909710Z [command]/usr/local/bin/git version
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.4015770Z git version 2.55.0
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6096660Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bf271240-99ac-4304-8b77-f39b60bb8f20/.gitconfig'
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6101270Z Temporarily overriding HOME='/Users/runner/work/_temp/bf271240-99ac-4304-8b77-f39b60bb8f20' before making global git config changes
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6105240Z Adding repository directory to the temporary git global config as a safe directory
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6109160Z [command]/usr/local/bin/git config --global --add safe.directory /Users/runner/work/chainlesschain/chainlesschain
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6115250Z [command]/usr/local/bin/git config --local --name-only --get-regexp core\.sshCommand
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:38.6225630Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.4572980Z [command]/usr/local/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.4743060Z http.https://github.com/.extraheader
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.6820630Z [command]/usr/local/bin/git config --local --unset-all http.https://github.com/.extraheader
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.7300720Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.8828040Z [command]/usr/local/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:39.9249330Z [command]/usr/local/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+jetbrains (macos-15-intel)	UNKNOWN STEP	2026-10-09T09:59:40.1068460Z Cleaning up orphan processes
