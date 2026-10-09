@@ -1,0 +1,405 @@
+{
+  "schema": "astra.selected-original-evidence/v1",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "workflowRunId": 37972023167,
+  "jobId": 113960958833,
+  "artifactId": 11639153487,
+  "scope": "Selected original artifact bytes and raw GitHub responses only, not the complete extraction tree. Both original journey manifests are unmodified and retain references to 51+43 entries. See all-entries-verified.json for full integrity checks. Canonical restart event trace is unavailable and its original capture status is incomplete; functional journey passed. No evidence in this selection establishes the older SHA failure root cause.",
+  "artifactExtractionTreePreserved": false,
+  "originalJourneyManifestsUnmodified": true,
+  "verifiedArtifactEntries": [
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "entries": 51
+    },
+    {
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "entries": 43
+    }
+  ],
+  "selectedOriginalFiles": 41,
+  "selectedBytes": 1644662,
+  "files": [
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "metadata.json",
+      "targetPath": "github-artifact.json",
+      "bytes": 762,
+      "sha256": "d2c4cd5228cc82a49b95f02f2a4a4290d97210524881399982bcb02768ebbe9f"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "run.json",
+      "targetPath": "github-run.json",
+      "bytes": 13748,
+      "sha256": "d2afed5851cccc486ae9685d3bdd24d07ce0acef0795eac3dbf85c2ea666ec31"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "job.json",
+      "targetPath": "github-job.json",
+      "bytes": 3994,
+      "sha256": "48f843d665c0d068f2d0c2fdfb4c199599a55009361978ee41b13c6a6c6df9b3"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "job.log",
+      "targetPath": "github-job.log",
+      "bytes": 191006,
+      "sha256": "71ff142a62f0758b278604ad61590b94ee3b3aed64d01f39125d62b07aefc9f4"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "download-verification.json",
+      "targetPath": "download-receipt.json",
+      "bytes": 383,
+      "sha256": "d2459261827b551fc82fc2f7b8b96f38fb09e8317ccef0b41582bbec55614cdd"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "verification.json",
+      "targetPath": "all-entries-verified.json",
+      "bytes": 34179,
+      "sha256": "928efe4cde815e1080a351c6b8b27ca7158e89b4b90d69d96e85eb2f4c23dfb3"
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/journey-evidence.json",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/journey-evidence.json",
+      "targetPath": "deterministic/journey-original.json",
+      "bytes": 17330,
+      "sha256": "0274a3aa2de68fc00f342cc48ba1cf865ff3f38015eb7c9e9f614014ac71a502"
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/009-fake-cli-protocol.jsonl",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/009-fake-cli-protocol.jsonl",
+      "targetPath": "deterministic/fixture-protocol.jsonl",
+      "bytes": 357288,
+      "sha256": "2c6d7dd2947320eebf51fe0b5a3c7d9ca3877b3693f6fc4db99d2c69d3f10708",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/021-host-capture-initial_capture-status.json",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/021-host-capture-initial_capture-status.json",
+      "targetPath": "deterministic/initial-capture.json",
+      "bytes": 886,
+      "sha256": "f4de029348f66875e362bee9a3519496848ae20708ca077a6d15ecbb41282be2",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "targetPath": "deterministic/initial-events.bin",
+      "bytes": 25752,
+      "sha256": "c92cccdc9ca85b949c33340508d07ebf437ae09dd7cfae72dd39070f58d2b235",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "targetPath": "deterministic/initial-idea-001.log.bin",
+      "bytes": 45314,
+      "sha256": "d81467978b520dd4877ddda6e3bf96ac1f98738fdaa50d1ad96c36ac51612c11",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "targetPath": "deterministic/initial-idea-002.log.bin",
+      "bytes": 126736,
+      "sha256": "2034dcf25c4dd5e64186d6337bedd591e131ad2386db144d0a76a270adb4829f",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/026-host-capture-restart_capture-status.json",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/026-host-capture-restart_capture-status.json",
+      "targetPath": "deterministic/restart-capture.json",
+      "bytes": 885,
+      "sha256": "a69316d69e7a0529ada926d49876151e031689a444284dda50262438c42cd680",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "targetPath": "deterministic/restart-events.bin",
+      "bytes": 2350,
+      "sha256": "a4cafda89ea11c6788f253a1db4651be87e4c21deba024d7e947f3b1b5e51195",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "targetPath": "deterministic/restart-idea-001.log.bin",
+      "bytes": 45314,
+      "sha256": "d81467978b520dd4877ddda6e3bf96ac1f98738fdaa50d1ad96c36ac51612c11",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "targetPath": "deterministic/restart-idea-002.log.bin",
+      "bytes": 208898,
+      "sha256": "046d60be0f9d6d69581e714f063b8386ef82daf02e0e722974ceb1ed8d9fa191",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "targetPath": "deterministic/initial-host-stderr.log",
+      "bytes": 5054,
+      "sha256": "2f3754fde8b01c7b07ec9852a2417359b9f5d97a41d6af1da4ba385e2dff8e78",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "targetPath": "deterministic/restart-host-stderr.log",
+      "bytes": 5998,
+      "sha256": "12023b62f31b33b937a6d71d73335d9aacfd37137fd56dd89c82d11d4e2248a6",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/038-ui-smoke-initial.stdout.log",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/038-ui-smoke-initial.stdout.log",
+      "targetPath": "deterministic/initial-ui-stdout.log",
+      "bytes": 13260,
+      "sha256": "cdde0bcb0abda73eded137f7194afbd58be62465e48657ac82c747daf7fde6af",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/040-ui-smoke-restart.stdout.log",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/040-ui-smoke-restart.stdout.log",
+      "targetPath": "deterministic/restart-ui-stdout.log",
+      "bytes": 13293,
+      "sha256": "25a4d0a12dffad136097ef36d49eb503a81e505cbfd99f23b8867e155f76759f",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/041-workbench-host-phases.json",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/041-workbench-host-phases.json",
+      "targetPath": "deterministic/host-phases.json",
+      "bytes": 1873,
+      "sha256": "4bf7dda8ffb210466665a875233caafc9f973ac443e25474b043985a595a119e",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/042-workbench-metrics.jsonl",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/042-workbench-metrics.jsonl",
+      "targetPath": "deterministic/workbench-metrics.jsonl",
+      "bytes": 25911,
+      "sha256": "513c645df828b9f8d53e9e1948dfe9b1f092fa8a4aa8d36ead657bc2c18145da",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/Windows-2025.2/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourcePath": "extracted/ide-journey/Windows-2025.2/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "targetPath": "deterministic/ui-result.xml",
+      "bytes": 721,
+      "sha256": "381a0a82669b5871c8c5bdda79e6a1b83a3898462d7f76126a37381604e399a3",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/journey-evidence.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/journey-evidence.json",
+      "targetPath": "canonical/journey-original.json",
+      "bytes": 14193,
+      "sha256": "f422b19cb347f5c9e7d1fc74eb4712f4103bd4ab304b777ef14f0b51a8865f23"
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/001-canonical-environment.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/001-canonical-environment.json",
+      "targetPath": "canonical/environment.json",
+      "bytes": 175,
+      "sha256": "1e481c19ad4b116be10e5ec6f57226c9295925f5d8a848aae8e0e337d3fe7a84",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "targetPath": "canonical/host-phases.json",
+      "bytes": 3358,
+      "sha256": "a846a10aff78a062a711edf48925cd6fa6a5c7ce7e5aee0dd43813002542bc56",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/003-conversation-recovery-initial.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/003-conversation-recovery-initial.json",
+      "targetPath": "canonical/initial-recovery.json",
+      "bytes": 37846,
+      "sha256": "fc18fe3d1c854602f78ce3d6a8914fc4bea5a2396bd6cdb82b52c222810d44fa",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/004-conversation-recovery-restart.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/004-conversation-recovery-restart.json",
+      "targetPath": "canonical/restart-recovery.json",
+      "bytes": 8530,
+      "sha256": "b9ab8f020a8b2ffd3aa5b17543e12400c62c98b4df658add78f38a16c0307534",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/013-fake-cli-protocol.jsonl",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/013-fake-cli-protocol.jsonl",
+      "targetPath": "canonical/fixture-protocol.jsonl",
+      "bytes": 31047,
+      "sha256": "a9ea52d4e56720dc670219f6d806b9519159295f856d700f8a546a62ab8bcd80",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/015-host-capture-initial_capture-status.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/015-host-capture-initial_capture-status.json",
+      "targetPath": "canonical/initial-capture.json",
+      "bytes": 663,
+      "sha256": "b5835b176218129f2577e004800d90c644b22acb00802895cb71eafae70d9984",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+      "targetPath": "canonical/initial-events.bin",
+      "bytes": 21087,
+      "sha256": "a610e80230f41fa0280b21356bbc71b3a06b0ed54aece8f9fcb66c37969e1933",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/018-host-capture-initial_idea-001.log.bin",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/018-host-capture-initial_idea-001.log.bin",
+      "targetPath": "canonical/initial-idea-001.log.bin",
+      "bytes": 115628,
+      "sha256": "86670c28bd92bf541b5a0e41155f786ed96dbd08593ced25847290349644549c",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/019-host-capture-restart_capture-status.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/019-host-capture-restart_capture-status.json",
+      "targetPath": "canonical/restart-capture.json",
+      "bytes": 490,
+      "sha256": "561666567b1bf425e7ab3e46b3ff23f193d0c32022f32dca8e0d3cefd3e952fd",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/020-host-capture-restart_idea-001.log.bin",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/020-host-capture-restart_idea-001.log.bin",
+      "targetPath": "canonical/restart-idea-001.log.bin",
+      "bytes": 191901,
+      "sha256": "082ae76ebc81e33fa467abd9dc381d7f88a60ad6f6855eb5eae2a35d0b4c33b3",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": false
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/023-native-transcript-metrics.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/023-native-transcript-metrics.json",
+      "targetPath": "canonical/native-metrics.json",
+      "bytes": 33003,
+      "sha256": "b54c2dffd8422e859b0868174dc6b33c78faaee89087b2ea744f114200a0e306",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/026-sandbox-ide-initial.stderr.log",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/026-sandbox-ide-initial.stderr.log",
+      "targetPath": "canonical/initial-host-stderr.log",
+      "bytes": 2570,
+      "sha256": "22ff44d82e8fa773c1e192282ac4d94a6cde1bcd575a9385f70df34c5b3f143e",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/028-sandbox-ide-restart.stderr.log",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/028-sandbox-ide-restart.stderr.log",
+      "targetPath": "canonical/restart-host-stderr.log",
+      "bytes": 3630,
+      "sha256": "9f5f51eaeef5514afda1e614778e0a7e7ef6515de6c4a5e4b8ddf2abc17e93aa",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/030-stop-continuation-observations.json",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/030-stop-continuation-observations.json",
+      "targetPath": "canonical/stop-observations.json",
+      "bytes": 12344,
+      "sha256": "93523a0e539422e4ce4d4dc0d936f587feaee366dcc38ba4254c8854716bb961",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/032-ui-smoke-initial.stdout.log",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/032-ui-smoke-initial.stdout.log",
+      "targetPath": "canonical/initial-ui-stdout.log",
+      "bytes": 13288,
+      "sha256": "209320cc1244863518b910c14a03f65253360e3ba39744c07a6e7f44c8f1a6e3",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/034-ui-smoke-restart.stdout.log",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/034-ui-smoke-restart.stdout.log",
+      "targetPath": "canonical/restart-ui-stdout.log",
+      "bytes": 13293,
+      "sha256": "89378be9d86215e02621732f5582c86836fc0c841b43bd094f348873dfd02910",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    },
+    {
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/diagnostics/038-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourcePath": "extracted/ide-journey/canonical-Windows-2025.2/diagnostics/038-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "targetPath": "canonical/ui-result.xml",
+      "bytes": 681,
+      "sha256": "eb549a759d654cf04b3720d756af07ab1c65a46d806f7ec4f401e80dc5d30b5e",
+      "originalManifestTruncated": false,
+      "originalManifestRedacted": true
+    }
+  ],
+  "excludedPayloads": [
+    {
+      "kind": "GitHub artifact ZIP",
+      "path": "artifact.zip",
+      "bytes": 3768330,
+      "sha256": "sha256:a29dc835791b148f2c6adb9b4603667e6da8c35a48a28979ed4f816880c7b8da"
+    },
+    {
+      "kind": "Packaged plugin ZIP; includes compiled classes/jars",
+      "originalArtifactPath": "ide-journey/Windows-2025.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1520024,
+      "sha256": "sha256:f87e274fdd32b150d8294adb49e8fbd946e1353406cdf828805c0496d298bf7b"
+    },
+    {
+      "kind": "Packaged plugin ZIP; includes compiled classes/jars",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2025.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1520024,
+      "sha256": "sha256:f87e274fdd32b150d8294adb49e8fbd946e1353406cdf828805c0496d298bf7b"
+    }
+  ],
+  "noZipJarClassPayloadCopied": true,
+  "suggestedArchiveSubdirectory": "host-artifacts/win2025",
+  "pathAudit": {
+    "suggestedRepositoryPrefix": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/final-release/host-artifacts/win2025/",
+    "maxRelativeLength": 134,
+    "windowsCheckoutRootLength": 34,
+    "maxWindowsCheckoutLength": 169
+  }
+}

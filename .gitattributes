@@ -119,3 +119,7 @@ docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-09/README.md -lin
 # Release 0.166.95 raw failure and publication receipts retain captured bytes.
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/README.md -linguist-generated
+
+# Release 0.166.96 retains original validation and publication receipt bytes.
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/README.md -linguist-generated

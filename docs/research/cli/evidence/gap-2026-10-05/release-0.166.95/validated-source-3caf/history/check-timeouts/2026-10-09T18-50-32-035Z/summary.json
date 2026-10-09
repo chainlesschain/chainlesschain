@@ -1,0 +1,623 @@
+{
+  "directory": "C:\\code\\chainlesschain\\.work\\astra-cancelled-checks-3caf14f\\2026-10-09T18-50-32-035Z",
+  "capturedAt": "2026-10-09T18:50:58.159Z",
+  "results": [
+    {
+      "label": "staleness",
+      "id": 37972023465,
+      "runAttempt": 1,
+      "conclusion": "cancelled",
+      "sha": "3caf14f2ee866335608487ab57add325972709d7",
+      "cancelledAt": "2026-10-09T18:33:29Z",
+      "detail": [
+        {
+          "id": 113960770031,
+          "attempt": 1,
+          "conclusion": "cancelled",
+          "started": "2026-10-09T18:29:47Z",
+          "completed": "2026-10-09T18:33:28Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-09T18:29:48Z",
+              "completed_at": "2026-10-09T18:29:49Z"
+            },
+            {
+              "name": "Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-09T18:29:49Z",
+              "completed_at": "2026-10-09T18:33:24Z"
+            },
+            {
+              "name": "Run actions/setup-node@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-09T18:33:24Z",
+              "completed_at": "2026-10-09T18:33:24Z"
+            },
+            {
+              "name": "Run publish-staleness lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-09T18:33:24Z",
+              "completed_at": "2026-10-09T18:33:24Z"
+            },
+            {
+              "name": "Comment on PR with violations",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 5,
+              "started_at": "2026-10-09T18:33:24Z",
+              "completed_at": "2026-10-09T18:33:24Z"
+            },
+            {
+              "name": "Delete prior failure comment on clean run",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-09T18:33:24Z",
+              "completed_at": "2026-10-09T18:33:25Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-09T18:33:25Z",
+              "completed_at": "2026-10-09T18:33:25Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-09T18:33:25Z",
+              "completed_at": "2026-10-09T18:33:25Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-09T18:33:25Z",
+              "completed_at": "2026-10-09T18:33:25Z"
+            }
+          ],
+          "annotations": [
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/3caf14f2ee866335608487ab57add325972709d7/.github",
+              "start_line": 1,
+              "start_column": null,
+              "end_line": 1,
+              "end_column": null,
+              "annotation_level": "failure",
+              "title": "",
+              "message": "The job has exceeded the maximum execution time of 3m0s",
+              "raw_details": ""
+            },
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/3caf14f2ee866335608487ab57add325972709d7/.github",
+              "start_line": 1,
+              "start_column": null,
+              "end_line": 1,
+              "end_column": null,
+              "annotation_level": "notice",
+              "title": "",
+              "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\"",
+              "raw_details": ""
+            }
+          ],
+          "output": {
+            "title": null,
+            "summary": null,
+            "text": null,
+            "annotations_count": 2,
+            "annotations_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113960770031/annotations"
+          },
+          "logs": {
+            "bytes": 108212,
+            "tail": "2026-10-09T18:33:24.7304114Z   debug: false\n2026-10-09T18:33:24.7304236Z   user-agent: actions/github-script\n2026-10-09T18:33:24.7304379Z   result-encoding: json\n2026-10-09T18:33:24.7304496Z   retries: 0\n2026-10-09T18:33:24.7304620Z   retry-exempt-status-codes: 400,401,403,404,422\n2026-10-09T18:33:24.7304777Z ##[endgroup]\n2026-10-09T18:33:25.2506672Z Post job cleanup.\n2026-10-09T18:33:25.3329140Z (node:2184) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.\n2026-10-09T18:33:25.3329649Z (Use `node --trace-deprecation ...` to show where the warning was created)\n2026-10-09T18:33:25.3498064Z Post job cleanup.\n2026-10-09T18:33:25.4051222Z [command]/usr/bin/git version\n2026-10-09T18:33:25.4082497Z git version 2.55.0\n2026-10-09T18:33:25.4105011Z Temporarily overriding HOME='/home/runner/work/_temp/6f3d0b0a-5f6d-40d5-8fb9-6b33bbefb38d' before making global git config changes\n2026-10-09T18:33:25.4106115Z Adding repository directory to the temporary git global config as a safe directory\n2026-10-09T18:33:25.4108881Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain\n2026-10-09T18:33:25.4139593Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-10-09T18:33:25.4165910Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-10-09T18:33:25.4378061Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-10-09T18:33:25.4400080Z http.https://github.com/.extraheader\n2026-10-09T18:33:25.4407673Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-10-09T18:33:25.4444567Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-10-09T18:33:25.4651349Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-10-09T18:33:25.4690237Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-10-09T18:33:25.5037565Z Cleaning up orphan processes\n"
+          }
+        }
+      ],
+      "sameShaRuns": [
+        {
+          "id": 37972023465,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "3caf14f2ee866335608487ab57add325972709d7",
+          "created": "2026-10-09T18:15:35Z"
+        }
+      ],
+      "recentBranchRuns": [
+        {
+          "id": 37972023465,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "3caf14f2ee866335608487ab57add325972709d7",
+          "created": "2026-10-09T18:15:35Z"
+        },
+        {
+          "id": 37958205741,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "8e538362109dbe0bf455d4f72dcab865962e668c",
+          "created": "2026-10-09T16:18:52Z"
+        },
+        {
+          "id": 37957249500,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "9f4df1157e493daaee137655c4e1d37c066c50e8",
+          "created": "2026-10-09T16:11:03Z"
+        },
+        {
+          "id": 37947976987,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b",
+          "created": "2026-10-09T14:56:44Z"
+        },
+        {
+          "id": 37944032457,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "a3cbe918e4f8fcda77dafa7514401d5f643b36df",
+          "created": "2026-10-09T14:25:13Z"
+        },
+        {
+          "id": 37929591377,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+          "created": "2026-10-09T12:22:24Z"
+        },
+        {
+          "id": 37912152854,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+          "created": "2026-10-09T09:34:34Z"
+        },
+        {
+          "id": 37911922136,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "0f1ab0d222f2a759aff9c6ee4b510ebd29382577",
+          "created": "2026-10-09T09:32:22Z"
+        },
+        {
+          "id": 37908565569,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "3f5fdc7ad473afc05b7b612d0381c03db4c975d0",
+          "created": "2026-10-09T09:01:03Z"
+        },
+        {
+          "id": 37896217919,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+          "created": "2026-10-09T06:56:38Z"
+        }
+      ]
+    },
+    {
+      "label": "secrets",
+      "id": 37972023404,
+      "runAttempt": 1,
+      "conclusion": "cancelled",
+      "sha": "3caf14f2ee866335608487ab57add325972709d7",
+      "cancelledAt": "2026-10-09T18:43:23Z",
+      "detail": [
+        {
+          "id": 113960769876,
+          "attempt": 1,
+          "conclusion": "cancelled",
+          "started": "2026-10-09T18:38:06Z",
+          "completed": "2026-10-09T18:43:23Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-09T18:38:07Z",
+              "completed_at": "2026-10-09T18:38:08Z"
+            },
+            {
+              "name": "Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-09T18:38:08Z",
+              "completed_at": "2026-10-09T18:38:47Z"
+            },
+            {
+              "name": "Run secret scan audit",
+              "status": "completed",
+              "conclusion": "cancelled",
+              "number": 3,
+              "started_at": "2026-10-09T18:38:47Z",
+              "completed_at": "2026-10-09T18:43:20Z"
+            },
+            {
+              "name": "Comment on PR if secret detected",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 4,
+              "started_at": "2026-10-09T18:43:20Z",
+              "completed_at": "2026-10-09T18:43:20Z"
+            },
+            {
+              "name": "Log clean audit",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 5,
+              "started_at": "2026-10-09T18:43:20Z",
+              "completed_at": "2026-10-09T18:43:20Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-09T18:43:20Z",
+              "completed_at": "2026-10-09T18:43:20Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-09T18:43:20Z",
+              "completed_at": "2026-10-09T18:43:21Z"
+            }
+          ],
+          "annotations": [
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/3caf14f2ee866335608487ab57add325972709d7/.github",
+              "start_line": 1,
+              "start_column": null,
+              "end_line": 1,
+              "end_column": null,
+              "annotation_level": "failure",
+              "title": "",
+              "message": "The job has exceeded the maximum execution time of 5m0s",
+              "raw_details": ""
+            },
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/3caf14f2ee866335608487ab57add325972709d7/.github",
+              "start_line": 26,
+              "start_column": null,
+              "end_line": 26,
+              "end_column": null,
+              "annotation_level": "failure",
+              "title": "",
+              "message": "The operation was canceled.",
+              "raw_details": ""
+            },
+            {
+              "path": ".github",
+              "blob_href": "https://github.com/chainlesschain/chainlesschain/blob/3caf14f2ee866335608487ab57add325972709d7/.github",
+              "start_line": 1,
+              "start_column": null,
+              "end_line": 1,
+              "end_column": null,
+              "annotation_level": "notice",
+              "title": "",
+              "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\"",
+              "raw_details": ""
+            }
+          ],
+          "output": {
+            "title": null,
+            "summary": null,
+            "text": null,
+            "annotations_count": 3,
+            "annotations_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113960769876/annotations"
+          },
+          "logs": {
+            "bytes": 107149,
+            "tail": "2026-10-09T18:41:55.2969224Z    15430348:+    text: \"git remote set-url origin https://***@github.com/x/y\",\n2026-10-09T18:41:55.2969746Z    15431685:+    secret: \"***\",\n2026-10-09T18:41:55.2970262Z    15431686:+    text: \"git remote set-url origin https://***@github.com/x/y\",\n2026-10-09T18:41:55.2970544Z \n2026-10-09T18:43:20.6707210Z ##[error]The operation was canceled.\n2026-10-09T18:43:20.6858075Z Post job cleanup.\n2026-10-09T18:43:20.7957763Z [command]/usr/bin/git version\n2026-10-09T18:43:20.7991551Z git version 2.55.0\n2026-10-09T18:43:20.8077727Z Temporarily overriding HOME='/home/runner/work/_temp/91677980-d62f-42a1-872a-ca59c79a8081' before making global git config changes\n2026-10-09T18:43:20.8079408Z Adding repository directory to the temporary git global config as a safe directory\n2026-10-09T18:43:20.8088592Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain\n2026-10-09T18:43:20.8152054Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-10-09T18:43:20.8215796Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-10-09T18:43:20.8701163Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-10-09T18:43:20.8812276Z http.https://github.com/.extraheader\n2026-10-09T18:43:20.8836514Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader\n2026-10-09T18:43:20.8852616Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'http\\.https\\:\\/\\/github\\.com\\/\\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\"\n2026-10-09T18:43:20.9913301Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\\.gitdir:\n2026-10-09T18:43:20.9915000Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url\n2026-10-09T18:43:21.0003606Z Cleaning up orphan processes\n2026-10-09T18:43:21.0360229Z Terminate orphan process: pid (2303) (bash)\n2026-10-09T18:43:21.0384178Z Terminate orphan process: pid (2468) (bash)\n2026-10-09T18:43:21.0407109Z Terminate orphan process: pid (2469) (bash)\n2026-10-09T18:43:21.0425894Z Terminate orphan process: pid (2470) (grep)\n"
+          }
+        }
+      ],
+      "sameShaRuns": [
+        {
+          "id": 37972023404,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "3caf14f2ee866335608487ab57add325972709d7",
+          "created": "2026-10-09T18:15:35Z"
+        }
+      ],
+      "recentBranchRuns": [
+        {
+          "id": 37972023404,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "3caf14f2ee866335608487ab57add325972709d7",
+          "created": "2026-10-09T18:15:35Z"
+        },
+        {
+          "id": 37958205678,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "8e538362109dbe0bf455d4f72dcab865962e668c",
+          "created": "2026-10-09T16:18:52Z"
+        },
+        {
+          "id": 37957249498,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "9f4df1157e493daaee137655c4e1d37c066c50e8",
+          "created": "2026-10-09T16:11:03Z"
+        },
+        {
+          "id": 37947977117,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b",
+          "created": "2026-10-09T14:56:44Z"
+        },
+        {
+          "id": 37944032231,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "a3cbe918e4f8fcda77dafa7514401d5f643b36df",
+          "created": "2026-10-09T14:25:13Z"
+        },
+        {
+          "id": 37929591312,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+          "created": "2026-10-09T12:22:24Z"
+        },
+        {
+          "id": 37912152417,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+          "created": "2026-10-09T09:34:34Z"
+        },
+        {
+          "id": 37911922134,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "0f1ab0d222f2a759aff9c6ee4b510ebd29382577",
+          "created": "2026-10-09T09:32:22Z"
+        },
+        {
+          "id": 37908565392,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "sha": "3f5fdc7ad473afc05b7b612d0381c03db4c975d0",
+          "created": "2026-10-09T09:01:03Z"
+        },
+        {
+          "id": 37896217707,
+          "attempt": 1,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+          "created": "2026-10-09T06:56:38Z"
+        }
+      ]
+    }
+  ],
+  "protection": {
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches/main/protection",
+    "required_status_checks": {
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches/main/protection/required_status_checks",
+      "strict": false,
+      "contexts": [
+        "PDH Data Hub Tests (ubuntu-latest)",
+        "PDH Data Hub Tests (windows-latest)",
+        "Quality Gate",
+        "Run All Tests (ubuntu-latest)",
+        "Run All Tests (windows-latest)",
+        "Lint & Format Check"
+      ],
+      "contexts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches/main/protection/required_status_checks/contexts",
+      "checks": [
+        {
+          "context": "PDH Data Hub Tests (ubuntu-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "PDH Data Hub Tests (windows-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "Quality Gate",
+          "app_id": 15368
+        },
+        {
+          "context": "Run All Tests (ubuntu-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "Run All Tests (windows-latest)",
+          "app_id": 15368
+        },
+        {
+          "context": "Lint & Format Check",
+          "app_id": 15368
+        }
+      ]
+    },
+    "required_signatures": {
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches/main/protection/required_signatures",
+      "enabled": false
+    },
+    "enforce_admins": {
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches/main/protection/enforce_admins",
+      "enabled": false
+    },
+    "required_linear_history": {
+      "enabled": false
+    },
+    "allow_force_pushes": {
+      "enabled": false
+    },
+    "allow_deletions": {
+      "enabled": false
+    },
+    "block_creations": {
+      "enabled": false
+    },
+    "required_conversation_resolution": {
+      "enabled": false
+    },
+    "lock_branch": {
+      "enabled": false
+    },
+    "allow_fork_syncing": {
+      "enabled": false
+    }
+  },
+  "rules": [],
+  "pr": {
+    "head": "3caf14f2ee866335608487ab57add325972709d7",
+    "mergeable": true,
+    "mergeable_state": "blocked"
+  },
+  "files": [
+    {
+      "path": "staleness-run.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023465",
+      "bytes": 13795,
+      "sha256": "81472f81a8c33b75c961066786180d231813b7d61512de0cc8f643bf5676689c"
+    },
+    {
+      "path": "staleness-jobs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023465/jobs?filter=all&per_page=100",
+      "bytes": 2518,
+      "sha256": "63e265f2b6f80bd41bf324c0d0ac72f5aedd683cdc40030cc268de49c01d6963"
+    },
+    {
+      "path": "staleness-same-sha-runs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/workflows/publish-staleness-check.yml/runs?head_sha=3caf14f2ee866335608487ab57add325972709d7&per_page=100",
+      "bytes": 13831,
+      "sha256": "613b6ffe07b839a8b3b08fe5f8a97589606771890555d6e30994f707bab68ba8"
+    },
+    {
+      "path": "staleness-branch-runs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/workflows/publish-staleness-check.yml/runs?branch=feature%2Fcli-ide-gap-completion-20261009&per_page=20",
+      "bytes": 137905,
+      "sha256": "15657715aec68f5115722693b5b02b7f7e3e3190065e898be031809ac892de4d"
+    },
+    {
+      "path": "staleness-check-113960770031.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/check-runs/113960770031",
+      "bytes": 3609,
+      "sha256": "546c6feb8914ca4a933b2112f8c75e4e2b7166b236c6aecb740901cde6d71230"
+    },
+    {
+      "path": "staleness-annotations-113960770031.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/check-runs/113960770031/annotations?per_page=100",
+      "bytes": 760,
+      "sha256": "2b1b3d4330f1b2cd38176e388be1046cade78b4027ce39b3084bdedf24b9e735"
+    },
+    {
+      "path": "staleness-job-113960770031.log",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/113960770031/logs",
+      "bytes": 108212,
+      "sha256": "83d00c88404215cf38b2ff004a33a0ad98aa2be49cd9ae021be4c1037c2c7e3b"
+    },
+    {
+      "path": "secrets-run.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023404",
+      "bytes": 13773,
+      "sha256": "5c64dcbebd59412a762ae13c812f87278071d0c4efabb72088ad090692e7c9cc"
+    },
+    {
+      "path": "secrets-jobs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023404/jobs?filter=all&per_page=100",
+      "bytes": 2137,
+      "sha256": "dbf88e279ddaaef95229ad7e41a5c6a497e3d7e596abfdf4dc5c7994d600db58"
+    },
+    {
+      "path": "secrets-same-sha-runs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/workflows/secret-scan-audit.yml/runs?head_sha=3caf14f2ee866335608487ab57add325972709d7&per_page=100",
+      "bytes": 13809,
+      "sha256": "6363eea0b636dfd22ea71df5e92c00b171b34504b57c9a9aed63d9e2c90954d6"
+    },
+    {
+      "path": "secrets-branch-runs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/workflows/secret-scan-audit.yml/runs?branch=feature%2Fcli-ide-gap-completion-20261009&per_page=20",
+      "bytes": 137699,
+      "sha256": "4de5d90627260f31a257718d1092409d85eb8435b1292f18ba5d13c4d61736e6"
+    },
+    {
+      "path": "secrets-check-113960769876.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/check-runs/113960769876",
+      "bytes": 3609,
+      "sha256": "6d3b9ec03007bac37d64fc65e02d5516c7405f11f483ee7f5765b0dca43cb866"
+    },
+    {
+      "path": "secrets-annotations-113960769876.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/check-runs/113960769876/annotations?per_page=100",
+      "bytes": 1061,
+      "sha256": "b6f296beefb645b6347b36151ed58796e2ae31b52728269dfa9f72e02bf11dcf"
+    },
+    {
+      "path": "secrets-job-113960769876.log",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/113960769876/logs",
+      "bytes": 107149,
+      "sha256": "cbfde1398c8eb6b0ebef12a67f0424f69ebd7f8ce1af455097f587e275bdcf13"
+    },
+    {
+      "path": "main-protection.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/branches/main/protection",
+      "bytes": 1496,
+      "sha256": "54be8650145fdf05162f0f8961c970d5baaddb98622860e7c6ea04a139e7734a"
+    },
+    {
+      "path": "main-rules.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/rules/branches/main",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "pr425.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/pulls/425",
+      "bytes": 22444,
+      "sha256": "4ac8a4394e2cd793a48afdd8c525384c8c978deacda8e30aa2ef8fa3ece1b722"
+    }
+  ]
+}

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.96",
+      "cliVersions": ["0.166.96"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.96: bind changed SDK source to a new signed release",
+          "body": "- Publish Agent SDK `0.2.14` before the CLI because SDK test diagnostics changed\n  its complete Git source tree after the signed `0.2.13` release. Preserve the\n  strict tree comparison and OIDC provenance checks.\n- Refresh the generated SDK source markers for VS Code and Desktop without\n  changing the SDK runtime output.\n- Pair unpublished VS Code `0.37.140` and JetBrains `0.4.158` with CLI\n  `0.166.96` after new exact-commit validation and public CLI availability.\n- Retain the failed `0.166.95` release tag and original failure receipts; that\n  workflow stopped before CLI publication. Formal acceptance remains open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.95",
       "cliVersions": ["0.166.95"],
       "date": null,

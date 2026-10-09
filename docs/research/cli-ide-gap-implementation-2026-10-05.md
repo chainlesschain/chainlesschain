@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-10 发布修复**：新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。 见[验证 20.20](./cli-ide-gap-validation-2026-10-05.md#2020-cli-016695-发布复用失败与-016696-候选)。正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。
+
 > **2026-10-09 最终续做与提交**：完成增量已按批次提交；最新官方发布来源、当前四处测试覆盖修补、Handlebars critical 修复、custodian 崩溃清理和追加 op4 报告校验见[验证 20.8–20.13](./cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。原 Windows 矩阵为 6 检出/4 存活/4 因基线失败未运行，保持 `NOT_ADMITTED`；当前新增回归不改写冻结结果。首批 61d91325d0 的完整 CLI CI 71 / Strict 5 已成功，后续提交另验；[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)保留检查。正式 36+9、平台持久后端和账号/目标宿主/人工长时条件仍开放，没有发布新包。
 
 > **2026-10-09 继续处理未完成项**：本页第 1 节及此前各节保留各轮交付时点；最新配对发行见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)。本轮完成模型审查证据保存、Windows 同 SID/Job 的 esbuild service/原冻结配置/默认 forks 65 项实跑，以及 owner 崩溃后原 Job/活跃 socket 回收原语。最新实现、完整 review 的真实失败和外部验收条件集中于[验证第 20 节](./cli-ide-gap-validation-2026-10-05.md#20-2026-10-09-剩余工程与验收边界)，局部原生诊断保持 `NOT_ADMITTED`，正式 36+9 未运行。
@@ -356,3 +358,11 @@ Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时�
 ## 20. 2026-10-09 完整验证与配对发行
 
 准确提交 `efcab5f632` 的 CLI 双门、双 IDE 实际宿主/构建及相关恢复门已通过，PR #423 已合并。CLI `0.166.94` 已通过 OIDC 发布；配对 Open VSX `0.37.139` 已公开且 latest/listed，JetBrains `0.4.157` 已获批并公开上架。上传前的公开 CLI/子包回执、标签产物摘要及独立市场下载回读已归档；VSIX 原始字节一致，JetBrains 全部 entry 字节一致，其 ZIP 容器字节差异另行记录。见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)及[发行证据](./cli/evidence/gap-2026-10-05/release-0.166.94/README.md)。正式 36+9、Windows/macOS durable 后端、完整原生 review 与人工/长时验收仍未完成，不因发行改变状态。
+
+## 21. CLI 0.166.96 与 SDK 0.2.14 发布候选
+
+CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取得 CLI CI **71/71**、Strict **5/5**、IDE **18 成功 / 1 条件跳过**及 ARM64 **10/10**。但 OIDC 发布 run `37985598206` 在 Agent SDK `0.2.13` 的整个源码树复用检查失败，CLI 发布步骤明确跳过；它没有成为新公开 CLI。SDK 的签名来源校验通过，实际改变的是测试诊断文件，公开 tarball 字节一致的预检不足以证明整个 Git 子树未变。
+
+新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。
+
+正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。

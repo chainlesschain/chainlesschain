@@ -2,7 +2,7 @@
 
 ## [0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)
 
-- Recommend CLI `0.166.95` after its public npm release and this extension's
+- Recommend CLI `0.166.96` after its public npm release and this extension's
   exact-commit release gates pass.
 - Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.
 - Retain the compatibility floor and runtime capability diagnostics; experimental

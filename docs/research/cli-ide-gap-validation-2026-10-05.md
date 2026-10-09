@@ -839,3 +839,13 @@ artifact `11632252463` **1905026 bytes**、ZIP SHA256 `c0de3e3330aa052fc78f66dbc
 本机 UI 编译通过，Java **113 XML / 955 用例：952 通过、3 原有 POSIX 跳过、0 failure/error**；三个跳过为 IdePathGuard 的 POSIX symlink 与 LockfileAcl 两个 POSIX 方法，原 assumptions 不变。smoke **1445 项断言全部通过**，不与 JUnit 合并计数。初次布局合同使用 headful AWT peer 初始化失败原件保留，标准纯 JUnit worker 显式 headless 后通过；真实 uiSmokeTest worker 不改为 headless。定向布局 **2/2**、事件观察 **4/4** 是上述全套的子集；driver **13/13** 与实际编译脚本 Rhino/Swing **6/6** 单独记载，均非真实 IDE。旧 snapshot 节点上限漏报 truncated 的实测失败与修正原件保存；新脚本源码与独立编译后的输出逐字节相同，真实 IDE owner 发现/反射仍待宿主验证。
 
 实际新版采集器到 evidence writer 的合同完整保留 **757780 bytes trace** 与 **300004 bytes IDE log**，来源摘要和 metadata 一致、未截断/改写；合同输入不能冒充原 CI 日志。候选修正尚未发布，新准确提交仍须 CLI CI/Strict、IDE 主门与 ARM64 完整矩阵。冻结 36+9、$99、窗口、分母、observations、原 Windows review 与平台、账户、人工、长时验收状态保持。
+
+### 20.20 CLI 0.166.95 发布复用失败与 0.166.96 候选
+
+CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取得 CLI CI **71/71**、Strict **5/5**、IDE **18 成功 / 1 条件跳过**及 ARM64 **10/10**。但 OIDC 发布 run `37985598206` 在 Agent SDK `0.2.13` 的整个源码树复用检查失败，CLI 发布步骤明确跳过；它没有成为新公开 CLI。SDK 的签名来源校验通过，实际改变的是测试诊断文件，公开 tarball 字节一致的预检不足以证明整个 Git 子树未变。
+
+新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。
+
+[失败原件](./cli/evidence/gap-2026-10-05/release-0.166.95/npm-publish-failure/manifest.json)保留原 workflow、job、日志及逐文件摘要；[3caf 已验证源码原件](./cli/evidence/gap-2026-10-05/release-0.166.95/validated-source-3caf/manifest.json)保存该提交成功门、真实 Windows IDE 选集与 SDK 终态。这些门不能转移到新候选。Workspace 同 SHA attempt 2 成功；Secret advisory 首次扫描超时且未完成，仍不声明 clean。x64 canonical restart 缺事件 trace、capture-status.complete=false 的事实和原日志保持；旧 8e5 审批失败根因仍未知。
+
+正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。

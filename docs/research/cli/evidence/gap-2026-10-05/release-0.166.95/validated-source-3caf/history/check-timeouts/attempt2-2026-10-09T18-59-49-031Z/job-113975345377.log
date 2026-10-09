@@ -1,0 +1,1024 @@
+﻿2026-10-09T18:58:04.1573898Z Current runner version: '2.337.0'
+2026-10-09T18:58:04.1594498Z ##[group]Runner Image Provisioner
+2026-10-09T18:58:04.1595236Z Hosted Compute Agent
+2026-10-09T18:58:04.1595740Z Version: 20261002.596
+2026-10-09T18:58:04.1596291Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-09T18:58:04.1596924Z Build Date: 2026-10-02T22:28:27Z
+2026-10-09T18:58:04.1597487Z Worker ID: {fef85f86-22f4-4405-9b8b-b7fda1fc7e2a}
+2026-10-09T18:58:04.1598131Z Region: westus3
+2026-10-09T18:58:04.1598608Z Cloud: Azure
+2026-10-09T18:58:04.1599085Z ##[endgroup]
+2026-10-09T18:58:04.1600327Z ##[group]Operating System
+2026-10-09T18:58:04.1600848Z Ubuntu
+2026-10-09T18:58:04.1601273Z 24.04.5
+2026-10-09T18:58:04.1601759Z LTS
+2026-10-09T18:58:04.1602213Z ##[endgroup]
+2026-10-09T18:58:04.1602713Z ##[group]Runner Image
+2026-10-09T18:58:04.1603233Z Image: ubuntu-24.04
+2026-10-09T18:58:04.1603703Z Version: 20261004.327.1
+2026-10-09T18:58:04.1604763Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-09T18:58:04.1606016Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-09T18:58:04.1606822Z ##[endgroup]
+2026-10-09T18:58:04.1607836Z ##[group]GITHUB_TOKEN Permissions
+2026-10-09T18:58:04.1609514Z Contents: read
+2026-10-09T18:58:04.1609986Z Metadata: read
+2026-10-09T18:58:04.1610553Z PullRequests: write
+2026-10-09T18:58:04.1611021Z ##[endgroup]
+2026-10-09T18:58:04.1612709Z Secret source: Actions
+2026-10-09T18:58:04.1613549Z Cache mode: write
+2026-10-09T18:58:04.1614119Z Prepare workflow directory
+2026-10-09T18:58:04.1884088Z Prepare all required actions
+2026-10-09T18:58:04.1937537Z Getting action download info
+2026-10-09T18:58:04.5104548Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-09T18:58:04.6380748Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-09T18:58:04.7658869Z Download action repository 'actions/github-script@v8' (SHA:ed597411d8f924073f98dfc5c65a23a2325f34cd)
+2026-10-09T18:58:05.3730145Z Complete job name: check
+2026-10-09T18:58:05.4370104Z ##[group]Run actions/checkout@v5
+2026-10-09T18:58:05.4370848Z with:
+2026-10-09T18:58:05.4371182Z   fetch-depth: 0
+2026-10-09T18:58:05.4371576Z   repository: chainlesschain/chainlesschain
+2026-10-09T18:58:05.4374538Z   token: ***
+2026-10-09T18:58:05.4374888Z   ssh-strict: true
+2026-10-09T18:58:05.4375235Z   ssh-user: git
+2026-10-09T18:58:05.4375627Z   persist-credentials: true
+2026-10-09T18:58:05.4376010Z   clean: true
+2026-10-09T18:58:05.4376361Z   sparse-checkout-cone-mode: true
+2026-10-09T18:58:05.4376777Z   fetch-tags: false
+2026-10-09T18:58:05.4377122Z   show-progress: true
+2026-10-09T18:58:05.4377466Z   lfs: false
+2026-10-09T18:58:05.4377784Z   submodules: false
+2026-10-09T18:58:05.4378135Z   set-safe-directory: true
+2026-10-09T18:58:05.4378525Z   allow-unsafe-pr-checkout: false
+2026-10-09T18:58:05.4379113Z ##[endgroup]
+2026-10-09T18:58:05.5205113Z Syncing repository: chainlesschain/chainlesschain
+2026-10-09T18:58:05.5206986Z ##[group]Getting Git version info
+2026-10-09T18:58:05.5207676Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-09T18:58:05.5208570Z [command]/usr/bin/git version
+2026-10-09T18:58:05.5250767Z git version 2.55.0
+2026-10-09T18:58:05.5271493Z ##[endgroup]
+2026-10-09T18:58:05.5280465Z Temporarily overriding HOME='/home/runner/work/_temp/4d089a5a-3f3f-43af-9d5f-bb7d4484f443' before making global git config changes
+2026-10-09T18:58:05.5287770Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T18:58:05.5290458Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-09T18:58:05.5336627Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-09T18:58:05.5340421Z ##[group]Initializing the repository
+2026-10-09T18:58:05.5344174Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-09T18:58:05.5421736Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-09T18:58:05.5423108Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-09T18:58:05.5425255Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-09T18:58:05.5426208Z hint: call:
+2026-10-09T18:58:05.5426710Z hint:
+2026-10-09T18:58:05.5427322Z hint: 	git config --global init.defaultBranch <name>
+2026-10-09T18:58:05.5428077Z hint:
+2026-10-09T18:58:05.5428789Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-09T18:58:05.5431709Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-09T18:58:05.5432678Z hint:
+2026-10-09T18:58:05.5433230Z hint: 	git branch -m <name>
+2026-10-09T18:58:05.5433839Z hint:
+2026-10-09T18:58:05.5434630Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-09T18:58:05.5435940Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-09T18:58:05.5439919Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-09T18:58:05.5480822Z ##[endgroup]
+2026-10-09T18:58:05.5481739Z ##[group]Disabling automatic garbage collection
+2026-10-09T18:58:05.5487572Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-09T18:58:05.5551935Z ##[endgroup]
+2026-10-09T18:58:05.5552550Z ##[group]Setting up auth
+2026-10-09T18:58:05.5553151Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T18:58:05.5580506Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-09T18:58:05.6220410Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T18:58:05.6253278Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-09T18:58:05.6440432Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T18:58:05.6471614Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-09T18:58:05.6661460Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-09T18:58:05.6696714Z ##[endgroup]
+2026-10-09T18:58:05.6697621Z ##[group]Fetching the repository
+2026-10-09T18:58:05.6705462Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +c8f6fef65a56d48a2539661b95bdd9a925d1d18d:refs/remotes/pull/425/merge
+2026-10-09T18:59:22.9020863Z From https://github.com/chainlesschain/chainlesschain
+2026-10-09T18:59:22.9021959Z  * [new branch]            feature/cli-ide-gap-completion-20261009  -> origin/feature/cli-ide-gap-completion-20261009
+2026-10-09T18:59:22.9088549Z  * [new branch]            feature/cli-ide-gap-continuation-20261008 -> origin/feature/cli-ide-gap-continuation-20261008
+2026-10-09T18:59:22.9106832Z  * [new branch]            main                                     -> origin/main
+2026-10-09T18:59:22.9107420Z  * [new tag]               agent-protocol-oidc-v0.1.0               -> agent-protocol-oidc-v0.1.0
+2026-10-09T18:59:22.9108106Z  * [new tag]               agent-protocol-oidc-v0.1.1               -> agent-protocol-oidc-v0.1.1
+2026-10-09T18:59:22.9108921Z  * [new tag]               agent-protocol-oidc-v0.1.2               -> agent-protocol-oidc-v0.1.2
+2026-10-09T18:59:22.9109802Z  * [new tag]               agent-protocol-oidc-v0.1.3               -> agent-protocol-oidc-v0.1.3
+2026-10-09T18:59:22.9110336Z  * [new tag]               agent-protocol-oidc-v0.1.4               -> agent-protocol-oidc-v0.1.4
+2026-10-09T18:59:22.9111176Z  * [new tag]               agent-protocol-oidc-v0.1.5               -> agent-protocol-oidc-v0.1.5
+2026-10-09T18:59:22.9111673Z  * [new tag]               agent-protocol-v0.1.0                    -> agent-protocol-v0.1.0
+2026-10-09T18:59:22.9112135Z  * [new tag]               agent-protocol-v0.1.7                    -> agent-protocol-v0.1.7
+2026-10-09T18:59:22.9112600Z  * [new tag]               agent-sdk-oidc-v0.2.2                    -> agent-sdk-oidc-v0.2.2
+2026-10-09T18:59:22.9113041Z  * [new tag]               android-v0.37.0                          -> android-v0.37.0
+2026-10-09T18:59:22.9113521Z  * [new tag]               android-v1.0.0                           -> android-v1.0.0
+2026-10-09T18:59:22.9113972Z  * [new tag]               android-v1.0.0-mirror                    -> android-v1.0.0-mirror
+2026-10-09T18:59:22.9114433Z  * [new tag]               ci-release-22a9857004                    -> ci-release-22a9857004
+2026-10-09T18:59:22.9114997Z  * [new tag]               ci-release-3b3d4b12ef                    -> ci-release-3b3d4b12ef
+2026-10-09T18:59:22.9115492Z  * [new tag]               ci-release-c9d04c03f2                    -> ci-release-c9d04c03f2
+2026-10-09T18:59:22.9115927Z  * [new tag]               ci-release-e812a89952                    -> ci-release-e812a89952
+2026-10-09T18:59:22.9116358Z  * [new tag]               ide-jetbrains-v0.1.2                     -> ide-jetbrains-v0.1.2
+2026-10-09T18:59:22.9116788Z  * [new tag]               ide-jetbrains-v0.4.0                     -> ide-jetbrains-v0.4.0
+2026-10-09T18:59:22.9117213Z  * [new tag]               ide-jetbrains-v0.4.1                     -> ide-jetbrains-v0.4.1
+2026-10-09T18:59:22.9117649Z  * [new tag]               ide-jetbrains-v0.4.10                    -> ide-jetbrains-v0.4.10
+2026-10-09T18:59:22.9118095Z  * [new tag]               ide-jetbrains-v0.4.100                   -> ide-jetbrains-v0.4.100
+2026-10-09T18:59:22.9118550Z  * [new tag]               ide-jetbrains-v0.4.101                   -> ide-jetbrains-v0.4.101
+2026-10-09T18:59:22.9119168Z  * [new tag]               ide-jetbrains-v0.4.102                   -> ide-jetbrains-v0.4.102
+2026-10-09T18:59:22.9120093Z  * [new tag]               ide-jetbrains-v0.4.103                   -> ide-jetbrains-v0.4.103
+2026-10-09T18:59:22.9120549Z  * [new tag]               ide-jetbrains-v0.4.104                   -> ide-jetbrains-v0.4.104
+2026-10-09T18:59:22.9121053Z  * [new tag]               ide-jetbrains-v0.4.105                   -> ide-jetbrains-v0.4.105
+2026-10-09T18:59:22.9121542Z  * [new tag]               ide-jetbrains-v0.4.106                   -> ide-jetbrains-v0.4.106
+2026-10-09T18:59:22.9121978Z  * [new tag]               ide-jetbrains-v0.4.107                   -> ide-jetbrains-v0.4.107
+2026-10-09T18:59:22.9122409Z  * [new tag]               ide-jetbrains-v0.4.108                   -> ide-jetbrains-v0.4.108
+2026-10-09T18:59:22.9122840Z  * [new tag]               ide-jetbrains-v0.4.109                   -> ide-jetbrains-v0.4.109
+2026-10-09T18:59:22.9123272Z  * [new tag]               ide-jetbrains-v0.4.11                    -> ide-jetbrains-v0.4.11
+2026-10-09T18:59:22.9123732Z  * [new tag]               ide-jetbrains-v0.4.110                   -> ide-jetbrains-v0.4.110
+2026-10-09T18:59:22.9124165Z  * [new tag]               ide-jetbrains-v0.4.111                   -> ide-jetbrains-v0.4.111
+2026-10-09T18:59:22.9124602Z  * [new tag]               ide-jetbrains-v0.4.112                   -> ide-jetbrains-v0.4.112
+2026-10-09T18:59:22.9125027Z  * [new tag]               ide-jetbrains-v0.4.113                   -> ide-jetbrains-v0.4.113
+2026-10-09T18:59:22.9125474Z  * [new tag]               ide-jetbrains-v0.4.114                   -> ide-jetbrains-v0.4.114
+2026-10-09T18:59:22.9125898Z  * [new tag]               ide-jetbrains-v0.4.115                   -> ide-jetbrains-v0.4.115
+2026-10-09T18:59:22.9126320Z  * [new tag]               ide-jetbrains-v0.4.118                   -> ide-jetbrains-v0.4.118
+2026-10-09T18:59:22.9126747Z  * [new tag]               ide-jetbrains-v0.4.119                   -> ide-jetbrains-v0.4.119
+2026-10-09T18:59:22.9127328Z  * [new tag]               ide-jetbrains-v0.4.12                    -> ide-jetbrains-v0.4.12
+2026-10-09T18:59:22.9127771Z  * [new tag]               ide-jetbrains-v0.4.120                   -> ide-jetbrains-v0.4.120
+2026-10-09T18:59:22.9128196Z  * [new tag]               ide-jetbrains-v0.4.121                   -> ide-jetbrains-v0.4.121
+2026-10-09T18:59:22.9128624Z  * [new tag]               ide-jetbrains-v0.4.122                   -> ide-jetbrains-v0.4.122
+2026-10-09T18:59:22.9129045Z  * [new tag]               ide-jetbrains-v0.4.123                   -> ide-jetbrains-v0.4.123
+2026-10-09T18:59:22.9129913Z  * [new tag]               ide-jetbrains-v0.4.124                   -> ide-jetbrains-v0.4.124
+2026-10-09T18:59:22.9130348Z  * [new tag]               ide-jetbrains-v0.4.125                   -> ide-jetbrains-v0.4.125
+2026-10-09T18:59:22.9130776Z  * [new tag]               ide-jetbrains-v0.4.126                   -> ide-jetbrains-v0.4.126
+2026-10-09T18:59:22.9131253Z  * [new tag]               ide-jetbrains-v0.4.127                   -> ide-jetbrains-v0.4.127
+2026-10-09T18:59:22.9131689Z  * [new tag]               ide-jetbrains-v0.4.128                   -> ide-jetbrains-v0.4.128
+2026-10-09T18:59:22.9132120Z  * [new tag]               ide-jetbrains-v0.4.129                   -> ide-jetbrains-v0.4.129
+2026-10-09T18:59:22.9132554Z  * [new tag]               ide-jetbrains-v0.4.13                    -> ide-jetbrains-v0.4.13
+2026-10-09T18:59:22.9132988Z  * [new tag]               ide-jetbrains-v0.4.130                   -> ide-jetbrains-v0.4.130
+2026-10-09T18:59:22.9133419Z  * [new tag]               ide-jetbrains-v0.4.131                   -> ide-jetbrains-v0.4.131
+2026-10-09T18:59:22.9133845Z  * [new tag]               ide-jetbrains-v0.4.132                   -> ide-jetbrains-v0.4.132
+2026-10-09T18:59:22.9134284Z  * [new tag]               ide-jetbrains-v0.4.133                   -> ide-jetbrains-v0.4.133
+2026-10-09T18:59:22.9134715Z  * [new tag]               ide-jetbrains-v0.4.134                   -> ide-jetbrains-v0.4.134
+2026-10-09T18:59:22.9135269Z  * [new tag]               ide-jetbrains-v0.4.135                   -> ide-jetbrains-v0.4.135
+2026-10-09T18:59:22.9135701Z  * [new tag]               ide-jetbrains-v0.4.137                   -> ide-jetbrains-v0.4.137
+2026-10-09T18:59:22.9136126Z  * [new tag]               ide-jetbrains-v0.4.138                   -> ide-jetbrains-v0.4.138
+2026-10-09T18:59:22.9136552Z  * [new tag]               ide-jetbrains-v0.4.139                   -> ide-jetbrains-v0.4.139
+2026-10-09T18:59:22.9136978Z  * [new tag]               ide-jetbrains-v0.4.14                    -> ide-jetbrains-v0.4.14
+2026-10-09T18:59:22.9137591Z  * [new tag]               ide-jetbrains-v0.4.140                   -> ide-jetbrains-v0.4.140
+2026-10-09T18:59:22.9138292Z  * [new tag]               ide-jetbrains-v0.4.141                   -> ide-jetbrains-v0.4.141
+2026-10-09T18:59:22.9139004Z  * [new tag]               ide-jetbrains-v0.4.143                   -> ide-jetbrains-v0.4.143
+2026-10-09T18:59:22.9139825Z  * [new tag]               ide-jetbrains-v0.4.144                   -> ide-jetbrains-v0.4.144
+2026-10-09T18:59:22.9140517Z  * [new tag]               ide-jetbrains-v0.4.145                   -> ide-jetbrains-v0.4.145
+2026-10-09T18:59:22.9141071Z  * [new tag]               ide-jetbrains-v0.4.146                   -> ide-jetbrains-v0.4.146
+2026-10-09T18:59:22.9141687Z  * [new tag]               ide-jetbrains-v0.4.147                   -> ide-jetbrains-v0.4.147
+2026-10-09T18:59:22.9142358Z  * [new tag]               ide-jetbrains-v0.4.149                   -> ide-jetbrains-v0.4.149
+2026-10-09T18:59:22.9142804Z  * [new tag]               ide-jetbrains-v0.4.15                    -> ide-jetbrains-v0.4.15
+2026-10-09T18:59:22.9143241Z  * [new tag]               ide-jetbrains-v0.4.150                   -> ide-jetbrains-v0.4.150
+2026-10-09T18:59:22.9143672Z  * [new tag]               ide-jetbrains-v0.4.151                   -> ide-jetbrains-v0.4.151
+2026-10-09T18:59:22.9144288Z  * [new tag]               ide-jetbrains-v0.4.152                   -> ide-jetbrains-v0.4.152
+2026-10-09T18:59:22.9144724Z  * [new tag]               ide-jetbrains-v0.4.153                   -> ide-jetbrains-v0.4.153
+2026-10-09T18:59:22.9145147Z  * [new tag]               ide-jetbrains-v0.4.154                   -> ide-jetbrains-v0.4.154
+2026-10-09T18:59:22.9145569Z  * [new tag]               ide-jetbrains-v0.4.155                   -> ide-jetbrains-v0.4.155
+2026-10-09T18:59:22.9145993Z  * [new tag]               ide-jetbrains-v0.4.156                   -> ide-jetbrains-v0.4.156
+2026-10-09T18:59:22.9146418Z  * [new tag]               ide-jetbrains-v0.4.157                   -> ide-jetbrains-v0.4.157
+2026-10-09T18:59:22.9146844Z  * [new tag]               ide-jetbrains-v0.4.16                    -> ide-jetbrains-v0.4.16
+2026-10-09T18:59:22.9147267Z  * [new tag]               ide-jetbrains-v0.4.17                    -> ide-jetbrains-v0.4.17
+2026-10-09T18:59:22.9147694Z  * [new tag]               ide-jetbrains-v0.4.18                    -> ide-jetbrains-v0.4.18
+2026-10-09T18:59:22.9148133Z  * [new tag]               ide-jetbrains-v0.4.19                    -> ide-jetbrains-v0.4.19
+2026-10-09T18:59:22.9148569Z  * [new tag]               ide-jetbrains-v0.4.2                     -> ide-jetbrains-v0.4.2
+2026-10-09T18:59:22.9148997Z  * [new tag]               ide-jetbrains-v0.4.21                    -> ide-jetbrains-v0.4.21
+2026-10-09T18:59:22.9149596Z  * [new tag]               ide-jetbrains-v0.4.23                    -> ide-jetbrains-v0.4.23
+2026-10-09T18:59:22.9150024Z  * [new tag]               ide-jetbrains-v0.4.25                    -> ide-jetbrains-v0.4.25
+2026-10-09T18:59:22.9150461Z  * [new tag]               ide-jetbrains-v0.4.26                    -> ide-jetbrains-v0.4.26
+2026-10-09T18:59:22.9150883Z  * [new tag]               ide-jetbrains-v0.4.27                    -> ide-jetbrains-v0.4.27
+2026-10-09T18:59:22.9151315Z  * [new tag]               ide-jetbrains-v0.4.28                    -> ide-jetbrains-v0.4.28
+2026-10-09T18:59:22.9151895Z  * [new tag]               ide-jetbrains-v0.4.29                    -> ide-jetbrains-v0.4.29
+2026-10-09T18:59:22.9152351Z  * [new tag]               ide-jetbrains-v0.4.3                     -> ide-jetbrains-v0.4.3
+2026-10-09T18:59:22.9152886Z  * [new tag]               ide-jetbrains-v0.4.30                    -> ide-jetbrains-v0.4.30
+2026-10-09T18:59:22.9153337Z  * [new tag]               ide-jetbrains-v0.4.31                    -> ide-jetbrains-v0.4.31
+2026-10-09T18:59:22.9153757Z  * [new tag]               ide-jetbrains-v0.4.32                    -> ide-jetbrains-v0.4.32
+2026-10-09T18:59:22.9154177Z  * [new tag]               ide-jetbrains-v0.4.33                    -> ide-jetbrains-v0.4.33
+2026-10-09T18:59:22.9154603Z  * [new tag]               ide-jetbrains-v0.4.34                    -> ide-jetbrains-v0.4.34
+2026-10-09T18:59:22.9155022Z  * [new tag]               ide-jetbrains-v0.4.35                    -> ide-jetbrains-v0.4.35
+2026-10-09T18:59:22.9155452Z  * [new tag]               ide-jetbrains-v0.4.37                    -> ide-jetbrains-v0.4.37
+2026-10-09T18:59:22.9155886Z  * [new tag]               ide-jetbrains-v0.4.38                    -> ide-jetbrains-v0.4.38
+2026-10-09T18:59:22.9156306Z  * [new tag]               ide-jetbrains-v0.4.39                    -> ide-jetbrains-v0.4.39
+2026-10-09T18:59:22.9156726Z  * [new tag]               ide-jetbrains-v0.4.4                     -> ide-jetbrains-v0.4.4
+2026-10-09T18:59:22.9157147Z  * [new tag]               ide-jetbrains-v0.4.40                    -> ide-jetbrains-v0.4.40
+2026-10-09T18:59:22.9157572Z  * [new tag]               ide-jetbrains-v0.4.41                    -> ide-jetbrains-v0.4.41
+2026-10-09T18:59:22.9157993Z  * [new tag]               ide-jetbrains-v0.4.44                    -> ide-jetbrains-v0.4.44
+2026-10-09T18:59:22.9158420Z  * [new tag]               ide-jetbrains-v0.4.45                    -> ide-jetbrains-v0.4.45
+2026-10-09T18:59:22.9158840Z  * [new tag]               ide-jetbrains-v0.4.46                    -> ide-jetbrains-v0.4.46
+2026-10-09T18:59:22.9159568Z  * [new tag]               ide-jetbrains-v0.4.47                    -> ide-jetbrains-v0.4.47
+2026-10-09T18:59:22.9159995Z  * [new tag]               ide-jetbrains-v0.4.48                    -> ide-jetbrains-v0.4.48
+2026-10-09T18:59:22.9160416Z  * [new tag]               ide-jetbrains-v0.4.49                    -> ide-jetbrains-v0.4.49
+2026-10-09T18:59:22.9160848Z  * [new tag]               ide-jetbrains-v0.4.5                     -> ide-jetbrains-v0.4.5
+2026-10-09T18:59:22.9161274Z  * [new tag]               ide-jetbrains-v0.4.50                    -> ide-jetbrains-v0.4.50
+2026-10-09T18:59:22.9161695Z  * [new tag]               ide-jetbrains-v0.4.51                    -> ide-jetbrains-v0.4.51
+2026-10-09T18:59:22.9162121Z  * [new tag]               ide-jetbrains-v0.4.52                    -> ide-jetbrains-v0.4.52
+2026-10-09T18:59:22.9162549Z  * [new tag]               ide-jetbrains-v0.4.53                    -> ide-jetbrains-v0.4.53
+2026-10-09T18:59:22.9162980Z  * [new tag]               ide-jetbrains-v0.4.54                    -> ide-jetbrains-v0.4.54
+2026-10-09T18:59:22.9163403Z  * [new tag]               ide-jetbrains-v0.4.55                    -> ide-jetbrains-v0.4.55
+2026-10-09T18:59:22.9163826Z  * [new tag]               ide-jetbrains-v0.4.56                    -> ide-jetbrains-v0.4.56
+2026-10-09T18:59:22.9164245Z  * [new tag]               ide-jetbrains-v0.4.57                    -> ide-jetbrains-v0.4.57
+2026-10-09T18:59:22.9164666Z  * [new tag]               ide-jetbrains-v0.4.58                    -> ide-jetbrains-v0.4.58
+2026-10-09T18:59:22.9165089Z  * [new tag]               ide-jetbrains-v0.4.59                    -> ide-jetbrains-v0.4.59
+2026-10-09T18:59:22.9165509Z  * [new tag]               ide-jetbrains-v0.4.6                     -> ide-jetbrains-v0.4.6
+2026-10-09T18:59:22.9165928Z  * [new tag]               ide-jetbrains-v0.4.60                    -> ide-jetbrains-v0.4.60
+2026-10-09T18:59:22.9166348Z  * [new tag]               ide-jetbrains-v0.4.61                    -> ide-jetbrains-v0.4.61
+2026-10-09T18:59:22.9166892Z  * [new tag]               ide-jetbrains-v0.4.62                    -> ide-jetbrains-v0.4.62
+2026-10-09T18:59:22.9167317Z  * [new tag]               ide-jetbrains-v0.4.63                    -> ide-jetbrains-v0.4.63
+2026-10-09T18:59:22.9167734Z  * [new tag]               ide-jetbrains-v0.4.7                     -> ide-jetbrains-v0.4.7
+2026-10-09T18:59:22.9168154Z  * [new tag]               ide-jetbrains-v0.4.70                    -> ide-jetbrains-v0.4.70
+2026-10-09T18:59:22.9168574Z  * [new tag]               ide-jetbrains-v0.4.73                    -> ide-jetbrains-v0.4.73
+2026-10-09T18:59:22.9168990Z  * [new tag]               ide-jetbrains-v0.4.74                    -> ide-jetbrains-v0.4.74
+2026-10-09T18:59:22.9169581Z  * [new tag]               ide-jetbrains-v0.4.75                    -> ide-jetbrains-v0.4.75
+2026-10-09T18:59:22.9170005Z  * [new tag]               ide-jetbrains-v0.4.76                    -> ide-jetbrains-v0.4.76
+2026-10-09T18:59:22.9170450Z  * [new tag]               ide-jetbrains-v0.4.77                    -> ide-jetbrains-v0.4.77
+2026-10-09T18:59:22.9170875Z  * [new tag]               ide-jetbrains-v0.4.78                    -> ide-jetbrains-v0.4.78
+2026-10-09T18:59:22.9171292Z  * [new tag]               ide-jetbrains-v0.4.79                    -> ide-jetbrains-v0.4.79
+2026-10-09T18:59:22.9171712Z  * [new tag]               ide-jetbrains-v0.4.8                     -> ide-jetbrains-v0.4.8
+2026-10-09T18:59:22.9172132Z  * [new tag]               ide-jetbrains-v0.4.81                    -> ide-jetbrains-v0.4.81
+2026-10-09T18:59:22.9172753Z  * [new tag]               ide-jetbrains-v0.4.82                    -> ide-jetbrains-v0.4.82
+2026-10-09T18:59:22.9173435Z  * [new tag]               ide-jetbrains-v0.4.83                    -> ide-jetbrains-v0.4.83
+2026-10-09T18:59:22.9174069Z  * [new tag]               ide-jetbrains-v0.4.84                    -> ide-jetbrains-v0.4.84
+2026-10-09T18:59:22.9174864Z  * [new tag]               ide-jetbrains-v0.4.85                    -> ide-jetbrains-v0.4.85
+2026-10-09T18:59:22.9175571Z  * [new tag]               ide-jetbrains-v0.4.86                    -> ide-jetbrains-v0.4.86
+2026-10-09T18:59:22.9176302Z  * [new tag]               ide-jetbrains-v0.4.87                    -> ide-jetbrains-v0.4.87
+2026-10-09T18:59:22.9177088Z  * [new tag]               ide-jetbrains-v0.4.88                    -> ide-jetbrains-v0.4.88
+2026-10-09T18:59:22.9177802Z  * [new tag]               ide-jetbrains-v0.4.89                    -> ide-jetbrains-v0.4.89
+2026-10-09T18:59:22.9178476Z  * [new tag]               ide-jetbrains-v0.4.9                     -> ide-jetbrains-v0.4.9
+2026-10-09T18:59:22.9179164Z  * [new tag]               ide-jetbrains-v0.4.90                    -> ide-jetbrains-v0.4.90
+2026-10-09T18:59:22.9180000Z  * [new tag]               ide-jetbrains-v0.4.91                    -> ide-jetbrains-v0.4.91
+2026-10-09T18:59:22.9180686Z  * [new tag]               ide-jetbrains-v0.4.92                    -> ide-jetbrains-v0.4.92
+2026-10-09T18:59:22.9181399Z  * [new tag]               ide-jetbrains-v0.4.93                    -> ide-jetbrains-v0.4.93
+2026-10-09T18:59:22.9182089Z  * [new tag]               ide-jetbrains-v0.4.94                    -> ide-jetbrains-v0.4.94
+2026-10-09T18:59:22.9182777Z  * [new tag]               ide-jetbrains-v0.4.95                    -> ide-jetbrains-v0.4.95
+2026-10-09T18:59:22.9183479Z  * [new tag]               ide-jetbrains-v0.4.96                    -> ide-jetbrains-v0.4.96
+2026-10-09T18:59:22.9184179Z  * [new tag]               ide-jetbrains-v0.4.97                    -> ide-jetbrains-v0.4.97
+2026-10-09T18:59:22.9184864Z  * [new tag]               ide-jetbrains-v0.4.98                    -> ide-jetbrains-v0.4.98
+2026-10-09T18:59:22.9185560Z  * [new tag]               ide-jetbrains-v0.4.99                    -> ide-jetbrains-v0.4.99
+2026-10-09T18:59:22.9186242Z  * [new tag]               ide-vscode-v0.20.0                       -> ide-vscode-v0.20.0
+2026-10-09T18:59:22.9187108Z  * [new tag]               ide-vscode-v0.21.0                       -> ide-vscode-v0.21.0
+2026-10-09T18:59:22.9187794Z  * [new tag]               ide-vscode-v0.22.0                       -> ide-vscode-v0.22.0
+2026-10-09T18:59:22.9188477Z  * [new tag]               ide-vscode-v0.22.1                       -> ide-vscode-v0.22.1
+2026-10-09T18:59:22.9189164Z  * [new tag]               ide-vscode-v0.23.0                       -> ide-vscode-v0.23.0
+2026-10-09T18:59:22.9189977Z  * [new tag]               ide-vscode-v0.24.0                       -> ide-vscode-v0.24.0
+2026-10-09T18:59:22.9190668Z  * [new tag]               ide-vscode-v0.25.0                       -> ide-vscode-v0.25.0
+2026-10-09T18:59:22.9191343Z  * [new tag]               ide-vscode-v0.26.0                       -> ide-vscode-v0.26.0
+2026-10-09T18:59:22.9192021Z  * [new tag]               ide-vscode-v0.27.0                       -> ide-vscode-v0.27.0
+2026-10-09T18:59:22.9192698Z  * [new tag]               ide-vscode-v0.28.0                       -> ide-vscode-v0.28.0
+2026-10-09T18:59:22.9193394Z  * [new tag]               ide-vscode-v0.29.0                       -> ide-vscode-v0.29.0
+2026-10-09T18:59:22.9194072Z  * [new tag]               ide-vscode-v0.30.0                       -> ide-vscode-v0.30.0
+2026-10-09T18:59:22.9194756Z  * [new tag]               ide-vscode-v0.30.1                       -> ide-vscode-v0.30.1
+2026-10-09T18:59:22.9195429Z  * [new tag]               ide-vscode-v0.31.0                       -> ide-vscode-v0.31.0
+2026-10-09T18:59:22.9196107Z  * [new tag]               ide-vscode-v0.31.1                       -> ide-vscode-v0.31.1
+2026-10-09T18:59:22.9196783Z  * [new tag]               ide-vscode-v0.32.0                       -> ide-vscode-v0.32.0
+2026-10-09T18:59:22.9197454Z  * [new tag]               ide-vscode-v0.32.1                       -> ide-vscode-v0.32.1
+2026-10-09T18:59:22.9198135Z  * [new tag]               ide-vscode-v0.33.0                       -> ide-vscode-v0.33.0
+2026-10-09T18:59:22.9198979Z  * [new tag]               ide-vscode-v0.33.1                       -> ide-vscode-v0.33.1
+2026-10-09T18:59:22.9199785Z  * [new tag]               ide-vscode-v0.33.2                       -> ide-vscode-v0.33.2
+2026-10-09T18:59:22.9200457Z  * [new tag]               ide-vscode-v0.33.3                       -> ide-vscode-v0.33.3
+2026-10-09T18:59:22.9201134Z  * [new tag]               ide-vscode-v0.33.5                       -> ide-vscode-v0.33.5
+2026-10-09T18:59:22.9201808Z  * [new tag]               ide-vscode-v0.33.7                       -> ide-vscode-v0.33.7
+2026-10-09T18:59:22.9202483Z  * [new tag]               ide-vscode-v0.33.8                       -> ide-vscode-v0.33.8
+2026-10-09T18:59:22.9203161Z  * [new tag]               ide-vscode-v0.33.9                       -> ide-vscode-v0.33.9
+2026-10-09T18:59:22.9203840Z  * [new tag]               ide-vscode-v0.34.0                       -> ide-vscode-v0.34.0
+2026-10-09T18:59:22.9204515Z  * [new tag]               ide-vscode-v0.35.0                       -> ide-vscode-v0.35.0
+2026-10-09T18:59:22.9205206Z  * [new tag]               ide-vscode-v0.36.0                       -> ide-vscode-v0.36.0
+2026-10-09T18:59:22.9205881Z  * [new tag]               ide-vscode-v0.36.1                       -> ide-vscode-v0.36.1
+2026-10-09T18:59:22.9206568Z  * [new tag]               ide-vscode-v0.36.10                      -> ide-vscode-v0.36.10
+2026-10-09T18:59:22.9207259Z  * [new tag]               ide-vscode-v0.36.11                      -> ide-vscode-v0.36.11
+2026-10-09T18:59:22.9207947Z  * [new tag]               ide-vscode-v0.36.12                      -> ide-vscode-v0.36.12
+2026-10-09T18:59:22.9208635Z  * [new tag]               ide-vscode-v0.36.13                      -> ide-vscode-v0.36.13
+2026-10-09T18:59:22.9209475Z  * [new tag]               ide-vscode-v0.36.14                      -> ide-vscode-v0.36.14
+2026-10-09T18:59:22.9210205Z  * [new tag]               ide-vscode-v0.36.15                      -> ide-vscode-v0.36.15
+2026-10-09T18:59:22.9210899Z  * [new tag]               ide-vscode-v0.36.16                      -> ide-vscode-v0.36.16
+2026-10-09T18:59:22.9211747Z  * [new tag]               ide-vscode-v0.36.2                       -> ide-vscode-v0.36.2
+2026-10-09T18:59:22.9212442Z  * [new tag]               ide-vscode-v0.36.3                       -> ide-vscode-v0.36.3
+2026-10-09T18:59:22.9213125Z  * [new tag]               ide-vscode-v0.36.4                       -> ide-vscode-v0.36.4
+2026-10-09T18:59:22.9213809Z  * [new tag]               ide-vscode-v0.36.6                       -> ide-vscode-v0.36.6
+2026-10-09T18:59:22.9214494Z  * [new tag]               ide-vscode-v0.36.9                       -> ide-vscode-v0.36.9
+2026-10-09T18:59:22.9215173Z  * [new tag]               ide-vscode-v0.37.0                       -> ide-vscode-v0.37.0
+2026-10-09T18:59:22.9215853Z  * [new tag]               ide-vscode-v0.37.1                       -> ide-vscode-v0.37.1
+2026-10-09T18:59:22.9216550Z  * [new tag]               ide-vscode-v0.37.10                      -> ide-vscode-v0.37.10
+2026-10-09T18:59:22.9217278Z  * [new tag]               ide-vscode-v0.37.100                     -> ide-vscode-v0.37.100
+2026-10-09T18:59:22.9217986Z  * [new tag]               ide-vscode-v0.37.101                     -> ide-vscode-v0.37.101
+2026-10-09T18:59:22.9218696Z  * [new tag]               ide-vscode-v0.37.103                     -> ide-vscode-v0.37.103
+2026-10-09T18:59:22.9219523Z  * [new tag]               ide-vscode-v0.37.104                     -> ide-vscode-v0.37.104
+2026-10-09T18:59:22.9220226Z  * [new tag]               ide-vscode-v0.37.105                     -> ide-vscode-v0.37.105
+2026-10-09T18:59:22.9220929Z  * [new tag]               ide-vscode-v0.37.106                     -> ide-vscode-v0.37.106
+2026-10-09T18:59:22.9221628Z  * [new tag]               ide-vscode-v0.37.107                     -> ide-vscode-v0.37.107
+2026-10-09T18:59:22.9222318Z  * [new tag]               ide-vscode-v0.37.108                     -> ide-vscode-v0.37.108
+2026-10-09T18:59:22.9223003Z  * [new tag]               ide-vscode-v0.37.109                     -> ide-vscode-v0.37.109
+2026-10-09T18:59:22.9223880Z  * [new tag]               ide-vscode-v0.37.11                      -> ide-vscode-v0.37.11
+2026-10-09T18:59:22.9224568Z  * [new tag]               ide-vscode-v0.37.110                     -> ide-vscode-v0.37.110
+2026-10-09T18:59:22.9225262Z  * [new tag]               ide-vscode-v0.37.111                     -> ide-vscode-v0.37.111
+2026-10-09T18:59:22.9225953Z  * [new tag]               ide-vscode-v0.37.112                     -> ide-vscode-v0.37.112
+2026-10-09T18:59:22.9226646Z  * [new tag]               ide-vscode-v0.37.113                     -> ide-vscode-v0.37.113
+2026-10-09T18:59:22.9227332Z  * [new tag]               ide-vscode-v0.37.114                     -> ide-vscode-v0.37.114
+2026-10-09T18:59:22.9228013Z  * [new tag]               ide-vscode-v0.37.116                     -> ide-vscode-v0.37.116
+2026-10-09T18:59:22.9228693Z  * [new tag]               ide-vscode-v0.37.117                     -> ide-vscode-v0.37.117
+2026-10-09T18:59:22.9229514Z  * [new tag]               ide-vscode-v0.37.118                     -> ide-vscode-v0.37.118
+2026-10-09T18:59:22.9230204Z  * [new tag]               ide-vscode-v0.37.119                     -> ide-vscode-v0.37.119
+2026-10-09T18:59:22.9230889Z  * [new tag]               ide-vscode-v0.37.12                      -> ide-vscode-v0.37.12
+2026-10-09T18:59:22.9231639Z  * [new tag]               ide-vscode-v0.37.120                     -> ide-vscode-v0.37.120
+2026-10-09T18:59:22.9232332Z  * [new tag]               ide-vscode-v0.37.121                     -> ide-vscode-v0.37.121
+2026-10-09T18:59:22.9233017Z  * [new tag]               ide-vscode-v0.37.123                     -> ide-vscode-v0.37.123
+2026-10-09T18:59:22.9233695Z  * [new tag]               ide-vscode-v0.37.124                     -> ide-vscode-v0.37.124
+2026-10-09T18:59:22.9234380Z  * [new tag]               ide-vscode-v0.37.125                     -> ide-vscode-v0.37.125
+2026-10-09T18:59:22.9235080Z  * [new tag]               ide-vscode-v0.37.126                     -> ide-vscode-v0.37.126
+2026-10-09T18:59:22.9235959Z  * [new tag]               ide-vscode-v0.37.127                     -> ide-vscode-v0.37.127
+2026-10-09T18:59:22.9236654Z  * [new tag]               ide-vscode-v0.37.128                     -> ide-vscode-v0.37.128
+2026-10-09T18:59:22.9237342Z  * [new tag]               ide-vscode-v0.37.13                      -> ide-vscode-v0.37.13
+2026-10-09T18:59:22.9238022Z  * [new tag]               ide-vscode-v0.37.130                     -> ide-vscode-v0.37.130
+2026-10-09T18:59:22.9238704Z  * [new tag]               ide-vscode-v0.37.131                     -> ide-vscode-v0.37.131
+2026-10-09T18:59:22.9239538Z  * [new tag]               ide-vscode-v0.37.132                     -> ide-vscode-v0.37.132
+2026-10-09T18:59:22.9240243Z  * [new tag]               ide-vscode-v0.37.133                     -> ide-vscode-v0.37.133
+2026-10-09T18:59:22.9240926Z  * [new tag]               ide-vscode-v0.37.134                     -> ide-vscode-v0.37.134
+2026-10-09T18:59:22.9241632Z  * [new tag]               ide-vscode-v0.37.135                     -> ide-vscode-v0.37.135
+2026-10-09T18:59:22.9242322Z  * [new tag]               ide-vscode-v0.37.136                     -> ide-vscode-v0.37.136
+2026-10-09T18:59:22.9243004Z  * [new tag]               ide-vscode-v0.37.137                     -> ide-vscode-v0.37.137
+2026-10-09T18:59:22.9243688Z  * [new tag]               ide-vscode-v0.37.138                     -> ide-vscode-v0.37.138
+2026-10-09T18:59:22.9244371Z  * [new tag]               ide-vscode-v0.37.139                     -> ide-vscode-v0.37.139
+2026-10-09T18:59:22.9245049Z  * [new tag]               ide-vscode-v0.37.14                      -> ide-vscode-v0.37.14
+2026-10-09T18:59:22.9245727Z  * [new tag]               ide-vscode-v0.37.15                      -> ide-vscode-v0.37.15
+2026-10-09T18:59:22.9246399Z  * [new tag]               ide-vscode-v0.37.16                      -> ide-vscode-v0.37.16
+2026-10-09T18:59:22.9247084Z  * [new tag]               ide-vscode-v0.37.17                      -> ide-vscode-v0.37.17
+2026-10-09T18:59:22.9247914Z  * [new tag]               ide-vscode-v0.37.18                      -> ide-vscode-v0.37.18
+2026-10-09T18:59:22.9248594Z  * [new tag]               ide-vscode-v0.37.2                       -> ide-vscode-v0.37.2
+2026-10-09T18:59:22.9249368Z  * [new tag]               ide-vscode-v0.37.20                      -> ide-vscode-v0.37.20
+2026-10-09T18:59:22.9250048Z  * [new tag]               ide-vscode-v0.37.3                       -> ide-vscode-v0.37.3
+2026-10-09T18:59:22.9250716Z  * [new tag]               ide-vscode-v0.37.30                      -> ide-vscode-v0.37.30
+2026-10-09T18:59:22.9251384Z  * [new tag]               ide-vscode-v0.37.31                      -> ide-vscode-v0.37.31
+2026-10-09T18:59:22.9252063Z  * [new tag]               ide-vscode-v0.37.33                      -> ide-vscode-v0.37.33
+2026-10-09T18:59:22.9252734Z  * [new tag]               ide-vscode-v0.37.34                      -> ide-vscode-v0.37.34
+2026-10-09T18:59:22.9253421Z  * [new tag]               ide-vscode-v0.37.35                      -> ide-vscode-v0.37.35
+2026-10-09T18:59:22.9254105Z  * [new tag]               ide-vscode-v0.37.36                      -> ide-vscode-v0.37.36
+2026-10-09T18:59:22.9254784Z  * [new tag]               ide-vscode-v0.37.37                      -> ide-vscode-v0.37.37
+2026-10-09T18:59:22.9255461Z  * [new tag]               ide-vscode-v0.37.38                      -> ide-vscode-v0.37.38
+2026-10-09T18:59:22.9256130Z  * [new tag]               ide-vscode-v0.37.39                      -> ide-vscode-v0.37.39
+2026-10-09T18:59:22.9256801Z  * [new tag]               ide-vscode-v0.37.4                       -> ide-vscode-v0.37.4
+2026-10-09T18:59:22.9257477Z  * [new tag]               ide-vscode-v0.37.42                      -> ide-vscode-v0.37.42
+2026-10-09T18:59:22.9258159Z  * [new tag]               ide-vscode-v0.37.44                      -> ide-vscode-v0.37.44
+2026-10-09T18:59:22.9258840Z  * [new tag]               ide-vscode-v0.37.45                      -> ide-vscode-v0.37.45
+2026-10-09T18:59:22.9259851Z  * [new tag]               ide-vscode-v0.37.46                      -> ide-vscode-v0.37.46
+2026-10-09T18:59:22.9260544Z  * [new tag]               ide-vscode-v0.37.47                      -> ide-vscode-v0.37.47
+2026-10-09T18:59:22.9261223Z  * [new tag]               ide-vscode-v0.37.48                      -> ide-vscode-v0.37.48
+2026-10-09T18:59:22.9261983Z  * [new tag]               ide-vscode-v0.37.49                      -> ide-vscode-v0.37.49
+2026-10-09T18:59:22.9262670Z  * [new tag]               ide-vscode-v0.37.5                       -> ide-vscode-v0.37.5
+2026-10-09T18:59:22.9263320Z  * [new tag]               ide-vscode-v0.37.50                      -> ide-vscode-v0.37.50
+2026-10-09T18:59:22.9264001Z  * [new tag]               ide-vscode-v0.37.51                      -> ide-vscode-v0.37.51
+2026-10-09T18:59:22.9264677Z  * [new tag]               ide-vscode-v0.37.52                      -> ide-vscode-v0.37.52
+2026-10-09T18:59:22.9265386Z  * [new tag]               ide-vscode-v0.37.53                      -> ide-vscode-v0.37.53
+2026-10-09T18:59:22.9266070Z  * [new tag]               ide-vscode-v0.37.54                      -> ide-vscode-v0.37.54
+2026-10-09T18:59:22.9266761Z  * [new tag]               ide-vscode-v0.37.55                      -> ide-vscode-v0.37.55
+2026-10-09T18:59:22.9267439Z  * [new tag]               ide-vscode-v0.37.56                      -> ide-vscode-v0.37.56
+2026-10-09T18:59:22.9268113Z  * [new tag]               ide-vscode-v0.37.57                      -> ide-vscode-v0.37.57
+2026-10-09T18:59:22.9268787Z  * [new tag]               ide-vscode-v0.37.58                      -> ide-vscode-v0.37.58
+2026-10-09T18:59:22.9269614Z  * [new tag]               ide-vscode-v0.37.59                      -> ide-vscode-v0.37.59
+2026-10-09T18:59:22.9270294Z  * [new tag]               ide-vscode-v0.37.6                       -> ide-vscode-v0.37.6
+2026-10-09T18:59:22.9270958Z  * [new tag]               ide-vscode-v0.37.60                      -> ide-vscode-v0.37.60
+2026-10-09T18:59:22.9271819Z  * [new tag]               ide-vscode-v0.37.61                      -> ide-vscode-v0.37.61
+2026-10-09T18:59:22.9272506Z  * [new tag]               ide-vscode-v0.37.63                      -> ide-vscode-v0.37.63
+2026-10-09T18:59:22.9273179Z  * [new tag]               ide-vscode-v0.37.64                      -> ide-vscode-v0.37.64
+2026-10-09T18:59:22.9273843Z  * [new tag]               ide-vscode-v0.37.65                      -> ide-vscode-v0.37.65
+2026-10-09T18:59:22.9274526Z  * [new tag]               ide-vscode-v0.37.66                      -> ide-vscode-v0.37.66
+2026-10-09T18:59:22.9275206Z  * [new tag]               ide-vscode-v0.37.67                      -> ide-vscode-v0.37.67
+2026-10-09T18:59:22.9275877Z  * [new tag]               ide-vscode-v0.37.68                      -> ide-vscode-v0.37.68
+2026-10-09T18:59:22.9276547Z  * [new tag]               ide-vscode-v0.37.69                      -> ide-vscode-v0.37.69
+2026-10-09T18:59:22.9277259Z  * [new tag]               ide-vscode-v0.37.7                       -> ide-vscode-v0.37.7
+2026-10-09T18:59:22.9277917Z  * [new tag]               ide-vscode-v0.37.70                      -> ide-vscode-v0.37.70
+2026-10-09T18:59:22.9278577Z  * [new tag]               ide-vscode-v0.37.71                      -> ide-vscode-v0.37.71
+2026-10-09T18:59:22.9279348Z  * [new tag]               ide-vscode-v0.37.72                      -> ide-vscode-v0.37.72
+2026-10-09T18:59:22.9280061Z  * [new tag]               ide-vscode-v0.37.73                      -> ide-vscode-v0.37.73
+2026-10-09T18:59:22.9280780Z  * [new tag]               ide-vscode-v0.37.75                      -> ide-vscode-v0.37.75
+2026-10-09T18:59:22.9281496Z  * [new tag]               ide-vscode-v0.37.76                      -> ide-vscode-v0.37.76
+2026-10-09T18:59:22.9282214Z  * [new tag]               ide-vscode-v0.37.77                      -> ide-vscode-v0.37.77
+2026-10-09T18:59:22.9282920Z  * [new tag]               ide-vscode-v0.37.78                      -> ide-vscode-v0.37.78
+2026-10-09T18:59:22.9283770Z  * [new tag]               ide-vscode-v0.37.79                      -> ide-vscode-v0.37.79
+2026-10-09T18:59:22.9284459Z  * [new tag]               ide-vscode-v0.37.8                       -> ide-vscode-v0.37.8
+2026-10-09T18:59:22.9285149Z  * [new tag]               ide-vscode-v0.37.80                      -> ide-vscode-v0.37.80
+2026-10-09T18:59:22.9285831Z  * [new tag]               ide-vscode-v0.37.81                      -> ide-vscode-v0.37.81
+2026-10-09T18:59:22.9286507Z  * [new tag]               ide-vscode-v0.37.82                      -> ide-vscode-v0.37.82
+2026-10-09T18:59:22.9287180Z  * [new tag]               ide-vscode-v0.37.83                      -> ide-vscode-v0.37.83
+2026-10-09T18:59:22.9287860Z  * [new tag]               ide-vscode-v0.37.84                      -> ide-vscode-v0.37.84
+2026-10-09T18:59:22.9288547Z  * [new tag]               ide-vscode-v0.37.85                      -> ide-vscode-v0.37.85
+2026-10-09T18:59:22.9289346Z  * [new tag]               ide-vscode-v0.37.86                      -> ide-vscode-v0.37.86
+2026-10-09T18:59:22.9290035Z  * [new tag]               ide-vscode-v0.37.87                      -> ide-vscode-v0.37.87
+2026-10-09T18:59:22.9290712Z  * [new tag]               ide-vscode-v0.37.88                      -> ide-vscode-v0.37.88
+2026-10-09T18:59:22.9291387Z  * [new tag]               ide-vscode-v0.37.89                      -> ide-vscode-v0.37.89
+2026-10-09T18:59:22.9292062Z  * [new tag]               ide-vscode-v0.37.9                       -> ide-vscode-v0.37.9
+2026-10-09T18:59:22.9292741Z  * [new tag]               ide-vscode-v0.37.91                      -> ide-vscode-v0.37.91
+2026-10-09T18:59:22.9293412Z  * [new tag]               ide-vscode-v0.37.92                      -> ide-vscode-v0.37.92
+2026-10-09T18:59:22.9294107Z  * [new tag]               ide-vscode-v0.37.93                      -> ide-vscode-v0.37.93
+2026-10-09T18:59:22.9294779Z  * [new tag]               ide-vscode-v0.37.94                      -> ide-vscode-v0.37.94
+2026-10-09T18:59:22.9295615Z  * [new tag]               ide-vscode-v0.37.95                      -> ide-vscode-v0.37.95
+2026-10-09T18:59:22.9296325Z  * [new tag]               ide-vscode-v0.37.96                      -> ide-vscode-v0.37.96
+2026-10-09T18:59:22.9297007Z  * [new tag]               ide-vscode-v0.37.97                      -> ide-vscode-v0.37.97
+2026-10-09T18:59:22.9297686Z  * [new tag]               ide-vscode-v0.37.98                      -> ide-vscode-v0.37.98
+2026-10-09T18:59:22.9298366Z  * [new tag]               ide-vscode-v0.37.99                      -> ide-vscode-v0.37.99
+2026-10-09T18:59:22.9299039Z  * [new tag]               ide-vscode-v0.9.0                        -> ide-vscode-v0.9.0
+2026-10-09T18:59:22.9299980Z  * [new tag]               internal-binaries-android-v20260614b     -> internal-binaries-android-v20260614b
+2026-10-09T18:59:22.9300946Z  * [new tag]               internal-binaries-android-v20260614c     -> internal-binaries-android-v20260614c
+2026-10-09T18:59:22.9301957Z  * [new tag]               internal-binaries-android-v20260615      -> internal-binaries-android-v20260615
+2026-10-09T18:59:22.9302895Z  * [new tag]               internal-binaries-android-v20260615b     -> internal-binaries-android-v20260615b
+2026-10-09T18:59:22.9303828Z  * [new tag]               internal-binaries-android-v20260615c     -> internal-binaries-android-v20260615c
+2026-10-09T18:59:22.9304770Z  * [new tag]               internal-binaries-android-v20260615d     -> internal-binaries-android-v20260615d
+2026-10-09T18:59:22.9305700Z  * [new tag]               internal-binaries-android-v20260617      -> internal-binaries-android-v20260617
+2026-10-09T18:59:22.9306669Z  * [new tag]               internal-binaries-android-v20260617b     -> internal-binaries-android-v20260617b
+2026-10-09T18:59:22.9307633Z  * [new tag]               internal-binaries-android-v20260617c     -> internal-binaries-android-v20260617c
+2026-10-09T18:59:22.9308581Z  * [new tag]               internal-binaries-android-v20260619      -> internal-binaries-android-v20260619
+2026-10-09T18:59:22.9309818Z  * [new tag]               internal-binaries-android-v20260620      -> internal-binaries-android-v20260620
+2026-10-09T18:59:22.9310775Z  * [new tag]               internal-binaries-android-v20260622      -> internal-binaries-android-v20260622
+2026-10-09T18:59:22.9311738Z  * [new tag]               internal-binaries-android-v20260622b     -> internal-binaries-android-v20260622b
+2026-10-09T18:59:22.9312703Z  * [new tag]               internal-binaries-android-v20260622c     -> internal-binaries-android-v20260622c
+2026-10-09T18:59:22.9313672Z  * [new tag]               internal-binaries-android-v20260622d     -> internal-binaries-android-v20260622d
+2026-10-09T18:59:22.9314634Z  * [new tag]               internal-binaries-android-v20260622e     -> internal-binaries-android-v20260622e
+2026-10-09T18:59:22.9315613Z  * [new tag]               internal-binaries-android-v20260623      -> internal-binaries-android-v20260623
+2026-10-09T18:59:22.9316602Z  * [new tag]               internal-binaries-android-v20260623b     -> internal-binaries-android-v20260623b
+2026-10-09T18:59:22.9317569Z  * [new tag]               internal-binaries-android-v20260624      -> internal-binaries-android-v20260624
+2026-10-09T18:59:22.9318525Z  * [new tag]               internal-binaries-android-v20260628      -> internal-binaries-android-v20260628
+2026-10-09T18:59:22.9319575Z  * [new tag]               internal-binaries-android-v20260628b     -> internal-binaries-android-v20260628b
+2026-10-09T18:59:22.9320540Z  * [new tag]               internal-binaries-android-v20260628c     -> internal-binaries-android-v20260628c
+2026-10-09T18:59:22.9321503Z  * [new tag]               internal-binaries-android-v20260628d     -> internal-binaries-android-v20260628d
+2026-10-09T18:59:22.9322446Z  * [new tag]               internal-binaries-android-v20260628e     -> internal-binaries-android-v20260628e
+2026-10-09T18:59:22.9323412Z  * [new tag]               internal-binaries-android-v20260629b     -> internal-binaries-android-v20260629b
+2026-10-09T18:59:22.9324583Z  * [new tag]               internal-binaries-android-v20260629c     -> internal-binaries-android-v20260629c
+2026-10-09T18:59:22.9325550Z  * [new tag]               internal-binaries-android-v20260629d     -> internal-binaries-android-v20260629d
+2026-10-09T18:59:22.9326502Z  * [new tag]               internal-binaries-android-v20260629e     -> internal-binaries-android-v20260629e
+2026-10-09T18:59:22.9327451Z  * [new tag]               internal-binaries-android-v20260629f     -> internal-binaries-android-v20260629f
+2026-10-09T18:59:22.9328396Z  * [new tag]               internal-binaries-android-v20260629g     -> internal-binaries-android-v20260629g
+2026-10-09T18:59:22.9329465Z  * [new tag]               internal-binaries-android-v20260629h     -> internal-binaries-android-v20260629h
+2026-10-09T18:59:22.9330423Z  * [new tag]               internal-binaries-android-v20260629i     -> internal-binaries-android-v20260629i
+2026-10-09T18:59:22.9331431Z  * [new tag]               internal-binaries-android-v20260703      -> internal-binaries-android-v20260703
+2026-10-09T18:59:22.9332371Z  * [new tag]               internal-binaries-android-v20260711      -> internal-binaries-android-v20260711
+2026-10-09T18:59:22.9333299Z  * [new tag]               internal-binaries-android-v20261008      -> internal-binaries-android-v20261008
+2026-10-09T18:59:22.9334157Z  * [new tag]               python-agent-sdk-v0.1.0                  -> python-agent-sdk-v0.1.0
+2026-10-09T18:59:22.9334925Z  * [new tag]               python-agent-sdk-v0.2.0                  -> python-agent-sdk-v0.2.0
+2026-10-09T18:59:22.9335669Z  * [new tag]               python-agent-sdk-v0.2.1                  -> python-agent-sdk-v0.2.1
+2026-10-09T18:59:22.9336408Z  * [new tag]               python-agent-sdk-v0.2.2                  -> python-agent-sdk-v0.2.2
+2026-10-09T18:59:22.9337145Z  * [new tag]               python-agent-sdk-v0.2.3                  -> python-agent-sdk-v0.2.3
+2026-10-09T18:59:22.9338052Z  * [new tag]               python-agent-sdk-v0.2.4                  -> python-agent-sdk-v0.2.4
+2026-10-09T18:59:22.9338810Z  * [new tag]               python-agent-sdk-v0.2.5                  -> python-agent-sdk-v0.2.5
+2026-10-09T18:59:22.9339675Z  * [new tag]               python-agent-sdk-v0.2.6                  -> python-agent-sdk-v0.2.6
+2026-10-09T18:59:22.9340439Z  * [new tag]               python-agent-sdk-v0.2.7                  -> python-agent-sdk-v0.2.7
+2026-10-09T18:59:22.9341185Z  * [new tag]               python-agent-sdk-v0.2.8                  -> python-agent-sdk-v0.2.8
+2026-10-09T18:59:22.9341929Z  * [new tag]               python-agent-sdk-v0.2.9                  -> python-agent-sdk-v0.2.9
+2026-10-09T18:59:22.9342751Z  * [new tag]               release-candidate-cli-v0.166.11          -> release-candidate-cli-v0.166.11
+2026-10-09T18:59:22.9343661Z  * [new tag]               release-candidate-cli-v0.166.11-rc2      -> release-candidate-cli-v0.166.11-rc2
+2026-10-09T18:59:22.9344527Z  * [new tag]               v-npm-0-162-172                          -> v-npm-0-162-172
+2026-10-09T18:59:22.9345184Z  * [new tag]               v-npm-0-162-172b                         -> v-npm-0-162-172b
+2026-10-09T18:59:22.9345807Z  * [new tag]               v-npm-0-162-180                          -> v-npm-0-162-180
+2026-10-09T18:59:22.9346428Z  * [new tag]               v-npm-0-162-181                          -> v-npm-0-162-181
+2026-10-09T18:59:22.9347040Z  * [new tag]               v-npm-0-162-182                          -> v-npm-0-162-182
+2026-10-09T18:59:22.9347652Z  * [new tag]               v-npm-0-162-183                          -> v-npm-0-162-183
+2026-10-09T18:59:22.9348272Z  * [new tag]               v-npm-0-162-184                          -> v-npm-0-162-184
+2026-10-09T18:59:22.9348868Z  * [new tag]               v-npm-0-162-185                          -> v-npm-0-162-185
+2026-10-09T18:59:22.9349575Z  * [new tag]               v-npm-0-162-187                          -> v-npm-0-162-187
+2026-10-09T18:59:22.9350358Z  * [new tag]               v-npm-0-162-188                          -> v-npm-0-162-188
+2026-10-09T18:59:22.9350992Z  * [new tag]               v-npm-0-162-189                          -> v-npm-0-162-189
+2026-10-09T18:59:22.9351615Z  * [new tag]               v-npm-0-162-190                          -> v-npm-0-162-190
+2026-10-09T18:59:22.9352226Z  * [new tag]               v-npm-0-162-191                          -> v-npm-0-162-191
+2026-10-09T18:59:22.9352836Z  * [new tag]               v-npm-0-162-192                          -> v-npm-0-162-192
+2026-10-09T18:59:22.9353448Z  * [new tag]               v-npm-0-162-194                          -> v-npm-0-162-194
+2026-10-09T18:59:22.9354058Z  * [new tag]               v-npm-0-162-195                          -> v-npm-0-162-195
+2026-10-09T18:59:22.9354667Z  * [new tag]               v-npm-0-162-196                          -> v-npm-0-162-196
+2026-10-09T18:59:22.9355281Z  * [new tag]               v-npm-0-162-197                          -> v-npm-0-162-197
+2026-10-09T18:59:22.9355913Z  * [new tag]               v-npm-0-162-198                          -> v-npm-0-162-198
+2026-10-09T18:59:22.9356530Z  * [new tag]               v-npm-0-162-199                          -> v-npm-0-162-199
+2026-10-09T18:59:22.9357144Z  * [new tag]               v-npm-0-162-200                          -> v-npm-0-162-200
+2026-10-09T18:59:22.9357739Z  * [new tag]               v-npm-0-163-0                            -> v-npm-0-163-0
+2026-10-09T18:59:22.9358343Z  * [new tag]               v-npm-0-163-1                            -> v-npm-0-163-1
+2026-10-09T18:59:22.9358955Z  * [new tag]               v-npm-0-163-2                            -> v-npm-0-163-2
+2026-10-09T18:59:22.9359691Z  * [new tag]               v-npm-0-163-3                            -> v-npm-0-163-3
+2026-10-09T18:59:22.9360304Z  * [new tag]               v-npm-0-163-4                            -> v-npm-0-163-4
+2026-10-09T18:59:22.9360910Z  * [new tag]               v-npm-0-163-5                            -> v-npm-0-163-5
+2026-10-09T18:59:22.9361654Z  * [new tag]               v-npm-0-163-6                            -> v-npm-0-163-6
+2026-10-09T18:59:22.9362272Z  * [new tag]               v-npm-0-163-7                            -> v-npm-0-163-7
+2026-10-09T18:59:22.9362872Z  * [new tag]               v-npm-0-163-8                            -> v-npm-0-163-8
+2026-10-09T18:59:22.9363493Z  * [new tag]               v-npm-0-164-0                            -> v-npm-0-164-0
+2026-10-09T18:59:22.9364101Z  * [new tag]               v-npm-0-165-0                            -> v-npm-0-165-0
+2026-10-09T18:59:22.9364706Z  * [new tag]               v-npm-0-165-1                            -> v-npm-0-165-1
+2026-10-09T18:59:22.9365293Z  * [new tag]               v-npm-0-165-10                           -> v-npm-0-165-10
+2026-10-09T18:59:22.9365727Z  * [new tag]               v-npm-0-165-2                            -> v-npm-0-165-2
+2026-10-09T18:59:22.9366102Z  * [new tag]               v-npm-0-165-3                            -> v-npm-0-165-3
+2026-10-09T18:59:22.9366486Z  * [new tag]               v-npm-0-165-4                            -> v-npm-0-165-4
+2026-10-09T18:59:22.9366956Z  * [new tag]               v-npm-0-165-5                            -> v-npm-0-165-5
+2026-10-09T18:59:22.9367388Z  * [new tag]               v-npm-0-165-6                            -> v-npm-0-165-6
+2026-10-09T18:59:22.9367758Z  * [new tag]               v-npm-0-165-7                            -> v-npm-0-165-7
+2026-10-09T18:59:22.9368121Z  * [new tag]               v-npm-0-165-8                            -> v-npm-0-165-8
+2026-10-09T18:59:22.9368512Z  * [new tag]               v-npm-0-165-9                            -> v-npm-0-165-9
+2026-10-09T18:59:22.9369019Z  * [new tag]               v-npm-0-166-0                            -> v-npm-0-166-0
+2026-10-09T18:59:22.9369534Z  * [new tag]               v-npm-0-166-1                            -> v-npm-0-166-1
+2026-10-09T18:59:22.9369904Z  * [new tag]               v-npm-0-166-10                           -> v-npm-0-166-10
+2026-10-09T18:59:22.9370427Z  * [new tag]               v-npm-0-166-11                           -> v-npm-0-166-11
+2026-10-09T18:59:22.9370803Z  * [new tag]               v-npm-0-166-13                           -> v-npm-0-166-13
+2026-10-09T18:59:22.9371174Z  * [new tag]               v-npm-0-166-14                           -> v-npm-0-166-14
+2026-10-09T18:59:22.9371536Z  * [new tag]               v-npm-0-166-15                           -> v-npm-0-166-15
+2026-10-09T18:59:22.9371900Z  * [new tag]               v-npm-0-166-16                           -> v-npm-0-166-16
+2026-10-09T18:59:22.9372255Z  * [new tag]               v-npm-0-166-17                           -> v-npm-0-166-17
+2026-10-09T18:59:22.9372620Z  * [new tag]               v-npm-0-166-18                           -> v-npm-0-166-18
+2026-10-09T18:59:22.9372978Z  * [new tag]               v-npm-0-166-19                           -> v-npm-0-166-19
+2026-10-09T18:59:22.9373336Z  * [new tag]               v-npm-0-166-2                            -> v-npm-0-166-2
+2026-10-09T18:59:22.9373717Z  * [new tag]               v-npm-0-166-20                           -> v-npm-0-166-20
+2026-10-09T18:59:22.9374081Z  * [new tag]               v-npm-0-166-21                           -> v-npm-0-166-21
+2026-10-09T18:59:22.9374440Z  * [new tag]               v-npm-0-166-22                           -> v-npm-0-166-22
+2026-10-09T18:59:22.9374796Z  * [new tag]               v-npm-0-166-23                           -> v-npm-0-166-23
+2026-10-09T18:59:22.9375156Z  * [new tag]               v-npm-0-166-24                           -> v-npm-0-166-24
+2026-10-09T18:59:22.9375513Z  * [new tag]               v-npm-0-166-25                           -> v-npm-0-166-25
+2026-10-09T18:59:22.9375871Z  * [new tag]               v-npm-0-166-26                           -> v-npm-0-166-26
+2026-10-09T18:59:22.9376231Z  * [new tag]               v-npm-0-166-27                           -> v-npm-0-166-27
+2026-10-09T18:59:22.9376611Z  * [new tag]               v-npm-0-166-28                           -> v-npm-0-166-28
+2026-10-09T18:59:22.9377077Z  * [new tag]               v-npm-0-166-29                           -> v-npm-0-166-29
+2026-10-09T18:59:22.9377445Z  * [new tag]               v-npm-0-166-3                            -> v-npm-0-166-3
+2026-10-09T18:59:22.9377830Z  * [new tag]               v-npm-0-166-30                           -> v-npm-0-166-30
+2026-10-09T18:59:22.9378195Z  * [new tag]               v-npm-0-166-31                           -> v-npm-0-166-31
+2026-10-09T18:59:22.9378560Z  * [new tag]               v-npm-0-166-32                           -> v-npm-0-166-32
+2026-10-09T18:59:22.9378922Z  * [new tag]               v-npm-0-166-33                           -> v-npm-0-166-33
+2026-10-09T18:59:22.9379477Z  * [new tag]               v-npm-0-166-34                           -> v-npm-0-166-34
+2026-10-09T18:59:22.9379850Z  * [new tag]               v-npm-0-166-36                           -> v-npm-0-166-36
+2026-10-09T18:59:22.9380220Z  * [new tag]               v-npm-0-166-37                           -> v-npm-0-166-37
+2026-10-09T18:59:22.9380585Z  * [new tag]               v-npm-0-166-38                           -> v-npm-0-166-38
+2026-10-09T18:59:22.9380946Z  * [new tag]               v-npm-0-166-39                           -> v-npm-0-166-39
+2026-10-09T18:59:22.9381307Z  * [new tag]               v-npm-0-166-4                            -> v-npm-0-166-4
+2026-10-09T18:59:22.9381674Z  * [new tag]               v-npm-0-166-40                           -> v-npm-0-166-40
+2026-10-09T18:59:22.9382043Z  * [new tag]               v-npm-0-166-41                           -> v-npm-0-166-41
+2026-10-09T18:59:22.9382405Z  * [new tag]               v-npm-0-166-42                           -> v-npm-0-166-42
+2026-10-09T18:59:22.9382768Z  * [new tag]               v-npm-0-166-43                           -> v-npm-0-166-43
+2026-10-09T18:59:22.9383131Z  * [new tag]               v-npm-0-166-44                           -> v-npm-0-166-44
+2026-10-09T18:59:22.9383608Z  * [new tag]               v-npm-0-166-45                           -> v-npm-0-166-45
+2026-10-09T18:59:22.9384002Z  * [new tag]               v-npm-0-166-46                           -> v-npm-0-166-46
+2026-10-09T18:59:22.9384370Z  * [new tag]               v-npm-0-166-47                           -> v-npm-0-166-47
+2026-10-09T18:59:22.9384732Z  * [new tag]               v-npm-0-166-48                           -> v-npm-0-166-48
+2026-10-09T18:59:22.9385097Z  * [new tag]               v-npm-0-166-49                           -> v-npm-0-166-49
+2026-10-09T18:59:22.9385460Z  * [new tag]               v-npm-0-166-5                            -> v-npm-0-166-5
+2026-10-09T18:59:22.9385823Z  * [new tag]               v-npm-0-166-50                           -> v-npm-0-166-50
+2026-10-09T18:59:22.9386181Z  * [new tag]               v-npm-0-166-51                           -> v-npm-0-166-51
+2026-10-09T18:59:22.9386537Z  * [new tag]               v-npm-0-166-52                           -> v-npm-0-166-52
+2026-10-09T18:59:22.9386905Z  * [new tag]               v-npm-0-166-53                           -> v-npm-0-166-53
+2026-10-09T18:59:22.9387267Z  * [new tag]               v-npm-0-166-54                           -> v-npm-0-166-54
+2026-10-09T18:59:22.9387630Z  * [new tag]               v-npm-0-166-55                           -> v-npm-0-166-55
+2026-10-09T18:59:22.9387985Z  * [new tag]               v-npm-0-166-56                           -> v-npm-0-166-56
+2026-10-09T18:59:22.9388347Z  * [new tag]               v-npm-0-166-57                           -> v-npm-0-166-57
+2026-10-09T18:59:22.9388716Z  * [new tag]               v-npm-0-166-58                           -> v-npm-0-166-58
+2026-10-09T18:59:22.9389078Z  * [new tag]               v-npm-0-166-59                           -> v-npm-0-166-59
+2026-10-09T18:59:22.9389536Z  * [new tag]               v-npm-0-166-6                            -> v-npm-0-166-6
+2026-10-09T18:59:22.9389899Z  * [new tag]               v-npm-0-166-60                           -> v-npm-0-166-60
+2026-10-09T18:59:22.9390376Z  * [new tag]               v-npm-0-166-62                           -> v-npm-0-166-62
+2026-10-09T18:59:22.9390740Z  * [new tag]               v-npm-0-166-63                           -> v-npm-0-166-63
+2026-10-09T18:59:22.9391099Z  * [new tag]               v-npm-0-166-64                           -> v-npm-0-166-64
+2026-10-09T18:59:22.9391465Z  * [new tag]               v-npm-0-166-65                           -> v-npm-0-166-65
+2026-10-09T18:59:22.9391827Z  * [new tag]               v-npm-0-166-66                           -> v-npm-0-166-66
+2026-10-09T18:59:22.9392185Z  * [new tag]               v-npm-0-166-67                           -> v-npm-0-166-67
+2026-10-09T18:59:22.9392552Z  * [new tag]               v-npm-0-166-68                           -> v-npm-0-166-68
+2026-10-09T18:59:22.9392907Z  * [new tag]               v-npm-0-166-69                           -> v-npm-0-166-69
+2026-10-09T18:59:22.9393274Z  * [new tag]               v-npm-0-166-7                            -> v-npm-0-166-7
+2026-10-09T18:59:22.9393656Z  * [new tag]               v-npm-0-166-70                           -> v-npm-0-166-70
+2026-10-09T18:59:22.9394026Z  * [new tag]               v-npm-0-166-71                           -> v-npm-0-166-71
+2026-10-09T18:59:22.9394412Z  * [new tag]               v-npm-0-166-72                           -> v-npm-0-166-72
+2026-10-09T18:59:22.9394774Z  * [new tag]               v-npm-0-166-74                           -> v-npm-0-166-74
+2026-10-09T18:59:22.9395134Z  * [new tag]               v-npm-0-166-75                           -> v-npm-0-166-75
+2026-10-09T18:59:22.9395504Z  * [new tag]               v-npm-0-166-76                           -> v-npm-0-166-76
+2026-10-09T18:59:22.9395887Z  * [new tag]               v-npm-0-166-77                           -> v-npm-0-166-77
+2026-10-09T18:59:22.9396274Z  * [new tag]               v-npm-0-166-78                           -> v-npm-0-166-78
+2026-10-09T18:59:22.9396635Z  * [new tag]               v-npm-0-166-79                           -> v-npm-0-166-79
+2026-10-09T18:59:22.9397106Z  * [new tag]               v-npm-0-166-80                           -> v-npm-0-166-80
+2026-10-09T18:59:22.9397472Z  * [new tag]               v-npm-0-166-81                           -> v-npm-0-166-81
+2026-10-09T18:59:22.9397832Z  * [new tag]               v-npm-0-166-82                           -> v-npm-0-166-82
+2026-10-09T18:59:22.9398195Z  * [new tag]               v-npm-0-166-83                           -> v-npm-0-166-83
+2026-10-09T18:59:22.9398565Z  * [new tag]               v-npm-0-166-84                           -> v-npm-0-166-84
+2026-10-09T18:59:22.9398927Z  * [new tag]               v-npm-0-166-85                           -> v-npm-0-166-85
+2026-10-09T18:59:22.9399460Z  * [new tag]               v-npm-0-166-86                           -> v-npm-0-166-86
+2026-10-09T18:59:22.9399844Z  * [new tag]               v-npm-0-166-87                           -> v-npm-0-166-87
+2026-10-09T18:59:22.9400312Z  * [new tag]               v-npm-0-166-88                           -> v-npm-0-166-88
+2026-10-09T18:59:22.9400835Z  * [new tag]               v-npm-0-166-89                           -> v-npm-0-166-89
+2026-10-09T18:59:22.9401388Z  * [new tag]               v-npm-0-166-9                            -> v-npm-0-166-9
+2026-10-09T18:59:22.9401964Z  * [new tag]               v-npm-0-166-90                           -> v-npm-0-166-90
+2026-10-09T18:59:22.9402341Z  * [new tag]               v-npm-0-166-91                           -> v-npm-0-166-91
+2026-10-09T18:59:22.9402704Z  * [new tag]               v-npm-0-166-92                           -> v-npm-0-166-92
+2026-10-09T18:59:22.9403064Z  * [new tag]               v-npm-0-166-93                           -> v-npm-0-166-93
+2026-10-09T18:59:22.9403426Z  * [new tag]               v-npm-0-166-94                           -> v-npm-0-166-94
+2026-10-09T18:59:22.9403780Z  * [new tag]               v0.158.0                                 -> v0.158.0
+2026-10-09T18:59:22.9404127Z  * [new tag]               v0.159.0                                 -> v0.159.0
+2026-10-09T18:59:22.9404596Z  * [new tag]               v0.160.0                                 -> v0.160.0
+2026-10-09T18:59:22.9404989Z  * [new tag]               v0.162.172                               -> v0.162.172
+2026-10-09T18:59:22.9405341Z  * [new tag]               v0.162.173                               -> v0.162.173
+2026-10-09T18:59:22.9405682Z  * [new tag]               v0.162.192                               -> v0.162.192
+2026-10-09T18:59:22.9406019Z  * [new tag]               v0.2.0                                   -> v0.2.0
+2026-10-09T18:59:22.9406361Z  * [new tag]               v0.20.0                                  -> v0.20.0
+2026-10-09T18:59:22.9406702Z  * [new tag]               v0.21.0                                  -> v0.21.0
+2026-10-09T18:59:22.9407031Z  * [new tag]               v0.22.0                                  -> v0.22.0
+2026-10-09T18:59:22.9407358Z  * [new tag]               v0.26.1                                  -> v0.26.1
+2026-10-09T18:59:22.9407697Z  * [new tag]               v0.26.2                                  -> v0.26.2
+2026-10-09T18:59:22.9408029Z  * [new tag]               v0.34.0                                  -> v0.34.0
+2026-10-09T18:59:22.9408366Z  * [new tag]               v0.34.10                                 -> v0.34.10
+2026-10-09T18:59:22.9408700Z  * [new tag]               v0.34.7                                  -> v0.34.7
+2026-10-09T18:59:22.9409027Z  * [new tag]               v0.34.8                                  -> v0.34.8
+2026-10-09T18:59:22.9409454Z  * [new tag]               v0.34.9                                  -> v0.34.9
+2026-10-09T18:59:22.9409784Z  * [new tag]               v0.35.0                                  -> v0.35.0
+2026-10-09T18:59:22.9410117Z  * [new tag]               v0.35.1                                  -> v0.35.1
+2026-10-09T18:59:22.9410450Z  * [new tag]               v0.35.2                                  -> v0.35.2
+2026-10-09T18:59:22.9410776Z  * [new tag]               v0.35.3                                  -> v0.35.3
+2026-10-09T18:59:22.9411216Z  * [new tag]               v0.35.4                                  -> v0.35.4
+2026-10-09T18:59:22.9411549Z  * [new tag]               v0.37.10                                 -> v0.37.10
+2026-10-09T18:59:22.9411884Z  * [new tag]               v0.37.11                                 -> v0.37.11
+2026-10-09T18:59:22.9412218Z  * [new tag]               v0.37.12                                 -> v0.37.12
+2026-10-09T18:59:22.9412540Z  * [new tag]               v0.37.8                                  -> v0.37.8
+2026-10-09T18:59:22.9412873Z  * [new tag]               v0.37.9                                  -> v0.37.9
+2026-10-09T18:59:22.9413199Z  * [new tag]               v0.38.0                                  -> v0.38.0
+2026-10-09T18:59:22.9413525Z  * [new tag]               v0.38.1                                  -> v0.38.1
+2026-10-09T18:59:22.9413853Z  * [new tag]               v0.40.0                                  -> v0.40.0
+2026-10-09T18:59:22.9414192Z  * [new tag]               v0.40.1                                  -> v0.40.1
+2026-10-09T18:59:22.9414524Z  * [new tag]               v0.40.2                                  -> v0.40.2
+2026-10-09T18:59:22.9414850Z  * [new tag]               v0.40.3                                  -> v0.40.3
+2026-10-09T18:59:22.9415176Z  * [new tag]               v0.41.0                                  -> v0.41.0
+2026-10-09T18:59:22.9415510Z  * [new tag]               v0.41.1                                  -> v0.41.1
+2026-10-09T18:59:22.9415835Z  * [new tag]               v0.42.1                                  -> v0.42.1
+2026-10-09T18:59:22.9416162Z  * [new tag]               v0.42.2                                  -> v0.42.2
+2026-10-09T18:59:22.9416489Z  * [new tag]               v0.42.3                                  -> v0.42.3
+2026-10-09T18:59:22.9416816Z  * [new tag]               v0.43.0                                  -> v0.43.0
+2026-10-09T18:59:22.9417143Z  * [new tag]               v0.43.1                                  -> v0.43.1
+2026-10-09T18:59:22.9417574Z  * [new tag]               v0.43.2                                  -> v0.43.2
+2026-10-09T18:59:22.9417911Z  * [new tag]               v0.43.3                                  -> v0.43.3
+2026-10-09T18:59:22.9418245Z  * [new tag]               v0.43.4                                  -> v0.43.4
+2026-10-09T18:59:22.9418570Z  * [new tag]               v0.44.0                                  -> v0.44.0
+2026-10-09T18:59:22.9418893Z  * [new tag]               v0.45.0                                  -> v0.45.0
+2026-10-09T18:59:22.9419413Z  * [new tag]               v0.45.1                                  -> v0.45.1
+2026-10-09T18:59:22.9419868Z  * [new tag]               v0.45.12                                 -> v0.45.12
+2026-10-09T18:59:22.9420209Z  * [new tag]               v0.45.13                                 -> v0.45.13
+2026-10-09T18:59:22.9420540Z  * [new tag]               v0.45.14                                 -> v0.45.14
+2026-10-09T18:59:22.9420889Z  * [new tag]               v0.45.15                                 -> v0.45.15
+2026-10-09T18:59:22.9421220Z  * [new tag]               v0.45.16                                 -> v0.45.16
+2026-10-09T18:59:22.9421552Z  * [new tag]               v0.45.17                                 -> v0.45.17
+2026-10-09T18:59:22.9421889Z  * [new tag]               v0.45.18                                 -> v0.45.18
+2026-10-09T18:59:22.9422224Z  * [new tag]               v0.45.19                                 -> v0.45.19
+2026-10-09T18:59:22.9422558Z  * [new tag]               v0.45.2                                  -> v0.45.2
+2026-10-09T18:59:22.9422900Z  * [new tag]               v0.45.20                                 -> v0.45.20
+2026-10-09T18:59:22.9423226Z  * [new tag]               v0.45.21                                 -> v0.45.21
+2026-10-09T18:59:22.9423557Z  * [new tag]               v0.45.22                                 -> v0.45.22
+2026-10-09T18:59:22.9424003Z  * [new tag]               v0.45.23                                 -> v0.45.23
+2026-10-09T18:59:22.9424338Z  * [new tag]               v0.45.24                                 -> v0.45.24
+2026-10-09T18:59:22.9424670Z  * [new tag]               v0.45.25                                 -> v0.45.25
+2026-10-09T18:59:22.9425004Z  * [new tag]               v0.45.26                                 -> v0.45.26
+2026-10-09T18:59:22.9425337Z  * [new tag]               v0.45.27                                 -> v0.45.27
+2026-10-09T18:59:22.9425663Z  * [new tag]               v0.45.28                                 -> v0.45.28
+2026-10-09T18:59:22.9425995Z  * [new tag]               v0.45.29                                 -> v0.45.29
+2026-10-09T18:59:22.9426328Z  * [new tag]               v0.45.3                                  -> v0.45.3
+2026-10-09T18:59:22.9426659Z  * [new tag]               v0.45.30                                 -> v0.45.30
+2026-10-09T18:59:22.9426990Z  * [new tag]               v0.45.31                                 -> v0.45.31
+2026-10-09T18:59:22.9427332Z  * [new tag]               v0.45.32                                 -> v0.45.32
+2026-10-09T18:59:22.9427663Z  * [new tag]               v0.45.33                                 -> v0.45.33
+2026-10-09T18:59:22.9427996Z  * [new tag]               v0.45.4                                  -> v0.45.4
+2026-10-09T18:59:22.9428331Z  * [new tag]               v0.45.5                                  -> v0.45.5
+2026-10-09T18:59:22.9428664Z  * [new tag]               v0.45.6                                  -> v0.45.6
+2026-10-09T18:59:22.9428991Z  * [new tag]               v0.45.62                                 -> v0.45.62
+2026-10-09T18:59:22.9429407Z  * [new tag]               v0.45.63                                 -> v0.45.63
+2026-10-09T18:59:22.9429745Z  * [new tag]               v0.45.64                                 -> v0.45.64
+2026-10-09T18:59:22.9430079Z  * [new tag]               v0.45.65                                 -> v0.45.65
+2026-10-09T18:59:22.9430413Z  * [new tag]               v0.45.66                                 -> v0.45.66
+2026-10-09T18:59:22.9430846Z  * [new tag]               v0.45.67                                 -> v0.45.67
+2026-10-09T18:59:22.9431203Z  * [new tag]               v0.45.68                                 -> v0.45.68
+2026-10-09T18:59:22.9431542Z  * [new tag]               v0.45.69                                 -> v0.45.69
+2026-10-09T18:59:22.9431875Z  * [new tag]               v0.45.7                                  -> v0.45.7
+2026-10-09T18:59:22.9432201Z  * [new tag]               v0.45.70                                 -> v0.45.70
+2026-10-09T18:59:22.9432528Z  * [new tag]               v0.45.71                                 -> v0.45.71
+2026-10-09T18:59:22.9432854Z  * [new tag]               v0.45.72                                 -> v0.45.72
+2026-10-09T18:59:22.9433184Z  * [new tag]               v0.45.8                                  -> v0.45.8
+2026-10-09T18:59:22.9433512Z  * [new tag]               v0.45.9                                  -> v0.45.9
+2026-10-09T18:59:22.9433866Z  * [new tag]               v0.47.0                                  -> v0.47.0
+2026-10-09T18:59:22.9434189Z  * [new tag]               v0.47.2                                  -> v0.47.2
+2026-10-09T18:59:22.9434513Z  * [new tag]               v0.47.4                                  -> v0.47.4
+2026-10-09T18:59:22.9434837Z  * [new tag]               v0.47.5                                  -> v0.47.5
+2026-10-09T18:59:22.9435159Z  * [new tag]               v0.47.7                                  -> v0.47.7
+2026-10-09T18:59:22.9435487Z  * [new tag]               v0.47.8                                  -> v0.47.8
+2026-10-09T18:59:22.9435820Z  * [new tag]               v1.0.0                                   -> v1.0.0
+2026-10-09T18:59:22.9436169Z  * [new tag]               v5.0.2.11                                -> v5.0.2.11
+2026-10-09T18:59:22.9436519Z  * [new tag]               v5.0.2.12                                -> v5.0.2.12
+2026-10-09T18:59:22.9436989Z  * [new tag]               v5.0.2.13                                -> v5.0.2.13
+2026-10-09T18:59:22.9437327Z  * [new tag]               v5.0.2.14                                -> v5.0.2.14
+2026-10-09T18:59:22.9437660Z  * [new tag]               v5.0.2.15                                -> v5.0.2.15
+2026-10-09T18:59:22.9437994Z  * [new tag]               v5.0.2.17                                -> v5.0.2.17
+2026-10-09T18:59:22.9438328Z  * [new tag]               v5.0.2.18                                -> v5.0.2.18
+2026-10-09T18:59:22.9438666Z  * [new tag]               v5.0.2.19                                -> v5.0.2.19
+2026-10-09T18:59:22.9439002Z  * [new tag]               v5.0.2.20                                -> v5.0.2.20
+2026-10-09T18:59:22.9439507Z  * [new tag]               v5.0.2.21                                -> v5.0.2.21
+2026-10-09T18:59:22.9439850Z  * [new tag]               v5.0.2.22                                -> v5.0.2.22
+2026-10-09T18:59:22.9440191Z  * [new tag]               v5.0.2.23                                -> v5.0.2.23
+2026-10-09T18:59:22.9440526Z  * [new tag]               v5.0.2.24                                -> v5.0.2.24
+2026-10-09T18:59:22.9440859Z  * [new tag]               v5.0.2.25                                -> v5.0.2.25
+2026-10-09T18:59:22.9441189Z  * [new tag]               v5.0.2.26                                -> v5.0.2.26
+2026-10-09T18:59:22.9441519Z  * [new tag]               v5.0.2.27                                -> v5.0.2.27
+2026-10-09T18:59:22.9441856Z  * [new tag]               v5.0.2.28                                -> v5.0.2.28
+2026-10-09T18:59:22.9442191Z  * [new tag]               v5.0.2.29                                -> v5.0.2.29
+2026-10-09T18:59:22.9442523Z  * [new tag]               v5.0.2.30                                -> v5.0.2.30
+2026-10-09T18:59:22.9442853Z  * [new tag]               v5.0.2.31                                -> v5.0.2.31
+2026-10-09T18:59:22.9443192Z  * [new tag]               v5.0.2.32                                -> v5.0.2.32
+2026-10-09T18:59:22.9443636Z  * [new tag]               v5.0.2.33                                -> v5.0.2.33
+2026-10-09T18:59:22.9443970Z  * [new tag]               v5.0.2.34                                -> v5.0.2.34
+2026-10-09T18:59:22.9444300Z  * [new tag]               v5.0.2.35                                -> v5.0.2.35
+2026-10-09T18:59:22.9444635Z  * [new tag]               v5.0.2.36                                -> v5.0.2.36
+2026-10-09T18:59:22.9444963Z  * [new tag]               v5.0.2.37                                -> v5.0.2.37
+2026-10-09T18:59:22.9445293Z  * [new tag]               v5.0.2.38                                -> v5.0.2.38
+2026-10-09T18:59:22.9445622Z  * [new tag]               v5.0.2.39                                -> v5.0.2.39
+2026-10-09T18:59:22.9445952Z  * [new tag]               v5.0.2.40                                -> v5.0.2.40
+2026-10-09T18:59:22.9446281Z  * [new tag]               v5.0.2.41                                -> v5.0.2.41
+2026-10-09T18:59:22.9446621Z  * [new tag]               v5.0.2.42                                -> v5.0.2.42
+2026-10-09T18:59:22.9446957Z  * [new tag]               v5.0.2.43                                -> v5.0.2.43
+2026-10-09T18:59:22.9447291Z  * [new tag]               v5.0.2.44                                -> v5.0.2.44
+2026-10-09T18:59:22.9447624Z  * [new tag]               v5.0.2.47                                -> v5.0.2.47
+2026-10-09T18:59:22.9447952Z  * [new tag]               v5.0.2.48                                -> v5.0.2.48
+2026-10-09T18:59:22.9448289Z  * [new tag]               v5.0.2.49                                -> v5.0.2.49
+2026-10-09T18:59:22.9448622Z  * [new tag]               v5.0.2.50                                -> v5.0.2.50
+2026-10-09T18:59:22.9448949Z  * [new tag]               v5.0.2.52                                -> v5.0.2.52
+2026-10-09T18:59:22.9449366Z  * [new tag]               v5.0.2.53                                -> v5.0.2.53
+2026-10-09T18:59:22.9449840Z  * [new tag]               v5.0.2.54                                -> v5.0.2.54
+2026-10-09T18:59:22.9450184Z  * [new tag]               v5.0.2.55                                -> v5.0.2.55
+2026-10-09T18:59:22.9450531Z  * [new tag]               v5.0.2.7                                 -> v5.0.2.7
+2026-10-09T18:59:22.9450866Z  * [new tag]               v5.0.2.8                                 -> v5.0.2.8
+2026-10-09T18:59:22.9451198Z  * [new tag]               v5.0.2.9                                 -> v5.0.2.9
+2026-10-09T18:59:22.9451531Z  * [new tag]               v5.0.3.0                                 -> v5.0.3.0
+2026-10-09T18:59:22.9451858Z  * [new tag]               v5.0.3.1                                 -> v5.0.3.1
+2026-10-09T18:59:22.9467378Z  * [new tag]               v5.0.3.10                                -> v5.0.3.10
+2026-10-09T18:59:22.9467855Z  * [new tag]               v5.0.3.100                               -> v5.0.3.100
+2026-10-09T18:59:22.9468223Z  * [new tag]               v5.0.3.101                               -> v5.0.3.101
+2026-10-09T18:59:22.9468607Z  * [new tag]               v5.0.3.102                               -> v5.0.3.102
+2026-10-09T18:59:22.9468955Z  * [new tag]               v5.0.3.103                               -> v5.0.3.103
+2026-10-09T18:59:22.9469413Z  * [new tag]               v5.0.3.104                               -> v5.0.3.104
+2026-10-09T18:59:22.9469753Z  * [new tag]               v5.0.3.105                               -> v5.0.3.105
+2026-10-09T18:59:22.9470086Z  * [new tag]               v5.0.3.106                               -> v5.0.3.106
+2026-10-09T18:59:22.9470413Z  * [new tag]               v5.0.3.107                               -> v5.0.3.107
+2026-10-09T18:59:22.9470747Z  * [new tag]               v5.0.3.108                               -> v5.0.3.108
+2026-10-09T18:59:22.9471088Z  * [new tag]               v5.0.3.109                               -> v5.0.3.109
+2026-10-09T18:59:22.9471429Z  * [new tag]               v5.0.3.11                                -> v5.0.3.11
+2026-10-09T18:59:22.9471929Z  * [new tag]               v5.0.3.110                               -> v5.0.3.110
+2026-10-09T18:59:22.9472290Z  * [new tag]               v5.0.3.111                               -> v5.0.3.111
+2026-10-09T18:59:22.9472635Z  * [new tag]               v5.0.3.112                               -> v5.0.3.112
+2026-10-09T18:59:22.9472976Z  * [new tag]               v5.0.3.113                               -> v5.0.3.113
+2026-10-09T18:59:22.9473317Z  * [new tag]               v5.0.3.114                               -> v5.0.3.114
+2026-10-09T18:59:22.9473657Z  * [new tag]               v5.0.3.115                               -> v5.0.3.115
+2026-10-09T18:59:22.9473995Z  * [new tag]               v5.0.3.116                               -> v5.0.3.116
+2026-10-09T18:59:22.9474334Z  * [new tag]               v5.0.3.117                               -> v5.0.3.117
+2026-10-09T18:59:22.9474691Z  * [new tag]               v5.0.3.118                               -> v5.0.3.118
+2026-10-09T18:59:22.9475038Z  * [new tag]               v5.0.3.119                               -> v5.0.3.119
+2026-10-09T18:59:22.9475389Z  * [new tag]               v5.0.3.12                                -> v5.0.3.12
+2026-10-09T18:59:22.9475726Z  * [new tag]               v5.0.3.120                               -> v5.0.3.120
+2026-10-09T18:59:22.9476070Z  * [new tag]               v5.0.3.121                               -> v5.0.3.121
+2026-10-09T18:59:22.9476418Z  * [new tag]               v5.0.3.122                               -> v5.0.3.122
+2026-10-09T18:59:22.9476754Z  * [new tag]               v5.0.3.123                               -> v5.0.3.123
+2026-10-09T18:59:22.9477087Z  * [new tag]               v5.0.3.124                               -> v5.0.3.124
+2026-10-09T18:59:22.9477422Z  * [new tag]               v5.0.3.125                               -> v5.0.3.125
+2026-10-09T18:59:22.9477760Z  * [new tag]               v5.0.3.126                               -> v5.0.3.126
+2026-10-09T18:59:22.9478196Z  * [new tag]               v5.0.3.127                               -> v5.0.3.127
+2026-10-09T18:59:22.9478537Z  * [new tag]               v5.0.3.128                               -> v5.0.3.128
+2026-10-09T18:59:22.9478882Z  * [new tag]               v5.0.3.129                               -> v5.0.3.129
+2026-10-09T18:59:22.9479305Z  * [new tag]               v5.0.3.13                                -> v5.0.3.13
+2026-10-09T18:59:22.9479661Z  * [new tag]               v5.0.3.130                               -> v5.0.3.130
+2026-10-09T18:59:22.9480002Z  * [new tag]               v5.0.3.131                               -> v5.0.3.131
+2026-10-09T18:59:22.9480339Z  * [new tag]               v5.0.3.132                               -> v5.0.3.132
+2026-10-09T18:59:22.9480675Z  * [new tag]               v5.0.3.133                               -> v5.0.3.133
+2026-10-09T18:59:22.9481009Z  * [new tag]               v5.0.3.134                               -> v5.0.3.134
+2026-10-09T18:59:22.9481349Z  * [new tag]               v5.0.3.135                               -> v5.0.3.135
+2026-10-09T18:59:22.9481702Z  * [new tag]               v5.0.3.136                               -> v5.0.3.136
+2026-10-09T18:59:22.9482040Z  * [new tag]               v5.0.3.137                               -> v5.0.3.137
+2026-10-09T18:59:22.9482375Z  * [new tag]               v5.0.3.138                               -> v5.0.3.138
+2026-10-09T18:59:22.9482712Z  * [new tag]               v5.0.3.139                               -> v5.0.3.139
+2026-10-09T18:59:22.9483049Z  * [new tag]               v5.0.3.14                                -> v5.0.3.14
+2026-10-09T18:59:22.9483386Z  * [new tag]               v5.0.3.140                               -> v5.0.3.140
+2026-10-09T18:59:22.9483721Z  * [new tag]               v5.0.3.16                                -> v5.0.3.16
+2026-10-09T18:59:22.9484062Z  * [new tag]               v5.0.3.17                                -> v5.0.3.17
+2026-10-09T18:59:22.9484397Z  * [new tag]               v5.0.3.18                                -> v5.0.3.18
+2026-10-09T18:59:22.9484842Z  * [new tag]               v5.0.3.19                                -> v5.0.3.19
+2026-10-09T18:59:22.9485183Z  * [new tag]               v5.0.3.20                                -> v5.0.3.20
+2026-10-09T18:59:22.9485515Z  * [new tag]               v5.0.3.21                                -> v5.0.3.21
+2026-10-09T18:59:22.9485851Z  * [new tag]               v5.0.3.22                                -> v5.0.3.22
+2026-10-09T18:59:22.9486184Z  * [new tag]               v5.0.3.23                                -> v5.0.3.23
+2026-10-09T18:59:22.9486518Z  * [new tag]               v5.0.3.24                                -> v5.0.3.24
+2026-10-09T18:59:22.9486861Z  * [new tag]               v5.0.3.25                                -> v5.0.3.25
+2026-10-09T18:59:22.9487202Z  * [new tag]               v5.0.3.26                                -> v5.0.3.26
+2026-10-09T18:59:22.9487532Z  * [new tag]               v5.0.3.27                                -> v5.0.3.27
+2026-10-09T18:59:22.9487877Z  * [new tag]               v5.0.3.28                                -> v5.0.3.28
+2026-10-09T18:59:22.9488215Z  * [new tag]               v5.0.3.29                                -> v5.0.3.29
+2026-10-09T18:59:22.9488555Z  * [new tag]               v5.0.3.3                                 -> v5.0.3.3
+2026-10-09T18:59:22.9488894Z  * [new tag]               v5.0.3.30                                -> v5.0.3.30
+2026-10-09T18:59:22.9489314Z  * [new tag]               v5.0.3.31                                -> v5.0.3.31
+2026-10-09T18:59:22.9489659Z  * [new tag]               v5.0.3.32                                -> v5.0.3.32
+2026-10-09T18:59:22.9489995Z  * [new tag]               v5.0.3.33                                -> v5.0.3.33
+2026-10-09T18:59:22.9490325Z  * [new tag]               v5.0.3.34                                -> v5.0.3.34
+2026-10-09T18:59:22.9490656Z  * [new tag]               v5.0.3.35                                -> v5.0.3.35
+2026-10-09T18:59:22.9490995Z  * [new tag]               v5.0.3.36                                -> v5.0.3.36
+2026-10-09T18:59:22.9491440Z  * [new tag]               v5.0.3.37                                -> v5.0.3.37
+2026-10-09T18:59:22.9491781Z  * [new tag]               v5.0.3.38                                -> v5.0.3.38
+2026-10-09T18:59:22.9492120Z  * [new tag]               v5.0.3.39                                -> v5.0.3.39
+2026-10-09T18:59:22.9492459Z  * [new tag]               v5.0.3.4                                 -> v5.0.3.4
+2026-10-09T18:59:22.9492795Z  * [new tag]               v5.0.3.40                                -> v5.0.3.40
+2026-10-09T18:59:22.9493129Z  * [new tag]               v5.0.3.41                                -> v5.0.3.41
+2026-10-09T18:59:22.9493465Z  * [new tag]               v5.0.3.43                                -> v5.0.3.43
+2026-10-09T18:59:22.9493801Z  * [new tag]               v5.0.3.44                                -> v5.0.3.44
+2026-10-09T18:59:22.9494135Z  * [new tag]               v5.0.3.45                                -> v5.0.3.45
+2026-10-09T18:59:22.9494480Z  * [new tag]               v5.0.3.46                                -> v5.0.3.46
+2026-10-09T18:59:22.9494821Z  * [new tag]               v5.0.3.47                                -> v5.0.3.47
+2026-10-09T18:59:22.9495152Z  * [new tag]               v5.0.3.48                                -> v5.0.3.48
+2026-10-09T18:59:22.9495485Z  * [new tag]               v5.0.3.49                                -> v5.0.3.49
+2026-10-09T18:59:22.9495825Z  * [new tag]               v5.0.3.5                                 -> v5.0.3.5
+2026-10-09T18:59:22.9496160Z  * [new tag]               v5.0.3.50                                -> v5.0.3.50
+2026-10-09T18:59:22.9496499Z  * [new tag]               v5.0.3.51                                -> v5.0.3.51
+2026-10-09T18:59:22.9496832Z  * [new tag]               v5.0.3.52                                -> v5.0.3.52
+2026-10-09T18:59:22.9497168Z  * [new tag]               v5.0.3.53                                -> v5.0.3.53
+2026-10-09T18:59:22.9497505Z  * [new tag]               v5.0.3.54                                -> v5.0.3.54
+2026-10-09T18:59:22.9497943Z  * [new tag]               v5.0.3.55                                -> v5.0.3.55
+2026-10-09T18:59:22.9498280Z  * [new tag]               v5.0.3.56                                -> v5.0.3.56
+2026-10-09T18:59:22.9498615Z  * [new tag]               v5.0.3.57                                -> v5.0.3.57
+2026-10-09T18:59:22.9498951Z  * [new tag]               v5.0.3.58                                -> v5.0.3.58
+2026-10-09T18:59:22.9499490Z  * [new tag]               v5.0.3.59                                -> v5.0.3.59
+2026-10-09T18:59:22.9499836Z  * [new tag]               v5.0.3.6                                 -> v5.0.3.6
+2026-10-09T18:59:22.9500180Z  * [new tag]               v5.0.3.60                                -> v5.0.3.60
+2026-10-09T18:59:22.9500508Z  * [new tag]               v5.0.3.61                                -> v5.0.3.61
+2026-10-09T18:59:22.9500840Z  * [new tag]               v5.0.3.62                                -> v5.0.3.62
+2026-10-09T18:59:22.9501191Z  * [new tag]               v5.0.3.63                                -> v5.0.3.63
+2026-10-09T18:59:22.9501527Z  * [new tag]               v5.0.3.64                                -> v5.0.3.64
+2026-10-09T18:59:22.9501860Z  * [new tag]               v5.0.3.65                                -> v5.0.3.65
+2026-10-09T18:59:22.9502197Z  * [new tag]               v5.0.3.66                                -> v5.0.3.66
+2026-10-09T18:59:22.9502534Z  * [new tag]               v5.0.3.67                                -> v5.0.3.67
+2026-10-09T18:59:22.9502879Z  * [new tag]               v5.0.3.68                                -> v5.0.3.68
+2026-10-09T18:59:22.9503208Z  * [new tag]               v5.0.3.69                                -> v5.0.3.69
+2026-10-09T18:59:22.9503547Z  * [new tag]               v5.0.3.7                                 -> v5.0.3.7
+2026-10-09T18:59:22.9503883Z  * [new tag]               v5.0.3.70                                -> v5.0.3.70
+2026-10-09T18:59:22.9504334Z  * [new tag]               v5.0.3.71                                -> v5.0.3.71
+2026-10-09T18:59:22.9504669Z  * [new tag]               v5.0.3.72                                -> v5.0.3.72
+2026-10-09T18:59:22.9505002Z  * [new tag]               v5.0.3.73                                -> v5.0.3.73
+2026-10-09T18:59:22.9505342Z  * [new tag]               v5.0.3.74                                -> v5.0.3.74
+2026-10-09T18:59:22.9505678Z  * [new tag]               v5.0.3.75                                -> v5.0.3.75
+2026-10-09T18:59:22.9506009Z  * [new tag]               v5.0.3.76                                -> v5.0.3.76
+2026-10-09T18:59:22.9506344Z  * [new tag]               v5.0.3.78                                -> v5.0.3.78
+2026-10-09T18:59:22.9506682Z  * [new tag]               v5.0.3.79                                -> v5.0.3.79
+2026-10-09T18:59:22.9507015Z  * [new tag]               v5.0.3.8                                 -> v5.0.3.8
+2026-10-09T18:59:22.9507372Z  * [new tag]               v5.0.3.80                                -> v5.0.3.80
+2026-10-09T18:59:22.9507708Z  * [new tag]               v5.0.3.81                                -> v5.0.3.81
+2026-10-09T18:59:22.9508050Z  * [new tag]               v5.0.3.82                                -> v5.0.3.82
+2026-10-09T18:59:22.9508385Z  * [new tag]               v5.0.3.83                                -> v5.0.3.83
+2026-10-09T18:59:22.9508718Z  * [new tag]               v5.0.3.84                                -> v5.0.3.84
+2026-10-09T18:59:22.9509059Z  * [new tag]               v5.0.3.85                                -> v5.0.3.85
+2026-10-09T18:59:22.9509492Z  * [new tag]               v5.0.3.87                                -> v5.0.3.87
+2026-10-09T18:59:22.9509836Z  * [new tag]               v5.0.3.88                                -> v5.0.3.88
+2026-10-09T18:59:22.9510173Z  * [new tag]               v5.0.3.89                                -> v5.0.3.89
+2026-10-09T18:59:22.9510522Z  * [new tag]               v5.0.3.9                                 -> v5.0.3.9
+2026-10-09T18:59:22.9510964Z  * [new tag]               v5.0.3.90                                -> v5.0.3.90
+2026-10-09T18:59:22.9511302Z  * [new tag]               v5.0.3.91                                -> v5.0.3.91
+2026-10-09T18:59:22.9511636Z  * [new tag]               v5.0.3.92                                -> v5.0.3.92
+2026-10-09T18:59:22.9511973Z  * [new tag]               v5.0.3.93                                -> v5.0.3.93
+2026-10-09T18:59:22.9512309Z  * [new tag]               v5.0.3.94                                -> v5.0.3.94
+2026-10-09T18:59:22.9512639Z  * [new tag]               v5.0.3.95                                -> v5.0.3.95
+2026-10-09T18:59:22.9512971Z  * [new tag]               v5.0.3.96                                -> v5.0.3.96
+2026-10-09T18:59:22.9513306Z  * [new tag]               v5.0.3.97                                -> v5.0.3.97
+2026-10-09T18:59:22.9513637Z  * [new tag]               v5.0.3.98                                -> v5.0.3.98
+2026-10-09T18:59:22.9513981Z  * [new tag]               v5.0.3.99                                -> v5.0.3.99
+2026-10-09T18:59:22.9514368Z  * [new ref]               c8f6fef65a56d48a2539661b95bdd9a925d1d18d -> pull/425/merge
+2026-10-09T18:59:22.9515763Z ##[endgroup]
+2026-10-09T18:59:22.9516126Z ##[group]Determining the checkout info
+2026-10-09T18:59:22.9516508Z ##[endgroup]
+2026-10-09T18:59:22.9516740Z [command]/usr/bin/git sparse-checkout disable
+2026-10-09T18:59:22.9517390Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-09T18:59:22.9518263Z ##[group]Checking out the ref
+2026-10-09T18:59:22.9518603Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/425/merge
+2026-10-09T18:59:24.2249188Z Updating files:  55% (12773/23221)
+2026-10-09T18:59:24.5547275Z Updating files:  56% (13004/23221)
+2026-10-09T18:59:24.7982532Z Updating files:  57% (13236/23221)
+2026-10-09T18:59:24.8454033Z Updating files:  58% (13469/23221)
+2026-10-09T18:59:24.8713072Z Updating files:  59% (13701/23221)
+2026-10-09T18:59:24.8906717Z Updating files:  60% (13933/23221)
+2026-10-09T18:59:24.9181211Z Updating files:  61% (14165/23221)
+2026-10-09T18:59:24.9427359Z Updating files:  62% (14398/23221)
+2026-10-09T18:59:24.9588500Z Updating files:  62% (14605/23221)
+2026-10-09T18:59:24.9833555Z Updating files:  63% (14630/23221)
+2026-10-09T18:59:24.9923196Z Updating files:  64% (14862/23221)
+2026-10-09T18:59:25.0153684Z Updating files:  65% (15094/23221)
+2026-10-09T18:59:25.0252043Z Updating files:  66% (15326/23221)
+2026-10-09T18:59:25.0401634Z Updating files:  67% (15559/23221)
+2026-10-09T18:59:25.0580379Z Updating files:  68% (15791/23221)
+2026-10-09T18:59:25.0737261Z Updating files:  69% (16023/23221)
+2026-10-09T18:59:25.0862280Z Updating files:  70% (16255/23221)
+2026-10-09T18:59:25.1056762Z Updating files:  71% (16487/23221)
+2026-10-09T18:59:25.1256168Z Updating files:  72% (16720/23221)
+2026-10-09T18:59:25.1398987Z Updating files:  73% (16952/23221)
+2026-10-09T18:59:25.1545777Z Updating files:  74% (17184/23221)
+2026-10-09T18:59:25.1715369Z Updating files:  75% (17416/23221)
+2026-10-09T18:59:25.1884824Z Updating files:  76% (17648/23221)
+2026-10-09T18:59:25.2041588Z Updating files:  77% (17881/23221)
+2026-10-09T18:59:25.2164103Z Updating files:  78% (18113/23221)
+2026-10-09T18:59:25.2323510Z Updating files:  79% (18345/23221)
+2026-10-09T18:59:25.2472508Z Updating files:  80% (18577/23221)
+2026-10-09T18:59:25.2625041Z Updating files:  81% (18810/23221)
+2026-10-09T18:59:25.2776104Z Updating files:  82% (19042/23221)
+2026-10-09T18:59:25.3006763Z Updating files:  83% (19274/23221)
+2026-10-09T18:59:25.3235818Z Updating files:  84% (19506/23221)
+2026-10-09T18:59:25.3447515Z Updating files:  85% (19738/23221)
+2026-10-09T18:59:25.3658968Z Updating files:  86% (19971/23221)
+2026-10-09T18:59:25.3835039Z Updating files:  87% (20203/23221)
+2026-10-09T18:59:25.4039524Z Updating files:  88% (20435/23221)
+2026-10-09T18:59:25.4233782Z Updating files:  89% (20667/23221)
+2026-10-09T18:59:25.4354508Z Updating files:  90% (20899/23221)
+2026-10-09T18:59:25.4511963Z Updating files:  91% (21132/23221)
+2026-10-09T18:59:25.4674955Z Updating files:  92% (21364/23221)
+2026-10-09T18:59:25.4795573Z Updating files:  93% (21596/23221)
+2026-10-09T18:59:25.4933623Z Updating files:  94% (21828/23221)
+2026-10-09T18:59:25.5093169Z Updating files:  95% (22060/23221)
+2026-10-09T18:59:25.5241904Z Updating files:  96% (22293/23221)
+2026-10-09T18:59:25.5407656Z Updating files:  97% (22525/23221)
+2026-10-09T18:59:25.5548940Z Updating files:  98% (22757/23221)
+2026-10-09T18:59:25.5683782Z Updating files:  99% (22989/23221)
+2026-10-09T18:59:25.5684020Z Updating files: 100% (23221/23221)
+2026-10-09T18:59:25.5684231Z Updating files: 100% (23221/23221), done.
+2026-10-09T18:59:25.5945590Z Note: switching to 'refs/remotes/pull/425/merge'.
+2026-10-09T18:59:25.5945880Z 
+2026-10-09T18:59:25.5946092Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-09T18:59:25.5946620Z changes and commit them, and you can discard any commits you make in this
+2026-10-09T18:59:25.5947195Z state without impacting any branches by switching back to a branch.
+2026-10-09T18:59:25.5947484Z 
+2026-10-09T18:59:25.5947704Z If you want to create a new branch to retain commits you create, you may
+2026-10-09T18:59:25.5948149Z do so (now or later) by using -c with the switch command. Example:
+2026-10-09T18:59:25.5948340Z 
+2026-10-09T18:59:25.5948432Z   git switch -c <new-branch-name>
+2026-10-09T18:59:25.5948568Z 
+2026-10-09T18:59:25.5948646Z Or undo this operation with:
+2026-10-09T18:59:25.5948776Z 
+2026-10-09T18:59:25.5948845Z   git switch -
+2026-10-09T18:59:25.5948948Z 
+2026-10-09T18:59:25.5949112Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-09T18:59:25.5949590Z 
+2026-10-09T18:59:25.5950038Z HEAD is now at c8f6fef65a Merge 3caf14f2ee866335608487ab57add325972709d7 into 976c4f394fbab4fccc041787051f00abe08113c9
+2026-10-09T18:59:25.6022266Z ##[endgroup]
+2026-10-09T18:59:25.6063389Z [command]/usr/bin/git log -1 --format=%H
+2026-10-09T18:59:25.6088400Z c8f6fef65a56d48a2539661b95bdd9a925d1d18d
+2026-10-09T18:59:25.6340812Z ##[group]Run actions/setup-node@v5
+2026-10-09T18:59:25.6341042Z with:
+2026-10-09T18:59:25.6341207Z   node-version: 22
+2026-10-09T18:59:25.6341376Z   always-auth: false
+2026-10-09T18:59:25.6341550Z   check-latest: false
+2026-10-09T18:59:25.6343557Z   token: ***
+2026-10-09T18:59:25.6343736Z   package-manager-cache: true
+2026-10-09T18:59:25.6343935Z ##[endgroup]
+2026-10-09T18:59:25.7582683Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-09T18:59:25.7585717Z (node:2089) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-09T18:59:25.7588083Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-09T18:59:25.7588867Z ##[group]Environment details
+2026-10-09T18:59:26.0637929Z node: v22.23.3
+2026-10-09T18:59:26.0638231Z npm: 10.9.9
+2026-10-09T18:59:26.0638498Z yarn: 1.22.22
+2026-10-09T18:59:26.0640177Z ##[endgroup]
+2026-10-09T18:59:26.0794367Z ##[group]Run BASE_SHA="976c4f394fbab4fccc041787051f00abe08113c9"
+2026-10-09T18:59:26.0794821Z [36;1mBASE_SHA="976c4f394fbab4fccc041787051f00abe08113c9"[0m
+2026-10-09T18:59:26.0795138Z [36;1mHEAD_SHA="3caf14f2ee866335608487ab57add325972709d7"[0m
+2026-10-09T18:59:26.0795389Z [36;1mecho "Base SHA: $BASE_SHA"[0m
+2026-10-09T18:59:26.0795593Z [36;1mecho "Head SHA: $HEAD_SHA"[0m
+2026-10-09T18:59:26.0795999Z [36;1mnode scripts/lint-publish-staleness.mjs --base="$BASE_SHA" --head="$HEAD_SHA" 2>&1 | tee /tmp/lint.log[0m
+2026-10-09T18:59:26.0796490Z [36;1m# The script exits 2 on violations; we want to fail the job in that case.[0m
+2026-10-09T18:59:26.0796860Z [36;1m# But the `tee` masks the exit code, so capture PIPESTATUS.[0m
+2026-10-09T18:59:26.0797138Z [36;1mexit ${PIPESTATUS[0]}[0m
+2026-10-09T18:59:26.1006247Z shell: /usr/bin/bash -e {0}
+2026-10-09T18:59:26.1006508Z ##[endgroup]
+2026-10-09T18:59:26.1114698Z Base SHA: 976c4f394fbab4fccc041787051f00abe08113c9
+2026-10-09T18:59:26.1115332Z Head SHA: 3caf14f2ee866335608487ab57add325972709d7
+2026-10-09T18:59:26.1521874Z ✅ lint-publish-staleness: 18 packages scanned, 5 skipped, 0 violations
+2026-10-09T18:59:26.1522528Z Skipped:
+2026-10-09T18:59:26.1523016Z   chainlesschain — covered by lint-pdh-bundle-staleness.mjs
+2026-10-09T18:59:26.1523592Z   @chainlesschain/elicitation-schema — private
+2026-10-09T18:59:26.1524079Z   @chainlesschain/locales — private
+2026-10-09T18:59:26.1524741Z   @chainlesschain/personal-data-hub — covered by lint-pdh-bundle-staleness.mjs
+2026-10-09T18:59:26.1525390Z   @chainlesschain/web-panel — private
+2026-10-09T18:59:26.1639707Z ##[group]Run actions/github-script@v8
+2026-10-09T18:59:26.1639955Z with:
+2026-10-09T18:59:26.1641157Z   script: const marker = '<!-- publish-staleness-check-v1 -->';
+const comments = await github.rest.issues.listComments({
+  owner: context.repo.owner,
+  repo: context.repo.repo,
+  issue_number: context.issue.number,
+  per_page: 100,
+});
+const existing = comments.data.find(c => c.body && c.body.includes(marker));
+if (existing) {
+  await github.rest.issues.deleteComment({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    comment_id: existing.id,
+  });
+}
+
+2026-10-09T18:59:26.1644216Z   github-token: ***
+2026-10-09T18:59:26.1644405Z   debug: false
+2026-10-09T18:59:26.1644586Z   user-agent: actions/github-script
+2026-10-09T18:59:26.1644808Z   result-encoding: json
+2026-10-09T18:59:26.1644988Z   retries: 0
+2026-10-09T18:59:26.1645179Z   retry-exempt-status-codes: 400,401,403,404,422
+2026-10-09T18:59:26.1645425Z ##[endgroup]
+2026-10-09T18:59:26.7108000Z Post job cleanup.
+2026-10-09T18:59:26.8162569Z (node:2142) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-09T18:59:26.8163613Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-09T18:59:26.8328348Z Post job cleanup.
+2026-10-09T18:59:26.9046682Z [command]/usr/bin/git version
+2026-10-09T18:59:26.9080882Z git version 2.55.0
+2026-10-09T18:59:26.9111954Z Temporarily overriding HOME='/home/runner/work/_temp/9695ea21-fdc2-4ff5-b8a2-2c53f28f7cba' before making global git config changes
+2026-10-09T18:59:26.9113188Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T18:59:26.9116030Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-09T18:59:26.9151154Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T18:59:26.9181436Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-09T18:59:26.9430743Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T18:59:26.9448630Z http.https://github.com/.extraheader
+2026-10-09T18:59:26.9481474Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-09T18:59:26.9518738Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-09T18:59:26.9743983Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T18:59:26.9781061Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-09T18:59:27.0206677Z Cleaning up orphan processes

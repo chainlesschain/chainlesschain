@@ -1,0 +1,188 @@
+{
+  "id": 113960770773,
+  "run_id": 37972023509,
+  "workflow_name": "IDE ARM64 Host Validation",
+  "head_branch": "feature/cli-ide-gap-completion-20261009",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37972023509",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAaiJdc1Q",
+  "head_sha": "3caf14f2ee866335608487ab57add325972709d7",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113960770773",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023509/job/113960770773",
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-10-09T18:15:36Z",
+  "started_at": "2026-10-09T18:16:07Z",
+  "completed_at": "2026-10-09T18:37:46Z",
+  "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T18:16:08Z",
+      "completed_at": "2026-10-09T18:16:12Z"
+    },
+    {
+      "name": "Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-09T18:16:12Z",
+      "completed_at": "2026-10-09T18:17:23Z"
+    },
+    {
+      "name": "Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-09T18:17:23Z",
+      "completed_at": "2026-10-09T18:17:38Z"
+    },
+    {
+      "name": "Verify Remote Robot startup retry contract",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-09T18:17:38Z",
+      "completed_at": "2026-10-09T18:17:39Z"
+    },
+    {
+      "name": "Assert exact clean ARM64 host",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-09T18:17:39Z",
+      "completed_at": "2026-10-09T18:17:40Z"
+    },
+    {
+      "name": "Prepare Windows ARM64 runner GUI session",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-09T18:17:40Z",
+      "completed_at": "2026-10-09T18:18:08Z"
+    },
+    {
+      "name": "Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-09T18:18:08Z",
+      "completed_at": "2026-10-09T18:18:23Z"
+    },
+    {
+      "name": "Setup Windows ARM-compatible Gradle",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-09T18:18:23Z",
+      "completed_at": "2026-10-09T18:18:59Z"
+    },
+    {
+      "name": "Install exact JetBrains Windows ARM64 host",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-09T18:18:59Z",
+      "completed_at": "2026-10-09T18:21:35Z"
+    },
+    {
+      "name": "Make Gradle wrapper executable",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 10,
+      "started_at": "2026-10-09T18:21:35Z",
+      "completed_at": "2026-10-09T18:21:35Z"
+    },
+    {
+      "name": "Install Linux virtual display",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 11,
+      "started_at": "2026-10-09T18:21:35Z",
+      "completed_at": "2026-10-09T18:21:35Z"
+    },
+    {
+      "name": "Deterministic chat/control/resume journey (Linux)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 12,
+      "started_at": "2026-10-09T18:21:35Z",
+      "completed_at": "2026-10-09T18:21:35Z"
+    },
+    {
+      "name": "Deterministic chat/control/resume journey (Windows/macOS)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13,
+      "started_at": "2026-10-09T18:21:35Z",
+      "completed_at": "2026-10-09T18:37:32Z"
+    },
+    {
+      "name": "Stop Windows ARM64 GUI watchdog",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-09T18:37:32Z",
+      "completed_at": "2026-10-09T18:37:33Z"
+    },
+    {
+      "name": "Upload ARM64 JetBrains journey evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15,
+      "started_at": "2026-10-09T18:37:33Z",
+      "completed_at": "2026-10-09T18:37:36Z"
+    },
+    {
+      "name": "Post Setup Windows ARM-compatible Gradle",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 27,
+      "started_at": "2026-10-09T18:37:36Z",
+      "completed_at": "2026-10-09T18:37:37Z"
+    },
+    {
+      "name": "Post Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 28,
+      "started_at": "2026-10-09T18:37:37Z",
+      "completed_at": "2026-10-09T18:37:37Z"
+    },
+    {
+      "name": "Post Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 29,
+      "started_at": "2026-10-09T18:37:37Z",
+      "completed_at": "2026-10-09T18:37:38Z"
+    },
+    {
+      "name": "Post Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 30,
+      "started_at": "2026-10-09T18:37:38Z",
+      "completed_at": "2026-10-09T18:37:42Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 31,
+      "started_at": "2026-10-09T18:37:42Z",
+      "completed_at": "2026-10-09T18:37:42Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113960770773",
+  "labels": [
+    "windows-11-arm"
+  ],
+  "runner_id": 1000387738,
+  "runner_name": "GitHub Actions 1000387738",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

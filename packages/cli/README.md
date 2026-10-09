@@ -9,11 +9,13 @@ PDH **0.4.64** and Context/Memory Kernel **0.1.8**. Open VSX **0.37.139** and
 JetBrains **0.4.157** are public and recommend that CLI; the JetBrains release is
 approved/listed. Public release evidence was read back on 2026-10-09.
 
-Source **0.166.95** is the next release candidate, paired with VS Code
+Source **0.166.96** is the next release candidate, paired with VS Code
 **0.37.140** and JetBrains **0.4.158** after exact-commit release gates and
 public CLI availability. It reviews official stable model release data and
 retains upstream bytes and drift/parse-failure evidence without automatic model
-enablement. Child npm package versions remain unchanged.
+enablement. Agent SDK **0.2.14** will be published first; its changed test tree
+cannot reuse the signed **0.2.13** package. CLI **0.166.95** passed its complete
+CI matrix but stopped at that strict reuse check before CLI publication.
 
 Independent Windows native toolchain and Job recovery diagnostics remain
 experimental. Full native review and Windows/macOS durable recovery require

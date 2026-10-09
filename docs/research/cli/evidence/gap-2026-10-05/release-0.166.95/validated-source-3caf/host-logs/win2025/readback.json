@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T19:07:13.889Z",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "runId": 37972023167,
+  "jobId": 113960958833,
+  "jobName": "JetBrains real host (windows-latest, 2025.2)",
+  "conclusion": "success",
+  "bytes": 191006,
+  "sha256": "71ff142a62f0758b278604ad61590b94ee3b3aed64d01f39125d62b07aefc9f4"
+}

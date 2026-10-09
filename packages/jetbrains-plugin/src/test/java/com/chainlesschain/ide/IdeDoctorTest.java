@@ -41,7 +41,7 @@ class IdeDoctorTest {
         assertTrue(up.contains("endpoint injected: yes"));
         assertTrue(up.contains("DEGRADED (可降级运行)"));
         assertTrue(up.contains("Agent session: not observed"));
-        assertTrue(up.contains("Recommended CLI: 0.166.95"));
+        assertTrue(up.contains("Recommended CLI: 0.166.96"));
         assertTrue(up.contains("Plugin: 0.4.69"));
         assertTrue(up.contains("CLI: 0.162.190"));
         assertTrue(up.contains("Development runtimes and offline recovery"));

@@ -6,12 +6,12 @@ MCP bridge.
 
 ## Current release
 
-Public Open VSX **0.37.139** recommends public CLI **0.166.94**, verified on 2026-10-09. Microsoft Marketplace remains unpublished; stock VS Code can install the Open VSX VSIX. Source **0.37.140** is the next candidate, pairing with CLI **0.166.95** after its public release. [Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+Public Open VSX **0.37.139** recommends public CLI **0.166.94**, verified on 2026-10-09. Microsoft Marketplace remains unpublished; stock VS Code can install the Open VSX VSIX. Source **0.37.140** is the next candidate, pairing with CLI **0.166.96** after its public release. [Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
 
-> Candidate extension `0.37.140` pairs with `chainlesschain@0.166.95`.
+> Candidate extension `0.37.140` pairs with `chainlesschain@0.166.96`.
 > IDE publication requires this exact commit to pass its release gates.
 
-Candidate `0.37.140` pairs with CLI `0.166.95`, Session Core `0.3.18`, and
+Candidate `0.37.140` pairs with CLI `0.166.96`, Session Core `0.3.18`, and
 Context/Memory Kernel `0.1.8` for the current runtime and packaging fixes.
 The candidates remain unpublished; complete gates on the exact release commit
 remain required.
@@ -19,14 +19,14 @@ remain required.
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
 | VS Code extension         | **0.37.140**; candidate runtime and packaging fixes       |
-| Recommended CLI           | **`chainlesschain@0.166.95`**                             |
+| Recommended CLI           | **`chainlesschain@0.166.96`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
 
 ### What's new in 0.37.140
 
-- Pair with CLI 0.166.95 for official stable model release review and retained
+- Pair with CLI 0.166.96 for official stable model release review and retained
   diagnostic evidence after the release gates pass.
 - Include foreign-session mode acknowledgment and APNG decoded pixel budget
   regressions in the unit gate.
@@ -227,7 +227,7 @@ remain required.
 - **Recover repeated GitHub Actions log requests.** The Agent keeps useful log
   evidence across compaction, offers a focused recovery turn, and stops persistent
   retries as an incomplete task. Status queries and fresh log evidence remain available.
-- Older CLI installations receive the normal upgrade prompt for `0.166.95`.
+- Older CLI installations receive the normal upgrade prompt for `0.166.96`.
 
 ### Retained workspace and connection features
 
@@ -269,7 +269,7 @@ remain required.
 - **Large files advance without rereading earlier pages.** Exact line/column
   cursors survive context compression, unchanged pages are referenced instead
   of reinjected, and edits invalidate the bounded read cache.
-- On startup, an installed CLI older than `0.166.95` receives an explicit
+- On startup, an installed CLI older than `0.166.96` receives an explicit
   **Upgrade cc** prompt that opens `npm i -g chainlesschain@latest`; this check
   works even when the best-effort npm registry lookup is unavailable.
 
@@ -296,7 +296,7 @@ remain required.
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can install by extension ID.
 
-After publication, paired CLI `0.166.95` is the recommended install. It routes Graph, Team,
+After publication, paired CLI `0.166.96` is the recommended install. It routes Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
 fences stale writers and takeover/recovery receipts, preserves explicitly
@@ -359,7 +359,7 @@ with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
 follow-ups, recipients, bytes, and pressure); message content and attempt
 credentials never enter the Webview. For those reasons, `0.166.34` is the
-retained compatibility floor. CLI `0.166.95` is the preferred pairing after publication
+retained compatibility floor. CLI `0.166.96` is the preferred pairing after publication
 for this extension, whose own exact-commit gates and public readback must pass
 before its release is complete.
 
@@ -439,14 +439,14 @@ Open VSX listing remains the public registry source.
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 The current public pairing is CLI `0.166.94` with Open VSX `0.37.139`.
-Use the following candidate upgrade command only after CLI `0.166.95` is public:
+Use the following candidate upgrade command only after CLI `0.166.96` is public:
 
 ```bash
-npm i -g chainlesschain@0.166.95
+npm i -g chainlesschain@0.166.96
 cc --version
 ```
 
-Using `@0.166.95` after publication reproduces the preferred CLI pairing,
+Using `@0.166.96` after publication reproduces the preferred CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.

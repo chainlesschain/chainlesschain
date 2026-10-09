@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.ui-host-capture/v1",
+  "complete": false,
+  "scope": "Metadata event trace and original IDE log bytes after this host phase stopped",
+  "files": [
+    {
+      "path": "idea-001.log.bin",
+      "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+      "bytes": 191901,
+      "sha256": "082ae76ebc81e33fa467abd9dc381d7f88a60ad6f6855eb5eae2a35d0b4c33b3",
+      "originalBytes": true
+    }
+  ],
+  "failures": [
+    "event-trace-or-capture-root-unavailable"
+  ]
+}

@@ -1,6 +1,16 @@
 # CLI 0.166.95 配对发布验证
 
-候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
+## 2026-10-10 完整验证后发布受阻
+
+CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取得 CLI CI **71/71**、Strict **5/5**、IDE **18 成功 / 1 条件跳过**及 ARM64 **10/10**。但 OIDC 发布 run `37985598206` 在 Agent SDK `0.2.13` 的整个源码树复用检查失败，CLI 发布步骤明确跳过；它没有成为新公开 CLI。SDK 的签名来源校验通过，实际改变的是测试诊断文件，公开 tarball 字节一致的预检不足以证明整个 Git 子树未变。
+
+新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。
+
+[发布失败原件](./npm-publish-failure/manifest.json)与[已验证源码原件](./validated-source-3caf/manifest.json)保留实际来源。此前“子包源码无变化”的前置判断漏掉了 SDK 测试树变化，已由严格发布门拒绝；不能据 tarball 一致复用该版本。
+
+正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。
+
+以下为原候选诊断历史，未改写原失败结果。
 
 ## 第六候选：Windows 2025.2 审批控件与布局
 
