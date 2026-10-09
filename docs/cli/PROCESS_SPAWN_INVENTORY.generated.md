@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 727 (runtime: 313, tooling: 379, test: 35).
+Total matches: 729 (runtime: 313, tooling: 381, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
@@ -693,6 +693,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 370 | `const run = spawnSync(compiler, args, {` |
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 413 | `const run = spawnSync(` |
+| `packages/cli/scripts/windows-job-custodian-crash-probe.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-job-custodian-crash-probe.mjs` | 51 | `const result = spawnSync(command, args, {` |
 | `packages/cli/scripts/windows-job-recovery-probe.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/windows-job-recovery-probe.mjs` | 59 | `const build = spawnSync(` |
 | `packages/cli/scripts/windows-job-recovery-probe.mjs` | 94 | `const native = spawnSync(executable, ["probe", executionId], {` |
