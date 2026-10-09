@@ -785,3 +785,13 @@ Windows 并发 fixture 只对存活锁持有者导致的 STATE_LOCK_UNAVAILABLE 
 桌面 E2E Linux 与 PM error/performance 在用例开始前被 Playwright 自动收集超大 patch 触发 V8 字符串限制；根配置关闭可选报告 diff 附件，保留 CI commit metadata 和全部测试。3 项 smoke、35 项 error/performance 收集成功，仅为配置检查，真实完整功能测试须由新提交 Actions 执行。VERIFY01 PR macOS 启动退出及上传 DNS 失败的原件和权限拒绝也保留，PR 实际 checkout 为 merge SHA；同 head 的 push 三项 macOS 旅程成功不替代新候选门。
 
 原始 CI API、JUnit、日志、受控争用诊断、来源摘要及失败边界见[配对发布证据](./cli/evidence/gap-2026-10-05/release-0.166.95/README.md)。版本/子包依赖一致性已核对，10 个固定子包公网下载与 SRI/依赖检查通过；源码未变化，不新增子包版本。后续取得准确提交 CLI CI、Strict 全矩阵与 IDE 宿主门后，才通过既有 OIDC 发布 CLI，公开可获取后发布 IDE。此处仍是候选修复记录，尚未发布；冻结正式 36+9、预算、observations、原冻结反例矩阵和平台/人工/账单/长时验收边界不变。
+
+### 20.15 第二候选的 SDK 启动失败与诊断
+
+Astra 对实际 fixture helper 的[独立诊断合同](./cli/evidence/gap-2026-10-05/release-0.166.95/sdk-startup-diagnostics/run2/report.json) 3/3 通过，first/resume 使用真实 Node 子进程输出后 exit 1；真实 spawn ENOENT 保留原 cause，三条路径的临时监听器均归零。该报告明确未复现原 CI 根因，首次 harness 对 Windows cmd 包装的错误假设及修正原件保留；主代理独立核对 fixture 与全部 SDK source SHA256，生产库未改。
+
+准确提交 `43eb29d1f72697d849b6f1aed573fd044ad9da9b` 的 CLI CI #37929591872 为 69 success / 2 failure。原 Windows unit shard 3 已成功；Windows verify-cli job 113855554261 的 SDK `0.2.13` 为 82 通过 / 1 失败，真实 E2E 报 `agent exited (code 1) before init`，耗时 16.066 秒。原 fixture 没有将 startup await 包入 stderr/events catch，无法从原件确定退出原因；默认 ACL 15 秒只是一项未证实线索，不改变生产期限或给原失败标记 infra-only。
+
+后续四份制品在 SDK 失败后未生成，上传的 `No files found` 不能归因网络；Windows PM recovery artifact 11620769736 实际已成功上传，PM 汇总由父 job 完整门失败拒绝。Strict 5/5、IDE 19/19、质量安全、模型审查、PR/CI/Full Test 与 IDE Roadmap Safety Matrix 全部成功，其准确 SHA 回读和失败原日志[分别归档](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)，不能替代失败 CLI CI。
+
+本机原 Windows SDK E2E 1/1、135.73 秒，保留实际审批写文件和会话 resume 合同；补诊断后的完整 SDK 9 文件、83/83 通过，用时 128.87 秒，不能据本机成功推断原 hosted runner 根因。当前只补测试启动与各结果失败诊断，first/resume 使用独立 stderr/events，保留原 message/cause，明确不声称管道完全排空；waitForInit 对 spawn error 立即拒绝并清理 init/exit/error listeners。SDK runtime、版本、180 秒测试期限、ACL 期限、原断言和 sandbox 条件都不改，无 retry。后续准确提交仍需全矩阵；本轮尚未发布。原冻结 Windows 反例、正式 36+9、预算及 observations、durable/账户/人工/长时开放状态均不变。

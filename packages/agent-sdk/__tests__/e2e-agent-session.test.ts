@@ -187,13 +187,38 @@ function waitForInit(session: AgentSession): Promise<SystemInitEvent> {
       cleanup();
       reject(new Error(`agent exited (code ${code}) before init`));
     };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
     const cleanup = () => {
       session.off("init", onInit);
       session.off("exit", onExit);
+      session.off("error", onError);
     };
     session.on("init", onInit);
     session.on("exit", onExit);
+    session.on("error", onError);
   });
+}
+
+async function withDiagnostics<T>(
+  pending: Promise<T>,
+  phase: string,
+  stderrLines: string[],
+  observedEvents: unknown[],
+): Promise<T> {
+  try {
+    return await pending;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // SDK exit can precede pipe close. Report what was observed without
+    // claiming that stderr has drained, retrying, or changing the deadline.
+    throw new Error(
+      `${message}\ncc phase: ${phase}\ncc stderr observed before failure:\n${stderrLines.join("").trim() || "<empty>"}\ncc events:\n${JSON.stringify(observedEvents, null, 2)}`,
+      { cause: error },
+    );
+  }
 }
 
 describe("AgentSession ↔ real cc agent (e2e)", () => {
@@ -222,23 +247,21 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     first.on("stderr", (c) => stderrLines.push(c));
     const firstReady = waitForInit(first);
     first.start();
-    await firstReady;
+    await withDiagnostics(
+      firstReady,
+      "first init",
+      stderrLines,
+      observedEvents,
+    );
 
     const firstResult = first.nextResult();
     expect(first.send("say hello")).toBe(true);
-    let r1: ResultEvent;
-    try {
-      r1 = await firstResult;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const cliStderr = stderrLines.join("").trim();
-      const eventTrace = JSON.stringify(observedEvents, null, 2);
-      throw new Error(
-        cliStderr
-          ? `${message}\ncc stderr:\n${cliStderr}\ncc events:\n${eventTrace}`
-          : `${message}\ncc stderr: <empty>\ncc events:\n${eventTrace}`,
-      );
-    }
+    const r1 = await withDiagnostics(
+      firstResult,
+      "first result",
+      stderrLines,
+      observedEvents,
+    );
     expect(r1.is_error).toBe(false);
     expect(inits.length).toBe(1);
     const sessionId = first.sessionId;
@@ -250,7 +273,12 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     const targetFile = join(workspace, "sdk-e2e-approved.txt");
     const secondResult = first.nextResult();
     expect(first.send(`please write the file TARGET:${targetFile}`)).toBe(true);
-    const r2 = await secondResult;
+    const r2 = await withDiagnostics(
+      secondResult,
+      "approval result",
+      stderrLines,
+      observedEvents,
+    );
     expect(approvals).toContain("write_file");
     expect(r2.is_error).toBe(false);
     expect(
@@ -282,13 +310,27 @@ describe("AgentSession ↔ real cc agent (e2e)", () => {
     // ── Session-resume contract ─────────────────────────────────────────
     const second = newSession({ resume: sessionId as string });
     const resumedInits: SystemInitEvent[] = [];
+    const resumedStderr: string[] = [];
+    const resumedEvents: unknown[] = [];
     second.on("init", (e) => resumedInits.push(e));
+    second.on("stderr", (chunk) => resumedStderr.push(chunk));
+    second.on("event", (event) => resumedEvents.push(event));
     const secondReady = waitForInit(second);
     second.start();
-    await secondReady;
+    await withDiagnostics(
+      secondReady,
+      "resume init",
+      resumedStderr,
+      resumedEvents,
+    );
     const resumedResult = second.nextResult();
     expect(second.send("and again")).toBe(true);
-    const r3 = await resumedResult;
+    const r3 = await withDiagnostics(
+      resumedResult,
+      "resume result",
+      resumedStderr,
+      resumedEvents,
+    );
     expect(r3.is_error).toBe(false);
     expect(resumedInits.length).toBe(1);
     expect(resumedInits[0].session_id).toBe(sessionId);

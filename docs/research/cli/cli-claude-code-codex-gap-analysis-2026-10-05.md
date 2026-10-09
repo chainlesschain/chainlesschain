@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-09 第二候选 SDK 启动取证**：准确提交 `43eb29d1f7` 的 Strict 五项、IDE 十九项及其他测试门完整成功，CLI CI 为 69 成功 / 2 失败：Windows Agent SDK `0.2.13` 真实 E2E 在 init 前退出，82 通过 / 1 失败。后续四份制品未生成导致上传失败，PM 恢复原件实际已上传；不能归为网络故障。原 fixture 未报告 early-init stderr，根因尚未确认。本机原 E2E 通过；当前仅补首次启动与 resume 的失败诊断，保留期限、断言、失败及原 cause，不修改 SDK 运行时。见[第二候选原件](./evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)；新提交仍须完整门，尚未发布。
+
 > **2026-10-09 发布候选首轮修复**：准确候选 d4b936395e 的 Strict、质量安全和常规测试通过，但 CLI Windows 并发 fixture 及 IDE 浏览器完整 diff 取证失败，已保留原件并修复；桌面 Playwright 超大自动报告 patch 的测试启动失败也已处理。定向回归与真实争用控制通过，修复后的新提交仍须完整发布矩阵；见[0.166.95 配对验证](./evidence/gap-2026-10-05/release-0.166.95/README.md)及[验证 20.14](../cli-ide-gap-validation-2026-10-05.md#2014-cli-016695-配对候选失败取证与修复)。当前尚未发布，正式验收与冻结反例状态不因修复改变。
 
 > **2026-10-09 新配对发布准备**：用户已授权功能测试通过后发布 CLI 与 IDE。候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`，双 IDE 推荐 CLI 同步；子 npm 包源码无变化，沿用已发布精确版本并重新核验。候选须取得准确提交的完整 CLI CI、CLI Strict Sandbox 与 IDE 宿主门，再由 GitHub Actions OIDC 发布 CLI，公开可取后发布 IDE。此处是准备记录，尚无新版本发布回执；本轮发布不改变正式验收及冻结反例矩阵的开放状态。

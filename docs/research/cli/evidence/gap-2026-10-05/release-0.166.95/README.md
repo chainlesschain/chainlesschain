@@ -2,7 +2,21 @@
 
 候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
 
-## 第一次完整候选验证与修复
+## 第二候选：SDK 初始化前退出
+
+准确提交 `43eb29d1f72697d849b6f1aed573fd044ad9da9b` 的 [CLI CI #37929591872](https://github.com/chainlesschain/chainlesschain/actions/runs/37929591872) 为 **69 success / 2 failure**。Windows verify-cli 的 Agent SDK `0.2.13` 测试 **82 通过 / 1 失败**，真实 sibling CLI 在 init 前以 code 1 退出，用时 16.066 秒。SDK fixture 虽收集 stderr，启动等待却位于原诊断 catch 之外；因此当前日志不足以确认根因。默认 ACL 15 秒与用时接近只是线索，未据此改变期限或称基础设施失败。
+
+后续四个上传步骤报 `No files found`，相应生成步骤因 SDK 失败未执行；这不是网络上传故障。Windows PM recovery artifact `11620769736` 已上传，PM 汇总因完整父 job 门失败拒绝。原始 API、失败日志及已成功 Windows unit shard 3 日志见[第二候选清单](./prepublish-attempt2/manifest.json)，两个原日志 SHA256 分别为 `fa3a2871b4edbd3906b5d239208dc558bead58af3f97805b7fb3c251d04f5626`、`9623123547d869421b21e9ed3f9c18e74b93ad787e0ab1c2bd1ac7500678e27e`。
+
+此准确提交的 Strict **5/5**、IDE Extensions **19/19**、质量安全、模型审查、PR Tests、CI Tests、Full Test Automation 与 IDE Roadmap Safety Matrix 全部结束且成功，原始回读均归档。它们不能替代失败 CLI CI，也不能转移到下个提交。
+
+本机 Windows 原 SDK E2E **1/1**，用时 135.73 秒，真实文件写入、审批及 resume 断言通过；补诊断后的全部 SDK **83/83、9 文件**通过，用时 128.87 秒，均未复现 hosted runner 原退出。当前补丁只对测试首次 init、各结果和 resume 等待添加独立 stderr/events/phase/cause；spawn error 也立即拒绝并清理监听器。SDK runtime、发布版本、180 秒用例期限、ACL 期限、全部业务断言和 sandbox 选择不变，不自动重试。退出时管道可能未完全排空，诊断明确只报告失败前观察到的内容。新提交须取得自己的完整发布门。
+
+### 独立诊断合同
+
+Astra 对实际 fixture helper 的[独立诊断合同](./sdk-startup-diagnostics/run2/report.json) **3/3** 通过：first/resume 真实 Node 子进程退出 1 的各自 stderr/events 不串线、phase 与 cause 保留，真实 OS spawn ENOENT 立即拒绝，三条路径的临时 init/exit/error listeners 均归零。报告明确 `originalCiFailureReproduced:false`；首次诊断 harness 对 Windows cmd shim 的错误假设和修正原件也保留，不能冒称原 CI 根因已复现。helper 与实际 SDK 源码摘要已独立回读；[诊断清单](./sdk-startup-diagnostics/manifest.json)保持原字节。
+
+## 第一次完整候选验证与修复（历史）
 
 准确候选 `d4b936395ee40726bff956fd3adfd4f01ff24e77` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/37912153625) 失败：Windows unit shard 3 的并发 scoped permission 用例在两秒锁期限内遇到存活持有者，返回明确 `not-committed` 的 `STATE_LOCK_UNAVAILABLE`；Windows verify-cli 被跳过，PM 三平台汇总因缺项失败。没有用其他平台或旧提交的成功替代缺项。
 

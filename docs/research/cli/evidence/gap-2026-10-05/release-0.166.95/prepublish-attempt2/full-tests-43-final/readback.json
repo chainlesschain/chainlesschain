@@ -1,0 +1,768 @@
+{
+  "capturedAt": "2026-10-09T12:52:26.115Z",
+  "sourceCommit": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+  "run": {
+    "id": 37929591310,
+    "name": "Full Test Automation with Diagnostics",
+    "node_id": "WFR_kwLOQgDM2s8AAAAI1MeiDg",
+    "head_branch": "feature/cli-ide-gap-completion-20261009",
+    "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+    "path": ".github/workflows/test-automation-full.yml",
+    "display_title": "feat(cli): complete model review evidence and prepare CLI 0.166.95 with paired IDEs",
+    "run_number": 8805,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 219114919,
+    "check_suite_id": 102766308069,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX7Vlq5Q",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37929591310",
+    "pull_requests": [
+      {
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls/425",
+        "id": 4797156408,
+        "number": 425,
+        "head": {
+          "ref": "feature/cli-ide-gap-completion-20261009",
+          "sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        },
+        "base": {
+          "ref": "main",
+          "sha": "976c4f394fbab4fccc041787051f00abe08113c9",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        }
+      }
+    ],
+    "created_at": "2026-10-09T12:22:24Z",
+    "updated_at": "2026-10-09T12:50:42Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-10-09T12:22:24Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102766308069",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/219114919",
+    "head_commit": {
+      "id": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+      "tree_id": "d24619e367070641ada0db3238fcf5c33d18b398",
+      "message": "fix(ci): stream complete browser diffs and handle uncommitted test contention",
+      "timestamp": "2026-10-09T12:22:12Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113816753413,
+      "run_id": 37929591310,
+      "workflow_name": "Full Test Automation with Diagnostics",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAagAHVBQ",
+      "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113816753413",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37929591310/job/113816753413",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T12:22:25Z",
+      "started_at": "2026-10-09T12:24:25Z",
+      "completed_at": "2026-10-09T12:44:19Z",
+      "name": "Run All Tests (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T12:24:25Z",
+          "completed_at": "2026-10-09T12:24:26Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T12:24:26Z",
+          "completed_at": "2026-10-09T12:24:44Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T12:24:44Z",
+          "completed_at": "2026-10-09T12:25:33Z"
+        },
+        {
+          "name": "Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T12:25:33Z",
+          "completed_at": "2026-10-09T12:25:33Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T12:25:33Z",
+          "completed_at": "2026-10-09T12:28:42Z"
+        },
+        {
+          "name": "Install Chromium with system dependencies (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-09T12:28:42Z",
+          "completed_at": "2026-10-09T12:28:42Z"
+        },
+        {
+          "name": "Install Chromium (Windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T12:28:42Z",
+          "completed_at": "2026-10-09T12:28:59Z"
+        },
+        {
+          "name": "Install packages/cli production dependencies standalone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T12:28:59Z",
+          "completed_at": "2026-10-09T12:29:29Z"
+        },
+        {
+          "name": "Verify CI gate integrity contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T12:29:29Z",
+          "completed_at": "2026-10-09T12:29:32Z"
+        },
+        {
+          "name": "Run comprehensive test suite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T12:29:32Z",
+          "completed_at": "2026-10-09T12:44:13Z"
+        },
+        {
+          "name": "Collect failure diagnostics (non-mutating)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T12:44:13Z",
+          "completed_at": "2026-10-09T12:44:13Z"
+        },
+        {
+          "name": "Re-run tests for failure diagnosis",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-09T12:44:13Z",
+          "completed_at": "2026-10-09T12:44:13Z"
+        },
+        {
+          "name": "Upload test results",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T12:44:13Z",
+          "completed_at": "2026-10-09T12:44:14Z"
+        },
+        {
+          "name": "Enforce comprehensive test result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-09T12:44:14Z",
+          "completed_at": "2026-10-09T12:44:14Z"
+        },
+        {
+          "name": "Post Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T12:44:14Z",
+          "completed_at": "2026-10-09T12:44:14Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T12:44:14Z",
+          "completed_at": "2026-10-09T12:44:15Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-09T12:44:15Z",
+          "completed_at": "2026-10-09T12:44:17Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-09T12:44:17Z",
+          "completed_at": "2026-10-09T12:44:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113816753413",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000386883,
+      "runner_name": "GitHub Actions 1000386883",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113816753617,
+      "run_id": 37929591310,
+      "workflow_name": "Full Test Automation with Diagnostics",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAagAHV0Q",
+      "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113816753617",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37929591310/job/113816753617",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T12:22:25Z",
+      "started_at": "2026-10-09T12:22:53Z",
+      "completed_at": "2026-10-09T12:24:06Z",
+      "name": "System Health Check",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T12:22:53Z",
+          "completed_at": "2026-10-09T12:22:54Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T12:22:54Z",
+          "completed_at": "2026-10-09T12:23:01Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T12:23:01Z",
+          "completed_at": "2026-10-09T12:23:06Z"
+        },
+        {
+          "name": "Run health checks",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T12:23:06Z",
+          "completed_at": "2026-10-09T12:24:04Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T12:24:04Z",
+          "completed_at": "2026-10-09T12:24:05Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T12:24:05Z",
+          "completed_at": "2026-10-09T12:24:05Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T12:24:05Z",
+          "completed_at": "2026-10-09T12:24:05Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113816753617",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386873,
+      "runner_name": "GitHub Actions 1000386873",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113816753842,
+      "run_id": 37929591310,
+      "workflow_name": "Full Test Automation with Diagnostics",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAagAHWsg",
+      "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113816753842",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37929591310/job/113816753842",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T12:22:25Z",
+      "started_at": "2026-10-09T12:35:13Z",
+      "completed_at": "2026-10-09T12:50:40Z",
+      "name": "Run All Tests (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T12:35:14Z",
+          "completed_at": "2026-10-09T12:35:15Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T12:35:15Z",
+          "completed_at": "2026-10-09T12:35:29Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T12:35:29Z",
+          "completed_at": "2026-10-09T12:35:36Z"
+        },
+        {
+          "name": "Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T12:35:36Z",
+          "completed_at": "2026-10-09T12:35:36Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T12:35:36Z",
+          "completed_at": "2026-10-09T12:36:33Z"
+        },
+        {
+          "name": "Install Chromium with system dependencies (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T12:36:33Z",
+          "completed_at": "2026-10-09T12:36:54Z"
+        },
+        {
+          "name": "Install Chromium (Windows)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-09T12:36:54Z",
+          "completed_at": "2026-10-09T12:36:54Z"
+        },
+        {
+          "name": "Install packages/cli production dependencies standalone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T12:36:54Z",
+          "completed_at": "2026-10-09T12:37:17Z"
+        },
+        {
+          "name": "Verify CI gate integrity contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T12:37:17Z",
+          "completed_at": "2026-10-09T12:37:18Z"
+        },
+        {
+          "name": "Run comprehensive test suite",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T12:37:18Z",
+          "completed_at": "2026-10-09T12:50:37Z"
+        },
+        {
+          "name": "Collect failure diagnostics (non-mutating)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T12:50:37Z",
+          "completed_at": "2026-10-09T12:50:37Z"
+        },
+        {
+          "name": "Re-run tests for failure diagnosis",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-09T12:50:37Z",
+          "completed_at": "2026-10-09T12:50:37Z"
+        },
+        {
+          "name": "Upload test results",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T12:50:37Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        },
+        {
+          "name": "Enforce comprehensive test result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-09T12:50:38Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        },
+        {
+          "name": "Post Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T12:50:38Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T12:50:38Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-09T12:50:38Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-09T12:50:38Z",
+          "completed_at": "2026-10-09T12:50:38Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113816753842",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386919,
+      "runner_name": "GitHub Actions 1000386919",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113827123637,
+      "run_id": 37929591310,
+      "workflow_name": "Full Test Automation with Diagnostics",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37929591310",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAagKARtQ",
+      "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113827123637",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37929591310/job/113827123637",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-09T12:50:41Z",
+      "started_at": "2026-10-09T12:50:41Z",
+      "completed_at": "2026-10-09T12:50:41Z",
+      "name": "Create Issue on Failure",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113827123637",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11617266797,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxNzI2Njc5Nw==",
+      "name": "test-results-ubuntu-latest",
+      "size_in_bytes": 2018,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11617266797",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11617266797/zip",
+      "expired": false,
+      "digest": "sha256:bf958a7366a9e47edd46b3eef6e9c46ab4430cea759d182b6df465d26cc2b9f9",
+      "created_at": "2026-10-09T12:50:38Z",
+      "updated_at": "2026-10-09T12:50:38Z",
+      "expires_at": "2027-01-07T12:22:24Z",
+      "workflow_run": {
+        "id": 37929591310,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b"
+      }
+    },
+    {
+      "id": 11617110902,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxNzExMDkwMg==",
+      "name": "test-results-windows-latest",
+      "size_in_bytes": 2020,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11617110902",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11617110902/zip",
+      "expired": false,
+      "digest": "sha256:f44ab6e3325644fb4edb830e669dac226c1d620fccaf983eafc9fc0e1283ff1a",
+      "created_at": "2026-10-09T12:44:14Z",
+      "updated_at": "2026-10-09T12:44:14Z",
+      "expires_at": "2027-01-07T12:22:24Z",
+      "workflow_run": {
+        "id": 37929591310,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "43eb29d1f72697d849b6f1aed573fd044ad9da9b"
+      }
+    }
+  ],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 13809,
+      "sha256": "2cdded76121113409a2e80daa66240c234b091c625e78a8b484245d3537e39aa"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 11175,
+      "sha256": "cb6a1ba3b31b6c426054a2c1e6977a1e71a848a47301ea7e0e63455bec710797"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 1524,
+      "sha256": "8d6f868b5dc7b384e045e7d82050ecf8c0e61c19077af8a881762e7a9539d74c"
+    }
+  ]
+}

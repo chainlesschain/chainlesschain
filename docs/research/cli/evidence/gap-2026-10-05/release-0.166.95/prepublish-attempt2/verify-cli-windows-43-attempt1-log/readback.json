@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T14:11:42.881Z",
+  "sourceCommit": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+  "runId": 37929591872,
+  "jobId": 113855554261,
+  "jobName": "verify-cli (windows-latest)",
+  "conclusion": "failure",
+  "bytes": 444542,
+  "sha256": "fa3a2871b4edbd3906b5d239208dc558bead58af3f97805b7fb3c251d04f5626"
+}
