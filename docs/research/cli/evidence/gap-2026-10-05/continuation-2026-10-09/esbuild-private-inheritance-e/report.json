@@ -1,0 +1,194 @@
+{
+  "schema": "chainlesschain.private-map-frozen-attempt/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullReviewPackReady": false,
+  "descendantCoverage": "not-proven",
+  "requestedPool": "frozen-configuration-default",
+  "requestedMaxWorkers": "frozen-configuration-default",
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg",
+  "inventory": null,
+  "runtime": {
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "checker": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\entry.js",
+    "bytes": 327,
+    "digest": "sha256:4e6190c5361612131775849eb944e7853dfdf3deac1d811159bbee96601cd40d"
+  },
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\supervisor.cpp",
+      "bytes": 27308,
+      "digest": "sha256:8990bba1817dc8a82caec2e4fdf5384a3767a916b79fc8eae7bfd1915bce9ded"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\shim.cpp",
+      "bytes": 12349,
+      "digest": "sha256:a33cabedc5bbe8e9d0e57ec5b66b5b4adb71298388b9ee58a55585ff28e8e9a8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\launcher.cpp",
+      "bytes": 10967,
+      "digest": "sha256:5b3bedd11383e80899d2b3cfc7fe72c7b0a50033c1f657a70c829ff3c4213032"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\child-shim.cpp",
+      "bytes": 12512,
+      "digest": "sha256:eafe8dfd52e789be9249770f6847d8f2d2b16cbc1c6df33dc2381a7458a1ed03"
+    }
+  ],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\.work\\private-map-inheritance-attempt.mjs",
+    "bytes": 10788,
+    "digest": "sha256:79a93f5337c666d025df012179b483abc2b8f679975a587627cd2eaa8ccbbc50"
+  },
+  "commands": [
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-municode",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\supervisor.cpp",
+        "-ladvapi32",
+        "-luserenv",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\supervisor.exe"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\shim.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\shim.dll"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\launcher.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\adapter\\esbuild-trace-launcher.node"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\child-shim.cpp",
+        "-ladvapi32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\adapter\\esbuild-trace-shim.dll"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "stagedAdditional": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\esbuild.exe",
+      "bytes": 11670528,
+      "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\entry.js",
+      "bytes": 26,
+      "digest": "sha256:a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\adapter\\esbuild-trace-launcher.node",
+      "bytes": 749568,
+      "digest": "sha256:a058b34da92bbfdaef77e32625e8078650e4fcbc868147c8d26872e3be63f8da"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-nx9fMg\\workspace\\tree\\adapter\\esbuild-trace-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:f3588ad103a974bceecfdede1145c96b7ca883489b61d13be93bb37476d5a6d9"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\supervisor.exe",
+      "bytes": 800768,
+      "digest": "sha256:6574f95d9fe90e0582c8815383e2844a94207daf5e14d19545c64eb1589e105f"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-e\\shim.dll",
+      "bytes": 52736,
+      "digest": "sha256:537ef9292147f8809fc6e36a7942dd63434dbaf3fb89babf9310160d0de656f3"
+    }
+  ],
+  "execution": {
+    "status": 2,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"experimental\":true,\"status\":\"NOT_ADMITTED\",\"completed\":false,\"stage\":\"read-child-exit\",\"error\":2,\"runWaitStatus\":0,\"runDeadlineExceeded\":false,\"setterStatus\":0,\"hostNonElevatedUnrestricted\":true,\"rootPid\":14636,\"childPid\":27196,\"childExit\":2,\"childTokenProven\":true,\"appContainerSid\":\"S-1-15-2-1911695236-992529503-3576633217-1762951671-4081393653-217606843-2074030433\",\"capabilityCount\":0,\"imagePinned\":true,\"leafRestricted\":false,\"exactHandleCount\":5,\"mapPrepared\":true,\"mapInstalled\":true,\"parentMapUnchanged\":true,\"cleanupConfirmed\":true,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"guardedRootNt\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-frozen-nx9fMg\",\"guardedRootFileId\":\"02469ff7:000f0000:007051f1\",\"childCreated\":true,\"jobAssigned\":true,\"childWaitStatus\":0,\"childExitRead\":true,\"childExited\":true,\"jobQuerySucceeded\":true,\"jobActiveProcesses\":0,\"directTerminationAttempted\":false,\"directTerminationSucceeded\":false,\"directTerminationError\":0,\"beforeMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterSetterMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterChildMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"}}\r\n",
+    "stderr": ""
+  },
+  "stdout": {
+    "digest": "sha256:f87e54c1277f0486a67cccf5fd5d644fcf1d71d157cdf8b308b7ae540ae95c78",
+    "text": "{\"stage\":\"completed\",\"error\":0,\"completed\":true,\"rootPid\":27196,\"childPid\":9080,\"childExit\":1,\"appContainerSid\":\"S-1-15-2-1911695236-992529503-3576633217-1762951671-4081393653-217606843-2074030433\",\"capabilityCount\":0,\"rootTokenProven\":true,\"childTokenProven\":true,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandles\":true,\"consoleMode\":\"detached\",\"loaderStrategy\":\"primary-thread-apc\"}\n"
+  },
+  "stderr": {
+    "digest": "sha256:1358e836184f9fddff2d372628f092355c183706fff6c2b834f0ce8e84f9d458",
+    "text": "X [ERROR] Could not resolve \"X:\\\\workspace\\\\tree\\\\entry.js\"\n\n1 error\n"
+  },
+  "trace.jsonl": {
+    "digest": "sha256:2fba3b4ec6d55bf6ce0ff3b8ac60473ac906f55105305fc11ccadd22e5aff4ee",
+    "text": "{\"sequence\":1,\"pid\":27196,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":27196,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":27196,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":27196,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-frozen-nx9fMg\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":27196,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:000f0000:007051f1\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":27196,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":27196,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":27196,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-frozen-nx9fMg\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":27196,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":10,\"pid\":27196,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n"
+  },
+  "launcher.json": {
+    "digest": "sha256:f87e54c1277f0486a67cccf5fd5d644fcf1d71d157cdf8b308b7ae540ae95c78",
+    "text": "{\"stage\":\"completed\",\"error\":0,\"completed\":true,\"rootPid\":27196,\"childPid\":9080,\"childExit\":1,\"appContainerSid\":\"S-1-15-2-1911695236-992529503-3576633217-1762951671-4081393653-217606843-2074030433\",\"capabilityCount\":0,\"rootTokenProven\":true,\"childTokenProven\":true,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandles\":true,\"consoleMode\":\"detached\",\"loaderStrategy\":\"primary-thread-apc\"}\n"
+  },
+  "esbuild-api-trace.jsonl": {
+    "digest": "sha256:59c5abdfd25e37d8d3d55a005dba46fb1f0e853ea27de5f1bdff0716a889bb28",
+    "text": "{\"sequence\":1,\"pid\":9080,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":9080,\"api\":\"inherited-x-root-open\",\"requestedPath\":\"X:\\\\\",\"success\":false,\"error\":3,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":9080,\"api\":\"device-map-root-failed\",\"requestedPath\":\"\",\"success\":false,\"error\":3,\"kind\":0,\"patches\":0,\"overflow\":0}\n"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "artifactOriginals": "C:\\code\\chainlesschain\\.work\\private-v4-review-dependencies-20261009-retry",
+  "compressedArtifactsArchived": false,
+  "installedDependencyBytesArchived": false,
+  "manifestDigest": "sha256:5d23e625547730f6dba7957fc73d5d692d2548f4d815c76b593cf92fe3e84baf",
+  "acquisitionTool": {
+    "name": "tar",
+    "version": "7.5.20",
+    "hermeticAssessed": false
+  },
+  "prebuildSignatureAssessed": false,
+  "formalSample": false,
+  "admissionEligible": false
+}

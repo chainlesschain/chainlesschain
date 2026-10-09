@@ -1,0 +1,8 @@
+{"sequence":1,"pid":8800,"phase":"started"}
+{"sequence":2,"pid":8800,"phase":"spawn","application":"X:\\workspace\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe","args":["--service=0.28.1","--ping"]}
+{"sequence":3,"pid":8800,"phase":"esbuild-completed","invalidRejected":true,"servicePid":14488}
+{"sequence":4,"pid":8800,"phase":"vitest-import-started"}
+{"sequence":5,"pid":8800,"phase":"vitest-import-completed"}
+{"sequence":6,"pid":8800,"phase":"config-loaded","pool":"forks","maxWorkers":2,"unhandled":[]}
+{"sequence":7,"pid":8800,"phase":"test-results","count":65,"states":["passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed"]}
+{"sequence":8,"pid":8800,"phase":"completed","tests":65}

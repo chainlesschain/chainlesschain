@@ -1,0 +1,9 @@
+{
+  "original": ".work/private-v4-review-dependencies-20261009-runtime-subset",
+  "completeArtifacts": ".work/private-v4-review-dependencies-20261009-with-undici",
+  "runtimeSubset": true,
+  "installedBytesArchived": false,
+  "compressedArchivesArchived": false,
+  "formalSample": false,
+  "admissionEligible": false
+}

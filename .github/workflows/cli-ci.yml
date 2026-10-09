@@ -204,6 +204,12 @@ jobs:
           packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs
           packages/cli/test-node/windows-esbuild-api-trace.node-test.mjs
           packages/cli/test-node/windows-esbuild-private-map.node-test.mjs
+          packages/cli/test-node/windows-esbuild-private-map-service.node-test.mjs
+          packages/cli/test-node/model-catalog-review-evidence.node-test.mjs
+          packages/cli/test-node/windows-job-recovery-evidence.node-test.mjs
+          packages/cli/test-node/windows-node-private-v4-identity.node-test.mjs
+          packages/cli/test-node/windows-node-private-v4-result.node-test.mjs
+          packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs
           packages/cli/test-node/file-lock-concurrency.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash

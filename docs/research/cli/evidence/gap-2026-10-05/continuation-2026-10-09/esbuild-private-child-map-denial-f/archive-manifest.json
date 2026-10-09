@@ -1,0 +1,59 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\esbuild-private-inheritance-20261009-f-child-set",
+  "archivedAt": "2026-10-09T03:59:23.992Z",
+  "files": [
+    {
+      "path": "child-shim.cpp",
+      "bytes": 12512,
+      "digest": "sha256:eafe8dfd52e789be9249770f6847d8f2d2b16cbc1c6df33dc2381a7458a1ed03"
+    },
+    {
+      "path": "esbuild-api-trace.jsonl",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "launcher.cpp",
+      "bytes": 11535,
+      "digest": "sha256:63a8179c0733249836e5ffd708df5fa1b12403e211677a9a50543b1f25ea86d2"
+    },
+    {
+      "path": "launcher.json",
+      "bytes": 413,
+      "digest": "sha256:170306203938950b26490129e3f0026b1626088c116607a5eb909eec86f04ab4"
+    },
+    {
+      "path": "report.json",
+      "bytes": 10706,
+      "digest": "sha256:619c8fb44da12c2f721b80cf68a71e1e47299e27707ea54b7f1bb9f17dcc8d4a"
+    },
+    {
+      "path": "shim.cpp",
+      "bytes": 12380,
+      "digest": "sha256:325467d1019772aa20cced8c30bd72c619bac0c207c3654b3ac69f41daa1b1d2"
+    },
+    {
+      "path": "stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout",
+      "bytes": 413,
+      "digest": "sha256:170306203938950b26490129e3f0026b1626088c116607a5eb909eec86f04ab4"
+    },
+    {
+      "path": "supervisor.cpp",
+      "bytes": 27308,
+      "digest": "sha256:8990bba1817dc8a82caec2e4fdf5384a3767a916b79fc8eae7bfd1915bce9ded"
+    },
+    {
+      "path": "trace.jsonl",
+      "bytes": 1590,
+      "digest": "sha256:c51e52342a243edad056c872c8476074e9acbd22eee38777009298143824cc0b"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

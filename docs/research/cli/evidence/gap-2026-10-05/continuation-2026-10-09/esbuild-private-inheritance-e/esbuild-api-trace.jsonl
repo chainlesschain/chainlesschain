@@ -1,0 +1,3 @@
+{"sequence":1,"pid":9080,"api":"identity-accepted","requestedPath":"","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":2,"pid":9080,"api":"inherited-x-root-open","requestedPath":"X:\\","success":false,"error":3,"kind":0,"patches":0,"overflow":0}
+{"sequence":3,"pid":9080,"api":"device-map-root-failed","requestedPath":"","success":false,"error":3,"kind":0,"patches":0,"overflow":0}

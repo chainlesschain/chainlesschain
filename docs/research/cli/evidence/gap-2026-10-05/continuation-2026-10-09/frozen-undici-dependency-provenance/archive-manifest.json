@@ -1,0 +1,59 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\private-v4-undici-dependency-evidence-20261009",
+  "archivedAt": "2026-10-09T05:11:59.303Z",
+  "files": [
+    {
+      "path": "better-sqlite3-12.11.1.tgz.download.json",
+      "bytes": 616,
+      "digest": "sha256:88a4269c3a81e0f502dd324d1b3c9dc82797a58c84a603a02f401dadacc61c08"
+    },
+    {
+      "path": "better-sqlite3-v12.11.1-node-v127-win32-x64.tar.gz.download.json",
+      "bytes": 907,
+      "digest": "sha256:9cdcd34c058bc05cb3d1b1074cb5a72faa50d891a163f668cb9cb5992155d89b"
+    },
+    {
+      "path": "bindings-1.5.0.tgz.download.json",
+      "bytes": 602,
+      "digest": "sha256:703116f77b1b79d040b37ab6892bd37c34798a55c80830448cc0d3d4cf1066e1"
+    },
+    {
+      "path": "file-uri-to-path-1.0.0.tgz.download.json",
+      "bytes": 618,
+      "digest": "sha256:9ea13697a677c7f71f421ff612bc2fcdd8ce6886afe3abf00eb071f89a62b3a6"
+    },
+    {
+      "path": "github-release.json",
+      "bytes": 239879,
+      "digest": "sha256:6e4c06bfb076aacf4f8eb266debe2e2f4bf45475709fb3dc3e6db593623b2d22"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 63562,
+      "digest": "sha256:a6a470a2a7439954afb71c2205552ffc8f34836b62351f9a778309569cd39129"
+    },
+    {
+      "path": "prepare-private-v4-review-dependencies-20261009.mjs",
+      "bytes": 6389,
+      "digest": "sha256:0b542ead0b7cd06a337b7e003a228adc8b35d84fb5a24dce81db469e1a994c16"
+    },
+    {
+      "path": "retention.json",
+      "bytes": 489,
+      "digest": "sha256:c568d133f291be502205eada41a895275c5782b005b5df0c9c6d2b2f0068fb07"
+    },
+    {
+      "path": "sandbox-tls-failure.json",
+      "bytes": 502,
+      "digest": "sha256:0dd0c344793cb91b7b9ceee886d8fbeffedbd507329d1b7f46b43bcb869207c9"
+    },
+    {
+      "path": "undici-7.28.0.tgz.download.json",
+      "bytes": 599,
+      "digest": "sha256:20614e984c65c19c6a8672ffa14781443e991d144704329acc4866b708660bbc"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

@@ -1,0 +1,44 @@
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+const commit = "b2aa3aba082873570e85dce39b00754e5504ff37";
+const git = (args, options = {}) => execFileSync("git", args, { windowsHide: true, timeout: 120000, maxBuffer: 256 * 1024 * 1024, ...options });
+const packageBytes = git(["show", `${commit}:package.json`]);
+const packageLock = git(["show", `${commit}:package-lock.json`]);
+const packages = JSON.parse(packageBytes).workspaces.filter((directory) => directory.startsWith("packages/"));
+const roots = [...new Set([...packages, "packages/vscode-extension"] )];
+const tree = git(["ls-tree", "-rz", "--full-tree", commit, ...roots]).toString("utf8");
+const entries = tree.split("\0").filter(Boolean).map((line) => {
+  const match = /^(100644|100755) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
+  if (!match) throw new Error("source closure contains a symlink or unsupported Git object");
+  const relative = match[3];
+  if (relative.split("/").some((part) => part === ".." || !part) || relative.includes("\\") || path.posix.isAbsolute(relative)) throw new Error("unsafe Git path");
+  return { path: relative, gitBlob: match[2], mode: match[1] };
+});
+const destination = path.resolve(".work/frozen-source-closure-20261009");
+fs.mkdirSync(destination);
+const blobs = git(["cat-file", "--batch"], { input: entries.map((entry) => entry.gitBlob).join("\n") + "\n" });
+let offset = 0;
+for (const entry of entries) {
+  const newline = blobs.indexOf(10, offset);
+  if (newline < 0) throw new Error("missing batch header");
+  const match = /^([a-f0-9]{40}) blob ([0-9]+)$/u.exec(blobs.subarray(offset, newline).toString("ascii"));
+  if (!match || match[1] !== entry.gitBlob) throw new Error("wrong Git object returned");
+  const size = Number(match[2]); offset = newline + 1;
+  if (!Number.isSafeInteger(size) || size > 32 * 1024 * 1024 || offset + size >= blobs.length || blobs[offset+size] !== 10) throw new Error("invalid Git blob byte limit or boundary");
+  const bytes = blobs.subarray(offset, offset + size); offset += size + 1;
+  if (createHash("sha1").update(Buffer.from(`blob ${size}\0`)).update(bytes).digest("hex") !== entry.gitBlob) throw new Error("Git object byte identity differs");
+  const file = path.join(destination, ...entry.path.split("/"));
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, bytes, { flag: "wx" });
+  entry.bytes = size;
+  entry.digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+if (offset !== blobs.length) throw new Error("trailing Git batch output");
+for (const [name, bytes] of [["package.json", packageBytes], ["package-lock.json", packageLock]]) fs.writeFileSync(path.join(destination, name), bytes, { flag: "wx" });
+const links = Object.entries(JSON.parse(packageLock).packages).filter(([, entry]) => entry.link === true && roots.includes(entry.resolved)).map(([nodeModulesPath, entry]) => ({ nodeModulesPath, source: entry.resolved }));
+const manifest = { projectCommit: commit, kind: "committed-workspace-source-bytes", roots, files: entries, totalBytes: entries.reduce((n, entry)=>n+entry.bytes,0), workspaceLinks: links, providerAssessed: false, nativeDependenciesInstalled: false, formalSample: false };
+const bytes = Buffer.from(JSON.stringify(manifest, null, 2)+"\n");
+fs.writeFileSync(path.join(destination, "source-closure.json"), bytes, { flag: "wx" });
+console.log(JSON.stringify({ destination, files: entries.length, bytes: manifest.totalBytes, manifestDigest:`sha256:${createHash("sha256").update(bytes).digest("hex")}`, packages: links.length }));

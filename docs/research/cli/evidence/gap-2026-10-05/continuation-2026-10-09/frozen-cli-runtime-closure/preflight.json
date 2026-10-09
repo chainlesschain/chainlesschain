@@ -1,0 +1,12 @@
+{
+  "formalSample": false,
+  "admissionEligible": false,
+  "inputManifestDigest": "sha256:5bfc483de04a94957f1a979eee01f3079f613afd192f15dfd1fd203ac04d4db9",
+  "files": 32045,
+  "directories": 4212,
+  "guardNodesBeforeActorManifests": 36257,
+  "fileBytesLowerBound": 471527860,
+  "conflicts": [],
+  "mirroredWorkspacePackages": 14,
+  "scope": "Simulates existing prepared tree, all frozen Git files, runtime workspace mirrors, full dependency overlay and fixed control/adapter; mutable scratch excluded"
+}

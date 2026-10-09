@@ -1,0 +1,6 @@
+{
+  "url": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.11.1/better-sqlite3-v12.11.1-node-v127-win32-x64.tar.gz",
+  "status": 0,
+  "stderr": "  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current\r\n                                 Dload  Upload  Total   Spent   Left   Speed\r\n\r  0      0   0      0   0      0      0      0                              0\r  0      0   0      0   0      0      0      0           00:01              0\r  0      0   0      0   0      0      0      0           00:02              0\r  0      0   0      0   0      0      0      0           00:02              0\r\n\r  0      0   0      0   0      0      0      0           00:02              0\r100  0.99M 100  0.99M   0      0 337.9k      0   00:03   00:03              0\r100  0.99M 100  0.99M   0      0 337.9k      0   00:03   00:03              0\r100  0.99M 100  0.99M   0      0 337.9k      0   00:03   00:03              0\r\n",
+  "error": null
+}

@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-09 继续处理未完成项**：本页第 1 节及此前各节保留各轮交付时点；最新配对发行见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)。本轮完成模型审查证据保存、Windows 同 SID/Job 的 esbuild service/原冻结配置/默认 forks 65 项实跑，以及 owner 崩溃后原 Job/活跃 socket 回收原语。最新实现、完整 review 的真实失败和外部验收条件集中于[验证第 20 节](./cli-ide-gap-validation-2026-10-05.md#20-2026-10-09-剩余工程与验收边界)，局部原生诊断保持 `NOT_ADMITTED`，正式 36+9 未运行。
+
 > **2026-10-07 独立原生诊断与预检**：七个探针各自原生 Job，确认清理后才继续；新增 v2 严格回读与原准入兼容，并交付冻结 lock/文件/setup/Node ABI 的只读工具链 inventory。**68 项回归通过**。实际 pipe/IPC 仍超时，整包无能力；inventory 明确 `trusted:false` / `INVENTORIED_NOT_EXECUTABLE`，不关闭完整 native36 或 durable 后端。证据与剩余条件见[验证第 11 节](./cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。
 
 > **2026-10-06 公开安装与 Windows 原生增量**：公开 CLI `0.166.90` 的 registry lock/子包校验与真实工具旅程完成；Windows watchdog、只读 stage 和一次性原生检查器完成，**360/360** 回归及关键失败已归档。公开 VS Code `0.37.135` / JetBrains `0.4.153` 在真实火山任务后重启恢复且零输入重放；补齐许可模式启动前校验并修复合法 `system/end` 的终态导入。详细证据见[验证记录第 9 节](./cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、durable Windows/macOS、官方账户/账单及正式人工验收仍独立开放。

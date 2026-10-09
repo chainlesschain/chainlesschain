@@ -1,0 +1,66 @@
+{
+  "schema": "chainlesschain.model-catalog-review-evidence/v1",
+  "capturedAt": "2026-10-09T03:35:15.472Z",
+  "source": {
+    "commit": "976c4f394fbab4fccc041787051f00abe08113c9",
+    "reviewedSourcesDirty": true,
+    "files": [
+      {
+        "path": "packages/cli/scripts/review-model-catalog.mjs",
+        "bytes": 5404,
+        "digest": "sha256:6583b9bf19ab8150d180eb5f4c0b91c62e430ffa4d61e58d6a1e5c14623549c2"
+      },
+      {
+        "path": "packages/cli/src/lib/model-catalog-review.js",
+        "bytes": 3615,
+        "digest": "sha256:d42172d2da759949e4997f98abafcb8b950a3845b6b4655a8c12ddeefe103b19"
+      },
+      {
+        "path": "packages/cli/src/lib/model-context-catalog.js",
+        "bytes": 5760,
+        "digest": "sha256:8abe124bede4135900c56c51e6a4dafe05d11be0b9a514372e585873f88438a1"
+      },
+      {
+        "path": "packages/cli/src/lib/model-capabilities.js",
+        "bytes": 9351,
+        "digest": "sha256:8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1"
+      },
+      {
+        "path": "packages/cli/src/lib/provider-options.js",
+        "bytes": 15895,
+        "digest": "sha256:cde18a09a65f27527933f235bfa886de5d5c94b721924fff86050c1b75cfead4"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-pricing.js",
+        "bytes": 18087,
+        "digest": "sha256:ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-05.json",
+        "bytes": 1868,
+        "digest": "sha256:4c186768e157485fde1286866db8133371b08f1fe60238b5128ab1d260cbe795"
+      }
+    ],
+    "installedProductVerified": false
+  },
+  "inputs": {
+    "review": {
+      "bytes": 1868,
+      "digest": "sha256:4c186768e157485fde1286866db8133371b08f1fe60238b5128ab1d260cbe795"
+    }
+  },
+  "upstreamSnapshotsComplete": false,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "productionAttested": false,
+  "result": {
+    "schema": "chainlesschain.model-catalog-review-result/v1",
+    "reviewedAt": "2026-10-05",
+    "localContractPassed": true,
+    "mismatches": [],
+    "upstream": [],
+    "reviewRequired": false,
+    "automaticEnablement": false
+  },
+  "reviewCompleted": true
+}

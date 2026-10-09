@@ -1,0 +1,87 @@
+{
+  "schema": "chainlesschain.windows-job-recovery-diagnostic/v1",
+  "executionId": "bdf5e875-1a18-48e6-a5dc-c63eae8b1c13",
+  "sourceSha256": "3f371c47b07e06dfd7c015092d1c270b85746e85dec478bdb6b96a82845b69ac",
+  "executableSha256": "796c45b59e22c43c300fd06d549cb6dccbbe587d3d70e6d3221200b6c1a63364",
+  "startedAt": "2026-10-09T03:38:13.411Z",
+  "finishedAt": "2026-10-09T03:38:17.921Z",
+  "sources": [
+    {
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-recovery-probe.cs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-final\\windows-job-recovery-probe.cs",
+      "sha256": "3f371c47b07e06dfd7c015092d1c270b85746e85dec478bdb6b96a82845b69ac",
+      "bytes": 19511
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-recovery-probe.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-final\\windows-job-recovery-probe.mjs",
+      "sha256": "d75d589acea4d40069100e417fbf9587fcc10a1f3cb525f77684cb9e4f96d524",
+      "bytes": 7206
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-recovery-evidence.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-final\\windows-job-recovery-evidence.mjs",
+      "sha256": "b9ba97062083f9f34d22ebf1f405e360b059f3f05261a7853de6afc11d8b2e6f",
+      "bytes": 4787
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-recovery-evidence.node-test.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-final\\windows-job-recovery-evidence.node-test.mjs",
+      "sha256": "e10844c176f7ef3e5acf0b4285c1dc5df7d74b9fe09c84f246d50ef07f23b91a",
+      "bytes": 5483
+    }
+  ],
+  "compiler": {
+    "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "sha256": "aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+    "hermetic": false
+  },
+  "evidence": [
+    {
+      "name": "native.stdout.json",
+      "sha256": "395f5df6da3492ff82997ce2c07fca4c3f5742bb6fcf908a7c9e4d365d4b918f",
+      "bytes": 1381
+    },
+    {
+      "name": "native.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "unassigned.stdout.json",
+      "sha256": "4ac32409415a37865c94a168e4c9ce76cc3f01029324d2eac2ca29eff6f59c12",
+      "bytes": 448
+    },
+    {
+      "name": "unassigned.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "build.json",
+      "sha256": "82855aa954cd3d37e6c5edf3cda27fef26057fa06f43dbd2a4007ed21930b2fa",
+      "bytes": 67
+    }
+  ],
+  "unassigned": {
+    "attempted": true,
+    "executionId": "0f70a174-8c07-4bc6-8d9b-d1d5bbbf0279",
+    "nativeExit": 2,
+    "cleanupConfirmed": true
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "release": "10.0.19045"
+  },
+  "nativeExit": 0,
+  "diagnosticCompleted": true,
+  "status": "NOT_ADMITTED",
+  "trusted": false,
+  "scope": "surviving-custodian-retained-job",
+  "networkObservation": "socket-closure-after-job-termination",
+  "durableServiceRecovery": "not-tested",
+  "wfpRevocation": "not-tested",
+  "errors": []
+}

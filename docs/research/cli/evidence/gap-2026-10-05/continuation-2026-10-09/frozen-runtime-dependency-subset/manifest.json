@@ -1,0 +1,1716 @@
+{
+  "schema": "chainlesschain.frozen-native-review-runtime-subset/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+  "formalSample": false,
+  "status": "NOT_ADMITTED",
+  "lifecycleScriptsExecuted": false,
+  "packages": [
+    {
+      "path": "node_modules/better-sqlite3",
+      "name": "better-sqlite3",
+      "version": "12.11.1",
+      "url": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-12.11.1.tgz",
+      "integrity": "sha512-dq9AtApgg5PGFtBzPFSBl3HZQjHok5gaQCM6zh2Yk0aSmDCs1CbnVI8/HgASQkNKsWFpseIO9beg5xxpYhbIfA==",
+      "artifactDigest": "sha256:ebf0ed75a7a59dbcb3b24bbd014ef49d9f15bc328e4adcbf516f2a8fadfa2835",
+      "fileCount": 49
+    },
+    {
+      "path": "node_modules/bindings",
+      "name": "bindings",
+      "version": "1.5.0",
+      "url": "https://registry.npmjs.org/bindings/-/bindings-1.5.0.tgz",
+      "integrity": "sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==",
+      "artifactDigest": "sha256:d77781178c5bd89a91b1f6c5556acd511b1b5927eb13e2ad8189cac29eeb0907",
+      "fileCount": 4
+    },
+    {
+      "path": "node_modules/file-uri-to-path",
+      "name": "file-uri-to-path",
+      "version": "1.0.0",
+      "url": "https://registry.npmjs.org/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz",
+      "integrity": "sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==",
+      "artifactDigest": "sha256:5440cdf67e75ab96f36a6be63c1d4c3d54255b1d0970273710fecfebfab06fb3",
+      "fileCount": 10
+    },
+    {
+      "path": "node_modules/undici",
+      "name": "undici",
+      "version": "7.28.0",
+      "url": "https://registry.npmjs.org/undici/-/undici-7.28.0.tgz",
+      "integrity": "sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==",
+      "artifactDigest": "sha256:2b39f83d6c479b8172188ad690c4af1c10dd6fecbfb084fd3ffdf59de5187d5f",
+      "fileCount": 210
+    }
+  ],
+  "files": [
+    {
+      "path": "node_modules/better-sqlite3/LICENSE",
+      "bytes": 1078,
+      "digest": "sha256:09856b52897c91ab67e7456ef43067019f31dfd3b87fda72e655736b1ebdee55",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3.c",
+      "bytes": 9507980,
+      "digest": "sha256:60d2f39a3726cd6b9021da6f4e868608d66fbb6528a9f513dc8ffcc640493422",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/test_extension.c",
+      "bytes": 587,
+      "digest": "sha256:948af88dbf356835f5496c1a3d047fdbcc58f3717aa9bc94d0943d7de2b7cf5b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/addon.cpp",
+      "bytes": 1283,
+      "digest": "sha256:20f19f480ce060900521cf9510922e5ca1c8e76936f07ac2916f316e549a0190",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/backup.cpp",
+      "bytes": 4146,
+      "digest": "sha256:16a67102c49c9312eb1deecd08c27064325840df51d6957fe134b871f5d8798c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/better_sqlite3.cpp",
+      "bytes": 2851,
+      "digest": "sha256:01b2333517538a24919cc0b916c5a436561d7f712bac7befb6850e9f4b042dc5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/bind-map.cpp",
+      "bytes": 1587,
+      "digest": "sha256:7026e107a7f662b6460fbd05e91d9594f5114ffa69de7a8ddb082911f6e90876",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/binder.cpp",
+      "bytes": 6060,
+      "digest": "sha256:64e2ebe910f2efc1d7a847672565745da2c4f5656d951033d99567e7593409d8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/constants.cpp",
+      "bytes": 9068,
+      "digest": "sha256:bbf4a3f983631f01f723627ee0e897f92b12cd6ca3e8b8b965318931bba0f2b4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-aggregate.cpp",
+      "bytes": 3952,
+      "digest": "sha256:742d03187a7b8483c9f42bb7b77ed29d0f6877450584fba2662164d2b8dd11b6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-function.cpp",
+      "bytes": 1550,
+      "digest": "sha256:6a1f826df2cc2c402d8a3dd747a57dbcedb52fe9220a2bbda6a5e01f038b13d1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-table.cpp",
+      "bytes": 14960,
+      "digest": "sha256:7549b38f24b7e69e78d407534a5cde8814a8a08628a421b122644a43940e0aaf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/data-converter.cpp",
+      "bytes": 460,
+      "digest": "sha256:3cb73d0911e92893abf840752e9cfd6baded604d49b39ec4000599eec7c8c594",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/data.cpp",
+      "bytes": 9639,
+      "digest": "sha256:74de42f9a0fa68277d8ea9cbaf8ee5f455bbd99cc41297696546c0ec8408c882",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/database.cpp",
+      "bytes": 14198,
+      "digest": "sha256:081c514fb0a472a0e0962f0619149c187b6cf424e09baa7f39cc5246c17f75aa",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/helpers.cpp",
+      "bytes": 4439,
+      "digest": "sha256:7b763d2caa40f70bf6726c0f70ea50c1db69c7fa453b3bc2ec19577e99800984",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/macros.cpp",
+      "bytes": 4574,
+      "digest": "sha256:09d5605bb65c8d43c0e235f878cbbffc98d79b1e35ee05b7c33766ce114a13a4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/query-macros.cpp",
+      "bytes": 4138,
+      "digest": "sha256:0dcf68c3ff527398ebe0a6b874b38aa23b3fb87f285b9701636c3b19282dde8c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/row-builder.cpp",
+      "bytes": 1017,
+      "digest": "sha256:d5b352ac4959a07db22a825019286e085910310d6363c61fbdf037e3f32d56fc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement-iterator.cpp",
+      "bytes": 3339,
+      "digest": "sha256:6ac791fbb786fc498450e843f2a043eddeb03093eb6b31012a04ae7b84a8d7ab",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement.cpp",
+      "bytes": 13173,
+      "digest": "sha256:4875a4d1942b89b1dc715b50f3f01e0899530a0772d0fef6f26c358d7e3d12a3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/binding.gyp",
+      "bytes": 942,
+      "digest": "sha256:2a48a110d17a692e769e4747dfea3b4471842ba86501db7cdcda33f8dfcb2921",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3.gyp",
+      "bytes": 2542,
+      "digest": "sha256:a009b8f80cf0a944eacaf71a84e590504f353fbd8f8b341138d0c3094e372d18",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/common.gypi",
+      "bytes": 1584,
+      "digest": "sha256:e71a565cd7733e05efc3a2792b54e260126f03f490325aa2a201202acbbdb315",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/defines.gypi",
+      "bytes": 1160,
+      "digest": "sha256:029426d3d6528d56ea75682a67a49e48747ccb7439faa75107601d4e2cafabc3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3.h",
+      "bytes": 690725,
+      "digest": "sha256:9e69a1353a4288450b0d5239ede11fc7f1f4c8e5eb07491fc8317eacb5b7de7e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3ext.h",
+      "bytes": 39175,
+      "digest": "sha256:ac9645e5c9ff0cf176efdd6e75cb5e98f46295d38e02db5c4d208826a39ab4be",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/backup.hpp",
+      "bytes": 705,
+      "digest": "sha256:02d57e03a1a03b3f8bb2fc503fc1704d4143b76d939fe37230fbb3b44177c44a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/database.hpp",
+      "bytes": 3129,
+      "digest": "sha256:f47ab5d6bb775cadd0b2b73c4fcb6faf5cb2ae783a049ff4691fafc5d29a0bca",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement-iterator.hpp",
+      "bytes": 1391,
+      "digest": "sha256:c064f10ad6bca99154d4f5325e187978d4c6d6cc6fedaa047a4d2f3b4b4f9655",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement.hpp",
+      "bytes": 1373,
+      "digest": "sha256:3dca186418c62d81f4b9170904fdc02e624c3d76a0c0c61e6aa95486799808e9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/aggregate.js",
+      "bytes": 1932,
+      "digest": "sha256:e9f74eb919ec93fe089c95ddf25a98f1f631c80418fa34fb2346ca1bc29f1b82",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/backup.js",
+      "bytes": 2380,
+      "digest": "sha256:ea29d34992bb02e006d0fdeda9675ac5d2bb227aaf57468decd997e9fc9c7dbf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/copy.js",
+      "bytes": 897,
+      "digest": "sha256:05a2bd41dbd96e33e2fc6cf4bcbc722b4bc8c529813b882f92113d7dbbbece67",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/database.js",
+      "bytes": 4149,
+      "digest": "sha256:02ea23bdd23d7ac5de0675a2f32fc686e76d5c6a32bd3e3891f360e72e07f61f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/function.js",
+      "bytes": 1396,
+      "digest": "sha256:f431d49303b8bbdc044b1f1b455bdad21fc9b74b007de0acb22f08f25b4febd3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/index.js",
+      "bytes": 110,
+      "digest": "sha256:82db11c4ee43a41d859988c5db42c3771dff565371f94bacbd1e4d8d6ceb47cd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/inspect.js",
+      "bytes": 174,
+      "digest": "sha256:4975a78daee850adee62ba98719d0f223819a0ec135a07c0e302994bd8dbff61",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/pragma.js",
+      "bytes": 536,
+      "digest": "sha256:8b1c54475bd4340b15e25c50d53d06308be65f8f919ecbe4aa9d285ca859ad5a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/serialize.js",
+      "bytes": 625,
+      "digest": "sha256:7a10ee5c2735384b7f0c361811bc6d017db29f62b203fd3c68a35f667e2c2605",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/sqlite-error.js",
+      "bytes": 717,
+      "digest": "sha256:2582d61c27680dead168543f392eb102be621dfbef282a4ca4c7c21aa5e7c75d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/table.js",
+      "bytes": 7144,
+      "digest": "sha256:97c42d9ded1aa96c7d916b5b92f96b4e59581d50eaf629cd2c7afb78ff26a9ea",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/transaction.js",
+      "bytes": 2792,
+      "digest": "sha256:bc8624a3ef689d8f78e5669020ad121e17acbc93b1d5ee5afe26860b1084c66c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/util.js",
+      "bytes": 331,
+      "digest": "sha256:92b2e39e2151b43a2252e10b6d6de876ecaf0008336a4fa1dfe1317b20f1916f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/wrappers.js",
+      "bytes": 1145,
+      "digest": "sha256:a150a6271d23f4e5f8953b129f370ff096c7cdc4b812afbf080a6cf4ab741bcf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/package.json",
+      "bytes": 1436,
+      "digest": "sha256:4665126292eff5dffe6c0ffabf98c4de18e479aa0b53edd775028eb567b3ecc1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/README.md",
+      "bytes": 5666,
+      "digest": "sha256:647a90bd246a10fdd1d827f6ca7aa391f142e3322068470be07220941d953386",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/patches/1208.patch",
+      "bytes": 597,
+      "digest": "sha256:5d1f22d69fee3551b70a7b7b9b14be43fcfd04dbc8683233667abfa75905011a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/download.sh",
+      "bytes": 3913,
+      "digest": "sha256:cc2c1539a4c906bd0ec38104264f9bc1d45120e79de8cc595c29a2319d5c4628",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/package.json",
+      "bytes": 660,
+      "digest": "sha256:a87721fe406e1f1798fef44d697b46ea1efe346fda118010334713346ee4207c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/bindings.js",
+      "bytes": 5986,
+      "digest": "sha256:8e32a0d37f20bd6f7d5bdbf99d041aa27be47cbbe5172ac13ebf7380a10b3bf6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/LICENSE.md",
+      "bytes": 1108,
+      "digest": "sha256:85fde19744c84cfacb04aed732c0392ba221231b26090d3271d2ed865bfc0792",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/README.md",
+      "bytes": 3476,
+      "digest": "sha256:a5552f138725ba2768610c9362f5c7387c8ac80c61fc68477a4f97b7412bba86",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/package.json",
+      "bytes": 717,
+      "digest": "sha256:71eb1e24bb9694f89c613fa0aa307f977dd43f41d11794c7b48fabf6c55f66b0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/.npmignore",
+      "bytes": 14,
+      "digest": "sha256:bfb16fc2dc3b7f24e20981aa586e31d66293c81eb7c2e5d0a9bbb252b13c6271",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/README.md",
+      "bytes": 2073,
+      "digest": "sha256:a801a028d69327433eb397e69fd0aea3f58b80a76222ffbae129d8808913251a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/LICENSE",
+      "bytes": 1083,
+      "digest": "sha256:75070206e4ee2a749be52444cecc05101ca8d314c9d6d335ff914046cbf086a0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/index.js",
+      "bytes": 1723,
+      "digest": "sha256:e62293e871bdd5a7449ff3c7956c9536ec1d2ea7369461de77322b5256bb93e7",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/.travis.yml",
+      "bytes": 472,
+      "digest": "sha256:14cfedcd0d39a797fb56787bc06b46d09aa2786084bb0dec49467b9720fb2979",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/index.d.ts",
+      "bytes": 77,
+      "digest": "sha256:46eb38b4f992126135e00159041a6e69e46402e56613bdc891d7b0d28fc31e37",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/History.md",
+      "bytes": 433,
+      "digest": "sha256:0b06e981a4318af1daef8b6ef0c6ff794e9b18a0a3e0738a65c9063988016d2e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/test/test.js",
+      "bytes": 666,
+      "digest": "sha256:223c25dba6fefbb7cb491b026a32f070b1425475d3cd2d04627be5d71a07fd38",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/test/tests.json",
+      "bytes": 810,
+      "digest": "sha256:b48c50c1328ab8522fc0bf91923ea42fb59e63e847b967dac88123cb5e5b185d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/LICENSE",
+      "bytes": 1071,
+      "digest": "sha256:a21d6c8d3fc631198b97e57584697f7f9c37805c71c6cf9a12e4442b40394b88",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/LICENSE",
+      "bytes": 1090,
+      "digest": "sha256:a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/abort-signal.js",
+      "bytes": 1071,
+      "digest": "sha256:46ac3527affb69036384c8baec5bf34ba567adb336921c7a62e8f471bb827f37",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/agent.js",
+      "bytes": 4735,
+      "digest": "sha256:7cbf227ccf6337e109ce567ebef036a6bab04eb81b3de3645adee5256aa79bf6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/api-connect.js",
+      "bytes": 2608,
+      "digest": "sha256:d8ca4a5cbff898afb26573cca18b9aab2928d8113d5d8897b5fc193ef343fcf0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/api-pipeline.js",
+      "bytes": 5426,
+      "digest": "sha256:46265a16bb621e8723a98da72824cb92a43cb27b912f336919e5c73049710772",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/api-request.js",
+      "bytes": 5612,
+      "digest": "sha256:93474854999d0a80815ed132640d50e3ed2cbc74b3bc9ec84704b923c7ca6a35",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/api-stream.js",
+      "bytes": 4729,
+      "digest": "sha256:9da4d699b6746216898b44a1beabb6e65de8c6aab825df51890da563f42d8aff",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/api-upgrade.js",
+      "bytes": 2718,
+      "digest": "sha256:86659d0e904788981bd2d3de9a391f35630099ba21b8b898619eac62c514b429",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/balanced-pool.js",
+      "bytes": 5719,
+      "digest": "sha256:978f7b86cf4af168f8657cff48d0fb0d093d43715385c1f386b92d053d92af63",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/body.js",
+      "bytes": 17544,
+      "digest": "sha256:fd7e1fe68e263f3296ecf0f4f799b3099717ecd8c9626db9bab73b7a4db7eb7d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/cache-handler.js",
+      "bytes": 17964,
+      "digest": "sha256:987fd57ea09038bbde26a15bb1c1818b34bb9a79563802aeb16edb64500e0089",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/cache-revalidation-handler.js",
+      "bytes": 3165,
+      "digest": "sha256:2908e2202bc63ca277caabb65c9bee6a078635e63e392f880472423fb15daa04",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/cache.js",
+      "bytes": 14957,
+      "digest": "sha256:e3350ded6d6460a04b08a3a130ba5f54155a9631bd8108f15f3272f5046f1551",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/cache.js",
+      "bytes": 12694,
+      "digest": "sha256:417571b5a21454838d676aa27e9107df59e56ed8a1f9c2057b86ed75d5ec3a74",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cache/cache.js",
+      "bytes": 21152,
+      "digest": "sha256:60015d174411d4094837ce8f1d44a4ad0b4946c26a49d28e5d95f6d840ac4f82",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cache/cachestorage.js",
+      "bytes": 3666,
+      "digest": "sha256:f9cccd19fbc185edac7624e542b0864412d71c2083177f3c6902b34d2b07d461",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/client-h1.js",
+      "bytes": 44221,
+      "digest": "sha256:965dcd70a46fcd5d490a442018425876e8ccdd78044f23f385e752aec717440b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/client-h2.js",
+      "bytes": 27712,
+      "digest": "sha256:7556231de2b76ffbca9e34a8af2034d4022799721ee7026c223ad84836b01da2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/client.js",
+      "bytes": 19035,
+      "digest": "sha256:923945cc690e25d8cb7f33319fc0b2f98396a3a9b42be3d7c85cb69db95cf4e3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/connect.js",
+      "bytes": 4679,
+      "digest": "sha256:67956a204fe3982edbf032dd44ff9c1c391daaa85c05e9750d245bdfb2b87fe0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/connection.js",
+      "bytes": 14171,
+      "digest": "sha256:02638ae58cbc702b6feed269d46976385de2ef8ae69da7d6289aaa8ae77e38dc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/constants.js",
+      "bytes": 3260,
+      "digest": "sha256:feeb46180cfa4623da75627c9c3a5d5f38945644c30b7afe37415437ed71bca2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/constants.js",
+      "bytes": 17069,
+      "digest": "sha256:90c4858736745781548d464e51224ce9353162cd87bc8142be803bc2937184ba",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cookies/constants.js",
+      "bytes": 306,
+      "digest": "sha256:85a24ae49eb5954e15363049bbc68967f01aae7260246daa3f49ad375429acb4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/constants.js",
+      "bytes": 3606,
+      "digest": "sha256:030e21057cdd1758db16eb0e86806be93b7616e5f46d9a93b90a9a8e99672423",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/constants.js",
+      "bytes": 2103,
+      "digest": "sha256:e7b6d0550a367ba9edfb68b14bd3fbe44fd3042faf76901567b8c3ffc2ccfa84",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/data-url.js",
+      "bytes": 17669,
+      "digest": "sha256:acd2ae8c00e035a8b3c816c8a5f75eebfe12ab7db61158488cc350f92785fcd4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/date.js",
+      "bytes": 19759,
+      "digest": "sha256:222eed01ee2598b5f180608bd20ff512b6446c58c873b9bdf5eabcca0463c7b5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/decompress.js",
+      "bytes": 8194,
+      "digest": "sha256:16fa1f3cf8634560abf93a21597762a06a74feaa101ebf46d26e34fef31e3c37",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/decorator-handler.js",
+      "bytes": 1444,
+      "digest": "sha256:a3c2f832c5e58c7f8e33388c7b1a10880906caca9a077492b73d7f8a1c6963e3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/deduplicate.js",
+      "bytes": 4086,
+      "digest": "sha256:ff08e37261e35221586120cdc85ce08981064e7b1726e1089c116c70bfe20627",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/deduplication-handler.js",
+      "bytes": 11502,
+      "digest": "sha256:048ca694b451b4016ebe53739c1bf5dd342319d8912a9fd5abdc2f7c5385467e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/diagnostics.js",
+      "bytes": 6575,
+      "digest": "sha256:907ce2d66cede91b860a1c1318ebdf0d9577c0f747a3b35510162c63489f28bc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/dispatcher-base.js",
+      "bytes": 4223,
+      "digest": "sha256:b83ee0c7f9ccbf0ff06d4a127f1d7c50e337351ed605def247e049be7febbccd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/dispatcher.js",
+      "bytes": 1288,
+      "digest": "sha256:39907c123fd59f712111e719ba43426525c17ba0fcd279f6e892f829264dda0a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/dns.js",
+      "bytes": 14181,
+      "digest": "sha256:fd57881ded93891ffc1590c4bfbd906bae084b02f3e9c86f52118df1cec540a9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/dump.js",
+      "bytes": 2609,
+      "digest": "sha256:bf3e5e8ea954de99bf2431bc89327bb99bc4820ddcfd72b55482e3ddd2abf12e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/env-http-proxy-agent.js",
+      "bytes": 4343,
+      "digest": "sha256:1f572709bc4f0e0469579c37192c0d6376c1b4875b7667b80513706fbc13b41a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/errors.js",
+      "bytes": 12802,
+      "digest": "sha256:c69b7a060b711e4cd97f3ff05eb18cf4ec7a08ce5d618c54a567baf6f1a47481",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/events.js",
+      "bytes": 7313,
+      "digest": "sha256:d88278a61f86bf66e3be1722d13a469e4af7bb8f767241f7f0aab104b92bc38b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/eventsource/eventsource-stream.js",
+      "bytes": 11731,
+      "digest": "sha256:2f6d67b03c4fbb4a4937f234cf859dde197f9bc31cdacb146c5b48d753c34ad4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/eventsource/eventsource.js",
+      "bytes": 14752,
+      "digest": "sha256:4d9fd7d5e3b39f1c2d0332292febcae08d9a9e77cede87ed9455f8d904077ff9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/fixed-queue.js",
+      "bytes": 4615,
+      "digest": "sha256:5d72c9de20e74d2437afc97f9f9e8e202d79983a77d2a598ac9ab1e0a8d0052d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/formdata-parser.js",
+      "bytes": 18344,
+      "digest": "sha256:d5d048201a040865a4376e423fd78b102ad164cb51ad7b0ade56897c7318bd6b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/formdata.js",
+      "bytes": 7421,
+      "digest": "sha256:957184704f2ef215849411f702bdb9bcff1f42d81dfc0f69b16ff62670bf936a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/frame.js",
+      "bytes": 3414,
+      "digest": "sha256:d848070d5865bcec4e85d8b5785b6dd3ab4fbc388b28e3cfcad9805c1a83a789",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/global.js",
+      "bytes": 1480,
+      "digest": "sha256:d8e78f218c7bbefdec657f3ae81e31a7f811df511fe951e3a35e3dac1e368e21",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/global.js",
+      "bytes": 890,
+      "digest": "sha256:6b38813b82ec8d5002009640515d35f83ab96d4f8e0066d71fae89324079a289",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/h2c-client.js",
+      "bytes": 1295,
+      "digest": "sha256:80188685d9c10d6904d8857668e835dbe16515b17b7e7bfa02b043f67be7afa4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/headers.js",
+      "bytes": 20872,
+      "digest": "sha256:0ca9bcb1cb174a19311b27f55b954d53e5adc06d6aa935c42df96c9a4453d0a7",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/index-fetch.js",
+      "bytes": 2480,
+      "digest": "sha256:155df504376841f714239ffbb43c7fbbfe3532c44aafe19ca7fd1615a18d5f1d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/index.js",
+      "bytes": 8447,
+      "digest": "sha256:dca95e2bbf4bae18325a4e5d9c887427a8a63a1345ed92a46f1067360dec0ffa",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/index.js",
+      "bytes": 264,
+      "digest": "sha256:a7b4b74ea6b81b2401f8659c138df54fd3f2c45450741682c026abb4cf133096",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/encoding/index.js",
+      "bytes": 793,
+      "digest": "sha256:7ea8fe81ff3c9d054f3ef8bb67bfe260b2e930c51d5d5563ca2ef19a218a5909",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cookies/index.js",
+      "bytes": 4382,
+      "digest": "sha256:3f3dd4ffc1e3db9f51a4e82c3c49e7d59c7921899eb897d9cf5b2787fdafe83d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/index.js",
+      "bytes": 89634,
+      "digest": "sha256:de99d1d1944b747c6428a73f8ad72f687c1c66a568af5aaae90c9dd22aaa2aa7",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/infra/index.js",
+      "bytes": 6357,
+      "digest": "sha256:06cf4d0fe3220e2309f389d40d6e403e2c765ccb7552f68fce60cc2d25ee13bc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/webidl/index.js",
+      "bytes": 29652,
+      "digest": "sha256:3242d1bfd31cac178a66dd4113da3dbf1d4e886439853be233f71922dd9853c0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/llhttp_simd-wasm.js",
+      "bytes": 72531,
+      "digest": "sha256:52c16227482700834512f2c2257eb44652f39b11f868600562274f476025e4bd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/llhttp-wasm.js",
+      "bytes": 72279,
+      "digest": "sha256:344f7ae80c983694372d9234584a1261ef5492ab219d6e573e933f5d1c715b00",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/cache/memory-cache-store.js",
+      "bytes": 6745,
+      "digest": "sha256:17d3d95c374165993148f783d47631e94c490be715bf8fa337bac33b561b846e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-agent.js",
+      "bytes": 7126,
+      "digest": "sha256:f612291584fede3068afa88c7bbf0821248d4809925f6dcac32bd7d0fdbd3274",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-call-history.js",
+      "bytes": 8061,
+      "digest": "sha256:da183e702da0f0066ea534681118d65b5ac97415662df6b74f978ae831b1674b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-client.js",
+      "bytes": 1736,
+      "digest": "sha256:108d91ef5f916d094a78d92a4d81f2cd4bfe20708ae6307d8197de81d826ce5c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-errors.js",
+      "bytes": 707,
+      "digest": "sha256:b5bd959401de99d8129ba272dddfdb62708247f684a8186aa4d858e2780d64ee",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-interceptor.js",
+      "bytes": 7102,
+      "digest": "sha256:f2ac4fe03eb49b31afb0f4c8636e4b63c5ca2f17c8ac34cb613028ab08f072ea",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-pool.js",
+      "bytes": 1722,
+      "digest": "sha256:763d77ce68f6315f384b5e897b87ea2e2034b69d29e2d6d2da37ae8a0679197c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-symbols.js",
+      "bytes": 1421,
+      "digest": "sha256:b90b7dc21d5a18c2e5255b0916bf75e880eef32ca45ab312a581547041638e20",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/mock-utils.js",
+      "bytes": 14157,
+      "digest": "sha256:4720ec7096039fb8f0044e8dd3b22d4eaebd8e7ce61f814908b92bac406f6444",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cookies/parse.js",
+      "bytes": 12736,
+      "digest": "sha256:d4768b29fd6b5ac9ad045936597618858dd15b38e1af6eb12281379fbfbbebe5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/pending-interceptors-formatter.js",
+      "bytes": 1186,
+      "digest": "sha256:9d3737f40ba601fd7a9c6dd28a328e6797686ff08da712dcd0a0f011d5639f8d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/permessage-deflate.js",
+      "bytes": 2757,
+      "digest": "sha256:808e4fc2eb52ac7e0140cc37a0efe0ed2b13f4bd0119133c569030d3fab05f25",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/pool-base.js",
+      "bytes": 5013,
+      "digest": "sha256:aa257609b208a90e73e110ac3b7c75b5599b310bb2b9bd15464c36216a94613a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/pool.js",
+      "bytes": 3436,
+      "digest": "sha256:1c8056214b32004c8e38cdda2bbd67c4edd1aec1fed0a3681aad7b22d35273a1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/promise.js",
+      "bytes": 570,
+      "digest": "sha256:123edb8cf7eb03156beb04a3482c5cb86bddf3f8348b857edb263cae38bc482b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/proxy-agent.js",
+      "bytes": 9562,
+      "digest": "sha256:40f18bbc8b5c9512d4bdbf7bde47a787cbefe98d19f40d5703f5286a67bf5f53",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/api/readable.js",
+      "bytes": 13662,
+      "digest": "sha256:ee3cbcc13aad446dad1c2fe3105f21fb2c7761776c2c6634980a760c4cdd4669",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/receiver.js",
+      "bytes": 16386,
+      "digest": "sha256:9a1f6e6df954a772c5bed6c6d7b3ece04d5fc7a3208672e6f177d8f9d7bb110b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/redirect-handler.js",
+      "bytes": 8969,
+      "digest": "sha256:80a1cc48b27a48fbd1d1f57c47c20c89ab055d599f2b649623be02149b519c61",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/redirect.js",
+      "bytes": 717,
+      "digest": "sha256:07e2ba6095945d7d374dfd6dd17450676f55cbd088400c19b9a1bf8a0010599e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/request.js",
+      "bytes": 12328,
+      "digest": "sha256:2ca3fe2ad80da8a0bb814f21c7975ac5c25e0508da4b3b396addbc19eec7a82e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/request.js",
+      "bytes": 35971,
+      "digest": "sha256:b4b36815f3c0d082ab8f413a27085f0b197f8cdf04880db15bf7d1f0084d780a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/response-error.js",
+      "bytes": 2403,
+      "digest": "sha256:9cb06334d1c1f791784005789cc5afb9daea396c7f5e0c962af90538b4843e10",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/response.js",
+      "bytes": 19793,
+      "digest": "sha256:0c376c359711217831d095d8139fb62b290c77dca1fe93e708d1b081074812fc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/retry-agent.js",
+      "bytes": 684,
+      "digest": "sha256:465e9429750441852cb0ed19bd669dbe2eca2b531ce6966040551a9b6550ae30",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/retry-handler.js",
+      "bytes": 10897,
+      "digest": "sha256:edf98f0c6a068bb2e2e790768d08ce5a799d340198e4e7cd7a6feef107ee2019",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/interceptor/retry.js",
+      "bytes": 419,
+      "digest": "sha256:488cf270ae143cc13a6ecf82ba523314fdbb17fd9ee08677c4488d4410f047c3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/round-robin-pool.js",
+      "bytes": 3738,
+      "digest": "sha256:af12924b9556033697f61a2671318fbde98c84536e991bd0700c076e8467fc92",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/runtime-features.js",
+      "bytes": 3263,
+      "digest": "sha256:eda04942c74b6c80341e3df2112968bcd1810271aab9215261306811c3ee60a4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/sender.js",
+      "bytes": 2581,
+      "digest": "sha256:5c5e162f1252d9c91d5cd30ae59c722f1e1cd7df86f03bf45fe085915c2d72e9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/snapshot-agent.js",
+      "bytes": 11202,
+      "digest": "sha256:54f61cfe219a66dc2b17d0535c06429093105f321d9a60bf4b439225c028f6c1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/snapshot-recorder.js",
+      "bytes": 19808,
+      "digest": "sha256:9bf63c8b207b6f6e7fe4400b32d8322cfc185735d6ecfbd87a2691a8fba82922",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/mock/snapshot-utils.js",
+      "bytes": 4852,
+      "digest": "sha256:0971c847787d90abcb0bf4e1d76161a2f82651169cc8e637b26875fecab666f8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/socks5-client.js",
+      "bytes": 11830,
+      "digest": "sha256:5ee3d782919a74b4c0fc0aac0da1d39abd759f7c017f7b3d4b932ccafddd1be7",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/dispatcher/socks5-proxy-agent.js",
+      "bytes": 7876,
+      "digest": "sha256:9a7a9cb6cbbaccc867a6c36541ff95f89fa3863dcb5548eb46c449b2333174b3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/socks5-utils.js",
+      "bytes": 6063,
+      "digest": "sha256:830467b148e86786f41c356667625721dfd9bef27fd85ada0fb498bda9a19016",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/cache/sqlite-cache-store.js",
+      "bytes": 11419,
+      "digest": "sha256:e6feda1217288fe3b0184dc297e6cd173d4b982d648afa13db2944a5b56b71cd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/stats.js",
+      "bytes": 600,
+      "digest": "sha256:d62ae00eaf72f33cc990a3a835d70b9c7d2f10d47acffa0e631ea82145b7c34e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/scripts/strip-comments.js",
+      "bytes": 312,
+      "digest": "sha256:72257817367403f268d17f35d61030ec57698063c14e15b7133ac28850d9c7b5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/subresource-integrity/subresource-integrity.js",
+      "bytes": 9569,
+      "digest": "sha256:65997037f348e22746f0852037998ba64fb83e6428485c6e200d42da8a154a75",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/symbols.js",
+      "bytes": 2918,
+      "digest": "sha256:4b839c2a59097740289c27d80548eaba8e6b557ed3204402c050b9a42cd5a0cc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/util/timers.js",
+      "bytes": 12027,
+      "digest": "sha256:4e5ef13ce9e1ca6de8a656b95e2425602bacbd6010af1da3ce573f8d8f573119",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/tree.js",
+      "bytes": 3582,
+      "digest": "sha256:c9fc9938718f33d77a6ed1abac5e564531ac9f9436cde2867243d50cd6c0b4e8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/unwrap-handler.js",
+      "bytes": 2241,
+      "digest": "sha256:618c664b488381f63ea43b8b3b1d26c3ee3a0272259941ab79410c0d6d8eaae0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/core/util.js",
+      "bytes": 26027,
+      "digest": "sha256:a53177756a60479215b577b895867e92e3ce0d61ab479fb642cd4420e84cc165",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cache/util.js",
+      "bytes": 1020,
+      "digest": "sha256:638d5c2424a730e6d2400ac518765b3fc9b50e2b3816b65fb7b46f93c66a5930",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/cookies/util.js",
+      "bytes": 7377,
+      "digest": "sha256:9d9b90bbee9f62485c72a414ab0fc93f6a2106a5f9ca791ceef8bc548f379845",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/eventsource/util.js",
+      "bytes": 629,
+      "digest": "sha256:40be55b091614715abc90794a686016e3139273f8dafcc6cac1bb7afa7db4643",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/fetch/util.js",
+      "bytes": 48246,
+      "digest": "sha256:765b5cfb803401dbb591b1e28d22fd6a9fd6db4c0bf2ec5f86dc89e39429e016",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/util.js",
+      "bytes": 9727,
+      "digest": "sha256:bb4a7bd7f2bf57e45245e41e05cc8d0bdb55feabfd16bbaff7a381863ba5907f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/utils.js",
+      "bytes": 526,
+      "digest": "sha256:e21afcaf44b0fec37acfff86945e4526541e990ac0efd2f1efa2ea9f2b259b6b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/websocket.js",
+      "bytes": 24351,
+      "digest": "sha256:afdb5256fc5d0e8873fb4aca42b1787e15aca4ef39966ca255464c571e1edf2a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/stream/websocketerror.js",
+      "bytes": 2774,
+      "digest": "sha256:41fafec8f19753c6718b024c95afec6e6407197250ffbe56d81549d715bb0bcc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/websocket/stream/websocketstream.js",
+      "bytes": 17980,
+      "digest": "sha256:ac9c3a2b1de296925df72243ddaddc0ae30c5bbdb8de1cfab7f74156d36c009d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/handler/wrap-handler.js",
+      "bytes": 2576,
+      "digest": "sha256:d8a2903c97106d27840633053f007e916744f4091c6ebf0756b368f147ae13a8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/package.json",
+      "bytes": 6333,
+      "digest": "sha256:c960701448bdc5935114768e2721d42554bc9ae83e087d05bac133662c11ab2b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Agent.md",
+      "bytes": 2938,
+      "digest": "sha256:e77f5a46d93d27a70c33f3533e4fffb9d3ff75d002e314c29998cfc718c02156",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/api-lifecycle.md",
+      "bytes": 8283,
+      "digest": "sha256:315bef8bb747c29b2690ffcbc79713df854b5e43a4616de93ae5f842c9f75621",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/BalancedPool.md",
+      "bytes": 3057,
+      "digest": "sha256:eadeec57b37da6bcb7bdff5127269149318380ed037b3a2137781c2945b88a69",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/CacheStorage.md",
+      "bytes": 1078,
+      "digest": "sha256:37e458d8baff658682379bf4196a9085fd7bae0aa76560a23896a9f5d447e498",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/CacheStore.md",
+      "bytes": 5472,
+      "digest": "sha256:c2df38ab5a312e7b7b0cdb941a0fd34b51612b3d13f2d70b89a6bcb47366387a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/client-certificate.md",
+      "bytes": 2053,
+      "digest": "sha256:f04bc4291917e454069c88f1a81326f0935a205930034930c01096b5d37e566b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Client.md",
+      "bytes": 13525,
+      "digest": "sha256:4022a398d7ac679b8c777f19eb2dc5061a09af2b2a593914f6b9e5504e9ecb15",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/ClientStats.md",
+      "bytes": 522,
+      "digest": "sha256:a568b57ed687a80393f3059937e941f9f5368772c7829e4c9685a2fa745c106e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Connector.md",
+      "bytes": 3464,
+      "digest": "sha256:c363feda8c4bb65f09379df7f2d0164f88336a2487b3043876c275b2d04a01ed",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/ContentType.md",
+      "bytes": 1130,
+      "digest": "sha256:b7418622c803d210b744fa1e705505a1c62829ec95b557fbc3071cc68b4fdcbd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Cookies.md",
+      "bytes": 2650,
+      "digest": "sha256:5510c1cac6d2b79b81ce74a664b98012099013ff160b294e1b9caf33b23e8e4b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/crawling.md",
+      "bytes": 3150,
+      "digest": "sha256:e29aef651867d2c66928d2da7401b81fb69939ac88f9b5374091f73b70ef62d2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Debug.md",
+      "bytes": 2283,
+      "digest": "sha256:e2097e6df91877e52b575b926ff3d43962aa778e6eca34f748a0c63f918dcff2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/DiagnosticsChannel.md",
+      "bytes": 10856,
+      "digest": "sha256:05abea1e0a52c7210305c6cf5ce67ee770c88b6150e81b92778746529ace894c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Dispatcher.md",
+      "bytes": 46185,
+      "digest": "sha256:c256be3b23d8b10e192eb63b0390cc05f10cd45db0f0f0c91694b4a33828359c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/EnvHttpProxyAgent.md",
+      "bytes": 5825,
+      "digest": "sha256:a0eb830a46a3b42bc813462c6998cb6c568d918f1438401c11a96b94529293f2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Errors.md",
+      "bytes": 3991,
+      "digest": "sha256:2ce5a5d33c4960b94f441e62bc313fd30c8427afcf87c5fcd057c78d35eec9ea",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/EventSource.md",
+      "bytes": 1236,
+      "digest": "sha256:4f6abf7c96d473ffb15fe5224df7bc994fe03ae22b5903dbf8bd8f6fee6a9ab6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Fetch.md",
+      "bytes": 2573,
+      "digest": "sha256:0b861a7836a78316ce7415533735c4319e3b882cc982ef7d2735d29d6a2a3c2a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/GlobalInstallation.md",
+      "bytes": 3847,
+      "digest": "sha256:b2f8d71146d8fe804a489ef9e4f780214ba816f6f45f19ca94bde732266e89b5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/H2CClient.md",
+      "bytes": 10585,
+      "digest": "sha256:bf1f6bf6a0073158e748693a6ae527053c2e85ec8e87d2411c525fdd1aa82d39",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockAgent.md",
+      "bytes": 17885,
+      "digest": "sha256:2410634ae6cae9b353d55144c93326d3317df7a05f03d55cbda8c7a81a0cbfb6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockCallHistory.md",
+      "bytes": 5632,
+      "digest": "sha256:b059d5b2a953cd8d44237f95f2927e47fcd475177599832716f2534705daa02d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockCallHistoryLog.md",
+      "bytes": 1775,
+      "digest": "sha256:3fe81715f164747a9156904a704ae3b5c15b25d9c8415df77a4400621b8c1320",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockClient.md",
+      "bytes": 2213,
+      "digest": "sha256:ef57c87aab22d39f1549cd8bd178317f6a1188f57b4b891356c4c6c0e058a5db",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockErrors.md",
+      "bytes": 595,
+      "digest": "sha256:862b81346856a128b577cb7825500cb5b09095203f97f6e01dcb3a583b50947b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/mocking-request.md",
+      "bytes": 5557,
+      "digest": "sha256:71bd60cfc22c379fa679704bfe27622e4b316b43de0b9b190a7784ba31b4989f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/MockPool.md",
+      "bytes": 16582,
+      "digest": "sha256:eadb07b70b40f1d9ccad70a878787f2c99e1bb83d4f06155456e4ea059c8894a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Pool.md",
+      "bytes": 2941,
+      "digest": "sha256:4919c5265b241d0067bc8068c92cb2e30793c3bdb7139f1323a4e116d2b611e5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/PoolStats.md",
+      "bytes": 805,
+      "digest": "sha256:eae89aa388a6cb3b0a96c30736f6f5e6f4df81eaea706485b7fad5ea3f7253f2",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/proxy.md",
+      "bytes": 3336,
+      "digest": "sha256:e37e207295e581d9984557f485316060785bc0aaae4b94c02fcd46356bdb1591",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/ProxyAgent.md",
+      "bytes": 8090,
+      "digest": "sha256:daff25867159019e49bf0c3a60624fabad94e92bae84c1224329f02632890cd9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/web/subresource-integrity/Readme.md",
+      "bytes": 385,
+      "digest": "sha256:0d3da607c6e6d7420679c47e869bdc926266cc94d39fb243d9cd3f9a217986f8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/README.md",
+      "bytes": 28271,
+      "digest": "sha256:2c963a2f4d040fb3d18202bb3f23cf0e33f15fdbb16f0f07c5c4c9fc265b4b32",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/README.md",
+      "bytes": 455,
+      "digest": "sha256:c8cced6ec588c55b07e35733258cb7d6b63e3426ee7490aa9267aab4bda0fb20",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/RedirectHandler.md",
+      "bytes": 2590,
+      "digest": "sha256:0bf06eb4c1895f4eda3efcc6ad59d8a3f354c1a54832e3e2120e052e430deac3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/RetryAgent.md",
+      "bytes": 2262,
+      "digest": "sha256:4b2b419ff9d278e8c1a20a418b9babcff971c9c948556e04e6e8d6e33e3deb91",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/RetryHandler.md",
+      "bytes": 4587,
+      "digest": "sha256:390712a1791393ba727c464cd0e7913975e77c9ed25dfd99b33930574e52c0a6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/RoundRobinPool.md",
+      "bytes": 6099,
+      "digest": "sha256:1b796f65d4126bd75d3fdc1765f077759da1bf9dd9fbec637e559a25f22a6e7d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/SnapshotAgent.md",
+      "bytes": 16067,
+      "digest": "sha256:83ae2c7e9df88c9f951df5f4f37ceddfcdcff7d31d131a8aa005843d324fec86",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Socks5ProxyAgent.md",
+      "bytes": 8786,
+      "digest": "sha256:c335f2224671d055841cb4b63563ba5bcc35dabc2ca76b2489d6a6da17e48f47",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/undici-vs-builtin-fetch.md",
+      "bytes": 6594,
+      "digest": "sha256:255b781d22e486e30fc32f8d893c1a4d292f6a6b98eb74d6343781e3e803cfa8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/Util.md",
+      "bytes": 732,
+      "digest": "sha256:c61bedd14de49978130b2a390bde9e83b79c7ed34a0decdb4a3c4eec1f925fb9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/api/WebSocket.md",
+      "bytes": 4348,
+      "digest": "sha256:9c4e9e208c803e0d893392609f5d2156a8b1216e792ea3dbe4b2ac98d1a2fc69",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/docs/docs/best-practices/writing-tests.md",
+      "bytes": 2218,
+      "digest": "sha256:4c0d5a920208aa6395f58134077b40a5e201c645b28007276743b53e82696d91",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/agent.d.ts",
+      "bytes": 1167,
+      "digest": "sha256:7befaf0e76b5671be1d47b77fcc65f2b0aad91cc26529df1904f4a7c46d216e9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/api.d.ts",
+      "bytes": 1609,
+      "digest": "sha256:8aee8b6d4f9f62cf3776cda1305fb18763e2aade7e13cea5bbe699112df85214",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/balanced-pool.d.ts",
+      "bytes": 1019,
+      "digest": "sha256:4d327f7d72ad0918275cea3eee49a6a8dc8114ae1d5b7f3f5d0774de75f7439a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/cache-interceptor.d.ts",
+      "bytes": 4362,
+      "digest": "sha256:98498b101803bb3dde9f76a56e65c14b75db1cc8bec5f4db72be541570f74fc5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/cache.d.ts",
+      "bytes": 1251,
+      "digest": "sha256:c46e079fe54c76f95c67fb89081b3e399da2c7d109e7dca8e4b58d83e332e605",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/client-stats.d.ts",
+      "bytes": 456,
+      "digest": "sha256:68834d631c8838c715f225509cfc3927913b9cc7a4870460b5b60c8dbdb99baf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/client.d.ts",
+      "bytes": 6084,
+      "digest": "sha256:82e8858179f8b8895db6f005f2152d4eda2273721f52be47e22d48bd84590f95",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/connector.d.ts",
+      "bytes": 1105,
+      "digest": "sha256:14e9acf826baba0ef4b5665704084896e7bcc06f65a9ab13af7e93d27d6b7069",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/constants.d.ts",
+      "bytes": 4307,
+      "digest": "sha256:9a9b4b9f5e08bd6c88bb2ad56007441e20b34b103dad02883d84e6e7c5c04e03",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/content-type.d.ts",
+      "bytes": 561,
+      "digest": "sha256:2e85db9e6fd73cfa3d7f28e0ab6b55417ea18931423bd47b409a96e4a169e8e6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/cookies.d.ts",
+      "bytes": 696,
+      "digest": "sha256:59af37caec41ecf7b2e76059c9672a49e682c1a2aa6f9d7dc78878f53aa284d6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/diagnostics-channel.d.ts",
+      "bytes": 1776,
+      "digest": "sha256:12950411eeab8563b349cb7959543d92d8d02c289ed893d78499a19becb5a8cc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/dispatcher.d.ts",
+      "bytes": 15718,
+      "digest": "sha256:171b96f31e3fbdb55fe570f2a29a5ee47223fdca95a84ea2142e4cc4feaf9dfe",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/env-http-proxy-agent.d.ts",
+      "bytes": 732,
+      "digest": "sha256:80aae6afc67faa5ac0b32b5b8bc8cc9f7fa299cff15cf09cc2e11fd28c6ae29e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/errors.d.ts",
+      "bytes": 4868,
+      "digest": "sha256:eec76bf6b9346f3f95fa402621b889489e96930e72295b0369022f332e9b4a6a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/eventsource.d.ts",
+      "bytes": 1794,
+      "digest": "sha256:adf27937dba6af9f08a68c5b1d3fce0ca7d4b960c57e6d6c844e7d1a8e53adae",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/fetch.d.ts",
+      "bytes": 7029,
+      "digest": "sha256:3ac40516c33b87f751f7507346933081a26cdb8a3e11a6b3aa07d23f803c85db",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/formdata.d.ts",
+      "bytes": 5108,
+      "digest": "sha256:4ac80270b6787c2b77a2d98a9714a71f4363c24b5890314f3ba582c94bfbe779",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/global-dispatcher.d.ts",
+      "bytes": 275,
+      "digest": "sha256:ea6bc8de8b59f90a7a3960005fd01988f98fd0784e14bc6922dde2e93305ec7d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/global-origin.d.ts",
+      "bytes": 176,
+      "digest": "sha256:36107995674b29284a115e21a0618c4c2751b32a8766dd4cb3ba740308b16d59",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/h2c-client.d.ts",
+      "bytes": 3706,
+      "digest": "sha256:e85d7f8068f6a26710bff0cc8c0fc5e47f71089c3780fbede05857331d2ddec9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/handlers.d.ts",
+      "bytes": 413,
+      "digest": "sha256:d243db6b25788f439e7e2f03c05688e92f46764351673bb0e7b2f3631232e186",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/header.d.ts",
+      "bytes": 3336,
+      "digest": "sha256:23cd712e2ce083d68afe69224587438e5914b457b8acf87073c22494d706a3d0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/index.d.ts",
+      "bytes": 87,
+      "digest": "sha256:b3fb72492a07a76f7bfa29ecadd029eea081df11512e4dfe6f930a5a9cb1fb75",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/index.d.ts",
+      "bytes": 4557,
+      "digest": "sha256:114f493b30f364255290472111b5a4791d5902c308645670cd0401429cbc6930",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/interceptors.d.ts",
+      "bytes": 3594,
+      "digest": "sha256:4dc59f6e1dbf3d5f66660fceabe6c174d3261b37b696ae1854f0dbaf255fc753",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-agent.d.ts",
+      "bytes": 3448,
+      "digest": "sha256:9666f2f84b985b62400d2e5ab0adae9ff44de9b2a34803c2c5bd3c8325b17dc0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-call-history.d.ts",
+      "bytes": 5558,
+      "digest": "sha256:0b6e25234b4eec6ed96ab138d96eb70b135690d7dd01f3dd8a8ab291c35a683a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-client.d.ts",
+      "bytes": 1065,
+      "digest": "sha256:40cd35c95e9cf22cfa5bd84e96408b6fcbca55295f4ff822390abb11afbc3dca",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-errors.d.ts",
+      "bytes": 336,
+      "digest": "sha256:40b463c6766ca1b689bfcc46d26b5e295954f32ad43e37ee6953c0a677e4ae2b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-interceptor.d.ts",
+      "bytes": 3931,
+      "digest": "sha256:0a60a292b89ca7218b8616f78e5bbd1c96b87e048849469cccb4355e98af959a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/mock-pool.d.ts",
+      "bytes": 1037,
+      "digest": "sha256:b1616b8959bf557feb16369c6124a97a0e74ed6f49d1df73bb4b9ddf68acf3f3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/patch.d.ts",
+      "bytes": 599,
+      "digest": "sha256:addf417b9eb3f938fddf8d81e96393a165e4be0d4a8b6402292f9c634b1cb00d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/pool-stats.d.ts",
+      "bytes": 663,
+      "digest": "sha256:914a0ae30d96d71915fc519ccb4efbf2b62c0ddfb3a3fc6129151076bc01dc60",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/pool.d.ts",
+      "bytes": 1490,
+      "digest": "sha256:9c32412007b5662fd34a8eb04292fb5314ec370d7016d1c2fb8aa193c807fe22",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/proxy-agent.d.ts",
+      "bytes": 806,
+      "digest": "sha256:249b9cab7f5d628b71308c7d9bb0a808b50b091e640ba3ed6e2d0516f4a8d91d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/readable.d.ts",
+      "bytes": 1910,
+      "digest": "sha256:156a859e21ef3244d13afeeba4e49760a6afa035c149dda52f0c45ea8903b338",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/retry-agent.d.ts",
+      "bytes": 233,
+      "digest": "sha256:499e5b055a5aba1e1998f7311a6c441a369831c70905cc565ceac93c28083d53",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/retry-handler.d.ts",
+      "bytes": 3262,
+      "digest": "sha256:f473cd2288991ff3221165dcf73cd5d24da30391f87e85b3dd4d0450c787a391",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/round-robin-pool.d.ts",
+      "bytes": 1590,
+      "digest": "sha256:6ebe8ebb8659aaa9d1acbf3710d7dae3e923e97610238b9511c25dc39023a166",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/snapshot-agent.d.ts",
+      "bytes": 3048,
+      "digest": "sha256:5b03a034c72146b61573aab280f295b015b9168470f2df05f6080a2122f9b4df",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/socks5-proxy-agent.d.ts",
+      "bytes": 870,
+      "digest": "sha256:d33ce35e3f9cfcc1d94eca415bdd3bde94d5b153ffdd33e6c4455c029986c630",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/util.d.ts",
+      "bytes": 623,
+      "digest": "sha256:5d0375ca7310efb77e3ef18d068d53784faf62705e0ad04569597ae0e755c401",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/utility.d.ts",
+      "bytes": 245,
+      "digest": "sha256:cdcf9ea426ad970f96ac930cd176d5c69c6c24eebd9fc580e1572d6c6a88f62c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/lib/llhttp/utils.d.ts",
+      "bytes": 162,
+      "digest": "sha256:c79b06274bc1e38c70aa5259a1279290afd5b914fc01438efb0ea54a617a9ffb",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/webidl.d.ts",
+      "bytes": 8930,
+      "digest": "sha256:091907b3f314415dc5827fd7e846e38d2c52b83b8f18f43e86b3c155917368a4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/undici/types/websocket.d.ts",
+      "bytes": 4711,
+      "digest": "sha256:436d7b4543b340b0f3eef4310d524242e41369b9652aa9c70428767c4dcac455",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "bytes": 1918976,
+      "digest": "sha256:c4b95a94a963258a9ef41b12fd3bb86f0b08a2ac5c5b499fe94de57a5443682d",
+      "origin": "github-release-prebuild"
+    }
+  ],
+  "prebuild": {
+    "repository": "WiseLibs/better-sqlite3",
+    "tag": "v12.11.1",
+    "assetId": 448381569,
+    "url": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.11.1/better-sqlite3-v12.11.1-node-v127-win32-x64.tar.gz",
+    "artifactDigest": "sha256:927b34496e946dc7c9a45636a03a039df72f10191ccc4960b8616d1a9319e45b",
+    "artifactBytes": 1039346,
+    "nodeAbi": 127,
+    "platform": "win32",
+    "arch": "x64",
+    "signedAttestationAssessed": false
+  },
+  "complete": true,
+  "runtimeSubset": true,
+  "packageContentComplete": false,
+  "parentManifest": {
+    "path": "C:\\code\\chainlesschain\\.work\\private-v4-review-dependencies-20261009-with-undici\\manifest.json",
+    "digest": "sha256:a6a470a2a7439954afb71c2205552ffc8f34836b62351f9a778309569cd39129",
+    "bytes": 63562
+  },
+  "omissions": [
+    {
+      "path": "node_modules/undici/lib/llhttp/.gitkeep",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "locked-registry",
+      "reason": "Empty npm package bookkeeping file; original archive and complete package manifest retained; no executable bytes omitted"
+    }
+  ],
+  "derivedWithoutPackageExecution": true
+}

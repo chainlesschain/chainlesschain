@@ -1,0 +1,34 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-v2",
+  "archivedAt": "2026-10-09T03:40:10.885Z",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 67,
+      "digest": "sha256:82855aa954cd3d37e6c5edf3cda27fef26057fa06f43dbd2a4007ed21930b2fa"
+    },
+    {
+      "path": "native.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native.stdout.json",
+      "bytes": 933,
+      "digest": "sha256:7c5605bfa8febbd44f2f40732a3fb2a9bab1862712b05470b7c5384e49684d73"
+    },
+    {
+      "path": "report.json",
+      "bytes": 1142,
+      "digest": "sha256:bbea77784e052720eef33d19a154651289b3053d336c1a901e5ae37477069eb4"
+    },
+    {
+      "path": "windows-job-recovery-probe.cs",
+      "bytes": 17708,
+      "digest": "sha256:4d4caf44b53f12474547a30edce0b1b6e27eb99718685e9da833ff47eea7001c"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

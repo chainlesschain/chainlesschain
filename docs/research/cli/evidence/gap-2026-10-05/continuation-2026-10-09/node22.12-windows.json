@@ -1,0 +1,26 @@
+{
+  "runtime": "v22.12.0",
+  "platform": "win32",
+  "source": "working-tree",
+  "files": [
+    "packages\\cli\\test-node\\windows-esbuild-api-trace.node-test.mjs",
+    "packages\\cli\\test-node\\windows-esbuild-private-map.node-test.mjs",
+    "packages\\cli\\test-node\\windows-rollup-gnu-forwarder.node-test.mjs",
+    "packages\\cli\\test-node\\windows-esbuild-private-map-service.node-test.mjs",
+    "packages\\cli\\test-node\\windows-job-recovery-evidence.node-test.mjs",
+    "packages\\cli\\test-node\\model-catalog-review-evidence.node-test.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 208,
+    "pass": 208,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "stdoutDigest": "sha256:777d8a4d0832fdb50974ba8d567ca9e5bb7dbb5d28243ceb481cb308e70aa404",
+  "recordedAt": "2026-10-09T03:47:52.921Z"
+}

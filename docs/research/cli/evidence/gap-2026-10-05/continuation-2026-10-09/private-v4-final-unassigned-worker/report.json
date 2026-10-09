@@ -1,0 +1,1217 @@
+{
+  "schema": "chainlesschain.windows-private-v4-diagnostic/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullFrozenReviewCompleted": false,
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-broker.cpp",
+      "bytes": 42810,
+      "digest": "sha256:b5d0ca55778c18cda7bef77d1edd3ff1fd14f2395c047c269af3ec62ace08b3e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    }
+  ],
+  "commands": [
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-municode",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-broker.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-luserenv",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\broker.exe"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-adapter.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\windows-node-private-v4.node"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-esbuild-private-map-shim.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\esbuild-private-shim.dll"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-diagnostic.mjs",
+    "bytes": 27786,
+    "digest": "sha256:f555da1ac5df3bf0fadd7d04beffe5fe382f7556f94fc146a127209bbe75e9fc"
+  },
+  "validatorSource": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\source\\windows-node-private-v4-result.mjs",
+    "bytes": 29301,
+    "digest": "sha256:9df836e981c9905f2dd262cba911816d1360c904cb19f3d3a82e01f55c04519d"
+  },
+  "mode": "unassigned-worker",
+  "runtime": {
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "compiler": {
+    "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+    "bytes": 13824,
+    "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+  },
+  "preparation": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\preparation.json",
+    "bytes": 1855718,
+    "digest": "sha256:5bf26376fb4b2fccc06cf2af1a60aee90a381035148a6881a22b772b12ed69a6"
+  },
+  "sourceProof": {
+    "binding": {
+      "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "registryContentVerified": true
+  },
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\broker.exe",
+      "bytes": 902144,
+      "digest": "sha256:d36bc48a0881970f0d7462ee40bb6d53258992f614d403f6d327b39e708428f6"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\windows-node-private-v4.node",
+      "bytes": 785408,
+      "digest": "sha256:4099378eeeb935fdb9c4ee217cc50d09a9c2e0690be18ae9477218af64f284f0"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+  "sourceClosure": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\source-closure.json",
+    "bytes": 1366950,
+    "digest": "sha256:b8a63ab9af6e4d9be9469af2c07416d350b5a1f70301b40d8f89ffbc0f1ea658"
+  },
+  "frozenGitFiles": [
+    {
+      "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+      "gitBlob": "56b4e21b1c357741e6106390a76ecb574ad7215a",
+      "mode": "100644",
+      "bytes": 14263,
+      "digest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/LICENSE",
+      "gitBlob": "666a933f469cbc252cc149757e999db0fb10a01e",
+      "mode": "100644",
+      "bytes": 1076,
+      "digest": "sha256:d412955f8037340de4473106e55e97be1d5af19a3e3d06b77a8e0b88ef3bdf6b",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\LICENSE"
+    },
+    {
+      "path": "packages/context-memory-kernel/README.md",
+      "gitBlob": "c95810bd2eeabc288e6d4ce79bd96c910fa5ff36",
+      "mode": "100644",
+      "bytes": 5041,
+      "digest": "sha256:53631fd0996ad9d4e62ed2cf2ef5b9e209425f13627f5350191e6129ef086379",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\README.md"
+    },
+    {
+      "path": "packages/context-memory-kernel/fixtures/cross-surface-projection-v1.tsv",
+      "gitBlob": "557c66ee536c72dcad71861ecd1c03941efb7559",
+      "mode": "100644",
+      "bytes": 3956,
+      "digest": "sha256:0c8f7e07c71c0c4661e77b222f7fc9673ebd45acdc97d2b36cc8b4d9234e50f4",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\fixtures\\cross-surface-projection-v1.tsv"
+    },
+    {
+      "path": "packages/context-memory-kernel/fixtures/lexical-retrieval-multilingual-v1.json",
+      "gitBlob": "0a1d9913c4255117c478135552fef8791b551fac",
+      "mode": "100644",
+      "bytes": 5966,
+      "digest": "sha256:40003410364d106ffd66ee5a62315ebcc3b0a542928e3cec8e16b7d52c63fab0",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\fixtures\\lexical-retrieval-multilingual-v1.json"
+    },
+    {
+      "path": "packages/context-memory-kernel/index.d.ts",
+      "gitBlob": "7b167efc7409591c4c6ad838d21bc09a5a4caaeb",
+      "mode": "100644",
+      "bytes": 8438,
+      "digest": "sha256:e08d8acfc0ee40776b4907aa47ec9f46a60b5442293644f55064cef0137507d9",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\index.d.ts"
+    },
+    {
+      "path": "packages/context-memory-kernel/index.mjs",
+      "gitBlob": "f864a3020965d7ed178712f5be9f6ddd31153d1a",
+      "mode": "100644",
+      "bytes": 1826,
+      "digest": "sha256:80f5c644fd54593513b90675c7c260fe5f82bd90edbcc5c69ae0990c6f35323e",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\index.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/inventory/writers.v1.json",
+      "gitBlob": "b3f430c2a1830fa3280a147c82742ec458a56309",
+      "mode": "100644",
+      "bytes": 14099,
+      "digest": "sha256:c02623ab2ad2006d592fd7fb01abbd4c7e16a2622556f56485d2c9d762ea50e7",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\inventory\\writers.v1.json"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/adapters.js",
+      "gitBlob": "e92b3ca543f0300a7979cf8e893bc8d3582386ee",
+      "mode": "100644",
+      "bytes": 6391,
+      "digest": "sha256:feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\adapters.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/authority.js",
+      "gitBlob": "5eb15aa0d042c373c8136f42cb02dec3d73454bc",
+      "mode": "100644",
+      "bytes": 4880,
+      "digest": "sha256:a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\authority.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/canonical.js",
+      "gitBlob": "dda8390fe2c0144960c14dbf913827ec53555389",
+      "mode": "100644",
+      "bytes": 1659,
+      "digest": "sha256:267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\canonical.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/compaction.js",
+      "gitBlob": "2312fdc12112897a5ae6f4728e2b6ce572a9a2b1",
+      "mode": "100644",
+      "bytes": 17061,
+      "digest": "sha256:da6d2e9a43f5a414a36f346a0da697b72ad0fa36a8de72744f2c289fed0a78fb",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\compaction.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/conformance.js",
+      "gitBlob": "f615fe4f63b23acc3d2a8f8ba9e2674448f9a6cf",
+      "mode": "100644",
+      "bytes": 4845,
+      "digest": "sha256:e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\conformance.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/constants.js",
+      "gitBlob": "b18a5545f839eaf8d313e655c523c37782adeeba",
+      "mode": "100644",
+      "bytes": 2941,
+      "digest": "sha256:31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\constants.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/contracts.js",
+      "gitBlob": "a5fa22b19ebdd5c75c7816e58f6a52ec04a2f278",
+      "mode": "100644",
+      "bytes": 18376,
+      "digest": "sha256:114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\contracts.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/errors.js",
+      "gitBlob": "61839c4b8c7035aa5574613e0293450cfd6eb104",
+      "mode": "100644",
+      "bytes": 621,
+      "digest": "sha256:27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\errors.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/index.js",
+      "gitBlob": "d4c385540be4861e76862c4532d45486db6fcbac",
+      "mode": "100644",
+      "bytes": 498,
+      "digest": "sha256:3e98d01bfda73d460f900b0c425634a6a12fd28231047e27d759446e7da7e2b2",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\index.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/inventory.js",
+      "gitBlob": "71f436aac8a9ffe1a9d01bc044b957035c7f7698",
+      "mode": "100644",
+      "bytes": 5618,
+      "digest": "sha256:61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\inventory.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/memory-reducer.js",
+      "gitBlob": "e7f8e85ca27a203692011317790e64fd253ced21",
+      "mode": "100644",
+      "bytes": 23857,
+      "digest": "sha256:676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\memory-reducer.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/planner.js",
+      "gitBlob": "9a8c8e790ce050146c977d3fb1bf6b40da447d82",
+      "mode": "100644",
+      "bytes": 12782,
+      "digest": "sha256:0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\planner.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/runtime.js",
+      "gitBlob": "5bf4f3a7b70a6e751d6efe8155d9ee442dd4ab37",
+      "mode": "100644",
+      "bytes": 20306,
+      "digest": "sha256:fff4ea30d393f0a5bfbf0cf66d1848d7a47c11f45485b88a8d7b900207a553cf",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\runtime.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/schema-validator.js",
+      "gitBlob": "1e8382ac187a87cad6da85215bfbbc5e83e12f1f",
+      "mode": "100644",
+      "bytes": 7416,
+      "digest": "sha256:d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\schema-validator.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/lib/task-checkpoint.js",
+      "gitBlob": "efda76aebeabf1426df789e6c0e7d00d30f3a916",
+      "mode": "100644",
+      "bytes": 2041,
+      "digest": "sha256:6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\lib\\task-checkpoint.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/package.json",
+      "gitBlob": "6e05006fe98290af41234155b2df3fd6e167c2db",
+      "mode": "100644",
+      "bytes": 1757,
+      "digest": "sha256:6fecd794f3f60f2b658e51fb2f225533162543d2335be8a710f263115d1e1b67",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\package.json"
+    },
+    {
+      "path": "packages/context-memory-kernel/release/required-evidence.v1.json",
+      "gitBlob": "af80aa060556dd7694f92793b0d25b5ef062c509",
+      "mode": "100644",
+      "bytes": 1643,
+      "digest": "sha256:47abfafec1694113aa833593c59c7ca80a9c75ac7462dd63d9a55d124234b109",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\release\\required-evidence.v1.json"
+    },
+    {
+      "path": "packages/context-memory-kernel/schema/context-memory-kernel.schema.json",
+      "gitBlob": "90cee1dde870109f95b54b96ec68d45781ad22b2",
+      "mode": "100644",
+      "bytes": 27347,
+      "digest": "sha256:e438a7d88b64a1cd08bb3d498e879622660a22ebbbeaddedb6bbc55973bf05f7",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\schema\\context-memory-kernel.schema.json"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/assemble-release-evidence.mjs",
+      "gitBlob": "89f6bb5d815ad04d15ea6245042e3462566cbef7",
+      "mode": "100644",
+      "bytes": 1938,
+      "digest": "sha256:4e3805339291537ea57bba8479a418e1ff569e7eaf4bdc52a9edc53ba047bbf3",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\assemble-release-evidence.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/context-memory-benchmark.mjs",
+      "gitBlob": "fb24737edce8bf9a480e19b0635f58076358cdde",
+      "mode": "100644",
+      "bytes": 17675,
+      "digest": "sha256:4b2bda2500f0f32071a927091840be56894a4ffc32c8ebf02c5e3ade5bed32ce",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\context-memory-benchmark.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/context-memory-soak.mjs",
+      "gitBlob": "3a8c06670809c6eb75f803ae5d82989d9810b5d5",
+      "mode": "100644",
+      "bytes": 13706,
+      "digest": "sha256:2f3c714c627aca12de75c4df59aec085118b3b2bb8110fa3243854f463ef481a",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\context-memory-soak.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs",
+      "gitBlob": "ea4f7fada01a51b28a501fa5f698b22ff077c226",
+      "mode": "100644",
+      "bytes": 10888,
+      "digest": "sha256:845be2440c8a279e01a6a6586dc02a4bb8048fca5312caa39f9d78d00ba4b14e",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\context-memory-writer-probe.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/lexical-retrieval-eval.mjs",
+      "gitBlob": "19d03cf1d1d2b486970e873b72a8a6643a8ae576",
+      "mode": "100644",
+      "bytes": 10769,
+      "digest": "sha256:0610ef678350bfda2988c4d6bc8b2c940ffe06fe86840dbcaf1af2c6ac599f87",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\lexical-retrieval-eval.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/release-evidence.cjs",
+      "gitBlob": "6ac1e7e4c2c87f1ae3648a7bc1fe14cde25ed79d",
+      "mode": "100644",
+      "bytes": 6810,
+      "digest": "sha256:e1a44344e81916e7ef597e3e82072c5b5b7a07712709e1a8d383c5b068d97334",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\release-evidence.cjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/validate-inventory.mjs",
+      "gitBlob": "733135dcce15ddc2b472100a361ab1aa8cd30b9a",
+      "mode": "100644",
+      "bytes": 454,
+      "digest": "sha256:c04bf32466e63c15ef64d3b3e3f446c25b5e14b3251a538469c8737a236312c2",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\validate-inventory.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/scripts/validate-release-evidence.mjs",
+      "gitBlob": "8995308ec087bb56fce18c63fd9fd71c88c92ee8",
+      "mode": "100644",
+      "bytes": 1136,
+      "digest": "sha256:c18893b23ed6dd6a948431bb0bf4160eb39bf855671cceb219e634a0364f12e5",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\scripts\\validate-release-evidence.mjs"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/compaction.test.js",
+      "gitBlob": "cb0155a64f361cd9204d09b6920915424f364b62",
+      "mode": "100644",
+      "bytes": 4051,
+      "digest": "sha256:766f9c5b431031b54c8be39cad13aa10d43f87bab8f332e799dacb7e17686fee",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\compaction.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/conformance-fixture.test.js",
+      "gitBlob": "0cb6f7eb43a9bc0544a2acfe0d0d84f513e8cef3",
+      "mode": "100644",
+      "bytes": 14542,
+      "digest": "sha256:c7daf152e934c5cd95f207383ea3f8affd6fe4435d6858cb2da11795575dab88",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\conformance-fixture.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/contracts-planner.test.js",
+      "gitBlob": "acc143017661c24736a78782192ac2efb26d9302",
+      "mode": "100644",
+      "bytes": 3942,
+      "digest": "sha256:a7d34b44a3f3cdee3a7b82cdc01d66797a1a3d6b52b023dabd7061886bf94163",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\contracts-planner.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/desktop-surface-conformance.test.js",
+      "gitBlob": "66a9fdf1b45da6088d1ea07f2175a3783fc3d8ee",
+      "mode": "100644",
+      "bytes": 6583,
+      "digest": "sha256:d02bfb73f9024b0b6f433e1aabf1caccc02b531f16711e7361abce2f9f448918",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\desktop-surface-conformance.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/helpers.js",
+      "gitBlob": "0ee99387b677b026a4ec85b684dda09ddd0d33a3",
+      "mode": "100644",
+      "bytes": 1807,
+      "digest": "sha256:0cd1148d4e17602a3fa3af4f81814bba6e74fc9632e4f51d54a3d11e9c21b42c",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\helpers.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/inventory.test.js",
+      "gitBlob": "86b472ca8c2667d68ebd2fc1cc54fe5f84e2415c",
+      "mode": "100644",
+      "bytes": 2207,
+      "digest": "sha256:a0bd0c58e7da1f4660a49fe3a96e72b4cf4a149efdc36bdd503f535d36e22192",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\inventory.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/lexical-retrieval-eval.test.js",
+      "gitBlob": "09f809d4a724b021ab553efff6dbc1e25a874dd2",
+      "mode": "100644",
+      "bytes": 5804,
+      "digest": "sha256:d5d8ca4fbd0193d189d5a1d8e841ecdcb9002f9024fa76496f29f4d44e17ea4d",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\lexical-retrieval-eval.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/memory-authority.test.js",
+      "gitBlob": "efbffa442377750d81f1610b652881f4c5a87c91",
+      "mode": "100644",
+      "bytes": 8457,
+      "digest": "sha256:e91132b04b3ba0297cd509cf469dcf1e6838b9464980b369d93cee829f01e716",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\memory-authority.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/memory-lexical.test.js",
+      "gitBlob": "1e3082deda8c994a6a662265d8e2af645057091c",
+      "mode": "100644",
+      "bytes": 12150,
+      "digest": "sha256:8e0cf921537e9d4561e0b94a9efa70f4331e41ca1f9ad558bf2190d236adad5a",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\memory-lexical.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/release-evidence.test.js",
+      "gitBlob": "310db1d0312214fdb16de4c66fd49a18c2778ae8",
+      "mode": "100644",
+      "bytes": 2937,
+      "digest": "sha256:23827b24af37ed90c5820522261d943628b40db4fe8dc4abb8a0569af5f59bc0",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\release-evidence.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/schema.test.js",
+      "gitBlob": "a83bcffb358340160a1f1083567a089d7c4ab491",
+      "mode": "100644",
+      "bytes": 2487,
+      "digest": "sha256:b94b0fb4516ceb4b1f78e44fed4e7e4248fbae1ee8e917d76e07d10e2eb24c3d",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\schema.test.js"
+    },
+    {
+      "path": "packages/context-memory-kernel/test/task-checkpoint.test.js",
+      "gitBlob": "d1a97db77b3d5bb46d0974a5c6389a6fd84ab8b8",
+      "mode": "100644",
+      "bytes": 1715,
+      "digest": "sha256:baf66954d0bf8f651d8d979e53d2803ea2457afcc5c4ece3ab9b6ec3c783a401",
+      "staged": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\node_modules\\@chainlesschain\\context-memory-kernel\\test\\task-checkpoint.test.js"
+    }
+  ],
+  "frozenInputs": {
+    "config": {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\vitest.config.js",
+      "bytes": 3515,
+      "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+    },
+    "test": {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\model-capabilities.test.js",
+      "bytes": 14263,
+      "digest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+    }
+  },
+  "stagedInputs": {
+    "config": {
+      "before": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\packages\\cli\\vitest.config.js",
+        "bytes": 3515,
+        "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+      },
+      "after": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\packages\\cli\\vitest.config.js",
+        "bytes": 3515,
+        "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+      }
+    },
+    "test": {
+      "before": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js",
+        "bytes": 14263,
+        "digest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+      },
+      "after": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\workspace\\tree\\packages\\cli\\__tests__\\unit\\model-capabilities.test.js",
+        "bytes": 14263,
+        "digest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+      }
+    }
+  },
+  "experimentKind": "original-frozen-config-tests",
+  "checker": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\check.cjs",
+    "bytes": 3683,
+    "digest": "sha256:d713617bc1f02546d24a3fcb67757c4c1d4f292775a8b50ede380c2b47a0f1f0"
+  },
+  "execution": {
+    "status": 2,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"creationLedger\":[{\"terminationCallError\":0,\"preTerminationWait\":4294967295,\"preTerminationExit\":259,\"terminationCallSucceeded\":false,\"terminationWait\":4294967295,\"actualExit\":259,\"creationSequence\":0,\"terminationChildSequence\":0,\"terminationRequested\":false,\"terminationRequesterRegistrationId\":null,\"terminationExitCode\":0,\"callerHandleObjectCompared\":false,\"inheritedHandleCount\":9,\"stdioCount\":3,\"callerOriginalHandleRetained\":false,\"commandKind\":\"trusted-root-checker\",\"pid\":27904,\"jobAssigned\":true,\"tokenAndSameJobProven\":true,\"mapInstalled\":true,\"mapStatus\":0,\"wait\":0,\"exitKnown\":true,\"exit\":125,\"kind\":\"root\",\"registrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\",\"parentRegistrationId\":null,\"registered\":true,\"launchRequests\":3},{\"terminationCallError\":0,\"preTerminationWait\":4294967295,\"preTerminationExit\":259,\"terminationCallSucceeded\":false,\"terminationWait\":4294967295,\"actualExit\":259,\"creationSequence\":1,\"terminationChildSequence\":0,\"terminationRequested\":false,\"terminationRequesterRegistrationId\":null,\"terminationExitCode\":0,\"callerHandleObjectCompared\":false,\"inheritedHandleCount\":5,\"stdioCount\":3,\"callerOriginalHandleRetained\":true,\"commandKind\":\"fixed-esbuild-service\",\"pid\":11840,\"jobAssigned\":true,\"tokenAndSameJobProven\":true,\"mapInstalled\":true,\"mapStatus\":0,\"wait\":0,\"exitKnown\":true,\"exit\":125,\"kind\":\"esbuild-service\",\"registrationId\":\"fb1bcf3f-c1cb-4407-aa49-726aca842e41\",\"parentRegistrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\",\"registered\":false,\"launchRequests\":0},{\"terminationCallError\":0,\"preTerminationWait\":4294967295,\"preTerminationExit\":259,\"terminationCallSucceeded\":false,\"terminationWait\":4294967295,\"actualExit\":259,\"creationSequence\":2,\"terminationChildSequence\":0,\"terminationRequested\":false,\"terminationRequesterRegistrationId\":null,\"terminationExitCode\":0,\"callerHandleObjectCompared\":false,\"inheritedHandleCount\":9,\"stdioCount\":3,\"callerOriginalHandleRetained\":true,\"commandKind\":\"fixed-node-report-header\",\"pid\":15396,\"jobAssigned\":true,\"tokenAndSameJobProven\":true,\"mapInstalled\":true,\"mapStatus\":0,\"wait\":0,\"exitKnown\":true,\"exit\":0,\"kind\":\"report-helper\",\"registrationId\":\"d94c5157-642e-4e68-865e-a4f807fa5618\",\"parentRegistrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\",\"registered\":true,\"launchRequests\":0},{\"terminationCallError\":0,\"preTerminationWait\":4294967295,\"preTerminationExit\":259,\"terminationCallSucceeded\":false,\"terminationWait\":4294967295,\"actualExit\":259,\"creationSequence\":0,\"terminationChildSequence\":0,\"terminationRequested\":false,\"terminationRequesterRegistrationId\":null,\"terminationExitCode\":0,\"callerHandleObjectCompared\":false,\"inheritedHandleCount\":10,\"stdioCount\":4,\"callerOriginalHandleRetained\":false,\"commandKind\":\"unsettled-created-process\",\"pid\":18824,\"jobAssigned\":false,\"tokenAndSameJobProven\":false,\"mapInstalled\":false,\"mapStatus\":2147483647,\"wait\":0,\"exitKnown\":true,\"exit\":125,\"kind\":\"unregistered-created-process\",\"registrationId\":\"\",\"parentRegistrationId\":null,\"registered\":false,\"launchRequests\":0}],\"schema\":\"chainlesschain.windows-private-broker/v4\",\"status\":\"NOT_ADMITTED\",\"completed\":false,\"stage\":\"probe-unassigned-worker\",\"error\":1223,\"hostPid\":26516,\"rootPid\":27904,\"servicePid\":11840,\"rootTokenAndSameJobProven\":true,\"serviceTokenAndSameJobProven\":true,\"rootMapInstalled\":true,\"serviceMapInstalled\":true,\"serviceMapStatus\":0,\"rootWait\":4294967295,\"serviceWait\":4294967295,\"rootExit\":259,\"serviceExit\":259,\"requests\":3,\"serviceParent\":\"host-custodian\",\"cleanupConfirmed\":true,\"jobActiveProcesses\":0,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"hostMapUnchanged\":true,\"sessionId\":\"2168c183-b5b6-4e14-967f-70186b201682\",\"generation\":\"cdfe2bef-0245-467a-bd6f-b64c5ef58946\",\"appContainerSid\":\"S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235\"}\r\n",
+    "stderr": ""
+  },
+  "stdout": {
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "text": ""
+  },
+  "stderr": {
+    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "text": ""
+  },
+  "service.json": {
+    "digest": "sha256:030edf97cfd8ee60d280b4d1746f3d4fd9cb29279e23478582310e05f4e8cd7f",
+    "text": "{\"transform\":{\"warnings\":[],\"code\":\"const answer = 42;\\n\",\"map\":\"\"},\"build\":{\"errors\":[],\"warnings\":[]},\"configBundle\":[{\"path\":\"<stdout>\",\"text\":\"// vitest.config.js\\nimport { defineConfig, configDefaults } from \\\"vitest/config\\\";\\nvar vitest_config_default = defineConfig({\\n  test: {\\n    globals: true,\\n    globalSetup: [\\\"./test/global-setup/windows-sandbox-adapter-temp-root.js\\\"],\\n    setupFiles: [\\n      \\\"./test/setup/windows-sandbox-adapter-cleanup.js\\\",\\n      \\\"./test/setup/agent-evolution-test-boundary.js\\\"\\n    ],\\n    // e2e runs under its own config (vitest.e2e.config.js: singleFork → serial),\\n    // because e2e files spawn real `cc` children + bind real ports. Letting them\\n    // into this 2-fork parallel pool causes port collisions and shared-DB\\n    // contention (the \\\"[AppConfig] is not valid JSON\\\" / \\\"malformed\\\" flakes).\\n    // A bare `vitest run` / `npm test` therefore covers unit + integration only;\\n    // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite\\n    // separately and passes the e2e config explicitly.\\n    exclude: [...configDefaults.exclude, \\\"**/__tests__/e2e/**\\\"],\\n    pool: \\\"forks\\\",\\n    // Vitest 4 removed the pool-specific `forks.maxForks` configuration in\\n    // favour of the top-level worker limit. Keeping the old shape silently\\n    // removes the limit and lets a large CI shard start one fork per file,\\n    // which reintroduces the shared-resource contention this configuration is\\n    // meant to avoid.\\n    maxWorkers: 2,\\n    // 90s testTimeout: vitest 4 honors testTimeout strictly (v3's hardcoded\\n    // 60s birpc heartbeat used to mask anything between testTimeout and the\\n    // heartbeat ceiling). Subprocess-heavy integration tests — MTC federation\\n    // governance + audit MTC + multisig (policy→propose→sign→consume/finalize)\\n    // end-to-end flows spawn many sequential `cc` CLI cold-starts; under the\\n    // 2-fork parallel load these legitimately exceed 60s and recurringly flaked\\n    // (crosschain-multisig / marketplace-multisig / multisig-cli / mtc-federation\\n    // — all pass isolated). Raised 60000 → 90000 to cover the whole family in one\\n    // place (local + CI shards both run integration on this base config); the\\n    // per-test `it(\\\"...\\\", fn, 90000/120000)` overrides remain as defensive docs\\n    // of the heaviest flows. Unit tests share this budget but are fast, so the\\n    // only cost is a genuinely-hung unit test failing at 90s instead of 60s.\\n    // See internal handbook trap #31.\\n    testTimeout: 9e4,\\n    hookTimeout: 12e4,\\n    // teardownTimeout governs how long vitest's pool waits for a worker to\\n    // GRACEFULLY stop before it logs \\\"Timeout terminating <pool> worker for\\n    // test files X\\\" and force-terminates it — the force path then trips an\\n    // unhandled \\\"Worker exited unexpectedly\\\" and fails the whole shard even\\n    // though every test passed (vitest cli-api pool: setTimeout(…,\\n    // teardownTimeout) racing runner.stop()). The real-subprocess + real-socket\\n    // suites (background-agent-supervisor / background-session-transport spawn\\n    // detached `node` workers and bind POSIX domain sockets / named pipes)\\n    // drain in <1s unloaded, but under the 2-fork parallel CI load the worker's\\n    // event-loop teardown (child reaping + socket close under contention) has\\n    // recurringly exceeded the 10s DEFAULT — the \\\"forks-pool worker-death\\\"\\n    // flake (unit shard 2/4 on ubuntu+macos). Raised 10000 → 30000, same\\n    // rationale as the testTimeout/hookTimeout bumps above. A genuinely hung\\n    // worker now surfaces at 30s instead of 10s — an acceptable trade for\\n    // killing a false-red shard.\\n    teardownTimeout: 3e4\\n  }\\n});\\nexport {\\n  vitest_config_default as default\\n};\\n\"}],\"invalidRejected\":true}"
+  },
+  "bundle.js": {
+    "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+    "text": "var __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __export = (target, all) => {\n  for (var name in all)\n    __defProp(target, name, { get: all[name], enumerable: true });\n};\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === \"object\" || typeof from === \"function\") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n// entry.js\nvar entry_exports = {};\n__export(entry_exports, {\n  answer: () => answer\n});\nmodule.exports = __toCommonJS(entry_exports);\nvar answer = 42;\n// Annotate the CommonJS export names for ESM import in node:\n0 && (module.exports = {\n  answer\n});\n"
+  },
+  "journal.jsonl": {
+    "digest": "sha256:44f5874e23a72291b1fbefce980670f3925d0edf0dc5dada82ed45a450ae4717",
+    "text": "{\"sequence\":1,\"pid\":27904,\"phase\":\"started\"}\n{\"sequence\":2,\"pid\":27904,\"phase\":\"spawn\",\"application\":\"X:\\\\workspace\\\\tree\\\\node_modules\\\\@esbuild\\\\win32-x64\\\\esbuild.exe\",\"args\":[\"--service=0.28.1\",\"--ping\"]}\n{\"sequence\":3,\"pid\":27904,\"phase\":\"esbuild-completed\",\"invalidRejected\":true,\"servicePid\":11840}\n{\"sequence\":4,\"pid\":27904,\"phase\":\"vitest-import-started\"}\n{\"sequence\":5,\"pid\":27904,\"phase\":\"vitest-import-completed\"}\n"
+  },
+  "esbuild-trace-1.jsonl": {
+    "digest": "sha256:945fd99ec8493f3592766db51b9bf01273c93170d356783fa3b95ad60e7b0e74",
+    "text": "{\"sequence\":1,\"pid\":11840,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":11840,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":11840,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":11840,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":11840,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:00040000:0077df7e\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":11840,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":11840,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":11840,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":11840,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":11840,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":12,\"pid\":11840,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":13,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":14,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":15,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":16,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":17,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":18,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\entry.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":19,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\scratch\\\\bundle.js\",\"success\":true,\"error\":0,\"kind\":1073741824,\"patches\":2,\"overflow\":0}\n{\"sequence\":20,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\\\\packages\\\\cli\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":21,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\\\\packages\\\\cli\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":22,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\\\\packages\\\\cli\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":23,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":24,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":25,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":26,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":27,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":28,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":29,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":30,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":31,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":32,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\\\\package.json\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":33,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\\\\packages\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":34,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\\\\packages\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":35,\"pid\":11840,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\workspace\\\\tree\\\\packages\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":36,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\\\\packages\\\\cli\\\\package.json\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":37,\"pid\":11840,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\tree\\\\packages\\\\cli\\\\vitest.config.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n"
+  },
+  "receipts": [
+    {
+      "schema": "chainlesschain.windows-node-private-preload/v4",
+      "status": "NOT_ADMITTED",
+      "trusted": false,
+      "admissionEligible": false,
+      "stage": "frozen-forks",
+      "role": "report-helper",
+      "actor": {
+        "registrationId": "d94c5157-642e-4e68-865e-a4f807fa5618",
+        "pid": 15396,
+        "role": "report-helper",
+        "parentRegistrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755"
+      },
+      "phase": "exit",
+      "pid": 15396,
+      "ppid": 26516,
+      "parentage": "host-broker-created",
+      "manifestSha256": "220e95c995ca3679c444a0eaa57ba4832d219b563d65aacabdd3177befbdf3ae",
+      "manifestPath": "X:\\control\\windows-node-private-v4.report-helper-d94c5157-642e-4e68-865e-a4f807fa5618.manifest.json",
+      "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+      "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+      "paired": {
+        "status": "NOT_ADMITTED",
+        "trusted": false,
+        "admissionEligible": false,
+        "role": "report-helper",
+        "scope": "paired-path-diagnostic",
+        "sameJobAuthority": "host-custodian-only",
+        "native": {
+          "schema": "chainlesschain.windows-private-identity/v4",
+          "status": "NOT_ADMITTED",
+          "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+          "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+          "role": "report-helper",
+          "brokerBinding": "exclusive-channel-original-creation-handle",
+          "actor": {
+            "registrationId": "d94c5157-642e-4e68-865e-a4f807fa5618",
+            "pid": 15396,
+            "role": "report-helper",
+            "parentRegistrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755"
+          },
+          "nodeVersion": "22.22.2",
+          "modulesAbi": "127",
+          "token": {
+            "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+            "capabilityCount": 0,
+            "inJob": true
+          },
+          "root": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true
+          },
+          "runtime": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\control\\node.exe",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true,
+            "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+            "bytes": 87074816
+          }
+        }
+      },
+      "adapter": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@4",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 15396,
+        "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 6,
+        "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+        "originalCreateFileA": "00007FFBDF4B4E90",
+        "pipeSlot": "00007FF6789777B8",
+        "fileSlot": "00007FF678977560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+        "finalPathSlot": "00007FF678977820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "7edf7700000004000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 0,
+        "nullMapped": 0,
+        "nullRejected": 0,
+        "launches": 0,
+        "launched": 0,
+        "launchRejected": 0,
+        "launchError": 0,
+        "launchStage": "fresh",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      },
+      "exitCode": 0,
+      "exitDisposition": "process-exit-intent"
+    },
+    {
+      "schema": "chainlesschain.windows-node-private-preload/v4",
+      "status": "NOT_ADMITTED",
+      "trusted": false,
+      "admissionEligible": false,
+      "stage": "frozen-forks",
+      "role": "report-helper",
+      "actor": {
+        "registrationId": "d94c5157-642e-4e68-865e-a4f807fa5618",
+        "pid": 15396,
+        "role": "report-helper",
+        "parentRegistrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755"
+      },
+      "phase": "installed",
+      "pid": 15396,
+      "ppid": 26516,
+      "parentage": "host-broker-created",
+      "manifestSha256": "220e95c995ca3679c444a0eaa57ba4832d219b563d65aacabdd3177befbdf3ae",
+      "manifestPath": "X:\\control\\windows-node-private-v4.report-helper-d94c5157-642e-4e68-865e-a4f807fa5618.manifest.json",
+      "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+      "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+      "paired": {
+        "status": "NOT_ADMITTED",
+        "trusted": false,
+        "admissionEligible": false,
+        "role": "report-helper",
+        "scope": "paired-path-diagnostic",
+        "sameJobAuthority": "host-custodian-only",
+        "native": {
+          "schema": "chainlesschain.windows-private-identity/v4",
+          "status": "NOT_ADMITTED",
+          "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+          "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+          "role": "report-helper",
+          "brokerBinding": "exclusive-channel-original-creation-handle",
+          "actor": {
+            "registrationId": "d94c5157-642e-4e68-865e-a4f807fa5618",
+            "pid": 15396,
+            "role": "report-helper",
+            "parentRegistrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755"
+          },
+          "nodeVersion": "22.22.2",
+          "modulesAbi": "127",
+          "token": {
+            "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+            "capabilityCount": 0,
+            "inJob": true
+          },
+          "root": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true
+          },
+          "runtime": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\control\\node.exe",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true,
+            "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+            "bytes": 87074816
+          }
+        }
+      },
+      "adapter": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@4",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 15396,
+        "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 6,
+        "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+        "originalCreateFileA": "00007FFBDF4B4E90",
+        "pipeSlot": "00007FF6789777B8",
+        "fileSlot": "00007FF678977560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+        "finalPathSlot": "00007FF678977820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "7edf7700000004000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 0,
+        "nullMapped": 0,
+        "nullRejected": 0,
+        "launches": 0,
+        "launched": 0,
+        "launchRejected": 0,
+        "launchError": 0,
+        "launchStage": "fresh",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    },
+    {
+      "schema": "chainlesschain.windows-node-private-preload/v4",
+      "status": "NOT_ADMITTED",
+      "trusted": false,
+      "admissionEligible": false,
+      "stage": "frozen-forks",
+      "role": "root",
+      "actor": {
+        "registrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755",
+        "pid": 27904,
+        "role": "root",
+        "parentRegistrationId": null
+      },
+      "phase": "installed",
+      "pid": 27904,
+      "ppid": 26516,
+      "parentage": "host-broker-created",
+      "manifestSha256": "c4c816312c929bd0d935dfce7ecca191fd5ea2a0c5da42bab758ae06470b0c19",
+      "manifestPath": "X:\\control\\windows-node-private-v4.manifest.json",
+      "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+      "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+      "paired": {
+        "status": "NOT_ADMITTED",
+        "trusted": false,
+        "admissionEligible": false,
+        "role": "root",
+        "scope": "paired-path-diagnostic",
+        "sameJobAuthority": "host-custodian-only",
+        "native": {
+          "schema": "chainlesschain.windows-private-identity/v4",
+          "status": "NOT_ADMITTED",
+          "sessionId": "2168c183-b5b6-4e14-967f-70186b201682",
+          "generation": "cdfe2bef-0245-467a-bd6f-b64c5ef58946",
+          "role": "root",
+          "brokerBinding": "exclusive-channel-original-creation-handle",
+          "actor": {
+            "registrationId": "0dbc1710-1e59-4da7-8ab7-c054bb8a8755",
+            "pid": 27904,
+            "role": "root",
+            "parentRegistrationId": null
+          },
+          "nodeVersion": "22.22.2",
+          "modulesAbi": "127",
+          "token": {
+            "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+            "capabilityCount": 0,
+            "inJob": true
+          },
+          "root": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "7edf7700000004000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true
+          },
+          "runtime": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\control\\node.exe",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "86df7700000002000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true,
+            "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+            "bytes": 87074816
+          }
+        }
+      },
+      "adapter": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@4",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 27904,
+        "appContainerSid": "S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 6,
+        "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+        "originalCreateFileA": "00007FFBDF4B4E90",
+        "pipeSlot": "00007FF6789777B8",
+        "fileSlot": "00007FF678977560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+        "finalPathSlot": "00007FF678977820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-WhJUIC",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "7edf7700000004000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 0,
+        "nullMapped": 0,
+        "nullRejected": 0,
+        "launches": 0,
+        "launched": 0,
+        "launchRejected": 0,
+        "launchError": 0,
+        "launchStage": "fresh",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    }
+  ],
+  "manifests": [
+    {
+      "path": "X:\\control\\windows-node-private-v4.manifest.json",
+      "raw": "{\"schema\":\"chainlesschain.windows-node-private-manifest/v4\",\"status\":\"NOT_ADMITTED\",\"experimental\":true,\"admissionEligible\":false,\"stage\":\"frozen-forks\",\"role\":\"root\",\"actor\":{\"registrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\",\"pid\":27904,\"role\":\"root\",\"parentRegistrationId\":null},\"sessionId\":\"2168c183-b5b6-4e14-967f-70186b201682\",\"generation\":\"cdfe2bef-0245-467a-bd6f-b64c5ef58946\",\"appContainerSid\":\"S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235\",\"root\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"logical\":\"X:\\\\\"},\"runtime\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\control\\\\node.exe\",\"logical\":\"X:\\\\control\\\\node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\",\"bytes\":87074816,\"nodeVersion\":\"22.22.2\",\"modulesAbi\":\"127\"},\"files\":{\"identity\":{\"path\":\"workspace/adapter/windows-node-private-v4-identity.cjs\",\"sha256\":\"bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5\",\"bytes\":13925},\"preload\":{\"path\":\"workspace/adapter/windows-node-private-v4-preload.cjs\",\"sha256\":\"4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8\",\"bytes\":5958},\"addon\":{\"path\":\"workspace/adapter/windows-node-private-v4.node\",\"sha256\":\"4099378eeeb935fdb9c4ee217cc50d09a9c2e0690be18ae9477218af64f284f0\",\"bytes\":785408}}}\n",
+      "capture": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\windows-node-private-v4.manifest.json",
+        "bytes": 1370,
+        "digest": "sha256:c4c816312c929bd0d935dfce7ecca191fd5ea2a0c5da42bab758ae06470b0c19"
+      }
+    },
+    {
+      "path": "X:\\control\\windows-node-private-v4.report-helper-d94c5157-642e-4e68-865e-a4f807fa5618.manifest.json",
+      "raw": "{\"schema\":\"chainlesschain.windows-node-private-manifest/v4\",\"status\":\"NOT_ADMITTED\",\"experimental\":true,\"admissionEligible\":false,\"stage\":\"frozen-forks\",\"role\":\"report-helper\",\"actor\":{\"registrationId\":\"d94c5157-642e-4e68-865e-a4f807fa5618\",\"pid\":15396,\"role\":\"report-helper\",\"parentRegistrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\"},\"sessionId\":\"2168c183-b5b6-4e14-967f-70186b201682\",\"generation\":\"cdfe2bef-0245-467a-bd6f-b64c5ef58946\",\"appContainerSid\":\"S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235\",\"root\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"logical\":\"X:\\\\\"},\"runtime\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\control\\\\node.exe\",\"logical\":\"X:\\\\control\\\\node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\",\"bytes\":87074816,\"nodeVersion\":\"22.22.2\",\"modulesAbi\":\"127\"},\"files\":{\"identity\":{\"path\":\"workspace/adapter/windows-node-private-v4-identity.cjs\",\"sha256\":\"bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5\",\"bytes\":13925},\"preload\":{\"path\":\"workspace/adapter/windows-node-private-v4-preload.cjs\",\"sha256\":\"4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8\",\"bytes\":5958},\"addon\":{\"path\":\"workspace/adapter/windows-node-private-v4.node\",\"sha256\":\"4099378eeeb935fdb9c4ee217cc50d09a9c2e0690be18ae9477218af64f284f0\",\"bytes\":785408}}}\n",
+      "capture": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\inputs\\windows-node-private-v4.report-helper-d94c5157-642e-4e68-865e-a4f807fa5618.manifest.json",
+        "bytes": 1422,
+        "digest": "sha256:220e95c995ca3679c444a0eaa57ba4832d219b563d65aacabdd3177befbdf3ae"
+      }
+    }
+  ],
+  "outputsAfter": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\broker.exe",
+      "bytes": 902144,
+      "digest": "sha256:d36bc48a0881970f0d7462ee40bb6d53258992f614d403f6d327b39e708428f6"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\windows-node-private-v4.node",
+      "bytes": 785408,
+      "digest": "sha256:4099378eeeb935fdb9c4ee217cc50d09a9c2e0690be18ae9477218af64f284f0"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker\\esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "manifestRaw": "{\"schema\":\"chainlesschain.windows-node-private-manifest/v4\",\"status\":\"NOT_ADMITTED\",\"experimental\":true,\"admissionEligible\":false,\"stage\":\"frozen-forks\",\"role\":\"root\",\"actor\":{\"registrationId\":\"0dbc1710-1e59-4da7-8ab7-c054bb8a8755\",\"pid\":27904,\"role\":\"root\",\"parentRegistrationId\":null},\"sessionId\":\"2168c183-b5b6-4e14-967f-70186b201682\",\"generation\":\"cdfe2bef-0245-467a-bd6f-b64c5ef58946\",\"appContainerSid\":\"S-1-15-2-3509991358-2548856987-2763734954-3975659816-247597401-663242177-1424138235\",\"root\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\",\"logical\":\"X:\\\\\"},\"runtime\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-WhJUIC\\\\control\\\\node.exe\",\"logical\":\"X:\\\\control\\\\node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\",\"bytes\":87074816,\"nodeVersion\":\"22.22.2\",\"modulesAbi\":\"127\"},\"files\":{\"identity\":{\"path\":\"workspace/adapter/windows-node-private-v4-identity.cjs\",\"sha256\":\"bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5\",\"bytes\":13925},\"preload\":{\"path\":\"workspace/adapter/windows-node-private-v4-preload.cjs\",\"sha256\":\"4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8\",\"bytes\":5958},\"addon\":{\"path\":\"workspace/adapter/windows-node-private-v4.node\",\"sha256\":\"4099378eeeb935fdb9c4ee217cc50d09a9c2e0690be18ae9477218af64f284f0\",\"bytes\":785408}}}\n",
+  "inspection": {
+    "schema": "chainlesschain.windows-private-v4-result/v1",
+    "status": "NOT_ADMITTED",
+    "admissionEligible": false,
+    "fullFrozenReviewCompleted": false,
+    "experimentKind": "original-frozen-config-tests",
+    "diagnosticVerified": false,
+    "errors": [
+      "diagnostic mode differs from requested settlement",
+      "outer execution failed or incomplete",
+      "host experiment incomplete",
+      "root creation evidence differs",
+      "real root and Vitest worker required",
+      "actor manifest or receipt set incomplete",
+      "same-session esbuild service required",
+      "creation 27904 did not settle successfully",
+      "creation 27904 requires installed and exit receipts or exact host termination attestation",
+      "creation 11840 did not settle successfully",
+      "unknown creation kind",
+      "creation 18824 did not settle successfully",
+      "creation 18824 original handle not retained",
+      "creation 18824 parent registration unknown",
+      "creation 18824 inheritance count differs",
+      "esbuild trace missing successful exit",
+      "esbuild instrumentation or exit absent",
+      "original frozen pool configuration unproven",
+      "nonempty passing test results required"
+    ]
+  },
+  "negativeVerified": true
+}

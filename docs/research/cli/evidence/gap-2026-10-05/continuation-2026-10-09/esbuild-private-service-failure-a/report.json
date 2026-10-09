@@ -1,0 +1,181 @@
+{
+  "schema": "chainlesschain.windows-esbuild-private-map-service/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "resultTranslation": false,
+  "clientLocation": "host-outside-appcontainer",
+  "fullFrozenReviewCompleted": false,
+  "completed": false,
+  "client": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/node_modules/esbuild/lib/main.js",
+    "bytes": 97214,
+    "digest": "sha256:8331fe1d8b3a07381f33cc425fcfaa94776e263113653f80ec3ba433e9657e73"
+  },
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-esbuild-private-map-service.mjs",
+    "bytes": 10814,
+    "digest": "sha256:3f3a6e2a6e32ba9391fe8310abfb32b92be0e4a1ef4310e2cbcf044670045abb"
+  },
+  "startedAt": "2026-10-09T03:30:28.900Z",
+  "leafReport": {
+    "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-a\\leaf\\report.json",
+    "bytes": 16954,
+    "digest": "sha256:03ef4d7627e05064cd35c7e3ddb864b88c946cf1cb9d0b17464fb22f921af7d6"
+  },
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 24168,
+      "digest": "sha256:e0e27a08d5c0afc36027506d5d334da35fa16f19b8576e3dcc7ddd0aa51ca6c8"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-a\\leaf\\supervisor.exe",
+      "bytes": 800256,
+      "digest": "sha256:fd5a4d68ddfae36bab3a5e9c12f5a5e6d57b5f7d0368e3a3946f94395e017cca"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-a\\leaf\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-wiJwoY",
+  "stagedInputs": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-wiJwoY\\workspace\\esbuild.exe",
+      "bytes": 11670528,
+      "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-wiJwoY\\workspace\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-wiJwoY\\workspace\\entry.js",
+      "bytes": 26,
+      "digest": "sha256:a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+    }
+  ],
+  "protocol": {
+    "inputBytes": 626,
+    "outputBytes": 511,
+    "spawnCount": 1
+  },
+  "serviceStderr": "",
+  "servicePid": 26096,
+  "build": {
+    "errors": [],
+    "warnings": []
+  },
+  "transform": {
+    "warnings": [],
+    "code": "const answer = 42;\n",
+    "map": ""
+  },
+  "invalidTransform": {
+    "rejected": true,
+    "errors": [
+      {
+        "id": "",
+        "location": {
+          "column": 6,
+          "file": "<stdin>",
+          "length": 1,
+          "line": 1,
+          "lineText": "const =",
+          "namespace": "",
+          "suggestion": ""
+        },
+        "notes": [],
+        "pluginName": "",
+        "text": "Expected identifier but found \"=\""
+      }
+    ]
+  },
+  "serviceExit": {
+    "code": 0,
+    "signal": null
+  },
+  "native": {
+    "experimental": true,
+    "status": "NOT_ADMITTED",
+    "completed": true,
+    "stage": "completed",
+    "error": 0,
+    "setterStatus": 0,
+    "hostNonElevatedUnrestricted": true,
+    "rootPid": 26096,
+    "childPid": 13108,
+    "childExit": 0,
+    "childTokenProven": true,
+    "appContainerSid": "S-1-15-2-290697808-62566285-3107478655-4134796698-3690750083-2304145207-2246215189",
+    "capabilityCount": 0,
+    "imagePinned": true,
+    "leafRestricted": true,
+    "exactHandleCount": 5,
+    "mapPrepared": true,
+    "mapInstalled": true,
+    "parentMapUnchanged": true,
+    "cleanupConfirmed": true,
+    "profileDeleted": true,
+    "loopbackExemptionAbsent": true,
+    "guardedRootNt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-wiJwoY",
+    "guardedRootFileId": "02469ff7:000d0000:00551175",
+    "childCreated": true,
+    "jobAssigned": true,
+    "childWaitStatus": 0,
+    "childExitRead": true,
+    "childExited": true,
+    "jobQuerySucceeded": true,
+    "jobActiveProcesses": 0,
+    "directTerminationAttempted": false,
+    "directTerminationSucceeded": false,
+    "directTerminationError": 0,
+    "beforeMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    },
+    "afterSetterMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    },
+    "afterChildMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    }
+  },
+  "nativeStderr": "",
+  "trace": {
+    "digest": "sha256:817125709f844d807568a63be0e2f2bb5a5fa22f7b4e3ed52c6967ea64406e69",
+    "text": "{\"sequence\":1,\"pid\":13108,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":13108,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":13108,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":13108,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":13108,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:000d0000:00551175\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":13108,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":13108,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":13108,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":13108,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":13108,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":12,\"pid\":13108,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":13,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":14,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":15,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":16,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":17,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":18,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\entry.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":19,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\scratch\\\\bundle.js\",\"success\":true,\"error\":0,\"kind\":1073741824,\"patches\":2,\"overflow\":0}\n{\"sequence\":20,\"pid\":13108,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n"
+  },
+  "bundle": {
+    "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+    "text": "var __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __export = (target, all) => {\n  for (var name in all)\n    __defProp(target, name, { get: all[name], enumerable: true });\n};\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === \"object\" || typeof from === \"function\") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n// entry.js\nvar entry_exports = {};\n__export(entry_exports, {\n  answer: () => answer\n});\nmodule.exports = __toCommonJS(entry_exports);\nvar answer = 42;\n// Annotate the CommonJS export names for ESM import in node:\n0 && (module.exports = {\n  answer\n});\n"
+  },
+  "clientAfter": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/node_modules/esbuild/lib/main.js",
+    "bytes": 97214,
+    "digest": "sha256:8331fe1d8b3a07381f33cc425fcfaa94776e263113653f80ec3ba433e9657e73"
+  },
+  "error": "Error: private-map service: negative protocol request not rejected\n    at insist (file:///C:/code/chainlesschain/packages/cli/scripts/windows-esbuild-private-map-service.mjs:21:25)\n    at inspectService (file:///C:/code/chainlesschain/packages/cli/scripts/windows-esbuild-private-map-service.mjs:65:3)\n    at runPrivateMapService (file:///C:/code/chainlesschain/packages/cli/scripts/windows-esbuild-private-map-service.mjs:135:27)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///C:/code/chainlesschain/packages/cli/scripts/windows-esbuild-private-map-service.mjs:159:18",
+  "nativeRaw": "{\"experimental\":true,\"status\":\"NOT_ADMITTED\",\"completed\":true,\"stage\":\"completed\",\"error\":0,\"setterStatus\":0,\"hostNonElevatedUnrestricted\":true,\"rootPid\":26096,\"childPid\":13108,\"childExit\":0,\"childTokenProven\":true,\"appContainerSid\":\"S-1-15-2-290697808-62566285-3107478655-4134796698-3690750083-2304145207-2246215189\",\"capabilityCount\":0,\"imagePinned\":true,\"leafRestricted\":true,\"exactHandleCount\":5,\"mapPrepared\":true,\"mapInstalled\":true,\"parentMapUnchanged\":true,\"cleanupConfirmed\":true,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"guardedRootNt\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"guardedRootFileId\":\"02469ff7:000d0000:00551175\",\"childCreated\":true,\"jobAssigned\":true,\"childWaitStatus\":0,\"childExitRead\":true,\"childExited\":true,\"jobQuerySucceeded\":true,\"jobActiveProcesses\":0,\"directTerminationAttempted\":false,\"directTerminationSucceeded\":false,\"directTerminationError\":0,\"beforeMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterSetterMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"},\"afterChildMap\":{\"status\":\"absent\",\"characters\":0,\"error\":2,\"valueHex\":\"\"}}\n",
+  "traceRaw": "{\"sequence\":1,\"pid\":13108,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":13108,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":13108,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":13108,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":13108,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:000d0000:00551175\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":13108,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":13108,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":13108,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":13108,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":13108,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":12,\"pid\":13108,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":13,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":14,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":15,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":16,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":17,\"pid\":13108,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-wiJwoY\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":18,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\entry.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":19,\"pid\":13108,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\scratch\\\\bundle.js\",\"success\":true,\"error\":0,\"kind\":1073741824,\"patches\":2,\"overflow\":0}\n{\"sequence\":20,\"pid\":13108,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n",
+  "finishedAt": "2026-10-09T03:30:36.650Z"
+}

@@ -1,0 +1,139 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-u-final-unassigned-worker",
+  "archivedAt": "2026-10-09T05:20:22.740Z",
+  "files": [
+    {
+      "path": "bundle.js",
+      "bytes": 1038,
+      "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07"
+    },
+    {
+      "path": "esbuild-trace-1.jsonl",
+      "bytes": 7064,
+      "digest": "sha256:945fd99ec8493f3592766db51b9bf01273c93170d356783fa3b95ad60e7b0e74"
+    },
+    {
+      "path": "inputs/check.cjs",
+      "bytes": 3683,
+      "digest": "sha256:d713617bc1f02546d24a3fcb67757c4c1d4f292775a8b50ede380c2b47a0f1f0"
+    },
+    {
+      "path": "inputs/model-capabilities.test.js",
+      "bytes": 14263,
+      "digest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+    },
+    {
+      "path": "inputs/preparation.json",
+      "bytes": 1855718,
+      "digest": "sha256:5bf26376fb4b2fccc06cf2af1a60aee90a381035148a6881a22b772b12ed69a6"
+    },
+    {
+      "path": "inputs/source-closure.json",
+      "bytes": 1366950,
+      "digest": "sha256:b8a63ab9af6e4d9be9469af2c07416d350b5a1f70301b40d8f89ffbc0f1ea658"
+    },
+    {
+      "path": "inputs/vitest.config.js",
+      "bytes": 3515,
+      "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+    },
+    {
+      "path": "inputs/windows-node-private-v4.manifest.json",
+      "bytes": 1370,
+      "digest": "sha256:c4c816312c929bd0d935dfce7ecca191fd5ea2a0c5da42bab758ae06470b0c19"
+    },
+    {
+      "path": "inputs/windows-node-private-v4.report-helper-d94c5157-642e-4e68-865e-a4f807fa5618.manifest.json",
+      "bytes": 1422,
+      "digest": "sha256:220e95c995ca3679c444a0eaa57ba4832d219b563d65aacabdd3177befbdf3ae"
+    },
+    {
+      "path": "journal.jsonl",
+      "bytes": 426,
+      "digest": "sha256:44f5874e23a72291b1fbefce980670f3925d0edf0dc5dada82ed45a450ae4717"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1370,
+      "digest": "sha256:c4c816312c929bd0d935dfce7ecca191fd5ea2a0c5da42bab758ae06470b0c19"
+    },
+    {
+      "path": "report.json",
+      "bytes": 77751,
+      "digest": "sha256:6ef7dd99a25a84c6170b0d77365f08220e5172219ac5b7cedd564942a331e63a"
+    },
+    {
+      "path": "service.json",
+      "bytes": 3844,
+      "digest": "sha256:030edf97cfd8ee60d280b4d1746f3d4fd9cb29279e23478582310e05f4e8cd7f"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "path": "source/windows-node-private-v4-broker.cpp",
+      "bytes": 42810,
+      "digest": "sha256:b5d0ca55778c18cda7bef77d1edd3ff1fd14f2395c047c269af3ec62ace08b3e"
+    },
+    {
+      "path": "source/windows-node-private-v4-diagnostic.mjs",
+      "bytes": 27786,
+      "digest": "sha256:f555da1ac5df3bf0fadd7d04beffe5fe382f7556f94fc146a127209bbe75e9fc"
+    },
+    {
+      "path": "source/windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "path": "source/windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "path": "source/windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    },
+    {
+      "path": "source/windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "path": "source/windows-node-private-v4-result.mjs",
+      "bytes": 29301,
+      "digest": "sha256:9df836e981c9905f2dd262cba911816d1360c904cb19f3d3a82e01f55c04519d"
+    },
+    {
+      "path": "stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

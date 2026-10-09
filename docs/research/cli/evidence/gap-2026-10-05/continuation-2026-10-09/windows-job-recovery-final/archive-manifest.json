@@ -1,0 +1,59 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\windows-job-recovery-20261009-final",
+  "archivedAt": "2026-10-09T03:40:01.435Z",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 67,
+      "digest": "sha256:82855aa954cd3d37e6c5edf3cda27fef26057fa06f43dbd2a4007ed21930b2fa"
+    },
+    {
+      "path": "native.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native.stdout.json",
+      "bytes": 1381,
+      "digest": "sha256:395f5df6da3492ff82997ce2c07fca4c3f5742bb6fcf908a7c9e4d365d4b918f"
+    },
+    {
+      "path": "report.json",
+      "bytes": 3365,
+      "digest": "sha256:36c3cecde1255cf1b6d669b60540cb00043435ffc4d713c237572304feef6623"
+    },
+    {
+      "path": "unassigned.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "unassigned.stdout.json",
+      "bytes": 448,
+      "digest": "sha256:4ac32409415a37865c94a168e4c9ce76cc3f01029324d2eac2ca29eff6f59c12"
+    },
+    {
+      "path": "windows-job-recovery-evidence.mjs",
+      "bytes": 4787,
+      "digest": "sha256:b9ba97062083f9f34d22ebf1f405e360b059f3f05261a7853de6afc11d8b2e6f"
+    },
+    {
+      "path": "windows-job-recovery-evidence.node-test.mjs",
+      "bytes": 5483,
+      "digest": "sha256:e10844c176f7ef3e5acf0b4285c1dc5df7d74b9fe09c84f246d50ef07f23b91a"
+    },
+    {
+      "path": "windows-job-recovery-probe.cs",
+      "bytes": 19511,
+      "digest": "sha256:3f371c47b07e06dfd7c015092d1c270b85746e85dec478bdb6b96a82845b69ac"
+    },
+    {
+      "path": "windows-job-recovery-probe.mjs",
+      "bytes": 7206,
+      "digest": "sha256:d75d589acea4d40069100e417fbf9587fcc10a1f3cb525f77684cb9e4f96d524"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

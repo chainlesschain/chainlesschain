@@ -1,0 +1,436 @@
+{
+  "schema": "chainlesschain.frozen-native-review-dependencies/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+  "formalSample": false,
+  "status": "NOT_ADMITTED",
+  "lifecycleScriptsExecuted": false,
+  "packages": [
+    {
+      "path": "node_modules/better-sqlite3",
+      "name": "better-sqlite3",
+      "version": "12.11.1",
+      "url": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-12.11.1.tgz",
+      "integrity": "sha512-dq9AtApgg5PGFtBzPFSBl3HZQjHok5gaQCM6zh2Yk0aSmDCs1CbnVI8/HgASQkNKsWFpseIO9beg5xxpYhbIfA==",
+      "artifactDigest": "sha256:ebf0ed75a7a59dbcb3b24bbd014ef49d9f15bc328e4adcbf516f2a8fadfa2835",
+      "fileCount": 49
+    },
+    {
+      "path": "node_modules/bindings",
+      "name": "bindings",
+      "version": "1.5.0",
+      "url": "https://registry.npmjs.org/bindings/-/bindings-1.5.0.tgz",
+      "integrity": "sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==",
+      "artifactDigest": "sha256:d77781178c5bd89a91b1f6c5556acd511b1b5927eb13e2ad8189cac29eeb0907",
+      "fileCount": 4
+    },
+    {
+      "path": "node_modules/file-uri-to-path",
+      "name": "file-uri-to-path",
+      "version": "1.0.0",
+      "url": "https://registry.npmjs.org/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz",
+      "integrity": "sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==",
+      "artifactDigest": "sha256:5440cdf67e75ab96f36a6be63c1d4c3d54255b1d0970273710fecfebfab06fb3",
+      "fileCount": 10
+    }
+  ],
+  "files": [
+    {
+      "path": "node_modules/better-sqlite3/LICENSE",
+      "bytes": 1078,
+      "digest": "sha256:09856b52897c91ab67e7456ef43067019f31dfd3b87fda72e655736b1ebdee55",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3.c",
+      "bytes": 9507980,
+      "digest": "sha256:60d2f39a3726cd6b9021da6f4e868608d66fbb6528a9f513dc8ffcc640493422",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/test_extension.c",
+      "bytes": 587,
+      "digest": "sha256:948af88dbf356835f5496c1a3d047fdbcc58f3717aa9bc94d0943d7de2b7cf5b",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/addon.cpp",
+      "bytes": 1283,
+      "digest": "sha256:20f19f480ce060900521cf9510922e5ca1c8e76936f07ac2916f316e549a0190",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/backup.cpp",
+      "bytes": 4146,
+      "digest": "sha256:16a67102c49c9312eb1deecd08c27064325840df51d6957fe134b871f5d8798c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/better_sqlite3.cpp",
+      "bytes": 2851,
+      "digest": "sha256:01b2333517538a24919cc0b916c5a436561d7f712bac7befb6850e9f4b042dc5",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/bind-map.cpp",
+      "bytes": 1587,
+      "digest": "sha256:7026e107a7f662b6460fbd05e91d9594f5114ffa69de7a8ddb082911f6e90876",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/binder.cpp",
+      "bytes": 6060,
+      "digest": "sha256:64e2ebe910f2efc1d7a847672565745da2c4f5656d951033d99567e7593409d8",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/constants.cpp",
+      "bytes": 9068,
+      "digest": "sha256:bbf4a3f983631f01f723627ee0e897f92b12cd6ca3e8b8b965318931bba0f2b4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-aggregate.cpp",
+      "bytes": 3952,
+      "digest": "sha256:742d03187a7b8483c9f42bb7b77ed29d0f6877450584fba2662164d2b8dd11b6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-function.cpp",
+      "bytes": 1550,
+      "digest": "sha256:6a1f826df2cc2c402d8a3dd747a57dbcedb52fe9220a2bbda6a5e01f038b13d1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/custom-table.cpp",
+      "bytes": 14960,
+      "digest": "sha256:7549b38f24b7e69e78d407534a5cde8814a8a08628a421b122644a43940e0aaf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/data-converter.cpp",
+      "bytes": 460,
+      "digest": "sha256:3cb73d0911e92893abf840752e9cfd6baded604d49b39ec4000599eec7c8c594",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/data.cpp",
+      "bytes": 9639,
+      "digest": "sha256:74de42f9a0fa68277d8ea9cbaf8ee5f455bbd99cc41297696546c0ec8408c882",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/database.cpp",
+      "bytes": 14198,
+      "digest": "sha256:081c514fb0a472a0e0962f0619149c187b6cf424e09baa7f39cc5246c17f75aa",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/helpers.cpp",
+      "bytes": 4439,
+      "digest": "sha256:7b763d2caa40f70bf6726c0f70ea50c1db69c7fa453b3bc2ec19577e99800984",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/macros.cpp",
+      "bytes": 4574,
+      "digest": "sha256:09d5605bb65c8d43c0e235f878cbbffc98d79b1e35ee05b7c33766ce114a13a4",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/query-macros.cpp",
+      "bytes": 4138,
+      "digest": "sha256:0dcf68c3ff527398ebe0a6b874b38aa23b3fb87f285b9701636c3b19282dde8c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/util/row-builder.cpp",
+      "bytes": 1017,
+      "digest": "sha256:d5b352ac4959a07db22a825019286e085910310d6363c61fbdf037e3f32d56fc",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement-iterator.cpp",
+      "bytes": 3339,
+      "digest": "sha256:6ac791fbb786fc498450e843f2a043eddeb03093eb6b31012a04ae7b84a8d7ab",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement.cpp",
+      "bytes": 13173,
+      "digest": "sha256:4875a4d1942b89b1dc715b50f3f01e0899530a0772d0fef6f26c358d7e3d12a3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/binding.gyp",
+      "bytes": 942,
+      "digest": "sha256:2a48a110d17a692e769e4747dfea3b4471842ba86501db7cdcda33f8dfcb2921",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3.gyp",
+      "bytes": 2542,
+      "digest": "sha256:a009b8f80cf0a944eacaf71a84e590504f353fbd8f8b341138d0c3094e372d18",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/common.gypi",
+      "bytes": 1584,
+      "digest": "sha256:e71a565cd7733e05efc3a2792b54e260126f03f490325aa2a201202acbbdb315",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/defines.gypi",
+      "bytes": 1160,
+      "digest": "sha256:029426d3d6528d56ea75682a67a49e48747ccb7439faa75107601d4e2cafabc3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3.h",
+      "bytes": 690725,
+      "digest": "sha256:9e69a1353a4288450b0d5239ede11fc7f1f4c8e5eb07491fc8317eacb5b7de7e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/sqlite3/sqlite3ext.h",
+      "bytes": 39175,
+      "digest": "sha256:ac9645e5c9ff0cf176efdd6e75cb5e98f46295d38e02db5c4d208826a39ab4be",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/backup.hpp",
+      "bytes": 705,
+      "digest": "sha256:02d57e03a1a03b3f8bb2fc503fc1704d4143b76d939fe37230fbb3b44177c44a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/database.hpp",
+      "bytes": 3129,
+      "digest": "sha256:f47ab5d6bb775cadd0b2b73c4fcb6faf5cb2ae783a049ff4691fafc5d29a0bca",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement-iterator.hpp",
+      "bytes": 1391,
+      "digest": "sha256:c064f10ad6bca99154d4f5325e187978d4c6d6cc6fedaa047a4d2f3b4b4f9655",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/src/objects/statement.hpp",
+      "bytes": 1373,
+      "digest": "sha256:3dca186418c62d81f4b9170904fdc02e624c3d76a0c0c61e6aa95486799808e9",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/aggregate.js",
+      "bytes": 1932,
+      "digest": "sha256:e9f74eb919ec93fe089c95ddf25a98f1f631c80418fa34fb2346ca1bc29f1b82",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/backup.js",
+      "bytes": 2380,
+      "digest": "sha256:ea29d34992bb02e006d0fdeda9675ac5d2bb227aaf57468decd997e9fc9c7dbf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/copy.js",
+      "bytes": 897,
+      "digest": "sha256:05a2bd41dbd96e33e2fc6cf4bcbc722b4bc8c529813b882f92113d7dbbbece67",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/database.js",
+      "bytes": 4149,
+      "digest": "sha256:02ea23bdd23d7ac5de0675a2f32fc686e76d5c6a32bd3e3891f360e72e07f61f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/function.js",
+      "bytes": 1396,
+      "digest": "sha256:f431d49303b8bbdc044b1f1b455bdad21fc9b74b007de0acb22f08f25b4febd3",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/index.js",
+      "bytes": 110,
+      "digest": "sha256:82db11c4ee43a41d859988c5db42c3771dff565371f94bacbd1e4d8d6ceb47cd",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/inspect.js",
+      "bytes": 174,
+      "digest": "sha256:4975a78daee850adee62ba98719d0f223819a0ec135a07c0e302994bd8dbff61",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/pragma.js",
+      "bytes": 536,
+      "digest": "sha256:8b1c54475bd4340b15e25c50d53d06308be65f8f919ecbe4aa9d285ca859ad5a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/serialize.js",
+      "bytes": 625,
+      "digest": "sha256:7a10ee5c2735384b7f0c361811bc6d017db29f62b203fd3c68a35f667e2c2605",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/sqlite-error.js",
+      "bytes": 717,
+      "digest": "sha256:2582d61c27680dead168543f392eb102be621dfbef282a4ca4c7c21aa5e7c75d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/table.js",
+      "bytes": 7144,
+      "digest": "sha256:97c42d9ded1aa96c7d916b5b92f96b4e59581d50eaf629cd2c7afb78ff26a9ea",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/transaction.js",
+      "bytes": 2792,
+      "digest": "sha256:bc8624a3ef689d8f78e5669020ad121e17acbc93b1d5ee5afe26860b1084c66c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/util.js",
+      "bytes": 331,
+      "digest": "sha256:92b2e39e2151b43a2252e10b6d6de876ecaf0008336a4fa1dfe1317b20f1916f",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/lib/methods/wrappers.js",
+      "bytes": 1145,
+      "digest": "sha256:a150a6271d23f4e5f8953b129f370ff096c7cdc4b812afbf080a6cf4ab741bcf",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/package.json",
+      "bytes": 1436,
+      "digest": "sha256:4665126292eff5dffe6c0ffabf98c4de18e479aa0b53edd775028eb567b3ecc1",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/README.md",
+      "bytes": 5666,
+      "digest": "sha256:647a90bd246a10fdd1d827f6ca7aa391f142e3322068470be07220941d953386",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/patches/1208.patch",
+      "bytes": 597,
+      "digest": "sha256:5d1f22d69fee3551b70a7b7b9b14be43fcfd04dbc8683233667abfa75905011a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/deps/download.sh",
+      "bytes": 3913,
+      "digest": "sha256:cc2c1539a4c906bd0ec38104264f9bc1d45120e79de8cc595c29a2319d5c4628",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/package.json",
+      "bytes": 660,
+      "digest": "sha256:a87721fe406e1f1798fef44d697b46ea1efe346fda118010334713346ee4207c",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/bindings.js",
+      "bytes": 5986,
+      "digest": "sha256:8e32a0d37f20bd6f7d5bdbf99d041aa27be47cbbe5172ac13ebf7380a10b3bf6",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/LICENSE.md",
+      "bytes": 1108,
+      "digest": "sha256:85fde19744c84cfacb04aed732c0392ba221231b26090d3271d2ed865bfc0792",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/bindings/README.md",
+      "bytes": 3476,
+      "digest": "sha256:a5552f138725ba2768610c9362f5c7387c8ac80c61fc68477a4f97b7412bba86",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/package.json",
+      "bytes": 717,
+      "digest": "sha256:71eb1e24bb9694f89c613fa0aa307f977dd43f41d11794c7b48fabf6c55f66b0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/.npmignore",
+      "bytes": 14,
+      "digest": "sha256:bfb16fc2dc3b7f24e20981aa586e31d66293c81eb7c2e5d0a9bbb252b13c6271",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/README.md",
+      "bytes": 2073,
+      "digest": "sha256:a801a028d69327433eb397e69fd0aea3f58b80a76222ffbae129d8808913251a",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/LICENSE",
+      "bytes": 1083,
+      "digest": "sha256:75070206e4ee2a749be52444cecc05101ca8d314c9d6d335ff914046cbf086a0",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/index.js",
+      "bytes": 1723,
+      "digest": "sha256:e62293e871bdd5a7449ff3c7956c9536ec1d2ea7369461de77322b5256bb93e7",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/.travis.yml",
+      "bytes": 472,
+      "digest": "sha256:14cfedcd0d39a797fb56787bc06b46d09aa2786084bb0dec49467b9720fb2979",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/index.d.ts",
+      "bytes": 77,
+      "digest": "sha256:46eb38b4f992126135e00159041a6e69e46402e56613bdc891d7b0d28fc31e37",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/History.md",
+      "bytes": 433,
+      "digest": "sha256:0b06e981a4318af1daef8b6ef0c6ff794e9b18a0a3e0738a65c9063988016d2e",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/test/test.js",
+      "bytes": 666,
+      "digest": "sha256:223c25dba6fefbb7cb491b026a32f070b1425475d3cd2d04627be5d71a07fd38",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/file-uri-to-path/test/tests.json",
+      "bytes": 810,
+      "digest": "sha256:b48c50c1328ab8522fc0bf91923ea42fb59e63e847b967dac88123cb5e5b185d",
+      "origin": "locked-registry"
+    },
+    {
+      "path": "node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "bytes": 1918976,
+      "digest": "sha256:c4b95a94a963258a9ef41b12fd3bb86f0b08a2ac5c5b499fe94de57a5443682d",
+      "origin": "github-release-prebuild"
+    }
+  ],
+  "prebuild": {
+    "repository": "WiseLibs/better-sqlite3",
+    "tag": "v12.11.1",
+    "assetId": 448381569,
+    "url": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.11.1/better-sqlite3-v12.11.1-node-v127-win32-x64.tar.gz",
+    "artifactDigest": "sha256:927b34496e946dc7c9a45636a03a039df72f10191ccc4960b8616d1a9319e45b",
+    "artifactBytes": 1039346,
+    "nodeAbi": 127,
+    "platform": "win32",
+    "arch": "x64",
+    "signedAttestationAssessed": false
+  },
+  "complete": true
+}

@@ -1,0 +1,6 @@
+{
+  "url": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-12.11.1.tgz",
+  "status": 35,
+  "stderr": "  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current\r\n                                 Dload  Upload  Total   Spent   Left   Speed\r\n\r  0      0   0      0   0      0      0      0                              0\r\ncurl: (35) schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS (0x8009030e) - ��ȫ����û��\r\n",
+  "error": null
+}

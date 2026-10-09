@@ -1,0 +1,34 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\private-v4-runtime-subset-evidence-20261009",
+  "archivedAt": "2026-10-09T05:21:37.665Z",
+  "files": [
+    {
+      "path": "derive-private-v4-runtime-overlay-20261009.mjs",
+      "bytes": 2562,
+      "digest": "sha256:cb2f097b3b692eabf7f4a93db4e99842c0aafbcd545f7afbc65ea27e8168ace5"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 64077,
+      "digest": "sha256:ab1de59c12136d2d15bb66ff85105e292fe252b281f50b2f24a67a012c0afbb2"
+    },
+    {
+      "path": "materialize-frozen-source-closure-20261009.mjs",
+      "bytes": 3651,
+      "digest": "sha256:acfbc750a52ebbcd7df67628c3f6e3dbafe17c6ecf5e00e86ff26a32267c842c"
+    },
+    {
+      "path": "parent-manifest.json",
+      "bytes": 63562,
+      "digest": "sha256:a6a470a2a7439954afb71c2205552ffc8f34836b62351f9a778309569cd39129"
+    },
+    {
+      "path": "retention.json",
+      "bytes": 319,
+      "digest": "sha256:5f45850660ee7276880da912eb05bcdbfdaa185a702492137fe14ebbef5454d0"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

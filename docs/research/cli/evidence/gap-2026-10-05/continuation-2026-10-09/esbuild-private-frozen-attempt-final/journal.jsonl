@@ -1,0 +1,4 @@
+{"sequence":1,"pid":4908,"phase":"started","execPath":"C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-ojTrxz\\workspace\\node.exe","cwd":"X:\\workspace","nodeVersion":"v22.22.2"}
+{"sequence":2,"pid":4908,"phase":"builtin-import-started"}
+{"sequence":3,"pid":4908,"phase":"builtin-import-completed"}
+{"sequence":4,"pid":4908,"phase":"import-started"}

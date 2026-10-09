@@ -1,0 +1,84 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline",
+  "archivedAt": "2026-10-09T06:43:57.760Z",
+  "files": [
+    {
+      "path": "inputs/preparation.json",
+      "bytes": 1855718,
+      "digest": "sha256:5bf26376fb4b2fccc06cf2af1a60aee90a381035148a6881a22b772b12ed69a6"
+    },
+    {
+      "path": "inputs/report.json",
+      "bytes": 25258887,
+      "digest": "sha256:a518155ed66cd2f24816afb6761903966fbf7550aab6639cf6a980c4c113c658"
+    },
+    {
+      "path": "report.json",
+      "bytes": 5973,
+      "digest": "sha256:410f12f7e664abe73e67a5a7e970c843d5a1c110a4219159ac20534529cbeeb7"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "path": "source/windows-node-private-v4-broker.cpp",
+      "bytes": 43120,
+      "digest": "sha256:3a1980af9446867926be6aba93fcc7ff93de580a2451dfb4fa71f311ba386436"
+    },
+    {
+      "path": "source/windows-node-private-v4-dependencies.mjs",
+      "bytes": 6698,
+      "digest": "sha256:f674bbdcd21f901d483781cc78936ae79768378de7d7f1d5f8fd7879822c4398"
+    },
+    {
+      "path": "source/windows-node-private-v4-diagnostic.mjs",
+      "bytes": 32417,
+      "digest": "sha256:d6e34b516aec402902a1f1ee1bcc2ea925a9c96aa9822ee8e263538ec3877027"
+    },
+    {
+      "path": "source/windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "path": "source/windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "path": "source/windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    },
+    {
+      "path": "source/windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "path": "source/windows-node-private-v4-result.mjs",
+      "bytes": 32064,
+      "digest": "sha256:aa71ddcdbb0555fd45d5bbfbe38d8d669f947f7f68b29c1bb2fb41a2d08e32fa"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

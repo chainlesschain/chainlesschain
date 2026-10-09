@@ -1,0 +1,49 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-a",
+  "archivedAt": "2026-10-09T03:46:00.984Z",
+  "files": [
+    {
+      "path": "bundle.js",
+      "bytes": 1038,
+      "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07"
+    },
+    {
+      "path": "leaf/bundle.js",
+      "bytes": 1038,
+      "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07"
+    },
+    {
+      "path": "leaf/report.json",
+      "bytes": 16954,
+      "digest": "sha256:03ef4d7627e05064cd35c7e3ddb864b88c946cf1cb9d0b17464fb22f921af7d6"
+    },
+    {
+      "path": "leaf/stderr",
+      "bytes": 44,
+      "digest": "sha256:be30a5aba4578eaeda56292a10d33155c5540a0314e8aa774cfe284a9953ae4b"
+    },
+    {
+      "path": "leaf/stdout",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "leaf/trace.jsonl",
+      "bytes": 3461,
+      "digest": "sha256:d22c00d965a9365157f4e4abe6593b17d5911947aa5a03d8646a2b56684930c0"
+    },
+    {
+      "path": "report.json",
+      "bytes": 16814,
+      "digest": "sha256:92f333f697de282588893b6ef3bab353d42fdb8409c0f403830e66df4346d371"
+    },
+    {
+      "path": "trace.jsonl",
+      "bytes": 3437,
+      "digest": "sha256:817125709f844d807568a63be0e2f2bb5a5fa22f7b4e3ed52c6967ea64406e69"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}
