@@ -50,7 +50,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.91 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.94 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

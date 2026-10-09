@@ -33,8 +33,7 @@ remain required.
 
 ### Changes carried from 0.37.139
 
-- Recommend CLI `0.166.95` after public availability and the extension's
-  exact-commit release gates pass.
+- Extension `0.37.139` paired with public CLI `0.166.94`.
 - Reduce contention between concurrent permission-rule writes while retaining
   the two-second acquisition deadline, synchronous revocation and unknown
   commit handling.
@@ -439,7 +438,7 @@ Open VSX listing remains the public registry source.
 ### 1. Install the paired CLI
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
-The current public pairing is CLI `0.166.91` with Open VSX `0.37.136`.
+The current public pairing is CLI `0.166.94` with Open VSX `0.37.139`.
 Use the following candidate upgrade command only after CLI `0.166.95` is public:
 
 ```bash
