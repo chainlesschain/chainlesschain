@@ -2,6 +2,14 @@
 
 候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
 
+## 第四候选：Windows ARM64 JetBrains 弹窗过渡
+
+准确候选 `a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b` 的 [IDE ARM64 Host Validation #37947977140](https://github.com/chainlesschain/chainlesschain/actions/runs/37947977140)，Windows ARM64 JetBrains **2026.2.0.1** job `113880537429` 为 **7 通过 / 1 失败**：`Restore code + conversation` 动作菜单在原 **45 秒**内未出现。前两轮单独恢复代码、对话已完成匹配的 preview/confirm；第三轮 timeline 返回并激活 `partial turn-2` 后没有 restore-both 请求。失败位于时间线选中到动作菜单过渡，不能称已执行的恢复逻辑失败，也未确认 popup 被取消、焦点或 WSL updater 的因果关系。[第四候选原件](./prepublish-attempt4/manifest.json)保留 API、日志、JUnit、协议与关键截图；原日志 SHA256 `f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804`。该提交的其他成功门不能替代此失败宿主门。
+
+IDEA build `262.8665.337` 的官方源码确认 Enter 在父 popup 清理并等待焦点稳定后才调用选中回调，未修改生产 `showTimelineActions`。测试驱动在同一个 deferred EDT runnable 内复核 showing、唯一目标，再选择并执行真实 Enter；IIFE 捕获原组件与目标，记录 `scheduled/entered/validated/dispatch-returned/failed`、可见性与焦点。原 **45 秒**预算和真实下一菜单、匹配 preview、confirm、完成文本断言保持，无 retry；Enter 返回且旧 popup 隐藏只完成这一调度步骤，不代表选中回调完成。
+
+JDK **21.0.12.1** 下 `compileUiTestJava` 编译通过。Astra 以真实已编译方法导出的脚本在 Rhino **1.7.15**、Swing JList/Enter Action 和真实 EDT 下验证 [10/10 调度合同](./prepublish-attempt4/popup-contract/report.json)，仅 IDE 队列与 showing 为替身；没有真实 GUI/CI，也未复现原失败。审阅发现 Java 泛型 `callJs` 的 `String.valueOf` 误选 `char[]` 重载，已用显式 `(Object)` 修正；[最新字节码回读](./prepublish-attempt4/popup-contract/review-resolution.json)确认 Object 重载，生成脚本摘要与已通过合同逐字节相同。修正后的准确提交仍须完整发布矩阵。
+
 ## 第三候选：桌面原生恢复功能预算
 
 候选 `a3cbe918e4f8fcda77dafa7514401d5f643b36df` 的 Windows CI Tests job `113865516304` 在 `project-goal-monitoring-host.test.js` 的恢复用例报默认 **5000ms** 超时，报告用时 **8073ms**；该边界 suite **230/231**。selector/fallback 后续未执行，其强制汇总正确失败。真实日志、部分矩阵快照和本地诊断见[第三候选原件](./prepublish-attempt3/manifest.json)，日志 SHA256 `0a6f0a39c9f07beb95e570cc5351a42580d1309002ca6d165917b10794a764a5`。当时 CLI/Strict/IDE 仍未完成，不能称该 SHA 完整通过。

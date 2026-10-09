@@ -1,0 +1,2543 @@
+Compiled from "IdeUiSmokeTest.java"
+final class com.chainlesschain.ide.uitest.IdeUiSmokeTest {
+  private static final java.lang.String ROBOT_URL;
+
+  private static final java.time.Duration CONNECT_BUDGET;
+
+  private static final java.time.Duration FRAME_BUDGET;
+
+  private static final java.time.Duration FIND_BUDGET;
+
+  private static final java.time.Duration OPTIONAL_ONBOARDING_BUDGET;
+
+  private static final java.time.Duration PANEL_VISIBILITY_PROBE_BUDGET;
+
+  private static final java.time.Duration FIRST_POPUP_BUDGET;
+
+  private static final long NEEDS_INPUT_VISIBILITY_SLA_MILLIS;
+
+  private static final int NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT;
+
+  private static final int NEEDS_INPUT_READINESS_MINIMUM_COUNT;
+
+  private static final int NEEDS_INPUT_READINESS_MAXIMUM_COUNT;
+
+  private static final int NEEDS_INPUT_READINESS_CONSECUTIVE_COUNT;
+
+  private static final int WORKBENCH_QUIESCENCE_PROBE_COUNT;
+
+  private static final long WORKBENCH_QUIESCENCE_PROBE_INTERVAL_MILLIS;
+
+  private static final java.lang.String STRIPE_XPATH;
+
+  private static final java.lang.String SESSIONS_STRIPE_XPATH;
+
+  private static final java.lang.String SESSIONS_TABLE_XPATH;
+
+  static final java.lang.String PLUGIN_CLASSLOADER_PENDING;
+
+  com.chainlesschain.ide.uitest.IdeUiSmokeTest();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  void chainlessChainChatAndControlJourney() throws java.lang.Exception;
+    Code:
+       0: invokestatic  #7                  // Method connectWithRetry:()Lcom/intellij/remoterobot/RemoteRobot;
+       3: astore_1
+       4: aload_1
+       5: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       7: ldc           #15                 // String //div[@class=\'IdeFrameImpl\']
+       9: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      12: getstatic     #23                 // Field FRAME_BUDGET:Ljava/time/Duration;
+      15: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      18: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      21: astore_2
+      22: aload_2
+      23: invokestatic  #33                 // Method restoreIdeWindow:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      26: aload_2
+      27: invokestatic  #37                 // Method assertRequiredHostArchitecture:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      30: aload_2
+      31: invokestatic  #40                 // Method assertRequiredHostVersion:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      34: aload_2
+      35: invokestatic  #43                 // Method assertAutomaticCompletionContract:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      38: aload_1
+      39: invokestatic  #46                 // Method dismissVendorOnboarding:(Lcom/intellij/remoterobot/RemoteRobot;)V
+      42: ldc           #50                 // String ui.onboarding.root
+      44: ldc           #52                 // String
+      46: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      49: astore_3
+      50: aload_3
+      51: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+      54: ifne          83
+      57: aload_1
+      58: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      61: pop
+      62: new           #70                 // class com/chainlesschain/ide/uitest/OnboardingIdentityJourney
+      65: dup
+      66: aload_1
+      67: aload_2
+      68: aload_3
+      69: iconst_0
+      70: anewarray     #61                 // class java/lang/String
+      73: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+      76: invokespecial #78                 // Method com/chainlesschain/ide/uitest/OnboardingIdentityJourney."<init>":(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/nio/file/Path;)V
+      79: invokevirtual #81                 // Method com/chainlesschain/ide/uitest/OnboardingIdentityJourney.run:()V
+      82: return
+      83: ldc           #84                 // String ui.verify01.captureRoot
+      85: ldc           #52                 // String
+      87: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      90: astore        4
+      92: ldc           #86                 // String ui.cold.root
+      94: ldc           #52                 // String
+      96: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      99: astore        5
+     101: aload         5
+     103: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+     106: ifne          164
+     109: aload_1
+     110: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     113: pop
+     114: new           #88                 // class com/chainlesschain/ide/uitest/ColdInitializationJourney
+     117: dup
+     118: aload_1
+     119: aload_2
+     120: aload         5
+     122: iconst_0
+     123: anewarray     #61                 // class java/lang/String
+     126: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+     129: ldc           #90                 // String ui.verify01.deadlineMs
+     131: invokestatic  #92                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     134: invokestatic  #95                 // Method java/lang/Long.parseLong:(Ljava/lang/String;)J
+     137: invokespecial #101                // Method com/chainlesschain/ide/uitest/ColdInitializationJourney."<init>":(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/nio/file/Path;J)V
+     140: astore        6
+     142: ldc           #104                // String ui.cold.boundaries
+     144: invokestatic  #106                // Method java/lang/Boolean.getBoolean:(Ljava/lang/String;)Z
+     147: ifeq          158
+     150: aload         6
+     152: invokevirtual #112                // Method com/chainlesschain/ide/uitest/ColdInitializationJourney.runBoundaries:()V
+     155: goto          163
+     158: aload         6
+     160: invokevirtual #115                // Method com/chainlesschain/ide/uitest/ColdInitializationJourney.run:()V
+     163: return
+     164: aload         4
+     166: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+     169: ifne          231
+     172: aload_1
+     173: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     176: pop
+     177: ldc           #116                // String ui.journey.phase
+     179: ldc           #118                // String initial
+     181: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     184: astore        6
+     186: new           #120                // class com/chainlesschain/ide/uitest/Verify01HostJourney
+     189: dup
+     190: aload_1
+     191: aload_2
+     192: aload         4
+     194: iconst_0
+     195: anewarray     #61                 // class java/lang/String
+     198: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+     201: ldc           #122                // String ui.verify01.sampleId
+     203: ldc           #52                 // String
+     205: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     208: invokespecial #124                // Method com/chainlesschain/ide/uitest/Verify01HostJourney."<init>":(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/nio/file/Path;Ljava/lang/String;)V
+     211: aload         6
+     213: invokevirtual #127                // Method com/chainlesschain/ide/uitest/Verify01HostJourney.run:(Ljava/lang/String;)V
+     216: ldc           #118                // String initial
+     218: aload         6
+     220: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     223: ifeq          230
+     226: aload_2
+     227: invokestatic  #134                // Method saveProjectBeforeRestart:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     230: return
+     231: ldc           #137                // String ui.recovery.root
+     233: ldc           #52                 // String
+     235: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     238: astore        6
+     240: aload         6
+     242: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+     245: ifne          324
+     248: aload_1
+     249: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     252: pop
+     253: ldc           #116                // String ui.journey.phase
+     255: ldc           #118                // String initial
+     257: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+     260: astore        7
+     262: new           #139                // class com/chainlesschain/ide/uitest/ConversationRecoveryJourney
+     265: dup
+     266: aload_1
+     267: aload_2
+     268: aload         6
+     270: iconst_0
+     271: anewarray     #61                 // class java/lang/String
+     274: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+     277: invokespecial #141                // Method com/chainlesschain/ide/uitest/ConversationRecoveryJourney."<init>":(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/nio/file/Path;)V
+     280: aload         7
+     282: invokevirtual #142                // Method com/chainlesschain/ide/uitest/ConversationRecoveryJourney.run:(Ljava/lang/String;)V
+     285: ldc           #118                // String initial
+     287: aload         7
+     289: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     292: ifeq          309
+     295: aload_1
+     296: aload_2
+     297: aload         6
+     299: iconst_0
+     300: anewarray     #61                 // class java/lang/String
+     303: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+     306: invokestatic  #143                // Method com/chainlesschain/ide/uitest/NativeTranscriptJourney.run:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/nio/file/Path;)V
+     309: ldc           #118                // String initial
+     311: aload         7
+     313: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     316: ifeq          323
+     319: aload_2
+     320: invokestatic  #134                // Method saveProjectBeforeRestart:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     323: return
+     324: ldc           #147                // String restart
+     326: ldc           #116                // String ui.journey.phase
+     328: invokestatic  #92                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+     331: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     334: ifeq          348
+     337: aload_1
+     338: iconst_1
+     339: invokestatic  #149                // Method runSessionsWorkbenchJourney:(Lcom/intellij/remoterobot/RemoteRobot;Z)V
+     342: aload_1
+     343: iconst_1
+     344: invokestatic  #153                // Method runModelConfigurationJourney:(Lcom/intellij/remoterobot/RemoteRobot;Z)V
+     347: return
+     348: aload_1
+     349: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     352: astore        7
+     354: aload_1
+     355: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     357: ldc           #156                // String //div[@class=\'JBTabbedPane\']
+     359: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     362: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     365: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     368: pop
+     369: aload_1
+     370: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     372: ldc           #161                // String //div[@class=\'JTextPane\']
+     374: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     377: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     380: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     383: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     386: astore        8
+     388: aload_1
+     389: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     391: ldc           #163                // String //div[@text=\'Send\']
+     393: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     396: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     399: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     402: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     405: astore        9
+     407: aload_1
+     408: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     410: ldc           #165                // String //div[@text=\'Stop\']
+     412: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     415: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     418: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     421: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     424: astore        10
+     426: aload         7
+     428: aload         9
+     430: ldc           #167                // String journey:stream
+     432: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     435: aload         8
+     437: ldc           #173                // String fixture stream complete #1
+     439: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     442: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     445: aload         7
+     447: aload         9
+     449: ldc           #179                // String /retry
+     451: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     454: aload         8
+     456: ldc           #181                // String fixture stream complete #2
+     458: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     461: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     464: aload         7
+     466: aload         9
+     468: ldc           #183                // String journey:plan
+     470: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     473: aload         8
+     475: ldc           #185                // String opened plan review editor tab
+     477: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     480: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     483: aload         8
+     485: ldc           #187                // String importClass(com.intellij.openapi.application.ApplicationManager);importClass(com.intellij.openapi.command.WriteCommandAction);importClass(com.intellij.openapi.project.ProjectManager);importClass(com.intellij.openapi.fileEditor.FileEditorManager);importClass(java.lang.Runnable);ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){var project=ProjectManager.getInstance().getOpenProjects()[0];var editor=FileEditorManager.getInstance(project).getSelectedTextEditor();var document=editor.getDocument();WriteCommandAction.runWriteCommandAction(project,new Runnable({run:function(){document.insertString(document.getTextLength(),\'\\nReviewer fixture: preserve this note.\\n\');}}));}}));
+     487: iconst_1
+     488: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+     491: aload         8
+     493: iconst_0
+     494: invokestatic  #193                // Method waitForPlanReviewerNote:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Z)V
+     497: aload_1
+     498: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     500: ldc           #197                // String //div[@text=\'Approve\']
+     502: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     505: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     508: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     511: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     514: astore        11
+     516: aload         11
+     518: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     521: aload         8
+     523: ldc           #202                // String fixture plan approve #3
+     525: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     528: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     531: aload         8
+     533: iconst_1
+     534: invokestatic  #193                // Method waitForPlanReviewerNote:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Z)V
+     537: aload         7
+     539: aload         9
+     541: ldc           #204                // String journey:permission
+     543: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     546: aload_1
+     547: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     549: ldc           #206                // String //div[@text=\'Approve Once\']
+     551: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     554: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     557: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     560: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     563: astore        12
+     565: aload         12
+     567: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     570: aload         8
+     572: ldc           #208                // String fixture permission approved #4
+     574: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     577: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     580: aload         7
+     582: aload         9
+     584: ldc           #210                // String journey:stop
+     586: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     589: aload         8
+     591: ldc           #212                // String fixture stop waiting #5
+     593: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     596: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     599: aload_2
+     600: invokestatic  #214                // Method activeAgentProcessIds:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Ljava/util/Set;
+     603: astore        13
+     605: aload         10
+     607: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     610: aload         10
+     612: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     615: aload         8
+     617: ldc           #218                // String Stopping the agent; replacement waits for confirmed exit
+     619: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     622: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     625: aload         13
+     627: invokestatic  #220                // Method waitForProcessExit:(Ljava/util/Set;)V
+     630: aload         7
+     632: aload         9
+     634: ldc           #224                // String journey:resume
+     636: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     639: aload         8
+     641: ldc           #226                // String resumed previous conversation
+     643: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     646: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     649: aload         8
+     651: ldc           #228                // String fixture stream complete #6
+     653: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     656: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     659: aload_1
+     660: aload         7
+     662: aload         9
+     664: aload         8
+     666: ldc           #230                // String Restore code
+     668: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     671: aload_1
+     672: aload         7
+     674: aload         9
+     676: aload         8
+     678: ldc           #236                // String Restore conversation
+     680: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     683: aload_1
+     684: aload         7
+     686: aload         9
+     688: aload         8
+     690: ldc           #238                // String Restore code + conversation
+     692: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     695: aload_1
+     696: aload         7
+     698: aload         9
+     700: aload         8
+     702: ldc           #240                // String Summarize from here
+     704: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     707: aload_1
+     708: aload         7
+     710: aload         9
+     712: aload         8
+     714: ldc           #242                // String Summarize up to here
+     716: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     719: aload_1
+     720: aload         7
+     722: aload         9
+     724: aload         8
+     726: ldc           #244                // String Branch from here
+     728: invokestatic  #232                // Method runRewindAction:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     731: aload_1
+     732: iconst_0
+     733: invokestatic  #153                // Method runModelConfigurationJourney:(Lcom/intellij/remoterobot/RemoteRobot;Z)V
+     736: aload_2
+     737: invokestatic  #134                // Method saveProjectBeforeRestart:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     740: aload_1
+     741: iconst_0
+     742: invokestatic  #149                // Method runSessionsWorkbenchJourney:(Lcom/intellij/remoterobot/RemoteRobot;Z)V
+     745: goto          757
+     748: astore_2
+     749: aload_1
+     750: ldc           #248                // String chat-control-journey
+     752: invokestatic  #250                // Method saveScreenshot:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)V
+     755: aload_2
+     756: athrow
+     757: return
+    Exception table:
+       from    to  target type
+           4    82   748   Class java/lang/Throwable
+          83   163   748   Class java/lang/Throwable
+         164   230   748   Class java/lang/Throwable
+         231   323   748   Class java/lang/Throwable
+         324   347   748   Class java/lang/Throwable
+         348   745   748   Class java/lang/Throwable
+
+  private static java.util.Set<java.lang.Long> activeAgentProcessIds(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc           #254                // String function field(object, name) {\n    var f = object.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(object);\n}\nvar loader = Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin(\n    Packages.com.intellij.openapi.extensions.PluginId.getId(\'com.chainlesschain.ide\')).getPluginClassLoader();\nvar factory = java.lang.Class.forName(\'com.chainlesschain.ide.intellij.ChatToolWindowFactory\', true, loader);\nvar registry = factory.getDeclaredField(\'REGISTRY\'); registry.setAccessible(true);\nvar panel = registry.get(null).get(component.getProject());\nvar view = field(panel,\'views\').get(field(panel,\'tabIds\').get(field(panel,\'tabs\').getSelectedIndex()));\nvar process = field(field(field(view,\'conv\'),\'session\'),\'child\');\nvar ids = [String(process.pid())], children = process.descendants();\ntry {\n    var iterator = children.iterator();\n    while (iterator.hasNext()) ids.push(String(iterator.next().pid()));\n} finally { children.close(); }\nids.join(\',\');\n
+       3: iconst_1
+       4: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+       7: astore_1
+       8: new           #260                // class java/util/HashSet
+      11: dup
+      12: invokespecial #262                // Method java/util/HashSet."<init>":()V
+      15: astore_2
+      16: aload_1
+      17: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      20: ldc_w         #267                // String ,
+      23: invokevirtual #269                // Method java/lang/String.split:(Ljava/lang/String;)[Ljava/lang/String;
+      26: astore_3
+      27: aload_3
+      28: arraylength
+      29: istore        4
+      31: iconst_0
+      32: istore        5
+      34: iload         5
+      36: iload         4
+      38: if_icmpge     68
+      41: aload_3
+      42: iload         5
+      44: aaload
+      45: astore        6
+      47: aload_2
+      48: aload         6
+      50: invokestatic  #95                 // Method java/lang/Long.parseLong:(Ljava/lang/String;)J
+      53: invokestatic  #273                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+      56: invokeinterface #276,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+      61: pop
+      62: iinc          5, 1
+      65: goto          34
+      68: aload_2
+      69: invokeinterface #281,  1          // InterfaceMethod java/util/Set.isEmpty:()Z
+      74: invokestatic  #284                // Method org/junit/jupiter/api/Assertions.assertFalse:(Z)V
+      77: aload_2
+      78: areturn
+
+  private static void waitForProcessExit(java.util.Set<java.lang.Long>) throws java.lang.Exception;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       6: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       9: ladd
+      10: lstore_1
+      11: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      14: lload_1
+      15: lcmp
+      16: ifge          48
+      19: aload_0
+      20: invokeinterface #299,  1          // InterfaceMethod java/util/Set.stream:()Ljava/util/stream/Stream;
+      25: invokedynamic #303,  0            // InvokeDynamic #0:test:()Ljava/util/function/Predicate;
+      30: invokeinterface #307,  2          // InterfaceMethod java/util/stream/Stream.noneMatch:(Ljava/util/function/Predicate;)Z
+      35: ifeq          39
+      38: return
+      39: ldc2_w        #313                // long 25l
+      42: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      45: goto          11
+      48: new           #321                // class java/lang/AssertionError
+      51: dup
+      52: aload_0
+      53: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      56: invokedynamic #323,  0            // InvokeDynamic #1:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      61: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      64: athrow
+
+  private static void restoreIdeWindow(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #329                // String component.getExtendedState();
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: astore_1
+       8: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      11: aload_1
+      12: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      15: invokedynamic #338,  0            // InvokeDynamic #2:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      20: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      23: aload_0
+      24: ldc_w         #344                // String component.setExtendedState(component.getExtendedState() & ~Packages.java.awt.Frame.ICONIFIED);component.setVisible(true); component.toFront(); component.requestFocus();
+      27: iconst_1
+      28: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      31: return
+
+  private static void saveProjectBeforeRestart(com.intellij.remoterobot.fixtures.ComponentFixture) throws java.lang.Exception;
+    Code:
+       0: aload_0
+       1: ldc_w         #346                // String Packages.com.intellij.ide.util.PropertiesComponent.getInstance(component.getProject()).getValue(\'chainlesschain.chat.sessionIds\');
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: astore_1
+       8: aload_1
+       9: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      12: astore_2
+      13: aload_2
+      14: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+      17: ifne          30
+      20: ldc_w         #348                // String null
+      23: aload_2
+      24: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      27: ifeq          41
+      30: new           #321                // class java/lang/AssertionError
+      33: dup
+      34: ldc_w         #350                // String No conversation resume IDs available before project save
+      37: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      40: athrow
+      41: aload_0
+      42: ldc_w         #352                // String component.getProject().getBasePath();
+      45: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      48: astore_3
+      49: aload_3
+      50: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      53: astore        4
+      55: aload         4
+      57: iconst_2
+      58: anewarray     #61                 // class java/lang/String
+      61: dup
+      62: iconst_0
+      63: ldc_w         #354                // String .idea
+      66: aastore
+      67: dup
+      68: iconst_1
+      69: ldc_w         #356                // String workspace.xml
+      72: aastore
+      73: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+      76: astore        5
+      78: aload_0
+      79: ldc_w         #358                // String importClass(com.intellij.openapi.application.ApplicationManager);importClass(java.lang.Runnable);const target = component;ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){const manager = Packages.com.intellij.openapi.actionSystem.ActionManager.getInstance();manager.tryToExecute(manager.getAction(\'SaveAll\'), null, target, null, true);}}));
+      82: iconst_1
+      83: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      86: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      89: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      92: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+      95: ladd
+      96: lstore        6
+      98: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+     101: lload         6
+     103: lcmp
+     104: ifge          150
+     107: aload         5
+     109: iconst_0
+     110: anewarray     #360                // class java/nio/file/LinkOption
+     113: invokestatic  #362                // Method java/nio/file/Files.isRegularFile:(Ljava/nio/file/Path;[Ljava/nio/file/LinkOption;)Z
+     116: ifeq          141
+     119: aload         5
+     121: invokestatic  #368                // Method java/nio/file/Files.readString:(Ljava/nio/file/Path;)Ljava/lang/String;
+     124: aload_2
+     125: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     128: ifeq          141
+     131: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+     134: ldc_w         #376                // String [ui-smoke] saved project conversation IDs before IDE restart
+     137: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     140: return
+     141: ldc2_w        #378                // long 200l
+     144: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+     147: goto          98
+     150: new           #321                // class java/lang/AssertionError
+     153: dup
+     154: ldc_w         #380                // String Save All did not persist conversation resume IDs before IDE restart
+     157: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     160: athrow
+
+  private static com.intellij.remoterobot.fixtures.ComponentFixture namedModelField(com.intellij.remoterobot.RemoteRobot, java.lang.String);
+    Code:
+       0: aload_0
+       1: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       3: aload_1
+       4: invokedynamic #382,  0            // InvokeDynamic #3:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+       9: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      12: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      15: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      18: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      21: areturn
+
+  private static com.intellij.remoterobot.fixtures.ComponentFixture ensureChatInputVisible(com.intellij.remoterobot.RemoteRobot);
+    Code:
+       0: ldc_w         #383                // String //div[@class=\'JTextArea\' and @visible=\'true\']
+       3: astore_1
+       4: aload_0
+       5: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       7: aload_1
+       8: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      11: getstatic     #385                // Field PANEL_VISIBILITY_PROBE_BUDGET:Ljava/time/Duration;
+      14: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      17: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      20: areturn
+      21: astore_2
+      22: aload_2
+      23: invokevirtual #390                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      26: invokevirtual #394                // Method java/lang/Class.getName:()Ljava/lang/String;
+      29: ldc_w         #400                // String WaitForConditionTimeoutException
+      32: invokevirtual #402                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+      35: ifne          40
+      38: aload_2
+      39: athrow
+      40: aload_0
+      41: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      43: ldc_w         #405                // String //div[(@class=\'SquareStripeButton\' or @class=\'StripeButton\') and (@text=\'ChainlessChain\' or @tooltiptext=\'ChainlessChain\' or @accessiblename=\'ChainlessChain\')]
+      46: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      49: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      52: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      55: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      58: invokestatic  #407                // Method clickStripe:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      61: aload_0
+      62: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      64: aload_1
+      65: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      68: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      71: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      74: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      77: areturn
+    Exception table:
+       from    to  target type
+           4    20    21   Class java/lang/RuntimeException
+
+  private static com.intellij.remoterobot.fixtures.ComponentFixture openModelForm(com.intellij.remoterobot.RemoteRobot) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       3: ldc           #15                 // String //div[@class=\'IdeFrameImpl\']
+       5: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+       8: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      11: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      14: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      17: invokestatic  #33                 // Method restoreIdeWindow:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      20: aload_0
+      21: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      23: ldc_w         #410                // String //div[@accessiblename=\'Configure language model\' and @visible=\'true\']
+      26: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      29: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      32: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      35: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      38: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      41: aload_0
+      42: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      44: ldc_w         #412                // String //div[@class=\'JPopupMenu\' and @visible=\'true\']
+      47: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      50: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      53: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      56: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      59: astore_1
+      60: aload_1
+      61: ldc_w         #414                // String importClass(com.intellij.openapi.application.ApplicationManager);importClass(java.lang.Runnable);const item = component.getComponent(0);ApplicationManager.getApplication().invokeLater(new Runnable({run:function(){item.doClick();}}));
+      64: iconst_1
+      65: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      68: aload_0
+      69: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      71: ldc_w         #416                // String //div[@class=\'LlmConnectionPanel\']
+      74: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      77: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      80: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      83: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      86: astore_2
+      87: aload_0
+      88: ldc_w         #418                // String llm.test
+      91: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      94: ldc_w         #424                // String saved-model form
+      97: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     100: invokestatic  #426                // Method waitUntilEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     103: aload_2
+     104: areturn
+
+  private static void closeModelForm(com.intellij.remoterobot.RemoteRobot, com.intellij.remoterobot.fixtures.ComponentFixture) throws java.lang.InterruptedException;
+    Code:
+       0: aload_1
+       1: ldc_w         #429                // String Packages.javax.swing.SwingUtilities.getWindowAncestor(component).getTitle()
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: checkcast     #61                 // class java/lang/String
+      10: astore_2
+      11: aload_0
+      12: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      14: aload_2
+      15: invokestatic  #431                // Method xpathString:(Ljava/lang/String;)Ljava/lang/String;
+      18: invokedynamic #434,  0            // InvokeDynamic #4:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      23: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      26: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      29: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      32: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      35: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      38: aload_1
+      39: ldc_w         #435                // String model configuration form
+      42: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      45: invokestatic  #437                // Method waitUntilHidden:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      48: return
+
+  private static void runModelConfigurationJourney(com.intellij.remoterobot.RemoteRobot, boolean) throws java.lang.Exception;
+    Code:
+       0: aload_0
+       1: invokestatic  #66                 // Method ensureChatInputVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+       4: astore_2
+       5: aload_0
+       6: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       8: ldc_w         #440                // String //div[@class=\'JTextPane\' and @visible=\'true\']
+      11: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      14: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      17: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      20: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      23: astore_3
+      24: aload_0
+      25: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      27: ldc_w         #442                // String //div[@text=\'Send\' and @visible=\'true\']
+      30: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      33: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      36: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      39: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      42: astore        4
+      44: iload_1
+      45: ifne          233
+      48: aload_2
+      49: aload         4
+      51: ldc_w         #444                // String journey:model:initial-before
+      54: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+      57: aload_3
+      58: ldc_w         #446                // String fixture model deterministic-host-peer; vision=none; probe=journey:model:initial-before
+      61: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      64: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      67: aload_0
+      68: invokestatic  #448                // Method openModelForm:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      71: astore        5
+      73: aload_0
+      74: ldc_w         #451                // String llm.model
+      77: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      80: ldc_w         #453                // String component.setText(\'ui-config-model\')
+      83: iconst_1
+      84: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      87: aload_0
+      88: ldc_w         #455                // String llm.visionModel
+      91: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      94: ldc_w         #457                // String component.setText(\'ui-config-vision\')
+      97: iconst_1
+      98: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+     101: aload_0
+     102: ldc_w         #418                // String llm.test
+     105: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     108: invokestatic  #459                // Method componentEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Z
+     111: ifeq          125
+     114: new           #321                // class java/lang/AssertionError
+     117: dup
+     118: ldc_w         #463                // String Unsaved model changes were testable
+     121: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     124: athrow
+     125: aload_0
+     126: ldc_w         #465                // String llm.save
+     129: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     132: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     135: aload_0
+     136: ldc_w         #418                // String llm.test
+     139: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     142: ldc_w         #467                // String saved-model test
+     145: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     148: invokestatic  #426                // Method waitUntilEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     151: aload_0
+     152: ldc_w         #418                // String llm.test
+     155: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     158: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     161: aload_0
+     162: ldc_w         #469                // String llm.connection.status
+     165: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     168: ldc_w         #471                // String fixture saved connection accepted
+     171: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     174: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     177: aload         5
+     179: ldc_w         #476                // String model-config-saved
+     182: invokestatic  #478                // Method saveModelFormScreenshot:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     185: aload_0
+     186: aload         5
+     188: invokestatic  #482                // Method closeModelForm:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     191: aload_0
+     192: invokestatic  #448                // Method openModelForm:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     195: astore        5
+     197: aload_0
+     198: ldc_w         #451                // String llm.model
+     201: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     204: ldc_w         #486                // String ui-config-model
+     207: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     210: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     213: aload_0
+     214: ldc_w         #451                // String llm.model
+     217: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     220: ldc_w         #488                // String component.setText(\'unsaved-must-not-apply\')
+     223: iconst_1
+     224: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+     227: aload_0
+     228: aload         5
+     230: invokestatic  #482                // Method closeModelForm:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     233: aload_0
+     234: invokestatic  #448                // Method openModelForm:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     237: astore        5
+     239: aload_0
+     240: ldc_w         #451                // String llm.model
+     243: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     246: ldc_w         #486                // String ui-config-model
+     249: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     252: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     255: aload_0
+     256: ldc_w         #455                // String llm.visionModel
+     259: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     262: ldc_w         #490                // String ui-config-vision
+     265: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     268: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     271: aload_0
+     272: ldc_w         #492                // String llm.apiKey
+     275: invokestatic  #420                // Method namedModelField:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+     278: ldc_w         #494                // String component.getPassword().length
+     281: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+     284: invokestatic  #496                // Method intValue:(Ljava/lang/Object;)I
+     287: ifeq          301
+     290: new           #321                // class java/lang/AssertionError
+     293: dup
+     294: ldc_w         #500                // String Saved credentials were copied into the form
+     297: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     300: athrow
+     301: iload_1
+     302: ifeq          313
+     305: aload         5
+     307: ldc_w         #502                // String model-config-reopened
+     310: invokestatic  #478                // Method saveModelFormScreenshot:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     313: aload_0
+     314: aload         5
+     316: invokestatic  #482                // Method closeModelForm:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     319: iload_1
+     320: ifeq          329
+     323: ldc_w         #504                // String journey:model:restart
+     326: goto          332
+     329: ldc_w         #506                // String journey:model:initial-after
+     332: astore        6
+     334: aload_2
+     335: aload         4
+     337: aload         6
+     339: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     342: aload_3
+     343: aload         6
+     345: invokedynamic #508,  0            // InvokeDynamic #5:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     350: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     353: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     356: return
+
+  private static void saveModelFormScreenshot(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String) throws java.io.IOException;
+    Code:
+       0: aload_0
+       1: ldc_w         #509                // String const window = Packages.javax.swing.SwingUtilities.getWindowAncestor(component);const bytes = new Packages.java.io.ByteArrayOutputStream();Packages.javax.imageio.ImageIO.write(new Packages.java.awt.Robot().createScreenCapture(window.getBounds()), \'png\', bytes);Packages.java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: astore_2
+       8: ldc_w         #511                // String build
+      11: iconst_2
+      12: anewarray     #61                 // class java/lang/String
+      15: dup
+      16: iconst_0
+      17: ldc_w         #513                // String reports
+      20: aastore
+      21: dup
+      22: iconst_1
+      23: ldc_w         #515                // String ui-smoke
+      26: aastore
+      27: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+      30: astore_3
+      31: aload_3
+      32: iconst_0
+      33: anewarray     #517                // class java/nio/file/attribute/FileAttribute
+      36: invokestatic  #519                // Method java/nio/file/Files.createDirectories:(Ljava/nio/file/Path;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;
+      39: pop
+      40: aload_3
+      41: aload_1
+      42: invokestatic  #523                // Method java/lang/System.currentTimeMillis:()J
+      45: invokedynamic #526,  0            // InvokeDynamic #6:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      50: invokeinterface #529,  2          // InterfaceMethod java/nio/file/Path.resolve:(Ljava/lang/String;)Ljava/nio/file/Path;
+      55: invokestatic  #535                // Method java/util/Base64.getDecoder:()Ljava/util/Base64$Decoder;
+      58: aload_2
+      59: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      62: invokevirtual #541                // Method java/util/Base64$Decoder.decode:(Ljava/lang/String;)[B
+      65: iconst_0
+      66: anewarray     #547                // class java/nio/file/OpenOption
+      69: invokestatic  #549                // Method java/nio/file/Files.write:(Ljava/nio/file/Path;[B[Ljava/nio/file/OpenOption;)Ljava/nio/file/Path;
+      72: pop
+      73: return
+
+  private static void assertRequiredHostArchitecture(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: ldc_w         #553                // String CC_IDE_REQUIRED_HOST_ARCH
+       3: invokestatic  #555                // Method java/lang/System.getenv:(Ljava/lang/String;)Ljava/lang/String;
+       6: astore_1
+       7: aload_1
+       8: ifnull        18
+      11: aload_1
+      12: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+      15: ifeq          19
+      18: return
+      19: aload_0
+      20: ldc_w         #558                // String importClass(java.lang.System); System.getProperty(\'os.arch\');
+      23: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      26: astore_2
+      27: aload_2
+      28: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      31: astore_3
+      32: ldc_w         #560                // String aarch64
+      35: aload_3
+      36: invokevirtual #562                // Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+      39: ifeq          48
+      42: ldc_w         #565                // String arm64
+      45: goto          52
+      48: aload_3
+      49: invokevirtual #567                // Method java/lang/String.toLowerCase:()Ljava/lang/String;
+      52: astore        4
+      54: aload_1
+      55: aload         4
+      57: invokevirtual #562                // Method java/lang/String.equalsIgnoreCase:(Ljava/lang/String;)Z
+      60: ifne          78
+      63: new           #321                // class java/lang/AssertionError
+      66: dup
+      67: aload_1
+      68: aload_3
+      69: invokedynamic #570,  0            // InvokeDynamic #7:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      74: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      77: athrow
+      78: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      81: aload_3
+      82: invokedynamic #572,  0            // InvokeDynamic #8:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      87: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      90: return
+
+  private static void assertRequiredHostVersion(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: ldc_w         #573                // String CC_IDE_REQUIRED_HOST_VERSION
+       3: invokestatic  #555                // Method java/lang/System.getenv:(Ljava/lang/String;)Ljava/lang/String;
+       6: astore_1
+       7: aload_1
+       8: ifnull        18
+      11: aload_1
+      12: invokevirtual #60                 // Method java/lang/String.isBlank:()Z
+      15: ifeq          19
+      18: return
+      19: aload_0
+      20: ldc_w         #575                // String importClass(com.intellij.openapi.application.ApplicationInfo); ApplicationInfo.getInstance().getStrictVersion();
+      23: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      26: astore_2
+      27: aload_2
+      28: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      31: astore_3
+      32: aload_1
+      33: aload_3
+      34: invokestatic  #577                // Method equivalentNumericVersion:(Ljava/lang/String;Ljava/lang/String;)Z
+      37: ifne          55
+      40: new           #321                // class java/lang/AssertionError
+      43: dup
+      44: aload_1
+      45: aload_3
+      46: invokedynamic #581,  0            // InvokeDynamic #9:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      51: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      54: athrow
+      55: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      58: aload_3
+      59: invokedynamic #582,  0            // InvokeDynamic #10:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      64: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      67: return
+
+  static java.lang.String automaticCompletionContractScript();
+    Code:
+       0: ldc_w         #583                // String importClass(com.intellij.ide.plugins.PluginManagerCore); importClass(com.intellij.openapi.extensions.PluginId); importClass(com.intellij.openapi.application.ApplicationManager); (function() { if (java.lang.System.getProperty(\'idea.auto.reload.plugins\') != \'false\') throw \'Packaged plugin journey requires development auto reload disabled\'; var descriptor = PluginManagerCore.getPlugin(PluginId.getId(\'com.chainlesschain.ide\')); if (descriptor == null) throw \'ChainlessChain plugin not installed\'; if (!descriptor.isEnabled()) throw \'ChainlessChain plugin is disabled\'; var loader = descriptor.getPluginClassLoader(); if (loader == null) return \'__cc_plugin_classloader_pending__\'; var settingsClass = java.lang.Class.forName(\'com.chainlesschain.ide.intellij.CcSettings\', true, loader); var policyClass = java.lang.Class.forName(\'com.chainlesschain.ide.CcAutomaticCompletionPolicy\', true, loader); var settings = ApplicationManager.getApplication().getService(settingsClass); var options = settings.getAutomaticCompletionOptions(); return [settings.isAutomaticCompletionEnabled(), options.debounceMs, options.maxRequestsPerHour, options.maxContextCharsPerHour, options.cacheTtlMs, options.maxCompletionChars, options.maxCompletionLines, policyClass.getField(\'SLO_P50_MS\').get(null), policyClass.getField(\'SLO_P95_MS\').get(null), policyClass.getField(\'SLO_MINIMUM_SAMPLES\').get(null)].join(\'|\'); })();
+       3: areturn
+
+  private static void assertAutomaticCompletionContract(com.intellij.remoterobot.fixtures.ComponentFixture) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: invokedynamic #585,  0            // InvokeDynamic #11:get:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Ljava/util/function/Supplier;
+       6: getstatic     #23                 // Field FRAME_BUDGET:Ljava/time/Duration;
+       9: invokestatic  #588                // Method awaitAutomaticCompletionContract:(Ljava/util/function/Supplier;Ljava/time/Duration;)V
+      12: return
+
+  static void awaitAutomaticCompletionContract(java.util.function.Supplier<java.lang.String>, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_1
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_2
+       9: ldc_w         #592                // String __cc_plugin_classloader_pending__
+      12: aload_0
+      13: invokeinterface #594,  1          // InterfaceMethod java/util/function/Supplier.get:()Ljava/lang/Object;
+      18: checkcast     #61                 // class java/lang/String
+      21: dup
+      22: astore        4
+      24: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      27: ifeq          64
+      30: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      33: lload_2
+      34: lcmp
+      35: iflt          55
+      38: new           #321                // class java/lang/AssertionError
+      41: dup
+      42: aload_1
+      43: invokevirtual #599                // Method java/time/Duration.toMillis:()J
+      46: invokedynamic #602,  0            // InvokeDynamic #12:makeConcatWithConstants:(J)Ljava/lang/String;
+      51: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      54: athrow
+      55: ldc2_w        #605                // long 100l
+      58: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      61: goto          9
+      64: ldc_w         #607                // String false|650|60|240000|30000|800|12|2000|5000|20
+      67: astore        5
+      69: aload         5
+      71: aload         4
+      73: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      76: ifne          96
+      79: new           #321                // class java/lang/AssertionError
+      82: dup
+      83: aload         5
+      85: aload         4
+      87: invokedynamic #609,  0            // InvokeDynamic #13:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      92: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      95: athrow
+      96: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      99: aload         4
+     101: invokedynamic #610,  0            // InvokeDynamic #14:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     106: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     109: return
+
+  private static boolean equivalentNumericVersion(java.lang.String, java.lang.String);
+    Code:
+       0: aload_0
+       1: ldc_w         #611                // String \\d+(?:\\.\\d+)*
+       4: invokevirtual #613                // Method java/lang/String.matches:(Ljava/lang/String;)Z
+       7: ifeq          20
+      10: aload_1
+      11: ldc_w         #611                // String \\d+(?:\\.\\d+)*
+      14: invokevirtual #613                // Method java/lang/String.matches:(Ljava/lang/String;)Z
+      17: ifne          22
+      20: iconst_0
+      21: ireturn
+      22: aload_0
+      23: ldc_w         #616                // String \\.
+      26: invokevirtual #269                // Method java/lang/String.split:(Ljava/lang/String;)[Ljava/lang/String;
+      29: astore_2
+      30: aload_1
+      31: ldc_w         #616                // String \\.
+      34: invokevirtual #269                // Method java/lang/String.split:(Ljava/lang/String;)[Ljava/lang/String;
+      37: astore_3
+      38: aload_2
+      39: arraylength
+      40: aload_3
+      41: arraylength
+      42: invokestatic  #618                // Method java/lang/Math.max:(II)I
+      45: istore        4
+      47: iconst_0
+      48: istore        5
+      50: iload         5
+      52: iload         4
+      54: if_icmpge     112
+      57: iload         5
+      59: aload_2
+      60: arraylength
+      61: if_icmpge     74
+      64: aload_2
+      65: iload         5
+      67: aaload
+      68: invokestatic  #624                // Method java/lang/Integer.parseInt:(Ljava/lang/String;)I
+      71: goto          75
+      74: iconst_0
+      75: istore        6
+      77: iload         5
+      79: aload_3
+      80: arraylength
+      81: if_icmpge     94
+      84: aload_3
+      85: iload         5
+      87: aaload
+      88: invokestatic  #624                // Method java/lang/Integer.parseInt:(Ljava/lang/String;)I
+      91: goto          95
+      94: iconst_0
+      95: istore        7
+      97: iload         6
+      99: iload         7
+     101: if_icmpeq     106
+     104: iconst_0
+     105: ireturn
+     106: iinc          5, 1
+     109: goto          50
+     112: iconst_1
+     113: ireturn
+     114: astore        5
+     116: iconst_0
+     117: ireturn
+    Exception table:
+       from    to  target type
+          47   105   114   Class java/lang/NumberFormatException
+         106   113   114   Class java/lang/NumberFormatException
+
+  private static void dismissVendorOnboarding(com.intellij.remoterobot.RemoteRobot) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: ldc_w         #632                // String Close
+       4: invokestatic  #634                // Method dismissOptionalTextControl:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)V
+       7: aload_0
+       8: ldc_w         #637                // String Skip
+      11: invokestatic  #634                // Method dismissOptionalTextControl:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;)V
+      14: return
+
+  private static void dismissOptionalTextControl(com.intellij.remoterobot.RemoteRobot, java.lang.String) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       3: aload_1
+       4: invokedynamic #639,  0            // InvokeDynamic #15:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+       9: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      12: getstatic     #640                // Field OPTIONAL_ONBOARDING_BUDGET:Ljava/time/Duration;
+      15: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      18: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      21: astore_2
+      22: aload_2
+      23: invokevirtual #643                // Method com/intellij/remoterobot/fixtures/ComponentFixture.click:()V
+      26: ldc2_w        #646                // long 500l
+      29: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      32: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      35: aload_1
+      36: invokedynamic #648,  0            // InvokeDynamic #16:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      41: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      44: goto          66
+      47: astore_2
+      48: aload_2
+      49: invokevirtual #390                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      52: invokevirtual #394                // Method java/lang/Class.getName:()Ljava/lang/String;
+      55: ldc_w         #400                // String WaitForConditionTimeoutException
+      58: invokevirtual #402                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+      61: ifne          66
+      64: aload_2
+      65: athrow
+      66: return
+    Exception table:
+       from    to  target type
+           0    44    47   Class java/lang/RuntimeException
+
+  private static void runSessionsWorkbenchJourney(com.intellij.remoterobot.RemoteRobot, boolean) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: invokestatic  #649                // Method ensureSessionsWorkbenchVisible:(Lcom/intellij/remoterobot/RemoteRobot;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+       4: astore_2
+       5: aload_2
+       6: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       9: invokestatic  #652                // Method waitForCanonicalWorkbenchRows:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/time/Duration;)V
+      12: aload_2
+      13: invokestatic  #656                // Method selectWorkbenchBackground:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      16: aload_0
+      17: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      19: ldc_w         #659                // String //div[@class=\'JTextArea\' and @accessiblename=\'ChainlessChain session detail\']
+      22: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      25: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      28: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      31: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      34: astore_3
+      35: iload_1
+      36: ifeq          70
+      39: aload_2
+      40: ldc_w         #661                // String done
+      43: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      46: invokestatic  #663                // Method waitForTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      49: aload_3
+      50: ldc_w         #666                // String workbench-result.md
+      53: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      56: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      59: aload_3
+      60: ldc_w         #668                // String PR #88 merged
+      63: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      66: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      69: return
+      70: aload_2
+      71: ldc_w         #661                // String done
+      74: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      77: invokestatic  #663                // Method waitForTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      80: aload_0
+      81: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      83: ldc_w         #670                // String //div[@text=\'Dispatch\' and @accessiblename=\'ChainlessChain session dispatch\']
+      86: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      89: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      92: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      95: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      98: astore        4
+     100: aload_0
+     101: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     103: ldc_w         #672                // String //div[@text=\'Reply\' and @accessiblename=\'ChainlessChain session reply\']
+     106: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+     109: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     112: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     115: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     118: astore        5
+     120: aload_0
+     121: aload_2
+     122: aload         4
+     124: aload         5
+     126: invokestatic  #674                // Method awaitWorkbenchMeasurementReadiness:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;)I
+     129: istore        6
+     131: aload_2
+     132: aload         4
+     134: aload         5
+     136: invokestatic  #678                // Method waitForWorkbenchMeasurementQuiescence:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     139: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+     142: iload         6
+     144: invokedynamic #682,  0            // InvokeDynamic #17:makeConcatWithConstants:(I)Ljava/lang/String;
+     149: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     152: iconst_1
+     153: istore        7
+     155: iload         7
+     157: bipush        100
+     159: if_icmpgt     205
+     162: aload_0
+     163: aload_2
+     164: aload         4
+     166: iload         7
+     168: invokedynamic #685,  0            // InvokeDynamic #18:makeConcatWithConstants:(I)Ljava/lang/String;
+     173: invokestatic  #686                // Method dispatchWorkbenchCycle:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)J
+     176: lstore        8
+     178: lload         8
+     180: iload         7
+     182: invokestatic  #690                // Method recordNeedsInputVisibility:(JI)V
+     185: aload_0
+     186: aload_2
+     187: aload         5
+     189: iload         7
+     191: invokedynamic #694,  0            // InvokeDynamic #19:makeConcatWithConstants:(I)Ljava/lang/String;
+     196: invokestatic  #695                // Method replyWorkbenchCycle:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+     199: iinc          7, 1
+     202: goto          155
+     205: aload_3
+     206: ldc_w         #666                // String workbench-result.md
+     209: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     212: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     215: aload_3
+     216: ldc_w         #668                // String PR #88 merged
+     219: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     222: invokestatic  #473                // Method waitForComponentText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     225: return
+
+  private static int awaitWorkbenchMeasurementReadiness(com.intellij.remoterobot.RemoteRobot, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture) throws java.lang.InterruptedException;
+    Code:
+       0: iconst_0
+       1: istore        4
+       3: iconst_1
+       4: istore        5
+       6: iload         5
+       8: bipush        75
+      10: if_icmpgt     92
+      13: aload_0
+      14: aload_1
+      15: aload_2
+      16: iload         5
+      18: invokedynamic #699,  0            // InvokeDynamic #20:makeConcatWithConstants:(I)Ljava/lang/String;
+      23: invokestatic  #686                // Method dispatchWorkbenchCycle:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)J
+      26: lstore        6
+      28: lload         6
+      30: ldc2_w        #700                // long 2000l
+      33: lcmp
+      34: ifge          44
+      37: iload         4
+      39: iconst_1
+      40: iadd
+      41: goto          45
+      44: iconst_0
+      45: istore        4
+      47: lload         6
+      49: iload         5
+      51: iload         4
+      53: invokestatic  #702                // Method recordNeedsInputReadiness:(JII)V
+      56: aload_0
+      57: aload_1
+      58: aload_3
+      59: iload         5
+      61: invokedynamic #706,  0            // InvokeDynamic #21:makeConcatWithConstants:(I)Ljava/lang/String;
+      66: invokestatic  #695                // Method replyWorkbenchCycle:(Lcom/intellij/remoterobot/RemoteRobot;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+      69: iload         5
+      71: bipush        40
+      73: if_icmplt     86
+      76: iload         4
+      78: bipush        10
+      80: if_icmplt     86
+      83: iload         5
+      85: ireturn
+      86: iinc          5, 1
+      89: goto          6
+      92: new           #321                // class java/lang/AssertionError
+      95: dup
+      96: ldc_w         #707                // String Workbench did not become measurement-ready within 75 lifecycle cycles; required at least 40 cycles and 10 consecutive needs_input observations under 2000ms
+      99: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     102: athrow
+
+  private static long dispatchWorkbenchCycle(com.intellij.remoterobot.RemoteRobot, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String) throws java.lang.InterruptedException;
+    Code:
+       0: aload_2
+       1: ldc_w         #709                // String session dispatch
+       4: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       7: invokestatic  #426                // Method waitUntilEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      10: aload_2
+      11: invokestatic  #711                // Method openInputDialog:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      14: aload_0
+      15: ldc_w         #714                // String Resume
+      18: aload_3
+      19: invokestatic  #716                // Method submitInputDialog:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;Ljava/lang/String;)J
+      22: lstore        4
+      24: aload_1
+      25: ldc_w         #720                // String needs_input
+      28: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      31: invokestatic  #663                // Method waitForTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      34: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      37: lload         4
+      39: lsub
+      40: invokestatic  #722                // Method java/time/Duration.ofNanos:(J)Ljava/time/Duration;
+      43: invokevirtual #599                // Method java/time/Duration.toMillis:()J
+      46: lreturn
+
+  private static void replyWorkbenchCycle(com.intellij.remoterobot.RemoteRobot, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String) throws java.lang.InterruptedException;
+    Code:
+       0: aload_2
+       1: ldc_w         #726                // String session reply
+       4: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       7: invokestatic  #426                // Method waitUntilEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      10: aload_2
+      11: invokestatic  #711                // Method openInputDialog:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      14: aload_0
+      15: ldc_w         #728                // String Reply to Session
+      18: aload_3
+      19: invokestatic  #716                // Method submitInputDialog:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;Ljava/lang/String;)J
+      22: pop2
+      23: aload_1
+      24: ldc_w         #661                // String done
+      27: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      30: invokestatic  #663                // Method waitForTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      33: return
+
+  private static void waitForWorkbenchMeasurementQuiescence(com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       6: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       9: ladd
+      10: lstore_3
+      11: iconst_0
+      12: istore        5
+      14: ldc           #52                 // String
+      16: astore        6
+      18: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      21: lload_3
+      22: lcmp
+      23: ifge          112
+      26: aload_0
+      27: ldc_w         #730                // String component.revalidate();
+      30: iconst_1
+      31: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      34: aload_0
+      35: invokestatic  #732                // Method selectedTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Ljava/lang/String;
+      38: astore        6
+      40: aload_1
+      41: invokestatic  #459                // Method componentEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Z
+      44: istore        7
+      46: aload_2
+      47: invokestatic  #459                // Method componentEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Z
+      50: istore        8
+      52: ldc_w         #661                // String done
+      55: aload         6
+      57: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      60: ifeq          88
+      63: iload         7
+      65: ifeq          88
+      68: iload         8
+      70: ifne          88
+      73: iinc          5, 1
+      76: iload         5
+      78: iconst_4
+      79: if_icmplt     103
+      82: iload         5
+      84: invokestatic  #736                // Method recordWorkbenchQuiescence:(I)V
+      87: return
+      88: iconst_0
+      89: istore        5
+      91: aload         6
+      93: invokevirtual #740                // Method java/lang/String.isEmpty:()Z
+      96: ifeq          103
+      99: aload_0
+     100: invokestatic  #656                // Method selectWorkbenchBackground:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     103: ldc2_w        #741                // long 250l
+     106: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+     109: goto          18
+     112: new           #321                // class java/lang/AssertionError
+     115: dup
+     116: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     119: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+     122: aload         6
+     124: iload         5
+     126: invokedynamic #746,  0            // InvokeDynamic #22:makeConcatWithConstants:(JLjava/lang/String;I)Ljava/lang/String;
+     131: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     134: athrow
+
+  private static com.intellij.remoterobot.fixtures.ComponentFixture ensureSessionsWorkbenchVisible(com.intellij.remoterobot.RemoteRobot) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       3: ldc_w         #749                // String //div[@class=\'JBTable\' and @visible=\'true\' and @accessiblename=\'ChainlessChain sessions table\']
+       6: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+       9: getstatic     #385                // Field PANEL_VISIBILITY_PROBE_BUDGET:Ljava/time/Duration;
+      12: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      15: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      18: astore_1
+      19: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      22: ldc_w         #751                // String [ui-smoke] reused visible Sessions Workbench
+      25: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      28: aload_1
+      29: areturn
+      30: astore_1
+      31: aload_1
+      32: invokevirtual #390                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+      35: invokevirtual #394                // Method java/lang/Class.getName:()Ljava/lang/String;
+      38: ldc_w         #400                // String WaitForConditionTimeoutException
+      41: invokevirtual #402                // Method java/lang/String.endsWith:(Ljava/lang/String;)Z
+      44: ifne          49
+      47: aload_1
+      48: athrow
+      49: aload_0
+      50: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      52: ldc_w         #753                // String //div[(@class=\'SquareStripeButton\' or @class=\'StripeButton\') and (@text=\'ChainlessChain Sessions\' or @tooltiptext=\'ChainlessChain Sessions\' or @accessiblename=\'ChainlessChain Sessions\')]
+      55: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      58: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      61: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      64: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      67: astore_1
+      68: aload_1
+      69: invokestatic  #407                // Method clickStripe:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      72: aload_0
+      73: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      75: ldc_w         #749                // String //div[@class=\'JBTable\' and @visible=\'true\' and @accessiblename=\'ChainlessChain sessions table\']
+      78: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      81: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      84: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      87: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      90: astore_2
+      91: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+      94: ldc_w         #755                // String [ui-smoke] opened Sessions Workbench from stripe
+      97: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     100: aload_2
+     101: areturn
+    Exception table:
+       from    to  target type
+           0    29    30   Class java/lang/RuntimeException
+
+  private static void waitForCanonicalWorkbenchRows(com.intellij.remoterobot.fixtures.ComponentFixture, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_1
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_2
+       9: ldc           #52                 // String
+      11: astore        4
+      13: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      16: lload_2
+      17: lcmp
+      18: ifge          165
+      21: aload_0
+      22: ldc_w         #757                // String component.getRowCount()
+      25: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      28: invokestatic  #496                // Method intValue:(Ljava/lang/Object;)I
+      31: istore        5
+      33: new           #759                // class java/lang/StringBuilder
+      36: dup
+      37: invokespecial #761                // Method java/lang/StringBuilder."<init>":()V
+      40: astore        6
+      42: iconst_0
+      43: istore        7
+      45: iload         7
+      47: iload         5
+      49: if_icmpge     87
+      52: aload_0
+      53: iload         7
+      55: invokedynamic #762,  0            // InvokeDynamic #23:makeConcatWithConstants:(I)Ljava/lang/String;
+      60: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      63: astore        8
+      65: aload         6
+      67: aload         8
+      69: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      72: invokevirtual #763                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+      75: bipush        44
+      77: invokevirtual #767                // Method java/lang/StringBuilder.append:(C)Ljava/lang/StringBuilder;
+      80: pop
+      81: iinc          7, 1
+      84: goto          45
+      87: aload         6
+      89: invokevirtual #770                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+      92: astore        4
+      94: iload         5
+      96: iconst_5
+      97: if_icmplt     156
+     100: aload         4
+     102: ldc_w         #773                // String local
+     105: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     108: ifeq          156
+     111: aload         4
+     113: ldc_w         #775                // String background
+     116: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     119: ifeq          156
+     122: aload         4
+     124: ldc_w         #777                // String remote
+     127: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     130: ifeq          156
+     133: aload         4
+     135: ldc_w         #779                // String team
+     138: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     141: ifeq          156
+     144: aload         4
+     146: ldc_w         #781                // String workflow
+     149: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+     152: ifeq          156
+     155: return
+     156: ldc2_w        #741                // long 250l
+     159: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+     162: goto          13
+     165: new           #321                // class java/lang/AssertionError
+     168: dup
+     169: aload_1
+     170: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+     173: aload         4
+     175: invokedynamic #783,  0            // InvokeDynamic #24:makeConcatWithConstants:(JLjava/lang/String;)Ljava/lang/String;
+     180: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     183: athrow
+
+  private static void selectWorkbenchBackground(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #757                // String component.getRowCount()
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: invokestatic  #496                // Method intValue:(Ljava/lang/Object;)I
+      10: istore_1
+      11: iconst_0
+      12: istore_2
+      13: iload_2
+      14: iload_1
+      15: if_icmpge     62
+      18: aload_0
+      19: iload_2
+      20: invokedynamic #786,  0            // InvokeDynamic #25:makeConcatWithConstants:(I)Ljava/lang/String;
+      25: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      28: astore_3
+      29: aload_3
+      30: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      33: ldc_w         #787                // String Workbench lifecycle fixture
+      36: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      39: ifeq          56
+      42: aload_0
+      43: iload_2
+      44: iload_2
+      45: iload_2
+      46: invokedynamic #789,  0            // InvokeDynamic #26:makeConcatWithConstants:(III)Ljava/lang/String;
+      51: iconst_1
+      52: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      55: return
+      56: iinc          2, 1
+      59: goto          13
+      62: new           #321                // class java/lang/AssertionError
+      65: dup
+      66: ldc_w         #792                // String Workbench background fixture row is missing
+      69: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      72: athrow
+
+  private static void waitForTableStatus(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_2
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_3
+       9: ldc           #52                 // String
+      11: astore        5
+      13: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      16: lload_3
+      17: lcmp
+      18: ifge          72
+      21: aload_0
+      22: invokestatic  #732                // Method selectedTableStatus:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Ljava/lang/String;
+      25: astore        5
+      27: aload         5
+      29: invokevirtual #740                // Method java/lang/String.isEmpty:()Z
+      32: ifne          59
+      35: aload_1
+      36: aload         5
+      38: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      41: ifne          58
+      44: aload         5
+      46: aload_1
+      47: invokedynamic #794,  0            // InvokeDynamic #27:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      52: invokevirtual #795                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+      55: ifeq          63
+      58: return
+      59: aload_0
+      60: invokestatic  #656                // Method selectWorkbenchBackground:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      63: ldc2_w        #741                // long 250l
+      66: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      69: goto          13
+      72: new           #321                // class java/lang/AssertionError
+      75: dup
+      76: aload_1
+      77: aload_2
+      78: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      81: aload         5
+      83: invokedynamic #798,  0            // InvokeDynamic #28:makeConcatWithConstants:(Ljava/lang/String;JLjava/lang/String;)Ljava/lang/String;
+      88: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      91: athrow
+
+  private static java.lang.String selectedTableStatus(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #801                // String component.getSelectedRow()
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: invokestatic  #496                // Method intValue:(Ljava/lang/Object;)I
+      10: istore_1
+      11: iload_1
+      12: ifge          18
+      15: ldc           #52                 // String
+      17: areturn
+      18: aload_0
+      19: iload_1
+      20: invokedynamic #803,  0            // InvokeDynamic #29:makeConcatWithConstants:(I)Ljava/lang/String;
+      25: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      28: astore_2
+      29: aload_2
+      30: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      33: areturn
+
+  private static long submitInputDialog(com.intellij.remoterobot.RemoteRobot, java.lang.String, java.lang.String) throws java.lang.InterruptedException;
+    Code:
+       0: aload_0
+       1: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+       3: aload_1
+       4: invokestatic  #431                // Method xpathString:(Ljava/lang/String;)Ljava/lang/String;
+       7: invokedynamic #804,  0            // InvokeDynamic #30:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      12: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      15: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      18: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      21: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      24: astore_3
+      25: aload_3
+      26: aload_1
+      27: aload_2
+      28: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      31: invokestatic  #805                // Method setInputDialogText:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/lang/String;Ljava/time/Duration;)V
+      34: aload_0
+      35: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      37: ldc_w         #809                // String //div[@text=\'OK\']
+      40: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      43: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      46: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+      49: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      52: astore        4
+      54: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      57: lstore        5
+      59: aload         4
+      61: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      64: aload_3
+      65: aload_1
+      66: invokedynamic #811,  0            // InvokeDynamic #31:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      71: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      74: invokestatic  #437                // Method waitUntilHidden:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+      77: lload         5
+      79: lreturn
+
+  private static void setInputDialogText(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: aload_2
+       1: invokestatic  #812                // Method jsString:(Ljava/lang/String;)Ljava/lang/String;
+       4: invokedynamic #815,  0            // InvokeDynamic #32:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+       9: astore        4
+      11: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      14: aload_3
+      15: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+      18: ladd
+      19: lstore        5
+      21: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      24: lload         5
+      26: lcmp
+      27: ifge          73
+      30: aload_0
+      31: aload         4
+      33: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      36: astore        7
+      38: getstatic     #816                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+      41: aload         7
+      43: invokevirtual #820                // Method java/lang/Boolean.equals:(Ljava/lang/Object;)Z
+      46: ifne          63
+      49: ldc_w         #821                // String true
+      52: aload         7
+      54: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      57: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      60: ifeq          64
+      63: return
+      64: ldc2_w        #605                // long 100l
+      67: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      70: goto          21
+      73: new           #321                // class java/lang/AssertionError
+      76: dup
+      77: aload_1
+      78: aload_3
+      79: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      82: invokedynamic #823,  0            // InvokeDynamic #33:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      87: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      90: athrow
+
+  private static void recordNeedsInputVisibility(long, int);
+    Code:
+       0: iload_2
+       1: lload_0
+       2: invokedynamic #824,  0            // InvokeDynamic #34:makeConcatWithConstants:(IJ)Ljava/lang/String;
+       7: invokestatic  #827                // Method appendWorkbenchMetric:(Ljava/lang/String;)V
+      10: return
+
+  private static void recordNeedsInputReadiness(long, int, int);
+    Code:
+       0: iload_2
+       1: lload_0
+       2: iload_3
+       3: invokedynamic #830,  0            // InvokeDynamic #35:makeConcatWithConstants:(IJI)Ljava/lang/String;
+       8: invokestatic  #827                // Method appendWorkbenchMetric:(Ljava/lang/String;)V
+      11: return
+
+  private static void recordWorkbenchQuiescence(int);
+    Code:
+       0: iload_0
+       1: invokedynamic #833,  0            // InvokeDynamic #36:makeConcatWithConstants:(I)Ljava/lang/String;
+       6: invokestatic  #827                // Method appendWorkbenchMetric:(Ljava/lang/String;)V
+       9: return
+
+  private static void appendWorkbenchMetric(java.lang.String);
+    Code:
+       0: ldc_w         #834                // String ui.metrics.path
+       3: ldc           #52                 // String
+       5: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       8: invokevirtual #836                // Method java/lang/String.trim:()Ljava/lang/String;
+      11: astore_1
+      12: aload_1
+      13: invokevirtual #740                // Method java/lang/String.isEmpty:()Z
+      16: ifeq          20
+      19: return
+      20: invokestatic  #839                // Method java/time/Instant.now:()Ljava/time/Instant;
+      23: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      26: aload_0
+      27: invokedynamic #845,  0            // InvokeDynamic #37:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      32: astore_2
+      33: aload_1
+      34: iconst_0
+      35: anewarray     #61                 // class java/lang/String
+      38: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+      41: aload_2
+      42: iconst_2
+      43: anewarray     #547                // class java/nio/file/OpenOption
+      46: dup
+      47: iconst_0
+      48: getstatic     #846                // Field java/nio/file/StandardOpenOption.CREATE:Ljava/nio/file/StandardOpenOption;
+      51: aastore
+      52: dup
+      53: iconst_1
+      54: getstatic     #852                // Field java/nio/file/StandardOpenOption.APPEND:Ljava/nio/file/StandardOpenOption;
+      57: aastore
+      58: invokestatic  #855                // Method java/nio/file/Files.writeString:(Ljava/nio/file/Path;Ljava/lang/CharSequence;[Ljava/nio/file/OpenOption;)Ljava/nio/file/Path;
+      61: pop
+      62: goto          78
+      65: astore_3
+      66: new           #321                // class java/lang/AssertionError
+      69: dup
+      70: ldc_w         #861                // String could not persist Workbench visibility metric
+      73: aload_3
+      74: invokespecial #863                // Method java/lang/AssertionError."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+      77: athrow
+      78: return
+    Exception table:
+       from    to  target type
+          33    62    65   Class java/io/IOException
+
+  private static void waitUntilEnabled(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_2
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_3
+       9: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      12: lload_3
+      13: lcmp
+      14: ifge          34
+      17: aload_0
+      18: invokestatic  #459                // Method componentEnabled:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)Z
+      21: ifeq          25
+      24: return
+      25: ldc2_w        #605                // long 100l
+      28: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      31: goto          9
+      34: new           #321                // class java/lang/AssertionError
+      37: dup
+      38: aload_1
+      39: aload_2
+      40: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      43: invokedynamic #866,  0            // InvokeDynamic #38:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      48: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      51: athrow
+
+  private static boolean componentEnabled(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #867                // String component.isEnabled()
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: astore_1
+       8: getstatic     #816                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+      11: aload_1
+      12: invokevirtual #820                // Method java/lang/Boolean.equals:(Ljava/lang/Object;)Z
+      15: ifne          31
+      18: ldc_w         #821                // String true
+      21: aload_1
+      22: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      25: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      28: ifeq          35
+      31: iconst_1
+      32: goto          36
+      35: iconst_0
+      36: ireturn
+
+  private static void waitForComponentText(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_2
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_3
+       9: ldc           #52                 // String
+      11: astore        5
+      13: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      16: lload_3
+      17: lcmp
+      18: ifge          66
+      21: aload_0
+      22: ldc_w         #869                // String component.getText()
+      25: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      28: astore        6
+      30: aload         6
+      32: ifnonnull     40
+      35: ldc           #52                 // String
+      37: goto          45
+      40: aload         6
+      42: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      45: astore        5
+      47: aload         5
+      49: aload_1
+      50: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      53: ifeq          57
+      56: return
+      57: ldc2_w        #741                // long 250l
+      60: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      63: goto          13
+      66: new           #321                // class java/lang/AssertionError
+      69: dup
+      70: aload_1
+      71: aload_2
+      72: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      75: aload         5
+      77: sipush        1200
+      80: invokestatic  #871                // Method tail:(Ljava/lang/String;I)Ljava/lang/String;
+      83: invokedynamic #875,  0            // InvokeDynamic #39:makeConcatWithConstants:(Ljava/lang/String;JLjava/lang/String;)Ljava/lang/String;
+      88: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      91: athrow
+
+  private static int intValue(java.lang.Object);
+    Code:
+       0: aload_0
+       1: instanceof    #876                // class java/lang/Number
+       4: ifeq          17
+       7: aload_0
+       8: checkcast     #876                // class java/lang/Number
+      11: invokevirtual #878                // Method java/lang/Number.intValue:()I
+      14: goto          24
+      17: aload_0
+      18: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      21: invokestatic  #624                // Method java/lang/Integer.parseInt:(Ljava/lang/String;)I
+      24: ireturn
+
+  private static java.lang.String xpathString(java.lang.String);
+    Code:
+       0: aload_0
+       1: ldc_w         #881                // String \'
+       4: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+       7: ifne          17
+      10: aload_0
+      11: invokedynamic #883,  0            // InvokeDynamic #40:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      16: areturn
+      17: aload_0
+      18: ldc_w         #884                // String \"
+      21: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      24: ifne          34
+      27: aload_0
+      28: invokedynamic #886,  0            // InvokeDynamic #41:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      33: areturn
+      34: new           #887                // class java/lang/IllegalArgumentException
+      37: dup
+      38: ldc_w         #889                // String unsupported XPath string
+      41: invokespecial #891                // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+      44: athrow
+
+  private static void runRewindAction(com.intellij.remoterobot.RemoteRobot, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String) throws java.lang.InterruptedException;
+    Code:
+       0: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+       3: aload         4
+       5: invokedynamic #893,  0            // InvokeDynamic #42:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      10: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      13: aload_1
+      14: aload_2
+      15: ldc_w         #894                // String /rewind
+      18: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+      21: aload_0
+      22: ldc_w         #896                // String partial  turn-2
+      25: iconst_1
+      26: getstatic     #898                // Field FIRST_POPUP_BUDGET:Ljava/time/Duration;
+      29: invokestatic  #901                // Method findPopupItem:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;ZLjava/time/Duration;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      32: astore        5
+      34: goto          60
+      37: astore        6
+      39: aload_1
+      40: aload_2
+      41: ldc_w         #894                // String /rewind
+      44: invokestatic  #169                // Method send:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;)V
+      47: aload_0
+      48: ldc_w         #896                // String partial  turn-2
+      51: iconst_1
+      52: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      55: invokestatic  #901                // Method findPopupItem:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;ZLjava/time/Duration;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      58: astore        5
+      60: aload         5
+      62: ldc_w         #896                // String partial  turn-2
+      65: iconst_1
+      66: invokestatic  #905                // Method clickPopupItem:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Z)V
+      69: aload_0
+      70: aload         4
+      72: iconst_0
+      73: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      76: invokestatic  #901                // Method findPopupItem:(Lcom/intellij/remoterobot/RemoteRobot;Ljava/lang/String;ZLjava/time/Duration;)Lcom/intellij/remoterobot/fixtures/ComponentFixture;
+      79: astore        6
+      81: aload         6
+      83: aload         4
+      85: iconst_0
+      86: invokestatic  #905                // Method clickPopupItem:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Z)V
+      89: aload_0
+      90: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      92: ldc_w         #909                // String //div[@text=\'Confirm action\' and @visible=\'true\']
+      95: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      98: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     101: invokevirtual #27                 // Method com/intellij/remoterobot/RemoteRobot.find:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;Ljava/time/Duration;)Lcom/intellij/remoterobot/fixtures/Fixture;
+     104: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+     107: astore        7
+     109: aload         7
+     111: aload         4
+     113: invokedynamic #911,  0            // InvokeDynamic #43:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     118: invokestatic  #812                // Method jsString:(Ljava/lang/String;)Ljava/lang/String;
+     121: invokedynamic #912,  0            // InvokeDynamic #44:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     126: iconst_1
+     127: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+     130: checkcast     #107                // class java/lang/Boolean
+     133: astore        8
+     135: getstatic     #816                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+     138: aload         8
+     140: invokevirtual #820                // Method java/lang/Boolean.equals:(Ljava/lang/Object;)Z
+     143: ifne          161
+     146: new           #321                // class java/lang/AssertionError
+     149: dup
+     150: aload         4
+     152: invokedynamic #913,  0            // InvokeDynamic #45:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     157: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     160: athrow
+     161: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+     164: aload         4
+     166: invokedynamic #914,  0            // InvokeDynamic #46:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     171: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     174: aload         7
+     176: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+     179: aload         7
+     181: ldc_w         #915                // String timeline confirmation
+     184: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     187: invokestatic  #437                // Method waitUntilHidden:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     190: aload_3
+     191: aload         4
+     193: invokedynamic #917,  0            // InvokeDynamic #47:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     198: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     201: invokestatic  #175                // Method waitForTranscript:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;Ljava/lang/String;Ljava/time/Duration;)V
+     204: return
+    Exception table:
+       from    to  target type
+          21    34    37   Class java/lang/RuntimeException
+
+  private static com.intellij.remoterobot.fixtures.ComponentFixture findPopupItem(com.intellij.remoterobot.RemoteRobot, java.lang.String, boolean, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_3
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore        4
+      10: ldc           #52                 // String
+      12: astore        6
+      14: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      17: lload         4
+      19: lcmp
+      20: ifge          222
+      23: new           #759                // class java/lang/StringBuilder
+      26: dup
+      27: invokespecial #761                // Method java/lang/StringBuilder."<init>":()V
+      30: astore        7
+      32: aconst_null
+      33: astore        8
+      35: aload_0
+      36: ldc           #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      38: ldc_w         #918                // String //div[@class=\'JBList\' and @visible=\'true\']
+      41: invokestatic  #17                 // Method com/intellij/remoterobot/search/locators/Locators.byXpath:(Ljava/lang/String;)Lcom/intellij/remoterobot/search/locators/Locator;
+      44: invokevirtual #920                // Method com/intellij/remoterobot/RemoteRobot.findAll:(Ljava/lang/Class;Lcom/intellij/remoterobot/search/locators/Locator;)Ljava/util/List;
+      47: invokeinterface #924,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+      52: astore        9
+      54: aload         9
+      56: invokeinterface #930,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+      61: ifeq          198
+      64: aload         9
+      66: invokeinterface #935,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      71: checkcast     #13                 // class com/intellij/remoterobot/fixtures/ComponentFixture
+      74: astore        10
+      76: aload         10
+      78: ldc_w         #938                // String var items = []; if (component.isShowing()) {var model = component.getModel();for (var i = 0; i < model.getSize(); i++) {items.push(String(model.getElementAt(i)));}} items.join(\'\\n\');
+      81: iconst_1
+      82: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+      85: checkcast     #61                 // class java/lang/String
+      88: astore        11
+      90: aload         7
+      92: bipush        91
+      94: invokevirtual #767                // Method java/lang/StringBuilder.append:(C)Ljava/lang/StringBuilder;
+      97: aload         11
+      99: invokevirtual #763                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     102: ldc_w         #940                // String ]
+     105: invokevirtual #763                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+     108: pop
+     109: aload         11
+     111: ldc_w         #942                // String \n
+     114: invokevirtual #269                // Method java/lang/String.split:(Ljava/lang/String;)[Ljava/lang/String;
+     117: astore        12
+     119: aload         12
+     121: arraylength
+     122: istore        13
+     124: iconst_0
+     125: istore        14
+     127: iload         14
+     129: iload         13
+     131: if_icmpge     195
+     134: aload         12
+     136: iload         14
+     138: aaload
+     139: astore        15
+     141: iload_2
+     142: ifeq          157
+     145: aload         15
+     147: aload_1
+     148: invokevirtual #795                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+     151: ifeq          189
+     154: goto          166
+     157: aload         15
+     159: aload_1
+     160: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+     163: ifeq          189
+     166: aload         8
+     168: ifnull        185
+     171: new           #321                // class java/lang/AssertionError
+     174: dup
+     175: aload_1
+     176: invokedynamic #944,  0            // InvokeDynamic #48:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     181: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+     184: athrow
+     185: aload         10
+     187: astore        8
+     189: iinc          14, 1
+     192: goto          127
+     195: goto          54
+     198: aload         8
+     200: ifnull        206
+     203: aload         8
+     205: areturn
+     206: aload         7
+     208: invokevirtual #770                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+     211: astore        6
+     213: ldc2_w        #605                // long 100l
+     216: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+     219: goto          14
+     222: new           #945                // class java/lang/IllegalStateException
+     225: dup
+     226: aload_1
+     227: aload_3
+     228: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+     231: aload         6
+     233: invokedynamic #947,  0            // InvokeDynamic #49:makeConcatWithConstants:(Ljava/lang/String;JLjava/lang/String;)Ljava/lang/String;
+     238: invokespecial #948                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+     241: athrow
+
+  private static void clickPopupItem(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, boolean) throws java.lang.InterruptedException;
+    Code:
+       0: getstatic     #334                // Field java/lang/System.out:Ljava/io/PrintStream;
+       3: aload_1
+       4: invokedynamic #949,  0            // InvokeDynamic #50:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+       9: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      12: aload_0
+      13: aload_1
+      14: iload_2
+      15: invokestatic  #950                // Method popupActivationScript:(Ljava/lang/String;Z)Ljava/lang/String;
+      18: iconst_1
+      19: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      22: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      25: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      28: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+      31: ladd
+      32: lstore_3
+      33: ldc           #52                 // String
+      35: astore        5
+      37: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      40: lload_3
+      41: lcmp
+      42: ifge          106
+      45: aload_0
+      46: ldc_w         #954                // String String(component.getClientProperty(\'cc.uiTest.popupEnter\') || \'missing\')+\'|\'+(component.isShowing() ? \'visible\' : \'hidden\');
+      49: iconst_1
+      50: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+      53: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      56: astore        5
+      58: aload         5
+      60: ldc_w         #956                // String failed:
+      63: invokevirtual #795                // Method java/lang/String.startsWith:(Ljava/lang/String;)Z
+      66: ifeq          85
+      69: new           #945                // class java/lang/IllegalStateException
+      72: dup
+      73: aload_1
+      74: aload         5
+      76: invokedynamic #958,  0            // InvokeDynamic #51:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      81: invokespecial #948                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+      84: athrow
+      85: ldc_w         #959                // String dispatch-returned|hidden
+      88: aload         5
+      90: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      93: ifeq          97
+      96: return
+      97: ldc2_w        #605                // long 100l
+     100: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+     103: goto          37
+     106: new           #945                // class java/lang/IllegalStateException
+     109: dup
+     110: aload_1
+     111: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+     114: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+     117: aload         5
+     119: invokedynamic #961,  0            // InvokeDynamic #52:makeConcatWithConstants:(Ljava/lang/String;JLjava/lang/String;)Ljava/lang/String;
+     124: invokespecial #948                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+     127: athrow
+
+  static java.lang.String popupActivationScript(java.lang.String, boolean);
+    Code:
+       0: aload_0
+       1: invokestatic  #812                // Method jsString:(Ljava/lang/String;)Ljava/lang/String;
+       4: iload_1
+       5: invokedynamic #962,  0            // InvokeDynamic #53:makeConcatWithConstants:(Ljava/lang/String;Z)Ljava/lang/String;
+      10: areturn
+
+  private static void send(com.intellij.remoterobot.fixtures.ComponentFixture, com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String);
+    Code:
+       0: aload_0
+       1: aload_2
+       2: invokestatic  #812                // Method jsString:(Ljava/lang/String;)Ljava/lang/String;
+       5: invokedynamic #964,  0            // InvokeDynamic #54:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      10: iconst_1
+      11: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+      14: aload_1
+      15: invokestatic  #199                // Method clickButton:(Lcom/intellij/remoterobot/fixtures/ComponentFixture;)V
+      18: return
+
+  private static void clickButton(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #965                // String component.doClick()
+       4: iconst_1
+       5: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+       8: return
+
+  private static void clickStripe(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #967                // String importClass(javax.swing.AbstractButton);if (component instanceof AbstractButton) {component.doClick();} else { component.click(); }
+       4: iconst_1
+       5: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+       8: return
+
+  private static void waitForPlanReviewerNote(com.intellij.remoterobot.fixtures.ComponentFixture, boolean) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: getstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+       6: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       9: ladd
+      10: lstore_2
+      11: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      14: lload_2
+      15: lcmp
+      16: ifge          67
+      19: aload_0
+      20: iload_1
+      21: ifeq          30
+      24: ldc_w         #969                // String  && editor.getDocument().getText().contains(\'- status: completed\')
+      27: goto          32
+      30: ldc           #52                 // String
+      32: invokedynamic #971,  0            // InvokeDynamic #55:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      37: iconst_1
+      38: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+      41: checkcast     #107                // class java/lang/Boolean
+      44: astore        4
+      46: getstatic     #816                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+      49: aload         4
+      51: invokevirtual #820                // Method java/lang/Boolean.equals:(Ljava/lang/Object;)Z
+      54: ifeq          58
+      57: return
+      58: ldc2_w        #605                // long 100l
+      61: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      64: goto          11
+      67: new           #321                // class java/lang/AssertionError
+      70: dup
+      71: ldc_w         #972                // String Plan editor did not retain the reviewer note
+      74: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      77: athrow
+
+  private static void openInputDialog(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: ldc_w         #974                // String importClass(com.intellij.openapi.application.ApplicationManager);importClass(java.lang.Runnable);const click = new Runnable({run:function(){component.doClick();}});ApplicationManager.getApplication().invokeLater(click);
+       4: iconst_1
+       5: invokevirtual #189                // Method com/intellij/remoterobot/fixtures/ComponentFixture.runJs:(Ljava/lang/String;Z)V
+       8: return
+
+  private static void waitUntilHidden(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_2
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_3
+       9: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      12: lload_3
+      13: lcmp
+      14: ifge          67
+      17: aload_0
+      18: ldc_w         #976                // String !component.isShowing()
+      21: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+      24: astore        5
+      26: getstatic     #816                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+      29: aload         5
+      31: invokevirtual #820                // Method java/lang/Boolean.equals:(Ljava/lang/Object;)Z
+      34: ifne          51
+      37: ldc_w         #821                // String true
+      40: aload         5
+      42: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      45: invokevirtual #130                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+      48: ifeq          52
+      51: return
+      52: goto          58
+      55: astore        5
+      57: return
+      58: ldc2_w        #605                // long 100l
+      61: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      64: goto          9
+      67: new           #321                // class java/lang/AssertionError
+      70: dup
+      71: aload_1
+      72: aload_2
+      73: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      76: invokedynamic #978,  0            // InvokeDynamic #56:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      81: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      84: athrow
+    Exception table:
+       from    to  target type
+          17    51    55   Class java/lang/Throwable
+
+  private static void waitForTranscript(com.intellij.remoterobot.fixtures.ComponentFixture, java.lang.String, java.time.Duration) throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: aload_2
+       4: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       7: ladd
+       8: lstore_3
+       9: ldc           #52                 // String
+      11: astore        5
+      13: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      16: lload_3
+      17: lcmp
+      18: ifge          53
+      21: aload_0
+      22: ldc_w         #979                // String if (!javax.swing.SwingUtilities.isEventDispatchThread())\n    throw new Error(\'Transcript snapshot requires EDT\');\nvar document = component.getDocument();\ndocument.getText(0, document.getLength());\n
+      25: iconst_1
+      26: invokevirtual #256                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;Z)Ljava/io/Serializable;
+      29: checkcast     #61                 // class java/lang/String
+      32: astore        5
+      34: aload         5
+      36: aload_1
+      37: invokevirtual #372                // Method java/lang/String.contains:(Ljava/lang/CharSequence;)Z
+      40: ifeq          44
+      43: return
+      44: ldc2_w        #741                // long 250l
+      47: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      50: goto          13
+      53: new           #321                // class java/lang/AssertionError
+      56: dup
+      57: aload_1
+      58: aload_2
+      59: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      62: aload         5
+      64: sipush        1200
+      67: invokestatic  #871                // Method tail:(Ljava/lang/String;I)Ljava/lang/String;
+      70: invokedynamic #981,  0            // InvokeDynamic #57:makeConcatWithConstants:(Ljava/lang/String;JLjava/lang/String;)Ljava/lang/String;
+      75: invokespecial #326                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+      78: athrow
+
+  private static java.lang.String jsString(java.lang.String);
+    Code:
+       0: aload_0
+       1: ldc_w         #982                // String \\
+       4: ldc_w         #984                // String \\\\
+       7: invokevirtual #986                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+      10: ldc_w         #884                // String \"
+      13: ldc_w         #990                // String \\\"
+      16: invokevirtual #986                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+      19: ldc_w         #992                // String \r
+      22: ldc_w         #994                // String \\r
+      25: invokevirtual #986                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+      28: ldc_w         #942                // String \n
+      31: ldc_w         #996                // String \\n
+      34: invokevirtual #986                // Method java/lang/String.replace:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+      37: invokedynamic #886,  0            // InvokeDynamic #41:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      42: areturn
+
+  private static java.lang.String tail(java.lang.String, int);
+    Code:
+       0: aload_0
+       1: ifnull        12
+       4: aload_0
+       5: invokevirtual #998                // Method java/lang/String.length:()I
+       8: iload_1
+       9: if_icmpgt     14
+      12: aload_0
+      13: areturn
+      14: aload_0
+      15: aload_0
+      16: invokevirtual #998                // Method java/lang/String.length:()I
+      19: iload_1
+      20: isub
+      21: invokevirtual #1001               // Method java/lang/String.substring:(I)Ljava/lang/String;
+      24: areturn
+
+  private static com.intellij.remoterobot.RemoteRobot connectWithRetry() throws java.lang.InterruptedException;
+    Code:
+       0: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+       3: getstatic     #1004               // Field CONNECT_BUDGET:Ljava/time/Duration;
+       6: invokevirtual #294                // Method java/time/Duration.toNanos:()J
+       9: ladd
+      10: lstore_0
+      11: aconst_null
+      12: astore_2
+      13: invokestatic  #290                // Method java/lang/System.nanoTime:()J
+      16: lload_0
+      17: lcmp
+      18: ifge          53
+      21: invokestatic  #1007               // Method robotServerIsReady:()Z
+      24: ifeq          38
+      27: new           #28                 // class com/intellij/remoterobot/RemoteRobot
+      30: dup
+      31: getstatic     #1010               // Field ROBOT_URL:Ljava/lang/String;
+      34: invokespecial #1014               // Method com/intellij/remoterobot/RemoteRobot."<init>":(Ljava/lang/String;)V
+      37: areturn
+      38: goto          44
+      41: astore_3
+      42: aload_3
+      43: astore_2
+      44: ldc2_w        #1015               // long 5000l
+      47: invokestatic  #315                // Method java/lang/Thread.sleep:(J)V
+      50: goto          13
+      53: new           #945                // class java/lang/IllegalStateException
+      56: dup
+      57: getstatic     #1010               // Field ROBOT_URL:Ljava/lang/String;
+      60: getstatic     #1004               // Field CONNECT_BUDGET:Ljava/time/Duration;
+      63: invokevirtual #743                // Method java/time/Duration.toSeconds:()J
+      66: invokedynamic #1017,  0           // InvokeDynamic #58:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      71: aload_2
+      72: invokespecial #1018               // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+      75: athrow
+    Exception table:
+       from    to  target type
+          21    37    41   Class java/io/IOException
+
+  private static boolean robotServerIsReady() throws java.io.IOException;
+    Code:
+       0: getstatic     #1010               // Field ROBOT_URL:Ljava/lang/String;
+       3: invokestatic  #1019               // Method java/net/URI.create:(Ljava/lang/String;)Ljava/net/URI;
+       6: invokevirtual #1025               // Method java/net/URI.toURL:()Ljava/net/URL;
+       9: invokevirtual #1029               // Method java/net/URL.openConnection:()Ljava/net/URLConnection;
+      12: checkcast     #1035               // class java/net/HttpURLConnection
+      15: astore_0
+      16: aload_0
+      17: ldc_w         #1037               // String GET
+      20: invokevirtual #1039               // Method java/net/HttpURLConnection.setRequestMethod:(Ljava/lang/String;)V
+      23: aload_0
+      24: sipush        2000
+      27: invokevirtual #1042               // Method java/net/HttpURLConnection.setConnectTimeout:(I)V
+      30: aload_0
+      31: sipush        2000
+      34: invokevirtual #1045               // Method java/net/HttpURLConnection.setReadTimeout:(I)V
+      37: aload_0
+      38: iconst_0
+      39: invokevirtual #1048               // Method java/net/HttpURLConnection.setUseCaches:(Z)V
+      42: aload_0
+      43: invokevirtual #1051               // Method java/net/HttpURLConnection.getResponseCode:()I
+      46: istore_1
+      47: iload_1
+      48: sipush        200
+      51: if_icmplt     65
+      54: iload_1
+      55: sipush        400
+      58: if_icmpge     65
+      61: iconst_1
+      62: goto          66
+      65: iconst_0
+      66: istore_2
+      67: aload_0
+      68: invokevirtual #1054               // Method java/net/HttpURLConnection.disconnect:()V
+      71: iload_2
+      72: ireturn
+      73: astore_3
+      74: aload_0
+      75: invokevirtual #1054               // Method java/net/HttpURLConnection.disconnect:()V
+      78: aload_3
+      79: athrow
+    Exception table:
+       from    to  target type
+          16    67    73   any
+
+  private static void saveScreenshot(com.intellij.remoterobot.RemoteRobot, java.lang.String);
+    Code:
+       0: ldc_w         #511                // String build
+       3: iconst_2
+       4: anewarray     #61                 // class java/lang/String
+       7: dup
+       8: iconst_0
+       9: ldc_w         #513                // String reports
+      12: aastore
+      13: dup
+      14: iconst_1
+      15: ldc_w         #515                // String ui-smoke
+      18: aastore
+      19: invokestatic  #72                 // Method java/nio/file/Paths.get:(Ljava/lang/String;[Ljava/lang/String;)Ljava/nio/file/Path;
+      22: astore_2
+      23: aload_2
+      24: iconst_0
+      25: anewarray     #517                // class java/nio/file/attribute/FileAttribute
+      28: invokestatic  #519                // Method java/nio/file/Files.createDirectories:(Ljava/nio/file/Path;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;
+      31: pop
+      32: aload_2
+      33: aload_1
+      34: invokestatic  #523                // Method java/lang/System.currentTimeMillis:()J
+      37: invokedynamic #526,  0            // InvokeDynamic #6:makeConcatWithConstants:(Ljava/lang/String;J)Ljava/lang/String;
+      42: invokeinterface #529,  2          // InterfaceMethod java/nio/file/Path.resolve:(Ljava/lang/String;)Ljava/nio/file/Path;
+      47: astore_3
+      48: aload_0
+      49: invokevirtual #1057               // Method com/intellij/remoterobot/RemoteRobot.getScreenshot:()Ljava/awt/image/BufferedImage;
+      52: ldc_w         #1061               // String png
+      55: aload_3
+      56: invokeinterface #1063,  1         // InterfaceMethod java/nio/file/Path.toFile:()Ljava/io/File;
+      61: invokestatic  #1067               // Method javax/imageio/ImageIO.write:(Ljava/awt/image/RenderedImage;Ljava/lang/String;Ljava/io/File;)Z
+      64: ifne          78
+      67: new           #859                // class java/io/IOException
+      70: dup
+      71: ldc_w         #1072               // String no PNG ImageIO writer is available
+      74: invokespecial #1074               // Method java/io/IOException."<init>":(Ljava/lang/String;)V
+      77: athrow
+      78: getstatic     #1075               // Field java/lang/System.err:Ljava/io/PrintStream;
+      81: aload_3
+      82: invokeinterface #1078,  1         // InterfaceMethod java/nio/file/Path.toAbsolutePath:()Ljava/nio/file/Path;
+      87: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      90: invokedynamic #1082,  0           // InvokeDynamic #59:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      95: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+      98: goto          117
+     101: astore_2
+     102: getstatic     #1075               // Field java/lang/System.err:Ljava/io/PrintStream;
+     105: aload_2
+     106: invokestatic  #263                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+     109: invokedynamic #1083,  0           // InvokeDynamic #60:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+     114: invokevirtual #339                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+     117: return
+    Exception table:
+       from    to  target type
+           0    98   101   Class java/lang/Throwable
+
+  private static java.lang.String lambda$assertAutomaticCompletionContract$1(com.intellij.remoterobot.fixtures.ComponentFixture);
+    Code:
+       0: aload_0
+       1: invokestatic  #1084               // Method automaticCompletionContractScript:()Ljava/lang/String;
+       4: invokevirtual #331                // Method com/intellij/remoterobot/fixtures/ComponentFixture.callJs:(Ljava/lang/String;)Ljava/io/Serializable;
+       7: checkcast     #61                 // class java/lang/String
+      10: areturn
+
+  private static boolean lambda$waitForProcessExit$0(java.lang.Long);
+    Code:
+       0: aload_0
+       1: invokevirtual #1087               // Method java/lang/Long.longValue:()J
+       4: invokestatic  #1090               // InterfaceMethod java/lang/ProcessHandle.of:(J)Ljava/util/Optional;
+       7: invokedynamic #1096,  0           // InvokeDynamic #61:apply:()Ljava/util/function/Function;
+      12: invokevirtual #1100               // Method java/util/Optional.map:(Ljava/util/function/Function;)Ljava/util/Optional;
+      15: iconst_0
+      16: invokestatic  #1106               // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+      19: invokevirtual #1109               // Method java/util/Optional.orElse:(Ljava/lang/Object;)Ljava/lang/Object;
+      22: checkcast     #107                // class java/lang/Boolean
+      25: invokevirtual #1113               // Method java/lang/Boolean.booleanValue:()Z
+      28: ireturn
+
+  static {};
+    Code:
+       0: ldc_w         #1116               // String ui.robot.url
+       3: ldc_w         #1118               // String http://127.0.0.1:8082
+       6: invokestatic  #54                 // Method java/lang/System.getProperty:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       9: putstatic     #1010               // Field ROBOT_URL:Ljava/lang/String;
+      12: ldc2_w        #1120               // long 3l
+      15: invokestatic  #1122               // Method java/time/Duration.ofMinutes:(J)Ljava/time/Duration;
+      18: putstatic     #1004               // Field CONNECT_BUDGET:Ljava/time/Duration;
+      21: ldc2_w        #1125               // long 5l
+      24: invokestatic  #1122               // Method java/time/Duration.ofMinutes:(J)Ljava/time/Duration;
+      27: putstatic     #23                 // Field FRAME_BUDGET:Ljava/time/Duration;
+      30: ldc2_w        #1127               // long 45l
+      33: invokestatic  #1129               // Method java/time/Duration.ofSeconds:(J)Ljava/time/Duration;
+      36: putstatic     #158                // Field FIND_BUDGET:Ljava/time/Duration;
+      39: ldc2_w        #1132               // long 2l
+      42: invokestatic  #1129               // Method java/time/Duration.ofSeconds:(J)Ljava/time/Duration;
+      45: putstatic     #640                // Field OPTIONAL_ONBOARDING_BUDGET:Ljava/time/Duration;
+      48: ldc2_w        #1132               // long 2l
+      51: invokestatic  #1129               // Method java/time/Duration.ofSeconds:(J)Ljava/time/Duration;
+      54: putstatic     #385                // Field PANEL_VISIBILITY_PROBE_BUDGET:Ljava/time/Duration;
+      57: ldc2_w        #1134               // long 15l
+      60: invokestatic  #1129               // Method java/time/Duration.ofSeconds:(J)Ljava/time/Duration;
+      63: putstatic     #898                // Field FIRST_POPUP_BUDGET:Ljava/time/Duration;
+      66: return
+}

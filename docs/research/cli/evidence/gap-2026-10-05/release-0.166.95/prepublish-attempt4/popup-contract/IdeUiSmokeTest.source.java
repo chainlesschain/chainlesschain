@@ -1036,7 +1036,7 @@ final class IdeUiSmokeTest {
         long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
         String last = "";
         while (System.nanoTime() < deadline) {
-            last = String.valueOf((Object) list.callJs(
+            last = String.valueOf(list.callJs(
                     "String(component.getClientProperty('cc.uiTest.popupEnter') || 'missing')"
                             + "+'|'+(component.isShowing() ? 'visible' : 'hidden');", true));
             if (last.startsWith("failed:")) {

@@ -1,0 +1,11 @@
+{
+  "status": "requires-correction",
+  "location": "IdeUiSmokeTest.clickPopupItem",
+  "source": "String.valueOf(list.callJs(...))",
+  "evidence": "compiled-driver-before-review.javap.txt: after callJs at offset 50, offset 53 checkcast [C and offset 56 String.valueOf:([C)",
+  "impact": "The actual RemoteRobot generic return is a String; Java infers char[] from the String.valueOf overload, so the polling read would throw ClassCastException.",
+  "minimalCorrection": "Cast the callJs return to Object for String.valueOf, or assign callJs to a String local first.",
+  "scriptContractReport": "report.json",
+  "scriptCasesPassed": 10,
+  "scriptContractDoesNotExerciseJavaPollingRead": true
+}

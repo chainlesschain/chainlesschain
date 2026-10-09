@@ -1,0 +1,59 @@
+{
+  "capturedAt": "2026-10-09T16:06:24.347Z",
+  "version": "2026.2.0.1",
+  "build": "262.8665.337",
+  "tag": "idea/262.8665.337",
+  "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+  "captures": [
+    {
+      "path": "PopupChooserBuilder.java",
+      "repositoryPath": "platform/platform-api/src/com/intellij/openapi/ui/popup/PopupChooserBuilder.java",
+      "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+      "gitBlobSha": "bf376ade13dc1707f2c7e3977fbd117af150b6e7",
+      "bytes": 20814,
+      "sha256": "87ff943af7d31282dc922c97aa4f6e14efcf5a685e3943ad73e295630c53c944",
+      "rawMatchesContentsApiBase64": true,
+      "url": "https://github.com/JetBrains/intellij-community/blob/15645ead6f20019cc2537dbbd43df4eb344423a8/platform/platform-api/src/com/intellij/openapi/ui/popup/PopupChooserBuilder.java"
+    },
+    {
+      "path": "AbstractPopup.java",
+      "repositoryPath": "platform/platform-impl/src/com/intellij/ui/popup/AbstractPopup.java",
+      "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+      "gitBlobSha": "bd52e9126fae3b2709f5e87d6d1557994455f03a",
+      "bytes": 114898,
+      "sha256": "a48c3b50d918694529f6109fe40ad51a5b2843ccb9ab143ad9ddb56ef734fa25",
+      "rawMatchesContentsApiBase64": true,
+      "url": "https://github.com/JetBrains/intellij-community/blob/15645ead6f20019cc2537dbbd43df4eb344423a8/platform/platform-impl/src/com/intellij/ui/popup/AbstractPopup.java"
+    },
+    {
+      "path": "PopupFactoryImpl.java",
+      "repositoryPath": "platform/platform-impl/src/com/intellij/ui/popup/PopupFactoryImpl.java",
+      "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+      "gitBlobSha": "61f2436c5ffd858d17ceb24046a1a3686560bf86",
+      "bytes": 45838,
+      "sha256": "ab1a97d5d302105d3fb419f4d7acf8a8636ab4c408933d9f5b9424e9df01a670",
+      "rawMatchesContentsApiBase64": true,
+      "url": "https://github.com/JetBrains/intellij-community/blob/15645ead6f20019cc2537dbbd43df4eb344423a8/platform/platform-impl/src/com/intellij/ui/popup/PopupFactoryImpl.java"
+    },
+    {
+      "path": "PopupListAdapter.java",
+      "repositoryPath": "platform/platform-impl/src/com/intellij/ui/popup/PopupListAdapter.java",
+      "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+      "gitBlobSha": "083d794e35f59416c69e6bbefd26f51e62621030",
+      "bytes": 5377,
+      "sha256": "7d64d1da793eccf642292c3612e32ba0af3d1a1b75c000e0688c82652c0a056e",
+      "rawMatchesContentsApiBase64": true,
+      "url": "https://github.com/JetBrains/intellij-community/blob/15645ead6f20019cc2537dbbd43df4eb344423a8/platform/platform-impl/src/com/intellij/ui/popup/PopupListAdapter.java"
+    }
+  ],
+  "vendor": {
+    "url": "https://data.services.jetbrains.com/products/releases?code=IIU&version=2026.2.0.1&type=release",
+    "selection": "IIU entries where version exactly equals 2026.2.0.1",
+    "sourcePayloadBytes": 1130402,
+    "sourcePayloadSha256": "7de4df22e6ce60d4f3df22f52532fd77163b807ccd032b5db577d565895855e3",
+    "selectedEntry": "vendor-selected-release.json",
+    "fullPayloadRetainedAt": ".work/astra-popup-official-source-20261010/vendor-releases.original.json",
+    "fullPayloadIncludedInCommittedArchive": false
+  },
+  "captureNote": "Official source files preserved as raw gh API bytes and checked against contents API base64. Vendor curl inside sandbox initially failed with SEC_E_NO_CREDENTIALS; approved host curl succeeded."
+}

@@ -805,3 +805,17 @@ Astra 对实际 fixture helper 的[独立诊断合同](./cli/evidence/gap-2026-1
 只给原恢复用例 **30_000ms** 有界功能测试预算，未将默认 5 秒解释为业务 SLO；原生 SQLite、原断言、生产锁/ACL/生命周期期限不改，无 retry。单调时钟记录各阶段进入/完成和总时间，挂起时仍有最后进入阶段日志。本机完整宿主文件 **20/20、32.25秒**；[独立原始计时](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt3/goal-restart-local-timing2/stdout.log)只选原用例 **1 通过 / 19 未选择**，body **164.49ms**、old close **3.70ms**，没有复现 CI 超期。本机 Vitest **4.1.10**、CI **4.1.11** 分别记载，不能称完全相同环境。
 
 首次本机测试缺 better-sqlite3 binding，随后使用已安装 **12.11.1** 对应的官方 Node22.22.2 预编译包，未改 tracked manifest/lock；首次计时 harness 误用不存在的 nested Vitest 路径，其失败输出保留，修正后通过。只修改测试，不增加子包版本。另据原 IDE API 核准第二候选为 **18 success / 1 非标签 Marketplace 后验证 skip**，修正此前将十九个结束 job 写为全 success 的说明。新提交仍须准确 SHA 完整门，当前尚未发布；所有原冻结 review/正式 36+9、预算与 observations 及平台、人工、账户、长时边界保持。
+
+### 20.17 Windows ARM64 JetBrains 弹窗调度诊断
+
+准确候选 `a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b` 的 IDE ARM64 Host Validation run `37947977140`，Windows ARM64 JetBrains **2026.2.0.1** job `113880537429` 在真实 chat/control/resume 旅程中 **7 通过 / 1 失败**：`Restore code + conversation` 动作菜单在 **45 秒**内未出现。后续完整宿主汇总正确失败。原日志 **216526 bytes**、SHA256 `f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804`，API、JUnit、协议和关键截图[按字节归档](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/manifest.json)。artifact `11625812501` 的原 manifest 全部 **30 文件**摘要匹配，无 DOM 或 idea.log；不能补造这些日志。
+
+协议显示 restore-code 和 restore-conversation 两轮均完成匹配 preview/confirm。第三轮 timeline 在 **15:19:07.328Z** 返回并记录激活 `partial turn-2`，之后无 restore-both preview/confirm 请求；因此失败在时间线选中到动作菜单过渡。相同 selector 已在前两轮成功，不能泛称 IDEA2026 selector 失配；GUI guard 的 WSL updater termination 缺少与此时刻的焦点关联，不能确定其因果关系。
+
+Astra 核对官方 IDEA build **262.8665.337**、commit `15645ead6f20019cc2537dbbd43df4eb344423a8` 的 Enter/closeOk 路径：父 popup 清理后通过 doWhenFocusSettlesDown 调用选中回调；没有依据修改生产同步 `showTimelineActions`。取消后的 deferred Enter 可能不执行 callback 是源码机制，原失败是否确实取消仍未确认。
+
+只修改 UI 测试驱动：IIFE 捕获原目标、label 与 prefix，在同一个 deferred EDT runnable 内重新验证 showing 和唯一匹配，选择并执行真实 Enter，记录 `scheduled → entered → validated → dispatch-returned / failed`、可见性与焦点；目标隐藏、丢失/歧义或 Enter 缺失即失败，无 retry。原 **45 秒**预算内要求 `dispatch-returned|hidden`，这不代表 selected callback 已完成；调用方仍必须观察真实下一菜单、匹配 preview/confirm 与完成文本，未删改任何恢复业务断言。
+
+本机 JDK **21.0.12.1** 编译通过。真实已编译方法导出的 JS 经 Rhino **1.7.15**、Swing JList/Enter Action、真实 EDT 的[调度合同 **10/10**](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/report.json)；仅 ApplicationManager 队列与 isShowing 为可控替身，没有真实 IDE/GUI/CI，未复现原故障。Astra 另发现 Java 泛型 `callJs` 被 `String.valueOf` 推断为 `char[]` 的调用点错误，已增加 `(Object)`；[新字节码回读](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-resolution.json)确认 `String.valueOf(Object)`，重导出 JS SHA256 `ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def` 与 10/10 合同输入相同，未重复计数。
+
+新提交须以自身准确 SHA 通过完整 CLI/Strict、双 IDE 与 ARM64 宿主门，再按子包、CLI 公开可取、IDE 的既有顺序发布。当前 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158` 均尚未发布；正式 36+9、预算、observations、冻结 Windows review 与平台/账户/人工/长时验收边界保持原状态。

@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-09T15:58:26.379Z",
+  "exitCode": 0,
+  "signal": null,
+  "rhinoSha256": "2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63",
+  "runtimeClasspathSha256": "752f7c8eb51b49c57fc68c6b122b4298f9fe9050c2a69b4c8092c59949eab058",
+  "priorAttempt": {
+    "files": [
+      "run.stdout.log",
+      "run.stderr.log"
+    ],
+    "reason": "PowerShell ErrorActionPreference=Stop terminated the first harness invocation upon its expected stderr diagnostic; incomplete attempt retained."
+  }
+}

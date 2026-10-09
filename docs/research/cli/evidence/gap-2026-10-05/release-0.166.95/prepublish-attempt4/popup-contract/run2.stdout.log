@@ -1,0 +1,36 @@
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation validated showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=false focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation failed:Error: Popup cancelled before Enter dispatch showing=false focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation failed:Error: Popup target missing or ambiguous at dispatch showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation failed:Error: Popup target missing or ambiguous at dispatch showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation failed:Error: Popup Enter action unavailable showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation validated showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation failed:JavaException: java.lang.IllegalStateException: distinct-dispatch-failure-731 showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation validated showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] partial  turn-2   failed:Error: Popup target missing or ambiguous at dispatch showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation validated showing=true focusOwner=false focus=<none>
+[ui-popup-enter] Restore code + conversation dispatch-returned showing=true focusOwner=false focus=<none>
+CONTRACT_PASSED=10

@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T15:36:57.651Z",
+  "sourceCommit": "a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b",
+  "runId": 37947977140,
+  "jobId": 113880537429,
+  "jobName": "JetBrains ARM64 (windows, 2026.2.0.1)",
+  "conclusion": "failure",
+  "bytes": 216526,
+  "sha256": "f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804"
+}
