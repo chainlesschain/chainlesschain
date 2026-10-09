@@ -611,6 +611,7 @@ function withHostTermination(report) {
       preTerminationWait: 258,
       preTerminationExit: 259,
       terminationCallSucceeded: true,
+      terminationCallError: 0,
       terminationWait: 0,
       actualExit: 1,
       terminationRequesterRegistrationId: host.creationLedger[0].registrationId,
@@ -820,6 +821,24 @@ for (const [name, mutate] of [
     "termination call failed",
     (row) => {
       row.terminationCallSucceeded = false;
+    },
+  ],
+  [
+    "contradictory termination error",
+    (row) => {
+      row.terminationCallError = 5;
+    },
+  ],
+  [
+    "missing termination error",
+    (row) => {
+      delete row.terminationCallError;
+    },
+  ],
+  [
+    "untyped termination error",
+    (row) => {
+      row.terminationCallError = "0";
     },
   ],
   [

@@ -40,6 +40,7 @@ const hostTerminatedWorker = (row) =>
   row.preTerminationWait === 258 &&
   row.preTerminationExit === 259 &&
   row.terminationCallSucceeded === true &&
+  row.terminationCallError === 0 &&
   row.terminationWait === 0 &&
   row.actualExit === 1 &&
   row.terminationRequesterRegistrationId === row.parentRegistrationId &&
