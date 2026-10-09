@@ -7,6 +7,7 @@ import {
   captureCommandArgvGrammar,
   captureCommandOptionSpecs,
   stripFirstTurnPromptArgv,
+  transformBackgroundLaunchArgv,
 } from "../../src/lib/background-command-argv.js";
 
 const OPTION_SPECS = [
@@ -24,6 +25,72 @@ const OPTION_SPECS = [
 ];
 
 describe("background command argv", () => {
+  // These are already parsed argv tokens: shell quoting has been removed,
+  // while spaces, empty arguments, Unicode and literal quotes remain data.
+  describe.each([
+    ["quoted space", "two words"],
+    ["empty string", ""],
+    ["Unicode and literal quotes", '写入 "引号" 和 C:\\notes\\draft.txt'],
+  ])("preserves %s argument boundaries", (_label, value) => {
+    it("keeps required option values when removing the first prompt", () => {
+      const argv = [
+        "agent",
+        "--title",
+        value,
+        "first prompt",
+        "--session",
+        "s",
+      ];
+      expect(
+        stripFirstTurnPromptArgv(argv, { optionSpecs: OPTION_SPECS }),
+      ).toEqual(["agent", "--title", value, "--session", "s"]);
+      expect(argv).toEqual([
+        "agent",
+        "--title",
+        value,
+        "first prompt",
+        "--session",
+        "s",
+      ]);
+    });
+
+    it("keeps inline values and literal operands when replacing the session", () => {
+      expect(
+        canonicalizeBackgroundSessionArgv(
+          ["agent", `--title=${value}`, "--resume", "old", "--", value],
+          { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+        ),
+      ).toEqual([
+        "agent",
+        `--title=${value}`,
+        "--session",
+        "resolved",
+        "--",
+        value,
+      ]);
+    });
+
+    it("keeps option values and operands when removing background options", () => {
+      expect(
+        transformBackgroundLaunchArgv(
+          ["agent", "--background", "--title", value, "--", value],
+          {
+            directories: ["canonical root"],
+            optionSpecs: [...OPTION_SPECS, { long: "--background" }],
+          },
+        ),
+      ).toEqual([
+        "agent",
+        "--title",
+        value,
+        "--add-dir",
+        "canonical root",
+        "--",
+        value,
+      ]);
+    });
+  });
+
   it("rejects ephemeral background authority but preserves literal prompt data", () => {
     expect(() =>
       assertBackgroundArgvDurable(["agent", "--ephemeral", "-p", "work"]),
