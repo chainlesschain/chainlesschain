@@ -1,0 +1,183 @@
+{
+  "capturedAt": "2026-10-09T14:51:47.323Z",
+  "sourceCommit": "a3cbe918e4f8fcda77dafa7514401d5f643b36df",
+  "disposition": "NOT_RELEASE_ELIGIBLE",
+  "failure": {
+    "workflow": "CI Tests",
+    "runId": 37944032628,
+    "jobId": 113865516304,
+    "tests": {
+      "passed": 230,
+      "failed": 1,
+      "total": 231
+    },
+    "test": "restores only explicitly enabled goals when the desktop controller restarts",
+    "timeoutMs": 5000,
+    "reportedDurationMs": 8073,
+    "rootCause": "Default functional-test deadline exceeded; native I/O contribution and exact phase not established by the original log",
+    "secondaryFailure": "Selector/fallback enforcement sees skipped producer steps after the boundary failure"
+  },
+  "local": {
+    "completeHostTestsPassed": 20,
+    "completeHostDurationSeconds": 32.25,
+    "completeHostTransport": "unified exec presentation, not a retained original stream",
+    "timingTestPassed": 1,
+    "other19Cases": "intentionally not selected in the timing-only run",
+    "vitest": "4.1.10",
+    "ciVitest": "4.1.11",
+    "originalCiTimeoutReproduced": false,
+    "nativeBinding": {
+      "version": "12.11.1",
+      "node": "v22.22.2",
+      "sha256": "c4b95a94a963258a9ef41b12fd3bb86f0b08a2ac5c5b499fe94de57a5443682d"
+    }
+  },
+  "fix": {
+    "scope": "Only the existing restart functional test",
+    "testTimeoutMs": 30000,
+    "monotonicPhaseDiagnostics": true,
+    "retry": false,
+    "productionCodeChanged": false
+  },
+  "notes": [
+    "No required five-second shutdown sleep was found. Matching Vitest runner can reject on promise resolution after synchronous work exceeds its deadline.",
+    "The failed restart test injects ACL protectors and is independent from the earlier SDK startup failure.",
+    "First local test lacked a native binding. Official matching better-sqlite3 prebuild installed without changing tracked manifests or locks.",
+    "First timing harness used a nonexistent nested Vitest path; its failed stdout/stderr are retained. Corrected harness resolves the actual package.",
+    "Other matrix API snapshots are partial pre-supersession observations, not complete successes. New source requires its own full release gates."
+  ],
+  "bindings": [
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "sha256": "d5db92c549e9e6bbf474151176745fe0bb788f79eee89bf872bf235c8a968cfb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-monitoring-host.js",
+      "sha256": "c194c38bbb622c481e58c111a793a74d6c6c9cfad929f67dc304c58efe4046e3"
+    },
+    {
+      "path": "packages/session-core/lib/project-goal-monitoring.js",
+      "sha256": "5236ca2809d35f0ac05ad98a121946589d25e3848951de83a0d373400867e663"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-service.js",
+      "sha256": "2ab4c6089dd0ba45fc972b4c9ba00b348aa3ba858399e6afda89faa7d22a0232"
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-store.js",
+      "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933"
+    }
+  ],
+  "files": [
+    {
+      "path": "ci-windows-host-a3-failed/job.json",
+      "bytes": 5152,
+      "sha256": "a88f4485c46e1ced9da629f119194a1b24304b3ad41fbbfc0b8de0f188943fde"
+    },
+    {
+      "path": "ci-windows-host-a3-failed/job.log",
+      "bytes": 207619,
+      "sha256": "0a6f0a39c9f07beb95e570cc5351a42580d1309002ca6d165917b10794a764a5"
+    },
+    {
+      "path": "ci-windows-host-a3-failed/readback.json",
+      "bytes": 334,
+      "sha256": "2162f7f079f254c0ad78f42572ffc71cff670b06287762bf891b85df6e86547d"
+    },
+    {
+      "path": "ci-windows-host-a3-failed/run.json",
+      "bytes": 15278,
+      "sha256": "e89baf959ce626962ef855aab6842038da5557381455139a53be476f7a2aef52"
+    },
+    {
+      "path": "ci-tests-a3-before-supersession/artifacts-1.json",
+      "bytes": 775,
+      "sha256": "2d4267660349702f2074dbb78ca90bd416c0ca31409eec66d7744b9d04b4e9b5"
+    },
+    {
+      "path": "ci-tests-a3-before-supersession/jobs-1.json",
+      "bytes": 24754,
+      "sha256": "db0e0599c1d499daee6a11762cd61a869034d2bba66d01f224cf6bd557f91c59"
+    },
+    {
+      "path": "ci-tests-a3-before-supersession/readback.json",
+      "bytes": 51395,
+      "sha256": "5dbcfd9d130ad6cacd0280119cb02350a4b4260c9808f9e143fe71c50d3f9cd9"
+    },
+    {
+      "path": "ci-tests-a3-before-supersession/run.json",
+      "bytes": 13732,
+      "sha256": "e7dd8986cfb93e50b5902cd683a0af8aaed8686555ec54f37af1fe7721bc656d"
+    },
+    {
+      "path": "cli-ci-a3-before-supersession/artifacts-1.json",
+      "bytes": 3965,
+      "sha256": "221379c413084b8b0e3d512b5e2a8806f450ea48530f6d4e3b56cc1188586891"
+    },
+    {
+      "path": "cli-ci-a3-before-supersession/jobs-1.json",
+      "bytes": 79833,
+      "sha256": "aef32452de06aaa2f30ed67662d703c625bcbe89bd67322a071c24af02547185"
+    },
+    {
+      "path": "cli-ci-a3-before-supersession/readback.json",
+      "bytes": 125694,
+      "sha256": "029d53c6c0cea5544dd10dbcbc3fbdc31f2344db2f3302fb5531ba86c536653a"
+    },
+    {
+      "path": "cli-ci-a3-before-supersession/run.json",
+      "bytes": 14124,
+      "sha256": "e503a2c034d77ec8e3d0b06af1d47e8108d81dfaea1d0e920e9a27c54768d503"
+    },
+    {
+      "path": "model-catalog-a3-final/artifacts-1.json",
+      "bytes": 813,
+      "sha256": "90fbec47c0ddc485e535c15b189e51f1346cba42acb07f74d0381fd911e65246"
+    },
+    {
+      "path": "model-catalog-a3-final/jobs-1.json",
+      "bytes": 3377,
+      "sha256": "16c5914d7cd366c5361b1e46902ce620f4959c98341a6bf8e9095207615bc5d6"
+    },
+    {
+      "path": "model-catalog-a3-final/readback.json",
+      "bytes": 22104,
+      "sha256": "20b8bdef0198da3c11f61aac2ca5e2d386d44537d0311fdf67c6d954be32c3bc"
+    },
+    {
+      "path": "model-catalog-a3-final/run.json",
+      "bytes": 13765,
+      "sha256": "375287a468b670075c0ae414acf928a636746474d3875029938248bbe158729f"
+    },
+    {
+      "path": "goal-restart-local-timing/stderr.log",
+      "bytes": 792,
+      "sha256": "ecb01fbde993ba2439aa16ee157e047c6ea6723973284a6ec5e5444c30c4fab6"
+    },
+    {
+      "path": "goal-restart-local-timing/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "goal-restart-local-timing2/report.json",
+      "bytes": 1090,
+      "sha256": "2eb842b88377ba5ec32e83826a3859e16d30dbade0c40affb145da111de1d44e"
+    },
+    {
+      "path": "goal-restart-local-timing2/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "goal-restart-local-timing2/stdout.log",
+      "bytes": 6538,
+      "sha256": "6a367654acab0e5fd3ba31fe1fe8725767ea9aeea53a30a29b6f519e6d50cc6f"
+    },
+    {
+      "path": "run-goal-restart-timing.mjs",
+      "bytes": 2309,
+      "sha256": "0a670821655875272c4a39dfc7a21dcd955d97a7ab42101791ccaad6f5e656ad"
+    }
+  ]
+}

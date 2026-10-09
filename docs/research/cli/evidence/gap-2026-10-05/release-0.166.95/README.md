@@ -2,13 +2,21 @@
 
 候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
 
-## 第二候选：SDK 初始化前退出
+## 第三候选：桌面原生恢复功能预算
+
+候选 `a3cbe918e4f8fcda77dafa7514401d5f643b36df` 的 Windows CI Tests job `113865516304` 在 `project-goal-monitoring-host.test.js` 的恢复用例报默认 **5000ms** 超时，报告用时 **8073ms**；该边界 suite **230/231**。selector/fallback 后续未执行，其强制汇总正确失败。真实日志、部分矩阵快照和本地诊断见[第三候选原件](./prepublish-attempt3/manifest.json)，日志 SHA256 `0a6f0a39c9f07beb95e570cc5351a42580d1309002ca6d165917b10794a764a5`。当时 CLI/Strict/IDE 仍未完成，不能称该 SHA 完整通过。
+
+Astra 确认此用例注入权限 protector，不运行 SDK 的真实 Windows ACL 子进程。engine close 先 abort 后 drain，service sleep 在 abort 时取消定时器，没有必需五秒等待；原日志无 `SQLITE_BUSY`，不能据超时认定挂起或锁争用。匹配 CI 堆栈的 Vitest runner 会在 promise 完成后检查超期，同步数据库工作也可能触发这个错误，慢 I/O 仍未确认。
+
+只对原恢复用例显式设 **30_000ms** 功能预算，原生 SQLite、全部业务断言与生产锁/ACL/生命周期期限保持，无 retry；各阶段进入/完成及总时间使用 `performance.now()`。本机完整宿主文件 **20/20、32.25秒**；独立计时只选原恢复用例 **1 通过 / 19 未选择**，原始 stdout 显示 body **164.49ms**、old close **3.70ms**，没有复现 CI 超期。本机 Vitest **4.1.10** 与 CI **4.1.11** 的差异保留。首次本机缺 SQLite binding、修复官方预编译包及首次计时脚本路径错误分别记载，不归因于原 CI。新提交必须取得自己的完整门。
+
+## 第二候选：SDK 初始化前退出（历史）
 
 准确提交 `43eb29d1f72697d849b6f1aed573fd044ad9da9b` 的 [CLI CI #37929591872](https://github.com/chainlesschain/chainlesschain/actions/runs/37929591872) 为 **69 success / 2 failure**。Windows verify-cli 的 Agent SDK `0.2.13` 测试 **82 通过 / 1 失败**，真实 sibling CLI 在 init 前以 code 1 退出，用时 16.066 秒。SDK fixture 虽收集 stderr，启动等待却位于原诊断 catch 之外；因此当前日志不足以确认根因。默认 ACL 15 秒与用时接近只是线索，未据此改变期限或称基础设施失败。
 
 后续四个上传步骤报 `No files found`，相应生成步骤因 SDK 失败未执行；这不是网络上传故障。Windows PM recovery artifact `11620769736` 已上传，PM 汇总因完整父 job 门失败拒绝。原始 API、失败日志及已成功 Windows unit shard 3 日志见[第二候选清单](./prepublish-attempt2/manifest.json)，两个原日志 SHA256 分别为 `fa3a2871b4edbd3906b5d239208dc558bead58af3f97805b7fb3c251d04f5626`、`9623123547d869421b21e9ed3f9c18e74b93ad787e0ab1c2bd1ac7500678e27e`。
 
-此准确提交的 Strict **5/5**、IDE Extensions **19/19**、质量安全、模型审查、PR Tests、CI Tests、Full Test Automation 与 IDE Roadmap Safety Matrix 全部结束且成功，原始回读均归档。它们不能替代失败 CLI CI，也不能转移到下个提交。
+此准确提交的 Strict **5/5**、IDE Extensions **18 成功 / 1 非标签 Marketplace 后验证跳过**、质量安全、模型审查、PR Tests、CI Tests、Full Test Automation 与 IDE Roadmap Safety Matrix 全部结束且成功，原始回读均归档。它们不能替代失败 CLI CI，也不能转移到下个提交。
 
 本机 Windows 原 SDK E2E **1/1**，用时 135.73 秒，真实文件写入、审批及 resume 断言通过；补诊断后的全部 SDK **83/83、9 文件**通过，用时 128.87 秒，均未复现 hosted runner 原退出。当前补丁只对测试首次 init、各结果和 resume 等待添加独立 stderr/events/phase/cause；spawn error 也立即拒绝并清理监听器。SDK runtime、发布版本、180 秒用例期限、ACL 期限、全部业务断言和 sandbox 选择不变，不自动重试。退出时管道可能未完全排空，诊断明确只报告失败前观察到的内容。新提交须取得自己的完整发布门。
 

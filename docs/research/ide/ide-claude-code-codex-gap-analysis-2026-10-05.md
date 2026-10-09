@@ -1,6 +1,8 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
-> **2026-10-09 第二候选 SDK 启动取证**：准确提交 `43eb29d1f7` 的 Strict 五项、IDE 十九项及其他测试门完整成功，CLI CI 为 69 成功 / 2 失败：Windows Agent SDK `0.2.13` 真实 E2E 在 init 前退出，82 通过 / 1 失败。后续四份制品未生成导致上传失败，PM 恢复原件实际已上传；不能归为网络故障。原 fixture 未报告 early-init stderr，根因尚未确认。本机原 E2E 通过；当前仅补首次启动与 resume 的失败诊断，保留期限、断言、失败及原 cause，不修改 SDK 运行时。见[第二候选原件](../cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)；新提交仍须完整门，尚未发布。
+> **2026-10-09 原生恢复测试预算修正**：候选 `a3cbe918e4` 的 Windows 常规 CI 在桌面恢复用例超出 Vitest 默认 5 秒期限，230/231 通过，原件保留；该用例注入权限保护，与 SDK ACL 启动检查无关。仅此真实 SQLite 恢复用例改为 30 秒有界功能预算，并添加单调时钟阶段诊断，原断言及生产期限不变，无 retry。本机宿主 20/20、独立计时用例通过；未复现原 CI 超时，不确认慢 I/O 根因。见[验证 20.16](../cli-ide-gap-validation-2026-10-05.md#2016-windows-原生恢复功能预算与阶段诊断)。新提交仍须完整门，CLI/IDE 尚未发布。
+
+> **2026-10-09 第二候选 SDK 启动取证**：准确提交 `43eb29d1f7` 的 Strict 五项和 IDE 必需门成功（18 成功 / 1 非标签后验证跳过），其他测试门完整成功，CLI CI 为 69 成功 / 2 失败：Windows Agent SDK `0.2.13` 真实 E2E 在 init 前退出，82 通过 / 1 失败。后续四份制品未生成导致上传失败，PM 恢复原件实际已上传；不能归为网络故障。原 fixture 未报告 early-init stderr，根因尚未确认。本机原 E2E 通过；当前仅补首次启动与 resume 的失败诊断，保留期限、断言、失败及原 cause，不修改 SDK 运行时。见[第二候选原件](../cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)；新提交仍须完整门，尚未发布。
 
 > **2026-10-09 发布候选首轮修复**：准确候选 d4b936395e 的 Strict、质量安全和常规测试通过，但 CLI Windows 并发 fixture 及 IDE 浏览器完整 diff 取证失败，已保留原件并修复；桌面 Playwright 超大自动报告 patch 的测试启动失败也已处理。定向回归与真实争用控制通过，修复后的新提交仍须完整发布矩阵；见[0.166.95 配对验证](../cli/evidence/gap-2026-10-05/release-0.166.95/README.md)及[验证 20.14](../cli-ide-gap-validation-2026-10-05.md#2014-cli-016695-配对候选失败取证与修复)。当前尚未发布，正式验收与冻结反例状态不因修复改变。
 

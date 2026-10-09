@@ -1,0 +1,62 @@
+
+ RUN  v4.1.10 C:/code/chainlesschain/desktop-app-vue
+
+stdout | src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts
+goal restart phase entered create-goal
+goal restart phase completed { phase: 'create-goal', elapsedMs: 30.10379999999998 }
+goal restart phase entered start
+
+stdout | src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts
+goal restart phase completed { phase: 'start', elapsedMs: 70.59889999999996 }
+goal restart phase entered close-old-controller
+
+stdout | src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts
+goal restart phase completed { phase: 'close-old-controller', elapsedMs: 3.7034999999999627 }
+goal restart phase entered reopen-controller
+
+stdout | src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts
+goal restart phase completed { phase: 'reopen-controller', elapsedMs: 27.135500000000093 }
+goal restart phase entered explicit-tick
+
+stdout | src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts
+goal restart phase completed { phase: 'explicit-tick', elapsedMs: 27.378299999999967 }
+goal restart phase entered assert-restored-check
+goal restart phase completed { phase: 'assert-restored-check', elapsedMs: 5.317900000000009 }
+goal restart monotonic timings {
+  elapsedMs: 164.48890000000006,
+  timings: [
+    { phase: 'create-goal', elapsedMs: 30.10379999999998 },
+    { phase: 'start', elapsedMs: 70.59889999999996 },
+    { phase: 'close-old-controller', elapsedMs: 3.7034999999999627 },
+    { phase: 'reopen-controller', elapsedMs: 27.135500000000093 },
+    { phase: 'explicit-tick', elapsedMs: 27.378299999999967 },
+    { phase: 'assert-restored-check', elapsedMs: 5.317900000000009 }
+  ]
+}
+
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > derives an independent native scheduler path solely from trusted app/database state
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > uses the authenticated session in both default metadata and background providers
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > invokes start/check/status/stop against live native goals
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > keeps background authorization independent from the original renderer window
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects an untrusted start caller before opening a scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects an untrusted stop caller before opening a scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects an untrusted check caller before opening a scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects an untrusted status caller before opening a scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rechecks the sender after asynchronous controller initialization
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects renderer-supplied execution identities and storage paths
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > waits while identity is locked and authorizes every subsequent command
+ ✓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > restores only explicitly enabled goals when the desktop controller restarts 201ms
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > locks and drains the old engine before rotating a replaced database connection
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > drains and shares shutdown before the host may close its project connection
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > refuses database fallbacks that lack a native transaction
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects non-confirming storage protection false before opening the scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects non-confirming storage protection undefined before opening the scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > rejects non-confirming storage protection Promise{…} before opening the scheduler
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > uses actual platform owner-only protection in the production opener
+ ↓ src/main/task/__tests__/project-goal-monitoring-host.test.js > desktop goal monitoring native storage and lifecycle owner > materializes lazy WAL sidecars before the host's after-open protection
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 19 skipped (20)
+   Start at  22:49:31
+   Duration  787ms (transform 52ms, setup 0ms, import 154ms, tests 205ms, environment 0ms)
+

@@ -792,6 +792,16 @@ Astra 对实际 fixture helper 的[独立诊断合同](./cli/evidence/gap-2026-1
 
 准确提交 `43eb29d1f72697d849b6f1aed573fd044ad9da9b` 的 CLI CI #37929591872 为 69 success / 2 failure。原 Windows unit shard 3 已成功；Windows verify-cli job 113855554261 的 SDK `0.2.13` 为 82 通过 / 1 失败，真实 E2E 报 `agent exited (code 1) before init`，耗时 16.066 秒。原 fixture 没有将 startup await 包入 stderr/events catch，无法从原件确定退出原因；默认 ACL 15 秒只是一项未证实线索，不改变生产期限或给原失败标记 infra-only。
 
-后续四份制品在 SDK 失败后未生成，上传的 `No files found` 不能归因网络；Windows PM recovery artifact 11620769736 实际已成功上传，PM 汇总由父 job 完整门失败拒绝。Strict 5/5、IDE 19/19、质量安全、模型审查、PR/CI/Full Test 与 IDE Roadmap Safety Matrix 全部成功，其准确 SHA 回读和失败原日志[分别归档](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)，不能替代失败 CLI CI。
+后续四份制品在 SDK 失败后未生成，上传的 `No files found` 不能归因网络；Windows PM recovery artifact 11620769736 实际已成功上传，PM 汇总由父 job 完整门失败拒绝。Strict 5/5、IDE 18 成功 / 1 非标签后验证跳过、质量安全、模型审查、PR/CI/Full Test 与 IDE Roadmap Safety Matrix 全部成功，其准确 SHA 回读和失败原日志[分别归档](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt2/manifest.json)，不能替代失败 CLI CI。
 
 本机原 Windows SDK E2E 1/1、135.73 秒，保留实际审批写文件和会话 resume 合同；补诊断后的完整 SDK 9 文件、83/83 通过，用时 128.87 秒，不能据本机成功推断原 hosted runner 根因。当前只补测试启动与各结果失败诊断，first/resume 使用独立 stderr/events，保留原 message/cause，明确不声称管道完全排空；waitForInit 对 spawn error 立即拒绝并清理 init/exit/error listeners。SDK runtime、版本、180 秒测试期限、ACL 期限、原断言和 sandbox 条件都不改，无 retry。后续准确提交仍需全矩阵；本轮尚未发布。原冻结 Windows 反例、正式 36+9、预算及 observations、durable/账户/人工/长时开放状态均不变。
+
+### 20.16 Windows 原生恢复功能预算与阶段诊断
+
+候选 `a3cbe918e4f8fcda77dafa7514401d5f643b36df` 的 CI Tests Windows Node 22.x job `113865516304`：governed host suite **230/231**，原恢复用例报告 **8073ms** 并超过 Vitest 默认 **5000ms** 期限；后续 selector/fallback producer 均跳过，强制汇总正确失败。原始日志 SHA256 `0a6f0a39c9f07beb95e570cc5351a42580d1309002ca6d165917b10794a764a5` 及未完成矩阵 API 快照[已保存](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt3/manifest.json)，不能把这些快照称全矩阵成功。
+
+该用例注入 protectDirectory/protectFile，不执行 SDK ACL 子进程。Astra 查明 close 先 abort 后 drain、service 定时器在 abort 时取消，runUntilIdle 无 sleep/backoff，未发现跨 await 持有同步事务或原日志 `SQLITE_BUSY`。匹配 CI 堆栈的 Vitest runner 在 promise 完成后也检查 elapsed，因而超时不证明挂住；native I/O 的实际贡献仍未知。
+
+只给原恢复用例 **30_000ms** 有界功能测试预算，未将默认 5 秒解释为业务 SLO；原生 SQLite、原断言、生产锁/ACL/生命周期期限不改，无 retry。单调时钟记录各阶段进入/完成和总时间，挂起时仍有最后进入阶段日志。本机完整宿主文件 **20/20、32.25秒**；[独立原始计时](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt3/goal-restart-local-timing2/stdout.log)只选原用例 **1 通过 / 19 未选择**，body **164.49ms**、old close **3.70ms**，没有复现 CI 超期。本机 Vitest **4.1.10**、CI **4.1.11** 分别记载，不能称完全相同环境。
+
+首次本机测试缺 better-sqlite3 binding，随后使用已安装 **12.11.1** 对应的官方 Node22.22.2 预编译包，未改 tracked manifest/lock；首次计时 harness 误用不存在的 nested Vitest 路径，其失败输出保留，修正后通过。只修改测试，不增加子包版本。另据原 IDE API 核准第二候选为 **18 success / 1 非标签 Marketplace 后验证 skip**，修正此前将十九个结束 job 写为全 success 的说明。新提交仍须准确 SHA 完整门，当前尚未发布；所有原冻结 review/正式 36+9、预算与 observations 及平台、人工、账户、长时边界保持。
