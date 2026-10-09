@@ -1,0 +1,89 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\model-catalog-upstream-61d91325d0",
+  "archivedAt": "2026-10-09T07:26:59.772Z",
+  "files": [
+    {
+      "path": "artifact-11600253946.zip",
+      "bytes": 434126,
+      "digest": "sha256:90e5e39918ccd7abba55b6360ffed21d63c45c1d9b4f5938e8130638e14749af"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 816,
+      "digest": "sha256:4728d44e2aab349b1ae01f7099ac31f244330d2544e18947453731166fa26159"
+    },
+    {
+      "path": "claude.md",
+      "bytes": 1041248,
+      "digest": "sha256:6ed200255b5d4cfa930ad24463a1cc45a0f20b0ef907eca98defe35df5c1258e"
+    },
+    {
+      "path": "codex-api-readback.json",
+      "bytes": 1831,
+      "digest": "sha256:41fa16d98ecf3a027c07f6a9e4ecdcbc507673a6019e230613a6307a4f15e687"
+    },
+    {
+      "path": "codex-latest.headers",
+      "bytes": 1334,
+      "digest": "sha256:23fd3499360fd3355d6a751e4e9792d6c271cdd47d3bc1f176df8db15e7a0cee"
+    },
+    {
+      "path": "codex-latest.json",
+      "bytes": 375673,
+      "digest": "sha256:cc8655fe46e39dfaab02510d5339bc776c33e84952568f65af6336493ad5186f"
+    },
+    {
+      "path": "codex.html",
+      "bytes": 803997,
+      "digest": "sha256:c801649bf0a31a671386070fce9a86eb628ff8b26ce199296cf1eedb9a00bcf1"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 3377,
+      "digest": "sha256:f60ba85d39b59884bf9df2e944299dc53057a65e7e3ce374e9f820430c109e9a"
+    },
+    {
+      "path": "local.json",
+      "bytes": 2222,
+      "digest": "sha256:9cfb631a72c7b07ed0b731461f439febb525e96e4e0712936cb3f7e805685f40"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 1506,
+      "digest": "sha256:6492474ddc32eaf44c5133eb1e2c11735c35cdc5a3ae75877546c817d5390032"
+    },
+    {
+      "path": "run.json",
+      "bytes": 13715,
+      "digest": "sha256:cbe9907b7278b842b81a709bb2573e9b2a445afe72b05efc56bbcb166b9bb5cb"
+    },
+    {
+      "path": "upstream-api-direct.json",
+      "bytes": 2794,
+      "digest": "sha256:54869734b604eef7f51ef6b4f6dede0fa0313e1677b07b944cdf5e26131d99c9"
+    },
+    {
+      "path": "upstream-api-final-execution.json",
+      "bytes": 1027,
+      "digest": "sha256:957736f80587c795262d618c29a4ae3139a296c0c3af5175f7ac999f604a4ec9"
+    },
+    {
+      "path": "upstream-api-final.json",
+      "bytes": 2794,
+      "digest": "sha256:da22c042746a09fe27ed1218de12b52b35c04ae8a9b19270aa3bd2ed9f3bbae4"
+    },
+    {
+      "path": "upstream-api-review.json",
+      "bytes": 2794,
+      "digest": "sha256:f167ab1fd2130404417dcfef782577bc378b8fb74ff8e254395587133ef29a98"
+    },
+    {
+      "path": "upstream.json",
+      "bytes": 2334,
+      "digest": "sha256:d1433f96ffda30049e7035f2a08ece0baf30938cf76470fe1ffef62b75de0a40"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

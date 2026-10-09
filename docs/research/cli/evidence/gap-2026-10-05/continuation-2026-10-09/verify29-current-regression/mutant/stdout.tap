@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: rejects a foreign-session ACK even when request and mode match
+not ok 1 - rejects a foreign-session ACK even when request and mode match
+  ---
+  duration_ms: 5.3542
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\.work\\verify29-current-regression-20261009-formatted\\mutant\\test\\permission-mode-state.test.cjs:33:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\code\chainlesschain\.work\verify29-current-regression-20261009-formatted\mutant\test\permission-mode-state.test.cjs:37:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: accepts the same ACK when it belongs to the current session
+ok 2 - accepts the same ACK when it belongs to the current session
+  ---
+  duration_ms: 0.9357
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 247.5417

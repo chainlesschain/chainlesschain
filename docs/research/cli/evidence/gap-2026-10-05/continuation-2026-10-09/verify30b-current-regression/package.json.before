@@ -1,0 +1,749 @@
+{
+  "name": "chainlesschain-ide",
+  "displayName": "ChainlessChain IDE Bridge",
+  "description": "ChainlessChain agent workspace for VS Code-compatible editors with streaming chat, inline assistance, governed review, sessions, automation, and a localhost MCP bridge.",
+  "version": "0.37.139",
+  "chainlesschain": {
+    "recommendedCliVersion": "0.166.94"
+  },
+  "publisher": "chainlesschain",
+  "license": "MIT",
+  "icon": "media/logo.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "categories": [
+    "Other",
+    "AI"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "cc",
+    "agent",
+    "mcp",
+    "ai",
+    "ide bridge"
+  ],
+  "homepage": "https://docs.chainlesschain.com/chainlesschain/ide-bridge.html",
+  "bugs": {
+    "url": "https://github.com/chainlesschain/chainlesschain/issues"
+  },
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "main": "./src/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The IDE bridge exposes editor state and file-writing diff reviews to the local agent; it stays disabled until the workspace is trusted."
+    }
+  },
+  "l10n": "./l10n",
+  "contributes": {
+    "commands": [
+      {
+        "command": "chainlesschain.ide.showStatus",
+        "title": "%cmd.ide.showStatus.title%"
+      },
+      {
+        "command": "chainlesschain.ide.restart",
+        "title": "%cmd.ide.restart.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "chainlesschain.ide.openDashboard",
+        "title": "%cmd.ide.openDashboard.title%",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "chainlesschain.complete.trigger",
+        "title": "%cmd.complete.trigger.title%"
+      },
+      {
+        "command": "chainlesschain.ide.doctor",
+        "title": "%cmd.ide.doctor.title%"
+      },
+      {
+        "command": "chainlesschain.ide.exportDiagnostics",
+        "title": "%cmd.ide.exportDiagnostics.title%",
+        "icon": "$(export)"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.status",
+        "title": "%cmd.appServerPilot.status.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.startThread",
+        "title": "%cmd.appServerPilot.startThread.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.startTurn",
+        "title": "%cmd.appServerPilot.startTurn.title%"
+      },
+      {
+        "command": "chainlesschain.appServerPilot.interrupt",
+        "title": "%cmd.appServerPilot.interrupt.title%"
+      },
+      {
+        "command": "chainlesschain.team.monitor",
+        "title": "%cmd.team.monitor.title%",
+        "icon": "$(organization)"
+      },
+      {
+        "command": "chainlesschain.session.prStatus",
+        "title": "%cmd.session.prStatus.title%",
+        "icon": "$(git-pull-request)"
+      },
+      {
+        "command": "chainlesschain.background.agents",
+        "title": "%cmd.background.agents.title%",
+        "icon": "$(server-process)"
+      },
+      {
+        "command": "chainlesschain.sessions.workbench",
+        "title": "%cmd.sessions.workbench.title%",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "chainlesschain.evolution.workbench",
+        "title": "%cmd.evolution.workbench.title%",
+        "icon": "$(history)"
+      },
+      {
+        "command": "chainlesschain.evolution.configure",
+        "title": "%cmd.evolution.configure.title%",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "chainlesschain.skills.retrieve",
+        "title": "%cmd.skills.retrieve.title%",
+        "icon": "$(search-fuzzy)"
+      },
+      {
+        "command": "chainlesschain.automation.center",
+        "title": "%cmd.automation.center.title%",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "chainlesschain.remote.control",
+        "title": "%cmd.remote.control.title%",
+        "icon": "$(broadcast)"
+      },
+      {
+        "command": "chainlesschain.usage.show",
+        "title": "%cmd.usage.show.title%",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "chainlesschain.plugins.manage",
+        "title": "%cmd.plugins.manage.title%",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "chainlesschain.worktree.tasks",
+        "title": "%cmd.worktree.tasks.title%",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "chainlesschain.chrome.connector",
+        "title": "%cmd.chrome.connector.title%",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "chainlesschain.artifacts.show",
+        "title": "%cmd.artifacts.show.title%",
+        "icon": "$(package)"
+      },
+      {
+        "command": "chainlesschain.policy.show",
+        "title": "%cmd.policy.show.title%",
+        "icon": "$(law)"
+      },
+      {
+        "command": "chainlesschain.context.show",
+        "title": "%cmd.context.show.title%",
+        "icon": "$(layers)"
+      },
+      {
+        "command": "chainlesschain.workspace.scanAutoExec",
+        "title": "%cmd.workspace.scanAutoExec.title%",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "chainlesschain.remote.doctor",
+        "title": "%cmd.remote.doctor.title%",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "chainlesschain.lens.explain",
+        "title": "%cmd.lens.explain.title%"
+      },
+      {
+        "command": "chainlesschain.lens.refactor",
+        "title": "%cmd.lens.refactor.title%"
+      },
+      {
+        "command": "chainlesschain.diff.accept",
+        "title": "%cmd.diff.accept.title%"
+      },
+      {
+        "command": "chainlesschain.diff.reject",
+        "title": "%cmd.diff.reject.title%"
+      },
+      {
+        "command": "chainlesschain.memory.init",
+        "title": "%cmd.memory.init.title%"
+      },
+      {
+        "command": "chainlesschain.memory.files",
+        "title": "%cmd.memory.files.title%"
+      },
+      {
+        "command": "chainlesschain.llm.configure",
+        "title": "%cmd.llm.configure.title%",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "chainlesschain.llm.configureVision",
+        "title": "%cmd.llm.configureVision.title%"
+      },
+      {
+        "command": "chainlesschain.chat.insertReference",
+        "title": "%cmd.chat.insertReference.title%"
+      },
+      {
+        "command": "chainlesschain.chat.fixDiagnostics",
+        "title": "%cmd.chat.fixDiagnostics.title%"
+      },
+      {
+        "command": "chainlesschain.chat.explainSelection",
+        "title": "%cmd.chat.explainSelection.title%"
+      },
+      {
+        "command": "chainlesschain.chat.refactorSelection",
+        "title": "%cmd.chat.refactorSelection.title%"
+      },
+      {
+        "command": "chainlesschain.chat.newConversation",
+        "title": "%cmd.chat.newConversation.title%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "chainlesschain.chat.reopenClosedSession",
+        "title": "%cmd.chat.reopenClosedSession.title%"
+      },
+      {
+        "command": "chainlesschain.chat.continueWithHistory",
+        "title": "%cmd.chat.continueWithHistory.title%"
+      },
+      {
+        "command": "chainlesschain.plan.approve",
+        "title": "%cmd.plan.approve.title%",
+        "icon": "$(check)"
+      },
+      {
+        "command": "chainlesschain.plan.requestChanges",
+        "title": "%cmd.plan.requestChanges.title%",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "chainlesschain.plan.regenerate",
+        "title": "%cmd.plan.regenerate.title%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "chainlesschain.plan.reject",
+        "title": "%cmd.plan.reject.title%",
+        "icon": "$(close)"
+      },
+      {
+        "command": "chainlesschain.preview.start",
+        "title": "%cmd.preview.start.title%",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "chainlesschain.preview.stop",
+        "title": "%cmd.preview.stop.title%"
+      },
+      {
+        "command": "chainlesschain.cli.upgrade",
+        "title": "%cmd.cli.upgrade.title%",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "chainlesschain.cli.checkUpdate",
+        "title": "%cmd.cli.checkUpdate.title%",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "chainlesschain.cli.whatsNew",
+        "title": "%cmd.cli.whatsNew.title%",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "chainlesschain.cli.installManaged",
+        "title": "%cmd.cli.installManaged.title%",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "chainlesschain.cli.rollbackManaged",
+        "title": "%cmd.cli.rollbackManaged.title%",
+        "icon": "$(history)"
+      },
+      {
+        "command": "chainlesschain.inlineChat.open",
+        "title": "%cmd.inlineChat.open.title%",
+        "icon": "$(comment-discussion)",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.explain",
+        "title": "%cmd.inlineChat.explain.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.refactor",
+        "title": "%cmd.inlineChat.refactor.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.fix",
+        "title": "%cmd.inlineChat.fix.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.generateDocs",
+        "title": "%cmd.inlineChat.generateDocs.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.generateTests",
+        "title": "%cmd.inlineChat.generateTests.title%",
+        "category": "ChainlessChain"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "chainlesschainIdeChat.focus",
+        "key": "ctrl+escape",
+        "mac": "cmd+escape"
+      },
+      {
+        "command": "chainlesschain.chat.insertReference",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "chainlesschain.complete.trigger",
+        "key": "alt+\\",
+        "mac": "alt+\\",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "chainlesschain.chat.newConversation",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      },
+      {
+        "command": "chainlesschain.chat.reopenClosedSession",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "focusedView == chainlesschainIdeChat"
+      },
+      {
+        "command": "chainlesschain.diff.accept",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "chainlesschainDiffActive"
+      },
+      {
+        "command": "chainlesschain.diff.reject",
+        "key": "ctrl+shift+backspace",
+        "mac": "cmd+shift+backspace",
+        "when": "chainlesschainDiffActive"
+      },
+      {
+        "command": "chainlesschain.inlineChat.open",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.explain",
+        "key": "ctrl+k ctrl+e",
+        "mac": "cmd+k cmd+e",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.refactor",
+        "key": "ctrl+k ctrl+r",
+        "mac": "cmd+k cmd+r",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.fix",
+        "key": "ctrl+k ctrl+f",
+        "mac": "cmd+k cmd+f",
+        "when": "editorTextFocus && editorHasSelection"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chainlesschainIde",
+          "title": "%view.container.title%",
+          "icon": "media/logo-mark.png"
+        }
+      ]
+    },
+    "views": {
+      "chainlesschainIde": [
+        {
+          "id": "chainlesschainIdeView",
+          "name": "%view.status.name%"
+        },
+        {
+          "id": "chainlesschainIdeChat",
+          "name": "%view.chat.name%",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "chainlesschain.chat.insertReference",
+          "group": "navigation@9"
+        },
+        {
+          "command": "chainlesschain.chat.fixDiagnostics",
+          "group": "navigation@10"
+        },
+        {
+          "command": "chainlesschain.chat.explainSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@11"
+        },
+        {
+          "command": "chainlesschain.chat.refactorSelection",
+          "when": "editorHasSelection",
+          "group": "navigation@12"
+        },
+        {
+          "submenu": "chainlesschain.inlineChat",
+          "group": "navigation@1",
+          "when": "editorTextFocus"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "chainlesschain.chat.newConversation",
+          "when": "view == chainlesschainIdeChat",
+          "group": "navigation@0"
+        },
+        {
+          "command": "chainlesschain.llm.configure",
+          "when": "view == chainlesschainIdeChat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "chainlesschain.llm.configureVision",
+          "when": "view == chainlesschainIdeChat",
+          "group": "1_config@1"
+        },
+        {
+          "command": "chainlesschain.cli.checkUpdate",
+          "when": "view == chainlesschainIdeChat",
+          "group": "1_config@2"
+        },
+        {
+          "command": "chainlesschain.cli.upgrade",
+          "when": "view == chainlesschainIdeChat",
+          "group": "1_config@3"
+        },
+        {
+          "command": "chainlesschain.ide.openDashboard",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "chainlesschain.ide.restart",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "chainlesschain.ide.exportDiagnostics",
+          "when": "view == chainlesschainIdeView",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "chainlesschain.plan.approve",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@0"
+        },
+        {
+          "command": "chainlesschain.plan.requestChanges",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@1"
+        },
+        {
+          "command": "chainlesschain.plan.regenerate",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "chainlesschain.plan.reject",
+          "when": "chainlesschainPlanReviewActive",
+          "group": "navigation@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "chainlesschain.lens.explain",
+          "when": "false"
+        },
+        {
+          "command": "chainlesschain.lens.refactor",
+          "when": "false"
+        }
+      ],
+      "chainlesschain.inlineChat.submenu": [
+        {
+          "command": "chainlesschain.inlineChat.explain",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.refactor",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.fix",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateDocs",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateTests",
+          "when": "editorHasSelection"
+        }
+      ],
+      "chainlesschain.inlineChat": [
+        {
+          "command": "chainlesschain.inlineChat.open",
+          "group": "1_open@1"
+        },
+        {
+          "command": "chainlesschain.inlineChat.explain",
+          "group": "2_actions@1"
+        },
+        {
+          "command": "chainlesschain.inlineChat.refactor",
+          "group": "2_actions@2"
+        },
+        {
+          "command": "chainlesschain.inlineChat.fix",
+          "group": "2_actions@3"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateDocs",
+          "group": "2_actions@4"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateTests",
+          "group": "2_actions@5"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "chainlesschain.llm.configurationCliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.llm.configurationCliPath.description%"
+        },
+        "chainlesschain.evolution.workbench.profile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%config.evolution.workbench.profile.description%"
+        },
+        "chainlesschain.ide.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.ide.enabled.description%"
+        },
+        "chainlesschain.appServer.pilot.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.appServer.pilot.enabled.description%"
+        },
+        "chainlesschain.contextMemory.stage": {
+          "type": "string",
+          "enum": [
+            "shadow",
+            "internal_canary",
+            "opt_in_canary",
+            "canonical_default",
+            "legacy_read_only",
+            "retired"
+          ],
+          "default": "canonical_default",
+          "description": "%config.contextMemory.stage.description%"
+        },
+        "chainlesschain.cli.path": {
+          "type": "string",
+          "default": "cc",
+          "description": "%config.cli.path.description%"
+        },
+        "chainlesschain.cli.managed.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.cli.managed.enabled.description%"
+        },
+        "chainlesschain.chat.provider": {
+          "type": "string",
+          "default": "",
+          "description": "%config.chat.provider.description%"
+        },
+        "chainlesschain.chat.model": {
+          "type": "string",
+          "default": "",
+          "description": "%config.chat.model.description%"
+        },
+        "chainlesschain.chat.maxTurns": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "%config.chat.maxTurns.description%"
+        },
+        "chainlesschain.chat.contextIndicator": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.chat.contextIndicator.description%"
+        },
+        "chainlesschain.chat.leanContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.chat.leanContext.description%"
+        },
+        "chainlesschain.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.codeLens.enabled.description%"
+        },
+        "chainlesschain.completion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.completion.enabled.description%"
+        },
+        "chainlesschain.completion.automatic.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.completion.automatic.enabled.description%"
+        },
+        "chainlesschain.completion.automatic.debounceMs": {
+          "type": "number",
+          "default": 650,
+          "minimum": 100,
+          "maximum": 3000,
+          "description": "%config.completion.automatic.debounceMs.description%"
+        },
+        "chainlesschain.completion.automatic.maxRequestsPerHour": {
+          "type": "number",
+          "default": 60,
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "%config.completion.automatic.maxRequestsPerHour.description%"
+        },
+        "chainlesschain.completion.automatic.maxContextCharsPerHour": {
+          "type": "number",
+          "default": 240000,
+          "minimum": 1000,
+          "maximum": 10000000,
+          "description": "%config.completion.automatic.maxContextCharsPerHour.description%"
+        },
+        "chainlesschain.completion.automatic.cacheTtlMs": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "%config.completion.automatic.cacheTtlMs.description%"
+        },
+        "chainlesschain.completion.automatic.maxCompletionChars": {
+          "type": "number",
+          "default": 800,
+          "minimum": 32,
+          "maximum": 2000,
+          "description": "%config.completion.automatic.maxCompletionChars.description%"
+        },
+        "chainlesschain.completion.automatic.maxCompletionLines": {
+          "type": "number",
+          "default": 12,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "%config.completion.automatic.maxCompletionLines.description%"
+        },
+        "chainlesschain.remote.relayUrl": {
+          "type": "string",
+          "default": "",
+          "description": "%config.remote.relayUrl.description%"
+        },
+        "chainlesschain.remote.peerId": {
+          "type": "string",
+          "default": "",
+          "description": "%config.remote.peerId.description%"
+        },
+        "chainlesschain.remote.allowLan": {
+          "type": "boolean",
+          "default": false,
+          "scope": "machine",
+          "description": "%config.remote.allowLan.description%"
+        }
+      }
+    },
+    "submenus": [
+      {
+        "id": "chainlesschain.inlineChat.submenu",
+        "label": "%submenu.inlineChat.title%"
+      },
+      {
+        "id": "chainlesschain.inlineChat",
+        "label": "ChainlessChain 内联聊天",
+        "icon": "$(comment-discussion)"
+      }
+    ]
+  },
+  "scripts": {
+    "test:workbench": "node --test test/evolution-workbench-profile.test.cjs test/evolution-workbench-view.test.cjs test/app-server-pilot.test.cjs test/settings-panels.test.cjs test/skill-retrieval-view.test.cjs",
+    "test:settings-ui": "node test/settings-ui-smoke.cjs",
+    "test:workbench-live-ui": "node test/settings-ui-smoke.cjs --live-evolution",
+    "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",
+    "sync:agent-sdk": "node scripts/sync-agent-sdk.mjs",
+    "check:agent-sdk": "node scripts/sync-agent-sdk.mjs --check",
+    "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
+    "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
+    "check:marketplace-overview": "node scripts/verify-marketplace-overview.mjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/agent-initialization.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/app-server-question-review.test.cjs test/app-server-elicitation-review.test.cjs test/app-server-question-lifecycle.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/cli-version-check.test.cjs test/delivery-workflow.test.cjs test/evolution-workbench-view.test.cjs test/evolution-workbench-profile.test.cjs test/settings-panels.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/protocol-capture.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/permission-mode-state.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/skill-retrieval-view.test.cjs test/team-monitor-collaboration.test.cjs test/verify01-diagnostic.test.cjs test/verify01-config.test.cjs",
+    "test:extension-host": "node test/extension-host/run.cjs",
+    "test:verify01-diagnostic": "node test/extension-host/verify01-diagnostic.cjs",
+    "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
+    "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/vscode-extension"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\cli-ci-61d91325d0",
+  "archivedAt": "2026-10-09T08:43:01.365Z",
+  "files": [
+    {
+      "path": "artifacts-1.json",
+      "bytes": 18347,
+      "digest": "sha256:3242fb7e6d4cf35964ef90cf809c87f9a891efa6b820872fa7f43153f0805ebc"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 204758,
+      "digest": "sha256:273be6e60679a0e193185716b6e1407e7b1011526f567bc68f8a5e4bd8f29bcb"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 27663,
+      "digest": "sha256:dbb07a95187b8b19cbbc3ad1f041734cddc922c3f966a4cf012239f2b13dfb62"
+    },
+    {
+      "path": "run.json",
+      "bytes": 14129,
+      "digest": "sha256:969c0a39457631f2a4f1bdf71830a62b2a1e89f5458d1bcef696d81893819fdd"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

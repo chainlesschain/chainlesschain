@@ -1,0 +1,810 @@
+{
+  "runId": 37896218097,
+  "name": "CLI CI",
+  "headSha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+  "event": "pull_request",
+  "status": "completed",
+  "conclusion": "success",
+  "runAttempt": 1,
+  "jobs": [
+    {
+      "id": 113708048471,
+      "name": "PDH native release tests (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386350",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:58:56Z"
+    },
+    {
+      "id": 113708048696,
+      "name": "PDH native release tests (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386356",
+      "startedAt": "2026-10-09T06:57:13Z",
+      "completedAt": "2026-10-09T06:59:41Z"
+    },
+    {
+      "id": 113708048766,
+      "name": "test-windows / e2e (windows-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386398",
+      "startedAt": "2026-10-09T07:03:59Z",
+      "completedAt": "2026-10-09T07:10:25Z"
+    },
+    {
+      "id": 113708048813,
+      "name": "PDH native release tests (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386361",
+      "startedAt": "2026-10-09T06:58:24Z",
+      "completedAt": "2026-10-09T07:03:39Z"
+    },
+    {
+      "id": 113708048837,
+      "name": "test-windows / unit (windows-latest, shard 12/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386459",
+      "startedAt": "2026-10-09T07:41:07Z",
+      "completedAt": "2026-10-09T07:58:39Z"
+    },
+    {
+      "id": 113708048856,
+      "name": "test-windows / unit (windows-latest, shard 4/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386397",
+      "startedAt": "2026-10-09T07:03:43Z",
+      "completedAt": "2026-10-09T07:13:07Z"
+    },
+    {
+      "id": 113708048865,
+      "name": "test-windows / unit (windows-latest, shard 7/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386444",
+      "startedAt": "2026-10-09T07:28:36Z",
+      "completedAt": "2026-10-09T07:38:18Z"
+    },
+    {
+      "id": 113708048912,
+      "name": "test-windows / unit (windows-latest, shard 3/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386405",
+      "startedAt": "2026-10-09T07:05:13Z",
+      "completedAt": "2026-10-09T07:30:35Z"
+    },
+    {
+      "id": 113708048913,
+      "name": "test-macos / unit (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386379",
+      "startedAt": "2026-10-09T07:00:53Z",
+      "completedAt": "2026-10-09T07:08:59Z"
+    },
+    {
+      "id": 113708048916,
+      "name": "test-windows / unit (windows-latest, shard 9/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386449",
+      "startedAt": "2026-10-09T07:31:41Z",
+      "completedAt": "2026-10-09T07:48:24Z"
+    },
+    {
+      "id": 113708048917,
+      "name": "test-macos / integration (macos-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386458",
+      "startedAt": "2026-10-09T07:40:56Z",
+      "completedAt": "2026-10-09T07:52:50Z"
+    },
+    {
+      "id": 113708048921,
+      "name": "test-windows / unit (windows-latest, shard 6/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386439",
+      "startedAt": "2026-10-09T07:22:47Z",
+      "completedAt": "2026-10-09T07:33:53Z"
+    },
+    {
+      "id": 113708048946,
+      "name": "test-windows / unit (windows-latest, shard 11/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386455",
+      "startedAt": "2026-10-09T07:38:21Z",
+      "completedAt": "2026-10-09T07:54:28Z"
+    },
+    {
+      "id": 113708048953,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386440",
+      "startedAt": "2026-10-09T07:25:10Z",
+      "completedAt": "2026-10-09T07:36:13Z"
+    },
+    {
+      "id": 113708048955,
+      "name": "test-windows / unit (windows-latest, shard 10/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386452",
+      "startedAt": "2026-10-09T07:33:56Z",
+      "completedAt": "2026-10-09T07:44:09Z"
+    },
+    {
+      "id": 113708048961,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386400",
+      "startedAt": "2026-10-09T07:04:12Z",
+      "completedAt": "2026-10-09T07:06:03Z"
+    },
+    {
+      "id": 113708048974,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386435",
+      "startedAt": "2026-10-09T07:21:05Z",
+      "completedAt": "2026-10-09T07:31:32Z"
+    },
+    {
+      "id": 113708048975,
+      "name": "test-windows / unit (windows-latest, shard 5/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386429",
+      "startedAt": "2026-10-09T07:17:40Z",
+      "completedAt": "2026-10-09T07:31:39Z"
+    },
+    {
+      "id": 113708048977,
+      "name": "test-macos / integration (macos-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386453",
+      "startedAt": "2026-10-09T07:36:18Z",
+      "completedAt": "2026-10-09T07:43:00Z"
+    },
+    {
+      "id": 113708048979,
+      "name": "test-windows / unit (windows-latest, shard 1/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386404",
+      "startedAt": "2026-10-09T07:05:11Z",
+      "completedAt": "2026-10-09T07:28:33Z"
+    },
+    {
+      "id": 113708048993,
+      "name": "test-windows / unit (windows-latest, shard 14/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386462",
+      "startedAt": "2026-10-09T07:48:27Z",
+      "completedAt": "2026-10-09T08:03:49Z"
+    },
+    {
+      "id": 113708048996,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386414",
+      "startedAt": "2026-10-09T07:09:35Z",
+      "completedAt": "2026-10-09T07:11:18Z"
+    },
+    {
+      "id": 113708049005,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386428",
+      "startedAt": "2026-10-09T07:17:34Z",
+      "completedAt": "2026-10-09T07:19:39Z"
+    },
+    {
+      "id": 113708049007,
+      "name": "test-windows / integration (windows-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386466",
+      "startedAt": "2026-10-09T08:02:12Z",
+      "completedAt": "2026-10-09T08:28:20Z"
+    },
+    {
+      "id": 113708049029,
+      "name": "test-macos / e2e (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386407",
+      "startedAt": "2026-10-09T07:06:19Z",
+      "completedAt": "2026-10-09T07:09:32Z"
+    },
+    {
+      "id": 113708049053,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386424",
+      "startedAt": "2026-10-09T07:15:31Z",
+      "completedAt": "2026-10-09T07:17:37Z"
+    },
+    {
+      "id": 113708049079,
+      "name": "test-macos / e2e (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386427",
+      "startedAt": "2026-10-09T07:16:22Z",
+      "completedAt": "2026-10-09T07:19:22Z"
+    },
+    {
+      "id": 113708049091,
+      "name": "test-windows / unit (windows-latest, shard 13/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386461",
+      "startedAt": "2026-10-09T07:44:13Z",
+      "completedAt": "2026-10-09T08:14:39Z"
+    },
+    {
+      "id": 113708049097,
+      "name": "test-windows / e2e (windows-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386425",
+      "startedAt": "2026-10-09T07:15:57Z",
+      "completedAt": "2026-10-09T07:20:53Z"
+    },
+    {
+      "id": 113708049099,
+      "name": "test-windows / integration (windows-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386441",
+      "startedAt": "2026-10-09T07:25:19Z",
+      "completedAt": "2026-10-09T07:42:13Z"
+    },
+    {
+      "id": 113708049128,
+      "name": "test-windows / e2e (windows-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386412",
+      "startedAt": "2026-10-09T07:08:55Z",
+      "completedAt": "2026-10-09T07:14:21Z"
+    },
+    {
+      "id": 113708049140,
+      "name": "test-windows / integration (windows-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386465",
+      "startedAt": "2026-10-09T07:58:51Z",
+      "completedAt": "2026-10-09T08:15:38Z"
+    },
+    {
+      "id": 113708049148,
+      "name": "test-macos / e2e (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386408",
+      "startedAt": "2026-10-09T07:07:08Z",
+      "completedAt": "2026-10-09T07:11:20Z"
+    },
+    {
+      "id": 113708049149,
+      "name": "test-windows / integration (windows-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386409",
+      "startedAt": "2026-10-09T07:08:00Z",
+      "completedAt": "2026-10-09T07:25:17Z"
+    },
+    {
+      "id": 113708049169,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386443",
+      "startedAt": "2026-10-09T07:25:40Z",
+      "completedAt": "2026-10-09T07:32:32Z"
+    },
+    {
+      "id": 113708049175,
+      "name": "test-windows / integration (windows-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386418",
+      "startedAt": "2026-10-09T07:11:17Z",
+      "completedAt": "2026-10-09T07:30:46Z"
+    },
+    {
+      "id": 113708049199,
+      "name": "test-windows / e2e (windows-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386430",
+      "startedAt": "2026-10-09T07:18:28Z",
+      "completedAt": "2026-10-09T07:23:54Z"
+    },
+    {
+      "id": 113708049201,
+      "name": "test-windows / unit (windows-latest, shard 8/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386447",
+      "startedAt": "2026-10-09T07:30:40Z",
+      "completedAt": "2026-10-09T07:41:05Z"
+    },
+    {
+      "id": 113708049202,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386431",
+      "startedAt": "2026-10-09T07:19:07Z",
+      "completedAt": "2026-10-09T07:25:38Z"
+    },
+    {
+      "id": 113708049205,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386419",
+      "startedAt": "2026-10-09T07:11:20Z",
+      "completedAt": "2026-10-09T07:25:07Z"
+    },
+    {
+      "id": 113708049221,
+      "name": "test-macos / unit (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386445",
+      "startedAt": "2026-10-09T07:29:01Z",
+      "completedAt": "2026-10-09T07:43:33Z"
+    },
+    {
+      "id": 113708049225,
+      "name": "test-macos / unit (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386426",
+      "startedAt": "2026-10-09T07:16:08Z",
+      "completedAt": "2026-10-09T07:29:40Z"
+    },
+    {
+      "id": 113708049229,
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386363",
+      "startedAt": "2026-10-09T06:58:40Z",
+      "completedAt": "2026-10-09T06:59:15Z"
+    },
+    {
+      "id": 113708049247,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386450",
+      "startedAt": "2026-10-09T07:32:35Z",
+      "completedAt": "2026-10-09T07:39:24Z"
+    },
+    {
+      "id": 113708049253,
+      "name": "test-windows / integration (windows-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386460",
+      "startedAt": "2026-10-09T07:42:17Z",
+      "completedAt": "2026-10-09T08:02:09Z"
+    },
+    {
+      "id": 113708049254,
+      "name": "test-windows / unit (windows-latest, shard 2/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386420",
+      "startedAt": "2026-10-09T07:11:23Z",
+      "completedAt": "2026-10-09T07:22:44Z"
+    },
+    {
+      "id": 113708049285,
+      "name": "test-windows / integration (windows-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386448",
+      "startedAt": "2026-10-09T07:30:49Z",
+      "completedAt": "2026-10-09T07:36:32Z"
+    },
+    {
+      "id": 113708049290,
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386354",
+      "startedAt": "2026-10-09T06:56:47Z",
+      "completedAt": "2026-10-09T06:57:24Z"
+    },
+    {
+      "id": 113708049295,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386446",
+      "startedAt": "2026-10-09T07:29:57Z",
+      "completedAt": "2026-10-09T07:35:26Z"
+    },
+    {
+      "id": 113708049301,
+      "name": "test-macos / unit (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386416",
+      "startedAt": "2026-10-09T07:09:46Z",
+      "completedAt": "2026-10-09T07:28:54Z"
+    },
+    {
+      "id": 113708049307,
+      "name": "test-macos / e2e (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386432",
+      "startedAt": "2026-10-09T07:19:31Z",
+      "completedAt": "2026-10-09T07:22:38Z"
+    },
+    {
+      "id": 113708049309,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386417",
+      "startedAt": "2026-10-09T07:10:28Z",
+      "completedAt": "2026-10-09T07:15:27Z"
+    },
+    {
+      "id": 113708049322,
+      "name": "test-macos / integration (macos-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386442",
+      "startedAt": "2026-10-09T07:25:31Z",
+      "completedAt": "2026-10-09T07:36:11Z"
+    },
+    {
+      "id": 113708049337,
+      "name": "test-macos / integration (macos-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386415",
+      "startedAt": "2026-10-09T07:09:39Z",
+      "completedAt": "2026-10-09T07:16:00Z"
+    },
+    {
+      "id": 113708049340,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386422",
+      "startedAt": "2026-10-09T07:13:10Z",
+      "completedAt": "2026-10-09T07:19:04Z"
+    },
+    {
+      "id": 113708049360,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386436",
+      "startedAt": "2026-10-09T07:21:46Z",
+      "completedAt": "2026-10-09T07:29:54Z"
+    },
+    {
+      "id": 113708049362,
+      "name": "test-macos / integration (macos-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386438",
+      "startedAt": "2026-10-09T07:22:46Z",
+      "completedAt": "2026-10-09T07:25:23Z"
+    },
+    {
+      "id": 113708049380,
+      "name": "test-macos / integration (macos-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386451",
+      "startedAt": "2026-10-09T07:32:44Z",
+      "completedAt": "2026-10-09T07:40:49Z"
+    },
+    {
+      "id": 113708049393,
+      "name": "test-macos / integration (macos-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386437",
+      "startedAt": "2026-10-09T07:22:37Z",
+      "completedAt": "2026-10-09T07:32:37Z"
+    },
+    {
+      "id": 113708049404,
+      "name": "test-windows / integration (windows-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386454",
+      "startedAt": "2026-10-09T07:36:34Z",
+      "completedAt": "2026-10-09T07:58:47Z"
+    },
+    {
+      "id": 113708049417,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386421",
+      "startedAt": "2026-10-09T07:11:59Z",
+      "completedAt": "2026-10-09T07:17:31Z"
+    },
+    {
+      "id": 113708049419,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386433",
+      "startedAt": "2026-10-09T07:19:42Z",
+      "completedAt": "2026-10-09T07:21:43Z"
+    },
+    {
+      "id": 113708049432,
+      "name": "test-macos / integration (macos-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386423",
+      "startedAt": "2026-10-09T07:14:28Z",
+      "completedAt": "2026-10-09T07:22:28Z"
+    },
+    {
+      "id": 113708050776,
+      "name": "test-windows / unit (windows-latest, shard 15/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386463",
+      "startedAt": "2026-10-09T07:54:31Z",
+      "completedAt": "2026-10-09T08:08:32Z"
+    },
+    {
+      "id": 113708050872,
+      "name": "test-windows / unit (windows-latest, shard 16/16)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386464",
+      "startedAt": "2026-10-09T07:58:42Z",
+      "completedAt": "2026-10-09T08:12:23Z"
+    },
+    {
+      "id": 113720935082,
+      "name": "pack-linux-dryrun",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386456",
+      "startedAt": "2026-10-09T07:39:29Z",
+      "completedAt": "2026-10-09T07:41:09Z"
+    },
+    {
+      "id": 113720935129,
+      "name": "dry-run-publish",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386457",
+      "startedAt": "2026-10-09T07:39:28Z",
+      "completedAt": "2026-10-09T07:41:38Z"
+    },
+    {
+      "id": 113736715266,
+      "name": "verify-cli (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386471",
+      "startedAt": "2026-10-09T08:28:29Z",
+      "completedAt": "2026-10-09T08:34:07Z"
+    },
+    {
+      "id": 113736715281,
+      "name": "verify-cli (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386472",
+      "startedAt": "2026-10-09T08:28:24Z",
+      "completedAt": "2026-10-09T08:36:54Z"
+    },
+    {
+      "id": 113736715295,
+      "name": "verify-cli (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386470",
+      "startedAt": "2026-10-09T08:28:25Z",
+      "completedAt": "2026-10-09T08:32:07Z"
+    },
+    {
+      "id": 113739623969,
+      "name": "Test-only PM exploration recovery three-OS aggregate",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386473",
+      "startedAt": "2026-10-09T08:36:57Z",
+      "completedAt": "2026-10-09T08:37:20Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11605026078,
+      "name": "pm-exploration-recovery-test-only-aggregate-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 896,
+      "digest": "sha256:6b34d708993942d1e093bf9ad395f9304929a1c4064d59a9deb1cbfba386c95a"
+    },
+    {
+      "id": 11605020067,
+      "name": "session-message-fabric-cli-ci-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2262,
+      "digest": "sha256:583d28cca0db80c5c74f8b987f849df9358c8eb1c866e54afc954e5f8f913f38"
+    },
+    {
+      "id": 11604890067,
+      "name": "mcp-lifecycle-cli-ci-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2707,
+      "digest": "sha256:ceaf5395623674c30b2d6f7ba657f142785e15f65569330225e8b68ba0004307"
+    },
+    {
+      "id": 11604611220,
+      "name": "rc-default-audit-cli-ci-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 1730,
+      "digest": "sha256:2ee2e160e4318c8499c31e26226980888cd004b35e95482547859531c7599655"
+    },
+    {
+      "id": 11604560905,
+      "name": "claude-security-map-cli-ci-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 33191,
+      "digest": "sha256:1d66d01cf54212e807b7ac51d5216d78c55ab1e5a0042e768b3346c297586f71"
+    },
+    {
+      "id": 11604535811,
+      "name": "pm-exploration-recovery-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 1224,
+      "digest": "sha256:b43bdf59af5668885b61f4c81674b2369e39a44ed9f04b6cbb77fe9be9445da9"
+    },
+    {
+      "id": 11604451242,
+      "name": "mcp-lifecycle-cli-ci-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2705,
+      "digest": "sha256:e0b66ecb2c5c1f83a2402c1be2f7ce4114b3fbab23fd0b5a95396b89d0b71cdd"
+    },
+    {
+      "id": 11604446482,
+      "name": "claude-security-map-cli-ci-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 33198,
+      "digest": "sha256:7bc869c2f3c14e0cb09e4a1feb676305b4e8f30084799f09031fdbf7a50b610b"
+    },
+    {
+      "id": 11604286707,
+      "name": "rc-default-audit-cli-ci-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 1734,
+      "digest": "sha256:4944a9f8bbddde349588e2663c5dc3e6fbf4afa76ca460189329d984d4fac34f"
+    },
+    {
+      "id": 11604262278,
+      "name": "pm-exploration-recovery-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 1245,
+      "digest": "sha256:ae7505a5bbd44e2428071de859fbf07198902c64711eba0c38648ac9601fd964"
+    },
+    {
+      "id": 11604237582,
+      "name": "session-message-fabric-cli-ci-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2265,
+      "digest": "sha256:60a7e29d9e2f32cbc877c0e0e6b3437c956024fc99a519117c930b0105b8842d"
+    },
+    {
+      "id": 11604142818,
+      "name": "claude-security-map-cli-ci-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 33150,
+      "digest": "sha256:aee089cfdb7252851b8d7974fb05c2e7fa4a743c4a25333a2dfc0f9de2150fb5"
+    },
+    {
+      "id": 11604057719,
+      "name": "pm-exploration-recovery-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 1225,
+      "digest": "sha256:08aba0953e2b7db741bfa1709fc141e578b11c641c47da44ad5decb8ba83f19b"
+    },
+    {
+      "id": 11604028465,
+      "name": "rc-default-audit-cli-ci-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 1739,
+      "digest": "sha256:aaef5184f5b00f12d72f0bb39c94ce223ecc13ddf107a024b59b061edff15720"
+    },
+    {
+      "id": 11604003402,
+      "name": "session-message-fabric-cli-ci-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2267,
+      "digest": "sha256:72df1977b128a625d685ea297ec46bba1f4e2081c2d83375e22668a7ed2cd36f"
+    },
+    {
+      "id": 11603949934,
+      "name": "mcp-lifecycle-cli-ci-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 2704,
+      "digest": "sha256:395641ac180e0fd086f009edffccf0d893def1cd435d0e0120124d1081eee531"
+    },
+    {
+      "id": 11600945468,
+      "name": "pdh-native-windows-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 180369,
+      "digest": "sha256:abbfd65bdc8c3445d2a2b6e4bcd0fa7515efc720b07ae53a17d328c2af980f66"
+    },
+    {
+      "id": 11600925004,
+      "name": "pdh-native-ubuntu-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 186018,
+      "digest": "sha256:6757d9e43f51e4b60fb1ddbacf6103839a1410201e6b2b2ad974198e810baad5"
+    },
+    {
+      "id": 11600532415,
+      "name": "pdh-native-macos-latest-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 182373,
+      "digest": "sha256:4b11c776bc8cd6da8ae638b8b03a9289be9c857f83e886f5bcd1d9f0a1970368"
+    },
+    {
+      "id": 11600158697,
+      "name": "linux-subreaper-smoke-arm64-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 7335981,
+      "digest": "sha256:772ca5cae8d02f00b46b945d2aac5f3ff8bcdaee05ce47cdd5f5c39c64f637aa"
+    },
+    {
+      "id": 11600158693,
+      "name": "linux-subreaper-arm64-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 335578,
+      "digest": "sha256:21169f74aef3526bd13125e60cba639d5f01d664751dd7ac58e81cc192d0d996"
+    },
+    {
+      "id": 11599988844,
+      "name": "linux-subreaper-x64-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 409551,
+      "digest": "sha256:738ba9bed58397b066d16c54fa2f5dc11fc1330bb65d45a4af8264bff98dd26f"
+    },
+    {
+      "id": 11599909187,
+      "name": "linux-subreaper-smoke-x64-61d91325d0f30b60ec7ce14157e153a9a159707f",
+      "bytes": 7409575,
+      "digest": "sha256:9b1532e5753c76f638e762a697730e47ac8e11e0e515046e6a03bba8930819e4"
+    }
+  ],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 14129,
+      "digest": "sha256:969c0a39457631f2a4f1bdf71830a62b2a1e89f5458d1bcef696d81893819fdd"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 204758,
+      "digest": "sha256:273be6e60679a0e193185716b6e1407e7b1011526f567bc68f8a5e4bd8f29bcb"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 18347,
+      "digest": "sha256:3242fb7e6d4cf35964ef90cf809c87f9a891efa6b820872fa7f43153f0805ebc"
+    }
+  ],
+  "capturedAt": "2026-10-09T08:42:41.616Z",
+  "formalSample": false,
+  "releaseEligible": false
+}

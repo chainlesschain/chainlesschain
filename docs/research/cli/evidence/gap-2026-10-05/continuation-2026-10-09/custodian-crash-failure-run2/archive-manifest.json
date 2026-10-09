@@ -1,0 +1,64 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic",
+  "archivedAt": "2026-10-09T07:55:38.002Z",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 613,
+      "digest": "sha256:2536103c4b16b0ce04a50673f1b12e3c71fef8855a0b3cdc3f4b993920a092d1"
+    },
+    {
+      "path": "build.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build.stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "positive.json",
+      "bytes": 358,
+      "digest": "sha256:6c97403e155e199053746a4ff4751d8264c32173eda6cd39431de7034dacb863"
+    },
+    {
+      "path": "positive.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "positive.stdout.json",
+      "bytes": 2385,
+      "digest": "sha256:cc0290052f42950f5a1576b42e6343996a244899ea5e8c0294b308a13fb0eff7"
+    },
+    {
+      "path": "report.json",
+      "bytes": 8077,
+      "digest": "sha256:805354a01a3dad8e36f52c26c4f6b66066edbeeb0395f414142dac735253e682"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.mjs",
+      "bytes": 12663,
+      "digest": "sha256:0f78f78a0d9d025b3ab332238448892e79766e15a5ebaed652df030ae82f8e6a"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "bytes": 16259,
+      "digest": "sha256:b6a460fdea02790c5a8334e42968a10dd5d120834fdf67295c06d4dffa979797"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.cs",
+      "bytes": 28669,
+      "digest": "sha256:1049b18a2cbeb3f5413b5da5cac841d9606944e74669164fb53205ca799ad3f5"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.mjs",
+      "bytes": 8057,
+      "digest": "sha256:6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

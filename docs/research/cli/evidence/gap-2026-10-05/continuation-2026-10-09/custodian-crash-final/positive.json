@@ -1,0 +1,13 @@
+{
+  "command": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final\\windows-job-custodian-crash-probe.exe",
+  "args": [
+    "kill-on-close",
+    "89d15bd9-986f-418b-8fea-cf99739e6b5a"
+  ],
+  "pid": 18904,
+  "startedAt": "2026-10-09T07:50:37.805Z",
+  "elapsedMs": 2482.7237000000005,
+  "status": 0,
+  "signal": null,
+  "error": null
+}

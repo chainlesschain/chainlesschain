@@ -1,0 +1,57 @@
+{
+  "at": "2026-10-09T08:12:55.201Z",
+  "scope": "Current pure Node unit regression only; original frozen Windows verify-29 remains OPEN with 19/19 mutant-survived result unchanged",
+  "source": {
+    "path": "packages/vscode-extension/src/chat/permission-mode-state.js",
+    "bytes": 1302,
+    "sha256": "0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4"
+  },
+  "test": {
+    "path": "packages/vscode-extension/test/permission-mode-state.test.cjs",
+    "bytes": 1410,
+    "sha256": "7b53512d032f09a18c54244fda88e578861eb972c0611294dd1cf42314b5b8dd"
+  },
+  "mutation": {
+    "find": "event.session_id !== conv.sessionId)",
+    "replace": "false)",
+    "bytes": 1272,
+    "sha256": "fe46f565bbade1d9dd7cbca12efe448b29ab287c6e7a6fd5213c63273e73082b"
+  },
+  "runs": [
+    {
+      "name": "baseline",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "--test",
+        "test/permission-mode-state.test.cjs"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify29-current-regression-20261009-formatted\\baseline",
+      "start": "2026-10-09T08:12:55.209Z",
+      "end": "2026-10-09T08:12:55.688Z",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "name": "mutant",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "--test",
+        "test/permission-mode-state.test.cjs"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify29-current-regression-20261009-formatted\\mutant",
+      "start": "2026-10-09T08:12:55.694Z",
+      "end": "2026-10-09T08:12:56.106Z",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "passed": 1,
+      "failed": 1
+    }
+  ],
+  "currentSourcesStable": true,
+  "foreignSessionMutantRejected": true,
+  "sameSessionPositivePassedInBoth": true
+}

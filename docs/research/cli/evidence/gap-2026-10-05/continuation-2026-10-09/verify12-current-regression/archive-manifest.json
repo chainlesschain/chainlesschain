@@ -1,0 +1,94 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\verify12-current-regression-20261009",
+  "archivedAt": "2026-10-09T07:55:50.784Z",
+  "files": [
+    {
+      "path": "baseline/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json",
+      "bytes": 130,
+      "digest": "sha256:4cb7e5bf35cfe8f2a80371bfd40803f544ea9bec07700abdbf69b5c3c32d7f1a"
+    },
+    {
+      "path": "baseline/package.json",
+      "bytes": 33,
+      "digest": "sha256:a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "path": "baseline/results.json",
+      "bytes": 7798,
+      "digest": "sha256:4f78ee029685866963f209d77c43aca16909aa5a3908bde9a13e7c9238c1955e"
+    },
+    {
+      "path": "baseline/src/lib/background-command-argv.js",
+      "bytes": 10623,
+      "digest": "sha256:8b086b2e0db32400c044e4c999390eb7cd7f5248f7cc298f3d19decf304d7c4a"
+    },
+    {
+      "path": "baseline/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline/stdout.txt",
+      "bytes": 111,
+      "digest": "sha256:976a737a1dbe97b23a33ca4c4028fc2c0aba573d1009d89008e75b83d8210769"
+    },
+    {
+      "path": "baseline/vitest.config.mjs",
+      "bytes": 141,
+      "digest": "sha256:7839f9d2f4044bfc18955630efec23c4b9b52e8f550f424740098c20804eedbd"
+    },
+    {
+      "path": "baseline/__tests__/unit/background-command-argv.test.js",
+      "bytes": 7669,
+      "digest": "sha256:443365ddbc72aac030fdd1cb2970162a5dcc7a2ddcfb31e7d08b7afbb29d7a23"
+    },
+    {
+      "path": "mutant/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json",
+      "bytes": 129,
+      "digest": "sha256:fe85df3ec8e23390b41ec91341e4ef217123d3868ce9fa499440c1223f56d335"
+    },
+    {
+      "path": "mutant/package.json",
+      "bytes": 33,
+      "digest": "sha256:a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "path": "mutant/results.json",
+      "bytes": 17075,
+      "digest": "sha256:c4be67c0636ae08089b5ecfd8ca4b72b639c0932c0062dc2d82b515743f764d3"
+    },
+    {
+      "path": "mutant/src/lib/background-command-argv.js",
+      "bytes": 10658,
+      "digest": "sha256:3e443a6ee958f5c6ba68dacef32fc5383e0f88be386ffc5d03c6655d5f542f52"
+    },
+    {
+      "path": "mutant/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutant/stdout.txt",
+      "bytes": 109,
+      "digest": "sha256:df9c44d5dca40f8bd4dfa2ee7d15e543d063e750d2af62747b18a22e3f0937e9"
+    },
+    {
+      "path": "mutant/vitest.config.mjs",
+      "bytes": 141,
+      "digest": "sha256:7839f9d2f4044bfc18955630efec23c4b9b52e8f550f424740098c20804eedbd"
+    },
+    {
+      "path": "mutant/__tests__/unit/background-command-argv.test.js",
+      "bytes": 7669,
+      "digest": "sha256:443365ddbc72aac030fdd1cb2970162a5dcc7a2ddcfb31e7d08b7afbb29d7a23"
+    },
+    {
+      "path": "report.json",
+      "bytes": 13520,
+      "digest": "sha256:cb9e7328e13ef9505ea110d2038fd26b516c94cfe16fc6e4b7e1bef5f781a232"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

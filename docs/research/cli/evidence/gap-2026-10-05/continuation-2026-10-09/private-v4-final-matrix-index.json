@@ -1,0 +1,757 @@
+{
+  "schema": "chainlesschain.windows-private-v4-final-matrix-index/v1",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "fullFrozenReviewCompleted": false,
+  "formalSample": false,
+  "platform": "Windows 10",
+  "node": "22.22.2",
+  "formalTargetNode": "22.12.0",
+  "sourceFrozen": true,
+  "baseline": ".work/windows-private-v4-20261009-z-final-partial-baseline/report.json",
+  "fullBaseline": ".work/windows-private-v4-20261009-y-final-full-baseline/report.json",
+  "completedFinalMutants": [
+    {
+      "task": "verify-01",
+      "name": "custom-endpoint-inherits-official-profile",
+      "output": ".work/windows-private-v4-20261009-final-mutant-01",
+      "total": 75,
+      "passed": 57,
+      "failed": 18,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-01\\report.json",
+        "bytes": 25143326,
+        "digest": "sha256:7f6375e1f343b5054ee6f179c76a797a5cb76221c07c9a57d8e21f5d2d1fb781"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 75,
+        "passed": 57,
+        "failed": 18,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://gateway.example/v1",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint http://api.openai.com/v1",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com:444/v1",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1/",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1/other",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1?token=secret-marker",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1#secret-marker",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1#",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com/v1 ",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://user:secret-marker@api.openai.com/v1",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint https://api.openai.com.example/v1",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > does not apply new official limits to custom endpoint not-a-url",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 1050000 to be 128000 // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > retains a custom gateway's old catalog value as assumed, not official",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'official-model-docs' to be 'legacy-catalog' // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > binds stable resolved values and provenance into a content digest",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'sha256:5011d98a6ab4265d48308c62881a58…' not to be 'sha256:5011d98a6ab4265d48308c62881a58…' // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-astra only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected { …(18) } to match object { windowAssumed: true, …(2) }\n(15 matching properties omitted from actual)"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-sol only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected { …(18) } to match object { windowAssumed: true, …(2) }\n(15 matching properties omitted from actual)"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-luna only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected { …(18) } to match object { windowAssumed: true, …(2) }\n(15 matching properties omitted from actual)"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves Opus 5.5 without changing a custom gateway's assumptions",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected false to be true // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "verify-02",
+      "name": "unknown-suffix-inherits-certified-model",
+      "output": ".work/windows-private-v4-20261009-final-mutant-02",
+      "total": 75,
+      "passed": 70,
+      "failed": 5,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-02\\report.json",
+        "bytes": 25114794,
+        "digest": "sha256:8e7c7bb8b0314e8460f20820cea7ca206e2d53905938321115ea2115de2c5881"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 75,
+        "passed": 70,
+        "failed": 5,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "versioned model capability profiles > does not infer arbitrary aliases or future snapshots from a prefix",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'official-model-docs' to be 'provider-default' // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "versioned model capability profiles > keeps provider and model identities exact rather than rewriting request ids",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'official-model-docs' to be 'provider-default' // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-astra only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected false to be true // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-sol only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected false to be true // Object.is equality"
+            }
+          ]
+        },
+        {
+          "name": "September model release contracts > resolves gpt-6-luna only at the official endpoint",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected false to be true // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "verify-03",
+      "name": "unknown-opus-inherits-legacy-price",
+      "output": ".work/windows-private-v4-20261009-final-mutant-03",
+      "total": 31,
+      "passed": 30,
+      "failed": 1,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-03\\report.json",
+        "bytes": 25074797,
+        "digest": "sha256:83b62bf6ae046dee89925350c88e1ef241c910da83ebab3caa169e4e32bc781f"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 31,
+        "passed": 30,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "September model release contracts > resolves Opus 5.5 without changing a custom gateway's assumptions",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected { in: 5, out: 25, pattern: 'opus' } to be null"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "verify-10",
+      "name": "reuse-index-after-state-update",
+      "output": ".work/windows-private-v4-20261009-final-mutant-10",
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-10\\report.json",
+        "bytes": 25061581,
+        "digest": "sha256:4bac1f1a23ccc57abc9d50cb860097a8116e7483ca0acca776c9a973d18b44ea"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "background agent read-only list index > invalidates on authority replacement and rebuilds a corrupt cache",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'index' to be 'rebuilt' // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "verify-28",
+      "name": "late-snapshot-overwrites-new-input",
+      "output": ".work/windows-private-v4-20261009-final-mutant-28",
+      "total": 14,
+      "passed": 13,
+      "failed": 1,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-28\\report.json",
+        "bytes": 25058310,
+        "digest": "sha256:7a18d4439893bdf0ecc37d57f20a8b549d31c2d1dbbd633d6b7fddf484834287"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 14,
+        "passed": 13,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "generated question forms > restores the last keystroke backup and never overwrites a newer edit",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected 'half entered 中文' to be 'last keystroke' // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "verify-30",
+      "name": "collapse-animation-frame-count-and-cumulative-budget",
+      "output": ".work/windows-private-v4-20261009-final-mutant-30a",
+      "total": 13,
+      "passed": 12,
+      "failed": 1,
+      "accepted": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-30a\\report.json",
+        "bytes": 25059526,
+        "digest": "sha256:76ea05bb336e8cf1fdfe0a181dbb597896d4035bec40b1644343f95c031307cd"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 13,
+        "passed": 12,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "root-settlement",
+        "error": 1,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": [
+        {
+          "name": "complete-container admission, distinct from codec decoding > counts all GIF compositing canvases, including small delta frames",
+          "errors": [
+            {
+              "name": "AssertionError",
+              "message": "expected { format: 'gif', width: 100, …(4) } to match object { frames: 3, decodedPixels: 30000 }\n(4 matching properties omitted from actual)"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "survivedFinalMutants": [
+    {
+      "task": "verify-12",
+      "name": "flatten-spaces-and-empty-argv",
+      "output": ".work/windows-private-v4-20261009-final-mutant-12-retry1",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "accepted": false,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-12-retry1\\report.json",
+        "bytes": 25056043,
+        "digest": "sha256:d17d73d24d564f94e05ae25d15da19b7fa4945b04b43bdd100e0b16becd8460f"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": true,
+        "stage": "completed",
+        "error": 0,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": []
+    },
+    {
+      "task": "verify-20",
+      "name": "approval-overrides-policy-deny",
+      "output": ".work/windows-private-v4-20261009-final-mutant-20",
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "accepted": false,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-20\\report.json",
+        "bytes": 25053225,
+        "digest": "sha256:42cc4cea5975af4abc381b39d7363ff8217c28245cdc817aeb0bb9c624b0c484"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": true,
+        "stage": "completed",
+        "error": 0,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": []
+    },
+    {
+      "task": "verify-29",
+      "name": "ack-from-other-session-accepted",
+      "output": ".work/windows-private-v4-20261009-final-mutant-29",
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "accepted": false,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-29\\report.json",
+        "bytes": 25059008,
+        "digest": "sha256:4e0f99b2f600ddc33210edaeea412a36313ad45b9256ee30bd9f16d2e5c7b7d7"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": true,
+        "stage": "completed",
+        "error": 0,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": []
+    },
+    {
+      "task": "verify-30",
+      "name": "ignore-animation-fallback-pixels",
+      "output": ".work/windows-private-v4-20261009-final-mutant-30b",
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "accepted": false,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-30b\\report.json",
+        "bytes": 25057055,
+        "digest": "sha256:1f1a63660f12b86755b59465ef766e01c2b0adbc921679668b2ef22b2fe73df2"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": true,
+        "stage": "completed",
+        "error": 0,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": [],
+      "failedAssertions": []
+    }
+  ],
+  "failedAttempts": [
+    {
+      "task": "verify-12",
+      "output": ".work/windows-private-v4-20261009-final-mutant-12",
+      "accepted": false,
+      "reason": "fixed report helper unregistered before forbidden termination request; broker error13",
+      "cleanupConfirmed": true,
+      "report": {
+        "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-12\\report.json",
+        "bytes": 25021288,
+        "digest": "sha256:36e3b84c5a7bec31115b513a290e65857f909bb9e06cdaa2247b703d3d862320"
+      },
+      "reviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "test runner did not emit one valid JSON report",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "producer12SnapshotsMatchBaseline": true,
+      "host": {
+        "completed": false,
+        "stage": "broker-termination-policy",
+        "error": 13,
+        "rootExit": 259,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "guardNodeCount": 36257,
+        "guardNodeLimit": 48000
+      },
+      "moduleErrors": null,
+      "failedAssertions": []
+    }
+  ],
+  "notRun": [
+    "verify-11 recover-same-question-from-other-session",
+    "verify-11 expose-completed-records-as-pending",
+    "verify-19 cancellation-grants-pending-approval",
+    "verify-21 shadow-read-collects-authority-shards"
+  ],
+  "counts": {
+    "killed": 6,
+    "survived": 4,
+    "notRun": 4,
+    "executedMutants": 10,
+    "executionAttempts": 11
+  },
+  "limitations": [
+    "Full baseline rejected: 211 total, 194 passed, 16 failed, 1 skipped.",
+    "Partial baseline only: 159 passed.",
+    "Survived mutants are not validation successes. Their actual native root exit is 0; mutant settlement expects 1.",
+    "Node 22.22.2 is not the formal Node22.12 target.",
+    "No publishing or full frozen admission."
+  ],
+  "sourceSnapshotCheck": "Derived by final metadata script from report snapshots; original report producer remains unchanged.",
+  "producerSnapshots": [
+    {
+      "name": "windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "name": "windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "name": "windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "name": "windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "name": "windows-node-private-v4-broker.cpp",
+      "bytes": 43120,
+      "digest": "sha256:3a1980af9446867926be6aba93fcc7ff93de580a2451dfb4fa71f311ba386436"
+    },
+    {
+      "name": "windows-node-private-v4-dependencies.mjs",
+      "bytes": 6698,
+      "digest": "sha256:f674bbdcd21f901d483781cc78936ae79768378de7d7f1d5f8fd7879822c4398"
+    },
+    {
+      "name": "windows-node-private-v4-diagnostic.mjs",
+      "bytes": 33011,
+      "digest": "sha256:b5084f5a1b2b63480d9cf686737829698d48900117f58737ce45587884744921"
+    },
+    {
+      "name": "windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "name": "windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "name": "windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    },
+    {
+      "name": "windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "name": "windows-node-private-v4-result.mjs",
+      "bytes": 32064,
+      "digest": "sha256:aa71ddcdbb0555fd45d5bbfbe38d8d669f947f7f68b29c1bb2fb41a2d08e32fa"
+    }
+  ],
+  "baselineReport": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-z-final-partial-baseline\\report.json",
+    "bytes": 25196150,
+    "digest": "sha256:39706853de0ffc1a37aaf19e5c7d2647b10399d99bd069df686b7a9b71d4c19b"
+  },
+  "fullBaselineReport": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-y-final-full-baseline\\report.json",
+    "bytes": 25303969,
+    "digest": "sha256:6038a43e3dc6578fbc987f331d9dc320677e013c67ca772d50374964dbcb2517"
+  },
+  "allProducer12SnapshotsMatchBaseline": true
+}

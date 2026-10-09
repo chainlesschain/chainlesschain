@@ -1,0 +1,14 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const audit=JSON.parse(fs.readFileSync(path.join(__dirname,'audit.stdout.json')));
+const execution=JSON.parse(fs.readFileSync(path.join(__dirname,'audit.execution.json')));
+const template=JSON.parse(fs.readFileSync(path.join(__dirname,'template.execution.json')));
+assert.equal(audit.auditReportVersion,2); assert.ok(audit.vulnerabilities && !audit.error);
+assert.equal(audit.vulnerabilities.handlebars,undefined);
+assert.deepEqual(Object.entries(audit.vulnerabilities).filter(([,v])=>v.severity==='critical').map(([name])=>name),['decompress']);
+assert.equal(execution.sourceStable,true);assert.equal(template.sourceStable,true);assert.equal(template.status,0);
+const registry=JSON.parse(fs.readFileSync(path.join(__dirname,'../handlebars-4.7.10-registry-20261009.json')));
+const packageMetadata=JSON.parse(fs.readFileSync(path.join(__dirname,'package/package.json')));
+const required={...registry.dependencies}; for(const name of Object.keys(registry.optionalDependencies))delete required[name];
+assert.deepEqual(packageMetadata.dependencies,required);assert.deepEqual(packageMetadata.optionalDependencies,registry.optionalDependencies);
+const summary={at:new Date().toISOString(),state:'Working-tree change; not committed or validated by GitHub Actions',files:JSON.parse(fs.readFileSync(path.join(__dirname,'changes.json'))).changes,version:'4.7.10',locks:['package-lock.json','desktop-app-vue/package-lock.json','desktop-app-vue/contracts/package-lock.json'],registryMetadataAndTarballDependencyParity:true,tarballSRIValidated:true,otherDependencyNodesChanged:false,lifecycleExecuted:false,nodeModulesModified:false,frozenArtifactsModified:false,audit:{command:execution.command,args:execution.args,status:execution.status,sourceStable:execution.sourceStable,handlebarsVulnerabilityAbsent:true,criticalPackages:['decompress'],newExemptions:0,metadata:audit.metadata},template:{status:template.status,passed:45,sourceStable:template.sourceStable,actualVersion:'4.7.10',method:template.testInjection},limitations:['Local supplementary verification only; exact future commit GitHub Actions remains authoritative','Existing decompression exemption and other lower-severity audit findings remain; no blanket clean-audit claim','Normal repository node_modules was not upgraded; test used exact downloaded artifact via isolated test-only CJS preload']};
+fs.writeFileSync(path.join(__dirname,'summary.json'),JSON.stringify(summary,null,2));console.log(JSON.stringify({auditStatus:execution.status,remainingCritical:['decompress'],templatePassed:45,sourceStable:true,registryTarballParity:true},null,2));

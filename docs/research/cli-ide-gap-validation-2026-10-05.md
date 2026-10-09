@@ -642,7 +642,7 @@ Open VSX `0.37.139` 已公开，latest/listed/downloadable 均成立，公开 VS
 | MODEL-04                                    | 原审查 CI 成功回读；新增准确源码、输入和失败产物保存                                                                        | 新工作区的准确提交 Actions 结果及持续上游审阅，不把旧成功转移到新代码                                                                                           |
 | PERF-03 / MAINT-02                          | 已有 Memory 规模测量/索引和模型合同去重                                                                                     | 获批 SLO、独立维护工时/成本记录；不由测试数量推导维护收益                                                                                                       |
 | VERIFY-02                                   | Linux Docker 36 题/42 行为反例的历史完整结果保留；Windows 同 SID/Job service、原冻结配置/default forks 的 65 项真测试已完成 | 完整 Windows 12 题及对应行为反例的 native review、macOS 独立 checker、人工 setup/check 签核与正式任务采集                                                       |
-| PLATFORM-02 / NET-02                        | Linux controlled-host 接线与 Windows 原始 Job/socket 回收原语                                                               | Windows 受保护持久服务/authority/journal、服务自身崩溃恢复、WFP 或等价既有流撤销；macOS 真宿主、受保护签名安装及系统网络执行机制                                |
+| PLATFORM-02 / NET-02                        | Linux controlled-host 接线，Windows surviving custodian 原始 Job/socket 回收及 custodian 自身崩溃的有限集合清理原语         | Windows 受保护持久服务/authority/journal、服务自身崩溃恢复、WFP 或等价既有流撤销；macOS 真宿主、受保护签名安装及系统网络执行机制                                |
 | BRIDGE-02 / MCP-02 / CODEX-02               | 已有 Linux cgroup 可信恢复、参考 MCP 真进程矩阵和 Codex 0.160.0 探针                                                        | 不扩大旧 PID-only 或同 UID 对抗声明；外部 OAuth/真实 provider 及生产 Codex 准入按其独立条件验收                                                                 |
 | IDE-READY-02 / IDE-ONBOARD-02 / IDE-COLD-02 | 已公开配对发行的 Doctor、身份、120 秒初始化工程与历史宿主矩阵                                                               | 正式目标宿主的真实 provider/hooks、首次安装及发生率；无需重复实现已有功能                                                                                       |
 | VERIFY-IDE-02                               | 双 IDE 真实火山/重启零重放的历史诊断保留                                                                                    | 原 36+9、Windows 11 24H2 / Ubuntu 24.04 / macOS 15、Node 22.12.0、IntelliJ 2025.2 / VS Code 1.132.0 的独立正式验收、真人 NVDA/Orca/VoiceOver、8h/24h 与获批 SLO |
@@ -682,7 +682,7 @@ Worker 线程复用同一进程已验证的 adapter，不再次安装或写进�
 
 本轮从原 frozen lock 准备 **348 个必需 registry 包**与 workspace 目标，再加精确可选版本隔离/传递源码，共 **389 包、18,804 文件、195,368,619 字节**；保留 `packages/cli/node_modules` 等原嵌套版本布局和 workspace alias 的 1,218 个嵌套镜像。所有 tarball SRI、来源文件和复制前/后实际字节均验证，15 个零字节文件保留真实空 SHA-256，没有删除文件以规避读取器。[完整依赖及 preflight](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/frozen-cli-runtime-closure/manifest.json) 原件保存，manifest SHA 为 `5bfc483de04a94957f1a979eee01f3079f613afd192f15dfd1fd203ac04d4db9`。native 可选源码未运行安装/编译，不能仅凭下载完成认定全部 optional ABI 可执行。
 
-预检 **32,045 文件 + 4,212 目录 = 36,257 节点**，既有文件冲突 0；据此把仅限私有树的 guard 固定上限从 16,000 改为 **48,000**，超限仍拒绝，原 6 进程/768 MiB 限额和 namespace/ACL 权限未改。完整实跑 guard 与 preflight 精确相同。新 helper 仅接受固定 closure 派生的 workspace roots，拒绝跨 namespace、路径遍历、设备名、symlink/hardlink、文件变化或字节不符；manifest 不能自行授权 roots。inspector 独立读回 artifact 和 source/before/after，而非相信自描述摘要。
+预检 **32,045 文件 + 4,212 目录 = 36,257 节点**，既有文件冲突 0；据此把仅限私有树的 guard 固定上限从 16,000 改为 **48,000**，超限仍拒绝，原 6 进程/每进程 768 MiB 限额和 namespace/ACL 权限未改。完整实跑 guard 与 preflight 精确相同。新 helper 仅接受固定 closure 派生的 workspace roots，拒绝跨 namespace、路径遍历、设备名、symlink/hardlink、文件变化或字节不符；manifest 不能自行授权 roots。driver 对来源及 staged 文件在复制前后实读，inspector 重读留存的来源和 artifact，并核对来源、复制前/后的描述符及 manifest；结束后已删除的 staged 树不由 inspector 再次读取。
 
 最终[完整基线原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-full-baseline/report.json)实际 **211 项：194 通过、16 失败、1 跳过**；12 文件全部加载，模块收集错误为 0，permission-decision **4/4**。原始 root exit 1，service/helper 和后代原 HANDLE 已结算，Job 0/profile 删除；native settlement 只剩 baseline 要求 root 0 的四条业务结果错误，依赖、身份、映射及清理没有错误。frozen parser 同时拒绝真实失败和 `skipped`。这是一份完整失败报告，不能标为完整 Windows review 通过。
 
@@ -699,10 +699,79 @@ macOS `verify-17` 与 Linux-only journal baseline 的既有计划冲突仍独立
 
 ### 20.8 最终合同、基线绑定与验收状态
 
-最终 9 文件 **408 个 Node 合同**：既有 trace/private leaf/GNU/service/Job/model evidence 208，新 identity 62、result 96、dependencies 42。Windows Node 22.22.2 / 22.12.0 和 WSL Linux Node 22.22.2 各 **408/408、零跳过**，不同 runtime 不累计；另保留先前已通过的 7 个模型目录 Vitest，共 **415 个不同测试**。原配置 65 项与组合基线 159 项有重叠，单独记载且不相加为新的正式任务样本。
+矩阵启动前的 9 文件 **408 个 Node 合同**：既有 trace/private leaf/GNU/service/Job/model evidence 208，新 identity 62、result 96、dependencies 42。Windows Node 22.22.2 / 22.12.0 和 WSL Linux Node 22.22.2 各 **408/408、零跳过**，不同 runtime 不累计；另保留当时已通过的 7 个模型目录 Vitest，该时点共 **415 个不同测试**。后续新增合同及最终权限边界见 20.13；原配置 65 项与组合基线 159 项有重叠，单独记载且不相加为新的正式任务样本。
 
 新增 fixture 在默认沙箱 Node 22.12 初次产生 24 个 `realpathSync` 祖先 `lstat EPERM`，原失败与主机权限复核均保留。仅把两个测试 fixture 改为既有 `realpathSync.native` 惯例后，最终默认沙箱 408/408 成立，生产 helper/validator/native 字节未改；Linux 重跑也通过。最终 [Windows 22.22](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final3-node22.22-windows.json)、[Windows 22.12](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final3-node22.12-windows.json)、[Linux](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final3-node22.22-linux.json) 保存各自源码前后稳定性和 TAP。
 
-mutant 现在必须提供 `--baseline-report`：启动前重新验证其原 parser/native0、对应完整 baselineTests 覆盖、source/driver/validator/helper/Node/preparation/依赖以及 review specs/runtime 字节一致。[失败 full baseline 的预启动拒绝](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-failed-baseline-refusal/report.json)保持 compile commands 为 0、没有 capsule/native execution。行为反例只能在[实际通过的 159 项基线](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-clean-baseline/report.json)上执行，语法/import/runner 错误无法充当行为断言拒绝；每题新鲜 capsule 的原 HANDLE 结算独立记录。当前[反例01](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-01/report.json)、[反例02](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-02/report.json)分别取得 **75=57通过/18断言失败**、**75=70通过/5断言失败**，baselineConfirmed/parser/native1三门均成功；其余8个eligible反例仍进行中，4个blocked反例保持NOT_RUN。
+mutant 必须提供 `--baseline-report`：启动前重新验证其原 parser/native0、对应完整 baselineTests 覆盖、source/driver/validator/helper/Node/preparation/依赖以及 review specs/runtime 字节一致。[失败 full baseline 的预启动拒绝](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-failed-baseline-refusal/report.json)保持 compile commands 为 0、没有 capsule/native execution。行为反例只能在[实际通过的 159 项基线](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-clean-baseline/report.json)上执行，语法/import/runner 错误无法充当行为断言拒绝；每题新鲜 capsule 的原 HANDLE 结算独立记录。最终[矩阵索引](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-matrix-index.json)记录 **10 个反例 / 11 次尝试**：6 个检出、4 个存活，另 4 个因失败基线保持 NOT_RUN。11 次尝试均使用与组合基线相同的 12 份 producer 来源，未修改原报告或 source byte binding。
+
+| 反例                                                                                                           | 原始结果：total/pass/fail | 冻结门结果                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [01](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-01/report.json)             | 75/57/18                  | 检出，baseline/parser/native1 均成立                                                                                              |
+| [02](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-02/report.json)             | 75/70/5                   | 检出，baseline/parser/native1 均成立                                                                                              |
+| [03](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-03/report.json)             | 31/30/1                   | 检出，baseline/parser/native1 均成立                                                                                              |
+| [10](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-10/report.json)             | 2/1/1                     | 检出，baseline/parser/native1 均成立                                                                                              |
+| [12 重试](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-12-retry1/report.json) | 11/11/0                   | 存活 / OPEN；[首次辅助进程失败](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-12/report.json)另存 |
+| [20](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-20/report.json)             | 4/4/0                     | 存活 / OPEN                                                                                                                       |
+| [28](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-28/report.json)             | 14/13/1                   | 检出，baseline/parser/native1 均成立                                                                                              |
+| [29](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-29/report.json)             | 19/19/0                   | 存活 / OPEN                                                                                                                       |
+| [30a](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-30a/report.json)           | 13/12/1                   | 检出，baseline/parser/native1 均成立                                                                                              |
+| [30b](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-final-mutant-30b/report.json)           | 13/13/0                   | 存活 / OPEN                                                                                                                       |
+
+六个检出均来自真实行为 AssertionError，模块收集错误为空；业务 root exit 1 与预期相符，不能要求失败业务也 `completed:true`。四个存活报告实际 root exit 0、cleanup/Job0/profile 删除成立；parser 与预期 root1 的 native settlement 正确拒绝，不能把成功清理升级为检出成功。verify-11 两个、verify-19 一个、verify-21 一个反例因对应基线不成立未启动。
 
 纯合同接入三系统 CLI CI，Strict 路径过滤覆盖全部新 helper/validator/诊断；定向 ESLint、Prettier、actionlint（shellcheck/pyflakes 未启用）以及 spawn inventory 生成/检查通过。本轮不发布 npm/IDE，不把第 19 节旧 SHA 的完整绿色转移为本轮发布资格。官方账号/账单、正式目标宿主与独立人工 setup/check、辅助技术听测、8h/24h、获批 SLO、受保护 durable/WFP/macOS 后端及原 **36+9 / NOT_RUN / INSUFFICIENT_EVIDENCE** 继续按 20.4 独立开放。
+
+### 20.9 已完成增量提交与真实上游来源修正
+
+用户要求已完成工作提交到 Git，首批代码及原始证据已提交 `61d91325d0f30b60ec7ce14157e153a9a159707f`，推送到本节 feature 分支并创建[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)。提交前核对 707 份暂存证据与 index 原始字节一致，32 份 archive manifest 的 623 份原件大小及 SHA-256 成立；原始 CRLF 未被 Git 归一化。
+
+该准确提交的 [Model Catalog Review PR #37896217862](https://github.com/chainlesschain/chainlesschain/actions/runs/37896217862) 成功，实际上传了[可回读报告](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/model-catalog-pr-61d91325d0/local.json)，`reviewedSourcesDirty:false`、本地合同成立；PR 条件不取上游页面，因此 `upstreamSnapshotsComplete:false`。其 [Strict #37896217679](https://github.com/chainlesschain/chainlesschain/actions/runs/37896217679) 五个 job 全部成功，包含 Windows、Linux x64/ARM64、macOS 15 与额外 macOS latest，[原始 API 回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/strict-61d91325d0/readback.json)保留准确 SHA、实际 runner 和时间。[CLI CI #37896218097](https://github.com/chainlesschain/chainlesschain/actions/runs/37896218097)也已完整成功，实际 71 个 job 均成功，[原始回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/cli-ci-61d91325d0/readback.json)保留全矩阵；这些结果只属于 `61d91325d0`，不转移到后续提交。
+
+另外实际触发[上游审查 #37896537269](https://github.com/chainlesschain/chainlesschain/actions/runs/37896537269)，两个官方页面抓取成功，但 Codex 版本解析失败，失败步骤之后仍上传原页面和报告。[失败原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/model-catalog-upstream-61d91325d0/upstream.json)没有被改写。实际混合 changelog 的版本来自 app/mobile，唯一 `rust-v0.36.0` 链接位于旧条目正文；它没有可核的最新 CLI 版本，不能从任意 semver 推导。
+
+修正已另提交 `a45b76290d`：workflow 固定取官方 `openai/codex/releases/latest` JSON 并保存响应头，parser 核对 stable `rust-vX.Y.Z`、同仓库同 tag 的精确 URL、`draft:false` 与 `prerelease:false`；错误仓库、缺字段、非 stable、错误页及 script/style/navigation 噪声均拒绝。Claude MDX 保留真实 Update label，并排除惰性内容中的假 label。31 项模型目录 Vitest 与 9 项 Node 证据合同通过，不更新原审查事实或自动启用模型。
+
+本地用实际 API 原字节完成[新来源审查](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/model-catalog-api-final-workspace/upstream-api-final.json)：Codex CLI **0.162.0**、Claude Code **2.1.295**，`reviewCompleted:true / reviewRequired:true / automaticEnablement:false`，[真实退出码为 2](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/model-catalog-api-final-workspace/upstream-api-final-execution.json)，表示相对 10-05 基线发现漂移。报告保留当时 dirty 源码状态，不冒称新准确提交的 Actions 结果，更不验证 provider、账单或正式任务。
+
+### 20.10 当前依赖的 critical 阻塞修复
+
+`61d91325d0` 的 [Code Quality & Security #37896217923](https://github.com/chainlesschain/chainlesschain/actions/runs/37896217923) 中 Security Audit 的 critical 检查失败；其他已执行的规则、格式、数据库和构建 job 成功。原始 job/step 回读及日志 API 的 HTTP 403 拒绝[分别保留](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/quality-61d91325d0/readback.json)，不凭无权限读取的日志推断漏洞细节。
+
+随后本地只读 npm 审计确认 Handlebars 4.7.9 在 `GHSA-8r5x-fm3f-whwj` / `GHSA-p8wg-vrv2-v86f` 的受影响范围内。最小升级另提交 `abd2c2155b`：desktop manifest 最低范围为 `^4.7.10`，root、desktop 与 contracts 三份现行 lock 的该节点使用官方 4.7.10 resolved/SRI；仅将其 minimist 范围收紧为官方 `^1.2.8`，既有解析版本 1.2.8 满足要求，其他依赖节点未改变。
+
+[独立验证](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/handlebars-security-20261009/summary.json)核对官方 metadata、tarball SRI、完整依赖语义与实际解析路径，测试专用 preload 将生产 template-manager 指向精确下载的 **4.7.10**，实际 45/45 模板测试通过。本机 node_modules 没有升级，不能把该验证描述为正常安装后的完整应用测试。只读审计真实 exit 1，Handlebars 漏洞消失，仍有 1 critical `decompress` 与其他较低级别问题；原仓库已有该未修复包的豁免，没有新增豁免或宣称 clean audit。操作前后四文件摘要稳定；无 install/lifecycle，冻结项目、lock 和 runtime closure 原件均未修改。后续准确提交的 Actions 才是新代码的完整门，本轮不发布。
+
+### 20.11 custodian 自身崩溃后的有限集合清理
+
+新增独立 `windows-job-custodian-crash-probe.cs`、运行器、证据校验器及 120 个合同。外部 witness 先创建三个固定受控根进程，进程创建使用 `PROC_THREAD_ATTRIBUTE_JOB_LIST` 原子进入独立 safety guard Job；custodian 也以同样方式受 guard 看护。这样 runner 超时杀死 witness 时，不会留下尚未进入目标 Job 的暂停进程。guard 的原始唯一非继承句柄由 witness 持有，目标 unnamed Job 的原始唯一非继承句柄只由 custodian 持有；两个 Job 的证明分开记录。
+
+目标 Job 回读 `KILL_ON_JOB_CLOSE`、limit 3、无 breakaway，三个进程暂停时入 Job 并证明成员身份后才恢复。witness 仅保留由创建句柄缩权且经 `CompareObjectHandles` 对等的 process HANDLE，权限为同步、有限查询与终止，不含 `PROCESS_DUP_HANDLE`，不持有目标 Job 句柄。崩溃前完整集合逐个证明原 HANDLE 未 signal 和已有 TCP challenge 成功，再对原 custodian HANDLE 实际调用 `TerminateProcess`，不执行其清理代码或手动终止目标 Job。
+
+最终[正例与真实控制组](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/custodian-crash-final/report.json)使用独立 nonce。正例 witness **18904** / custodian **23184**，custodian 实际 exit **188**；三成员 **25684/24704/25092** 在 **90 ms** 内原 HANDLE signal、实际 exit **0**、socket reset，`fallbackCleanupUsed:false`。控制组 witness **27848** / custodian **13524** 移除目标 kill-on-close 后，三成员 **9612/26012/23576** 仍为 wait **258** / exit **259**，原连接继续回应；随后以原 HANDLE 显式回收并确认 signal/reset。guard 在两组观测期间一直打开，不能把关闭 guard 或事后 fallback 当作目标 Job 自动清理成功。
+
+guard 的实际 4 个 PID 列表严格匹配四个原始创建对象，收尾 guard accounting 为 0。目标 Job 的最后句柄消失后无法再查询其 accounting，报告明确 `wholeJobEmptyProven:false / jobQueriedAfterCrash:false`；这里只证明预先完整登记的三个受控根进程，未证明服务重启后的持久 journal fencing、同 UID 对抗、受保护服务、WFP 或任意后代树。[主 agent 独立回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/custodian-crash-final-source-readback.json)重读四份来源、编译器、Node、实际 exe 与原输出，`originalsRechecked:true / errors:[]`。真实宿主引用 runner 的 `10.0.19045`；未带 OS manifest 的 CLR `Environment.OSVersion=6.2` 是兼容 API 视图，不作真实 OS 版本。
+
+120 个纯合同在 Windows Node 22.22.2、22.12.0 与 Linux Node 22.22.2 均通过、零跳过，不同运行时不相加。Linux 首次 WSL/CreateInstance `E_ACCESSDENIED` 没有启动合同，原 UTF-16 错误保留；按系统要求提权后重试通过，未改源码或运行 Linux 原生探针。
+
+首次[run1](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/custodian-crash-failure-run1/report.json)实际 guard accounting 为 8，拒绝且 cleanup 未确认；[run2](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/custodian-crash-failure-run2/report.json)的原列表证明 8 个不同 PID，未读取额外四进程的 image，不推断它们就是 conhost。`TerminateProcess` 返回失败时仍等待原 HANDLE，仅 signal 才确认退出，仍未 signal 则保留错误并拒绝；run1 原始失败保留，run2 清理成立。改用不需要 stdio 的 `DETACHED_PROCESS` 后[中间成功](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/custodian-crash-intermediate-run3/report.json)与最终实跑均为严格 4 个 guard 成员，没有放宽数量断言。原捕获文件不可读的失败现在逐文件保存，不能让 finally 丢失报告。早期各源码时点的失败/成功保留；编译原件留本机，compiler closure 非 hermetic，整项保持 `NOT_ADMITTED`。
+
+### 20.12 存活反例的当前回归修补与冻结边界
+
+最终 Windows 反例 12 的首次 capsule 未取得测试断言，helper 未注册后被固定终止策略拒绝，原期限/源码和失败保留；新目录单次重试实际 **11/11 通过、0 失败**。反例 20 实际 **4/4 通过、0 失败**，反例 29 实际 **19/19 通过、0 失败**，反例 30b 实际 **13/13 通过、0 失败**。四份报告都有真实变异字节和通过的对应基线，parser 正确拒绝没有检出行为变异的结果；原 frozen gate 保持 **OPEN**，不能把语法/import 错误、再次重试或修改报告当作反例成功。
+
+实际覆盖缺口分别是已解析 argv 中的含空格/空字符串参数，以及同时存在相冲突的 `policy.decision` 与 `approval.decision`。只在当前仓库增加普通单元回归，生产实现及冻结 `.work` 项目、tests、config、plan 不改。[当前 argv 证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/verify12-current-regression/report.json)的 20/20 基线包含新增 9 例，对精确同一 `join/split/filter` 变异独立副本为 **11 通过/9 失败**；[当前优先级证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/verify20-current-regression/report.json)的两个冲突案例基线 **2/2**，交换优先级后 **0 通过/2 失败**。运行前后当前来源及测试摘要稳定，错误来自真实行为断言。它们修补了当前项目的覆盖，不能移植成原冻结 Windows review 已检出变异或正式 36+9 observations；后续计划签核与重冻结仍由负责人处理。
+
+反例 29 删除 `event.session_id !== conv.sessionId` 的保护，原用例没有 foreign-session ACK。[当前新增 ACK 回归](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/verify29-current-regression/report.json)把 correlation、requested/effective、policy revision 全部匹配，仅 session 不同：必须拒绝且 conversation 完全不变；同一 ACK 只改为正确 session 必须正常接纳。基线 **2/2**，精确同一变异为 **1 通过/1 失败**，正例仍通过；生产实现未改，这份普通 Node unit 证据也不关闭原冻结 29 的存活结果。
+
+反例 30b 删除 **40,000,000** 总 decodedPixels 门。[当前图像边界回归](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/verify30b-current-regression/report.json)使用带真实压缩 scanlines/CRC 的灰度 APNG，独立 fallback IDAT 加一个 fcTL/fdAT 动画帧，共两个解码画布：5000×4000×2 的 **40,000,000** 边界合法；5001×4000×2 的 **40,008,000** 仅总像素超限，字节、单幅像素、帧数及动画自身预算都合格。基线 **2/2**，精确同一变异为 **1 通过/1 失败**。两个新 IDE 测试文件均已加入既有 `test:unit` 显式列表，未改变原冻结 30b 的存活结果。
+
+### 20.13 最终报告一致性加固与合同权限边界
+
+矩阵执行完毕之后，独立 reviewer 发现 worker op4 成功豁免尚未强制 `terminationCallError === 0`；原生 producer 在成功时实际归零，真实原件未受影响。仅给当前 validator 补这一条件，并增加错误码 5、字段缺失和字符串 `"0"` 的三个拒绝合同；不改 native/CJS、driver、依赖 helper、旧报告或基线 byte binding。
+
+[追加轻量审阅](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/private-v4-op4-additional-review.json)重新核对两份基线、十个最终反例及 12 首次失败，共 **13** 份不可变报告的摘要和每份 **12** 个留存 producer 源码，28 个实际成功终止行的错误码均为数值 0。原 producer validator 摘要 `aa71ddcdbb0555fd45d5bbfbe38d8d669f947f7f68b29c1bb2fb41a2d08e32fa`，追加 reviewer 为 `0009649b08d86323e6739bc35973c1cef0d18e1e1e9605e6e23d25de0bd10e01`；其余 11 份 producer 来源仍与当前一致。这是追加字段/来源一致性审阅，**没有重走全部依赖或重跑完整 inspector/native**，不能称新 validator 参与了旧 capsule 生产或已取得新的 baseline 前置绑定。
+
+最终 10 文件 **533 个 Node 合同**：原 408 增加模型证据 2、op4 3 与独立 custodian 120。Windows Node 22.22.2 和 Linux Node 22.22.2 各 **533/533、零跳过**；Windows Node 22.12.0 默认沙箱实际 **520 通过/13 失败**，错误来自未修改的依赖 reader 对 `C:\Users\longfa` 祖先执行 `lstat EPERM`，并非本轮 op4 条件。原失败[报告/TAP](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final4-node22.12-windows.json)保留；按系统权限要求在主机权限下对同一来源复核为 [533/533](./cli/evidence/gap-2026-10-05/continuation-2026-10-09/final4-node22.12-windows-host.json)，源码前后稳定，未放宽 reader 或祖先 ACL。不能把 host 权限结果写成默认沙箱通过，也不把重复运行累计为新任务样本。
+
+模型目录 31 项 Vitest、Handlebars 实际新版 45 项模板、当前 argv 20 项/precedence 2 项与两个 IDE 文件各 2 项的回归分别保存；旧 408、415 与后续结果包含重叠，不相加为正式分母。所有本轮改动按完成批次提交到 Git，准确提交的后续 Actions 与原生/正式验收仍分开：受保护 durable 服务/authority/journal/WFP/macOS、冻结 Windows 完整失败基线和四个存活反例、官方账号账单、目标机器/独立人工/辅助技术/8h24h/SLO及 **36+9 / NOT_RUN** 未结案，本轮不发布。

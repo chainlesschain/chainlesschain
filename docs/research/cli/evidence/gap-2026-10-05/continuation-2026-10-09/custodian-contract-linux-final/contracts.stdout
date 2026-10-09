@@ -1,0 +1,730 @@
+TAP version 13
+# Subtest: positive finite-set contract remains NOT_ADMITTED
+ok 1 - positive finite-set contract remains NOT_ADMITTED
+  ---
+  duration_ms: 14.2976
+  type: 'test'
+  ...
+# Subtest: missing-policy control remains failure with confirmed fallback
+ok 2 - missing-policy control remains failure with confirmed fallback
+  ---
+  duration_ms: 0.7409
+  type: 'test'
+  ...
+# Subtest: reject schema
+ok 3 - reject schema
+  ---
+  duration_ms: 0.5211
+  type: 'test'
+  ...
+# Subtest: reject run identity
+ok 4 - reject run identity
+  ---
+  duration_ms: 1.161
+  type: 'test'
+  ...
+# Subtest: reject admitted
+ok 5 - reject admitted
+  ---
+  duration_ms: 0.4332
+  type: 'test'
+  ...
+# Subtest: reject trusted
+ok 6 - reject trusted
+  ---
+  duration_ms: 0.8253
+  type: 'test'
+  ...
+# Subtest: reject elevated
+ok 7 - reject elevated
+  ---
+  duration_ms: 1.6812
+  type: 'test'
+  ...
+# Subtest: reject x86
+ok 8 - reject x86
+  ---
+  duration_ms: 0.7535
+  type: 'test'
+  ...
+# Subtest: reject durable recovery
+ok 9 - reject durable recovery
+  ---
+  duration_ms: 2.3739
+  type: 'test'
+  ...
+# Subtest: reject service
+ok 10 - reject service
+  ---
+  duration_ms: 1.2287
+  type: 'test'
+  ...
+# Subtest: reject WFP
+ok 11 - reject WFP
+  ---
+  duration_ms: 0.5058
+  type: 'test'
+  ...
+# Subtest: reject whole Job empty
+ok 12 - reject whole Job empty
+  ---
+  duration_ms: 0.2674
+  type: 'test'
+  ...
+# Subtest: reject post-crash Job query
+ok 13 - reject post-crash Job query
+  ---
+  duration_ms: 0.2113
+  type: 'test'
+  ...
+# Subtest: reject witness Job copy
+ok 14 - reject witness Job copy
+  ---
+  duration_ms: 0.3067
+  type: 'test'
+  ...
+# Subtest: reject missing kill flag
+ok 15 - reject missing kill flag
+  ---
+  duration_ms: 0.1807
+  type: 'test'
+  ...
+# Subtest: reject breakaway
+ok 16 - reject breakaway
+  ---
+  duration_ms: 0.1737
+  type: 'test'
+  ...
+# Subtest: reject silent breakaway
+ok 17 - reject silent breakaway
+  ---
+  duration_ms: 0.1688
+  type: 'test'
+  ...
+# Subtest: reject extra Job copy
+ok 18 - reject extra Job copy
+  ---
+  duration_ms: 0.2168
+  type: 'test'
+  ...
+# Subtest: reject unnamed absent
+ok 19 - reject unnamed absent
+  ---
+  duration_ms: 0.1944
+  type: 'test'
+  ...
+# Subtest: reject inheritable Job
+ok 20 - reject inheritable Job
+  ---
+  duration_ms: 0.1702
+  type: 'test'
+  ...
+# Subtest: reject custodian in Job
+ok 21 - reject custodian in Job
+  ---
+  duration_ms: 0.1818
+  type: 'test'
+  ...
+# Subtest: reject witness in Job
+ok 22 - reject witness in Job
+  ---
+  duration_ms: 0.169
+  type: 'test'
+  ...
+# Subtest: reject wrong inheritance
+ok 23 - reject wrong inheritance
+  ---
+  duration_ms: 0.1764
+  type: 'test'
+  ...
+# Subtest: reject unknown active member
+ok 24 - reject unknown active member
+  ---
+  duration_ms: 0.2087
+  type: 'test'
+  ...
+# Subtest: reject missing active limit
+ok 25 - reject missing active limit
+  ---
+  duration_ms: 0.2619
+  type: 'test'
+  ...
+# Subtest: reject membership PID mismatch
+ok 26 - reject membership PID mismatch
+  ---
+  duration_ms: 0.2312
+  type: 'test'
+  ...
+# Subtest: reject duplicate membership
+ok 27 - reject duplicate membership
+  ---
+  duration_ms: 0.2215
+  type: 'test'
+  ...
+# Subtest: reject assigned after resume
+ok 28 - reject assigned after resume
+  ---
+  duration_ms: 0.2163
+  type: 'test'
+  ...
+# Subtest: reject member check absent
+ok 29 - reject member check absent
+  ---
+  duration_ms: 0.2427
+  type: 'test'
+  ...
+# Subtest: reject missing member
+ok 30 - reject missing member
+  ---
+  duration_ms: 0.2629
+  type: 'test'
+  ...
+# Subtest: reject extra member
+ok 31 - reject extra member
+  ---
+  duration_ms: 0.2564
+  type: 'test'
+  ...
+# Subtest: reject duplicate member role
+ok 32 - reject duplicate member role
+  ---
+  duration_ms: 0.2222
+  type: 'test'
+  ...
+# Subtest: reject reused live PID
+ok 33 - reject reused live PID
+  ---
+  duration_ms: 0.2743
+  type: 'test'
+  ...
+# Subtest: reject only PID disappearance
+ok 34 - reject only PID disappearance
+  ---
+  duration_ms: 0.2407
+  type: 'test'
+  ...
+# Subtest: reject member DUP_HANDLE
+ok 35 - reject member DUP_HANDLE
+  ---
+  duration_ms: 0.4298
+  type: 'test'
+  ...
+# Subtest: reject custodian DUP_HANDLE
+ok 36 - reject custodian DUP_HANDLE
+  ---
+  duration_ms: 0.614
+  type: 'test'
+  ...
+# Subtest: reject inheritable member handle
+ok 37 - reject inheritable member handle
+  ---
+  duration_ms: 0.6311
+  type: 'test'
+  ...
+# Subtest: reject member already dead
+ok 38 - reject member already dead
+  ---
+  duration_ms: 0.5802
+  type: 'test'
+  ...
+# Subtest: reject missing live member challenge
+ok 39 - reject missing live member challenge
+  ---
+  duration_ms: 0.5779
+  type: 'test'
+  ...
+# Subtest: reject missing custodian challenge
+ok 40 - reject missing custodian challenge
+  ---
+  duration_ms: 0.3301
+  type: 'test'
+  ...
+# Subtest: reject custodian already dead
+ok 41 - reject custodian already dead
+  ---
+  duration_ms: 0.3865
+  type: 'test'
+  ...
+# Subtest: reject crash call failed
+ok 42 - reject crash call failed
+  ---
+  duration_ms: 0.7435
+  type: 'test'
+  ...
+# Subtest: reject custodian exit differs
+ok 43 - reject custodian exit differs
+  ---
+  duration_ms: 0.4261
+  type: 'test'
+  ...
+# Subtest: reject custodian exit unknown
+ok 44 - reject custodian exit unknown
+  ---
+  duration_ms: 0.6949
+  type: 'test'
+  ...
+# Subtest: reject custodian unsignaled
+ok 45 - reject custodian unsignaled
+  ---
+  duration_ms: 0.5204
+  type: 'test'
+  ...
+# Subtest: reject custodian socket timeout
+ok 46 - reject custodian socket timeout
+  ---
+  duration_ms: 0.4799
+  type: 'test'
+  ...
+# Subtest: reject member unsignaled
+ok 47 - reject member unsignaled
+  ---
+  duration_ms: 0.4906
+  type: 'test'
+  ...
+# Subtest: reject member exit unknown
+ok 48 - reject member exit unknown
+  ---
+  duration_ms: 0.388
+  type: 'test'
+  ...
+# Subtest: reject exit not queried
+ok 49 - reject exit not queried
+  ---
+  duration_ms: 0.411
+  type: 'test'
+  ...
+# Subtest: reject negative exit number
+ok 50 - reject negative exit number
+  ---
+  duration_ms: 0.4343
+  type: 'test'
+  ...
+# Subtest: reject EOF absent
+ok 51 - reject EOF absent
+  ---
+  duration_ms: 0.2853
+  type: 'test'
+  ...
+# Subtest: reject socket timeout as close
+ok 52 - reject socket timeout as close
+  ---
+  duration_ms: 0.232
+  type: 'test'
+  ...
+# Subtest: reject fallback success
+ok 53 - reject fallback success
+  ---
+  duration_ms: 0.3191
+  type: 'test'
+  ...
+# Subtest: reject fallback socket evidence
+ok 54 - reject fallback socket evidence
+  ---
+  duration_ms: 0.278
+  type: 'test'
+  ...
+# Subtest: reject post-crash live member
+ok 55 - reject post-crash live member
+  ---
+  duration_ms: 0.315
+  type: 'test'
+  ...
+# Subtest: reject final handle unsignaled
+ok 56 - reject final handle unsignaled
+  ---
+  duration_ms: 0.2407
+  type: 'test'
+  ...
+# Subtest: reject deadline exceeded
+ok 57 - reject deadline exceeded
+  ---
+  duration_ms: 0.2375
+  type: 'test'
+  ...
+# Subtest: reject deadline missing
+ok 58 - reject deadline missing
+  ---
+  duration_ms: 2.3358
+  type: 'test'
+  ...
+# Subtest: reject native error
+ok 59 - reject native error
+  ---
+  duration_ms: 0.3488
+  type: 'test'
+  ...
+# Subtest: reject custodian cleanup error
+ok 60 - reject custodian cleanup error
+  ---
+  duration_ms: 0.2808
+  type: 'test'
+  ...
+# Subtest: reject member cleanup error
+ok 61 - reject member cleanup error
+  ---
+  duration_ms: 0.2537
+  type: 'test'
+  ...
+# Subtest: reject cleanup missing
+ok 62 - reject cleanup missing
+  ---
+  duration_ms: 0.1965
+  type: 'test'
+  ...
+# Subtest: reject completion missing
+ok 63 - reject completion missing
+  ---
+  duration_ms: 0.1881
+  type: 'test'
+  ...
+# Subtest: reject stage incomplete
+ok 64 - reject stage incomplete
+  ---
+  duration_ms: 0.3758
+  type: 'test'
+  ...
+# Subtest: reject safety Job absent
+ok 65 - reject safety Job absent
+  ---
+  duration_ms: 0.4279
+  type: 'test'
+  ...
+# Subtest: reject safety kill flag absent
+ok 66 - reject safety kill flag absent
+  ---
+  duration_ms: 0.4088
+  type: 'test'
+  ...
+# Subtest: reject safety breakaway
+ok 67 - reject safety breakaway
+  ---
+  duration_ms: 0.3858
+  type: 'test'
+  ...
+# Subtest: reject safety limit missing
+ok 68 - reject safety limit missing
+  ---
+  duration_ms: 0.3934
+  type: 'test'
+  ...
+# Subtest: reject inherited safety Job
+ok 69 - reject inherited safety Job
+  ---
+  duration_ms: 0.5058
+  type: 'test'
+  ...
+# Subtest: reject extra safety handle
+ok 70 - reject extra safety handle
+  ---
+  duration_ms: 0.4062
+  type: 'test'
+  ...
+# Subtest: reject witness inside safety Job
+ok 71 - reject witness inside safety Job
+  ---
+  duration_ms: 0.4506
+  type: 'test'
+  ...
+# Subtest: reject roots not atomically guarded
+ok 72 - reject roots not atomically guarded
+  ---
+  duration_ms: 0.4268
+  type: 'test'
+  ...
+# Subtest: reject custodian not atomically guarded
+ok 73 - reject custodian not atomically guarded
+  ---
+  duration_ms: 0.5653
+  type: 'test'
+  ...
+# Subtest: reject custodian guard check missing
+ok 74 - reject custodian guard check missing
+  ---
+  duration_ms: 0.4347
+  type: 'test'
+  ...
+# Subtest: reject root guard check missing
+ok 75 - reject root guard check missing
+  ---
+  duration_ms: 0.3684
+  type: 'test'
+  ...
+# Subtest: reject safety Job incomplete live set
+ok 76 - reject safety Job incomplete live set
+  ---
+  duration_ms: 0.5473
+  type: 'test'
+  ...
+# Subtest: reject safety Job closed for observation
+ok 77 - reject safety Job closed for observation
+  ---
+  duration_ms: 0.3062
+  type: 'test'
+  ...
+# Subtest: reject safety Job used as evidence cleanup
+ok 78 - reject safety Job used as evidence cleanup
+  ---
+  duration_ms: 0.3131
+  type: 'test'
+  ...
+# Subtest: reject safety Job member left over
+ok 79 - reject safety Job member left over
+  ---
+  duration_ms: 0.3305
+  type: 'test'
+  ...
+# Subtest: reject safety Job cleanup error
+ok 80 - reject safety Job cleanup error
+  ---
+  duration_ms: 0.4211
+  type: 'test'
+  ...
+# Subtest: reject safety Job close failed
+ok 81 - reject safety Job close failed
+  ---
+  duration_ms: 0.4584
+  type: 'test'
+  ...
+# Subtest: reject safety PID list absent
+ok 82 - reject safety PID list absent
+  ---
+  duration_ms: 0.5739
+  type: 'test'
+  ...
+# Subtest: reject unknown safety PID
+ok 83 - reject unknown safety PID
+  ---
+  duration_ms: 0.4837
+  type: 'test'
+  ...
+# Subtest: reject duplicate safety PID
+ok 84 - reject duplicate safety PID
+  ---
+  duration_ms: 0.4962
+  type: 'test'
+  ...
+# Subtest: reject control retains kill flag
+ok 85 - reject control retains kill flag
+  ---
+  duration_ms: 0.4351
+  type: 'test'
+  ...
+# Subtest: reject control missing live response
+ok 86 - reject control missing live response
+  ---
+  duration_ms: 0.2888
+  type: 'test'
+  ...
+# Subtest: reject control prematurely signaled
+ok 87 - reject control prematurely signaled
+  ---
+  duration_ms: 0.2507
+  type: 'test'
+  ...
+# Subtest: reject control not STILL_ACTIVE
+ok 88 - reject control not STILL_ACTIVE
+  ---
+  duration_ms: 0.2272
+  type: 'test'
+  ...
+# Subtest: reject control fallback hidden
+ok 89 - reject control fallback hidden
+  ---
+  duration_ms: 0.3079
+  type: 'test'
+  ...
+# Subtest: reject control fallback socket timeout
+ok 90 - reject control fallback socket timeout
+  ---
+  duration_ms: 0.232
+  type: 'test'
+  ...
+# Subtest: reject control claims automatic EOF
+ok 91 - reject control claims automatic EOF
+  ---
+  duration_ms: 0.2366
+  type: 'test'
+  ...
+# Subtest: reject control claims completion
+ok 92 - reject control claims completion
+  ---
+  duration_ms: 0.238
+  type: 'test'
+  ...
+# Subtest: null and malformed values return rejection
+ok 93 - null and malformed values return rejection
+  ---
+  duration_ms: 0.4791
+  type: 'test'
+  ...
+# Subtest: artifact intact byte envelope
+ok 94 - artifact intact byte envelope
+  ---
+  duration_ms: 60.4974
+  type: 'test'
+  ...
+# Subtest: artifact captured source byte tamper
+ok 95 - artifact captured source byte tamper
+  ---
+  duration_ms: 46.0312
+  type: 'test'
+  ...
+# Subtest: artifact compiled executable tamper
+ok 96 - artifact compiled executable tamper
+  ---
+  duration_ms: 47.5878
+  type: 'test'
+  ...
+# Subtest: artifact compiler tamper
+ok 97 - artifact compiler tamper
+  ---
+  duration_ms: 52.0124
+  type: 'test'
+  ...
+# Subtest: artifact runtime tamper
+ok 98 - artifact runtime tamper
+  ---
+  duration_ms: 41.346
+  type: 'test'
+  ...
+# Subtest: artifact raw stdout tamper
+ok 99 - artifact raw stdout tamper
+  ---
+  duration_ms: 47.4308
+  type: 'test'
+  ...
+# Subtest: artifact missing capture
+ok 100 - artifact missing capture
+  ---
+  duration_ms: 44.2719
+  type: 'test'
+  ...
+# Subtest: artifact missing source
+ok 101 - artifact missing source
+  ---
+  duration_ms: 54.3927
+  type: 'test'
+  ...
+# Subtest: artifact changed after hash
+ok 102 - artifact changed after hash
+  ---
+  duration_ms: 43.1707
+  type: 'test'
+  ...
+# Subtest: artifact changed executable after size
+ok 103 - artifact changed executable after size
+  ---
+  duration_ms: 39.521
+  type: 'test'
+  ...
+# Subtest: artifact prepared only
+ok 104 - artifact prepared only
+  ---
+  duration_ms: 39.1109
+  type: 'test'
+  ...
+# Subtest: artifact stored failure
+ok 105 - artifact stored failure
+  ---
+  duration_ms: 37.6253
+  type: 'test'
+  ...
+# Subtest: artifact reused run nonce
+ok 106 - artifact reused run nonce
+  ---
+  duration_ms: 50.3147
+  type: 'test'
+  ...
+# Subtest: artifact report asserts admission
+ok 107 - artifact report asserts admission
+  ---
+  duration_ms: 54.8826
+  type: 'test'
+  ...
+# Subtest: artifact report changes scope
+ok 108 - artifact report changes scope
+  ---
+  duration_ms: 50.9374
+  type: 'test'
+  ...
+# Subtest: artifact forged derived success ignored
+ok 109 - artifact forged derived success ignored
+  ---
+  duration_ms: 50.6415
+  type: 'test'
+  ...
+# Subtest: artifact original source disappeared
+ok 110 - artifact original source disappeared
+  ---
+  duration_ms: 47.6676
+  type: 'test'
+  ...
+# Subtest: artifact wrong positive status
+ok 111 - artifact wrong positive status
+  ---
+  duration_ms: 115.7767
+  type: 'test'
+  ...
+# Subtest: artifact wrong negative status
+ok 112 - artifact wrong negative status
+  ---
+  duration_ms: 61.0286
+  type: 'test'
+  ...
+# Subtest: artifact actual witness PID mismatch
+ok 113 - artifact actual witness PID mismatch
+  ---
+  duration_ms: 58.7259
+  type: 'test'
+  ...
+# Subtest: artifact spawn error
+ok 114 - artifact spawn error
+  ---
+  duration_ms: 59.438
+  type: 'test'
+  ...
+# Subtest: artifact process timed out
+ok 115 - artifact process timed out
+  ---
+  duration_ms: 51.6006
+  type: 'test'
+  ...
+# Subtest: artifact invocation nonce differs
+ok 116 - artifact invocation nonce differs
+  ---
+  duration_ms: 53.0347
+  type: 'test'
+  ...
+# Subtest: artifact executed other image
+ok 117 - artifact executed other image
+  ---
+  duration_ms: 53.0283
+  type: 'test'
+  ...
+# Subtest: artifact injected build argument
+ok 118 - artifact injected build argument
+  ---
+  duration_ms: 49.605
+  type: 'test'
+  ...
+# Subtest: artifact failed compile
+ok 119 - artifact failed compile
+  ---
+  duration_ms: 38.3989
+  type: 'test'
+  ...
+# Subtest: artifact malformed native schema
+ok 120 - artifact malformed native schema
+  ---
+  duration_ms: 31.4101
+  type: 'test'
+  ...
+1..120
+# tests 120
+# suites 0
+# pass 120
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1791.7539

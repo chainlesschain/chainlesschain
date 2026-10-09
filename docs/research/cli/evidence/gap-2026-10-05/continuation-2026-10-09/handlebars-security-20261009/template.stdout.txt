@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 C:/code/chainlesschain/desktop-app-vue
+
+
+ Test Files  1 passed (1)
+      Tests  45 passed (45)
+   Start at  15:32:38
+   Duration  3.66s (transform 229ms, setup 473ms, import 126ms, tests 236ms, environment 2.23s)
+

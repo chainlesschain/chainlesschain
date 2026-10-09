@@ -1,0 +1,18 @@
+{
+  "runtime": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "packages/cli/scripts/review-model-catalog.mjs",
+    "--codex",
+    ".work/model-catalog-upstream-61d91325d0/codex-latest.json",
+    "--claude",
+    ".work/model-catalog-upstream-61d91325d0/claude.md",
+    "--output",
+    ".work/model-catalog-upstream-61d91325d0/upstream-api-final.json",
+    "--fail-on-drift"
+  ],
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "stdout": "{\n  \"schema\": \"chainlesschain.model-catalog-review-result/v1\",\n  \"reviewedAt\": \"2026-10-05\",\n  \"localContractPassed\": true,\n  \"mismatches\": [],\n  \"upstream\": [\n    {\n      \"name\": \"codex\",\n      \"reviewedVersion\": \"0.160.0\",\n      \"observedVersion\": \"0.162.0\",\n      \"reviewRequired\": true\n    },\n    {\n      \"name\": \"claude\",\n      \"reviewedVersion\": \"2.1.289\",\n      \"observedVersion\": \"2.1.295\",\n      \"reviewRequired\": true\n    }\n  ],\n  \"reviewRequired\": true,\n  \"automaticEnablement\": false\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,171 @@
+{
+  "schema": "chainlesschain.windows-custodian-crash-diagnostic/v1",
+  "status": "NOT_ADMITTED",
+  "trusted": false,
+  "scope": "three-fixed-controlled-root-processes",
+  "output": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic",
+  "startedAt": "2026-10-09T07:48:18.842Z",
+  "preparedOnly": false,
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "release": "10.0.19045"
+  },
+  "positiveNonce": "2bf9be19-e75c-4a8a-8508-dbb0491045d2",
+  "controlNonce": "a31c7be9-9d64-4bcc-84fa-d3ccdc03f816",
+  "sources": [
+    {
+      "name": "windows-job-custodian-crash-probe.cs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-custodian-crash-probe.cs",
+      "before": {
+        "sha256": "1049b18a2cbeb3f5413b5da5cac841d9606944e74669164fb53205ca799ad3f5",
+        "bytes": 28669
+      },
+      "after": {
+        "sha256": "1049b18a2cbeb3f5413b5da5cac841d9606944e74669164fb53205ca799ad3f5",
+        "bytes": 28669
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-probe.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-custodian-crash-probe.mjs",
+      "before": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "after": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-custodian-crash-evidence.mjs",
+      "before": {
+        "sha256": "0f78f78a0d9d025b3ab332238448892e79766e15a5ebaed652df030ae82f8e6a",
+        "bytes": 12663
+      },
+      "after": {
+        "sha256": "0f78f78a0d9d025b3ab332238448892e79766e15a5ebaed652df030ae82f8e6a",
+        "bytes": 12663
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "before": {
+        "sha256": "b6a460fdea02790c5a8334e42968a10dd5d120834fdf67295c06d4dffa979797",
+        "bytes": 16259
+      },
+      "after": {
+        "sha256": "b6a460fdea02790c5a8334e42968a10dd5d120834fdf67295c06d4dffa979797",
+        "bytes": 16259
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "name": "build.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "build.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "build.json",
+      "sha256": "2536103c4b16b0ce04a50673f1b12e3c71fef8855a0b3cdc3f4b993920a092d1",
+      "bytes": 613
+    },
+    {
+      "name": "positive.stdout.json",
+      "sha256": "cc0290052f42950f5a1576b42e6343996a244899ea5e8c0294b308a13fb0eff7",
+      "bytes": 2385
+    },
+    {
+      "name": "positive.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "positive.json",
+      "sha256": "6c97403e155e199053746a4ff4751d8264c32173eda6cd39431de7034dacb863",
+      "bytes": 358
+    }
+  ],
+  "compiler": {
+    "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "before": {
+      "sha256": "aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+      "bytes": 2569696
+    },
+    "hermetic": false,
+    "after": {
+      "sha256": "aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+      "bytes": 2569696
+    }
+  },
+  "runtime": {
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "before": {
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "bytes": 87074816
+    },
+    "after": {
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "bytes": 87074816
+    }
+  },
+  "executable": {
+    "path": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic\\windows-job-custodian-crash-probe.exe",
+    "before": {
+      "sha256": "1a30aaafdfe75c1304c71763311cc358bc5d609acf24f239ef22fa3616d18b11",
+      "bytes": 26112
+    },
+    "after": {
+      "sha256": "1a30aaafdfe75c1304c71763311cc358bc5d609acf24f239ef22fa3616d18b11",
+      "bytes": 26112
+    }
+  },
+  "failure": "Error: Positive probe failed; no further native tree launched: [\"completion or fallback boundary differs\",\"native stage incomplete\",\"native failure retained\",\"crash deadline unproven\",\"creation-time safety Job membership missing\",\"safety Job closed early or fallback cleanup unconfirmed\",\"external crash via original custodian object unproven\",\"member-a: final original HANDLE cleanup missing\",\"member-a: automatic signaled HANDLE plus EOF/reset missing\",\"member-a: positive uses fallback evidence\",\"member-b: final original HANDLE cleanup missing\",\"member-b: automatic signaled HANDLE plus EOF/reset missing\",\"member-b: positive uses fallback evidence\",\"member-c: final original HANDLE cleanup missing\",\"member-c: automatic signaled HANDLE plus EOF/reset missing\",\"member-c: positive uses fallback evidence\"]\n    at runCustodianCrashProbe (file:///C:/code/chainlesschain/packages/cli/scripts/windows-job-custodian-crash-probe.mjs:169:15)\n    at file:///C:/code/chainlesschain/packages/cli/scripts/windows-job-custodian-crash-probe.mjs:250:20\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)",
+  "finishedAt": "2026-10-09T07:48:22.128Z",
+  "validation": {
+    "diagnosticCompleted": false,
+    "status": "NOT_ADMITTED",
+    "trusted": false,
+    "originalsRechecked": true,
+    "scope": "three-fixed-controlled-root-processes",
+    "errors": [
+      "report incomplete or failed",
+      "raw capture set incomplete",
+      "control.stdout.json: capture absent or duplicate",
+      "control.stdout.json: ENOENT: no such file or directory, open 'C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic\\control.stdout.json'",
+      "control.stderr.txt: capture absent or duplicate",
+      "control.stderr.txt: ENOENT: no such file or directory, open 'C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic\\control.stderr.txt'",
+      "control.json: capture absent or duplicate",
+      "control.json: ENOENT: no such file or directory, open 'C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic\\control.json'",
+      "positive: native invocation or exit differs",
+      "positive: completion or fallback boundary differs",
+      "positive: native stage incomplete",
+      "positive: native failure retained",
+      "positive: crash deadline unproven",
+      "positive: creation-time safety Job membership missing",
+      "positive: safety Job closed early or fallback cleanup unconfirmed",
+      "positive: external crash via original custodian object unproven",
+      "positive: member-a: final original HANDLE cleanup missing",
+      "positive: member-a: automatic signaled HANDLE plus EOF/reset missing",
+      "positive: member-a: positive uses fallback evidence",
+      "positive: member-b: final original HANDLE cleanup missing",
+      "positive: member-b: automatic signaled HANDLE plus EOF/reset missing",
+      "positive: member-b: positive uses fallback evidence",
+      "positive: member-c: final original HANDLE cleanup missing",
+      "positive: member-c: automatic signaled HANDLE plus EOF/reset missing",
+      "positive: member-c: positive uses fallback evidence",
+      "raw evidence parse: ENOENT: no such file or directory, open 'C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run2-accounting-diagnostic\\control.json'"
+    ]
+  },
+  "diagnosticCompleted": false
+}

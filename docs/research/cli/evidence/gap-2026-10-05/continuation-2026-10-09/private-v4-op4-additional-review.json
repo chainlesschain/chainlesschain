@@ -1,0 +1,335 @@
+{
+  "scope": "additional-op4-error-field-and-producer-source-consistency",
+  "producerValidator": {
+    "name": "windows-node-private-v4-result.mjs",
+    "bytes": 32064,
+    "digest": "sha256:aa71ddcdbb0555fd45d5bbfbe38d8d669f947f7f68b29c1bb2fb41a2d08e32fa"
+  },
+  "additionalReviewer": {
+    "bytes": 32100,
+    "digest": "sha256:0009649b08d86323e6739bc35973c1cef0d18e1e1e9605e6e23d25de0bd10e01"
+  },
+  "fullInspectorRerun": false,
+  "dependenciesRewalked": false,
+  "nativeRerun": false,
+  "baselineByteBindingUpdated": false,
+  "reviewed": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-z-final-partial-baseline\\report.json",
+      "bytes": 25196150,
+      "digest": "sha256:39706853de0ffc1a37aaf19e5c7d2647b10399d99bd069df686b7a9b71d4c19b",
+      "mode": "review-baseline",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 8,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 159,
+        "passed": 159,
+        "failed": 0,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": true,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-y-final-full-baseline\\report.json",
+      "bytes": 25303969,
+      "digest": "sha256:6038a43e3dc6578fbc987f331d9dc320677e013c67ca772d50374964dbcb2517",
+      "mode": "review-baseline",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 11,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "skipped, pending, todo or empty tests cannot pass acceptance",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-01\\report.json",
+      "bytes": 25143326,
+      "digest": "sha256:7f6375e1f343b5054ee6f179c76a797a5cb76221c07c9a57d8e21f5d2d1fb781",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 0,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 75,
+        "passed": 57,
+        "failed": 18,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-02\\report.json",
+      "bytes": 25114794,
+      "digest": "sha256:8e7c7bb8b0314e8460f20820cea7ca206e2d53905938321115ea2115de2c5881",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 75,
+        "passed": 70,
+        "failed": 5,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-03\\report.json",
+      "bytes": 25074797,
+      "digest": "sha256:83b62bf6ae046dee89925350c88e1ef241c910da83ebab3caa169e4e32bc781f",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 2,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 31,
+        "passed": 30,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-10\\report.json",
+      "bytes": 25061581,
+      "digest": "sha256:4bac1f1a23ccc57abc9d50cb860097a8116e7483ca0acca776c9a973d18b44ea",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 0,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-28\\report.json",
+      "bytes": 25058310,
+      "digest": "sha256:7a18d4439893bdf0ecc37d57f20a8b549d31c2d1dbbd633d6b7fddf484834287",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 14,
+        "passed": 13,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-30a\\report.json",
+      "bytes": 25059526,
+      "digest": "sha256:76ea05bb336e8cf1fdfe0a181dbb597896d4035bec40b1644343f95c031307cd",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": true,
+        "total": 13,
+        "passed": 12,
+        "failed": 1,
+        "nativeSettlementConfirmed": true,
+        "baselineConfirmed": true,
+        "accepted": true
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-12-retry1\\report.json",
+      "bytes": 25056043,
+      "digest": "sha256:d17d73d24d564f94e05ae25d15da19b7fa4945b04b43bdd100e0b16becd8460f",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": true,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-20\\report.json",
+      "bytes": 25053225,
+      "digest": "sha256:42cc4cea5975af4abc381b39d7363ff8217c28245cdc817aeb0bb9c624b0c484",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": true,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-29\\report.json",
+      "bytes": 25059008,
+      "digest": "sha256:4e0f99b2f600ddc33210edaeea412a36313ad45b9256ee30bd9f16d2e5c7b7d7",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": true,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-30b\\report.json",
+      "bytes": 25057055,
+      "digest": "sha256:1f1a63660f12b86755b59465ef766e01c2b0adbc921679668b2ef22b2fe73df2",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 1,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "candidate tests did not reject the behavioral mutant",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": true,
+        "rootExit": 0,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-final-mutant-12\\report.json",
+      "bytes": 25021288,
+      "digest": "sha256:36e3b84c5a7bec31115b513a290e65857f909bb9e06cdaa2247b703d3d862320",
+      "mode": "review-mutant",
+      "producerSourcesRetainedAndEqual": 12,
+      "successfulOp4Rows": 0,
+      "allSuccessfulTerminationErrorsAreZero": true,
+      "producerReviewValidation": {
+        "acceptedByFrozenParser": false,
+        "error": "test runner did not emit one valid JSON report",
+        "nativeSettlementConfirmed": false,
+        "baselineConfirmed": true,
+        "accepted": false
+      },
+      "host": {
+        "completed": false,
+        "rootExit": 259,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true
+      }
+    }
+  ],
+  "formalSample": false,
+  "admissionEligible": false,
+  "fullFrozenReviewCompleted": false,
+  "recordedAt": "2026-10-09T08:44:09.873Z"
+}

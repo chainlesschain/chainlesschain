@@ -1,0 +1,8 @@
+{
+  "jobId": "113708048097",
+  "exitCode": 1,
+  "stdoutBase64": "eyJtZXNzYWdlIjoiTXVzdCBoYXZlIGFkbWluIHJpZ2h0cyB0byBSZXBvc2l0b3J5LiIsImRvY3VtZW50YXRpb25fdXJsIjoiaHR0cHM6Ly9kb2NzLmdpdGh1Yi5jb20vcmVzdC9hY3Rpb25zL3dvcmtmbG93LWpvYnMjZG93bmxvYWQtam9iLWxvZ3MtZm9yLWEtd29ya2Zsb3ctcnVuIiwic3RhdHVzIjoiNDAzIn0=",
+  "stderrBase64": "Z2g6IE11c3QgaGF2ZSBhZG1pbiByaWdodHMgdG8gUmVwb3NpdG9yeS4gKEhUVFAgNDAzKQo=",
+  "capturedAt": "2026-10-09T07:11:46.724Z",
+  "logDownloaded": false
+}

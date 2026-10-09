@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-09T07:26:41.518Z",
+  "method": "Surgical lock entry update against official exact-version registry metadata; dependencies normalized to npm lock representation (optional excluded); minimist tightened to ^1.2.8 and all existing resolutions 1.2.8; bin/engine parity asserted; no npm installation or lifecycle",
+  "registrySha256": "16c58e6ebdbe6dd0779478564575c4cffe7453ae64ef0eb6bc02433a9fc32955",
+  "changes": [
+    {
+      "file": "desktop-app-vue/package.json",
+      "beforeSha256": "313b5e02dfe2251b5c6a5848b69104b6971f7fb1f6cdbbfe0275fb5bcc04e4e0",
+      "afterSha256": "d13b07a612c9c36c0c90fa5e699e9777cd94e6c3740089d02d92e57517e8886b",
+      "semanticDiff": "Only Handlebars version/resolved/integrity, minimist dependency range and direct dependency range; all other fields unchanged"
+    },
+    {
+      "file": "package-lock.json",
+      "beforeSha256": "c678437cd3d3e381ee8d5c235cbc5241053ec9f0d11b43d39525737bbf3a63e4",
+      "afterSha256": "dd5e438925d8a42b407ce436618cb6764faba052ec8d08814199832b0ff85a3a",
+      "semanticDiff": "Only Handlebars version/resolved/integrity, minimist dependency range and direct dependency range; all other fields unchanged"
+    },
+    {
+      "file": "desktop-app-vue/package-lock.json",
+      "beforeSha256": "2dcb4c6e3cbc30da27b15ddbc97cc2580392649283e2b334d7ec80e1b994946b",
+      "afterSha256": "7021f25af40b589ab74f7885724151c726d20794e05c6039cf137a11aba23920",
+      "semanticDiff": "Only Handlebars version/resolved/integrity, minimist dependency range and direct dependency range; all other fields unchanged"
+    },
+    {
+      "file": "desktop-app-vue/contracts/package-lock.json",
+      "beforeSha256": "50301e2fc8ebc18c666d305a072493df801bb85b5895ba2959bd40872962fe41",
+      "afterSha256": "4fb4910745ebe977e7930e36ce8a874d64ed41dd64950fdbb486a58d17da3cdb",
+      "semanticDiff": "Only Handlebars version/resolved/integrity, minimist dependency range and direct dependency range; all other fields unchanged"
+    }
+  ]
+}

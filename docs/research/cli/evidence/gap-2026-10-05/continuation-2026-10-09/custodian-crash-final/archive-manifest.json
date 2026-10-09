@@ -1,0 +1,79 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final",
+  "archivedAt": "2026-10-09T07:55:46.630Z",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 581,
+      "digest": "sha256:897c41fbdc2935f7119a0aa6dcf95b5a733dd15383eae27ed38bdb4e3c41f1cc"
+    },
+    {
+      "path": "build.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build.stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "control.json",
+      "bytes": 349,
+      "digest": "sha256:24e1fb1e346d309e50802d153fb9cf67fea0b16d3ab0b14fe7a910be722fa25b"
+    },
+    {
+      "path": "control.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "control.stdout.json",
+      "bytes": 2579,
+      "digest": "sha256:564bd223493338c5d14594a81293528ffd162ecfec9e4f7dd2fbda53d5f9cf5e"
+    },
+    {
+      "path": "positive.json",
+      "bytes": 347,
+      "digest": "sha256:7d13d7604f632dd36dce7b138f523a9f3a4f5f05f8f8b0b4b177824b986c6be8"
+    },
+    {
+      "path": "positive.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "positive.stdout.json",
+      "bytes": 2457,
+      "digest": "sha256:0461b37f7faf004fb223ca056e7b30d7aecf4a5986af1c68f1e621d30143f5b6"
+    },
+    {
+      "path": "report.json",
+      "bytes": 5148,
+      "digest": "sha256:27a1bae72ab71c8e6c740d058eec52becf9bb5836dde746dea058d87de02b1d1"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.mjs",
+      "bytes": 13014,
+      "digest": "sha256:5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "bytes": 16568,
+      "digest": "sha256:720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.cs",
+      "bytes": 29134,
+      "digest": "sha256:18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.mjs",
+      "bytes": 8057,
+      "digest": "sha256:6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

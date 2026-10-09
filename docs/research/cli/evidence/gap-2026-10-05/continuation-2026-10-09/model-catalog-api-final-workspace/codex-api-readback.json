@@ -1,0 +1,39 @@
+{
+  "capturedAt": "2026-10-09T07:14:53.835Z",
+  "requestedUrl": "https://api.github.com/repos/openai/codex/releases/latest",
+  "snapshot": {
+    "path": ".work/model-catalog-upstream-61d91325d0/codex-latest.json",
+    "bytes": 375673,
+    "digest": "sha256:cc8655fe46e39dfaab02510d5339bc776c33e84952568f65af6336493ad5186f"
+  },
+  "headers": {
+    "path": ".work/model-catalog-upstream-61d91325d0/codex-latest.headers",
+    "digest": "sha256:23fd3499360fd3355d6a751e4e9792d6c271cdd47d3bc1f176df8db15e7a0cee"
+  },
+  "release": {
+    "id": 407151970,
+    "tag_name": "rust-v0.162.0",
+    "html_url": "https://github.com/openai/codex/releases/tag/rust-v0.162.0",
+    "published_at": "2026-10-08T18:55:59Z",
+    "draft": false,
+    "prerelease": false
+  },
+  "execution": {
+    "runtime": "C:\\nvm4w\\nodejs\\node.exe",
+    "args": [
+      "packages/cli/scripts/review-model-catalog.mjs",
+      "--codex",
+      ".work/model-catalog-upstream-61d91325d0/codex-latest.json",
+      "--claude",
+      ".work/model-catalog-upstream-61d91325d0/claude.md",
+      "--output",
+      ".work/model-catalog-upstream-61d91325d0/upstream-api-direct.json",
+      "--fail-on-drift"
+    ],
+    "status": 2,
+    "signal": null,
+    "error": null,
+    "stdout": "{\n  \"schema\": \"chainlesschain.model-catalog-review-result/v1\",\n  \"reviewedAt\": \"2026-10-05\",\n  \"localContractPassed\": true,\n  \"mismatches\": [],\n  \"upstream\": [\n    {\n      \"name\": \"codex\",\n      \"reviewedVersion\": \"0.160.0\",\n      \"observedVersion\": \"0.162.0\",\n      \"reviewRequired\": true\n    },\n    {\n      \"name\": \"claude\",\n      \"reviewedVersion\": \"2.1.289\",\n      \"observedVersion\": \"2.1.295\",\n      \"reviewRequired\": true\n    }\n  ],\n  \"reviewRequired\": true,\n  \"automaticEnablement\": false\n}\n",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\quality-61d91325d0",
+  "archivedAt": "2026-10-09T07:15:17.830Z",
+  "files": [
+    {
+      "path": "artifacts-1.json",
+      "bytes": 32,
+      "digest": "sha256:244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 17577,
+      "digest": "sha256:d4d76f5cf2e5db30a1e24d21c28e6d99d0bf384dda09f9ebf8c31fe292b1463e"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 3212,
+      "digest": "sha256:a0f57c979a23e4f162c063193e12e6b88f258f2aa9879a546afa7032d9bb4ac1"
+    },
+    {
+      "path": "run.json",
+      "bytes": 13760,
+      "digest": "sha256:bb38422a339697667a6c39735464af4d82a5e195c9d0dff3e18187f8100afd19"
+    },
+    {
+      "path": "security-audit-log-refusal.json",
+      "bytes": 469,
+      "digest": "sha256:b5ec5ce09b317844cbc668d4c82263abb133d2a4d02ef105e2bcd08c304a0e5b"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

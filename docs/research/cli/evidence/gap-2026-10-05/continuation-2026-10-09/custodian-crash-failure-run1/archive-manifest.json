@@ -1,0 +1,64 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-run1",
+  "archivedAt": "2026-10-09T07:55:33.762Z",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 579,
+      "digest": "sha256:c4eeefcdf7fd3a835e9deca96791b5f4420277eae82d922b8853f43b02d00f3d"
+    },
+    {
+      "path": "build.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build.stdout.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "positive.json",
+      "bytes": 346,
+      "digest": "sha256:072cbb68f76e47cb85daa33b091c971205fe3375e27fd5b328a692ea2296e59c"
+    },
+    {
+      "path": "positive.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "positive.stdout.json",
+      "bytes": 2422,
+      "digest": "sha256:c850e51df6fd9dfd57923933634ccb332b0c5f483905c5915039489a5977a4e4"
+    },
+    {
+      "path": "report.json",
+      "bytes": 7624,
+      "digest": "sha256:c3a7477ad55bf639fd500c33b2ac060a4a35f5461edc2db91e5eeb77378a5706"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.mjs",
+      "bytes": 12663,
+      "digest": "sha256:0f78f78a0d9d025b3ab332238448892e79766e15a5ebaed652df030ae82f8e6a"
+    },
+    {
+      "path": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "bytes": 16259,
+      "digest": "sha256:b6a460fdea02790c5a8334e42968a10dd5d120834fdf67295c06d4dffa979797"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.cs",
+      "bytes": 27425,
+      "digest": "sha256:1e14b0e735db19f876db1bfef2dfac24614442878895d269ac5048eef30ce282"
+    },
+    {
+      "path": "windows-job-custodian-crash-probe.mjs",
+      "bytes": 8057,
+      "digest": "sha256:6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

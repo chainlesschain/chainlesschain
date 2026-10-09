@@ -1,0 +1,29 @@
+{
+  "command": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "tests/unit/tools/template-manager.test.js",
+    "--maxWorkers=1"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+  "start": "2026-10-09T07:32:36.594Z",
+  "end": "2026-10-09T07:32:42.483Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "before": {
+    "desktop-app-vue/package.json": "d13b07a612c9c36c0c90fa5e699e9777cd94e6c3740089d02d92e57517e8886b",
+    "package-lock.json": "dd5e438925d8a42b407ce436618cb6764faba052ec8d08814199832b0ff85a3a",
+    "desktop-app-vue/package-lock.json": "7021f25af40b589ab74f7885724151c726d20794e05c6039cf137a11aba23920",
+    "desktop-app-vue/contracts/package-lock.json": "4fb4910745ebe977e7930e36ce8a874d64ed41dd64950fdbb486a58d17da3cdb"
+  },
+  "after": {
+    "desktop-app-vue/package.json": "d13b07a612c9c36c0c90fa5e699e9777cd94e6c3740089d02d92e57517e8886b",
+    "package-lock.json": "dd5e438925d8a42b407ce436618cb6764faba052ec8d08814199832b0ff85a3a",
+    "desktop-app-vue/package-lock.json": "7021f25af40b589ab74f7885724151c726d20794e05c6039cf137a11aba23920",
+    "desktop-app-vue/contracts/package-lock.json": "4fb4910745ebe977e7930e36ce8a874d64ed41dd64950fdbb486a58d17da3cdb"
+  },
+  "sourceStable": true,
+  "testInjection": "Exact SRI-verified 4.7.10 tarball via test-only CJS preload; repository node_modules untouched"
+}

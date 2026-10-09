@@ -1,0 +1,158 @@
+{
+  "schema": "chainlesschain.windows-custodian-crash-diagnostic/v1",
+  "status": "NOT_ADMITTED",
+  "trusted": false,
+  "scope": "three-fixed-controlled-root-processes",
+  "output": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final",
+  "startedAt": "2026-10-09T07:50:37.196Z",
+  "preparedOnly": false,
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "release": "10.0.19045"
+  },
+  "positiveNonce": "89d15bd9-986f-418b-8fea-cf99739e6b5a",
+  "controlNonce": "758221f4-e333-4316-81a5-1382ccf260d4",
+  "sources": [
+    {
+      "name": "windows-job-custodian-crash-probe.cs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-custodian-crash-probe.cs",
+      "before": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "after": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-probe.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-custodian-crash-probe.mjs",
+      "before": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "after": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-custodian-crash-evidence.mjs",
+      "before": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "after": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "before": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "after": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "name": "build.stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "build.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "build.json",
+      "sha256": "897c41fbdc2935f7119a0aa6dcf95b5a733dd15383eae27ed38bdb4e3c41f1cc",
+      "bytes": 581
+    },
+    {
+      "name": "positive.stdout.json",
+      "sha256": "0461b37f7faf004fb223ca056e7b30d7aecf4a5986af1c68f1e621d30143f5b6",
+      "bytes": 2457
+    },
+    {
+      "name": "positive.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "positive.json",
+      "sha256": "7d13d7604f632dd36dce7b138f523a9f3a4f5f05f8f8b0b4b177824b986c6be8",
+      "bytes": 347
+    },
+    {
+      "name": "control.stdout.json",
+      "sha256": "564bd223493338c5d14594a81293528ffd162ecfec9e4f7dd2fbda53d5f9cf5e",
+      "bytes": 2579
+    },
+    {
+      "name": "control.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "name": "control.json",
+      "sha256": "24e1fb1e346d309e50802d153fb9cf67fea0b16d3ab0b14fe7a910be722fa25b",
+      "bytes": 349
+    }
+  ],
+  "compiler": {
+    "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "before": {
+      "sha256": "aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+      "bytes": 2569696
+    },
+    "hermetic": false,
+    "after": {
+      "sha256": "aae1db57f898ca8bda18590c56f86ced6d0ead80c22033b76fdfe9119706f116",
+      "bytes": 2569696
+    }
+  },
+  "runtime": {
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "before": {
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "bytes": 87074816
+    },
+    "after": {
+      "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+      "bytes": 87074816
+    }
+  },
+  "executable": {
+    "path": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final\\windows-job-custodian-crash-probe.exe",
+    "before": {
+      "sha256": "7f63f8f7f22280ebb2bc2ae5b7f26ffaec10571f35511928541299e6c9cd46e7",
+      "bytes": 26624
+    },
+    "after": {
+      "sha256": "7f63f8f7f22280ebb2bc2ae5b7f26ffaec10571f35511928541299e6c9cd46e7",
+      "bytes": 26624
+    }
+  },
+  "finishedAt": "2026-10-09T07:50:42.933Z",
+  "validation": {
+    "diagnosticCompleted": true,
+    "status": "NOT_ADMITTED",
+    "trusted": false,
+    "originalsRechecked": true,
+    "scope": "three-fixed-controlled-root-processes",
+    "errors": []
+  },
+  "diagnosticCompleted": true
+}

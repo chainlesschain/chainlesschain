@@ -1,0 +1,54 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\model-catalog-upstream-61d91325d0",
+  "archivedAt": "2026-10-09T07:06:52.714Z",
+  "files": [
+    {
+      "path": "artifact-11600253946.zip",
+      "bytes": 434126,
+      "digest": "sha256:90e5e39918ccd7abba55b6360ffed21d63c45c1d9b4f5938e8130638e14749af"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 816,
+      "digest": "sha256:4728d44e2aab349b1ae01f7099ac31f244330d2544e18947453731166fa26159"
+    },
+    {
+      "path": "claude.md",
+      "bytes": 1041248,
+      "digest": "sha256:6ed200255b5d4cfa930ad24463a1cc45a0f20b0ef907eca98defe35df5c1258e"
+    },
+    {
+      "path": "codex.html",
+      "bytes": 803997,
+      "digest": "sha256:c801649bf0a31a671386070fce9a86eb628ff8b26ce199296cf1eedb9a00bcf1"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 3377,
+      "digest": "sha256:f60ba85d39b59884bf9df2e944299dc53057a65e7e3ce374e9f820430c109e9a"
+    },
+    {
+      "path": "local.json",
+      "bytes": 2222,
+      "digest": "sha256:9cfb631a72c7b07ed0b731461f439febb525e96e4e0712936cb3f7e805685f40"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 1506,
+      "digest": "sha256:6492474ddc32eaf44c5133eb1e2c11735c35cdc5a3ae75877546c817d5390032"
+    },
+    {
+      "path": "run.json",
+      "bytes": 13715,
+      "digest": "sha256:cbe9907b7278b842b81a709bb2573e9b2a445afe72b05efc56bbcb166b9bb5cb"
+    },
+    {
+      "path": "upstream.json",
+      "bytes": 2334,
+      "digest": "sha256:d1433f96ffda30049e7035f2a08ece0baf30938cf76470fe1ffef62b75de0a40"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

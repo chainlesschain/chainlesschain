@@ -1,0 +1,53 @@
+{
+  "runId": 37896217862,
+  "name": "Model Catalog Review",
+  "headSha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+  "event": "pull_request",
+  "status": "completed",
+  "conclusion": "success",
+  "runAttempt": 1,
+  "jobs": [
+    {
+      "id": 113708047217,
+      "name": "reviewed-contract",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386348",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:58:13Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11600258246,
+      "name": "model-catalog-review-61d91325d0f30b60ec7ce14157e153a9a159707f-1",
+      "bytes": 975,
+      "digest": "sha256:e81d867031645d454975bac752f31e394a30ba58c409ffb73f6d0fa649456c05"
+    }
+  ],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 13762,
+      "digest": "sha256:a08a30a45909fcee8e94d36186fbec1bcabbe378f8c3c50dae50ff5b4eeb0911"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 3377,
+      "digest": "sha256:686b778d922a507f2390901cd84eefd2557cd2257ebba2d2bd8eaf166035e32a"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 813,
+      "digest": "sha256:e8af9b802bd22288d0e01ef163a0ff9820a6eab35d3bcef5d3b02dc3d7160559"
+    },
+    {
+      "path": "artifact-11600258246.zip",
+      "bytes": 975,
+      "digest": "sha256:e81d867031645d454975bac752f31e394a30ba58c409ffb73f6d0fa649456c05"
+    }
+  ],
+  "capturedAt": "2026-10-09T07:03:52.472Z",
+  "formalSample": false,
+  "releaseEligible": false
+}

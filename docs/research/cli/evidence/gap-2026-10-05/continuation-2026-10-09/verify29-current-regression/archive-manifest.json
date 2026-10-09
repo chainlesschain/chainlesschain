@@ -1,0 +1,64 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\verify29-current-regression-20261009-formatted",
+  "archivedAt": "2026-10-09T08:19:03.104Z",
+  "files": [
+    {
+      "path": "baseline/package.json",
+      "bytes": 35,
+      "digest": "sha256:7d38de102f9d211b8a221ab5943610473c4b23aeee36e9a9cf0e22848e04b9d4"
+    },
+    {
+      "path": "baseline/src/chat/permission-mode-state.js",
+      "bytes": 1302,
+      "digest": "sha256:0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4"
+    },
+    {
+      "path": "baseline/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline/stdout.tap",
+      "bytes": 497,
+      "digest": "sha256:991b9326184b07b6425fe25904b28d1ce7186c68fbf2c1710876a1b97ad98160"
+    },
+    {
+      "path": "baseline/test/permission-mode-state.test.cjs",
+      "bytes": 1410,
+      "digest": "sha256:7b53512d032f09a18c54244fda88e578861eb972c0611294dd1cf42314b5b8dd"
+    },
+    {
+      "path": "mutant/package.json",
+      "bytes": 35,
+      "digest": "sha256:7d38de102f9d211b8a221ab5943610473c4b23aeee36e9a9cf0e22848e04b9d4"
+    },
+    {
+      "path": "mutant/src/chat/permission-mode-state.js",
+      "bytes": 1272,
+      "digest": "sha256:fe46f565bbade1d9dd7cbca12efe448b29ab287c6e7a6fd5213c63273e73082b"
+    },
+    {
+      "path": "mutant/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutant/stdout.tap",
+      "bytes": 1271,
+      "digest": "sha256:71c404319231fb997dd96d42ce075c2d24713142fa86ead1667b2844240f3b1a"
+    },
+    {
+      "path": "mutant/test/permission-mode-state.test.cjs",
+      "bytes": 1410,
+      "digest": "sha256:7b53512d032f09a18c54244fda88e578861eb972c0611294dd1cf42314b5b8dd"
+    },
+    {
+      "path": "report.json",
+      "bytes": 1826,
+      "digest": "sha256:d7317023c775c78bae8b6940c64c4dea2f96532ba76d92954cbbddf00bfb6de5"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

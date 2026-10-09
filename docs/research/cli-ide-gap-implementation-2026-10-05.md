@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-09 最终续做与提交**：完成增量已按批次提交；最新官方发布来源、当前四处测试覆盖修补、Handlebars critical 修复、custodian 崩溃清理和追加 op4 报告校验见[验证 20.8–20.13](./cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。原 Windows 矩阵为 6 检出/4 存活/4 因基线失败未运行，保持 `NOT_ADMITTED`；当前新增回归不改写冻结结果。首批 61d91325d0 的完整 CLI CI 71 / Strict 5 已成功，后续提交另验；[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)保留检查。正式 36+9、平台持久后端和账号/目标宿主/人工长时条件仍开放，没有发布新包。
+
 > **2026-10-09 继续处理未完成项**：本页第 1 节及此前各节保留各轮交付时点；最新配对发行见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)。本轮完成模型审查证据保存、Windows 同 SID/Job 的 esbuild service/原冻结配置/默认 forks 65 项实跑，以及 owner 崩溃后原 Job/活跃 socket 回收原语。最新实现、完整 review 的真实失败和外部验收条件集中于[验证第 20 节](./cli-ide-gap-validation-2026-10-05.md#20-2026-10-09-剩余工程与验收边界)，局部原生诊断保持 `NOT_ADMITTED`，正式 36+9 未运行。
 
 > **2026-10-07 独立原生诊断与预检**：七个探针各自原生 Job，确认清理后才继续；新增 v2 严格回读与原准入兼容，并交付冻结 lock/文件/setup/Node ABI 的只读工具链 inventory。**68 项回归通过**。实际 pipe/IPC 仍超时，整包无能力；inventory 明确 `trusted:false` / `INVENTORIED_NOT_EXECUTABLE`，不关闭完整 native36 或 durable 后端。证据与剩余条件见[验证第 11 节](./cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。

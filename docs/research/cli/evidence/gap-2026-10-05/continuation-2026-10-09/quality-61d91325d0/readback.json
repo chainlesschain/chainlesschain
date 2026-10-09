@@ -1,0 +1,113 @@
+{
+  "runId": 37896217923,
+  "name": "Code Quality & Security",
+  "headSha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+  "event": "pull_request",
+  "status": "completed",
+  "conclusion": "failure",
+  "runAttempt": 1,
+  "jobs": [
+    {
+      "id": 113708047905,
+      "name": "Validate Coding Rules",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386342",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:58:24Z"
+    },
+    {
+      "id": 113708048097,
+      "name": "Security Audit",
+      "status": "completed",
+      "conclusion": "failure",
+      "runnerName": "GitHub Actions 1000386343",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:58:22Z"
+    },
+    {
+      "id": 113708048149,
+      "name": "Lint & Format Check",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386344",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:59:35Z"
+    },
+    {
+      "id": 113708048180,
+      "name": "Detect Changed Files",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386347",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:57:06Z"
+    },
+    {
+      "id": 113708048214,
+      "name": "Database Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386346",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T06:58:08Z"
+    },
+    {
+      "id": 113708048346,
+      "name": "Build Check",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386345",
+      "startedAt": "2026-10-09T06:56:42Z",
+      "completedAt": "2026-10-09T07:00:44Z"
+    },
+    {
+      "id": 113708182368,
+      "name": "Java Backend Check",
+      "status": "completed",
+      "conclusion": "skipped",
+      "runnerName": null,
+      "startedAt": "2026-10-09T06:57:07Z",
+      "completedAt": "2026-10-09T06:57:06Z"
+    },
+    {
+      "id": 113708182446,
+      "name": "Python Backend Check",
+      "status": "completed",
+      "conclusion": "skipped",
+      "runnerName": null,
+      "startedAt": "2026-10-09T06:57:07Z",
+      "completedAt": "2026-10-09T06:57:06Z"
+    },
+    {
+      "id": 113709243945,
+      "name": "Quality Gate",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386403",
+      "startedAt": "2026-10-09T07:05:07Z",
+      "completedAt": "2026-10-09T07:05:10Z"
+    }
+  ],
+  "artifacts": [],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 13760,
+      "digest": "sha256:bb38422a339697667a6c39735464af4d82a5e195c9d0dff3e18187f8100afd19"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 17577,
+      "digest": "sha256:d4d76f5cf2e5db30a1e24d21c28e6d99d0bf384dda09f9ebf8c31fe292b1463e"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 32,
+      "digest": "sha256:244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    }
+  ],
+  "capturedAt": "2026-10-09T07:13:52.985Z",
+  "formalSample": false,
+  "releaseEligible": false
+}

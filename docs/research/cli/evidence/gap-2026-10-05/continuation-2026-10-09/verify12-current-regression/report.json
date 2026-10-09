@@ -1,0 +1,123 @@
+{
+  "at": "2026-10-09T07:44:27.825Z",
+  "scope": "Current repository regression only; frozen Windows verify-12 remains OPEN and its eleven-test result is unchanged",
+  "source": {
+    "path": "packages/cli/src/lib/background-command-argv.js",
+    "sha256": "8b086b2e0db32400c044e4c999390eb7cd7f5248f7cc298f3d19decf304d7c4a",
+    "bytes": 10623
+  },
+  "test": {
+    "path": "packages/cli/__tests__/unit/background-command-argv.test.js",
+    "sha256": "443365ddbc72aac030fdd1cb2970162a5dcc7a2ddcfb31e7d08b7afbb29d7a23",
+    "bytes": 7669
+  },
+  "mutation": {
+    "find": "const source = [...(argv || [])];",
+    "replace": "const source = (argv || []).join(\" \").split(/\\s+/u).filter(Boolean);",
+    "sha256": "3e443a6ee958f5c6ba68dacef32fc5383e0f88be386ffc5d03c6655d5f542f52",
+    "bytes": 10658
+  },
+  "runs": [
+    {
+      "name": "baseline",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--reporter=json",
+        "--outputFile=results.json"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify12-current-regression-20261009\\baseline",
+      "startedAt": "2026-10-09T07:44:27.831Z",
+      "finishedAt": "2026-10-09T07:44:29.688Z",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "passed": 20,
+      "failed": 0,
+      "total": 20,
+      "failures": []
+    },
+    {
+      "name": "mutant",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--reporter=json",
+        "--outputFile=results.json"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify12-current-regression-20261009\\mutant",
+      "startedAt": "2026-10-09T07:44:29.698Z",
+      "finishedAt": "2026-10-09T07:44:31.190Z",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "passed": 11,
+      "failed": 9,
+      "total": 20,
+      "failures": [
+        {
+          "title": "background command argv preserves quoted space argument boundaries keeps required option values when removing the first prompt",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', 'two', …(2) ] to deeply equal [ 'agent', '--title', …(3) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:46:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves quoted space argument boundaries keeps inline values and literal operands when replacing the session",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title=two', …(6) ] to deeply equal [ 'agent', '--title=two words', …(4) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:63:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves quoted space argument boundaries keeps option values and operands when removing background options",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', 'two', …(6) ] to deeply equal [ 'agent', '--title', …(5) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:82:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves empty string argument boundaries keeps required option values when removing the first prompt",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', 'first', …(2) ] to deeply equal [ 'agent', '--title', '', …(2) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:46:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves empty string argument boundaries keeps inline values and literal operands when replacing the session",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title=', …(3) ] to deeply equal [ 'agent', '--title=', …(4) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:63:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves empty string argument boundaries keeps option values and operands when removing background options",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', …(3) ] to deeply equal [ 'agent', '--title', '', …(4) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:82:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves Unicode and literal quotes argument boundaries keeps required option values when removing the first prompt",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', '写入', …(2) ] to deeply equal [ 'agent', '--title', …(3) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:46:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves Unicode and literal quotes argument boundaries keeps inline values and literal operands when replacing the session",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title=写入', '\"引号\"', …(9) ] to deeply equal [ 'agent', …(5) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:63:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "title": "background command argv preserves Unicode and literal quotes argument boundaries keeps option values and operands when removing background options",
+          "messages": [
+            "AssertionError: expected [ 'agent', '--title', '写入', …(10) ] to deeply equal [ 'agent', '--title', …(5) ]\n    at C:/code/chainlesschain/.work/verify12-current-regression-20261009/mutant/__tests__/unit/background-command-argv.test.js:82:9\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ]
+    }
+  ],
+  "currentSourcesStable": true,
+  "mutantRejectedByNineNewRegressions": true
+}

@@ -1,0 +1,18 @@
+{
+  "command": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+  "args": [
+    "/nologo",
+    "/optimize+",
+    "/target:exe",
+    "/platform:x64",
+    "/reference:System.Web.Extensions.dll",
+    "/out:C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final\\windows-job-custodian-crash-probe.exe",
+    "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final\\windows-job-custodian-crash-probe.cs"
+  ],
+  "pid": 28168,
+  "startedAt": "2026-10-09T07:50:37.484Z",
+  "elapsedMs": 318.44870000000003,
+  "status": 0,
+  "signal": null,
+  "error": null
+}

@@ -1,0 +1,126 @@
+{
+  "schema": "chainlesschain.custodian-crash-linux-contracts/v1",
+  "status": "NOT_ADMITTED",
+  "nativeExecuted": false,
+  "startedAt": "2026-10-09T08:13:03.959Z",
+  "finishedAt": "2026-10-09T08:13:06.600Z",
+  "sourcesStable": true,
+  "sources": [
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-custodian-crash-probe.cs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-retry1\\windows-job-custodian-crash-probe.cs",
+      "before": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "snapshotBytes": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "after": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-custodian-crash-probe.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-retry1\\windows-job-custodian-crash-probe.mjs",
+      "before": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "snapshotBytes": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "after": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-custodian-crash-evidence.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-retry1\\windows-job-custodian-crash-evidence.mjs",
+      "before": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "snapshotBytes": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "after": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-retry1\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "before": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "snapshotBytes": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "after": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      }
+    }
+  ],
+  "runtimeIdentity": {
+    "platform": "linux",
+    "version": "v22.22.2",
+    "arch": "x64"
+  },
+  "runtimeCheck": {
+    "command": "wsl.exe",
+    "args": [
+      "--exec",
+      "/mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node",
+      "-p",
+      "JSON.stringify({platform:process.platform,version:process.version,arch:process.arch})"
+    ],
+    "startedAt": "2026-10-09T08:13:03.969Z",
+    "elapsedMs": 514.9333,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "sha256": "9ed35311a23d81ccb08ad5b15a05353710119d30fdd0658e6450257241810709",
+      "bytes": 55
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "text": "{\"platform\":\"linux\",\"version\":\"v22.22.2\",\"arch\":\"x64\"}\n"
+  },
+  "tests": {
+    "command": "wsl.exe",
+    "args": [
+      "--exec",
+      "/mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node",
+      "--test",
+      "/mnt/c/code/chainlesschain/packages/cli/test-node/windows-job-custodian-crash-evidence.node-test.mjs"
+    ],
+    "startedAt": "2026-10-09T08:13:04.487Z",
+    "elapsedMs": 2110.0709,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "sha256": "5e3a7804a553d840d8df8020473cc051b200bb02ec8cf049b3230a5409ba002a",
+      "bytes": 15183
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "text": "TAP version 13\n# Subtest: positive finite-set contract remains NOT_ADMITTED\nok 1 - positive finite-set contract remains NOT_ADMITTED\n  ---\n  duration_ms: 14.2976\n  type: 'test'\n  ...\n# Subtest: missing-policy control remains failure with confirmed fallback\nok 2 - missing-policy control remains failure with confirmed fallback\n  ---\n  duration_ms: 0.7409\n  type: 'test'\n  ...\n# Subtest: reject schema\nok 3 - reject schema\n  ---\n  duration_ms: 0.5211\n  type: 'test'\n  ...\n# Subtest: reject run identity\nok 4 - reject run identity\n  ---\n  duration_ms: 1.161\n  type: 'test'\n  ...\n# Subtest: reject admitted\nok 5 - reject admitted\n  ---\n  duration_ms: 0.4332\n  type: 'test'\n  ...\n# Subtest: reject trusted\nok 6 - reject trusted\n  ---\n  duration_ms: 0.8253\n  type: 'test'\n  ...\n# Subtest: reject elevated\nok 7 - reject elevated\n  ---\n  duration_ms: 1.6812\n  type: 'test'\n  ...\n# Subtest: reject x86\nok 8 - reject x86\n  ---\n  duration_ms: 0.7535\n  type: 'test'\n  ...\n# Subtest: reject durable recovery\nok 9 - reject durable recovery\n  ---\n  duration_ms: 2.3739\n  type: 'test'\n  ...\n# Subtest: reject service\nok 10 - reject service\n  ---\n  duration_ms: 1.2287\n  type: 'test'\n  ...\n# Subtest: reject WFP\nok 11 - reject WFP\n  ---\n  duration_ms: 0.5058\n  type: 'test'\n  ...\n# Subtest: reject whole Job empty\nok 12 - reject whole Job empty\n  ---\n  duration_ms: 0.2674\n  type: 'test'\n  ...\n# Subtest: reject post-crash Job query\nok 13 - reject post-crash Job query\n  ---\n  duration_ms: 0.2113\n  type: 'test'\n  ...\n# Subtest: reject witness Job copy\nok 14 - reject witness Job copy\n  ---\n  duration_ms: 0.3067\n  type: 'test'\n  ...\n# Subtest: reject missing kill flag\nok 15 - reject missing kill flag\n  ---\n  duration_ms: 0.1807\n  type: 'test'\n  ...\n# Subtest: reject breakaway\nok 16 - reject breakaway\n  ---\n  duration_ms: 0.1737\n  type: 'test'\n  ...\n# Subtest: reject silent breakaway\nok 17 - reject silent breakaway\n  ---\n  duration_ms: 0.1688\n  type: 'test'\n  ...\n# Subtest: reject extra Job copy\nok 18 - reject extra Job copy\n  ---\n  duration_ms: 0.2168\n  type: 'test'\n  ...\n# Subtest: reject unnamed absent\nok 19 - reject unnamed absent\n  ---\n  duration_ms: 0.1944\n  type: 'test'\n  ...\n# Subtest: reject inheritable Job\nok 20 - reject inheritable Job\n  ---\n  duration_ms: 0.1702\n  type: 'test'\n  ...\n# Subtest: reject custodian in Job\nok 21 - reject custodian in Job\n  ---\n  duration_ms: 0.1818\n  type: 'test'\n  ...\n# Subtest: reject witness in Job\nok 22 - reject witness in Job\n  ---\n  duration_ms: 0.169\n  type: 'test'\n  ...\n# Subtest: reject wrong inheritance\nok 23 - reject wrong inheritance\n  ---\n  duration_ms: 0.1764\n  type: 'test'\n  ...\n# Subtest: reject unknown active member\nok 24 - reject unknown active member\n  ---\n  duration_ms: 0.2087\n  type: 'test'\n  ...\n# Subtest: reject missing active limit\nok 25 - reject missing active limit\n  ---\n  duration_ms: 0.2619\n  type: 'test'\n  ...\n# Subtest: reject membership PID mismatch\nok 26 - reject membership PID mismatch\n  ---\n  duration_ms: 0.2312\n  type: 'test'\n  ...\n# Subtest: reject duplicate membership\nok 27 - reject duplicate membership\n  ---\n  duration_ms: 0.2215\n  type: 'test'\n  ...\n# Subtest: reject assigned after resume\nok 28 - reject assigned after resume\n  ---\n  duration_ms: 0.2163\n  type: 'test'\n  ...\n# Subtest: reject member check absent\nok 29 - reject member check absent\n  ---\n  duration_ms: 0.2427\n  type: 'test'\n  ...\n# Subtest: reject missing member\nok 30 - reject missing member\n  ---\n  duration_ms: 0.2629\n  type: 'test'\n  ...\n# Subtest: reject extra member\nok 31 - reject extra member\n  ---\n  duration_ms: 0.2564\n  type: 'test'\n  ...\n# Subtest: reject duplicate member role\nok 32 - reject duplicate member role\n  ---\n  duration_ms: 0.2222\n  type: 'test'\n  ...\n# Subtest: reject reused live PID\nok 33 - reject reused live PID\n  ---\n  duration_ms: 0.2743\n  type: 'test'\n  ...\n# Subtest: reject only PID disappearance\nok 34 - reject only PID disappearance\n  ---\n  duration_ms: 0.2407\n  type: 'test'\n  ...\n# Subtest: reject member DUP_HANDLE\nok 35 - reject member DUP_HANDLE\n  ---\n  duration_ms: 0.4298\n  type: 'test'\n  ...\n# Subtest: reject custodian DUP_HANDLE\nok 36 - reject custodian DUP_HANDLE\n  ---\n  duration_ms: 0.614\n  type: 'test'\n  ...\n# Subtest: reject inheritable member handle\nok 37 - reject inheritable member handle\n  ---\n  duration_ms: 0.6311\n  type: 'test'\n  ...\n# Subtest: reject member already dead\nok 38 - reject member already dead\n  ---\n  duration_ms: 0.5802\n  type: 'test'\n  ...\n# Subtest: reject missing live member challenge\nok 39 - reject missing live member challenge\n  ---\n  duration_ms: 0.5779\n  type: 'test'\n  ...\n# Subtest: reject missing custodian challenge\nok 40 - reject missing custodian challenge\n  ---\n  duration_ms: 0.3301\n  type: 'test'\n  ...\n# Subtest: reject custodian already dead\nok 41 - reject custodian already dead\n  ---\n  duration_ms: 0.3865\n  type: 'test'\n  ...\n# Subtest: reject crash call failed\nok 42 - reject crash call failed\n  ---\n  duration_ms: 0.7435\n  type: 'test'\n  ...\n# Subtest: reject custodian exit differs\nok 43 - reject custodian exit differs\n  ---\n  duration_ms: 0.4261\n  type: 'test'\n  ...\n# Subtest: reject custodian exit unknown\nok 44 - reject custodian exit unknown\n  ---\n  duration_ms: 0.6949\n  type: 'test'\n  ...\n# Subtest: reject custodian unsignaled\nok 45 - reject custodian unsignaled\n  ---\n  duration_ms: 0.5204\n  type: 'test'\n  ...\n# Subtest: reject custodian socket timeout\nok 46 - reject custodian socket timeout\n  ---\n  duration_ms: 0.4799\n  type: 'test'\n  ...\n# Subtest: reject member unsignaled\nok 47 - reject member unsignaled\n  ---\n  duration_ms: 0.4906\n  type: 'test'\n  ...\n# Subtest: reject member exit unknown\nok 48 - reject member exit unknown\n  ---\n  duration_ms: 0.388\n  type: 'test'\n  ...\n# Subtest: reject exit not queried\nok 49 - reject exit not queried\n  ---\n  duration_ms: 0.411\n  type: 'test'\n  ...\n# Subtest: reject negative exit number\nok 50 - reject negative exit number\n  ---\n  duration_ms: 0.4343\n  type: 'test'\n  ...\n# Subtest: reject EOF absent\nok 51 - reject EOF absent\n  ---\n  duration_ms: 0.2853\n  type: 'test'\n  ...\n# Subtest: reject socket timeout as close\nok 52 - reject socket timeout as close\n  ---\n  duration_ms: 0.232\n  type: 'test'\n  ...\n# Subtest: reject fallback success\nok 53 - reject fallback success\n  ---\n  duration_ms: 0.3191\n  type: 'test'\n  ...\n# Subtest: reject fallback socket evidence\nok 54 - reject fallback socket evidence\n  ---\n  duration_ms: 0.278\n  type: 'test'\n  ...\n# Subtest: reject post-crash live member\nok 55 - reject post-crash live member\n  ---\n  duration_ms: 0.315\n  type: 'test'\n  ...\n# Subtest: reject final handle unsignaled\nok 56 - reject final handle unsignaled\n  ---\n  duration_ms: 0.2407\n  type: 'test'\n  ...\n# Subtest: reject deadline exceeded\nok 57 - reject deadline exceeded\n  ---\n  duration_ms: 0.2375\n  type: 'test'\n  ...\n# Subtest: reject deadline missing\nok 58 - reject deadline missing\n  ---\n  duration_ms: 2.3358\n  type: 'test'\n  ...\n# Subtest: reject native error\nok 59 - reject native error\n  ---\n  duration_ms: 0.3488\n  type: 'test'\n  ...\n# Subtest: reject custodian cleanup error\nok 60 - reject custodian cleanup error\n  ---\n  duration_ms: 0.2808\n  type: 'test'\n  ...\n# Subtest: reject member cleanup error\nok 61 - reject member cleanup error\n  ---\n  duration_ms: 0.2537\n  type: 'test'\n  ...\n# Subtest: reject cleanup missing\nok 62 - reject cleanup missing\n  ---\n  duration_ms: 0.1965\n  type: 'test'\n  ...\n# Subtest: reject completion missing\nok 63 - reject completion missing\n  ---\n  duration_ms: 0.1881\n  type: 'test'\n  ...\n# Subtest: reject stage incomplete\nok 64 - reject stage incomplete\n  ---\n  duration_ms: 0.3758\n  type: 'test'\n  ...\n# Subtest: reject safety Job absent\nok 65 - reject safety Job absent\n  ---\n  duration_ms: 0.4279\n  type: 'test'\n  ...\n# Subtest: reject safety kill flag absent\nok 66 - reject safety kill flag absent\n  ---\n  duration_ms: 0.4088\n  type: 'test'\n  ...\n# Subtest: reject safety breakaway\nok 67 - reject safety breakaway\n  ---\n  duration_ms: 0.3858\n  type: 'test'\n  ...\n# Subtest: reject safety limit missing\nok 68 - reject safety limit missing\n  ---\n  duration_ms: 0.3934\n  type: 'test'\n  ...\n# Subtest: reject inherited safety Job\nok 69 - reject inherited safety Job\n  ---\n  duration_ms: 0.5058\n  type: 'test'\n  ...\n# Subtest: reject extra safety handle\nok 70 - reject extra safety handle\n  ---\n  duration_ms: 0.4062\n  type: 'test'\n  ...\n# Subtest: reject witness inside safety Job\nok 71 - reject witness inside safety Job\n  ---\n  duration_ms: 0.4506\n  type: 'test'\n  ...\n# Subtest: reject roots not atomically guarded\nok 72 - reject roots not atomically guarded\n  ---\n  duration_ms: 0.4268\n  type: 'test'\n  ...\n# Subtest: reject custodian not atomically guarded\nok 73 - reject custodian not atomically guarded\n  ---\n  duration_ms: 0.5653\n  type: 'test'\n  ...\n# Subtest: reject custodian guard check missing\nok 74 - reject custodian guard check missing\n  ---\n  duration_ms: 0.4347\n  type: 'test'\n  ...\n# Subtest: reject root guard check missing\nok 75 - reject root guard check missing\n  ---\n  duration_ms: 0.3684\n  type: 'test'\n  ...\n# Subtest: reject safety Job incomplete live set\nok 76 - reject safety Job incomplete live set\n  ---\n  duration_ms: 0.5473\n  type: 'test'\n  ...\n# Subtest: reject safety Job closed for observation\nok 77 - reject safety Job closed for observation\n  ---\n  duration_ms: 0.3062\n  type: 'test'\n  ...\n# Subtest: reject safety Job used as evidence cleanup\nok 78 - reject safety Job used as evidence cleanup\n  ---\n  duration_ms: 0.3131\n  type: 'test'\n  ...\n# Subtest: reject safety Job member left over\nok 79 - reject safety Job member left over\n  ---\n  duration_ms: 0.3305\n  type: 'test'\n  ...\n# Subtest: reject safety Job cleanup error\nok 80 - reject safety Job cleanup error\n  ---\n  duration_ms: 0.4211\n  type: 'test'\n  ...\n# Subtest: reject safety Job close failed\nok 81 - reject safety Job close failed\n  ---\n  duration_ms: 0.4584\n  type: 'test'\n  ...\n# Subtest: reject safety PID list absent\nok 82 - reject safety PID list absent\n  ---\n  duration_ms: 0.5739\n  type: 'test'\n  ...\n# Subtest: reject unknown safety PID\nok 83 - reject unknown safety PID\n  ---\n  duration_ms: 0.4837\n  type: 'test'\n  ...\n# Subtest: reject duplicate safety PID\nok 84 - reject duplicate safety PID\n  ---\n  duration_ms: 0.4962\n  type: 'test'\n  ...\n# Subtest: reject control retains kill flag\nok 85 - reject control retains kill flag\n  ---\n  duration_ms: 0.4351\n  type: 'test'\n  ...\n# Subtest: reject control missing live response\nok 86 - reject control missing live response\n  ---\n  duration_ms: 0.2888\n  type: 'test'\n  ...\n# Subtest: reject control prematurely signaled\nok 87 - reject control prematurely signaled\n  ---\n  duration_ms: 0.2507\n  type: 'test'\n  ...\n# Subtest: reject control not STILL_ACTIVE\nok 88 - reject control not STILL_ACTIVE\n  ---\n  duration_ms: 0.2272\n  type: 'test'\n  ...\n# Subtest: reject control fallback hidden\nok 89 - reject control fallback hidden\n  ---\n  duration_ms: 0.3079\n  type: 'test'\n  ...\n# Subtest: reject control fallback socket timeout\nok 90 - reject control fallback socket timeout\n  ---\n  duration_ms: 0.232\n  type: 'test'\n  ...\n# Subtest: reject control claims automatic EOF\nok 91 - reject control claims automatic EOF\n  ---\n  duration_ms: 0.2366\n  type: 'test'\n  ...\n# Subtest: reject control claims completion\nok 92 - reject control claims completion\n  ---\n  duration_ms: 0.238\n  type: 'test'\n  ...\n# Subtest: null and malformed values return rejection\nok 93 - null and malformed values return rejection\n  ---\n  duration_ms: 0.4791\n  type: 'test'\n  ...\n# Subtest: artifact intact byte envelope\nok 94 - artifact intact byte envelope\n  ---\n  duration_ms: 60.4974\n  type: 'test'\n  ...\n# Subtest: artifact captured source byte tamper\nok 95 - artifact captured source byte tamper\n  ---\n  duration_ms: 46.0312\n  type: 'test'\n  ...\n# Subtest: artifact compiled executable tamper\nok 96 - artifact compiled executable tamper\n  ---\n  duration_ms: 47.5878\n  type: 'test'\n  ...\n# Subtest: artifact compiler tamper\nok 97 - artifact compiler tamper\n  ---\n  duration_ms: 52.0124\n  type: 'test'\n  ...\n# Subtest: artifact runtime tamper\nok 98 - artifact runtime tamper\n  ---\n  duration_ms: 41.346\n  type: 'test'\n  ...\n# Subtest: artifact raw stdout tamper\nok 99 - artifact raw stdout tamper\n  ---\n  duration_ms: 47.4308\n  type: 'test'\n  ...\n# Subtest: artifact missing capture\nok 100 - artifact missing capture\n  ---\n  duration_ms: 44.2719\n  type: 'test'\n  ...\n# Subtest: artifact missing source\nok 101 - artifact missing source\n  ---\n  duration_ms: 54.3927\n  type: 'test'\n  ...\n# Subtest: artifact changed after hash\nok 102 - artifact changed after hash\n  ---\n  duration_ms: 43.1707\n  type: 'test'\n  ...\n# Subtest: artifact changed executable after size\nok 103 - artifact changed executable after size\n  ---\n  duration_ms: 39.521\n  type: 'test'\n  ...\n# Subtest: artifact prepared only\nok 104 - artifact prepared only\n  ---\n  duration_ms: 39.1109\n  type: 'test'\n  ...\n# Subtest: artifact stored failure\nok 105 - artifact stored failure\n  ---\n  duration_ms: 37.6253\n  type: 'test'\n  ...\n# Subtest: artifact reused run nonce\nok 106 - artifact reused run nonce\n  ---\n  duration_ms: 50.3147\n  type: 'test'\n  ...\n# Subtest: artifact report asserts admission\nok 107 - artifact report asserts admission\n  ---\n  duration_ms: 54.8826\n  type: 'test'\n  ...\n# Subtest: artifact report changes scope\nok 108 - artifact report changes scope\n  ---\n  duration_ms: 50.9374\n  type: 'test'\n  ...\n# Subtest: artifact forged derived success ignored\nok 109 - artifact forged derived success ignored\n  ---\n  duration_ms: 50.6415\n  type: 'test'\n  ...\n# Subtest: artifact original source disappeared\nok 110 - artifact original source disappeared\n  ---\n  duration_ms: 47.6676\n  type: 'test'\n  ...\n# Subtest: artifact wrong positive status\nok 111 - artifact wrong positive status\n  ---\n  duration_ms: 115.7767\n  type: 'test'\n  ...\n# Subtest: artifact wrong negative status\nok 112 - artifact wrong negative status\n  ---\n  duration_ms: 61.0286\n  type: 'test'\n  ...\n# Subtest: artifact actual witness PID mismatch\nok 113 - artifact actual witness PID mismatch\n  ---\n  duration_ms: 58.7259\n  type: 'test'\n  ...\n# Subtest: artifact spawn error\nok 114 - artifact spawn error\n  ---\n  duration_ms: 59.438\n  type: 'test'\n  ...\n# Subtest: artifact process timed out\nok 115 - artifact process timed out\n  ---\n  duration_ms: 51.6006\n  type: 'test'\n  ...\n# Subtest: artifact invocation nonce differs\nok 116 - artifact invocation nonce differs\n  ---\n  duration_ms: 53.0347\n  type: 'test'\n  ...\n# Subtest: artifact executed other image\nok 117 - artifact executed other image\n  ---\n  duration_ms: 53.0283\n  type: 'test'\n  ...\n# Subtest: artifact injected build argument\nok 118 - artifact injected build argument\n  ---\n  duration_ms: 49.605\n  type: 'test'\n  ...\n# Subtest: artifact failed compile\nok 119 - artifact failed compile\n  ---\n  duration_ms: 38.3989\n  type: 'test'\n  ...\n# Subtest: artifact malformed native schema\nok 120 - artifact malformed native schema\n  ---\n  duration_ms: 31.4101\n  type: 'test'\n  ...\n1..120\n# tests 120\n# suites 0\n# pass 120\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 1791.7539\n"
+  },
+  "completed": true
+}

@@ -1,0 +1,29 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\strict-61d91325d0",
+  "archivedAt": "2026-10-09T07:10:10.581Z",
+  "files": [
+    {
+      "path": "artifacts-1.json",
+      "bytes": 4557,
+      "digest": "sha256:ea2d632ee1d84d6510f133960b2b9386f08f9a6fabc824e3eba57e74238a0f55"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 21590,
+      "digest": "sha256:b6fe63eac32e79093b218f57e94167c1adb6f8869d9b9a2b78df6abd32426cca"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 3484,
+      "digest": "sha256:2cf04a37797b1f995049e8ebd55cd1c80dc6cd960e24aa6b2da8e6f6279bcc30"
+    },
+    {
+      "path": "run.json",
+      "bytes": 13761,
+      "digest": "sha256:42f4aeceaf3af57df655a4398f712c6a2fcb63c2781b3895aa070497705a039b"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

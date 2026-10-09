@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: rejects a foreign-session ACK even when request and mode match
+ok 1 - rejects a foreign-session ACK even when request and mode match
+  ---
+  duration_ms: 3.8367
+  type: 'test'
+  ...
+# Subtest: accepts the same ACK when it belongs to the current session
+ok 2 - accepts the same ACK when it belongs to the current session
+  ---
+  duration_ms: 0.4287
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.6411
