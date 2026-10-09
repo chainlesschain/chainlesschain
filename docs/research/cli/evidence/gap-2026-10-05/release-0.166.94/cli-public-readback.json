@@ -1,0 +1,21 @@
+{
+  "collectedAt": "2026-10-08T18:27:25.346Z",
+  "package": "chainlesschain",
+  "version": "0.166.94",
+  "tag": "v-npm-0-166-94",
+  "commit": "efcab5f632312aea433953157d52091f018f26ae",
+  "workflowRun": 37821698813,
+  "source": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.94.tgz",
+  "bytes": 9352287,
+  "sha256": "0434a449314ac67f6a4a7a651ff8363c7fa23b2069f2c7c6bcf4f9219ce0ceca",
+  "sha512": "27efbfa679537556928e5634e463af2d2de0ea5c0128b936c08cb63562f44d5a15b2d06a9e416dd06e5ed5707ee921343c19f5229346850b9d896c258a49dbd6",
+  "integrity": "sha512-J++/pnlTdVaSjlY05GOvLS3g6lwBKLk2wIy2NWL0TVoVstBqnkFt0G5e1XB+6SE0PBn1IpNGhQudiWwliknb1g==",
+  "exactActionsArchiveMatch": true,
+  "attestations": {
+    "url": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.94",
+    "provenance": {
+      "predicateType": "https://slsa.dev/provenance/v1"
+    }
+  },
+  "gitHead": null
+}

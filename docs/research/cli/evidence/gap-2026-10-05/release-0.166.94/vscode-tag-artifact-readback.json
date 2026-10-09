@@ -1,0 +1,41 @@
+{
+  "observedAt": "2026-10-09T00:48:23.991Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37824729954,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37824729954"
+  },
+  "artifacts": [
+    {
+      "id": 11573768518,
+      "name": "ide-cli-prerequisite-vscode-1",
+      "zipDigest": "sha256:cb1cfadcf3dbc674fdf3d6a9eefcedaf3a90aef205d815ace83e6f5c1176ee07",
+      "files": [
+        {
+          "name": "receipt.json",
+          "bytes": 3505,
+          "sha256": "334db106725ea8abf2a1626939123c7149e46d087e4ee3ac76e529eca923582f"
+        }
+      ]
+    },
+    {
+      "id": 11572960543,
+      "name": "chainlesschain-ide-vscode-candidate",
+      "zipDigest": "sha256:e4e63c3a20e518a147b45059d40d764885dca4da091471e40a1d4775d982e962",
+      "files": [
+        {
+          "name": "chainlesschain-ide.vsix",
+          "bytes": 714740,
+          "sha256": "add3060cfa8baee5edf1dab09de6578246bc80390c4376850e0d85fc0acbbc1e"
+        },
+        {
+          "name": "manifest.json",
+          "bytes": 714,
+          "sha256": "0aafa968b9d2c4da072b574e48ef1defcf08737e2ed826937d72ebc77708edfc"
+        }
+      ]
+    }
+  ]
+}

@@ -31,3 +31,7 @@ docs/research/cli/evidence/gap-2026-10-05/windows-native*/**
 docs/research/ide/evidence/gap-2026-10-05/public-vscode*/**
 docs/research/ide/evidence/gap-2026-10-05/public-jetbrains*/**
 docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/**
+
+# Keep exact-SHA release readback and host artifacts byte-for-byte.
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/**
+!docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/README.md

@@ -1,0 +1,9 @@
+{
+    "collectedAt":  "2026-10-08T16:46:39.4279842Z",
+    "sourceCommit":  "efcab5f632312aea433953157d52091f018f26ae",
+    "workflowRun":  37794297457,
+    "pluginVersion":  "0.4.157",
+    "recommendedCliVersion":  "0.166.94",
+    "packagedDoctorHasNoStale090Literal":  true,
+    "artifactSha256":  "dd0958bfb41be6ba5195ed6dcfd4a04e99a29d6e07ca5f857c7d51040803147f"
+}

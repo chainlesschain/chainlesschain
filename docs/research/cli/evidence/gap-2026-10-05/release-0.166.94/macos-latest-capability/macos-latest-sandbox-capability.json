@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "commit": "efcab5f632312aea433953157d52091f018f26ae",
+  "runnerImage": "macos26",
+  "osVersion": "25.6.0",
+  "architecture": "arm64",
+  "backend": "macos-seatbelt",
+  "launcherAvailable": true,
+  "stdio": "pipe",
+  "outcome": "enforced",
+  "controlPassed": true,
+  "auditState": "ready",
+  "sandboxReason": null
+}

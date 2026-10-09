@@ -1,0 +1,101 @@
+{
+  "observedAt": "2026-10-09T00:59:37.577Z",
+  "sourceCommit": "efcab5f632312aea433953157d52091f018f26ae",
+  "tagWorkflow": {
+    "id": 37824729100,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37824729100"
+  },
+  "verificationSource": "Supplementary public readback using repository marketplace verifier and digest-bound exact-tag artifact.",
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "ready",
+  "version": "0.4.157",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "publicUpdate": {
+    "id": 1189859,
+    "link": "/plugin/32208-chainlesschain-ide-bridge/versions/stable/1189859",
+    "version": "0.4.157",
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "recalculateCompatibilityAllowed": true,
+    "cdate": "1791487263000",
+    "file": "32208/1189859/chainlesschain-ide-bridge-0.4.157.zip",
+    "notes": "<b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul><br><b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul><br><b>[0.4.153] - Pair with CLI project and data recovery tools (2026-10-06)</b><br><ul><li>Recommend CLI <code>0.166.90</code> after its public npm release and the plugin's exact-commit release gates pass, including upgrade guidance when npm lookup is unavailable or returns an older version.</li><li>The paired CLI persists Personal Data Hub projection recovery and provides explicit consumer retirement and bounded cleanup of historical receipts.</li><li>Use the CLI's <code>project risk-evaluate</code> and <code>project task-description-preview</code> commands with explicit offline snapshots. Risk checks distinguish incomplete source data from zero matching rule signals; description previews do not write.</li></ul>",
+    "since": "242.0",
+    "until": "",
+    "sinceUntil": "242.0+",
+    "channel": "",
+    "size": 1520888,
+    "downloads": 0,
+    "pluginId": 32208,
+    "compatibleVersions": {
+      "CLION": "2024.2+",
+      "GATEWAY": "2024.2+",
+      "WEBSTORM": "2024.2+",
+      "RUBYMINE": "2024.2+",
+      "GOLAND": "2024.2+",
+      "IDEA": "2024.2+",
+      "PYCHARM_COMMUNITY": "2024.2+",
+      "DBE": "2024.2+",
+      "JBCLIENT": "1.0+",
+      "ANDROID_STUDIO": "Ladybug | 2024.2.1+",
+      "DATASPELL": "2024.2+",
+      "CWMGUEST": "1.0+",
+      "RIDER": "2024.2+",
+      "RUST": "2024.2+",
+      "MPS": "2024.3+",
+      "IDEA_COMMUNITY": "2024.2+",
+      "PHPSTORM": "2024.2+",
+      "PYCHARM": "2024.2+"
+    },
+    "author": {
+      "id": "ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "name": "chainlesschain",
+      "link": "/author/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "hubLogin": "chainlesschain",
+      "icon": "https://hub.jetbrains.com/api/rest/avatar/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "showMarketoCheckbox": false
+    },
+    "modules": []
+  },
+  "packagedPlugin": {
+    "version": "0.4.157",
+    "pairedCliVersion": "0.166.94",
+    "tagArtifactSha256": "6c3d3e69f86bef8e92a2301c961a1c296d4016fcfac092835827a7fd2ceb7af0",
+    "packagedDoctorHasNoStale090Literal": true
+  },
+  "publicPackage": {
+    "downloadUrl": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1189859",
+    "bytes": 1520888,
+    "sha256": "a32cca3b4785a51dc87a06889cff3f4e4b2c114430e48a2c824610749a5816d5",
+    "archiveExactMatch": false,
+    "allEntryBytesMatch": true,
+    "entries": [
+      {
+        "name": "chainlesschain-ide-bridge/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.157.jar",
+        "bytes": 1608295,
+        "sha256": "9eccd0d0a2ffd2624464ab5b4fce907518bb97de68f036ee684beedbffb25131"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.157-searchableOptions.jar",
+        "bytes": 1263,
+        "sha256": "6d19a0b6bb0fc385dbbe2098c58aba67e7bcdedbe0de05444177eeab22782310"
+      }
+    ]
+  }
+}

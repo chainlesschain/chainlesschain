@@ -1,0 +1,1060 @@
+{
+  "collectedAt": "2026-10-08T18:28:02.786Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37821698813,
+    "name": "Publish CLI release to npm",
+    "node_id": "WFR_kwLOQgDM2s8AAAAIzllS_Q",
+    "head_branch": "v-npm-0-166-94",
+    "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+    "path": ".github/workflows/npm-publish.yml",
+    "display_title": "fix(verify01): canonicalize preparation fixtures and bind final nativ…",
+    "run_number": 455,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 244473491,
+    "check_suite_id": 102471609014,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX28iqtg",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813",
+    "pull_requests": [],
+    "created_at": "2026-10-08T18:06:16Z",
+    "updated_at": "2026-10-08T18:26:03Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [
+      {
+        "path": "chainlesschain/chainlesschain/.github/workflows/_cli-linux-subreaper.yml@efcab5f632312aea433953157d52091f018f26ae",
+        "sha": "efcab5f632312aea433953157d52091f018f26ae",
+        "ref": "refs/tags/v-npm-0-166-94"
+      }
+    ],
+    "run_started_at": "2026-10-08T18:06:16Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102471609014",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/244473491",
+    "head_commit": {
+      "id": "efcab5f632312aea433953157d52091f018f26ae",
+      "tree_id": "d9f85a86e25ddfe6ea82c2d85f1f7d033d8f5a69",
+      "message": "fix(verify01): canonicalize preparation fixtures and bind final native evidence",
+      "timestamp": "2026-10-08T14:39:22Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113464069277,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaavxMnQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464069277",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464069277",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T18:06:17Z",
+      "started_at": "2026-10-08T18:06:22Z",
+      "completed_at": "2026-10-08T18:06:55Z",
+      "name": "exact-sha-gate",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T18:06:22Z",
+          "completed_at": "2026-10-08T18:06:23Z"
+        },
+        {
+          "name": "Checkout exact release commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T18:06:23Z",
+          "completed_at": "2026-10-08T18:06:36Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T18:06:36Z",
+          "completed_at": "2026-10-08T18:06:40Z"
+        },
+        {
+          "name": "Verify immutable npm tag identity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T18:06:40Z",
+          "completed_at": "2026-10-08T18:06:40Z"
+        },
+        {
+          "name": "Verify CLI CI and CLI Strict Sandbox for exact SHA",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T18:06:40Z",
+          "completed_at": "2026-10-08T18:06:50Z"
+        },
+        {
+          "name": "Upload exact-SHA gate attestation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T18:06:50Z",
+          "completed_at": "2026-10-08T18:06:52Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T18:06:52Z",
+          "completed_at": "2026-10-08T18:06:52Z"
+        },
+        {
+          "name": "Post Checkout exact release commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T18:06:52Z",
+          "completed_at": "2026-10-08T18:06:52Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T18:06:52Z",
+          "completed_at": "2026-10-08T18:06:52Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464069277",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386055,
+      "runner_name": "GitHub Actions 1000386055",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113464071054,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaavxTjg",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464071054",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464071054",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-08T18:06:17Z",
+      "started_at": "2026-10-08T18:06:17Z",
+      "completed_at": "2026-10-08T18:06:17Z",
+      "name": "test",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464071054",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 113464072265,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaavxYSQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464072265",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464072265",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-08T18:06:17Z",
+      "started_at": "2026-10-08T18:06:17Z",
+      "completed_at": "2026-10-08T18:06:17Z",
+      "name": "dry-run",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464072265",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 113464349073,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaawCRkQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464349073",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464349073",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T18:06:55Z",
+      "started_at": "2026-10-08T18:07:00Z",
+      "completed_at": "2026-10-08T18:07:38Z",
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T18:07:01Z",
+          "completed_at": "2026-10-08T18:07:02Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T18:07:02Z",
+          "completed_at": "2026-10-08T18:07:14Z"
+        },
+        {
+          "name": "Verify source and native build architecture",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T18:07:14Z",
+          "completed_at": "2026-10-08T18:07:14Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T18:07:14Z",
+          "completed_at": "2026-10-08T18:07:18Z"
+        },
+        {
+          "name": "Build static helper from canonical source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T18:07:18Z",
+          "completed_at": "2026-10-08T18:07:19Z"
+        },
+        {
+          "name": "Verify packaged execution without compiler or network",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T18:07:19Z",
+          "completed_at": "2026-10-08T18:07:31Z"
+        },
+        {
+          "name": "Upload tested architecture payload",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T18:07:31Z",
+          "completed_at": "2026-10-08T18:07:33Z"
+        },
+        {
+          "name": "Upload no-compiler cleanup evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T18:07:33Z",
+          "completed_at": "2026-10-08T18:07:35Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T18:07:35Z",
+          "completed_at": "2026-10-08T18:07:35Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T18:07:35Z",
+          "completed_at": "2026-10-08T18:07:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T18:07:35Z",
+          "completed_at": "2026-10-08T18:07:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464349073",
+      "labels": [
+        "ubuntu-24.04-arm"
+      ],
+      "runner_id": 1000386058,
+      "runner_name": "GitHub Actions 1000386058",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113464349372,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaawCSvA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464349372",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464349372",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T18:06:55Z",
+      "started_at": "2026-10-08T18:06:58Z",
+      "completed_at": "2026-10-08T18:07:34Z",
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T18:06:59Z",
+          "completed_at": "2026-10-08T18:07:00Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T18:07:00Z",
+          "completed_at": "2026-10-08T18:07:12Z"
+        },
+        {
+          "name": "Verify source and native build architecture",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T18:07:12Z",
+          "completed_at": "2026-10-08T18:07:12Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T18:07:12Z",
+          "completed_at": "2026-10-08T18:07:18Z"
+        },
+        {
+          "name": "Build static helper from canonical source",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T18:07:18Z",
+          "completed_at": "2026-10-08T18:07:19Z"
+        },
+        {
+          "name": "Verify packaged execution without compiler or network",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T18:07:19Z",
+          "completed_at": "2026-10-08T18:07:28Z"
+        },
+        {
+          "name": "Upload tested architecture payload",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T18:07:28Z",
+          "completed_at": "2026-10-08T18:07:29Z"
+        },
+        {
+          "name": "Upload no-compiler cleanup evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T18:07:29Z",
+          "completed_at": "2026-10-08T18:07:31Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T18:07:31Z",
+          "completed_at": "2026-10-08T18:07:31Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T18:07:31Z",
+          "completed_at": "2026-10-08T18:07:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T18:07:32Z",
+          "completed_at": "2026-10-08T18:07:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464349372",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000386059,
+      "runner_name": "GitHub Actions 1000386059",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113464671708,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaawV93A",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113464671708",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113464671708",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T18:07:38Z",
+      "started_at": "2026-10-08T18:07:41Z",
+      "completed_at": "2026-10-08T18:09:55Z",
+      "name": "package-cli",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T18:07:42Z",
+          "completed_at": "2026-10-08T18:07:44Z"
+        },
+        {
+          "name": "Checkout exact release commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T18:07:44Z",
+          "completed_at": "2026-10-08T18:07:56Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T18:07:56Z",
+          "completed_at": "2026-10-08T18:08:01Z"
+        },
+        {
+          "name": "Install workspace dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T18:08:01Z",
+          "completed_at": "2026-10-08T18:08:59Z"
+        },
+        {
+          "name": "Build CLI package assets before packing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T18:08:59Z",
+          "completed_at": "2026-10-08T18:09:24Z"
+        },
+        {
+          "name": "Download tested Linux x64 helper",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T18:09:24Z",
+          "completed_at": "2026-10-08T18:09:25Z"
+        },
+        {
+          "name": "Download tested Linux ARM64 helper",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T18:09:25Z",
+          "completed_at": "2026-10-08T18:09:26Z"
+        },
+        {
+          "name": "Resolve and pack immutable CLI tarball",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T18:09:26Z",
+          "completed_at": "2026-10-08T18:09:31Z"
+        },
+        {
+          "name": "Generate CLI release SBOM from immutable tarball",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T18:09:31Z",
+          "completed_at": "2026-10-08T18:09:50Z"
+        },
+        {
+          "name": "Upload immutable CLI release artifact",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T18:09:50Z",
+          "completed_at": "2026-10-08T18:09:52Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T18:09:52Z",
+          "completed_at": "2026-10-08T18:09:52Z"
+        },
+        {
+          "name": "Post Checkout exact release commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-08T18:09:52Z",
+          "completed_at": "2026-10-08T18:09:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-08T18:09:53Z",
+          "completed_at": "2026-10-08T18:09:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113464671708",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386060,
+      "runner_name": "GitHub Actions 1000386060",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113465666372,
+      "run_id": 37821698813,
+      "workflow_name": "Publish CLI release to npm",
+      "head_branch": "v-npm-0-166-94",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37821698813",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaaxSrRA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113465666372",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37821698813/job/113465666372",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T18:09:55Z",
+      "started_at": "2026-10-08T18:19:51Z",
+      "completed_at": "2026-10-08T18:26:02Z",
+      "name": "publish",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T18:19:52Z",
+          "completed_at": "2026-10-08T18:19:53Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T18:19:53Z",
+          "completed_at": "2026-10-08T18:20:06Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T18:20:06Z",
+          "completed_at": "2026-10-08T18:20:10Z"
+        },
+        {
+          "name": "Enable npm Trusted Publishing support",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T18:20:10Z",
+          "completed_at": "2026-10-08T18:20:14Z"
+        },
+        {
+          "name": "Install root dependencies (workspaces)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T18:20:14Z",
+          "completed_at": "2026-10-08T18:21:19Z"
+        },
+        {
+          "name": "Download exact verified CLI tarball",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T18:21:19Z",
+          "completed_at": "2026-10-08T18:21:21Z"
+        },
+        {
+          "name": "Verify immutable CLI tarball before publishing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T18:21:21Z",
+          "completed_at": "2026-10-08T18:21:21Z"
+        },
+        {
+          "name": "Resolve version",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T18:21:21Z",
+          "completed_at": "2026-10-08T18:21:21Z"
+        },
+        {
+          "name": "Set publish command",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T18:21:21Z",
+          "completed_at": "2026-10-08T18:21:21Z"
+        },
+        {
+          "name": "Publish @chainlesschain/agent-protocol",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T18:21:21Z",
+          "completed_at": "2026-10-08T18:21:22Z"
+        },
+        {
+          "name": "Verify Agent Protocol registry bytes and npm provenance",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T18:21:22Z",
+          "completed_at": "2026-10-08T18:21:26Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-env",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T18:21:26Z",
+          "completed_at": "2026-10-08T18:21:27Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-mtc",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T18:21:27Z",
+          "completed_at": "2026-10-08T18:21:27Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-multisig",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T18:21:27Z",
+          "completed_at": "2026-10-08T18:21:28Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-settlement",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T18:21:28Z",
+          "completed_at": "2026-10-08T18:21:29Z"
+        },
+        {
+          "name": "Publish @chainlesschain/shared-logger",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T18:21:29Z",
+          "completed_at": "2026-10-08T18:21:29Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-config",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T18:21:29Z",
+          "completed_at": "2026-10-08T18:21:30Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-db",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T18:21:30Z",
+          "completed_at": "2026-10-08T18:21:31Z"
+        },
+        {
+          "name": "Publish @chainlesschain/core-infra",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T18:21:31Z",
+          "completed_at": "2026-10-08T18:21:32Z"
+        },
+        {
+          "name": "Publish @chainlesschain/session-core",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-08T18:21:32Z",
+          "completed_at": "2026-10-08T18:21:33Z"
+        },
+        {
+          "name": "Publish @chainlesschain/context-memory-kernel",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-08T18:21:33Z",
+          "completed_at": "2026-10-08T18:21:33Z"
+        },
+        {
+          "name": "Verify published Context Memory Kernel registry bytes and npm provenance",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-08T18:21:33Z",
+          "completed_at": "2026-10-08T18:21:36Z"
+        },
+        {
+          "name": "Publish @chainlesschain/agent-sdk",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-08T18:21:36Z",
+          "completed_at": "2026-10-08T18:21:37Z"
+        },
+        {
+          "name": "Verify published Agent SDK registry bytes and npm provenance",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-08T18:21:37Z",
+          "completed_at": "2026-10-08T18:21:41Z"
+        },
+        {
+          "name": "Publish @chainlesschain/personal-data-hub",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-08T18:21:41Z",
+          "completed_at": "2026-10-08T18:21:42Z"
+        },
+        {
+          "name": "Verify public child bytes and registry-only dependencies before CLI publish",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-08T18:21:42Z",
+          "completed_at": "2026-10-08T18:22:20Z"
+        },
+        {
+          "name": "Publish chainlesschain (CLI)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-08T18:22:20Z",
+          "completed_at": "2026-10-08T18:25:27Z"
+        },
+        {
+          "name": "Verify published CLI npm provenance",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-08T18:25:27Z",
+          "completed_at": "2026-10-08T18:25:51Z"
+        },
+        {
+          "name": "Upload public npm readback evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-08T18:25:51Z",
+          "completed_at": "2026-10-08T18:25:52Z"
+        },
+        {
+          "name": "Publish summary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-08T18:25:52Z",
+          "completed_at": "2026-10-08T18:25:52Z"
+        },
+        {
+          "name": "Sync published packages to npmmirror",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-08T18:25:52Z",
+          "completed_at": "2026-10-08T18:25:59Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 61,
+          "started_at": "2026-10-08T18:25:59Z",
+          "completed_at": "2026-10-08T18:25:59Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 62,
+          "started_at": "2026-10-08T18:25:59Z",
+          "completed_at": "2026-10-08T18:25:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 63,
+          "started_at": "2026-10-08T18:25:59Z",
+          "completed_at": "2026-10-08T18:25:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113465666372",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386105,
+      "runner_name": "GitHub Actions 1000386105",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "counts": {
+    "success": 5,
+    "skipped": 2
+  },
+  "active": [],
+  "failed": []
+}

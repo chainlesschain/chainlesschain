@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-09 配对发行完成**：准确提交 `efcab5f632312aea433953157d52091f018f26ae` 的 CLI CI 71 job 全部成功、Strict 5 job 全部成功、IDE Extensions 实际宿主与构建门成功；[PR #423](https://github.com/chainlesschain/chainlesschain/pull/423) 已合并。CLI `0.166.94` 已由 GitHub Actions OIDC 发布并核验公开 tarball/provenance；VS Code `0.37.139` 已在 Open VSX 公开且 latest/listed，公开 VSIX 与标签产物字节一致；JetBrains `0.4.157` 已获批并公开上架，下载包全部 entry 字节与标签产物一致。 发行源码、原失败/恢复及公开回读见[发行证据](../cli/evidence/gap-2026-10-05/release-0.166.94/README.md)。较早日期记录保留各自时点。私有 esbuild 保持 NOT_ADMITTED；完整 service/config/forks/review、Windows/macOS durable 后端、正式 36+9、官方账单、人工与长时验收仍开放，分母、$99 预算及 observations 未改。
+
 > **2026-10-08 最终候选修正**：旧 CLI CI #37779105012 的 Windows/macOS 失败已定位到测试临时目录别名；fixture 现使用 canonical realpath，并新增真实 symlink/junction 父目录拒绝回归，生产严格检查未放宽。两 Node 版本各37项通过，最终准确 SHA 全矩阵待执行。 私有 esbuild leaf 按去除 EOF 空行后的最新源码重编译并真实实跑 v3，成功和未入 Job 清理负例均成立；[最新字节与状态](../cli-ide-gap-validation-2026-10-05.md#183-最终源码字节重新验证)仍保留 NOT_ADMITTED，正式36+9和人工/账户验收仍开放。配对候选为 CLI `0.166.94` / VS Code `0.37.139` / JetBrains `0.4.157`；通过完整发布门后按授权发布。
 
 > **2026-10-08 私有 leaf 与发布准备**：独立非管理员监督器已在零capability AppContainer内让冻结esbuild真实bundle成功，源码/真实负例与61项合同已固化；完整service/config/default forks/review仍未接入，状态NOT_ADMITTED。用户授权测试成功后配对发布，候选CLI`0.166.94` / VSCode`0.37.139` / JetBrains`0.4.157`，10个固定子包下载/依赖核验完成，Doctor推荐值构建残留也已修复。本机CLI/IDE相关回归和插件ZIP构建通过，最终准确SHA完整门待执行；见[验证第18节](../cli-ide-gap-validation-2026-10-05.md#18-2026-10-08-私有-esbuild-leaf-与发布候选)。durable后端、正式36+9、官方账单和人工长时验收继续开放，无付费模型请求，尚未发布。

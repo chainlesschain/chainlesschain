@@ -1,0 +1,1833 @@
+{
+  "collectedAt": "2026-10-08T19:07:55.404Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37794297667,
+    "name": "CI Tests",
+    "node_id": "WFR_kwLOQgDM2s8AAAAIzLc3Qw",
+    "head_branch": "feature/cli-ide-gap-continuation-20261008",
+    "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+    "path": ".github/workflows/test.yml",
+    "display_title": "fix(cli-ide): repair strict lock fairness and prepare paired 0.166.94 release",
+    "run_number": 8653,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 218674722,
+    "check_suite_id": 102393718934,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX1yQolg",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667",
+    "pull_requests": [],
+    "created_at": "2026-10-08T14:39:48Z",
+    "updated_at": "2026-10-08T16:02:38Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-10-08T14:39:48Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102393718934",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/218674722",
+    "head_commit": {
+      "id": "efcab5f632312aea433953157d52091f018f26ae",
+      "tree_id": "d9f85a86e25ddfe6ea82c2d85f1f7d033d8f5a69",
+      "message": "fix(verify01): canonicalize preparation fixtures and bind final native evidence",
+      "timestamp": "2026-10-08T14:39:22Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113369607535,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrtbw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369607535",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369607535",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T14:47:41Z",
+      "completed_at": "2026-10-08T14:48:29Z",
+      "name": "Backend model-egress and real startup regressions",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:47:47Z",
+          "completed_at": "2026-10-08T14:47:48Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:47:48Z",
+          "completed_at": "2026-10-08T14:48:00Z"
+        },
+        {
+          "name": "Verify exact model-egress source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:48:00Z",
+          "completed_at": "2026-10-08T14:48:01Z"
+        },
+        {
+          "name": "Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:48:01Z",
+          "completed_at": "2026-10-08T14:48:01Z"
+        },
+        {
+          "name": "Install tested service-import dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:48:01Z",
+          "completed_at": "2026-10-08T14:48:21Z"
+        },
+        {
+          "name": "Verify backend model denial and real FastAPI startup",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:48:21Z",
+          "completed_at": "2026-10-08T14:48:25Z"
+        },
+        {
+          "name": "Upload backend model-egress results",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:48:25Z",
+          "completed_at": "2026-10-08T14:48:26Z"
+        },
+        {
+          "name": "Post Setup Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:48:26Z",
+          "completed_at": "2026-10-08T14:48:26Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:48:26Z",
+          "completed_at": "2026-10-08T14:48:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:48:27Z",
+          "completed_at": "2026-10-08T14:48:27Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369607535",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385798,
+      "runner_name": "GitHub Actions 1000385798",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369607731,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVruMw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369607731",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369607731",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:10:15Z",
+      "completed_at": "2026-10-08T15:11:54Z",
+      "name": "CLI Global Install Smoke (macos-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:10:15Z",
+          "completed_at": "2026-10-08T15:10:16Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:10:16Z",
+          "completed_at": "2026-10-08T15:10:33Z"
+        },
+        {
+          "name": "Verify exact installed CLI source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:10:33Z",
+          "completed_at": "2026-10-08T15:10:33Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:10:33Z",
+          "completed_at": "2026-10-08T15:10:34Z"
+        },
+        {
+          "name": "Verify installed runtime identity guard contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:10:34Z",
+          "completed_at": "2026-10-08T15:10:35Z"
+        },
+        {
+          "name": "Pack CLI and exact internal dependency candidates",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:10:35Z",
+          "completed_at": "2026-10-08T15:10:40Z"
+        },
+        {
+          "name": "Global install from tarball (exercises postinstall)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:10:40Z",
+          "completed_at": "2026-10-08T15:11:07Z"
+        },
+        {
+          "name": "Verify CLI executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:11:07Z",
+          "completed_at": "2026-10-08T15:11:08Z"
+        },
+        {
+          "name": "Verify installed evolution runtime and PR recovery smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:11:08Z",
+          "completed_at": "2026-10-08T15:11:51Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T15:11:51Z",
+          "completed_at": "2026-10-08T15:11:51Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T15:11:51Z",
+          "completed_at": "2026-10-08T15:11:52Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T15:11:52Z",
+          "completed_at": "2026-10-08T15:11:52Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369607731",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000385860,
+      "runner_name": "GitHub Actions 1000385860",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369607846,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrupg",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369607846",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369607846",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T14:49:53Z",
+      "completed_at": "2026-10-08T14:51:56Z",
+      "name": "Code Quality",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:49:54Z",
+          "completed_at": "2026-10-08T14:49:54Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:49:54Z",
+          "completed_at": "2026-10-08T14:50:06Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:50:06Z",
+          "completed_at": "2026-10-08T14:50:13Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:50:13Z",
+          "completed_at": "2026-10-08T14:50:58Z"
+        },
+        {
+          "name": "Run ESLint",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:50:58Z",
+          "completed_at": "2026-10-08T14:51:49Z"
+        },
+        {
+          "name": "Run rules validator",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:51:49Z",
+          "completed_at": "2026-10-08T14:51:53Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T14:51:53Z",
+          "completed_at": "2026-10-08T14:51:53Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T14:51:53Z",
+          "completed_at": "2026-10-08T14:51:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:51:53Z",
+          "completed_at": "2026-10-08T14:51:53Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369607846",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385803,
+      "runner_name": "GitHub Actions 1000385803",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608007,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrvRw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608007",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608007",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:31:48Z",
+      "completed_at": "2026-10-08T15:56:25Z",
+      "name": "Unit Tests (macos-latest, 22.x)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:31:48Z",
+          "completed_at": "2026-10-08T15:31:49Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:31:49Z",
+          "completed_at": "2026-10-08T15:33:09Z"
+        },
+        {
+          "name": "Verify exact Desktop and UniApp source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:33:09Z",
+          "completed_at": "2026-10-08T15:33:10Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:33:10Z",
+          "completed_at": "2026-10-08T15:33:27Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:33:27Z",
+          "completed_at": "2026-10-08T15:35:25Z"
+        },
+        {
+          "name": "Install packages/cli production dependencies standalone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:35:25Z",
+          "completed_at": "2026-10-08T15:35:59Z"
+        },
+        {
+          "name": "Verify UniApp model-egress default deny",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-08T15:35:59Z",
+          "completed_at": "2026-10-08T15:35:59Z"
+        },
+        {
+          "name": "Run TypeScript type check",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:35:59Z",
+          "completed_at": "2026-10-08T15:37:06Z"
+        },
+        {
+          "name": "Fetch base branch for diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:37:06Z",
+          "completed_at": "2026-10-08T15:37:08Z"
+        },
+        {
+          "name": "Verify governed project host boundaries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T15:37:08Z",
+          "completed_at": "2026-10-08T15:37:19Z"
+        },
+        {
+          "name": "Verify governed project controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T15:37:19Z",
+          "completed_at": "2026-10-08T15:37:35Z"
+        },
+        {
+          "name": "Run intelligent test selection",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T15:37:35Z",
+          "completed_at": "2026-10-08T15:37:35Z"
+        },
+        {
+          "name": "Run stable unit tests (fallback)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T15:37:35Z",
+          "completed_at": "2026-10-08T15:56:16Z"
+        },
+        {
+          "name": "Enforce selector or fallback result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T15:56:16Z",
+          "completed_at": "2026-10-08T15:56:17Z"
+        },
+        {
+          "name": "Test Summary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T15:56:17Z",
+          "completed_at": "2026-10-08T15:56:17Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-08T15:56:17Z",
+          "completed_at": "2026-10-08T15:56:17Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-08T15:56:17Z",
+          "completed_at": "2026-10-08T15:56:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-08T15:56:18Z",
+          "completed_at": "2026-10-08T15:56:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608007",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000385916,
+      "runner_name": "GitHub Actions 1000385916",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608044,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrvbA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608044",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608044",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T14:49:53Z",
+      "completed_at": "2026-10-08T14:53:24Z",
+      "name": "Build Check (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:49:54Z",
+          "completed_at": "2026-10-08T14:49:55Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:49:55Z",
+          "completed_at": "2026-10-08T14:50:06Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:50:06Z",
+          "completed_at": "2026-10-08T14:50:13Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:50:13Z",
+          "completed_at": "2026-10-08T14:50:58Z"
+        },
+        {
+          "name": "Build main process",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:50:58Z",
+          "completed_at": "2026-10-08T14:50:59Z"
+        },
+        {
+          "name": "Build renderer",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:50:59Z",
+          "completed_at": "2026-10-08T14:53:16Z"
+        },
+        {
+          "name": "Archive build artifacts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:53:16Z",
+          "completed_at": "2026-10-08T14:53:20Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T14:53:20Z",
+          "completed_at": "2026-10-08T14:53:20Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T14:53:20Z",
+          "completed_at": "2026-10-08T14:53:20Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T14:53:20Z",
+          "completed_at": "2026-10-08T14:53:20Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608044",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385802,
+      "runner_name": "GitHub Actions 1000385802",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608093,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrvnQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608093",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608093",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:28:35Z",
+      "completed_at": "2026-10-08T15:30:19Z",
+      "name": "PDH Data Hub Tests (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:28:37Z",
+          "completed_at": "2026-10-08T15:28:38Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:28:38Z",
+          "completed_at": "2026-10-08T15:28:51Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:28:51Z",
+          "completed_at": "2026-10-08T15:28:51Z"
+        },
+        {
+          "name": "Run PDH suite in an isolated install (host-ABI native drivers)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:28:51Z",
+          "completed_at": "2026-10-08T15:30:16Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:30:16Z",
+          "completed_at": "2026-10-08T15:30:16Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:30:16Z",
+          "completed_at": "2026-10-08T15:30:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:30:16Z",
+          "completed_at": "2026-10-08T15:30:16Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608093",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385909,
+      "runner_name": "GitHub Actions 1000385909",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608112,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrvsA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608112",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608112",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:31:11Z",
+      "completed_at": "2026-10-08T15:54:08Z",
+      "name": "Unit Tests (ubuntu-latest, 22.x)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:31:12Z",
+          "completed_at": "2026-10-08T15:31:13Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:31:13Z",
+          "completed_at": "2026-10-08T15:31:47Z"
+        },
+        {
+          "name": "Verify exact Desktop and UniApp source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:31:47Z",
+          "completed_at": "2026-10-08T15:31:47Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:31:47Z",
+          "completed_at": "2026-10-08T15:31:55Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:31:55Z",
+          "completed_at": "2026-10-08T15:33:07Z"
+        },
+        {
+          "name": "Install packages/cli production dependencies standalone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:33:07Z",
+          "completed_at": "2026-10-08T15:33:28Z"
+        },
+        {
+          "name": "Verify UniApp model-egress default deny",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:33:28Z",
+          "completed_at": "2026-10-08T15:33:29Z"
+        },
+        {
+          "name": "Run TypeScript type check",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:33:29Z",
+          "completed_at": "2026-10-08T15:34:08Z"
+        },
+        {
+          "name": "Fetch base branch for diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:34:08Z",
+          "completed_at": "2026-10-08T15:34:08Z"
+        },
+        {
+          "name": "Verify governed project host boundaries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T15:34:08Z",
+          "completed_at": "2026-10-08T15:34:13Z"
+        },
+        {
+          "name": "Verify governed project controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T15:34:13Z",
+          "completed_at": "2026-10-08T15:34:24Z"
+        },
+        {
+          "name": "Run intelligent test selection",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T15:34:24Z",
+          "completed_at": "2026-10-08T15:34:24Z"
+        },
+        {
+          "name": "Run stable unit tests (fallback)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T15:34:24Z",
+          "completed_at": "2026-10-08T15:54:05Z"
+        },
+        {
+          "name": "Enforce selector or fallback result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T15:54:05Z",
+          "completed_at": "2026-10-08T15:54:05Z"
+        },
+        {
+          "name": "Test Summary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T15:54:05Z",
+          "completed_at": "2026-10-08T15:54:05Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-08T15:54:05Z",
+          "completed_at": "2026-10-08T15:54:05Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-08T15:54:05Z",
+          "completed_at": "2026-10-08T15:54:06Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-08T15:54:06Z",
+          "completed_at": "2026-10-08T15:54:06Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608112",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385914,
+      "runner_name": "GitHub Actions 1000385914",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608151,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrv1w",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608151",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608151",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:15:33Z",
+      "completed_at": "2026-10-08T15:16:41Z",
+      "name": "CLI Global Install Smoke (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:15:34Z",
+          "completed_at": "2026-10-08T15:15:35Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:15:35Z",
+          "completed_at": "2026-10-08T15:15:47Z"
+        },
+        {
+          "name": "Verify exact installed CLI source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:15:47Z",
+          "completed_at": "2026-10-08T15:15:47Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:15:47Z",
+          "completed_at": "2026-10-08T15:15:50Z"
+        },
+        {
+          "name": "Verify installed runtime identity guard contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:15:50Z",
+          "completed_at": "2026-10-08T15:15:50Z"
+        },
+        {
+          "name": "Pack CLI and exact internal dependency candidates",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:15:50Z",
+          "completed_at": "2026-10-08T15:15:56Z"
+        },
+        {
+          "name": "Global install from tarball (exercises postinstall)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:15:56Z",
+          "completed_at": "2026-10-08T15:16:16Z"
+        },
+        {
+          "name": "Verify CLI executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:16:16Z",
+          "completed_at": "2026-10-08T15:16:16Z"
+        },
+        {
+          "name": "Verify installed evolution runtime and PR recovery smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:16:16Z",
+          "completed_at": "2026-10-08T15:16:39Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T15:16:39Z",
+          "completed_at": "2026-10-08T15:16:39Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T15:16:39Z",
+          "completed_at": "2026-10-08T15:16:39Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T15:16:39Z",
+          "completed_at": "2026-10-08T15:16:39Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608151",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385875,
+      "runner_name": "GitHub Actions 1000385875",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608231,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrwJw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608231",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608231",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T14:56:11Z",
+      "completed_at": "2026-10-08T15:02:29Z",
+      "name": "CLI Global Install Smoke (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T14:56:12Z",
+          "completed_at": "2026-10-08T14:56:13Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T14:56:13Z",
+          "completed_at": "2026-10-08T14:56:35Z"
+        },
+        {
+          "name": "Verify exact installed CLI source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T14:56:35Z",
+          "completed_at": "2026-10-08T14:56:36Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T14:56:36Z",
+          "completed_at": "2026-10-08T14:56:46Z"
+        },
+        {
+          "name": "Verify installed runtime identity guard contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T14:56:46Z",
+          "completed_at": "2026-10-08T14:56:47Z"
+        },
+        {
+          "name": "Pack CLI and exact internal dependency candidates",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T14:56:47Z",
+          "completed_at": "2026-10-08T14:56:57Z"
+        },
+        {
+          "name": "Global install from tarball (exercises postinstall)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T14:56:57Z",
+          "completed_at": "2026-10-08T15:01:13Z"
+        },
+        {
+          "name": "Verify CLI executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:01:13Z",
+          "completed_at": "2026-10-08T15:01:14Z"
+        },
+        {
+          "name": "Verify installed evolution runtime and PR recovery smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:01:14Z",
+          "completed_at": "2026-10-08T15:02:25Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T15:02:25Z",
+          "completed_at": "2026-10-08T15:02:25Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T15:02:25Z",
+          "completed_at": "2026-10-08T15:02:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T15:02:27Z",
+          "completed_at": "2026-10-08T15:02:27Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608231",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385822,
+      "runner_name": "GitHub Actions 1000385822",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608271,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrwTw",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608271",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608271",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:31:58Z",
+      "completed_at": "2026-10-08T15:33:01Z",
+      "name": "Database Tests",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:31:59Z",
+          "completed_at": "2026-10-08T15:32:00Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:32:00Z",
+          "completed_at": "2026-10-08T15:32:12Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:32:12Z",
+          "completed_at": "2026-10-08T15:32:19Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:32:19Z",
+          "completed_at": "2026-10-08T15:32:58Z"
+        },
+        {
+          "name": "Run database tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:32:58Z",
+          "completed_at": "2026-10-08T15:32:59Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:32:59Z",
+          "completed_at": "2026-10-08T15:32:59Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T15:32:59Z",
+          "completed_at": "2026-10-08T15:32:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T15:32:59Z",
+          "completed_at": "2026-10-08T15:32:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608271",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385917,
+      "runner_name": "GitHub Actions 1000385917",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608284,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrwXA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608284",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608284",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:18:50Z",
+      "completed_at": "2026-10-08T15:27:08Z",
+      "name": "Build Check (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:18:51Z",
+          "completed_at": "2026-10-08T15:18:52Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:18:52Z",
+          "completed_at": "2026-10-08T15:19:13Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:19:13Z",
+          "completed_at": "2026-10-08T15:19:37Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:19:37Z",
+          "completed_at": "2026-10-08T15:23:02Z"
+        },
+        {
+          "name": "Build main process",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:23:02Z",
+          "completed_at": "2026-10-08T15:23:06Z"
+        },
+        {
+          "name": "Build renderer",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:23:06Z",
+          "completed_at": "2026-10-08T15:26:57Z"
+        },
+        {
+          "name": "Archive build artifacts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:26:57Z",
+          "completed_at": "2026-10-08T15:27:04Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T15:27:04Z",
+          "completed_at": "2026-10-08T15:27:04Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T15:27:04Z",
+          "completed_at": "2026-10-08T15:27:07Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T15:27:07Z",
+          "completed_at": "2026-10-08T15:27:07Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608284",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385887,
+      "runner_name": "GitHub Actions 1000385887",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608386,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrwwg",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608386",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608386",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:21:30Z",
+      "completed_at": "2026-10-08T16:02:37Z",
+      "name": "Unit Tests (windows-latest, 22.x)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:21:31Z",
+          "completed_at": "2026-10-08T15:21:32Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:21:32Z",
+          "completed_at": "2026-10-08T15:22:30Z"
+        },
+        {
+          "name": "Verify exact Desktop and UniApp source commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:22:30Z",
+          "completed_at": "2026-10-08T15:22:30Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:22:30Z",
+          "completed_at": "2026-10-08T15:22:57Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T15:22:57Z",
+          "completed_at": "2026-10-08T15:26:16Z"
+        },
+        {
+          "name": "Install packages/cli production dependencies standalone",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T15:26:16Z",
+          "completed_at": "2026-10-08T15:26:46Z"
+        },
+        {
+          "name": "Verify UniApp model-egress default deny",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-08T15:26:46Z",
+          "completed_at": "2026-10-08T15:26:46Z"
+        },
+        {
+          "name": "Run TypeScript type check",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:26:46Z",
+          "completed_at": "2026-10-08T15:27:29Z"
+        },
+        {
+          "name": "Fetch base branch for diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:27:29Z",
+          "completed_at": "2026-10-08T15:27:30Z"
+        },
+        {
+          "name": "Verify governed project host boundaries",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-08T15:27:30Z",
+          "completed_at": "2026-10-08T15:27:55Z"
+        },
+        {
+          "name": "Verify governed project controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-08T15:27:55Z",
+          "completed_at": "2026-10-08T15:28:11Z"
+        },
+        {
+          "name": "Run intelligent test selection",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-08T15:28:11Z",
+          "completed_at": "2026-10-08T15:28:11Z"
+        },
+        {
+          "name": "Run stable unit tests (fallback)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-08T15:28:11Z",
+          "completed_at": "2026-10-08T16:02:31Z"
+        },
+        {
+          "name": "Enforce selector or fallback result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-08T16:02:31Z",
+          "completed_at": "2026-10-08T16:02:31Z"
+        },
+        {
+          "name": "Test Summary",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T16:02:31Z",
+          "completed_at": "2026-10-08T16:02:31Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-08T16:02:31Z",
+          "completed_at": "2026-10-08T16:02:32Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-08T16:02:32Z",
+          "completed_at": "2026-10-08T16:02:34Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-08T16:02:34Z",
+          "completed_at": "2026-10-08T16:02:34Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608386",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385895,
+      "runner_name": "GitHub Actions 1000385895",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369608388,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVrwxA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369608388",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369608388",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T14:39:49Z",
+      "started_at": "2026-10-08T15:27:07Z",
+      "completed_at": "2026-10-08T15:32:06Z",
+      "name": "PDH Data Hub Tests (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T15:27:08Z",
+          "completed_at": "2026-10-08T15:27:09Z"
+        },
+        {
+          "name": "Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T15:27:09Z",
+          "completed_at": "2026-10-08T15:27:30Z"
+        },
+        {
+          "name": "Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T15:27:30Z",
+          "completed_at": "2026-10-08T15:27:35Z"
+        },
+        {
+          "name": "Run PDH suite in an isolated install (host-ABI native drivers)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T15:27:35Z",
+          "completed_at": "2026-10-08T15:32:01Z"
+        },
+        {
+          "name": "Post Setup Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T15:32:01Z",
+          "completed_at": "2026-10-08T15:32:02Z"
+        },
+        {
+          "name": "Post Checkout code",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T15:32:02Z",
+          "completed_at": "2026-10-08T15:32:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T15:32:04Z",
+          "completed_at": "2026-10-08T15:32:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369608388",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385905,
+      "runner_name": "GitHub Actions 1000385905",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113369666908,
+      "run_id": 37794297667,
+      "workflow_name": "CI Tests",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297667",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZVvVXA",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113369666908",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297667/job/113369666908",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-08T14:39:57Z",
+      "started_at": "2026-10-08T14:39:57Z",
+      "completed_at": "2026-10-08T14:39:49Z",
+      "name": "Full Test Suite",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113369666908",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ],
+  "counts": {
+    "success": 13,
+    "skipped": 1
+  }
+}

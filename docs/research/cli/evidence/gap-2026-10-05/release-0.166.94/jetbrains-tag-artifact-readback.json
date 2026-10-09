@@ -1,0 +1,36 @@
+{
+  "observedAt": "2026-10-09T00:48:36.497Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37824729100,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37824729100"
+  },
+  "artifacts": [
+    {
+      "id": 11574300218,
+      "name": "chainlesschain-ide-jetbrains-1",
+      "zipDigest": "sha256:39c179051104d6f799afed6045b150cd6b8a722d9c0288db671a626543cbd7d7",
+      "files": [
+        {
+          "name": "chainlesschain-ide-bridge-0.4.157.zip",
+          "bytes": 1515228,
+          "sha256": "6c3d3e69f86bef8e92a2301c961a1c296d4016fcfac092835827a7fd2ceb7af0"
+        }
+      ]
+    },
+    {
+      "id": 11573361882,
+      "name": "ide-cli-prerequisite-jetbrains-1",
+      "zipDigest": "sha256:2e8b79ea0ffd08310cd40a889ecc5c326e1d1ada8a6eb53095b4c121182b3b70",
+      "files": [
+        {
+          "name": "receipt.json",
+          "bytes": 3505,
+          "sha256": "fe7d274b4e29fed209fd7ac0691eb71425e952bcdff78c74b12b5faab9eba43a"
+        }
+      ]
+    }
+  ]
+}

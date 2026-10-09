@@ -1,0 +1,705 @@
+{
+  "collectedAt": "2026-10-08T19:07:53.916Z",
+  "sha": "efcab5f632312aea433953157d52091f018f26ae",
+  "run": {
+    "id": 37794297605,
+    "name": "CLI Team Fairness Soak",
+    "node_id": "WFR_kwLOQgDM2s8AAAAIzLc3BQ",
+    "head_branch": "feature/cli-ide-gap-continuation-20261008",
+    "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+    "path": ".github/workflows/cli-team-fairness-soak.yml",
+    "display_title": "fix(cli-ide): repair strict lock fairness and prepare paired 0.166.94 release",
+    "run_number": 131,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 344998910,
+    "check_suite_id": 102393718702,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX1yQnrg",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297605",
+    "pull_requests": [],
+    "created_at": "2026-10-08T14:39:48Z",
+    "updated_at": "2026-10-08T16:15:19Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 2,
+    "referenced_workflows": [],
+    "run_started_at": "2026-10-08T16:05:23Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102393718702",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/rerun",
+    "previous_attempt_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605/attempts/1",
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/344998910",
+    "head_commit": {
+      "id": "efcab5f632312aea433953157d52091f018f26ae",
+      "tree_id": "d9f85a86e25ddfe6ea82c2d85f1f7d033d8f5a69",
+      "message": "fix(verify01): canonicalize preparation fixtures and bind final native evidence",
+      "timestamp": "2026-10-08T14:39:22Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113410456826,
+      "run_id": 37794297605,
+      "workflow_name": "CLI Team Fairness Soak",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZ8o8-g",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113410456826",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297605/job/113410456826",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T16:05:26Z",
+      "started_at": "2026-10-08T16:05:30Z",
+      "completed_at": "2026-10-08T16:07:11Z",
+      "name": "dependency/scope/aging fairness (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T16:05:31Z",
+          "completed_at": "2026-10-08T16:05:32Z"
+        },
+        {
+          "name": "Require a lowercase exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T16:05:32Z",
+          "completed_at": "2026-10-08T16:05:32Z"
+        },
+        {
+          "name": "Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T16:05:32Z",
+          "completed_at": "2026-10-08T16:05:46Z"
+        },
+        {
+          "name": "Bind checkout to exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T16:05:46Z",
+          "completed_at": "2026-10-08T16:05:46Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T16:05:46Z",
+          "completed_at": "2026-10-08T16:05:59Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T16:05:59Z",
+          "completed_at": "2026-10-08T16:07:05Z"
+        },
+        {
+          "name": "Run sustained high-priority and scope-conflict fairness soak",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T16:07:05Z",
+          "completed_at": "2026-10-08T16:07:07Z"
+        },
+        {
+          "name": "Upload exact-SHA fairness evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T16:07:07Z",
+          "completed_at": "2026-10-08T16:07:08Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T16:07:08Z",
+          "completed_at": "2026-10-08T16:07:08Z"
+        },
+        {
+          "name": "Post Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T16:07:08Z",
+          "completed_at": "2026-10-08T16:07:08Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T16:07:08Z",
+          "completed_at": "2026-10-08T16:07:08Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113410456826",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385977,
+      "runner_name": "GitHub Actions 1000385977",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113410456949,
+      "run_id": 37794297605,
+      "workflow_name": "CLI Team Fairness Soak",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZ8o9dQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113410456949",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297605/job/113410456949",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T16:05:26Z",
+      "started_at": "2026-10-08T16:05:30Z",
+      "completed_at": "2026-10-08T16:08:46Z",
+      "name": "dependency/scope/aging fairness (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T16:05:31Z",
+          "completed_at": "2026-10-08T16:05:32Z"
+        },
+        {
+          "name": "Require a lowercase exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T16:05:32Z",
+          "completed_at": "2026-10-08T16:05:32Z"
+        },
+        {
+          "name": "Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T16:05:32Z",
+          "completed_at": "2026-10-08T16:05:53Z"
+        },
+        {
+          "name": "Bind checkout to exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T16:05:53Z",
+          "completed_at": "2026-10-08T16:05:53Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T16:05:53Z",
+          "completed_at": "2026-10-08T16:06:18Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T16:06:18Z",
+          "completed_at": "2026-10-08T16:08:39Z"
+        },
+        {
+          "name": "Run sustained high-priority and scope-conflict fairness soak",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T16:08:39Z",
+          "completed_at": "2026-10-08T16:08:42Z"
+        },
+        {
+          "name": "Upload exact-SHA fairness evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T16:08:42Z",
+          "completed_at": "2026-10-08T16:08:43Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T16:08:43Z",
+          "completed_at": "2026-10-08T16:08:43Z"
+        },
+        {
+          "name": "Post Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T16:08:43Z",
+          "completed_at": "2026-10-08T16:08:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T16:08:44Z",
+          "completed_at": "2026-10-08T16:08:44Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113410456949",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000385976,
+      "runner_name": "GitHub Actions 1000385976",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113410457009,
+      "run_id": 37794297605,
+      "workflow_name": "CLI Team Fairness Soak",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOQgDM2s8AAAAaZ8o9sQ",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113410457009",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297605/job/113410457009",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T16:05:26Z",
+      "started_at": "2026-10-08T16:10:44Z",
+      "completed_at": "2026-10-08T16:13:34Z",
+      "name": "dependency/scope/aging fairness (macos-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T16:10:46Z",
+          "completed_at": "2026-10-08T16:10:47Z"
+        },
+        {
+          "name": "Require a lowercase exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-08T16:10:47Z",
+          "completed_at": "2026-10-08T16:10:47Z"
+        },
+        {
+          "name": "Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T16:10:47Z",
+          "completed_at": "2026-10-08T16:11:03Z"
+        },
+        {
+          "name": "Bind checkout to exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T16:11:03Z",
+          "completed_at": "2026-10-08T16:11:03Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T16:11:03Z",
+          "completed_at": "2026-10-08T16:11:28Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T16:11:28Z",
+          "completed_at": "2026-10-08T16:13:20Z"
+        },
+        {
+          "name": "Run sustained high-priority and scope-conflict fairness soak",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T16:13:20Z",
+          "completed_at": "2026-10-08T16:13:24Z"
+        },
+        {
+          "name": "Upload exact-SHA fairness evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T16:13:24Z",
+          "completed_at": "2026-10-08T16:13:27Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-08T16:13:27Z",
+          "completed_at": "2026-10-08T16:13:27Z"
+        },
+        {
+          "name": "Post Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-08T16:13:27Z",
+          "completed_at": "2026-10-08T16:13:28Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T16:13:28Z",
+          "completed_at": "2026-10-08T16:13:29Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113410457009",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000385984,
+      "runner_name": "GitHub Actions 1000385984",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113414142171,
+      "run_id": 37794297605,
+      "workflow_name": "CLI Team Fairness Soak",
+      "head_branch": "feature/cli-ide-gap-continuation-20261008",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37794297605",
+      "run_attempt": 2,
+      "node_id": "CR_kwDOQgDM2s8AAAAaaAJ42w",
+      "head_sha": "efcab5f632312aea433953157d52091f018f26ae",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113414142171",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37794297605/job/113414142171",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-08T16:13:34Z",
+      "started_at": "2026-10-08T16:13:37Z",
+      "completed_at": "2026-10-08T16:15:18Z",
+      "name": "Team fairness soak aggregate",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-08T16:13:38Z",
+          "completed_at": "2026-10-08T16:13:40Z"
+        },
+        {
+          "name": "Refuse an incomplete fairness platform matrix",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 2,
+          "started_at": "2026-10-08T16:13:40Z",
+          "completed_at": "2026-10-08T16:13:40Z"
+        },
+        {
+          "name": "Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-08T16:13:40Z",
+          "completed_at": "2026-10-08T16:13:52Z"
+        },
+        {
+          "name": "Bind aggregate checkout to exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-08T16:13:52Z",
+          "completed_at": "2026-10-08T16:13:52Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-08T16:13:52Z",
+          "completed_at": "2026-10-08T16:14:02Z"
+        },
+        {
+          "name": "Run ./.github/actions/setup-node-deps",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-08T16:14:02Z",
+          "completed_at": "2026-10-08T16:15:13Z"
+        },
+        {
+          "name": "Download complete three-platform fairness evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-08T16:15:13Z",
+          "completed_at": "2026-10-08T16:15:14Z"
+        },
+        {
+          "name": "Verify exact SHA, 3x SLO duration, workload, and fairness invariants",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-08T16:15:14Z",
+          "completed_at": "2026-10-08T16:15:14Z"
+        },
+        {
+          "name": "Upload immutable fairness aggregate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-08T16:15:14Z",
+          "completed_at": "2026-10-08T16:15:15Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-08T16:15:15Z",
+          "completed_at": "2026-10-08T16:15:15Z"
+        },
+        {
+          "name": "Post Checkout exact fairness commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-08T16:15:15Z",
+          "completed_at": "2026-10-08T16:15:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-08T16:15:16Z",
+          "completed_at": "2026-10-08T16:15:16Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113414142171",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000385988,
+      "runner_name": "GitHub Actions 1000385988",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "counts": {
+    "success": 4
+  }
+}
