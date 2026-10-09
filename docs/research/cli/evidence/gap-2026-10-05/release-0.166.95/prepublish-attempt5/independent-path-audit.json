@@ -1,0 +1,2245 @@
+{
+  "capturedAt": "2026-10-09T16:16:57.353Z",
+  "readOnlyAudit": true,
+  "gitCommandsExecuted": false,
+  "archive": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4",
+  "roots": [
+    {
+      "host": "windows-11-arm",
+      "root": "C:\\a\\chainlesschain\\chainlesschain",
+      "evidence": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/job.log:61",
+      "rootChars": 34,
+      "rootPlusSeparatorChars": 35
+    },
+    {
+      "host": "windows-latest",
+      "root": "D:\\a\\chainlesschain\\chainlesschain",
+      "evidence": ".work/release-preflight-0.166.95/ci-windows-host-a3-failed/job.log:73",
+      "rootChars": 34,
+      "rootPlusSeparatorChars": 35
+    }
+  ],
+  "limits": {
+    "traditionalMaxPathIncludingNull": 260,
+    "usableAbsoluteChars": 259,
+    "conservativeAbsoluteTarget": 240,
+    "conservativeRootChars": 40,
+    "interpretation": "260 includes the terminating NUL. Target 240 leaves 19 usable characters; 40-character checkout root is a conservative portability budget beyond observed roots, not an assertion that all runners use this root."
+  },
+  "summary": {
+    "files": 73,
+    "currentOver259": 0,
+    "currentOver240": 0,
+    "renameCount": 6,
+    "maxCurrentRelativeChars": 202,
+    "maxProposedRelativeChars": 202,
+    "maxProposedObservedAbsoluteChars": 237,
+    "maxProposedWith40CharacterRoot": 243,
+    "proposedOver259": 0,
+    "proposedOver240": 0,
+    "proposedOver259With40CharacterRoot": 0,
+    "proposedOver240With40CharacterRoot": 2,
+    "originalOver259": 6,
+    "maxOriginalRelativeChars": 236,
+    "maxOriginalAbsoluteChars": 271
+  },
+  "mappedArchiveRequirements": [
+    "Update outer manifest files[].path to actual shortened archive destination.",
+    "Keep files[].source, bytes and sha256 unchanged; record original artifact-relative path and new archive-relative path explicitly.",
+    "Keep original journey-evidence.json and original API/source artifacts byte-for-byte unchanged.",
+    "State that host-artifact is a selected, path-mapped archive, not a verbatim artifact extraction tree; readers must use outer mapping rather than resolving original artifact paths against the renamed tree.",
+    "The archived builder is a historical original which recreates the old layout; do not claim it produces the mapped layout unless a separate mapping step is recorded."
+  ],
+  "rows": [
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "relativeChars": 202,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "originalRelativeChars": 202,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "proposedRelativeChars": 202,
+      "renamed": false,
+      "bytes": 654,
+      "sha256": "dfe14437dd39517332f1aaa4a72c6b02a98a1c89a740f5d5b089301f28a6b9c2",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 237,
+          "originalAbsoluteChars": 237,
+          "proposedAbsoluteChars": 237
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 237,
+          "originalAbsoluteChars": 237,
+          "proposedAbsoluteChars": 237
+        }
+      ],
+      "proposedWith40CharacterRoot": 243
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "relativeChars": 202,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "originalRelativeChars": 202,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "proposedRelativeChars": 202,
+      "renamed": false,
+      "bytes": 1227,
+      "sha256": "f9f7bf2a884f1dfe948b3258edc107e974b7f4077ec65ce4754b8e901132b721",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 237,
+          "originalAbsoluteChars": 237,
+          "proposedAbsoluteChars": 237
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 237,
+          "originalAbsoluteChars": 237,
+          "proposedAbsoluteChars": 237
+        }
+      ],
+      "proposedWith40CharacterRoot": 243
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "relativeChars": 191,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "originalRelativeChars": 191,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "proposedRelativeChars": 191,
+      "renamed": false,
+      "bytes": 2256,
+      "sha256": "e13dd0c213f857e5db8c9238a98956f49072598c542488bcabd3d69c3495cdf1",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 226,
+          "originalAbsoluteChars": 226,
+          "proposedAbsoluteChars": 226
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 226,
+          "originalAbsoluteChars": 226,
+          "proposedAbsoluteChars": 226
+        }
+      ],
+      "proposedWith40CharacterRoot": 232
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "relativeChars": 176,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "originalRelativeChars": 176,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "proposedRelativeChars": 176,
+      "renamed": false,
+      "bytes": 341074,
+      "sha256": "2e32fbd94ad47413206c00cdbb3d2189e18b7feba7435dbb5bc686a5b8a6944a",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 211,
+          "originalAbsoluteChars": 211,
+          "proposedAbsoluteChars": 211
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 211,
+          "originalAbsoluteChars": 211,
+          "proposedAbsoluteChars": 211
+        }
+      ],
+      "proposedWith40CharacterRoot": 217
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "relativeChars": 168,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "originalRelativeChars": 168,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "proposedRelativeChars": 168,
+      "renamed": false,
+      "bytes": 2810,
+      "sha256": "ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 203,
+          "originalAbsoluteChars": 203,
+          "proposedAbsoluteChars": 203
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 203,
+          "originalAbsoluteChars": 203,
+          "proposedAbsoluteChars": 203
+        }
+      ],
+      "proposedWith40CharacterRoot": 209
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "relativeChars": 168,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "originalRelativeChars": 168,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "proposedRelativeChars": 168,
+      "renamed": false,
+      "bytes": 1013,
+      "sha256": "f088e20f98d1626def5107736edd5cb403e508319d036ab1ac517147511c51b4",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 203,
+          "originalAbsoluteChars": 203,
+          "proposedAbsoluteChars": 203
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 203,
+          "originalAbsoluteChars": 203,
+          "proposedAbsoluteChars": 203
+        }
+      ],
+      "proposedWith40CharacterRoot": 209
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "relativeChars": 165,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "originalRelativeChars": 165,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "proposedRelativeChars": 165,
+      "renamed": false,
+      "bytes": 14896,
+      "sha256": "6874a4b95974fcb9828a11b2a911cb5800ec79cbc815a2f1bee72c2beaa558af",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 200,
+          "originalAbsoluteChars": 200,
+          "proposedAbsoluteChars": 200
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 200,
+          "originalAbsoluteChars": 200,
+          "proposedAbsoluteChars": 200
+        }
+      ],
+      "proposedWith40CharacterRoot": 206
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "relativeChars": 165,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "originalRelativeChars": 165,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "proposedRelativeChars": 165,
+      "renamed": false,
+      "bytes": 14303,
+      "sha256": "df409ad2b12c8fe65d716b51b4b79fcbcddf97a29bdfce250963f35e9c3746da",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 200,
+          "originalAbsoluteChars": 200,
+          "proposedAbsoluteChars": 200
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 200,
+          "originalAbsoluteChars": 200,
+          "proposedAbsoluteChars": 200
+        }
+      ],
+      "proposedWith40CharacterRoot": 206
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "relativeChars": 161,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "originalRelativeChars": 161,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "proposedRelativeChars": 161,
+      "renamed": false,
+      "bytes": 17718,
+      "sha256": "cf242d3d4925b31990fd123322b4805327c19848dc9bc99954a8947eafcd55cd",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 196,
+          "originalAbsoluteChars": 196,
+          "proposedAbsoluteChars": 196
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 196,
+          "originalAbsoluteChars": 196,
+          "proposedAbsoluteChars": 196
+        }
+      ],
+      "proposedWith40CharacterRoot": 202
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "relativeChars": 157,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "originalRelativeChars": 157,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "proposedRelativeChars": 157,
+      "renamed": false,
+      "bytes": 47,
+      "sha256": "42c0b19478cab8c3e26422ea7b95122803288c198a4c0e416fb94cc8c9cd6d29",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 192,
+          "originalAbsoluteChars": 192,
+          "proposedAbsoluteChars": 192
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 192,
+          "originalAbsoluteChars": 192,
+          "proposedAbsoluteChars": 192
+        }
+      ],
+      "proposedWith40CharacterRoot": 198
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "relativeChars": 156,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "originalRelativeChars": 156,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "proposedRelativeChars": 156,
+      "renamed": false,
+      "bytes": 1005,
+      "sha256": "c368b336f08006294c0bb9f87f776edb0594232836e5960c1336613ac01e1cb5",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 191,
+          "originalAbsoluteChars": 191,
+          "proposedAbsoluteChars": 191
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 191,
+          "originalAbsoluteChars": 191,
+          "proposedAbsoluteChars": 191
+        }
+      ],
+      "proposedWith40CharacterRoot": 197
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "relativeChars": 156,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "originalRelativeChars": 156,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "proposedRelativeChars": 156,
+      "renamed": false,
+      "bytes": 21698,
+      "sha256": "29b0b2611a30f133a614bc1637fa06872188093d066839abc198f7b23d9b1806",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 191,
+          "originalAbsoluteChars": 191,
+          "proposedAbsoluteChars": 191
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 191,
+          "originalAbsoluteChars": 191,
+          "proposedAbsoluteChars": 191
+        }
+      ],
+      "proposedWith40CharacterRoot": 197
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/com/intellij/openapi/application/ApplicationManager.java",
+      "archiveRelativePath": "popup-contract/src/com/intellij/openapi/application/ApplicationManager.java",
+      "relativeChars": 154,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/com/intellij/openapi/application/ApplicationManager.java",
+      "originalRelativeChars": 154,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/com/intellij/openapi/application/ApplicationManager.java",
+      "proposedRelativeChars": 154,
+      "renamed": false,
+      "bytes": 963,
+      "sha256": "ba3c5fd50c5b71ee8912c8d6c4c974d8b1ba67aa8de9cf6be58d714b12e543e3",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/com/intellij/openapi/application/ApplicationManager.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 189,
+          "originalAbsoluteChars": 189,
+          "proposedAbsoluteChars": 189
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 189,
+          "originalAbsoluteChars": 189,
+          "proposedAbsoluteChars": 189
+        }
+      ],
+      "proposedWith40CharacterRoot": 195
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+      "relativeChars": 150,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+      "originalRelativeChars": 236,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+      "proposedRelativeChars": 150,
+      "renamed": true,
+      "bytes": 260,
+      "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 185,
+          "originalAbsoluteChars": 271,
+          "proposedAbsoluteChars": 185
+        }
+      ],
+      "proposedWith40CharacterRoot": 191
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "archiveRelativePath": "host-artifact/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "relativeChars": 148,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "originalRelativeChars": 148,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "proposedRelativeChars": 148,
+      "renamed": false,
+      "bytes": 782,
+      "sha256": "e7692375cdf52056e41106f1fe3012194b400fdcfafb3408b8d0b009763cfe04",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 183,
+          "originalAbsoluteChars": 183,
+          "proposedAbsoluteChars": 183
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 183,
+          "originalAbsoluteChars": 183,
+          "proposedAbsoluteChars": 183
+        }
+      ],
+      "proposedWith40CharacterRoot": 189
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupChooserBuilder.java",
+      "archiveRelativePath": "official-idea-source/prior-analysis-captures/PopupChooserBuilder.java",
+      "relativeChars": 148,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupChooserBuilder.java",
+      "originalRelativeChars": 148,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupChooserBuilder.java",
+      "proposedRelativeChars": 148,
+      "renamed": false,
+      "bytes": 21489,
+      "sha256": "75ee1071854e27f24131113a60d6edcba4b3e7a8890c6f98d2e0ef6082380bf7",
+      "manifestDeclared": true,
+      "source": ".work/astra-PopupChooserBuilder-262.8665.337.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 183,
+          "originalAbsoluteChars": 183,
+          "proposedAbsoluteChars": 183
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 183,
+          "originalAbsoluteChars": 183,
+          "proposedAbsoluteChars": 183
+        }
+      ],
+      "proposedWith40CharacterRoot": 189
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupFactoryImpl.java",
+      "archiveRelativePath": "official-idea-source/prior-analysis-captures/PopupFactoryImpl.java",
+      "relativeChars": 145,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupFactoryImpl.java",
+      "originalRelativeChars": 145,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupFactoryImpl.java",
+      "proposedRelativeChars": 145,
+      "renamed": false,
+      "bytes": 46890,
+      "sha256": "0054efe708719013fb5522d9cc424a905eb7a73293e575b5652dfae522868b49",
+      "manifestDeclared": true,
+      "source": ".work/astra-PopupFactoryImpl-262.8665.337.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 180,
+          "originalAbsoluteChars": 180,
+          "proposedAbsoluteChars": 180
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 180,
+          "originalAbsoluteChars": 180,
+          "proposedAbsoluteChars": 180
+        }
+      ],
+      "proposedWith40CharacterRoot": 186
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupListAdapter.java",
+      "archiveRelativePath": "official-idea-source/prior-analysis-captures/PopupListAdapter.java",
+      "relativeChars": 145,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupListAdapter.java",
+      "originalRelativeChars": 145,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/PopupListAdapter.java",
+      "proposedRelativeChars": 145,
+      "renamed": false,
+      "bytes": 5562,
+      "sha256": "f39dd3b5f10734f75cd7613bd7edc3bb678a972aac0b80ce534f3c92954b16d9",
+      "manifestDeclared": true,
+      "source": ".work/astra-PopupListAdapter-262.8665.337.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 180,
+          "originalAbsoluteChars": 180,
+          "proposedAbsoluteChars": 180
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 180,
+          "originalAbsoluteChars": 180,
+          "proposedAbsoluteChars": 180
+        }
+      ],
+      "proposedWith40CharacterRoot": 186
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "archiveRelativePath": "host-artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "relativeChars": 143,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "originalRelativeChars": 143,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "proposedRelativeChars": 143,
+      "renamed": false,
+      "bytes": 10521,
+      "sha256": "d2283d903af9efe64e9487c3449662d72c9ed26f110834548b859d1cb32c3495",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 178,
+          "originalAbsoluteChars": 178,
+          "proposedAbsoluteChars": 178
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 178,
+          "originalAbsoluteChars": 178,
+          "proposedAbsoluteChars": 178
+        }
+      ],
+      "proposedWith40CharacterRoot": 184
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-capture-official-popup-sources-20261010.mjs",
+      "archiveRelativePath": "archive-tools/astra-capture-official-popup-sources-20261010.mjs",
+      "relativeChars": 142,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-capture-official-popup-sources-20261010.mjs",
+      "originalRelativeChars": 142,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-capture-official-popup-sources-20261010.mjs",
+      "proposedRelativeChars": 142,
+      "renamed": false,
+      "bytes": 3028,
+      "sha256": "5373a8356e2710ae741989c8a694dec459f2f95cd4ca18b62cfc10e5464d1747",
+      "manifestDeclared": true,
+      "source": ".work/astra-capture-official-popup-sources-20261010.mjs",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        }
+      ],
+      "proposedWith40CharacterRoot": 183
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-finalize-official-popup-source-20261010.mjs",
+      "archiveRelativePath": "archive-tools/astra-finalize-official-popup-source-20261010.mjs",
+      "relativeChars": 142,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-finalize-official-popup-source-20261010.mjs",
+      "originalRelativeChars": 142,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-finalize-official-popup-source-20261010.mjs",
+      "proposedRelativeChars": 142,
+      "renamed": false,
+      "bytes": 2374,
+      "sha256": "dec6f952c44db8f02ded73e0ad288a84d4dd5611516f7c8b4bcc32574660fc86",
+      "manifestDeclared": true,
+      "source": ".work/astra-finalize-official-popup-source-20261010.mjs",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        }
+      ],
+      "proposedWith40CharacterRoot": 183
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/AbstractPopup.java",
+      "archiveRelativePath": "official-idea-source/prior-analysis-captures/AbstractPopup.java",
+      "relativeChars": 142,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/AbstractPopup.java",
+      "originalRelativeChars": 142,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/prior-analysis-captures/AbstractPopup.java",
+      "proposedRelativeChars": 142,
+      "renamed": false,
+      "bytes": 118072,
+      "sha256": "f176b024899ef16c962deb3a19a42e1b6d216deaf1b20450254b6d37176b0fd1",
+      "manifestDeclared": true,
+      "source": ".work/astra-AbstractPopup-262.8665.337.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 177,
+          "originalAbsoluteChars": 177,
+          "proposedAbsoluteChars": 177
+        }
+      ],
+      "proposedWith40CharacterRoot": 183
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java.metadata.json",
+      "archiveRelativePath": "official-idea-source/PopupChooserBuilder.java.metadata.json",
+      "relativeChars": 138,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java.metadata.json",
+      "originalRelativeChars": 138,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java.metadata.json",
+      "proposedRelativeChars": 138,
+      "renamed": false,
+      "bytes": 30138,
+      "sha256": "ce2dd2218ed9585390c73474992c5aeea72fe97deaf616c3394176b925c9d7b7",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupChooserBuilder.java.metadata.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 173,
+          "originalAbsoluteChars": 173,
+          "proposedAbsoluteChars": 173
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 173,
+          "originalAbsoluteChars": 173,
+          "proposedAbsoluteChars": 173
+        }
+      ],
+      "proposedWith40CharacterRoot": 179
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java.metadata.json",
+      "archiveRelativePath": "official-idea-source/PopupFactoryImpl.java.metadata.json",
+      "relativeChars": 135,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java.metadata.json",
+      "originalRelativeChars": 135,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java.metadata.json",
+      "proposedRelativeChars": 135,
+      "renamed": false,
+      "bytes": 64555,
+      "sha256": "256f36e0d12b38ad8c0b160843df3a9b215508f1d6c888c23a626712a40ca543",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupFactoryImpl.java.metadata.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 170,
+          "originalAbsoluteChars": 170,
+          "proposedAbsoluteChars": 170
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 170,
+          "originalAbsoluteChars": 170,
+          "proposedAbsoluteChars": 170
+        }
+      ],
+      "proposedWith40CharacterRoot": 176
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java.metadata.json",
+      "archiveRelativePath": "official-idea-source/PopupListAdapter.java.metadata.json",
+      "relativeChars": 135,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java.metadata.json",
+      "originalRelativeChars": 135,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java.metadata.json",
+      "proposedRelativeChars": 135,
+      "renamed": false,
+      "bytes": 8808,
+      "sha256": "e13906491926a68b6635c4fb1cff5a425cc9f08eddb88d6f022456661ba8c13f",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupListAdapter.java.metadata.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 170,
+          "originalAbsoluteChars": 170,
+          "proposedAbsoluteChars": 170
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 170,
+          "originalAbsoluteChars": 170,
+          "proposedAbsoluteChars": 170
+        }
+      ],
+      "proposedWith40CharacterRoot": 176
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-archive-arm64-attempt4-20261010.mjs",
+      "archiveRelativePath": "archive-tools/astra-archive-arm64-attempt4-20261010.mjs",
+      "relativeChars": 134,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-archive-arm64-attempt4-20261010.mjs",
+      "originalRelativeChars": 134,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/archive-tools/astra-archive-arm64-attempt4-20261010.mjs",
+      "proposedRelativeChars": 134,
+      "renamed": false,
+      "bytes": 10760,
+      "sha256": "b58a33e62d34ba339475344d7959355ee967d95fd982e3b635956a07c8cd4863",
+      "manifestDeclared": true,
+      "source": ".work/astra-archive-arm64-attempt4-20261010.mjs",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 169,
+          "originalAbsoluteChars": 169,
+          "proposedAbsoluteChars": 169
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 169,
+          "originalAbsoluteChars": 169,
+          "proposedAbsoluteChars": 169
+        }
+      ],
+      "proposedWith40CharacterRoot": 175
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-before-review.javap.txt",
+      "archiveRelativePath": "popup-contract/compiled-driver-before-review.javap.txt",
+      "relativeChars": 133,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-before-review.javap.txt",
+      "originalRelativeChars": 133,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-before-review.javap.txt",
+      "proposedRelativeChars": 133,
+      "renamed": false,
+      "bytes": 165958,
+      "sha256": "35f2eaed1ef83af823e1053fa5376d0958a831d0e67e24938cabe5d7abe0f3d9",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/compiled-driver-before-review.javap.txt",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 168,
+          "originalAbsoluteChars": 168,
+          "proposedAbsoluteChars": 168
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 168,
+          "originalAbsoluteChars": 168,
+          "proposedAbsoluteChars": 168
+        }
+      ],
+      "proposedWith40CharacterRoot": 174
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java.metadata.json",
+      "archiveRelativePath": "official-idea-source/AbstractPopup.java.metadata.json",
+      "relativeChars": 132,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java.metadata.json",
+      "originalRelativeChars": 132,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java.metadata.json",
+      "proposedRelativeChars": 132,
+      "renamed": false,
+      "bytes": 159685,
+      "sha256": "f435d0ed6ca0c62f2b316cebd4a77b9fd1faba3a6b73773a3ad9d4578fe5143a",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/AbstractPopup.java.metadata.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 167,
+          "originalAbsoluteChars": 167,
+          "proposedAbsoluteChars": 167
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 167,
+          "originalAbsoluteChars": 167,
+          "proposedAbsoluteChars": 167
+        }
+      ],
+      "proposedWith40CharacterRoot": 173
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-after-review.javap.txt",
+      "archiveRelativePath": "popup-contract/compiled-driver-after-review.javap.txt",
+      "relativeChars": 132,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-after-review.javap.txt",
+      "originalRelativeChars": 132,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compiled-driver-after-review.javap.txt",
+      "proposedRelativeChars": 132,
+      "renamed": false,
+      "bytes": 165914,
+      "sha256": "2a983c80fc6cacf9b621d710d65b57c4a9d1c7878d1e0bd0ed50ad70a35de17e",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/compiled-driver-after-review.javap.txt",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 167,
+          "originalAbsoluteChars": 167,
+          "proposedAbsoluteChars": 167
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 167,
+          "originalAbsoluteChars": 167,
+          "proposedAbsoluteChars": 167
+        }
+      ],
+      "proposedWith40CharacterRoot": 173
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.corrected.source.java",
+      "archiveRelativePath": "popup-contract/IdeUiSmokeTest.corrected.source.java",
+      "relativeChars": 130,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.corrected.source.java",
+      "originalRelativeChars": 130,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.corrected.source.java",
+      "proposedRelativeChars": 130,
+      "renamed": false,
+      "bytes": 66395,
+      "sha256": "2eda534b6bb3969b5dfb195efeca291b2843f93132b03b39dc97e27748f12655",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.corrected.source.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 165,
+          "originalAbsoluteChars": 165,
+          "proposedAbsoluteChars": 165
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 165,
+          "originalAbsoluteChars": 165,
+          "proposedAbsoluteChars": 165
+        }
+      ],
+      "proposedWith40CharacterRoot": 171
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/vendor-selected-release.json",
+      "archiveRelativePath": "official-idea-source/vendor-selected-release.json",
+      "relativeChars": 128,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/vendor-selected-release.json",
+      "originalRelativeChars": 128,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/vendor-selected-release.json",
+      "proposedRelativeChars": 128,
+      "renamed": false,
+      "bytes": 6526,
+      "sha256": "21a8a9423a1549853f85f449635afabc096e02b7d657adb0373848382129d761",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/vendor-selected-release.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 163,
+          "originalAbsoluteChars": 163,
+          "proposedAbsoluteChars": 163
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 163,
+          "originalAbsoluteChars": 163,
+          "proposedAbsoluteChars": 163
+        }
+      ],
+      "proposedWith40CharacterRoot": 169
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-corrected-exact-script.js",
+      "archiveRelativePath": "popup-contract/actual-corrected-exact-script.js",
+      "relativeChars": 126,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-corrected-exact-script.js",
+      "originalRelativeChars": 126,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-corrected-exact-script.js",
+      "proposedRelativeChars": 126,
+      "renamed": false,
+      "bytes": 1590,
+      "sha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-corrected-exact-script.js",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 161,
+          "originalAbsoluteChars": 161,
+          "proposedAbsoluteChars": 161
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 161,
+          "originalAbsoluteChars": 161,
+          "proposedAbsoluteChars": 161
+        }
+      ],
+      "proposedWith40CharacterRoot": 167
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java",
+      "archiveRelativePath": "official-idea-source/PopupChooserBuilder.java",
+      "relativeChars": 124,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java",
+      "originalRelativeChars": 124,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupChooserBuilder.java",
+      "proposedRelativeChars": 124,
+      "renamed": false,
+      "bytes": 20814,
+      "sha256": "87ff943af7d31282dc922c97aa4f6e14efcf5a685e3943ad73e295630c53c944",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupChooserBuilder.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 159,
+          "originalAbsoluteChars": 159,
+          "proposedAbsoluteChars": 159
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 159,
+          "originalAbsoluteChars": 159,
+          "proposedAbsoluteChars": 159
+        }
+      ],
+      "proposedWith40CharacterRoot": 165
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/PopupDispatchContract.java",
+      "archiveRelativePath": "popup-contract/src/PopupDispatchContract.java",
+      "relativeChars": 124,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/PopupDispatchContract.java",
+      "originalRelativeChars": 124,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/PopupDispatchContract.java",
+      "proposedRelativeChars": 124,
+      "renamed": false,
+      "bytes": 10790,
+      "sha256": "19e2ffd09cda664c53f366da5990a827e6dcd77201a945ed5afa425364669e33",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/PopupDispatchContract.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 159,
+          "originalAbsoluteChars": 159,
+          "proposedAbsoluteChars": 159
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 159,
+          "originalAbsoluteChars": 159,
+          "proposedAbsoluteChars": 159
+        }
+      ],
+      "proposedWith40CharacterRoot": 165
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compilation-tool-record.json",
+      "archiveRelativePath": "popup-contract/compilation-tool-record.json",
+      "relativeChars": 122,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compilation-tool-record.json",
+      "originalRelativeChars": 122,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compilation-tool-record.json",
+      "proposedRelativeChars": 122,
+      "renamed": false,
+      "bytes": 631,
+      "sha256": "8197139f3aab194a45b459cf217cdeb481a484d89f1b9165da2b57cae9575bad",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009-compilation-tool-record.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 157,
+          "originalAbsoluteChars": 157,
+          "proposedAbsoluteChars": 157
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 157,
+          "originalAbsoluteChars": 157,
+          "proposedAbsoluteChars": 157
+        }
+      ],
+      "proposedWith40CharacterRoot": 163
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/verify-review-correction.mjs",
+      "archiveRelativePath": "popup-contract/verify-review-correction.mjs",
+      "relativeChars": 122,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/verify-review-correction.mjs",
+      "originalRelativeChars": 122,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/verify-review-correction.mjs",
+      "proposedRelativeChars": 122,
+      "renamed": false,
+      "bytes": 2571,
+      "sha256": "bb6c7b82f809a3ae5220198231a777121e886293c60328486e5617ac2b3ade8d",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/verify-review-correction.mjs",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 157,
+          "originalAbsoluteChars": 157,
+          "proposedAbsoluteChars": 157
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 157,
+          "originalAbsoluteChars": 157,
+          "proposedAbsoluteChars": 157
+        }
+      ],
+      "proposedWith40CharacterRoot": 163
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java",
+      "archiveRelativePath": "official-idea-source/PopupFactoryImpl.java",
+      "relativeChars": 121,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java",
+      "originalRelativeChars": 121,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupFactoryImpl.java",
+      "proposedRelativeChars": 121,
+      "renamed": false,
+      "bytes": 45838,
+      "sha256": "ab1a97d5d302105d3fb419f4d7acf8a8636ab4c408933d9f5b9424e9df01a670",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupFactoryImpl.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 156,
+          "originalAbsoluteChars": 156,
+          "proposedAbsoluteChars": 156
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 156,
+          "originalAbsoluteChars": 156,
+          "proposedAbsoluteChars": 156
+        }
+      ],
+      "proposedWith40CharacterRoot": 162
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java",
+      "archiveRelativePath": "official-idea-source/PopupListAdapter.java",
+      "relativeChars": 121,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java",
+      "originalRelativeChars": 121,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/PopupListAdapter.java",
+      "proposedRelativeChars": 121,
+      "renamed": false,
+      "bytes": 5377,
+      "sha256": "7d64d1da793eccf642292c3612e32ba0af3d1a1b75c000e0688c82652c0a056e",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/PopupListAdapter.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 156,
+          "originalAbsoluteChars": 156,
+          "proposedAbsoluteChars": 156
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 156,
+          "originalAbsoluteChars": 156,
+          "proposedAbsoluteChars": 156
+        }
+      ],
+      "proposedWith40CharacterRoot": 162
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.source.java",
+      "archiveRelativePath": "popup-contract/IdeUiSmokeTest.source.java",
+      "relativeChars": 120,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.source.java",
+      "originalRelativeChars": 120,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/IdeUiSmokeTest.source.java",
+      "proposedRelativeChars": 120,
+      "renamed": false,
+      "bytes": 66386,
+      "sha256": "f4bb79ab6d6328b2bcf488b7aba33033e93475b6999ab8d0dcfbdf499598554f",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.source.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 155,
+          "originalAbsoluteChars": 155,
+          "proposedAbsoluteChars": 155
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 155,
+          "originalAbsoluteChars": 155,
+          "proposedAbsoluteChars": 155
+        }
+      ],
+      "proposedWith40CharacterRoot": 161
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java",
+      "archiveRelativePath": "official-idea-source/AbstractPopup.java",
+      "relativeChars": 118,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java",
+      "originalRelativeChars": 118,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/AbstractPopup.java",
+      "proposedRelativeChars": 118,
+      "renamed": false,
+      "bytes": 114898,
+      "sha256": "a48c3b50d918694529f6109fe40ad51a5b2843ccb9ab143ad9ddb56ef734fa25",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/AbstractPopup.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 153,
+          "originalAbsoluteChars": 153,
+          "proposedAbsoluteChars": 153
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 153,
+          "originalAbsoluteChars": 153,
+          "proposedAbsoluteChars": 153
+        }
+      ],
+      "proposedWith40CharacterRoot": 159
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-prefix-script.js",
+      "archiveRelativePath": "popup-contract/actual-prefix-script.js",
+      "relativeChars": 117,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-prefix-script.js",
+      "originalRelativeChars": 117,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-prefix-script.js",
+      "proposedRelativeChars": 117,
+      "renamed": false,
+      "bytes": 1579,
+      "sha256": "7d04e167bd97258c69fc6c8219d8cda2e161220fd6ed2312d9e181c0c11c23bf",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-prefix-script.js",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 152,
+          "originalAbsoluteChars": 152,
+          "proposedAbsoluteChars": 152
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 152,
+          "originalAbsoluteChars": 152,
+          "proposedAbsoluteChars": 152
+        }
+      ],
+      "proposedWith40CharacterRoot": 158
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-exact-script.js",
+      "archiveRelativePath": "popup-contract/actual-exact-script.js",
+      "relativeChars": 116,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-exact-script.js",
+      "originalRelativeChars": 116,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/actual-exact-script.js",
+      "proposedRelativeChars": 116,
+      "renamed": false,
+      "bytes": 1590,
+      "sha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-exact-script.js",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 151,
+          "originalAbsoluteChars": 151,
+          "proposedAbsoluteChars": 151
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 151,
+          "originalAbsoluteChars": 151,
+          "proposedAbsoluteChars": 151
+        }
+      ],
+      "proposedWith40CharacterRoot": 157
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-resolution.json",
+      "archiveRelativePath": "popup-contract/review-resolution.json",
+      "relativeChars": 116,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-resolution.json",
+      "originalRelativeChars": 116,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-resolution.json",
+      "proposedRelativeChars": 116,
+      "renamed": false,
+      "bytes": 754,
+      "sha256": "48366c631ae92fc309a5a682cc6171ace78534c5465249fc3a11bdd9fc2bff84",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/review-resolution.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 151,
+          "originalAbsoluteChars": 151,
+          "proposedAbsoluteChars": 151
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 151,
+          "originalAbsoluteChars": 151,
+          "proposedAbsoluteChars": 151
+        }
+      ],
+      "proposedWith40CharacterRoot": 157
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/provenance.json",
+      "archiveRelativePath": "official-idea-source/provenance.json",
+      "relativeChars": 115,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/provenance.json",
+      "originalRelativeChars": 115,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/provenance.json",
+      "proposedRelativeChars": 115,
+      "renamed": false,
+      "bytes": 3386,
+      "sha256": "61d42dcc0f3b1e002abc5135f6e684ed561ea09bd96074eb70b74c92a3b15819",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/provenance.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        }
+      ],
+      "proposedWith40CharacterRoot": 156
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/classpath.init.gradle",
+      "archiveRelativePath": "popup-contract/classpath.init.gradle",
+      "relativeChars": 115,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/classpath.init.gradle",
+      "originalRelativeChars": 115,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/classpath.init.gradle",
+      "proposedRelativeChars": 115,
+      "renamed": false,
+      "bytes": 480,
+      "sha256": "789a8e0139553377d45e8aa226c3b928f2a00c7ba8b4d343d76505059251a5af",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/classpath.init.gradle",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        }
+      ],
+      "proposedWith40CharacterRoot": 156
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/runtime-classpath.txt",
+      "archiveRelativePath": "popup-contract/runtime-classpath.txt",
+      "relativeChars": 115,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/runtime-classpath.txt",
+      "originalRelativeChars": 115,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/runtime-classpath.txt",
+      "proposedRelativeChars": 115,
+      "renamed": false,
+      "bytes": 4007,
+      "sha256": "752f7c8eb51b49c57fc68c6b122b4298f9fe9050c2a69b4c8092c59949eab058",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/runtime-classpath.txt",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        }
+      ],
+      "proposedWith40CharacterRoot": 156
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/ExportActual.java",
+      "archiveRelativePath": "popup-contract/src/ExportActual.java",
+      "relativeChars": 115,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/ExportActual.java",
+      "originalRelativeChars": 115,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/src/ExportActual.java",
+      "proposedRelativeChars": 115,
+      "renamed": false,
+      "bytes": 531,
+      "sha256": "4bc649e8706ba5bb0f920ea1ac5d3a0e9e7d592e6870ae1076183b21d3189adb",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/ExportActual.java",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 150,
+          "originalAbsoluteChars": 150,
+          "proposedAbsoluteChars": 150
+        }
+      ],
+      "proposedWith40CharacterRoot": 156
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-finding.json",
+      "archiveRelativePath": "popup-contract/review-finding.json",
+      "relativeChars": 113,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-finding.json",
+      "originalRelativeChars": 113,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-finding.json",
+      "proposedRelativeChars": 113,
+      "renamed": false,
+      "bytes": 691,
+      "sha256": "1d2a8c4a0334f8bebde3e32af5344b698b91ef2ad8351dba76228c12fa6efda7",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/review-finding.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 148,
+          "originalAbsoluteChars": 148,
+          "proposedAbsoluteChars": 148
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 148,
+          "originalAbsoluteChars": 148,
+          "proposedAbsoluteChars": 148
+        }
+      ],
+      "proposedWith40CharacterRoot": 154
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/tag-ref.json",
+      "archiveRelativePath": "official-idea-source/tag-ref.json",
+      "relativeChars": 112,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/tag-ref.json",
+      "originalRelativeChars": 112,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/official-idea-source/tag-ref.json",
+      "proposedRelativeChars": 112,
+      "renamed": false,
+      "bytes": 399,
+      "sha256": "a7d27ec3f668646cf7617ee558d1f4d4d5378ac316f285ac5a7af18c3e7b5f53",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-official-source-20261010/tag-ref.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        }
+      ],
+      "proposedWith40CharacterRoot": 153
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stderr.log",
+      "archiveRelativePath": "popup-contract/compile.stderr.log",
+      "relativeChars": 112,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stderr.log",
+      "originalRelativeChars": 112,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stderr.log",
+      "proposedRelativeChars": 112,
+      "renamed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/compile.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        }
+      ],
+      "proposedWith40CharacterRoot": 153
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stdout.log",
+      "archiveRelativePath": "popup-contract/compile.stdout.log",
+      "relativeChars": 112,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stdout.log",
+      "originalRelativeChars": 112,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/compile.stdout.log",
+      "proposedRelativeChars": 112,
+      "renamed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/compile.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        }
+      ],
+      "proposedWith40CharacterRoot": 153
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2-metadata.json",
+      "archiveRelativePath": "popup-contract/run2-metadata.json",
+      "relativeChars": 112,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2-metadata.json",
+      "originalRelativeChars": 112,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2-metadata.json",
+      "proposedRelativeChars": 112,
+      "renamed": false,
+      "bytes": 517,
+      "sha256": "452ea480403fc1b36b41e3234274ad6694cb3ec2c70f594456705a8fdc20ab87",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2-metadata.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 147,
+          "originalAbsoluteChars": 147,
+          "proposedAbsoluteChars": 147
+        }
+      ],
+      "proposedWith40CharacterRoot": 153
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stderr.log",
+      "archiveRelativePath": "popup-contract/run2.stderr.log",
+      "relativeChars": 109,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stderr.log",
+      "originalRelativeChars": 109,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stderr.log",
+      "proposedRelativeChars": 109,
+      "renamed": false,
+      "bytes": 586,
+      "sha256": "b19aae1951efbd47e70c3cfe9c5c893c6fb8f1fbd58c6a521c388eff12442634",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 144,
+          "originalAbsoluteChars": 144,
+          "proposedAbsoluteChars": 144
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 144,
+          "originalAbsoluteChars": 144,
+          "proposedAbsoluteChars": 144
+        }
+      ],
+      "proposedWith40CharacterRoot": 150
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stdout.log",
+      "archiveRelativePath": "popup-contract/run2.stdout.log",
+      "relativeChars": 109,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stdout.log",
+      "originalRelativeChars": 109,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run2.stdout.log",
+      "proposedRelativeChars": 109,
+      "renamed": false,
+      "bytes": 3734,
+      "sha256": "9988dc4bc0911cafa2b3f12d2b05258da59455e5780c6bf1b538b19207f50c25",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 144,
+          "originalAbsoluteChars": 144,
+          "proposedAbsoluteChars": 144
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 144,
+          "originalAbsoluteChars": 144,
+          "proposedAbsoluteChars": 144
+        }
+      ],
+      "proposedWith40CharacterRoot": 150
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stderr.log",
+      "archiveRelativePath": "popup-contract/run.stderr.log",
+      "relativeChars": 108,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stderr.log",
+      "originalRelativeChars": 108,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stderr.log",
+      "proposedRelativeChars": 108,
+      "renamed": false,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.stderr.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 143,
+          "originalAbsoluteChars": 143,
+          "proposedAbsoluteChars": 143
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 143,
+          "originalAbsoluteChars": 143,
+          "proposedAbsoluteChars": 143
+        }
+      ],
+      "proposedWith40CharacterRoot": 149
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stdout.log",
+      "archiveRelativePath": "popup-contract/run.stdout.log",
+      "relativeChars": 108,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stdout.log",
+      "originalRelativeChars": 108,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.stdout.log",
+      "proposedRelativeChars": 108,
+      "renamed": false,
+      "bytes": 2212,
+      "sha256": "2c718e7eb8783bca28a5e43451c301dfe66141c9e6d6fe5ea4734cba588dcd4a",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.stdout.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 143,
+          "originalAbsoluteChars": 143,
+          "proposedAbsoluteChars": 143
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 143,
+          "originalAbsoluteChars": 143,
+          "proposedAbsoluteChars": 143
+        }
+      ],
+      "proposedWith40CharacterRoot": 149
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/report.json",
+      "archiveRelativePath": "popup-contract/report.json",
+      "relativeChars": 105,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/report.json",
+      "originalRelativeChars": 105,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/report.json",
+      "proposedRelativeChars": 105,
+      "renamed": false,
+      "bytes": 5006,
+      "sha256": "90efda05bd97787533b654709c670a5aa4d599d5ef3acfcde4e4902c11bf2f02",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/report.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 140,
+          "originalAbsoluteChars": 140,
+          "proposedAbsoluteChars": 140
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 140,
+          "originalAbsoluteChars": 140,
+          "proposedAbsoluteChars": 140
+        }
+      ],
+      "proposedWith40CharacterRoot": 146
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/artifacts-1.json",
+      "archiveRelativePath": "ci-run/artifacts-1.json",
+      "relativeChars": 102,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/artifacts-1.json",
+      "originalRelativeChars": 102,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/artifacts-1.json",
+      "proposedRelativeChars": 102,
+      "renamed": false,
+      "bytes": 7256,
+      "sha256": "8f1f168ad8db0f43885bbce199e31e0b720f0a522d9145bf634eff314af7a4e0",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/artifacts-1.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 137,
+          "originalAbsoluteChars": 137,
+          "proposedAbsoluteChars": 137
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 137,
+          "originalAbsoluteChars": 137,
+          "proposedAbsoluteChars": 137
+        }
+      ],
+      "proposedWith40CharacterRoot": 143
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.mjs",
+      "archiveRelativePath": "popup-contract/run.mjs",
+      "relativeChars": 101,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.mjs",
+      "originalRelativeChars": 101,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.mjs",
+      "proposedRelativeChars": 101,
+      "renamed": false,
+      "bytes": 1808,
+      "sha256": "17602f2417d59cd011bd1c4681b216ce521eff20347adcd0f9c9cce82b032bb1",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.mjs",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 136,
+          "originalAbsoluteChars": 136,
+          "proposedAbsoluteChars": 136
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 136,
+          "originalAbsoluteChars": 136,
+          "proposedAbsoluteChars": 136
+        }
+      ],
+      "proposedWith40CharacterRoot": 142
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.ps1",
+      "archiveRelativePath": "popup-contract/run.ps1",
+      "relativeChars": 101,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.ps1",
+      "originalRelativeChars": 101,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/run.ps1",
+      "proposedRelativeChars": 101,
+      "renamed": false,
+      "bytes": 2438,
+      "sha256": "48e8e0570f039a2cb4e1923953f214a7ecfe67c491bbad96c27d189234d29545",
+      "manifestDeclared": true,
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.ps1",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 136,
+          "originalAbsoluteChars": 136,
+          "proposedAbsoluteChars": 136
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 136,
+          "originalAbsoluteChars": 136,
+          "proposedAbsoluteChars": 136
+        }
+      ],
+      "proposedWith40CharacterRoot": 142
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/readback.json",
+      "archiveRelativePath": "ci-job/readback.json",
+      "relativeChars": 99,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/readback.json",
+      "originalRelativeChars": 99,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/readback.json",
+      "proposedRelativeChars": 99,
+      "renamed": false,
+      "bytes": 338,
+      "sha256": "5ef6b69b55ea4d33e20b80cf6f29a1af2d3d246e6dd160f749a535e5e838fafe",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/readback.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 134,
+          "originalAbsoluteChars": 134,
+          "proposedAbsoluteChars": 134
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 134,
+          "originalAbsoluteChars": 134,
+          "proposedAbsoluteChars": 134
+        }
+      ],
+      "proposedWith40CharacterRoot": 140
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/readback.json",
+      "archiveRelativePath": "ci-run/readback.json",
+      "relativeChars": 99,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/readback.json",
+      "originalRelativeChars": 99,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/readback.json",
+      "proposedRelativeChars": 99,
+      "renamed": false,
+      "bytes": 80023,
+      "sha256": "625f4cd56cb11fa93d5592367230a6c04da7f6c9697749b43bcf91c8139127f1",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/readback.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 134,
+          "originalAbsoluteChars": 134,
+          "proposedAbsoluteChars": 134
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 134,
+          "originalAbsoluteChars": 134,
+          "proposedAbsoluteChars": 134
+        }
+      ],
+      "proposedWith40CharacterRoot": 140
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/jobs-1.json",
+      "archiveRelativePath": "ci-run/jobs-1.json",
+      "relativeChars": 97,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/jobs-1.json",
+      "originalRelativeChars": 97,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/jobs-1.json",
+      "proposedRelativeChars": 97,
+      "renamed": false,
+      "bytes": 38177,
+      "sha256": "cd2f83b44382da5987f5cdabea9c4f1eb295581e822789125f94c671ea134d8e",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/jobs-1.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 132,
+          "originalAbsoluteChars": 132,
+          "proposedAbsoluteChars": 132
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 132,
+          "originalAbsoluteChars": 132,
+          "proposedAbsoluteChars": 132
+        }
+      ],
+      "proposedWith40CharacterRoot": 138
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.json",
+      "archiveRelativePath": "ci-job/job.json",
+      "relativeChars": 94,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.json",
+      "originalRelativeChars": 94,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.json",
+      "proposedRelativeChars": 94,
+      "renamed": false,
+      "bytes": 5745,
+      "sha256": "6f11a6a674f05e451dca73d096cc78b6c1c566ccb0bee5d28f263810b5d1ba79",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/job.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        }
+      ],
+      "proposedWith40CharacterRoot": 135
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/run.json",
+      "archiveRelativePath": "ci-job/run.json",
+      "relativeChars": 94,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/run.json",
+      "originalRelativeChars": 94,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/run.json",
+      "proposedRelativeChars": 94,
+      "renamed": false,
+      "bytes": 15319,
+      "sha256": "daa40edb57b1781aca5d57542d98c6f7fba2928168aceedf53e2a902533fae55",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/run.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        }
+      ],
+      "proposedWith40CharacterRoot": 135
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/run.json",
+      "archiveRelativePath": "ci-run/run.json",
+      "relativeChars": 94,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/run.json",
+      "originalRelativeChars": 94,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-run/run.json",
+      "proposedRelativeChars": 94,
+      "renamed": false,
+      "bytes": 13773,
+      "sha256": "f44a7389a514327c601b265823ab5fc7e197dadfb268fd1dc36c594eea678031",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/run.json",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 129,
+          "originalAbsoluteChars": 129,
+          "proposedAbsoluteChars": 129
+        }
+      ],
+      "proposedWith40CharacterRoot": 135
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.log",
+      "archiveRelativePath": "ci-job/job.log",
+      "relativeChars": 93,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.log",
+      "originalRelativeChars": 93,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/ci-job/job.log",
+      "proposedRelativeChars": 93,
+      "renamed": false,
+      "bytes": 216526,
+      "sha256": "f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804",
+      "manifestDeclared": true,
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/job.log",
+      "declaredHashMatches": true,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 128,
+          "originalAbsoluteChars": 128,
+          "proposedAbsoluteChars": 128
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 128,
+          "originalAbsoluteChars": 128,
+          "proposedAbsoluteChars": 128
+        }
+      ],
+      "proposedWith40CharacterRoot": 134
+    },
+    {
+      "path": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/manifest.json",
+      "archiveRelativePath": "manifest.json",
+      "relativeChars": 92,
+      "originalPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/manifest.json",
+      "originalRelativeChars": 92,
+      "proposedPath": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/manifest.json",
+      "proposedRelativeChars": 92,
+      "renamed": false,
+      "bytes": 50031,
+      "sha256": "d0c225cd59e6b72e7c35c549a57d4400088e6e657eb436b3b2eff716be02890b",
+      "manifestDeclared": false,
+      "declaredHashMatches": null,
+      "absolutePaths": [
+        {
+          "host": "windows-11-arm",
+          "absoluteChars": 127,
+          "originalAbsoluteChars": 127,
+          "proposedAbsoluteChars": 127
+        },
+        {
+          "host": "windows-latest",
+          "absoluteChars": 127,
+          "originalAbsoluteChars": 127,
+          "proposedAbsoluteChars": 127
+        }
+      ],
+      "proposedWith40CharacterRoot": 133
+    }
+  ],
+  "captureNote": "Renames had already been applied concurrently before the first audit snapshot. This final audit reconstructs original receipt paths from unchanged manifest source names, and reads exact checkout roots directly from original CI logs."
+}

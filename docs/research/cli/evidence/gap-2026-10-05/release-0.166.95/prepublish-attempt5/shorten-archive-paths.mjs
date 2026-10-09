@@ -1,0 +1,33 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const workspace=path.resolve('.');
+const root=path.resolve('docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4');
+assert.ok(root.startsWith(workspace+path.sep));
+const file=path.join(root,'manifest.json');
+const original=fs.readFileSync(file);
+const manifest=JSON.parse(original);
+assert.equal(manifest.sourceCommit,'a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b');
+assert.ok(!manifest.archivePathMapping);
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+const map=[];
+for(const entry of manifest.files){
+  const match=/^(host-artifact\/jetbrains-windows-2026\.2\.0\.1\/diagnostics\/)(01[1-6])-fake-cli-state\.json\.receipts_[a-f0-9]{64}\.json$/u.exec(entry.path);
+  if(!match)continue;
+  const destination=match[1]+match[2]+'-receipt.json';
+  const source=path.resolve(root,entry.path),target=path.resolve(root,destination);
+  assert.ok(source.startsWith(root+path.sep)&&target.startsWith(root+path.sep));
+  assert.ok(!fs.existsSync(target));
+  const bytes=fs.readFileSync(source);
+  assert.equal(hash(bytes),entry.sha256);
+  assert.equal(bytes.length,entry.bytes);
+  fs.renameSync(source,target);
+  assert.ok(bytes.equals(fs.readFileSync(target)));
+  map.push({originalArchivePath:entry.path,archivePath:destination,artifactSourcePath:entry.source,bytes:entry.bytes,sha256:entry.sha256});
+  entry.path=destination;
+}
+assert.equal(map.length,6);
+manifest.archivePathMapping={reason:'Windows Git checkout at release candidate 9f4df1157e493daaee137655c4e1d37c066c50e8 rejected six 236-character relative paths. Only archive basenames are shortened; original artifact/source paths and all payload bytes/digests remain unchanged.',capturedAt:new Date().toISOString(),originalManifestSha256:hash(original),files:map,artifactExtractionTreePreserved:false,originalJourneyManifestUnmodified:true};
+fs.writeFileSync(file,JSON.stringify(manifest,null,2)+'\n');
+console.log(JSON.stringify({filesRenamed:map.length,allPayloadBytesPreserved:true,longestRelativePath:Math.max(...manifest.files.map(entry=>path.relative(workspace,path.join(root,entry.path)).length))}));

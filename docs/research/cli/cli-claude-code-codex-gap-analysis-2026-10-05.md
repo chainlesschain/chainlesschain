@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-10 归档路径修正**：候选 `9f4df1157e` 的 Windows job 在 Git checkout 阶段因六份 receipt 长路径失败，尚未运行测试。已只缩短六份归档文件名，保留全部原始字节、来源路径、摘要和原 journey manifest，路径映射与失败原件见[验证 20.18](../cli-ide-gap-validation-2026-10-05.md#2018-windows-检出失败与归档路径映射)。测试驱动源码未改，新提交仍须完整门，尚未发布。
+
 > **2026-10-10 ARM64 弹窗测试驱动修正**：候选 `a3f3ed3dd1` 的 Windows ARM64 JetBrains 真实旅程 7/8 通过，第三轮恢复动作菜单未出现；前两轮 preview/confirm 已完成，第三轮尚无恢复请求，根因未确认。测试驱动将目标复核、唯一项选择及真实 Enter 放入同一 EDT 操作，保持原 45 秒预算、下一菜单及 preview/confirm 断言，无 retry；新增状态与焦点诊断。编译通过，实际编译脚本的 Rhino/Swing/EDT 合同 10/10，Java 重载已独立回读；这些不替代真实 IDE。见[验证 20.17](../cli-ide-gap-validation-2026-10-05.md#2017-windows-arm64-jetbrains-弹窗调度诊断)，新提交须完整矩阵，CLI/IDE 尚未发布。
 
 > **2026-10-09 原生恢复测试预算修正**：候选 `a3cbe918e4` 的 Windows 常规 CI 在桌面恢复用例超出 Vitest 默认 5 秒期限，230/231 通过，原件保留；该用例注入权限保护，与 SDK ACL 启动检查无关。仅此真实 SQLite 恢复用例改为 30 秒有界功能预算，并添加单调时钟阶段诊断，原断言及生产期限不变，无 retry。本机宿主 20/20、独立计时用例通过；未复现原 CI 超时，不确认慢 I/O 根因。见[验证 20.16](../cli-ide-gap-validation-2026-10-05.md#2016-windows-原生恢复功能预算与阶段诊断)。新提交仍须完整门，CLI/IDE 尚未发布。

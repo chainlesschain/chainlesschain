@@ -1,0 +1,185 @@
+{
+  "capturedAt": "2026-10-09T16:15:53.814Z",
+  "sourceCommit": "9f4df1157e493daaee137655c4e1d37c066c50e8",
+  "releaseVersion": "0.166.95",
+  "failure": "Windows Git checkout rejected six 236-character relative receipt paths before tests started.",
+  "cliRunId": 37957249938,
+  "cliJobId": 113911369726,
+  "arm64RunId": 37957249743,
+  "testExecution": "not-started-in-the-failed-checkout-jobs",
+  "sdkResult": "not-produced",
+  "workflowSnapshots": "Incomplete; these API captures do not assert complete success.",
+  "fix": "Only six archive basenames shortened to 011 through 016-receipt.json; bytes, source paths, original journey manifest and source hashes unchanged. Mapped archive is not the original extraction tree.",
+  "priorArchiveManifest": "attempt4-manifest-before-path-fix.json",
+  "pathMapping": {
+    "reason": "Windows Git checkout at release candidate 9f4df1157e493daaee137655c4e1d37c066c50e8 rejected six 236-character relative paths. Only archive basenames are shortened; original artifact/source paths and all payload bytes/digests remain unchanged.",
+    "capturedAt": "2026-10-09T16:15:18.466Z",
+    "originalManifestSha256": "0fe6ee6e2334cd55ab196607b19ef9c5c0b7d395ccbf68812a7627c8db26f1a4",
+    "files": [
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+        "bytes": 260,
+        "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+        "bytes": 260,
+        "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+        "bytes": 260,
+        "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+        "bytes": 260,
+        "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+        "bytes": 260,
+        "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+        "bytes": 260,
+        "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6"
+      }
+    ],
+    "artifactExtractionTreePreserved": false,
+    "originalJourneyManifestUnmodified": true
+  },
+  "longestAttempt4RelativePath": 202,
+  "driverSourceChanged": false,
+  "formal36Plus9Changed": false,
+  "files": [
+    {
+      "path": "cli-checkout/job.json",
+      "source": ".work\\release-preflight-0.166.95\\checkout-windows-9f4-failed\\job.json",
+      "bytes": 3103,
+      "sha256": "abcc939523ee2c78145fc857f4c761f2347b505f445659408492f4a431b48021"
+    },
+    {
+      "path": "cli-checkout/job.log",
+      "source": ".work\\release-preflight-0.166.95\\checkout-windows-9f4-failed\\job.log",
+      "bytes": 21075,
+      "sha256": "40d103ac38bd72468cd439103dac77672093c1a264e17b6a10d460f2b028712f"
+    },
+    {
+      "path": "cli-checkout/readback.json",
+      "source": ".work\\release-preflight-0.166.95\\checkout-windows-9f4-failed\\readback.json",
+      "bytes": 348,
+      "sha256": "37e891acc93dd43363e3923ef0425119b37b4bb499f90fe3d9e66969c4c44ef6"
+    },
+    {
+      "path": "cli-checkout/run.json",
+      "source": ".work\\release-preflight-0.166.95\\checkout-windows-9f4-failed\\run.json",
+      "bytes": 15747,
+      "sha256": "4ece907f11694880f9c94477e19982bf5e8398526e5af421815651c2bae43fd5"
+    },
+    {
+      "path": "cli-workflow-snapshot/artifacts-1.json",
+      "source": ".work\\release-preflight-0.166.95\\cli-ci-9f4-checkout-failed\\artifacts-1.json",
+      "bytes": 3177,
+      "sha256": "95ed4024dac354ae204f6d85a4f8d3e36ddca9f5399bdba8126558ecb0b4e946"
+    },
+    {
+      "path": "cli-workflow-snapshot/jobs-1.json",
+      "source": ".work\\release-preflight-0.166.95\\cli-ci-9f4-checkout-failed\\jobs-1.json",
+      "bytes": 67696,
+      "sha256": "adc79bfe830d3b2a93317b490ab2a0189e0ff7e4e0c4d85ad099e9a5b784f43a"
+    },
+    {
+      "path": "cli-workflow-snapshot/readback.json",
+      "source": ".work\\release-preflight-0.166.95\\cli-ci-9f4-checkout-failed\\readback.json",
+      "bytes": 105626,
+      "sha256": "43ae6fdf256ffd7075b06c681fc8c9048a10186de8078304920390875133c2ce"
+    },
+    {
+      "path": "cli-workflow-snapshot/run.json",
+      "source": ".work\\release-preflight-0.166.95\\cli-ci-9f4-checkout-failed\\run.json",
+      "bytes": 14130,
+      "sha256": "53d141d7db6ae0408254c1bd4d405a0296b30db17a0e8b68029cf9836eb9fcc7"
+    },
+    {
+      "path": "arm64-workflow-snapshot/artifacts-1.json",
+      "source": ".work\\release-preflight-0.166.95\\ide-arm64-9f4-checkout-failed\\artifacts-1.json",
+      "bytes": 822,
+      "sha256": "d470d6f7412e6912cf4e18c286e014667e9e1ba65462420a86dfdececf8e4beb"
+    },
+    {
+      "path": "arm64-workflow-snapshot/jobs-1.json",
+      "source": ".work\\release-preflight-0.166.95\\ide-arm64-9f4-checkout-failed\\jobs-1.json",
+      "bytes": 23356,
+      "sha256": "084f804605a8e2b65bdef09c8ebb91437ef5365f96ca5c2de8d449df406ea0f5"
+    },
+    {
+      "path": "arm64-workflow-snapshot/readback.json",
+      "source": ".work\\release-preflight-0.166.95\\ide-arm64-9f4-checkout-failed\\readback.json",
+      "bytes": 50923,
+      "sha256": "53c4de4929400997cb49650c069841f8c9f2c10820484afe78c82e372f2dfafb"
+    },
+    {
+      "path": "arm64-workflow-snapshot/run.json",
+      "source": ".work\\release-preflight-0.166.95\\ide-arm64-9f4-checkout-failed\\run.json",
+      "bytes": 13770,
+      "sha256": "4358a68dd24de9072aab6ac7f4499aa12fcada1d73916aff67798f6e92d22f50"
+    },
+    {
+      "path": "independent-checkout-diagnosis/annotations.json",
+      "source": ".work\\cli-sdk-9f4df115-20261010\\failed-job-113911369726\\annotations.json",
+      "bytes": 4580,
+      "sha256": "1bc85eaa0571f768805ada461b1f34c906c4a560bad934ffcd6dc4233b2381e9"
+    },
+    {
+      "path": "independent-checkout-diagnosis/diagnosis.json",
+      "source": ".work\\cli-sdk-9f4df115-20261010\\failed-job-113911369726\\diagnosis.json",
+      "bytes": 1417,
+      "sha256": "935f1752d1ad140509ee1955e9b9555aa636d14686da15ef7d08c3e2b5612943"
+    },
+    {
+      "path": "independent-checkout-diagnosis/job.json",
+      "source": ".work\\cli-sdk-9f4df115-20261010\\failed-job-113911369726\\job.json",
+      "bytes": 3103,
+      "sha256": "abcc939523ee2c78145fc857f4c761f2347b505f445659408492f4a431b48021"
+    },
+    {
+      "path": "independent-checkout-diagnosis/job.log.error.json",
+      "source": ".work\\cli-sdk-9f4df115-20261010\\failed-job-113911369726\\job.log.error.json",
+      "bytes": 90,
+      "sha256": "4d54135dd0eabd807e05fe7128dcd0ef404ff0f386d8e9a5e68e50a2af3afa08"
+    },
+    {
+      "path": "shorten-archive-paths.mjs",
+      "source": ".work/shorten-095-archive-paths.mjs",
+      "bytes": 2237,
+      "sha256": "a6aacabbb50f4bc2e82a707f3d0f7a8353451fcd20178f8819b731494052225b"
+    },
+    {
+      "path": "attempt4-manifest-before-path-fix.json",
+      "source": "git:9f4df1157e493daaee137655c4e1d37c066c50e8:docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/manifest.json",
+      "bytes": 46039,
+      "sha256": "0fe6ee6e2334cd55ab196607b19ef9c5c0b7d395ccbf68812a7627c8db26f1a4"
+    },
+    {
+      "path": "independent-path-audit.json",
+      "source": ".work/astra-attempt4-path-audit-20261010-final.json",
+      "bytes": 103719,
+      "sha256": "1fbf9fdb412241b5defb1e461cdb604d9010ebd9ca4cfbdfda43e3fd96c3f3ce"
+    }
+  ],
+  "archiveReproduction": "The original attempt4 archive-tools generator is preserved as captured and produces its original long names. To reconstruct the current mapped archive, apply shorten-archive-paths.mjs and the outer archivePathMapping; the original journey-evidence relative paths must be resolved through that mapping."
+}

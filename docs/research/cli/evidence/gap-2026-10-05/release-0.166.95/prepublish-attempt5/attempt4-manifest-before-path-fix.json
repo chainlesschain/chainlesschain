@@ -175,7 +175,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
       "bytes": 260,
       "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03",
@@ -183,7 +183,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
       "bytes": 260,
       "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6",
@@ -191,7 +191,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
       "bytes": 260,
       "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061",
@@ -199,7 +199,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
       "bytes": 260,
       "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1",
@@ -207,7 +207,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
       "bytes": 260,
       "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47",
@@ -215,7 +215,7 @@
       "byteForByteVerified": true
     },
     {
-      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
       "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
       "bytes": 260,
       "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6",
@@ -798,56 +798,5 @@
       "sha256": "7de4df22e6ce60d4f3df22f52532fd77163b807ccd032b5db577d565895855e3",
       "reason": "Unrelated full vendor release catalog omitted; exact selected release, original payload size/hash and retrieval provenance retained"
     }
-  ],
-  "archivePathMapping": {
-    "reason": "Windows Git checkout at release candidate 9f4df1157e493daaee137655c4e1d37c066c50e8 rejected six 236-character relative paths. Only archive basenames are shortened; original artifact/source paths and all payload bytes/digests remain unchanged.",
-    "capturedAt": "2026-10-09T16:15:18.466Z",
-    "originalManifestSha256": "0fe6ee6e2334cd55ab196607b19ef9c5c0b7d395ccbf68812a7627c8db26f1a4",
-    "files": [
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
-        "bytes": 260,
-        "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03"
-      },
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
-        "bytes": 260,
-        "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6"
-      },
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
-        "bytes": 260,
-        "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061"
-      },
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
-        "bytes": 260,
-        "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1"
-      },
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
-        "bytes": 260,
-        "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47"
-      },
-      {
-        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
-        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
-        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
-        "bytes": 260,
-        "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6"
-      }
-    ],
-    "artifactExtractionTreePreserved": false,
-    "originalJourneyManifestUnmodified": true
-  }
+  ]
 }

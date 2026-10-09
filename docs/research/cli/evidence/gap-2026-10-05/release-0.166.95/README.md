@@ -2,6 +2,14 @@
 
 候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`。用户已授权功能测试通过后发布；当前尚未发布。子 npm 包源码和精确版本无变化，仍要求公开可获取性、依赖与既有 tarball 校验。
 
+## 第五候选：Windows Git 检出与归档路径
+
+准确候选 `9f4df1157e493daaee137655c4e1d37c066c50e8` 的 CLI CI Windows unit shard 2 job `113911369726` 在 checkout 阶段失败；日志明确六份新增 receipt 的 **236 字符相对路径**触发 `Filename too long`。ARM64 Windows 与其他 Windows job 也在 checkout 失败，后续报告缺失是未执行测试的后果，尚无 SDK 或新 UI 旅程结果。[第五候选原件](./prepublish-attempt5/manifest.json)保存准确提交 API、checkout 日志及独立 annotations；原日志 SHA256 `40d103ac38bd72468cd439103dac77672093c1a264e17b6a10d460f2b028712f`。矩阵快照未完成，不是成功门。
+
+只将六份归档 basename 缩为 `011-receipt.json` 至 `016-receipt.json`；72 份原件全部字节与 source/hash 不变，attempt4 最长相对路径降为 **202 字符**。更新的 attempt4 manifest 明确记录原路径到归档路径映射，原 journey manifest 未修改；映射归档不再冒称原 artifact 提取树。旧 attempt4 manifest 原字节另存第五候选，保留前后出处。UI 测试源码与已编译脚本未改；修正后的新提交仍须完整准确 SHA 门，尚未发布。
+
+独立路径审阅按实际 Windows runner 的 34 字符 checkout root 核对，最长绝对路径为 **237 字符**；六份 receipt 降为 **185 字符**。原 archive-tools 生成脚本作为原件不改，重建当前映射归档需再应用第五候选的缩名脚本及外层 `archivePathMapping`，不能直接用原 journey manifest 的相对路径解析重命名后的文件。
+
 ## 第四候选：Windows ARM64 JetBrains 弹窗过渡
 
 准确候选 `a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b` 的 [IDE ARM64 Host Validation #37947977140](https://github.com/chainlesschain/chainlesschain/actions/runs/37947977140)，Windows ARM64 JetBrains **2026.2.0.1** job `113880537429` 为 **7 通过 / 1 失败**：`Restore code + conversation` 动作菜单在原 **45 秒**内未出现。前两轮单独恢复代码、对话已完成匹配的 preview/confirm；第三轮 timeline 返回并激活 `partial turn-2` 后没有 restore-both 请求。失败位于时间线选中到动作菜单过渡，不能称已执行的恢复逻辑失败，也未确认 popup 被取消、焦点或 WSL updater 的因果关系。[第四候选原件](./prepublish-attempt4/manifest.json)保留 API、日志、JUnit、协议与关键截图；原日志 SHA256 `f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804`。该提交的其他成功门不能替代此失败宿主门。

@@ -819,3 +819,9 @@ Astra 核对官方 IDEA build **262.8665.337**、commit `15645ead6f20019cc2537db
 本机 JDK **21.0.12.1** 编译通过。真实已编译方法导出的 JS 经 Rhino **1.7.15**、Swing JList/Enter Action、真实 EDT 的[调度合同 **10/10**](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/report.json)；仅 ApplicationManager 队列与 isShowing 为可控替身，没有真实 IDE/GUI/CI，未复现原故障。Astra 另发现 Java 泛型 `callJs` 被 `String.valueOf` 推断为 `char[]` 的调用点错误，已增加 `(Object)`；[新字节码回读](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/popup-contract/review-resolution.json)确认 `String.valueOf(Object)`，重导出 JS SHA256 `ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def` 与 10/10 合同输入相同，未重复计数。
 
 新提交须以自身准确 SHA 通过完整 CLI/Strict、双 IDE 与 ARM64 宿主门，再按子包、CLI 公开可取、IDE 的既有顺序发布。当前 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158` 均尚未发布；正式 36+9、预算、observations、冻结 Windows review 与平台/账户/人工/长时验收边界保持原状态。
+
+### 20.18 Windows 检出失败与归档路径映射
+
+准确候选 `9f4df1157e493daaee137655c4e1d37c066c50e8` 的 CLI CI run `37957249938`、Windows unit shard 2 job `113911369726` 在 checkout 阶段报六份新 receipt 路径 `Filename too long`，相对路径均 **236 字符**。其他 Windows 与 ARM64 job 也在 checkout 失败；这些 job 尚未执行测试，后续报告缺失只是结果，未生成 SDK 或 UI 新旅程结果。原日志 **21075 bytes**、SHA256 `40d103ac38bd72468cd439103dac77672093c1a264e17b6a10d460f2b028712f`，原始 API、独立 annotations、原日志 API 的首次 403 和后续成功获取[分别保存](./cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt5/manifest.json)。CLI/ARM64 快照仍未完成，不把它们作为成功门。
+
+仅将 attempt4 的六份归档 basename 缩为 `011-receipt.json` 至 `016-receipt.json`，最长相对路径降为 **202 字符**；全部 **72 份**原件再次逐源/目标摘要与字节核对通过。当前 manifest 明确原归档路径、实际归档路径、artifact 来源、大小和摘要；原 artifact journey manifest 不改，映射归档不等于原提取树。旧 attempt4 manifest 原字节保存在第五候选中，与其原 SHA256 绑定。UI 测试驱动、原生产代码、合同脚本、期限和断言未改，不重复计数合同；新提交须完整准确 SHA 验证。版本尚未发布，冻结 36+9、预算、observations 和所有独立验收边界保持原状态。
