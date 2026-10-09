@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.140] - Pair with CLI model review and diagnostic evidence (2026-10-09)
+
+- Recommend CLI `0.166.95` after its public npm release and this extension's
+  exact-commit release gates pass.
+- Include explicit regressions for foreign-session mode acknowledgments and
+  APNG decoded pixel limits in the extension unit gate.
+- Retain the compatibility floor and runtime capability diagnostics; experimental
+  native review and durable Windows/macOS recovery remain outside release acceptance.
+
 ## [0.37.139] - Pair with strict settings write fairness (2026-10-08)
 
 - Recommend CLI `0.166.94` after its public npm release and this extension's

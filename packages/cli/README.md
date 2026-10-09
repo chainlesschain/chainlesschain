@@ -2,22 +2,22 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-08)
+## Current release and source (2026-10-09)
 
-Public npm latest is **chainlesschain@0.166.93**, pinning Session Core **0.3.18**,
-PDH **0.4.64** and Context/Memory Kernel **0.1.8**. Open VSX **0.37.138** and
-JetBrains **0.4.156** are public and recommend that CLI; JetBrains is
-approved/listed, not hidden. Public versions were read back on 2026-10-08.
+Public npm latest is **chainlesschain@0.166.94**, pinning Session Core **0.3.18**,
+PDH **0.4.64** and Context/Memory Kernel **0.1.8**. Open VSX **0.37.139** and
+JetBrains **0.4.157** are public and recommend that CLI; the JetBrains release is
+approved/listed. Public release evidence was read back on 2026-10-09.
 
-Source **0.166.94** is the next release candidate, paired with VS Code
-**0.37.139** and JetBrains **0.4.157** after exact-commit release gates and
-public CLI availability. It reduces contention between synchronous permission
-rule writers while preserving strict ownership, the two-second acquisition
-deadline and synchronous authority revocation.
+Source **0.166.95** is the next release candidate, paired with VS Code
+**0.37.140** and JetBrains **0.4.158** after exact-commit release gates and
+public CLI availability. It reviews official stable model release data and
+retains upstream bytes and drift/parse-failure evidence without automatic model
+enablement. Child npm package versions remain unchanged.
 
-Independent Windows native review diagnostics remain experimental.
-Full native review and Windows/macOS durable recovery require separate
-acceptance; package publication does not complete formal 36+9 evaluation.
+Independent Windows native toolchain and Job recovery diagnostics remain
+experimental. Full native review and Windows/macOS durable recovery require
+separate acceptance; publication does not complete formal 36+9 evaluation.
 
 ### Linux process ownership recovery (public 0.166.91)
 

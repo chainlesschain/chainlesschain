@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-09 新配对发布准备**：用户已授权功能测试通过后发布 CLI 与 IDE。候选为 CLI `0.166.95`、VS Code `0.37.140`、JetBrains `0.4.158`，双 IDE 推荐 CLI 同步；子 npm 包源码无变化，沿用已发布精确版本并重新核验。候选须取得准确提交的完整 CLI CI、CLI Strict Sandbox 与 IDE 宿主门，再由 GitHub Actions OIDC 发布 CLI，公开可取后发布 IDE。此处是准备记录，尚无新版本发布回执；本轮发布不改变正式验收及冻结反例矩阵的开放状态。
+
 > **2026-10-09 最终工程增量与 Git 提交**：已完成官方 stable 发布 JSON 来源、四处当前测试覆盖缺口回归、Handlebars 4.7.10 critical 修复及 custodian 自身崩溃的有限集合清理。原冻结 Windows 反例矩阵为 **6 检出 / 4 存活 / 4 因基线失败未运行**，完整 review 保持 `NOT_ADMITTED`，不能用当前新增回归改写旧结果。首批 `61d91325d0` 的 CLI CI 71 job / Strict 5 job 均完整通过；完成增量已分批提交，见[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)及[验证 20.8–20.13](../cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。最终 533 合同的默认沙箱/主机权限结果分别保存。正式 36+9、durable/WFP/macOS、账号账单与人工长时条件仍未结案，冻结预算与 observations 未改，本轮未发布。
 
 > **2026-10-09 剩余任务续做**：模型审查已保存准确 HEAD、实际输入摘要和成功/漂移/解析失败报告。Windows 私有工具链已接通同 SID/Job 的真实 esbuild service、原冻结配置 `forks/maxWorkers:2` 和 65 项真实测试；最终源码、原始 HANDLE、worker 终止及清理证明已独立复核，仍 `NOT_ADMITTED`。另完成 owner 崩溃后仍活跃后代的原 Job/socket 回收原语。完整 Windows/macOS review、受保护持久服务/WFP、正式 36+9、官方账号账单及人工长时验收继续开放。最新结果与逐项条件见[验证第 20 节](../cli-ide-gap-validation-2026-10-05.md#20-2026-10-09-剩余工程与验收边界)；下方保留各轮历史时点，冻结预算、分母和 observations 未改。
