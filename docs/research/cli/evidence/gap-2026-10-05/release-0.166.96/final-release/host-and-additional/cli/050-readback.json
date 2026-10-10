@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657607802,
+  "name": "session-message-fabric-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/metadata.json",
+    "bytes": 802,
+    "sha256": "802ed06b86351229047646ca6a721430e31ced13690a200fcbc292ece3898f3c",
+    "endpoint": "actions/artifacts/11657607802"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/artifact.zip",
+    "bytes": 2267,
+    "sha256": "a5303b04e0d070f0a6e1514cdbca53288aebf7ac84e16c410702c456d837e0c2",
+    "endpoint": "actions/artifacts/11657607802/zip"
+  },
+  "githubDigestMatched": true
+}

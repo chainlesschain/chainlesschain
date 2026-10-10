@@ -1,0 +1,825 @@
+﻿2026-10-10T01:17:19.8412917Z Current runner version: '2.337.0'
+2026-10-10T01:17:19.8460377Z ##[group]Runner Image Provisioner
+2026-10-10T01:17:19.8461168Z Hosted Compute Agent
+2026-10-10T01:17:19.8461785Z Version: 20261002.596
+2026-10-10T01:17:19.8462357Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T01:17:19.8463074Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T01:17:19.8463687Z Worker ID: {9628cfbc-3983-4749-82c2-40e60899033b}
+2026-10-10T01:17:19.8464360Z Region: westus3
+2026-10-10T01:17:19.8464889Z Cloud: Azure
+2026-10-10T01:17:19.8465381Z ##[endgroup]
+2026-10-10T01:17:19.8467102Z ##[group]Operating System
+2026-10-10T01:17:19.8467691Z Ubuntu
+2026-10-10T01:17:19.8468222Z 24.04.5
+2026-10-10T01:17:19.8468717Z LTS
+2026-10-10T01:17:19.8469175Z ##[endgroup]
+2026-10-10T01:17:19.8469707Z ##[group]Runner Image
+2026-10-10T01:17:19.8470253Z Image: ubuntu-24.04
+2026-10-10T01:17:19.8470804Z Version: 20261004.327.1
+2026-10-10T01:17:19.8471956Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T01:17:19.8473353Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T01:17:19.8474284Z ##[endgroup]
+2026-10-10T01:17:19.8477227Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T01:17:19.8479596Z Actions: write
+2026-10-10T01:17:19.8480142Z ArtifactMetadata: write
+2026-10-10T01:17:19.8480781Z Attestations: write
+2026-10-10T01:17:19.8481319Z Checks: write
+2026-10-10T01:17:19.8481826Z CodeQuality: write
+2026-10-10T01:17:19.8482344Z Contents: write
+2026-10-10T01:17:19.8482856Z CopilotRequests: write
+2026-10-10T01:17:19.8483409Z Deployments: write
+2026-10-10T01:17:19.8483953Z Discussions: write
+2026-10-10T01:17:19.8484441Z Drives: write
+2026-10-10T01:17:19.8484959Z Issues: write
+2026-10-10T01:17:19.8485552Z Metadata: read
+2026-10-10T01:17:19.8486083Z Models: read
+2026-10-10T01:17:19.8486732Z Packages: write
+2026-10-10T01:17:19.8487215Z Pages: write
+2026-10-10T01:17:19.8487747Z PullRequests: write
+2026-10-10T01:17:19.8488300Z RepositoryProjects: write
+2026-10-10T01:17:19.8488872Z SecurityEvents: write
+2026-10-10T01:17:19.8489419Z Statuses: write
+2026-10-10T01:17:19.8489925Z VulnerabilityAlerts: read
+2026-10-10T01:17:19.8490481Z ##[endgroup]
+2026-10-10T01:17:19.8492605Z Secret source: Actions
+2026-10-10T01:17:19.8493522Z Cache mode: write
+2026-10-10T01:17:19.8494187Z Prepare workflow directory
+2026-10-10T01:17:19.8805672Z Prepare all required actions
+2026-10-10T01:17:19.8852909Z Getting action download info
+2026-10-10T01:17:20.1840510Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T01:17:20.2902946Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T01:17:20.4881466Z Complete job name: PDH Data Hub Tests (ubuntu-latest)
+2026-10-10T01:17:20.5672098Z ##[group]Run actions/checkout@v5
+2026-10-10T01:17:20.5672866Z with:
+2026-10-10T01:17:20.5673314Z   repository: chainlesschain/chainlesschain
+2026-10-10T01:17:20.5676881Z   token: ***
+2026-10-10T01:17:20.5677294Z   ssh-strict: true
+2026-10-10T01:17:20.5677692Z   ssh-user: git
+2026-10-10T01:17:20.5678115Z   persist-credentials: true
+2026-10-10T01:17:20.5678565Z   clean: true
+2026-10-10T01:17:20.5678983Z   sparse-checkout-cone-mode: true
+2026-10-10T01:17:20.5679453Z   fetch-depth: 1
+2026-10-10T01:17:20.5679862Z   fetch-tags: false
+2026-10-10T01:17:20.5680274Z   show-progress: true
+2026-10-10T01:17:20.5680674Z   lfs: false
+2026-10-10T01:17:20.5681044Z   submodules: false
+2026-10-10T01:17:20.5681443Z   set-safe-directory: true
+2026-10-10T01:17:20.5681899Z   allow-unsafe-pr-checkout: false
+2026-10-10T01:17:20.5682605Z ##[endgroup]
+2026-10-10T01:17:20.6698856Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T01:17:20.6700910Z ##[group]Getting Git version info
+2026-10-10T01:17:20.6701737Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:17:20.6702784Z [command]/usr/bin/git version
+2026-10-10T01:17:20.6766921Z git version 2.55.0
+2026-10-10T01:17:20.6788150Z ##[endgroup]
+2026-10-10T01:17:20.6802153Z Temporarily overriding HOME='/home/runner/work/_temp/f48c3867-2e3b-49cd-8f78-8e288ce6c6bd' before making global git config changes
+2026-10-10T01:17:20.6804600Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:17:20.6807351Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:17:20.6852431Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:17:20.6857765Z ##[group]Initializing the repository
+2026-10-10T01:17:20.6863033Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:17:20.6960309Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T01:17:20.6961615Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T01:17:20.6963064Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T01:17:20.6964037Z hint: call:
+2026-10-10T01:17:20.6964411Z hint:
+2026-10-10T01:17:20.6965345Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T01:17:20.6965909Z hint:
+2026-10-10T01:17:20.6966601Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T01:17:20.6967441Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T01:17:20.6968094Z hint:
+2026-10-10T01:17:20.6968472Z hint: 	git branch -m <name>
+2026-10-10T01:17:20.6968914Z hint:
+2026-10-10T01:17:20.6969485Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T01:17:20.6970458Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T01:17:20.6985682Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:17:20.7016390Z ##[endgroup]
+2026-10-10T01:17:20.7017363Z ##[group]Disabling automatic garbage collection
+2026-10-10T01:17:20.7022819Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T01:17:20.7051539Z ##[endgroup]
+2026-10-10T01:17:20.7052240Z ##[group]Setting up auth
+2026-10-10T01:17:20.7060245Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:17:20.7090827Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:17:20.7407950Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:17:20.7441401Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:17:20.7643643Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:17:20.7677705Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:17:20.7853517Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T01:17:20.7885813Z ##[endgroup]
+2026-10-10T01:17:20.7886708Z ##[group]Fetching the repository
+2026-10-10T01:17:20.7894944Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0371e00f1425aa9d842517f4feea0d750810ee23:refs/remotes/pull/425/merge
+2026-10-10T01:17:32.3905279Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:17:32.3908091Z  * [new ref]           0371e00f1425aa9d842517f4feea0d750810ee23 -> pull/425/merge
+2026-10-10T01:17:32.3912794Z ##[endgroup]
+2026-10-10T01:17:32.3915166Z ##[group]Determining the checkout info
+2026-10-10T01:17:32.3917655Z ##[endgroup]
+2026-10-10T01:17:32.3919051Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T01:17:32.3962115Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T01:17:32.3996521Z ##[group]Checking out the ref
+2026-10-10T01:17:32.3999529Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/425/merge
+2026-10-10T01:17:33.6008747Z Updating files:  54% (12849/23576)
+2026-10-10T01:17:34.0067337Z Updating files:  55% (12967/23576)
+2026-10-10T01:17:34.3269387Z Updating files:  56% (13203/23576)
+2026-10-10T01:17:34.3916586Z Updating files:  57% (13439/23576)
+2026-10-10T01:17:34.4159331Z Updating files:  58% (13675/23576)
+2026-10-10T01:17:34.4222699Z Updating files:  59% (13910/23576)
+2026-10-10T01:17:34.4431298Z Updating files:  59% (13957/23576)
+2026-10-10T01:17:34.4638650Z Updating files:  60% (14146/23576)
+2026-10-10T01:17:34.4863020Z Updating files:  61% (14382/23576)
+2026-10-10T01:17:34.5178252Z Updating files:  62% (14618/23576)
+2026-10-10T01:17:34.5676592Z Updating files:  63% (14853/23576)
+2026-10-10T01:17:34.5856902Z Updating files:  64% (15089/23576)
+2026-10-10T01:17:34.5961698Z Updating files:  65% (15325/23576)
+2026-10-10T01:17:34.6188497Z Updating files:  66% (15561/23576)
+2026-10-10T01:17:34.6287387Z Updating files:  67% (15796/23576)
+2026-10-10T01:17:34.6487022Z Updating files:  68% (16032/23576)
+2026-10-10T01:17:34.6690376Z Updating files:  69% (16268/23576)
+2026-10-10T01:17:34.6804910Z Updating files:  70% (16504/23576)
+2026-10-10T01:17:34.6963769Z Updating files:  71% (16739/23576)
+2026-10-10T01:17:34.7172097Z Updating files:  72% (16975/23576)
+2026-10-10T01:17:34.7328794Z Updating files:  73% (17211/23576)
+2026-10-10T01:17:34.7461615Z Updating files:  74% (17447/23576)
+2026-10-10T01:17:34.7626735Z Updating files:  75% (17682/23576)
+2026-10-10T01:17:34.7786361Z Updating files:  76% (17918/23576)
+2026-10-10T01:17:34.7935907Z Updating files:  77% (18154/23576)
+2026-10-10T01:17:34.8080734Z Updating files:  78% (18390/23576)
+2026-10-10T01:17:34.8219719Z Updating files:  79% (18626/23576)
+2026-10-10T01:17:34.8374193Z Updating files:  80% (18861/23576)
+2026-10-10T01:17:34.8517455Z Updating files:  81% (19097/23576)
+2026-10-10T01:17:34.8665231Z Updating files:  82% (19333/23576)
+2026-10-10T01:17:34.8849020Z Updating files:  83% (19569/23576)
+2026-10-10T01:17:34.9089277Z Updating files:  84% (19804/23576)
+2026-10-10T01:17:34.9303021Z Updating files:  85% (20040/23576)
+2026-10-10T01:17:34.9509958Z Updating files:  86% (20276/23576)
+2026-10-10T01:17:34.9693003Z Updating files:  87% (20512/23576)
+2026-10-10T01:17:34.9882174Z Updating files:  88% (20747/23576)
+2026-10-10T01:17:35.0083893Z Updating files:  89% (20983/23576)
+2026-10-10T01:17:35.0190855Z Updating files:  90% (21219/23576)
+2026-10-10T01:17:35.0328457Z Updating files:  91% (21455/23576)
+2026-10-10T01:17:35.0484319Z Updating files:  92% (21690/23576)
+2026-10-10T01:17:35.0599315Z Updating files:  93% (21926/23576)
+2026-10-10T01:17:35.0737035Z Updating files:  94% (22162/23576)
+2026-10-10T01:17:35.0909471Z Updating files:  95% (22398/23576)
+2026-10-10T01:17:35.1079711Z Updating files:  96% (22633/23576)
+2026-10-10T01:17:35.1195909Z Updating files:  97% (22869/23576)
+2026-10-10T01:17:35.1340285Z Updating files:  98% (23105/23576)
+2026-10-10T01:17:35.1466449Z Updating files:  99% (23341/23576)
+2026-10-10T01:17:35.1467167Z Updating files: 100% (23576/23576)
+2026-10-10T01:17:35.1467614Z Updating files: 100% (23576/23576), done.
+2026-10-10T01:17:35.1730998Z Note: switching to 'refs/remotes/pull/425/merge'.
+2026-10-10T01:17:35.1731640Z 
+2026-10-10T01:17:35.1732639Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T01:17:35.1733578Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T01:17:35.1734405Z state without impacting any branches by switching back to a branch.
+2026-10-10T01:17:35.1734978Z 
+2026-10-10T01:17:35.1735380Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T01:17:35.1736361Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T01:17:35.1736825Z 
+2026-10-10T01:17:35.1737020Z   git switch -c <new-branch-name>
+2026-10-10T01:17:35.1737598Z 
+2026-10-10T01:17:35.1737781Z Or undo this operation with:
+2026-10-10T01:17:35.1738074Z 
+2026-10-10T01:17:35.1738229Z   git switch -
+2026-10-10T01:17:35.1738449Z 
+2026-10-10T01:17:35.1738820Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T01:17:35.1739391Z 
+2026-10-10T01:17:35.1739997Z HEAD is now at 0371e00f Merge da91e730d802b7c9dcdc075b222ecc257021e552 into 976c4f394fbab4fccc041787051f00abe08113c9
+2026-10-10T01:17:35.1767032Z ##[endgroup]
+2026-10-10T01:17:35.1802534Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T01:17:35.1828181Z 0371e00f1425aa9d842517f4feea0d750810ee23
+2026-10-10T01:17:35.2070732Z ##[group]Run actions/setup-node@v5
+2026-10-10T01:17:35.2071033Z with:
+2026-10-10T01:17:35.2071247Z   node-version: 22.x
+2026-10-10T01:17:35.2071473Z   always-auth: false
+2026-10-10T01:17:35.2071688Z   check-latest: false
+2026-10-10T01:17:35.2073957Z   token: ***
+2026-10-10T01:17:35.2074190Z   package-manager-cache: true
+2026-10-10T01:17:35.2074479Z ##[endgroup]
+2026-10-10T01:17:35.3577438Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-10T01:17:35.3582071Z (node:2237) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:17:35.3583183Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:17:35.3586237Z ##[group]Environment details
+2026-10-10T01:17:35.7064007Z node: v22.23.3
+2026-10-10T01:17:35.7064554Z npm: 10.9.9
+2026-10-10T01:17:35.7064937Z yarn: 1.22.22
+2026-10-10T01:17:35.7065867Z ##[endgroup]
+2026-10-10T01:17:35.7191490Z ##[group]Run set -euo pipefail
+2026-10-10T01:17:35.7191948Z [36;1mset -euo pipefail[0m
+2026-10-10T01:17:35.7192434Z [36;1m# Mirror the REAL repo layout (packages/… + scripts/… + docs/…) in a scratch dir[0m
+2026-10-10T01:17:35.7193062Z [36;1m# OUTSIDE the workspace so npm install resolves standalone — bs3mc then[0m
+2026-10-10T01:17:35.7193638Z [36;1m# gets the host-Node prebuild (ABI 127), not desktop-app-vue's Electron[0m
+2026-10-10T01:17:35.7194137Z [36;1m# build. Full depth (packages/personal-data-hub + packages/cli +[0m
+2026-10-10T01:17:35.7194605Z [36;1m# scripts/android) preserves EVERY cross-tree relative import the tests[0m
+2026-10-10T01:17:35.7195021Z [36;1m# make, at the same depth as the real tree:[0m
+2026-10-10T01:17:35.7195445Z [36;1m#   __tests__/adapters/…test.js      → ../../../cli/src/lib/host-adb-bridge.js[0m
+2026-10-10T01:17:35.7196003Z [36;1m#   __tests__/sqlite-leaf-salvage.js → ../../../scripts/android/pdh-sqlite-leaf-salvage.js[0m
+2026-10-10T01:17:35.7196963Z [36;1m#     (which in turn → ../../packages/personal-data-hub/lib/forensics/leaf-salvage.js)[0m
+2026-10-10T01:17:35.7197386Z [36;1mROOT="${RUNNER_TEMP}/pdh-ci"[0m
+2026-10-10T01:17:35.7197648Z [36;1mrm -rf "$ROOT"[0m
+2026-10-10T01:17:35.7198117Z [36;1mmkdir -p "$ROOT/packages/personal-data-hub" "$ROOT/packages/cli" "$ROOT/scripts/android" "$ROOT/docs/internal"[0m
+2026-10-10T01:17:35.7198743Z [36;1mcp -r packages/personal-data-hub/lib "$ROOT/packages/personal-data-hub/"[0m
+2026-10-10T01:17:35.7199287Z [36;1mcp -r packages/personal-data-hub/__tests__ "$ROOT/packages/personal-data-hub/"[0m
+2026-10-10T01:17:35.7199847Z [36;1mcp packages/personal-data-hub/package.json "$ROOT/packages/personal-data-hub/"[0m
+2026-10-10T01:17:35.7200422Z [36;1mcp packages/personal-data-hub/vitest.config.js "$ROOT/packages/personal-data-hub/"[0m
+2026-10-10T01:17:35.7201042Z [36;1mcp -r packages/cli/src "$ROOT/packages/cli/src"   # host-adb-bridge.js and its path/storage helpers[0m
+2026-10-10T01:17:35.7201688Z [36;1mcp packages/cli/package.json "$ROOT/packages/cli/"  # package metadata read by CLI bridge tests[0m
+2026-10-10T01:17:35.7202238Z [36;1m# Sibling CLI imports cannot resolve PDH's node_modules. Stage the[0m
+2026-10-10T01:17:35.7202689Z [36;1m# exact checkout storage package there, including its export map.[0m
+2026-10-10T01:17:35.7203168Z [36;1mmkdir -p "$ROOT/packages/cli/node_modules/@chainlesschain/session-core"[0m
+2026-10-10T01:17:35.7203902Z [36;1mcp packages/session-core/package.json "$ROOT/packages/cli/node_modules/@chainlesschain/session-core/"[0m
+2026-10-10T01:17:35.7204565Z [36;1mcp -r packages/session-core/lib "$ROOT/packages/cli/node_modules/@chainlesschain/session-core/"[0m
+2026-10-10T01:17:35.7205252Z [36;1mcp scripts/android/pdh-sqlite-leaf-salvage.js "$ROOT/scripts/android/"  # leaf-salvage test re-export target[0m
+2026-10-10T01:17:35.7205948Z [36;1mcp docs/internal/pdh-app-data-catalog.json "$ROOT/docs/internal/"  # catalog completeness fixture[0m
+2026-10-10T01:17:35.7206582Z [36;1mcd "$ROOT/packages/personal-data-hub"[0m
+2026-10-10T01:17:35.7206978Z [36;1m# Vitest exposes optional browser peer groups that can crash npm[0m
+2026-10-10T01:17:35.7207445Z [36;1m# Arborist with a null edgesOut node. These tests use the Node runner,[0m
+2026-10-10T01:17:35.7207924Z [36;1m# so omit optional peer placement while retaining all declared deps.[0m
+2026-10-10T01:17:35.7208410Z [36;1mnpm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn[0m
+2026-10-10T01:17:35.7208907Z [36;1m# Plain better-sqlite3 (browser-history / *-adb / vscode adapters read[0m
+2026-10-10T01:17:35.7209374Z [36;1m# external SQLite DBs) is hoisted in the real workspace but not a[0m
+2026-10-10T01:17:35.7209805Z [36;1m# declared PDH dep, so a standalone install lacks it — add it.[0m
+2026-10-10T01:17:35.7210250Z [36;1m# Keep the auxiliary plain driver on the Node 22 prebuild line. The[0m
+2026-10-10T01:17:35.7210801Z [36;1m# newest 12.x release can fall back to node-gyp on Windows runners[0m
+2026-10-10T01:17:35.7211239Z [36;1m# when its host-ABI prebuild is unavailable, which requires MSVC.[0m
+2026-10-10T01:17:35.7211752Z [36;1mnpm install --legacy-peer-deps --no-save --no-audit --no-fund better-sqlite3@11.10.0[0m
+2026-10-10T01:17:35.7212268Z [36;1m# Guard: both native drivers MUST load in CI. If a future Node has no[0m
+2026-10-10T01:17:35.7212730Z [36;1m# prebuild, fail loud here instead of letting vitest.config.js silently[0m
+2026-10-10T01:17:35.7213158Z [36;1m# skip the vault tests and report a false green.[0m
+2026-10-10T01:17:35.7213779Z [36;1mnode -e "new (require('better-sqlite3-multiple-ciphers'))(':memory:').close(); console.log('bs3mc OK, ABI '+process.versions.modules)"[0m
+2026-10-10T01:17:35.7214506Z [36;1mnode -e "new (require('better-sqlite3'))(':memory:').close(); console.log('better-sqlite3 OK')"[0m
+2026-10-10T01:17:35.7214942Z [36;1mVITEST_ARGS=()[0m
+2026-10-10T01:17:35.7215197Z [36;1mif [[ "$RUNNER_OS" == "Windows" ]]; then[0m
+2026-10-10T01:17:35.7215620Z [36;1m  # Native SQLite tests perform many short-lived database and temp-file[0m
+2026-10-10T01:17:35.7216185Z [36;1m  # operations. On shared Windows runners, the default worker count can[0m
+2026-10-10T01:17:35.7216937Z [36;1m  # amplify Defender/filesystem contention until an otherwise sub-second[0m
+2026-10-10T01:17:35.7217433Z [36;1m  # test hits the finite 60s hang guard. Two isolated forks keep the full[0m
+2026-10-10T01:17:35.7217899Z [36;1m  # suite parallel without starving an individual native test.[0m
+2026-10-10T01:17:35.7218284Z [36;1m  VITEST_ARGS+=(--pool=forks --maxWorkers=2)[0m
+2026-10-10T01:17:35.7218573Z [36;1mfi[0m
+2026-10-10T01:17:35.7218840Z [36;1mnpx vitest run --reporter=default "${VITEST_ARGS[@]}"[0m
+2026-10-10T01:17:35.7393013Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:17:35.7393367Z ##[endgroup]
+2026-10-10T01:17:41.1380279Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:17:42.8017917Z 
+2026-10-10T01:17:42.8018899Z added 138 packages in 7s
+2026-10-10T01:17:43.9853633Z 
+2026-10-10T01:17:43.9854601Z added 3 packages in 1s
+2026-10-10T01:17:44.0237364Z bs3mc OK, ABI 127
+2026-10-10T01:17:44.0560524Z better-sqlite3 OK
+2026-10-10T01:17:44.5409220Z [33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+2026-10-10T01:17:44.5411800Z   - ESM syntax in a file loaded as CommonJS (vitest.config.js:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+2026-10-10T01:17:44.5413397Z Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+2026-10-10T01:17:44.5732332Z 
+2026-10-10T01:17:44.5734034Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/home/runner/work/_temp/pdh-ci/packages/personal-data-hub[39m
+2026-10-10T01:17:44.5734937Z 
+2026-10-10T01:17:45.0695114Z  [32m✓[39m __tests__/adapters/ai-chat-vendors.test.js [2m([22m[2m131 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+2026-10-10T01:17:47.8138634Z  [32m✓[39m __tests__/analysis.test.js [2m([22m[2m87 tests[22m[2m | [22m[33m78 skipped[39m[2m)[22m[33m 2861[2mms[22m[39m
+2026-10-10T01:17:47.8157456Z      [33m[2m✓[22m[39m constructs cleanly with mock LLM [33m 307[2mms[22m[39m
+2026-10-10T01:17:47.8167720Z      [33m[2m✓[22m[39m rejects empty / non-string question [33m 358[2mms[22m[39m
+2026-10-10T01:17:47.8169414Z      [33m[2m✓[22m[39m returns parsed + facts + messages without invoking the LLM [33m 378[2mms[22m[39m
+2026-10-10T01:17:47.8171218Z      [33m[2m✓[22m[39m ignores acceptNonLocal — privacy gate does not apply (no LLM contacted) [33m 359[2mms[22m[39m
+2026-10-10T01:17:47.8172851Z      [33m[2m✓[22m[39m incorporates RAG retriever results into facts [33m 369[2mms[22m[39m
+2026-10-10T01:17:47.8174624Z      [33m[2m✓[22m[39m RAG failure is captured but doesn't abort retrieval [33m 364[2mms[22m[39m
+2026-10-10T01:17:47.8176370Z      [33m[2m✓[22m[39m writes analysis.retrieve_context audit row by default [33m 367[2mms[22m[39m
+2026-10-10T01:17:47.8177924Z      [33m[2m✓[22m[39m rejects empty / non-string question [33m 353[2mms[22m[39m
+2026-10-10T01:17:51.2762300Z  [32m✓[39m __tests__/adapters/git-activity.test.js [2m([22m[2m45 tests[22m[2m)[22m[33m 3254[2mms[22m[39m
+2026-10-10T01:17:51.2764233Z      [33m[2m✓[22m[39m resumes real git log pages against a pinned HEAD revision [33m 1892[2mms[22m[39m
+2026-10-10T01:17:51.2771326Z      [33m[2m✓[22m[39m replays newly reachable history after deepen and unshallow [33m 429[2mms[22m[39m
+2026-10-10T01:17:58.5218071Z  [32m✓[39m __tests__/registry-watermark.test.js [2m([22m[2m35 tests[22m[2m)[22m[33m 13226[2mms[22m[39m
+2026-10-10T01:17:58.5247685Z      [33m[2m✓[22m[39m summarizes a near-4MiB explicit cursor only in audit and sync telemetry [33m 316[2mms[22m[39m
+2026-10-10T01:17:58.5251367Z      [33m[2m✓[22m[39m defers an explicit cursor until a paginated scan is complete [33m 327[2mms[22m[39m
+2026-10-10T01:17:58.5287959Z      [33m[2m✓[22m[39m expands a deferred page budget across registry restarts and clears it on completion [33m 2426[2mms[22m[39m
+2026-10-10T01:17:58.5347942Z      [33m[2m✓[22m[39m expands a real local-files metadata scan without advancing a partial watermark [33m 851[2mms[22m[39m
+2026-10-10T01:17:58.5349704Z      [33m[2m✓[22m[39m does not expand local-files page budgets for unreadable scan failures [33m 341[2mms[22m[39m
+2026-10-10T01:17:58.5397697Z      [33m[2m✓[22m[39m replays a configured lookback window without regressing the checkpoint [33m 363[2mms[22m[39m
+2026-10-10T01:17:58.5401366Z      [33m[2m✓[22m[39m surfaces an incomplete empty page instead of reporting a full sync [33m 357[2mms[22m[39m
+2026-10-10T01:17:58.5403663Z      [33m[2m✓[22m[39m repairs stored future watermarks and never commits a future candidate [33m 363[2mms[22m[39m
+2026-10-10T01:17:58.5407552Z      [33m[2m✓[22m[39m preserves the exact durable checkpoint and scan state for file imports [33m 365[2mms[22m[39m
+2026-10-10T01:17:58.5418955Z      [33m[2m✓[22m[39m uses a caller override only as the file import collection cursor [33m 372[2mms[22m[39m
+2026-10-10T01:17:58.5420989Z      [33m[2m✓[22m[39m discards a future file-import override without reading or replacing the durable checkpoint [33m 366[2mms[22m[39m
+2026-10-10T01:17:58.5429124Z      [33m[2m✓[22m[39m does not mutate checkpoint metadata when a preserved file import fails [33m 358[2mms[22m[39m
+2026-10-10T01:17:58.5433139Z      [33m[2m✓[22m[39m requires the normal complete-scan handshake for shared file checkpoints [33m 341[2mms[22m[39m
+2026-10-10T01:17:58.5435072Z      [33m[2m✓[22m[39m uses the WeChat account scope for a shared inputPath checkpoint [33m 356[2mms[22m[39m
+2026-10-10T01:17:58.5437249Z      [33m[2m✓[22m[39m isolates shared Tencent Meeting inputPath checkpoints by source path [33m 350[2mms[22m[39m
+2026-10-10T01:17:58.5449974Z      [33m[2m✓[22m[39m rejects an invalid dynamic file checkpoint mode [33m 355[2mms[22m[39m
+2026-10-10T01:17:58.5451527Z      [33m[2m✓[22m[39m reports a thrown file checkpoint mode hook as a normal sync error [33m 357[2mms[22m[39m
+2026-10-10T01:17:58.5453158Z      [33m[2m✓[22m[39m keeps cursors isolated while an account-backed adapter switches accounts [33m 376[2mms[22m[39m
+2026-10-10T01:17:58.5454822Z      [33m[2m✓[22m[39m lets an explicit sync scope override an adapter default scope [33m 353[2mms[22m[39m
+2026-10-10T01:17:58.5461071Z      [33m[2m✓[22m[39m isolates raw archives and normalized entities when account IDs collide [33m 373[2mms[22m[39m
+2026-10-10T01:17:58.5462775Z      [33m[2m✓[22m[39m isolates cursors by the account embedded in each JSON snapshot [33m 373[2mms[22m[39m
+2026-10-10T01:17:58.5464672Z      [33m[2m✓[22m[39m does not bypass the snapshot byte limit while resolving account scope [33m 351[2mms[22m[39m
+2026-10-10T01:17:58.5466397Z      [33m[2m✓[22m[39m does not attribute an unscoped snapshot to the live account [33m 359[2mms[22m[39m
+2026-10-10T01:17:58.8827907Z  [32m✓[39m __tests__/adapters/system-data-android.test.js [2m([22m[2m52 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+2026-10-10T01:17:59.7792300Z  [2m[90m↓[39m[22m __tests__/e2e/local-data-adapters-cli.e2e.test.js [2m([22m[2m13 tests[22m[2m | [22m[33m13 skipped[39m[2m)[22m
+2026-10-10T01:18:00.4549111Z  [32m✓[39m __tests__/registry-readiness.test.js [2m([22m[2m61 tests[22m[2m)[22m[33m 335[2mms[22m[39m
+2026-10-10T01:18:00.7891786Z  [32m✓[39m __tests__/adapters/email-templates.test.js [2m([22m[2m76 tests[22m[2m | [22m[33m7 skipped[39m[2m)[22m[32m 46[2mms[22m[39m
+2026-10-10T01:18:01.0550883Z  [32m✓[39m __tests__/adapters/ai-chat-history.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+2026-10-10T01:18:01.3268394Z  [32m✓[39m __tests__/adapters/shell-history.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+2026-10-10T01:18:01.6013033Z  [32m✓[39m __tests__/adapters/email-adapter.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+2026-10-10T01:18:01.7923120Z  [32m✓[39m __tests__/adapters/social-bilibili-adb-api-client.test.js [2m([22m[2m50 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+2026-10-10T01:18:02.1485586Z  [32m✓[39m __tests__/adapters/hbuilderx.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 176[2mms[22m[39m
+2026-10-10T01:18:02.3733311Z  [32m✓[39m __tests__/adapters/travel-12306.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+2026-10-10T01:18:03.1238387Z  [32m✓[39m __tests__/adapters/browser-history-chrome.test.js [2m([22m[2m20 tests[22m[2m)[22m[33m 520[2mms[22m[39m
+2026-10-10T01:18:03.1240329Z      [33m[2m✓[22m[39m isolates the encrypted-vault watermark and defers truncated scans [33m 393[2mms[22m[39m
+2026-10-10T01:18:03.5795989Z  [32m✓[39m __tests__/source-http.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 99[2mms[22m[39m
+2026-10-10T01:18:03.8268386Z  [32m✓[39m __tests__/wechat-adapter.test.js [2m([22m[2m46 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+2026-10-10T01:18:04.0710661Z  [32m✓[39m __tests__/adapters/local-files.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+2026-10-10T01:18:04.3228521Z  [32m✓[39m __tests__/analysis-skills.test.js [2m([22m[2m53 tests[22m[2m | [22m[33m7 skipped[39m[2m)[22m[33m 12857[2mms[22m[39m
+2026-10-10T01:18:04.3230678Z      [33m[2m✓[22m[39m headline totals come from uncapped sumEventAmount, not the 5000-capped row fetch [33m 355[2mms[22m[39m
+2026-10-10T01:18:04.3232412Z      [33m[2m✓[22m[39m with a merchant/person/direction filter it falls back to the row sample (SQL can't express it) [33m 358[2mms[22m[39m
+2026-10-10T01:18:04.3233843Z      [33m[2m✓[22m[39m breakdown by merchant ranks top spenders [33m 366[2mms[22m[39m
+2026-10-10T01:18:04.3235044Z      [33m[2m✓[22m[39m merchantFilter scopes to subset [33m 365[2mms[22m[39m
+2026-10-10T01:18:04.3236035Z      [33m[2m✓[22m[39m time window filters events [33m 362[2mms[22m[39m
+2026-10-10T01:18:04.3237098Z      [33m[2m✓[22m[39m trend returns monthly buckets [33m 365[2mms[22m[39m
+2026-10-10T01:18:04.3237925Z      [33m[2m✓[22m[39m no LLM → commentary is null [33m 366[2mms[22m[39m
+2026-10-10T01:18:04.3238912Z      [33m[2m✓[22m[39m empty vault → zero summary, no breakdown [33m 352[2mms[22m[39m
+2026-10-10T01:18:04.3240171Z      [33m[2m✓[22m[39m non-local LLM without acceptNonLocal → commentary suppressed [33m 372[2mms[22m[39m
+2026-10-10T01:18:04.3241821Z      [33m[2m✓[22m[39m single person mode: aggregates interactions with one person [33m 366[2mms[22m[39m
+2026-10-10T01:18:04.3257516Z      [33m[2m✓[22m[39m ranked mode: returns top counterparties [33m 362[2mms[22m[39m
+2026-10-10T01:18:04.3288075Z      [33m[2m✓[22m[39m ranked mode excludes self (incl. legacy hashed self via isSend) and group convos [33m 364[2mms[22m[39m
+2026-10-10T01:18:04.3289732Z      [33m[2m✓[22m[39m empty vault → ranked mode returns empty list, no crash [33m 357[2mms[22m[39m
+2026-10-10T01:18:04.3317638Z      [33m[2m✓[22m[39m non-local LLM gate: isLocal=false without acceptNonLocal → commentary stays null [33m 358[2mms[22m[39m
+2026-10-10T01:18:04.3320393Z      [33m[2m✓[22m[39m merge-group expansion: vault.getMergeGroupMembers fans the personId out [33m 363[2mms[22m[39m
+2026-10-10T01:18:04.3321771Z      [33m[2m✓[22m[39m returns top places + monthly distribution [33m 366[2mms[22m[39m
+2026-10-10T01:18:04.3323024Z      [33m[2m✓[22m[39m empty vault → zero trips [33m 360[2mms[22m[39m
+2026-10-10T01:18:04.3324054Z      [33m[2m✓[22m[39m non-local LLM gate → llm_commentary null [33m 369[2mms[22m[39m
+2026-10-10T01:18:04.3325261Z      [33m[2m✓[22m[39m returns topTopics + topItems (no LLM) [33m 391[2mms[22m[39m
+2026-10-10T01:18:04.3327029Z      [33m[2m✓[22m[39m ranks topics by real engagement (events.topics) — active topic beats a recently-ingested idle one [33m 398[2mms[22m[39m
+2026-10-10T01:18:04.3328754Z      [33m[2m✓[22m[39m topItems drops device-file / config noise (system-data-android file scan) [33m 340[2mms[22m[39m
+2026-10-10T01:18:04.3330182Z      [33m[2m✓[22m[39m empty vault → topTopics + topItems empty, no crash [33m 341[2mms[22m[39m
+2026-10-10T01:18:04.3331298Z      [33m[2m✓[22m[39m routes by name [33m 330[2mms[22m[39m
+2026-10-10T01:18:04.3332120Z      [33m[2m✓[22m[39m throws on unknown skill [33m 323[2mms[22m[39m
+2026-10-10T01:18:04.3332989Z      [33m[2m✓[22m[39m requires vault in deps [33m 329[2mms[22m[39m
+2026-10-10T01:18:04.3334458Z      [33m[2m✓[22m[39m spending is aggregated over the full vault via SQL, not the row-capped sample [33m 320[2mms[22m[39m
+2026-10-10T01:18:04.3336340Z      [33m[2m✓[22m[39m is registered + runnable via runAnalysisSkill [33m 337[2mms[22m[39m
+2026-10-10T01:18:04.5113158Z  [32m✓[39m __tests__/query-parser.test.js [2m([22m[2m64 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-10T01:18:05.0144881Z  [32m✓[39m __tests__/vault-derivation.test.js [2m([22m[2m20 tests[22m[2m)[22m[33m 753[2mms[22m[39m
+2026-10-10T01:18:05.0981336Z  [32m✓[39m __tests__/adapters/messaging-qq-cursor-ingest.test.js [2m([22m[2m18 tests[22m[2m)[22m[33m 427[2mms[22m[39m
+2026-10-10T01:18:05.2217965Z  [32m✓[39m __tests__/bridges-cc-rag.test.js [2m([22m[2m33 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+2026-10-10T01:18:05.5266669Z  [32m✓[39m __tests__/adapters/meeting-tencent.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 233[2mms[22m[39m
+2026-10-10T01:18:05.7680494Z  [32m✓[39m __tests__/adapters/alipay-bill-adapter.test.js [2m([22m[2m46 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:05.9758182Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-api-client.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:06.1728248Z  [32m✓[39m __tests__/adapters/system-data-adapter.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:06.2034663Z  [32m✓[39m __tests__/registry-derivation.test.js [2m([22m[2m17 tests[22m[2m)[22m[33m 726[2mms[22m[39m
+2026-10-10T01:18:06.3297538Z  [32m✓[39m __tests__/adapter-guide.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:06.6269280Z  [32m✓[39m __tests__/adapters/email-pdf-extractor.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+2026-10-10T01:18:06.9763033Z  [32m✓[39m __tests__/travel-adapters.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-10T01:18:07.3140899Z  [32m✓[39m __tests__/adapters/vscode.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 188[2mms[22m[39m
+2026-10-10T01:18:07.7558553Z  [32m✓[39m __tests__/adapters/browser-history-safari.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 276[2mms[22m[39m
+2026-10-10T01:18:08.0088473Z  [32m✓[39m __tests__/mobile-extractor-encrypted.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+2026-10-10T01:18:10.9499036Z  [32m✓[39m __tests__/vault-resolved-batch.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 2772[2mms[22m[39m
+2026-10-10T01:18:10.9500805Z      [33m[2m✓[22m[39m fails an ID/source split and rolls back aliases and observations [33m 363[2mms[22m[39m
+2026-10-10T01:18:10.9502244Z      [33m[2m✓[22m[39m rolls back when the conflict resolver returns an invalid entity [33m 365[2mms[22m[39m
+2026-10-10T01:18:10.9503786Z      [33m[2m✓[22m[39m rejects an async conflict resolver and leaves persisted data unchanged [33m 364[2mms[22m[39m
+2026-10-10T01:18:10.9505175Z      [33m[2m✓[22m[39m fails closed when a topic source is already ambiguous [33m 365[2mms[22m[39m
+2026-10-10T01:18:10.9506717Z      [33m[2m✓[22m[39m validates inputs before opening a transaction [33m 349[2mms[22m[39m
+2026-10-10T01:18:11.4508296Z  [32m✓[39m __tests__/entity-resolver.test.js [2m([22m[2m38 tests[22m[2m)[22m[33m 5047[2mms[22m[39m
+2026-10-10T01:18:11.4544698Z      [33m[2m✓[22m[39m R2 zero-overlap pair → candidate filter excludes; no merge, person enqueued for async [33m 362[2mms[22m[39m
+2026-10-10T01:18:11.4545841Z      [33m[2m✓[22m[39m uncertain pair → enqueues for async [33m 361[2mms[22m[39m
+2026-10-10T01:18:11.4547266Z      [33m[2m✓[22m[39m respects existing same-decision (idempotent on retry) [33m 365[2mms[22m[39m
+2026-10-10T01:18:11.4556280Z      [33m[2m✓[22m[39m handles error in single person without breaking batch [33m 324[2mms[22m[39m
+2026-10-10T01:18:11.4557923Z      [33m[2m✓[22m[39m returns processed:0 when queue empty [33m 356[2mms[22m[39m
+2026-10-10T01:18:11.4559353Z      [33m[2m✓[22m[39m processes queued person — rule stage finds same identifier [33m 360[2mms[22m[39m
+2026-10-10T01:18:11.4561086Z      [33m[2m✓[22m[39m processes uncertain pair without embedding stage → no decision [33m 359[2mms[22m[39m
+2026-10-10T01:18:11.4562391Z      [33m[2m✓[22m[39m embedding sim ≥ high threshold → auto same [33m 361[2mms[22m[39m
+2026-10-10T01:18:11.4563512Z      [33m[2m✓[22m[39m user says skip → just marks reviewed [33m 344[2mms[22m[39m
+2026-10-10T01:18:11.6155772Z  [32m✓[39m __tests__/shopping-pinduoduo-snapshot.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:11.7618634Z  [32m✓[39m __tests__/adapters/browser-history-firefox.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 600[2mms[22m[39m
+2026-10-10T01:18:11.7622348Z      [33m[2m✓[22m[39m isolates encrypted-vault watermarks by hashed profile and defers partial scans [33m 420[2mms[22m[39m
+2026-10-10T01:18:11.7869854Z  [32m✓[39m __tests__/adapters/wechat-pc-direct-read.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:11.9967419Z  [32m✓[39m __tests__/shopping-xianyu-snapshot.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-10T01:18:16.0269888Z  [32m✓[39m __tests__/vault-source-identity.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 4089[2mms[22m[39m
+2026-10-10T01:18:16.0271901Z      [33m[2m✓[22m[39m upgrades a v10 vault without changing existing normalized or raw data [33m 699[2mms[22m[39m
+2026-10-10T01:18:16.0272982Z      [33m[2m✓[22m[39m keeps direct, sidecar, and Android observations for one canonical event [33m 359[2mms[22m[39m
+2026-10-10T01:18:16.0274046Z      [33m[2m✓[22m[39m deduplicates one producer observation while retaining its time range and latest payload [33m 356[2mms[22m[39m
+2026-10-10T01:18:16.0274972Z      [33m[2m✓[22m[39m isolates identical producer keys across account scopes [33m 356[2mms[22m[39m
+2026-10-10T01:18:16.0275774Z      [33m[2m✓[22m[39m filters and pages observations deterministically [33m 356[2mms[22m[39m
+2026-10-10T01:18:16.0277412Z      [33m[2m✓[22m[39m rejects malformed observations before writing anything [33m 341[2mms[22m[39m
+2026-10-10T01:18:16.2074589Z  [32m✓[39m __tests__/adapters/social-kuaishou-adb-api-client.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:17.1887783Z  [32m✓[39m __tests__/vault.test.js [2m([22m[2m87 tests[22m[2m)[22m[33m 32179[2mms[22m[39m
+2026-10-10T01:18:17.1889291Z      [33m[2m✓[22m[39m is idempotent: re-open same vault with same key works [33m 684[2mms[22m[39m
+2026-10-10T01:18:17.1890811Z      [33m[2m✓[22m[39m rejects open with wrong key [33m 609[2mms[22m[39m
+2026-10-10T01:18:17.1892309Z      [33m[2m✓[22m[39m opens unencrypted-rejection: file without key cannot be read with wrong key [33m 683[2mms[22m[39m
+2026-10-10T01:18:17.1894050Z      [33m[2m✓[22m[39m migration v4 recreates uniq_*_source as partial indices (WHERE NOT NULL) [33m 303[2mms[22m[39m
+2026-10-10T01:18:17.1895820Z      [33m[2m✓[22m[39m migration v4 fixes pre-existing FULL unique indices (simulated drift) [33m 386[2mms[22m[39m
+2026-10-10T01:18:17.1897784Z      [33m[2m✓[22m[39m putEvent ON CONFLICT WHERE matches after migration v4 (no SQLite parse error) [33m 2338[2mms[22m[39m
+2026-10-10T01:18:17.1899476Z      [33m[2m✓[22m[39m migration v5 preserves legacy raw rows and adds account scope keys [33m 919[2mms[22m[39m
+2026-10-10T01:18:17.1901142Z      [33m[2m✓[22m[39m migration v6 creates persistent account-scoped scan continuation state [33m 496[2mms[22m[39m
+2026-10-10T01:18:17.1902651Z      [33m[2m✓[22m[39m migration v7 creates persistent account-scoped sync rate-limit state [33m 360[2mms[22m[39m
+2026-10-10T01:18:17.1904077Z      [33m[2m✓[22m[39m migration v8 creates persistent source-request rate-limit state [33m 375[2mms[22m[39m
+2026-10-10T01:18:17.1938891Z      [33m[2m✓[22m[39m migration v9 removes only path-bearing legacy Git rows and empty-scope state [33m 366[2mms[22m[39m
+2026-10-10T01:18:17.1940496Z      [33m[2m✓[22m[39m migration v9 preserves a current graph cursor and its empty-scope reservations [33m 391[2mms[22m[39m
+2026-10-10T01:18:17.1942236Z      [33m[2m✓[22m[39m retries a committed v9 privacy checkpoint while its durable marker remains [33m 371[2mms[22m[39m
+2026-10-10T01:18:17.1944002Z      [33m[2m✓[22m[39m migration v10 removes only path-bearing legacy local-files data [33m 363[2mms[22m[39m
+2026-10-10T01:18:17.1945424Z      [33m[2m✓[22m[39m retries a committed v10 local-files privacy checkpoint [33m 354[2mms[22m[39m
+2026-10-10T01:18:17.1947423Z      [33m[2m✓[22m[39m event round-trips with content + extra preserved [33m 337[2mms[22m[39m
+2026-10-10T01:18:17.1948773Z      [33m[2m✓[22m[39m place round-trips with coordinates + aliases [33m 359[2mms[22m[39m
+2026-10-10T01:18:17.1952040Z      [33m[2m✓[22m[39m item round-trips with price object [33m 377[2mms[22m[39m
+2026-10-10T01:18:17.1953221Z      [33m[2m✓[22m[39m topic round-trips with parent + derivedFromEvents [33m 358[2mms[22m[39m
+2026-10-10T01:18:17.1954190Z      [33m[2m✓[22m[39m put with invalid entity throws (validators gate the vault) [33m 358[2mms[22m[39m
+2026-10-10T01:18:17.1955209Z      [33m[2m✓[22m[39m get returns null for unknown id [33m 354[2mms[22m[39m
+2026-10-10T01:18:17.1956893Z      [33m[2m✓[22m[39m upsert: re-putting same id overwrites [33m 367[2mms[22m[39m
+2026-10-10T01:18:17.1958096Z      [33m[2m✓[22m[39m preserves the earliest occurredAt for marked id-conflict snapshots [33m 361[2mms[22m[39m
+2026-10-10T01:18:17.1959441Z      [33m[2m✓[22m[39m preserves the earliest occurredAt for marked source-conflict snapshots [33m 359[2mms[22m[39m
+2026-10-10T01:18:17.1961390Z      [33m[2m✓[22m[39m keeps identical source IDs from separate accounts as distinct events [33m 366[2mms[22m[39m
+2026-10-10T01:18:17.1962147Z      [33m[2m✓[22m[39m commits all entities in a single transaction [33m 364[2mms[22m[39m
+2026-10-10T01:18:17.1962995Z      [33m[2m✓[22m[39m rolls back on any invalid entity (atomicity) [33m 373[2mms[22m[39m
+2026-10-10T01:18:17.1963673Z      [33m[2m✓[22m[39m findBySource locates a row by (adapter, originalId) [33m 344[2mms[22m[39m
+2026-10-10T01:18:17.1964494Z      [33m[2m✓[22m[39m ranks senders by count, resolves names, excludeSelf + adapter + limit + grand total [33m 374[2mms[22m[39m
+2026-10-10T01:18:17.1965270Z      [33m[2m✓[22m[39m returns empty actors (not a throw) for an empty vault [33m 325[2mms[22m[39m
+2026-10-10T01:18:17.1965880Z      [33m[2m✓[22m[39m validates required fields [33m 314[2mms[22m[39m
+2026-10-10T01:18:17.1966859Z      [33m[2m✓[22m[39m deduplicates within an account but never across accounts [33m 370[2mms[22m[39m
+2026-10-10T01:18:17.1967882Z      [33m[2m✓[22m[39m matches against names column (JSON-serialized array) [33m 341[2mms[22m[39m
+2026-10-10T01:18:17.1968981Z      [33m[2m✓[22m[39m matches against identifiers (phone numbers) [33m 350[2mms[22m[39m
+2026-10-10T01:18:17.1970104Z      [33m[2m✓[22m[39m persists, scopes, updates, and clears adaptive scan state [33m 518[2mms[22m[39m
+2026-10-10T01:18:17.1971153Z      [33m[2m✓[22m[39m rejects invalid adaptive scan state [33m 317[2mms[22m[39m
+2026-10-10T01:18:17.1972335Z      [33m[2m✓[22m[39m atomically enforces and persists scoped minute/day sync limits [33m 694[2mms[22m[39m
+2026-10-10T01:18:17.1973560Z      [33m[2m✓[22m[39m rejects invalid sync rate-limit reservations [33m 372[2mms[22m[39m
+2026-10-10T01:18:17.1974780Z      [33m[2m✓[22m[39m keeps persistent source-request quotas separate from sync triggers [33m 418[2mms[22m[39m
+2026-10-10T01:18:17.1975710Z      [33m[2m✓[22m[39m appends audit rows [33m 356[2mms[22m[39m
+2026-10-10T01:18:17.1976668Z      [33m[2m✓[22m[39m filters by since + sorts DESC [33m 356[2mms[22m[39m
+2026-10-10T01:18:17.1977735Z      [33m[2m✓[22m[39m returns the newest insertion first when audit timestamps tie [33m 308[2mms[22m[39m
+2026-10-10T01:18:17.1978970Z      [33m[2m✓[22m[39m rotates to a new key and old key can no longer decrypt [33m 1076[2mms[22m[39m
+2026-10-10T01:18:17.1979977Z      [33m[2m✓[22m[39m refuses to rotate to the same key [33m 354[2mms[22m[39m
+2026-10-10T01:18:17.1980955Z      [33m[2m✓[22m[39m records vault.key_rotated audit row [33m 421[2mms[22m[39m
+2026-10-10T01:18:17.1981931Z      [33m[2m✓[22m[39m removes vault file + wal/shm sidecars [33m 315[2mms[22m[39m
+2026-10-10T01:18:17.1983266Z      [33m[2m✓[22m[39m is safe to call on an already-closed vault [33m 333[2mms[22m[39m
+2026-10-10T01:18:17.1984477Z      [33m[2m✓[22m[39m excludes events with no extractable amount (messages/visits) [33m 306[2mms[22m[39m
+2026-10-10T01:18:17.1985619Z      [33m[2m✓[22m[39m filters by adapter and by time window [33m 363[2mms[22m[39m
+2026-10-10T01:18:17.1986934Z      [33m[2m✓[22m[39m filters by a subtypes[] set (used by overview to aggregate all SPEND_SUBTYPES in one pass) [33m 359[2mms[22m[39m
+2026-10-10T01:18:17.1988296Z      [33m[2m✓[22m[39m mixed shapes coexist; per-currency breakdown, NO cross-currency sum [33m 359[2mms[22m[39m
+2026-10-10T01:18:17.1989589Z      [33m[2m✓[22m[39m single currency → byCurrency has one entry matching top-level [33m 358[2mms[22m[39m
+2026-10-10T01:18:17.1990822Z      [33m[2m✓[22m[39m limit caps the adapter list but total stays the grand total [33m 333[2mms[22m[39m
+2026-10-10T01:18:17.1992014Z      [33m[2m✓[22m[39m returns empty (not a throw) when there are no amounts [33m 337[2mms[22m[39m
+2026-10-10T01:18:17.1993318Z      [33m[2m✓[22m[39m hour bucket: 24 zero-filled buckets, peak, snapshot excluded (tz-invariant) [33m 333[2mms[22m[39m
+2026-10-10T01:18:17.1994604Z      [33m[2m✓[22m[39m weekday bucket: 7 zero-filled buckets with 周X labels [33m 334[2mms[22m[39m
+2026-10-10T01:18:17.1995949Z      [33m[2m✓[22m[39m month bucket: present months chronological + peak (mid-month, tz-safe) [33m 308[2mms[22m[39m
+2026-10-10T01:18:17.1998038Z      [33m[2m✓[22m[39m empty vault → peak null, no throw [33m 332[2mms[22m[39m
+2026-10-10T01:18:17.1999413Z      [33m[2m✓[22m[39m matches BOTH directions (actor OR participant), newest first, excludes others [33m 339[2mms[22m[39m
+2026-10-10T01:18:18.8688865Z  [32m✓[39m __tests__/integration/ai-chat-history-registry.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 2334[2mms[22m[39m
+2026-10-10T01:18:18.8689870Z      [33m[2m✓[22m[39m Android cookie snapshot flows through registry into real vault events [33m 316[2mms[22m[39m
+2026-10-10T01:18:18.8690682Z      [33m[2m✓[22m[39m retains the old cursor when a later vendor scan is rate limited [33m 320[2mms[22m[39m
+2026-10-10T01:18:19.0337553Z  [32m✓[39m __tests__/shopping-vipshop-snapshot.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:20.8107264Z  [32m✓[39m __tests__/integration/local-data-adapters-pipeline.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1267[2mms[22m[39m
+2026-10-10T01:18:21.7223644Z  [32m✓[39m __tests__/entity-resolver-stages.test.js [2m([22m[2m37 tests[22m[2m | [22m[33m10 skipped[39m[2m)[22m[33m 765[2mms[22m[39m
+2026-10-10T01:18:21.7224905Z      [33m[2m✓[22m[39m start + stop cycle works without leaks [33m 301[2mms[22m[39m
+2026-10-10T01:18:21.8890750Z  [32m✓[39m __tests__/shopping-eleme-snapshot.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:22.1076390Z  [32m✓[39m __tests__/adapters/claude-code.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+2026-10-10T01:18:22.2988221Z  [32m✓[39m __tests__/adapters/social-zhihu.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+2026-10-10T01:18:22.6474015Z  [32m✓[39m __tests__/shopping-adapters.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:22.8048086Z  [32m✓[39m __tests__/bridges-cc-kg.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:22.9665645Z  [32m✓[39m __tests__/adapters/qq-pc-direct-read.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:23.1941534Z  [32m✓[39m __tests__/registry.test.js [2m([22m[2m21 tests[22m[2m)[22m[33m 11004[2mms[22m[39m
+2026-10-10T01:18:23.1946078Z      [33m[2m✓[22m[39m registers + lists + looks up adapters [33m 371[2mms[22m[39m
+2026-10-10T01:18:23.1947380Z      [33m[2m✓[22m[39m incremental sync skips already-seen items via stored watermark [33m 338[2mms[22m[39m
+2026-10-10T01:18:23.1949017Z      [33m[2m✓[22m[39m refuses concurrent sync of two adapters in one registry [33m 2992[2mms[22m[39m
+2026-10-10T01:18:23.1950251Z      [33m[2m✓[22m[39m kgSink receives triples per batch; ragSink receives docs per batch [33m 425[2mms[22m[39m
+2026-10-10T01:18:23.1951412Z      [33m[2m✓[22m[39m sink throws don't abort sync; failure recorded as audit [33m 324[2mms[22m[39m
+2026-10-10T01:18:23.1952820Z      [33m[2m✓[22m[39m ingests 1k mock events well under the 30s budget [33m 3615[2mms[22m[39m
+2026-10-10T01:18:23.2117857Z  [32m✓[39m __tests__/adapters/cursor.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 108[2mms[22m[39m
+2026-10-10T01:18:23.3599953Z  [32m✓[39m __tests__/prompt-builder.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:23.5675464Z  [32m✓[39m __tests__/audio-ximalaya-snapshot.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:23.6127998Z  [32m✓[39m __tests__/longtail-adapters.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-10T01:18:23.7810524Z  [32m✓[39m __tests__/adapters/travel-ctrip.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-10T01:18:24.3178625Z  [32m✓[39m __tests__/adapters/social-douyin-adb-watch-history.test.js [2m([22m[2m19 tests[22m[2m)[22m[33m 383[2mms[22m[39m
+2026-10-10T01:18:24.5424253Z  [32m✓[39m __tests__/social-douban-snapshot.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:24.7509700Z  [32m✓[39m __tests__/adapters/messaging-whatsapp.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:24.9685949Z  [32m✓[39m __tests__/travel-maps-snapshot.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+2026-10-10T01:18:25.5167431Z  [32m✓[39m __tests__/integration/cross-adapter-pipelines.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1616[2mms[22m[39m
+2026-10-10T01:18:25.5169289Z      [33m[2m✓[22m[39m chronological merge of WeChat + Alipay events [33m 344[2mms[22m[39m
+2026-10-10T01:18:25.5171085Z      [33m[2m✓[22m[39m uncertain pair queued → user merges → analysis picks up combined events [33m 379[2mms[22m[39m
+2026-10-10T01:18:25.7637819Z  [32m✓[39m __tests__/shopping-snapshot.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-10T01:18:26.1976019Z  [32m✓[39m __tests__/adapters/social-douyin-cursor-ingest.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 1076[2mms[22m[39m
+2026-10-10T01:18:26.3508881Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-api-client.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-10T01:18:26.5205958Z  [32m✓[39m __tests__/adapters/win-recent.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:26.8518416Z  [32m✓[39m __tests__/registry-partitioned-watermark.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 9457[2mms[22m[39m
+2026-10-10T01:18:26.8581074Z      [33m[2m✓[22m[39m keeps independent stream cursors so a newer play cannot hide an older favourite [33m 380[2mms[22m[39m
+2026-10-10T01:18:26.8587687Z      [33m[2m✓[22m[39m prevents the reproduced Ximalaya include-toggle data-loss sequence [33m 6205[2mms[22m[39m
+2026-10-10T01:18:26.8589267Z      [33m[2m✓[22m[39m commits only completed streams and preserves deferred stream state [33m 371[2mms[22m[39m
+2026-10-10T01:18:26.8590841Z      [33m[2m✓[22m[39m never regresses a stream when an adapter publishes an older candidate [33m 308[2mms[22m[39m
+2026-10-10T01:18:26.8592304Z      [33m[2m✓[22m[39m replays a legacy scalar and migrates it only after a successful live boundary [33m 346[2mms[22m[39m
+2026-10-10T01:18:27.0559287Z  [32m✓[39m __tests__/adapters/social-adb-api-client-source-page-contract.test.js [2m([22m[2m33 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+2026-10-10T01:18:27.2138304Z  [32m✓[39m __tests__/social-douyin-im-direct-read.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:27.5294121Z  [32m✓[39m __tests__/adapters/social-toutiao-kuaishou-scaffold.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:27.6840059Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-collector.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:29.4411676Z  [32m✓[39m __tests__/registry-retry-rate-limit.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 1623[2mms[22m[39m
+2026-10-10T01:18:30.8018111Z  [32m✓[39m __tests__/adapters/weread.test.js [2m([22m[2m19 tests[22m[2m)[22m[33m 4832[2mms[22m[39m
+2026-10-10T01:18:30.8034937Z      [33m[2m✓[22m[39m parses notebooks / bookmarks / reviews defensively [33m 2405[2mms[22m[39m
+2026-10-10T01:18:30.8036905Z      [33m[2m✓[22m[39m fetches book + highlight + review and normalizes to a valid batch [33m 2405[2mms[22m[39m
+2026-10-10T01:18:31.5908265Z  [32m✓[39m __tests__/integration/wechat-bootstrap-end-to-end.test.js [2m([22m[2m9 tests[22m[2m)[22m[33m 1993[2mms[22m[39m
+2026-10-10T01:18:31.5910129Z        [33m[2m✓[22m[39m keyProviderOverride='md5' wins over probe='frida' [33m 337[2mms[22m[39m
+2026-10-10T01:18:31.7111629Z  [32m✓[39m __tests__/tencent-docs-export-sync.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 689[2mms[22m[39m
+2026-10-10T01:18:31.7138217Z      [33m[2m✓[22m[39m scans beyond the former 10,000-file default boundary [33m 419[2mms[22m[39m
+2026-10-10T01:18:31.8003975Z  [32m✓[39m __tests__/adapters/doc-baidu-netdisk.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-10T01:18:32.0036058Z  [32m✓[39m __tests__/adapters/email-classifier.test.js [2m([22m[2m40 tests[22m[2m | [22m[33m15 skipped[39m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:32.0118012Z  [32m✓[39m __tests__/adapters/browser-history-aosp.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+2026-10-10T01:18:32.2429979Z  [32m✓[39m __tests__/adapters/jetbrains-ide.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+2026-10-10T01:18:32.4158241Z  [32m✓[39m __tests__/adapters/video-platforms.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:32.6638794Z  [32m✓[39m __tests__/adapters/email-adapter-snapshot.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+2026-10-10T01:18:32.6893191Z  [32m✓[39m __tests__/vault-search.test.js [2m([22m[2m27 tests[22m[2m)[22m[33m 6033[2mms[22m[39m
+2026-10-10T01:18:32.6894933Z      [33m[2m✓[22m[39m groups events by subtype [33m 365[2mms[22m[39m
+2026-10-10T01:18:32.6896348Z      [33m[2m✓[22m[39m DELETE removes event from FTS5 index [33m 349[2mms[22m[39m
+2026-10-10T01:18:33.0234282Z  [32m✓[39m __tests__/messaging-qq-snapshot.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+2026-10-10T01:18:33.2734094Z  [32m✓[39m __tests__/social-weibo-sqlite-device.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-10T01:18:33.7962302Z  [32m✓[39m __tests__/social-adapters.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:33.8705952Z  [32m✓[39m __tests__/adapters/social-bilibili-adb-cookies-extension.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 1057[2mms[22m[39m
+2026-10-10T01:18:33.8717787Z      [33m[2m✓[22m[39m works through createHostAdbBridge plugin point [33m 1012[2mms[22m[39m
+2026-10-10T01:18:34.0388587Z  [32m✓[39m __tests__/adapters/social-bilibili-adb-chromium-cookies-reader.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+2026-10-10T01:18:34.0748431Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-sign-provider-injection.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-10T01:18:34.1245383Z  [32m✓[39m __tests__/legacy-runtime-cookie-scope.test.js [2m([22m[2m32 tests[22m[2m)[22m[33m 1892[2mms[22m[39m
+2026-10-10T01:18:34.1249042Z      [33m[2m✓[22m[39m uses hashed per-account scopes, audits every fetch, and keeps runtime secrets ephemeral [33m 401[2mms[22m[39m
+2026-10-10T01:18:34.1250839Z      [33m[2m✓[22m[39m uses hashed per-account scopes, audits every fetch, and keeps runtime secrets ephemeral [33m 318[2mms[22m[39m
+2026-10-10T01:18:34.1252393Z      [33m[2m✓[22m[39m uses hashed per-account scopes, audits every fetch, and keeps runtime secrets ephemeral [33m 306[2mms[22m[39m
+2026-10-10T01:18:34.2608462Z  [32m✓[39m __tests__/adapters/social-weibo-adb-api-client.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:34.3497159Z  [32m✓[39m __tests__/adapters/travel-tongcheng.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-10T01:18:34.3694850Z  [32m✓[39m __tests__/adapters/whatsapp-backup-decryptor.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 144[2mms[22m[39m
+2026-10-10T01:18:34.4748310Z  [32m✓[39m __tests__/social-kuaishou-snapshot.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+2026-10-10T01:18:34.5474035Z  [32m✓[39m __tests__/social-toutiao-snapshot.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-10T01:18:34.5913886Z  [32m✓[39m __tests__/adapters/bank-family.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-10T01:18:34.6658181Z  [32m✓[39m __tests__/adapters/wechat-frida-agent.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:34.8363043Z  [32m✓[39m __tests__/adapters/social-douyin-adb-im-db-parser.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+2026-10-10T01:18:34.8637357Z  [32m✓[39m __tests__/adapters/alipay-bill-boundaries.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+2026-10-10T01:18:34.8908561Z  [32m✓[39m __tests__/shopping-pagination-budget.test.js [2m([22m[2m76 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+2026-10-10T01:18:35.0608147Z  [32m✓[39m __tests__/adapters/music-kugou.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:35.0798756Z  [32m✓[39m __tests__/adapters/netease-music-live.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-10T01:18:35.0890519Z  [32m✓[39m __tests__/schemas.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:35.2953200Z  [32m✓[39m __tests__/adapters/email-imap-session.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+2026-10-10T01:18:35.5040007Z  [32m✓[39m __tests__/adapters/finance-alipay-live.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:35.6360570Z  [32m✓[39m __tests__/adapters/email-retry-progress.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-10T01:18:35.8238743Z  [32m✓[39m __tests__/integration/aichat-wizard-end-to-end.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:36.0213200Z  [32m✓[39m __tests__/adapters/social-bilibili-adb-collector.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-10T01:18:36.1652002Z  [32m✓[39m __tests__/adapters/social-weibo-cursor-ingest.test.js [2m([22m[2m9 tests[22m[2m)[22m[33m 897[2mms[22m[39m
+2026-10-10T01:18:36.1697764Z      [33m[2m✓[22m[39m resumes one combined main and private-message SQLite collection [33m 324[2mms[22m[39m
+2026-10-10T01:18:36.1986670Z  [32m✓[39m __tests__/fitness-keep-snapshot.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:36.9182905Z  [32m✓[39m __tests__/adapters/travel-tencent-map-cursor-ingest.test.js [2m([22m[2m9 tests[22m[2m)[22m[33m 603[2mms[22m[39m
+2026-10-10T01:18:37.0726812Z  [32m✓[39m __tests__/mobile-extractor.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:37.2263441Z  [32m✓[39m __tests__/adapters/travel-baidu-map.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:37.3139960Z  [32m✓[39m __tests__/adapters/messaging-whatsapp-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 910[2mms[22m[39m
+2026-10-10T01:18:37.3142179Z      [33m[2m✓[22m[39m lets Registry limits advance contacts through calls in one stable account scope [33m 447[2mms[22m[39m
+2026-10-10T01:18:37.3144051Z      [33m[2m✓[22m[39m keyset-pages every message and relation beyond the former 10000-row cap [33m 448[2mms[22m[39m
+2026-10-10T01:18:37.5742765Z  [32m✓[39m __tests__/adapters/edu-zuoyebang-live.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:37.6759335Z  [32m✓[39m __tests__/adapters/system-data-android-watermark.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 2007[2mms[22m[39m
+2026-10-10T01:18:37.6763452Z      [33m[2m✓[22m[39m keeps snapshot/live upgrades on one scope without duplicating raw entities [33m 330[2mms[22m[39m
+2026-10-10T01:18:37.6765253Z      [33m[2m✓[22m[39m replays the first bounded row after a registry normalize failure [33m 349[2mms[22m[39m
+2026-10-10T01:18:37.6767038Z      [33m[2m✓[22m[39m replays the first bounded row after a registry archive failure [33m 354[2mms[22m[39m
+2026-10-10T01:18:37.6768525Z      [33m[2m✓[22m[39m preserves a legacy watermark when the live upgrade sync fails [33m 343[2mms[22m[39m
+2026-10-10T01:18:37.6770134Z      [33m[2m✓[22m[39m preserves an explicit override across an ordinary later live sync [33m 338[2mms[22m[39m
+2026-10-10T01:18:37.8338013Z  [32m✓[39m __tests__/adapters/reading-family.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:38.0148252Z  [32m✓[39m __tests__/adapters/ai-chat-health-checker.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:39.0003819Z  [32m✓[39m __tests__/e2e/full-user-journey.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 647[2mms[22m[39m
+2026-10-10T01:18:39.1498592Z  [32m✓[39m __tests__/adapters/social-kuaishou-adb-collector.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:39.2327249Z  [32m✓[39m __tests__/runtime-platform-cookie.test.js [2m([22m[2m15 tests[22m[2m)[22m[33m 1719[2mms[22m[39m
+2026-10-10T01:18:39.2335050Z      [33m[2m✓[22m[39m isolates registry checkpoints and never persists runtime secrets [33m 342[2mms[22m[39m
+2026-10-10T01:18:39.2343023Z      [33m[2m✓[22m[39m isolates registry checkpoints and never persists runtime secrets [33m 379[2mms[22m[39m
+2026-10-10T01:18:39.2453613Z      [33m[2m✓[22m[39m isolates registry checkpoints and never persists runtime secrets [33m 371[2mms[22m[39m
+2026-10-10T01:18:39.2463125Z      [33m[2m✓[22m[39m isolates registry checkpoints and never persists runtime secrets [33m 371[2mms[22m[39m
+2026-10-10T01:18:39.4640403Z  [32m✓[39m __tests__/social-bilibili-snapshot.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-10T01:18:39.9118169Z  [32m✓[39m __tests__/adapters/game-honor-of-kings-live.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:40.0623991Z  [32m✓[39m __tests__/adapters/recruit-boss.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:40.4998309Z  [32m✓[39m __tests__/e2e/ai-chat-cross-source-journey.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 927[2mms[22m[39m
+2026-10-10T01:18:40.5027949Z      [33m[2m✓[22m[39m RelationsSkill aggregates AI-agent interactions across vendors [33m 303[2mms[22m[39m
+2026-10-10T01:18:40.5048528Z      [33m[2m✓[22m[39m AIChat + cookie-expired sentinel: partial success, journey continues [33m 376[2mms[22m[39m
+2026-10-10T01:18:40.8714052Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-cursor-ingest.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 666[2mms[22m[39m
+2026-10-10T01:18:40.8737424Z      [33m[2m✓[22m[39m resumes a frozen SQLite collection instead of replaying its first row [33m 334[2mms[22m[39m
+2026-10-10T01:18:41.0728644Z  [32m✓[39m __tests__/adapters/social-csdn.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-10T01:18:41.2687260Z  [32m✓[39m __tests__/adapters/social-bilibili-adb-snapshot-builder.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:42.2940569Z  [32m✓[39m __tests__/adapters/travel-baidu-map-cursor-ingest.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 885[2mms[22m[39m
+2026-10-10T01:18:42.2943110Z      [33m[2m✓[22m[39m resumes a frozen SQLite collection instead of replaying its first row [33m 407[2mms[22m[39m
+2026-10-10T01:18:42.5941153Z  [32m✓[39m __tests__/registry-long-task-boundaries.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 1889[2mms[22m[39m
+2026-10-10T01:18:42.5942785Z      [33m[2m✓[22m[39m honors an already-aborted signal before health check or sync attempt [33m 318[2mms[22m[39m
+2026-10-10T01:18:42.5996845Z      [33m[2m✓[22m[39m checks cancellation after a batch flush and before checkpoint commit [33m 356[2mms[22m[39m
+2026-10-10T01:18:42.6017650Z      [33m[2m✓[22m[39m enforces the tighter of limit/maxEvents and defers an unsafe watermark [33m 362[2mms[22m[39m
+2026-10-10T01:18:42.7445648Z  [32m✓[39m __tests__/adapters/edu-huawei-learning-live.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:42.7520576Z  [32m✓[39m __tests__/adapters/doc-wps-official.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:42.9482848Z  [32m✓[39m __tests__/adapters/shopping-dianping.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:43.1693920Z  [32m✓[39m __tests__/adapters/social-douyin-adb-usage-profile.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 284[2mms[22m[39m
+2026-10-10T01:18:43.7632788Z  [32m✓[39m __tests__/entity-resolver-vault.test.js [2m([22m[2m21 tests[22m[2m)[22m[33m 6032[2mms[22m[39m
+2026-10-10T01:18:43.7677511Z      [33m[2m✓[22m[39m schemaVersion is current after open() [33m 324[2mms[22m[39m
+2026-10-10T01:18:43.7713660Z      [33m[2m✓[22m[39m all 5 new tables exist + are queryable [33m 347[2mms[22m[39m
+2026-10-10T01:18:43.7737342Z      [33m[2m✓[22m[39m enqueueResolve creates a pending row [33m 354[2mms[22m[39m
+2026-10-10T01:18:43.7739458Z      [33m[2m✓[22m[39m enqueueResolve is idempotent for pending rows [33m 354[2mms[22m[39m
+2026-10-10T01:18:43.7767452Z      [33m[2m✓[22m[39m errorResolve re-pends until 3 attempts then marks error [33m 322[2mms[22m[39m
+2026-10-10T01:18:43.7797053Z      [33m[2m✓[22m[39m recordResolveDecision lex-orders ids [33m 352[2mms[22m[39m
+2026-10-10T01:18:43.7827096Z      [33m[2m✓[22m[39m recordResolveDecision upserts on conflict [33m 318[2mms[22m[39m
+2026-10-10T01:18:43.7837289Z      [33m[2m✓[22m[39m mergePair on already-same-group is a no-op [33m 354[2mms[22m[39m
+2026-10-10T01:18:43.7857081Z      [33m[2m✓[22m[39m unmergePerson shrinks group when 3+ members [33m 335[2mms[22m[39m
+2026-10-10T01:18:43.7887004Z      [33m[2m✓[22m[39m unmergePerson on non-member returns ok:false [33m 324[2mms[22m[39m
+2026-10-10T01:18:43.7916977Z      [33m[2m✓[22m[39m enqueueReview lex-orders + returns id [33m 309[2mms[22m[39m
+2026-10-10T01:18:43.7947013Z      [33m[2m✓[22m[39m recordReviewDecision rejects invalid decision [33m 350[2mms[22m[39m
+2026-10-10T01:18:43.9242511Z  [32m✓[39m __tests__/adapters/travel-amap.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:44.0478709Z  [32m✓[39m __tests__/adapters/social-kuaishou-cursor-ingest.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 905[2mms[22m[39m
+2026-10-10T01:18:44.0479924Z      [33m[2m✓[22m[39m lets Registry limits resume one snapshot in a stable private scope [33m 409[2mms[22m[39m
+2026-10-10T01:18:44.0492190Z      [33m[2m✓[22m[39m resumes a frozen SQLite collection instead of replaying its first row [33m 379[2mms[22m[39m
+2026-10-10T01:18:44.1021687Z  [32m✓[39m __tests__/adapters/social-toutiao-cursor-ingest.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 787[2mms[22m[39m
+2026-10-10T01:18:44.1023508Z      [33m[2m✓[22m[39m resumes a frozen SQLite collection instead of replaying its first row [33m 390[2mms[22m[39m
+2026-10-10T01:18:44.2038463Z  [32m✓[39m __tests__/qq-quality-merge.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-10T01:18:44.2968267Z  [32m✓[39m __tests__/adapters/finance-dcep.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-10T01:18:44.3474498Z  [32m✓[39m __tests__/adapters/game-genshin-live.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:44.4260307Z  [32m✓[39m __tests__/adapters/travel-didi.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:44.6140232Z  [32m✓[39m __tests__/adapters/ai-chat-http-client.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:44.8668406Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-article.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 379[2mms[22m[39m
+2026-10-10T01:18:44.9998311Z  [32m✓[39m __tests__/adapters/netease-music-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 496[2mms[22m[39m
+2026-10-10T01:18:45.2003257Z  [32m✓[39m __tests__/adapters/shopping-base.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:45.4099998Z  [32m✓[39m __tests__/social-douyin-snapshot.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-10T01:18:45.6978898Z  [32m✓[39m __tests__/adapters/email-parser.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+2026-10-10T01:18:45.7528131Z  [32m✓[39m __tests__/adapters/game-genshin-cursor-ingest.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 709[2mms[22m[39m
+2026-10-10T01:18:45.7557761Z      [33m[2m✓[22m[39m lets Registry limits resume one snapshot in a stable private scope [33m 329[2mms[22m[39m
+2026-10-10T01:18:45.7559319Z      [33m[2m✓[22m[39m freezes the complete live role set and resumes without API truncation [33m 367[2mms[22m[39m
+2026-10-10T01:18:45.8476346Z  [32m✓[39m __tests__/adapters/social-bilibili-cursor-ingest.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 780[2mms[22m[39m
+2026-10-10T01:18:45.8478293Z      [33m[2m✓[22m[39m resumes a frozen SQLite collection instead of replaying its first row [33m 389[2mms[22m[39m
+2026-10-10T01:18:45.8968023Z  [32m✓[39m __tests__/adapters/music-qq.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-10T01:18:45.9288145Z  [32m✓[39m __tests__/adapters/gov-tax.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:46.0882312Z  [32m✓[39m __tests__/adapters/wechat-bootstrap.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:46.1955461Z  [32m✓[39m __tests__/adapters/social-douyin-adb-collector.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+2026-10-10T01:18:46.2502744Z  [32m✓[39m __tests__/adapters/local-im-pc.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:46.4038033Z  [32m✓[39m __tests__/kg-derive.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:46.6352117Z  [32m✓[39m __tests__/adapters/vscodium.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+2026-10-10T01:18:46.7656286Z  [32m✓[39m __tests__/adapters/messaging-telegram-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 759[2mms[22m[39m
+2026-10-10T01:18:46.7658491Z      [33m[2m✓[22m[39m lets Registry limits advance users, chats, then messages [33m 346[2mms[22m[39m
+2026-10-10T01:18:46.7660055Z      [33m[2m✓[22m[39m keyset-pages every message beyond the former 10000-row cap [33m 400[2mms[22m[39m
+2026-10-10T01:18:46.8296514Z  [32m✓[39m __tests__/adapters/qq-pc-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+2026-10-10T01:18:46.9771173Z  [32m✓[39m __tests__/adapters/doc-camscanner.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-10T01:18:47.9378939Z  [32m✓[39m __tests__/integration/social-bilibili-pipeline.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1310[2mms[22m[39m
+2026-10-10T01:18:47.9380932Z      [33m[2m✓[22m[39m 4 kinds ingest into vault with exact entity counts [33m 312[2mms[22m[39m
+2026-10-10T01:18:47.9607564Z  [32m✓[39m __tests__/adapters/edu-huawei-learning-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 794[2mms[22m[39m
+2026-10-10T01:18:47.9611104Z      [33m[2m✓[22m[39m lets Registry limits resume one snapshot in a stable private scope [33m 402[2mms[22m[39m
+2026-10-10T01:18:47.9612791Z      [33m[2m✓[22m[39m freezes the complete live collection and resumes without truncation [33m 381[2mms[22m[39m
+2026-10-10T01:18:48.0665110Z  [32m✓[39m __tests__/registry-resolved-ingest.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 1080[2mms[22m[39m
+2026-10-10T01:18:48.0688196Z      [33m[2m✓[22m[39m feeds persisted IDs and rewritten references to every downstream sink [33m 370[2mms[22m[39m
+2026-10-10T01:18:48.0718009Z      [33m[2m✓[22m[39m uses the same resolved transaction during raw re-derive [33m 359[2mms[22m[39m
+2026-10-10T01:18:48.0767622Z      [33m[2m✓[22m[39m fails closed when the adapter returns resolved options asynchronously [33m 349[2mms[22m[39m
+2026-10-10T01:18:48.2330504Z  [32m✓[39m __tests__/adapters/ai-chat-cookie-capture-spec.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:48.4224699Z  [32m✓[39m __tests__/adapter-spec.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:48.6212321Z  [32m✓[39m __tests__/adapters/travel-didi-consumer.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:48.7268474Z  [32m✓[39m __tests__/adapters/edu-zuoyebang-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 625[2mms[22m[39m
+2026-10-10T01:18:48.7287715Z      [33m[2m✓[22m[39m lets Registry limits resume one snapshot in a stable private scope [33m 326[2mms[22m[39m
+2026-10-10T01:18:48.8349980Z  [32m✓[39m __tests__/social-xiaohongshu-snapshot.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:48.9095017Z  [32m✓[39m __tests__/adapters/biz-tianyancha.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-10T01:18:49.0175089Z  [32m✓[39m __tests__/qq-nt-scan-cursor.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:49.1408824Z  [32m✓[39m __tests__/adapters/browser-history-opera-vivaldi.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+2026-10-10T01:18:49.2087629Z  [32m✓[39m __tests__/social-weibo-snapshot.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:49.3103571Z  [32m✓[39m __tests__/adapters/social-dongchedi.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:49.3448066Z  [32m✓[39m __tests__/runtime-base-cookie.test.js [2m([22m[2m12 tests[22m[2m)[22m[33m 1164[2mms[22m[39m
+2026-10-10T01:18:49.3450181Z      [33m[2m✓[22m[39m isolates runtime accounts without mutating or persisting credentials [33m 314[2mms[22m[39m
+2026-10-10T01:18:49.3962421Z  [32m✓[39m __tests__/adapters/gov-12123.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:49.4956434Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-collector.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:49.5203639Z  [32m✓[39m __tests__/adapters/social-weibo-adb-collector.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:49.5881257Z  [32m✓[39m __tests__/wechat-collect.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-10T01:18:49.7307836Z  [32m✓[39m __tests__/adapters/travel-tencent-map.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:49.7853602Z  [32m✓[39m __tests__/bridges-cc-llm.test.js [2m([22m[2m22 tests[22m[2m | [22m[33m8 skipped[39m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:49.8985719Z  [32m✓[39m __tests__/snapshot-file.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:49.9401825Z  [32m✓[39m __tests__/adapters/apple-health.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-10T01:18:49.9674186Z  [32m✓[39m __tests__/account-scope.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:50.0982823Z  [32m✓[39m __tests__/adapters/social-api-pagination-completeness.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-10T01:18:50.1198808Z  [32m✓[39m __tests__/adapters/gov-ixiamen.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-10T01:18:50.1768295Z  [32m✓[39m __tests__/adapters/social-douyin-adb-aweme-detail.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:50.2809645Z  [32m✓[39m __tests__/adapters/pc-local-discovery.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:50.4735155Z  [32m✓[39m __tests__/adapters/travel-base.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:50.5479744Z  [32m✓[39m __tests__/adapters/family-23-collectors-scaffold.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-10T01:18:50.8064691Z  [32m✓[39m __tests__/adapters/wechat-frida-key-provider.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+2026-10-10T01:18:50.8464936Z  [32m✓[39m __tests__/adapters/travel-amap-cursor-ingest.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 532[2mms[22m[39m
+2026-10-10T01:18:50.8466627Z      [33m[2m✓[22m[39m lets Registry limits resume one SQLite scan in a stable private scope [33m 400[2mms[22m[39m
+2026-10-10T01:18:51.4661764Z  [32m✓[39m __tests__/adapters/alipay-bill-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 434[2mms[22m[39m
+2026-10-10T01:18:51.4685731Z      [33m[2m✓[22m[39m lets Registry limits resume one import in a private per-file scope [33m 426[2mms[22m[39m
+2026-10-10T01:18:51.6056904Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-account-reader.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-10T01:18:51.7445244Z  [32m✓[39m __tests__/adapters/health-meiyou.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:51.8825245Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-cookies-extension.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-10T01:18:52.0378001Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-cookies-extension.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:52.4978585Z  [32m✓[39m __tests__/adapters/apple-health-cursor-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1874[2mms[22m[39m
+2026-10-10T01:18:52.4980584Z      [33m[2m✓[22m[39m ingests every entry beyond the former default 200000-record cap [33m 1583[2mms[22m[39m
+2026-10-10T01:18:52.7248236Z  [32m✓[39m __tests__/adapters/browser-history-edge.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-10T01:18:52.8568307Z  [32m✓[39m __tests__/adapters/qq-pc-resolved-ingest.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 626[2mms[22m[39m
+2026-10-10T01:18:52.8649944Z      [33m[2m✓[22m[39m merges direct and sidecar evidence while retaining both raw observations [33m 369[2mms[22m[39m
+2026-10-10T01:18:52.9060773Z  [32m✓[39m __tests__/adapters/social-douyin-adb-snapshot-builder.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:52.9848177Z  [32m✓[39m __tests__/entity-resolver-ingest-hook.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1964[2mms[22m[39m
+2026-10-10T01:18:52.9851187Z      [33m[2m✓[22m[39m registry.syncAdapter fires resolveOnIngest with new Persons [33m 436[2mms[22m[39m
+2026-10-10T01:18:52.9877952Z      [33m[2m✓[22m[39m cross-adapter R1 match: same email → auto-merged [33m 365[2mms[22m[39m
+2026-10-10T01:18:52.9907988Z      [33m[2m✓[22m[39m uncertain pairs (name overlap only) → enqueued for async [33m 313[2mms[22m[39m
+2026-10-10T01:18:52.9909738Z      [33m[2m✓[22m[39m zero-overlap pair → no merge, no resolver decisions, person still ingested [33m 358[2mms[22m[39m
+2026-10-10T01:18:53.0546050Z  [32m✓[39m __tests__/adapters/doc-platforms.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-10T01:18:53.1002274Z  [2m[90m↓[39m[22m __tests__/sidecar-contacts-cross-validate.test.js [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+2026-10-10T01:18:53.3814612Z  [32m✓[39m __tests__/whatsapp-adapter.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-10T01:18:53.3891097Z  [32m✓[39m __tests__/adapters/snapshot-cohort-d-hardening.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+2026-10-10T01:18:53.5800906Z  [32m✓[39m __tests__/adapters/system-data-android-ingest.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:53.8435714Z  [32m✓[39m __tests__/runtime-input-health-gate.test.js [2m([22m[2m33 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+2026-10-10T01:18:54.5100283Z  [32m✓[39m __tests__/travel-runtime-cookie.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 1246[2mms[22m[39m
+2026-10-10T01:18:54.5102648Z      [33m[2m✓[22m[39m collects through AdapterRegistry with isolated scopes and no credential persistence [33m 353[2mms[22m[39m
+2026-10-10T01:18:54.5104734Z      [33m[2m✓[22m[39m collects through AdapterRegistry with isolated scopes and no credential persistence [33m 392[2mms[22m[39m
+2026-10-10T01:18:54.6568101Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-snapshot-builder.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:54.7657956Z  [32m✓[39m __tests__/adapters/win-recent-watermark.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 1033[2mms[22m[39m
+2026-10-10T01:18:54.7660115Z      [33m[2m✓[22m[39m persists bounded continuations and resets after an exact-limit empty boundary [33m 360[2mms[22m[39m
+2026-10-10T01:18:54.7662063Z      [33m[2m✓[22m[39m isolates directory scopes and leaves the ambiguous legacy empty scope untouched [33m 375[2mms[22m[39m
+2026-10-10T01:18:54.8353571Z  [32m✓[39m __tests__/adapters/browser-history-brave.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+2026-10-10T01:18:54.9754926Z  [32m✓[39m __tests__/adapters/social-toutiao-adb-snapshot-builder.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-10T01:18:55.2049722Z  [32m✓[39m __tests__/adapters/social-weibo-adb-cookies-extension.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-10T01:18:55.3732968Z  [32m✓[39m __tests__/legacy-json-file-boundary.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:55.5077154Z  [32m✓[39m __tests__/adapters/wechat-env-probe.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-10T01:18:55.6446367Z  [32m✓[39m __tests__/adapters/fitness-joyrun.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:55.7767213Z  [32m✓[39m __tests__/adapters/system-data-disclosure.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:55.9234647Z  [32m✓[39m __tests__/adapters/netease-music.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-10T01:18:56.0019671Z  [32m✓[39m __tests__/media-runtime-cookie.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1024[2mms[22m[39m
+2026-10-10T01:18:56.0047821Z      [33m[2m✓[22m[39m isolates registry scopes and never persists runtime credentials [33m 375[2mms[22m[39m
+2026-10-10T01:18:56.0067595Z      [33m[2m✓[22m[39m isolates registry scopes and never persists runtime credentials [33m 354[2mms[22m[39m
+2026-10-10T01:18:56.0643655Z  [32m✓[39m __tests__/rag-derive.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:56.1654539Z  [32m✓[39m __tests__/adapters/social-weibo-adb-snapshot-builder.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-10T01:18:56.3517775Z  [32m✓[39m __tests__/adapters/social-kuaishou-adb-snapshot-builder.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:56.3938816Z  [32m✓[39m __tests__/integration/derivation-projections.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 2353[2mms[22m[39m
+2026-10-10T01:18:56.3941129Z      [33m[2m✓[22m[39m rehydrates more than one page after reopen, then reconciles updates, target deletion and reimport [33m 2351[2mms[22m[39m
+2026-10-10T01:18:56.7739618Z  [32m✓[39m __tests__/source-page.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-10T01:18:56.8760666Z  [32m✓[39m __tests__/plaintext-db-collect.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 611[2mms[22m[39m
+2026-10-10T01:18:56.8762445Z      [33m[2m✓[22m[39m per-row unique source.originalId — rows of one table are NOT collapsed [33m 349[2mms[22m[39m
+2026-10-10T01:18:56.9447969Z  [32m✓[39m __tests__/wps-runtime-sync.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 389[2mms[22m[39m
+2026-10-10T01:18:56.9478366Z      [33m[2m✓[22m[39m isolates accounts and folders without persisting OAuth or KSO secrets [33m 388[2mms[22m[39m
+2026-10-10T01:18:56.9557964Z  [32m✓[39m __tests__/direct-api-pagination-budget.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+2026-10-10T01:18:57.0706076Z  [32m✓[39m __tests__/adapters/social-kuaishou-adb-cookies-extension.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-10T01:18:57.1268370Z  [32m✓[39m __tests__/adapters/video-xigua.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:57.2549825Z  [32m✓[39m __tests__/qzone-collect.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-10T01:18:57.2743891Z  [32m✓[39m __tests__/public-service-pagination-budget.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-10T01:18:57.4260149Z  [32m✓[39m __tests__/adapters/wechat-frida-integration.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-10T01:18:57.4658407Z  [32m✓[39m __tests__/salvage-ingest.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 326[2mms[22m[39m
+2026-10-10T01:18:57.6750671Z  [32m✓[39m __tests__/snapshot-import-cohort-c.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+2026-10-10T01:18:57.6910208Z  [32m✓[39m __tests__/sqlite-leaf-salvage.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+2026-10-10T01:18:57.7082646Z  [32m✓[39m __tests__/account-scope-adapters.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:57.8305378Z  [32m✓[39m __tests__/adapters/car-mercedesme.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:57.8789997Z  [32m✓[39m __tests__/adapters/social-xiaohongshu-adb-sign.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:57.9328445Z  [32m✓[39m __tests__/health-fitness-pagination-budget.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-10T01:18:58.1288178Z  [32m✓[39m __tests__/snapshot-import-shopping-travel-contract.test.js [2m([22m[2m33 tests[22m[2m)[22m[32m 54[2mms[22m[39m
+2026-10-10T01:18:58.2334503Z  [32m✓[39m __tests__/adapters/game-genshin-scaffold.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:58.3134430Z  [32m✓[39m __tests__/adapters/sms-transaction.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:58.3784209Z  [2m[90m↓[39m[22m __tests__/sidecar-supervisor.test.js [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m
+2026-10-10T01:18:58.4248209Z  [32m✓[39m __tests__/adapters/messaging-qq-resolved-ingest.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 334[2mms[22m[39m
+2026-10-10T01:18:58.4272178Z      [33m[2m✓[22m[39m merges Android evidence into the matching QQ NT event [33m 332[2mms[22m[39m
+2026-10-10T01:18:58.5523489Z  [32m✓[39m __tests__/llm-client.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-10T01:18:58.5917986Z  [32m✓[39m __tests__/adapters/wework-pc.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:18:58.7458334Z  [32m✓[39m __tests__/adapters/social-douyin-adb-db-extension.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-10T01:18:58.7781299Z  [32m✓[39m __tests__/vault-search-helpers.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-10T01:18:58.8880230Z  [32m✓[39m __tests__/key-providers.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:59.0351407Z  [32m✓[39m __tests__/social-douyin-salvage-collector.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-10T01:18:59.2148849Z  [32m✓[39m __tests__/batch.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:18:59.2738364Z  [32m✓[39m __tests__/registry-deferred-sync-commit.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 767[2mms[22m[39m
+2026-10-10T01:18:59.2739273Z      [33m[2m✓[22m[39m never runs a registered callback after normalize failure or abort [33m 314[2mms[22m[39m
+2026-10-10T01:18:59.3704654Z  [32m✓[39m __tests__/social-zhihu-runtime-sync.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 395[2mms[22m[39m
+2026-10-10T01:18:59.3705598Z      [33m[2m✓[22m[39m isolates two transient accounts without persisting cookies or url_tokens [33m 393[2mms[22m[39m
+2026-10-10T01:18:59.4198034Z  [32m✓[39m __tests__/social-douyin-salvage-mapper.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:59.6185752Z  [32m✓[39m __tests__/snapshot-import-contract.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:18:59.6866342Z  [32m✓[39m __tests__/travel-12306-runtime-sync.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 256[2mms[22m[39m
+2026-10-10T01:18:59.7793731Z  [32m✓[39m __tests__/adapters/social-adb-api-pagination-completeness.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:18:59.8872705Z  [32m✓[39m __tests__/travel-pagination-budget.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-10T01:18:59.9058097Z  [32m✓[39m __tests__/baidu-netdisk-runtime-sync.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 359[2mms[22m[39m
+2026-10-10T01:18:59.9138176Z      [33m[2m✓[22m[39m isolates transient accounts and never persists access tokens or account ids [33m 357[2mms[22m[39m
+2026-10-10T01:18:59.9654892Z  [32m✓[39m __tests__/adapters/whatsapp-adb-extension.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-10T01:19:00.0812465Z  [32m✓[39m __tests__/vault-driver-error.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-10T01:19:00.1077215Z  [32m✓[39m __tests__/qq-nt-collect.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-10T01:19:00.1137899Z  [32m✓[39m __tests__/media-pagination-budget.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:19:00.2733407Z  [32m✓[39m __tests__/sidecar-supervisor-cancellation.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:19:00.2908042Z  [32m✓[39m __tests__/adapters/ai-chat-pagination-budget.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-10T01:19:00.3142951Z  [32m✓[39m __tests__/mock-adapter.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:19:00.4558252Z  [32m✓[39m __tests__/python-sidecar-base-cancellation.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-10T01:19:00.4633946Z  [32m✓[39m __tests__/categories.test.js [2m([22m[2m48 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:19:00.5048132Z  [32m✓[39m __tests__/adapters/wechat-md5-key-provider.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:19:00.5980173Z  [32m✓[39m __tests__/adapters/qq-pc-sidecar.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-10T01:19:00.6418274Z  [32m✓[39m __tests__/partitioned-watermark.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:19:00.7518719Z  [32m✓[39m __tests__/adapters/email-providers.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:19:00.9438316Z  [32m✓[39m __tests__/scope-normalized-batch.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-10T01:19:01.0038309Z  [32m✓[39m __tests__/catalog-completeness.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 49[2mms[22m[39m
+2026-10-10T01:19:01.0592525Z  [32m✓[39m __tests__/shopping-runtime-sync.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 235[2mms[22m[39m
+2026-10-10T01:19:01.1275141Z  [32m✓[39m __tests__/qq-source-identity.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-10T01:19:01.1877301Z  [32m✓[39m __tests__/adapters/wechat-pc-v4-sidecar.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-10T01:19:01.2407655Z  [32m✓[39m __tests__/paginated-watermark-contract.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 38[2mms[22m[39m
+2026-10-10T01:19:01.3079113Z  [32m✓[39m __tests__/sql-like.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:19:01.3923217Z  [32m✓[39m __tests__/sign-providers.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-10T01:19:01.4292359Z  [32m✓[39m __tests__/qq-account-scope.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-10T01:19:01.4793435Z  [32m✓[39m __tests__/adapters/wechat-pc-group-topic.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-10T01:19:01.5678362Z [PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=0 (events=0 persons=0 items=0) adapter=* intent=count
+2026-10-10T01:19:01.5679967Z [PDH-ASK] prompt factCount=0 truncated=0 messages=2 promptChars=2476
+2026-10-10T01:19:01.5710122Z [PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=0 (events=0 persons=0 items=0) adapter=* intent=count
+2026-10-10T01:19:01.5712675Z [PDH-ASK] prompt factCount=0 truncated=0 messages=2 promptChars=2476
+2026-10-10T01:19:01.5761957Z  [32m✓[39m __tests__/analysis-model-egress-governance.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-10T01:19:01.6338070Z  [32m✓[39m __tests__/ids.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-10T01:19:01.6931451Z  [32m✓[39m __tests__/adapters/education-music-pagination-budget.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+2026-10-10T01:19:01.7274092Z  [32m✓[39m __tests__/model-egress-inventory.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-10T01:19:01.7729416Z  [32m✓[39m __tests__/analysis-skill-governance.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-10T01:19:01.7823977Z 
+2026-10-10T01:19:01.7841373Z [2m Test Files [22m [1m[32m285 passed[39m[22m[2m | [22m[33m3 skipped[39m[90m (288)[39m
+2026-10-10T01:19:01.7868907Z [2m      Tests [22m [1m[32m4465 passed[39m[22m[2m | [22m[33m145 skipped[39m[90m (4610)[39m
+2026-10-10T01:19:01.7869742Z [2m   Start at [22m 01:17:44
+2026-10-10T01:19:01.7873120Z [2m   Duration [22m 77.18s[2m (transform 3.46s, setup 0ms, import 16.44s, tests 174.09s, environment 33ms)[22m
+2026-10-10T01:19:01.7875382Z 
+2026-10-10T01:19:01.8484674Z Post job cleanup.
+2026-10-10T01:19:01.9659444Z (node:4572) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:19:01.9660834Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:19:01.9932007Z Post job cleanup.
+2026-10-10T01:19:02.0789252Z [command]/usr/bin/git version
+2026-10-10T01:19:02.0826801Z git version 2.55.0
+2026-10-10T01:19:02.0863137Z Temporarily overriding HOME='/home/runner/work/_temp/b860a8c3-ec0f-434c-a484-482bea2aca32' before making global git config changes
+2026-10-10T01:19:02.0864677Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:19:02.0869256Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:19:02.0904576Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:19:02.0934903Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:19:02.1153017Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:19:02.1172627Z http.https://github.com/.extraheader
+2026-10-10T01:19:02.1182869Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T01:19:02.1217499Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:19:02.1480332Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:19:02.1531009Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:19:02.2010738Z Cleaning up orphan processes

@@ -1,0 +1,255 @@
+﻿2026-10-10T04:05:13.5838740Z Current runner version: '2.337.0'
+2026-10-10T04:05:13.5856705Z ##[group]Runner Image Provisioner
+2026-10-10T04:05:13.5857352Z Hosted Compute Agent
+2026-10-10T04:05:13.5857733Z Version: 20261002.596
+2026-10-10T04:05:13.5858168Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T04:05:13.5858683Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T04:05:13.5859122Z Worker ID: {b2143dd7-ae85-4df1-849d-d2d5fd745b1b}
+2026-10-10T04:05:13.5859601Z Region: centralus
+2026-10-10T04:05:13.5859983Z Cloud: Azure
+2026-10-10T04:05:13.5860371Z ##[endgroup]
+2026-10-10T04:05:13.5861248Z ##[group]Operating System
+2026-10-10T04:05:13.5861637Z Ubuntu
+2026-10-10T04:05:13.5862013Z 24.04.5
+2026-10-10T04:05:13.5862362Z LTS
+2026-10-10T04:05:13.5862731Z ##[endgroup]
+2026-10-10T04:05:13.5863125Z ##[group]Runner Image
+2026-10-10T04:05:13.5863523Z Image: ubuntu-24.04
+2026-10-10T04:05:13.5863879Z Version: 20261004.327.1
+2026-10-10T04:05:13.5864775Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T04:05:13.5865877Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T04:05:13.5866490Z ##[endgroup]
+2026-10-10T04:05:13.5867495Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T04:05:13.5868923Z Contents: read
+2026-10-10T04:05:13.5869285Z Metadata: read
+2026-10-10T04:05:13.5869745Z ##[endgroup]
+2026-10-10T04:05:13.5871110Z Secret source: Actions
+2026-10-10T04:05:13.5871764Z Cache mode: write
+2026-10-10T04:05:13.5872335Z Prepare workflow directory
+2026-10-10T04:05:13.6241498Z Prepare all required actions
+2026-10-10T04:05:13.6276112Z Getting action download info
+2026-10-10T04:05:13.8604330Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T04:05:13.9595295Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T04:05:14.1250712Z Complete job name: JetBrains Marketplace (post-publish verification)
+2026-10-10T04:05:14.1692951Z ##[group]Run actions/checkout@v5
+2026-10-10T04:05:14.1693388Z with:
+2026-10-10T04:05:14.1693670Z   ref: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:14.1694042Z   repository: chainlesschain/chainlesschain
+2026-10-10T04:05:14.1696558Z   token: ***
+2026-10-10T04:05:14.1696810Z   ssh-strict: true
+2026-10-10T04:05:14.1697062Z   ssh-user: git
+2026-10-10T04:05:14.1697324Z   persist-credentials: true
+2026-10-10T04:05:14.1697606Z   clean: true
+2026-10-10T04:05:14.1697871Z   sparse-checkout-cone-mode: true
+2026-10-10T04:05:14.1698170Z   fetch-depth: 1
+2026-10-10T04:05:14.1698429Z   fetch-tags: false
+2026-10-10T04:05:14.1698689Z   show-progress: true
+2026-10-10T04:05:14.1698951Z   lfs: false
+2026-10-10T04:05:14.1699197Z   submodules: false
+2026-10-10T04:05:14.1699460Z   set-safe-directory: true
+2026-10-10T04:05:14.1699753Z   allow-unsafe-pr-checkout: false
+2026-10-10T04:05:14.1700138Z env:
+2026-10-10T04:05:14.1700378Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:05:14.1700751Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:14.1701198Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:14.1701571Z ##[endgroup]
+2026-10-10T04:05:14.2402512Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T04:05:14.2404270Z ##[group]Getting Git version info
+2026-10-10T04:05:14.2404839Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T04:05:14.2405730Z [command]/usr/bin/git version
+2026-10-10T04:05:14.2477083Z git version 2.55.0
+2026-10-10T04:05:14.2494998Z ##[endgroup]
+2026-10-10T04:05:14.2507421Z Temporarily overriding HOME='/home/runner/work/_temp/88a48be9-4499-4af7-8a92-8ba65c867784' before making global git config changes
+2026-10-10T04:05:14.2508830Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T04:05:14.2511359Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T04:05:14.2558023Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T04:05:14.2561049Z ##[group]Initializing the repository
+2026-10-10T04:05:14.2564215Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T04:05:14.2826272Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T04:05:14.2827575Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T04:05:14.2828979Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T04:05:14.2829697Z hint: call:
+2026-10-10T04:05:14.2830051Z hint:
+2026-10-10T04:05:14.2830386Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T04:05:14.2830790Z hint:
+2026-10-10T04:05:14.2831132Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T04:05:14.2831998Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T04:05:14.2832662Z hint:
+2026-10-10T04:05:14.2833090Z hint: 	git branch -m <name>
+2026-10-10T04:05:14.2833528Z hint:
+2026-10-10T04:05:14.2834078Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T04:05:14.2835057Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T04:05:14.2842448Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T04:05:14.2893123Z ##[endgroup]
+2026-10-10T04:05:14.2893596Z ##[group]Disabling automatic garbage collection
+2026-10-10T04:05:14.2896398Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T04:05:14.2927172Z ##[endgroup]
+2026-10-10T04:05:14.2927594Z ##[group]Setting up auth
+2026-10-10T04:05:14.2932400Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T04:05:14.2961229Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T04:05:14.3265814Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T04:05:14.3295673Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T04:05:14.3477202Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T04:05:14.3506158Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T04:05:14.3688449Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T04:05:14.3722279Z ##[endgroup]
+2026-10-10T04:05:14.3722729Z ##[group]Fetching the repository
+2026-10-10T04:05:14.3728613Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:25.3367799Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T04:05:25.3368478Z  * branch              da91e730d802b7c9dcdc075b222ecc257021e552 -> FETCH_HEAD
+2026-10-10T04:05:25.3370086Z ##[endgroup]
+2026-10-10T04:05:25.3370482Z ##[group]Determining the checkout info
+2026-10-10T04:05:25.3371613Z ##[endgroup]
+2026-10-10T04:05:25.3372825Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T04:05:25.3427028Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T04:05:25.3458088Z ##[group]Checking out the ref
+2026-10-10T04:05:25.3461087Z [command]/usr/bin/git checkout --progress --force da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:26.5127579Z Updating files:  54% (12849/23576)
+2026-10-10T04:05:26.8737175Z Updating files:  55% (12967/23576)
+2026-10-10T04:05:27.3241093Z Updating files:  56% (13203/23576)
+2026-10-10T04:05:27.3667623Z Updating files:  57% (13439/23576)
+2026-10-10T04:05:27.3806767Z Updating files:  57% (13543/23576)
+2026-10-10T04:05:27.4049442Z Updating files:  58% (13675/23576)
+2026-10-10T04:05:27.4296778Z Updating files:  59% (13910/23576)
+2026-10-10T04:05:27.4505543Z Updating files:  60% (14146/23576)
+2026-10-10T04:05:27.4717880Z Updating files:  61% (14382/23576)
+2026-10-10T04:05:27.5002117Z Updating files:  62% (14618/23576)
+2026-10-10T04:05:27.5410701Z Updating files:  63% (14853/23576)
+2026-10-10T04:05:27.5587200Z Updating files:  64% (15089/23576)
+2026-10-10T04:05:27.5703763Z Updating files:  65% (15325/23576)
+2026-10-10T04:05:27.5915674Z Updating files:  66% (15561/23576)
+2026-10-10T04:05:27.6022644Z Updating files:  67% (15796/23576)
+2026-10-10T04:05:27.6195125Z Updating files:  68% (16032/23576)
+2026-10-10T04:05:27.6370359Z Updating files:  69% (16268/23576)
+2026-10-10T04:05:27.6504814Z Updating files:  70% (16504/23576)
+2026-10-10T04:05:27.6664211Z Updating files:  71% (16739/23576)
+2026-10-10T04:05:27.6861540Z Updating files:  72% (16975/23576)
+2026-10-10T04:05:27.7022798Z Updating files:  73% (17211/23576)
+2026-10-10T04:05:27.7138360Z Updating files:  74% (17447/23576)
+2026-10-10T04:05:27.7303074Z Updating files:  75% (17682/23576)
+2026-10-10T04:05:27.7465485Z Updating files:  76% (17918/23576)
+2026-10-10T04:05:27.7624612Z Updating files:  77% (18154/23576)
+2026-10-10T04:05:27.7749108Z Updating files:  78% (18390/23576)
+2026-10-10T04:05:27.7893492Z Updating files:  79% (18626/23576)
+2026-10-10T04:05:27.8051081Z Updating files:  80% (18861/23576)
+2026-10-10T04:05:27.8204135Z Updating files:  81% (19097/23576)
+2026-10-10T04:05:27.8373909Z Updating files:  82% (19333/23576)
+2026-10-10T04:05:27.8561114Z Updating files:  83% (19569/23576)
+2026-10-10T04:05:27.8801093Z Updating files:  84% (19804/23576)
+2026-10-10T04:05:27.9011696Z Updating files:  85% (20040/23576)
+2026-10-10T04:05:27.9217017Z Updating files:  86% (20276/23576)
+2026-10-10T04:05:27.9404052Z Updating files:  87% (20512/23576)
+2026-10-10T04:05:27.9595088Z Updating files:  88% (20747/23576)
+2026-10-10T04:05:27.9798547Z Updating files:  89% (20983/23576)
+2026-10-10T04:05:27.9918632Z Updating files:  90% (21219/23576)
+2026-10-10T04:05:28.0063131Z Updating files:  91% (21455/23576)
+2026-10-10T04:05:28.0224338Z Updating files:  92% (21690/23576)
+2026-10-10T04:05:28.0350226Z Updating files:  93% (21926/23576)
+2026-10-10T04:05:28.2798859Z Updating files:  94% (22162/23576)
+2026-10-10T04:05:28.2948688Z Updating files:  95% (22398/23576)
+2026-10-10T04:05:28.3088501Z Updating files:  96% (22633/23576)
+2026-10-10T04:05:28.3211307Z Updating files:  97% (22869/23576)
+2026-10-10T04:05:28.3353846Z Updating files:  98% (23105/23576)
+2026-10-10T04:05:28.3489999Z Updating files:  99% (23341/23576)
+2026-10-10T04:05:28.3490278Z Updating files: 100% (23576/23576)
+2026-10-10T04:05:28.3490527Z Updating files: 100% (23576/23576), done.
+2026-10-10T04:05:28.3737351Z Note: switching to 'da91e730d802b7c9dcdc075b222ecc257021e552'.
+2026-10-10T04:05:28.3737569Z 
+2026-10-10T04:05:28.3737769Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T04:05:28.3738112Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T04:05:28.3738410Z state without impacting any branches by switching back to a branch.
+2026-10-10T04:05:28.3738624Z 
+2026-10-10T04:05:28.3738737Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T04:05:28.3738997Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T04:05:28.3739149Z 
+2026-10-10T04:05:28.3739218Z   git switch -c <new-branch-name>
+2026-10-10T04:05:28.3739326Z 
+2026-10-10T04:05:28.3739389Z Or undo this operation with:
+2026-10-10T04:05:28.3739486Z 
+2026-10-10T04:05:28.3739542Z   git switch -
+2026-10-10T04:05:28.3739613Z 
+2026-10-10T04:05:28.3739740Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T04:05:28.3739916Z 
+2026-10-10T04:05:28.3740201Z HEAD is now at da91e730 fix(ci): preserve popup receipts and bound host test work
+2026-10-10T04:05:28.3798703Z ##[endgroup]
+2026-10-10T04:05:28.3843518Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T04:05:28.3873103Z da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:28.4188936Z ##[group]Run actions/setup-node@v5
+2026-10-10T04:05:28.4189109Z with:
+2026-10-10T04:05:28.4189238Z   node-version: 22.12.0
+2026-10-10T04:05:28.4189373Z   always-auth: false
+2026-10-10T04:05:28.4189506Z   check-latest: false
+2026-10-10T04:05:28.4191053Z   token: ***
+2026-10-10T04:05:28.4191185Z   package-manager-cache: true
+2026-10-10T04:05:28.4191332Z env:
+2026-10-10T04:05:28.4191452Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:05:28.4191636Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:28.4191871Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:28.4192061Z ##[endgroup]
+2026-10-10T04:05:28.6362019Z Attempting to download 22.12.0...
+2026-10-10T04:05:28.6437441Z (node:2070) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T04:05:28.6438266Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T04:05:29.3287475Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-x64.tar.gz
+2026-10-10T04:05:29.8281462Z Extracting ...
+2026-10-10T04:05:29.8381676Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/1f439107-837b-4471-9e6c-b96ef0b129d0 -f /home/runner/work/_temp/bc8270f1-24e4-4fd8-8751-393658864b8a
+2026-10-10T04:05:30.7956682Z Adding to the cache ...
+2026-10-10T04:05:34.7629651Z ##[group]Environment details
+2026-10-10T04:05:34.9186919Z node: v22.12.0
+2026-10-10T04:05:34.9187358Z npm: 10.9.0
+2026-10-10T04:05:34.9187552Z yarn: 1.22.22
+2026-10-10T04:05:34.9188069Z ##[endgroup]
+2026-10-10T04:05:34.9363020Z ##[group]Run set -euo pipefail
+2026-10-10T04:05:34.9363278Z [36;1mset -euo pipefail[0m
+2026-10-10T04:05:34.9363569Z [36;1mversion="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)"[[:space:]]*$/\1/p' build.gradle.kts)"[0m
+2026-10-10T04:05:34.9363990Z [36;1mresult="$(node ../../scripts/verify-ide-marketplace.mjs jetbrains "$version" --allow-pending)"[0m
+2026-10-10T04:05:34.9364265Z [36;1mecho "$result"[0m
+2026-10-10T04:05:34.9364438Z [36;1mif [[ "$result" == *'"status":"pending"'* ]]; then[0m
+2026-10-10T04:05:34.9364779Z [36;1m  echo "::warning::JetBrains Marketplace upload succeeded; version $version is pending manual approval/listing."[0m
+2026-10-10T04:05:34.9365082Z [36;1mfi[0m
+2026-10-10T04:05:34.9365197Z [36;1m{[0m
+2026-10-10T04:05:34.9365561Z [36;1m  echo "### JetBrains Marketplace verification"[0m
+2026-10-10T04:05:34.9365743Z [36;1m  echo[0m
+2026-10-10T04:05:34.9365867Z [36;1m  echo '```json'[0m
+2026-10-10T04:05:34.9366034Z [36;1m  echo "$result"[0m
+2026-10-10T04:05:34.9366171Z [36;1m  echo '```'[0m
+2026-10-10T04:05:34.9366313Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+2026-10-10T04:05:34.9586734Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:05:34.9586899Z env:
+2026-10-10T04:05:34.9587046Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:05:34.9587239Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:34.9587478Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:05:34.9587680Z   CC_MARKETPLACE_VERIFY_ATTEMPTS: 12
+2026-10-10T04:05:34.9587852Z   CC_MARKETPLACE_VERIFY_DELAY_MS: 10000
+2026-10-10T04:05:34.9588012Z ##[endgroup]
+2026-10-10T04:05:35.2487362Z [verify-ide-marketplace] attempt 1/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:05:45.4017572Z [verify-ide-marketplace] attempt 2/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:05:55.6278309Z [verify-ide-marketplace] attempt 3/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:05.9342481Z [verify-ide-marketplace] attempt 4/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:16.1358365Z [verify-ide-marketplace] attempt 5/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:26.2969354Z [verify-ide-marketplace] attempt 6/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:36.4897441Z [verify-ide-marketplace] attempt 7/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:46.6946112Z [verify-ide-marketplace] attempt 8/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:06:56.9512056Z [verify-ide-marketplace] attempt 9/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:07:07.2635507Z [verify-ide-marketplace] attempt 10/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:07:17.4708733Z [verify-ide-marketplace] attempt 11/12 failed: JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; retrying in 10000ms
+2026-10-10T04:07:27.6566514Z [verify-ide-marketplace] JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; --allow-pending requested, reporting pending review without failing
+2026-10-10T04:07:27.6619659Z {"channel":"jetbrains","endpoint":"https://plugins.jetbrains.com/api/plugins/32208/updates","status":"pending","version":"0.4.158","approve":null,"listed":null,"hidden":null,"reason":"version-not-visible","attempts":12}
+2026-10-10T04:07:27.6636300Z ##[warning]JetBrains Marketplace upload succeeded; version 0.4.158 is pending manual approval/listing.
+2026-10-10T04:07:27.6726743Z Post job cleanup.
+2026-10-10T04:07:27.7591487Z (node:2145) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T04:07:27.7592050Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T04:07:27.7780010Z Post job cleanup.
+2026-10-10T04:07:27.8374300Z [command]/usr/bin/git version
+2026-10-10T04:07:27.8409393Z git version 2.55.0
+2026-10-10T04:07:27.8436663Z Temporarily overriding HOME='/home/runner/work/_temp/9dd9164a-da2f-414c-8353-dfdb8e1ca203' before making global git config changes
+2026-10-10T04:07:27.8437538Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T04:07:27.8440117Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T04:07:27.8478250Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T04:07:27.8521342Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T04:07:27.8808385Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T04:07:27.8835708Z http.https://github.com/.extraheader
+2026-10-10T04:07:27.8850696Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T04:07:27.8885495Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T04:07:27.9137835Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T04:07:27.9174720Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T04:07:27.9555950Z Cleaning up orphan processes

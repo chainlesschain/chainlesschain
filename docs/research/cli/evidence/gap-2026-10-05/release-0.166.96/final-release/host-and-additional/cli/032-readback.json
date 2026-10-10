@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657198055,
+  "name": "mcp-lifecycle-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/metadata.json",
+    "bytes": 793,
+    "sha256": "83ab86049eb13d748d927a2fc202a8d1039db13675b7384300e3636c86b9e7bb",
+    "endpoint": "actions/artifacts/11657198055"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/artifact.zip",
+    "bytes": 2703,
+    "sha256": "913ba6447accb3fe858a66ff464927ec5cff181634619a1c08ae6c71db056272",
+    "endpoint": "actions/artifacts/11657198055/zip"
+  },
+  "githubDigestMatched": true
+}

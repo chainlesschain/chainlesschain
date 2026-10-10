@@ -1,0 +1,928 @@
+{
+  "schema": "astra.actual-host-artifact-verification/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166408,
+  "jobId": 114094368176,
+  "artifactId": 11655477147,
+  "zipDigestVerified": true,
+  "journeys": [
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "originalManifestPath": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "host": {
+        "name": "jetbrains",
+        "version": "2026.2.0.1",
+        "operatingSystem": "win32",
+        "architecture": "arm64",
+        "transport": "local-ide-bridge"
+      },
+      "result": "passed",
+      "evidenceComplete": true,
+      "entryCount": 51,
+      "allEntriesVerified": true,
+      "artifactBundleDigestVerified": true,
+      "evidenceDigestVerified": true,
+      "entries": [
+        {
+          "path": "diagnostics/001-fake-cli-bin_cc",
+          "bytes": 168,
+          "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/002-fake-cli-bin_cc.cmd",
+          "bytes": 163,
+          "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/003-fake-cli-bin_chainlesschain",
+          "bytes": 168,
+          "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+          "bytes": 163,
+          "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/005-fake-cli-bin_clc",
+          "bytes": 168,
+          "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/006-fake-cli-bin_clc.cmd",
+          "bytes": 163,
+          "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/007-fake-cli-bin_clchain",
+          "bytes": 168,
+          "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/008-fake-cli-bin_clchain.cmd",
+          "bytes": 163,
+          "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/009-fake-cli-protocol.jsonl",
+          "bytes": 355666,
+          "sha256": "sha256:cfd57347b08c8b16d24b67da3d04e2fe877fb2e8263c6578e283adb97caa3c3c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/010-fake-cli-state.json",
+          "bytes": 210,
+          "sha256": "sha256:5cd9be287c2e8be8f407e288a96817562c3861748d768ad4ff58f244ebb074bb",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/011-fake-cli-state.json.llm.json",
+          "bytes": 136,
+          "sha256": "sha256:3bea14be95172dd0634d23f1d7f776bea93c6e74019261c1518c7367395e3164",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/012-fake-cli-state.json.receipts_2611ec7b861a3e9f2214836180d78b5650f0dd10a05e1e6c6a2ca183229d85b3.json",
+          "bytes": 260,
+          "sha256": "sha256:3301b749ca6d7fb78fa25f8d49d37ee73238d2c21f7167ddbe267e80ca45d99a",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/013-fake-cli-state.json.receipts_2633c09bb7430f70bfeade1c83cdc00127b715cb1be03c8e5a85bfb696498c5d.json",
+          "bytes": 260,
+          "sha256": "sha256:9d258b0ce5c085ad35dcd111a05ffe280edbd6f1882d57a3df2b788ec4033817",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/014-fake-cli-state.json.receipts_272f48420560432d838bc4edaacc58953b5eb8eeb8b93a69598de1e596df6a22.json",
+          "bytes": 274,
+          "sha256": "sha256:b5eb10e9842df11d86e1874b0fb96131f4c50f1a1833fdf45325bffd44447435",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/015-fake-cli-state.json.receipts_5e33fc278cb3dca65f3d1a5ac9239b131571be8d8e5446dc3b036c7b0ab5cfc6.json",
+          "bytes": 260,
+          "sha256": "sha256:5af1dfc2b4a6d2c00151e09dd5b10794a55b9bb842b1b042dc336a935e58179c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/016-fake-cli-state.json.receipts_61111b3713161091d931bbf62e59ac1d660a0a23c63cded15d39c7f9265723ec.json",
+          "bytes": 260,
+          "sha256": "sha256:04481b9dae5a1e0ed3c3b517c387173db36f275e2327e56819a8315a0e629329",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/017-fake-cli-state.json.receipts_9d1338001fc4663d42f9ed7e3cde9ef93a250a01b0d94cfa4feb76ae7c71e438.json",
+          "bytes": 260,
+          "sha256": "sha256:009dc1da95912d6f44a3972bc42703f096a3cc5488daec3a8407066aa05a4f2e",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/018-fake-cli-state.json.receipts_c7c4d88e6a73f567b6705aacfe4708f6b3e8692f2518672ed872741a2719fc5a.json",
+          "bytes": 260,
+          "sha256": "sha256:0632e66eacaec8c8b36870deb3803eebe509fefbc38a8cadc57d75278126a414",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/019-fake-cli-state.json.receipts_e7c3a3da47cc82868e0329872d79c209bcbb2a427593c6b8c2747ca347d27396.json",
+          "bytes": 274,
+          "sha256": "sha256:20a96a2a28620ff5f5fc61318cd6381c598ab9350d6b498fd68822a728432d23",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/020-fake-cli-state.json.receipts_fa79a9d8245c708d8eea30bb39d2d90588d9949f8622a7cdd8650e78ce0eee03.json",
+          "bytes": 274,
+          "sha256": "sha256:efd62934b701e11d42cdae3c898061af51c9a182250f1caa701f9c990147350a",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/021-host-capture-initial_capture-status.json",
+          "bytes": 886,
+          "sha256": "sha256:e960fdc07d40bbcb952f88cff616cc0c21e807ef3dc36dd34d2af35933d6769d",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/022-host-capture-initial_host-events.jsonl",
+          "bytes": 25813,
+          "sha256": "sha256:8dcb2619d3c0c8cc45f2c4a487628f1ba8b15798142c4edb6ad86cb288fc4df1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+          "bytes": 25813,
+          "sha256": "sha256:8dcb2619d3c0c8cc45f2c4a487628f1ba8b15798142c4edb6ad86cb288fc4df1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+          "bytes": 46170,
+          "sha256": "sha256:55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+          "bytes": 169129,
+          "sha256": "sha256:573712d0f09153471adbe1dcc845a63d05c00d212bfd28b4b14986d42c4b38a5",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/026-host-capture-restart_capture-status.json",
+          "bytes": 885,
+          "sha256": "sha256:81ab5966891f96045cc51e6fc96b6660d6bb5abc8d26e1624a29b4d3bbcd8609",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/027-host-capture-restart_host-events.jsonl",
+          "bytes": 2344,
+          "sha256": "sha256:33ecf7feeac74a0063887385dfbcd5dde202965c2e948007ef748115edc4af18",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+          "bytes": 2344,
+          "sha256": "sha256:33ecf7feeac74a0063887385dfbcd5dde202965c2e948007ef748115edc4af18",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+          "bytes": 46170,
+          "sha256": "sha256:55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+          "bytes": 277764,
+          "sha256": "sha256:793a8d4344dc4aa08751376d8e6b6ceb6bd31321ae574a73146dc3f924d72f4e",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/031-prepare.stderr.log",
+          "bytes": 1005,
+          "sha256": "sha256:70270e787307a3cf2a9630d7abd6d1f8aad89055fd8fff661ee312b5f7ec78fd",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/032-prepare.stdout.log",
+          "bytes": 21699,
+          "sha256": "sha256:d417188fa0fcd8811215727aa712eb835e731231630ede1f9377cee9c16c41a7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/033-sandbox-ide-initial.stderr.log",
+          "bytes": 3079,
+          "sha256": "sha256:2695d24cff7564b563afe297ff49a442f3be2ad5fb5e6c966566e491581c2d06",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/034-sandbox-ide-initial.stdout.log",
+          "bytes": 6665,
+          "sha256": "sha256:789a936a636667f80910af0708a45d49e843cf08d0ed7118a41b2314af4d8c66",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/035-sandbox-ide-restart.stderr.log",
+          "bytes": 2810,
+          "sha256": "sha256:ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/036-sandbox-ide-restart.stdout.log",
+          "bytes": 1013,
+          "sha256": "sha256:f088e20f98d1626def5107736edd5cb403e508319d036ab1ac517147511c51b4",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/037-ui-smoke-initial.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/038-ui-smoke-initial.stdout.log",
+          "bytes": 13869,
+          "sha256": "sha256:6138dcda0b7592d39f243abbaf2d4a1b380edce9b8e296aaa75806ab3b749154",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/039-ui-smoke-restart.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/040-ui-smoke-restart.stdout.log",
+          "bytes": 13868,
+          "sha256": "sha256:4f89c102819c26c5e65220e9dc1d124ffbf350edf615e2e25afc5ade4dd47581",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/041-workbench-host-phases.json",
+          "bytes": 1883,
+          "sha256": "sha256:104b7493c090741d026965b222a5f03b19547d7e1d353c896c5098a45efbff75",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/042-workbench-metrics.jsonl",
+          "bytes": 25937,
+          "sha256": "sha256:153f38b683d666a3be9edecbca1036ddbf28c9f3d6c44c207f0d5538c4f27417",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/043-binary_output.bin",
+          "bytes": 490,
+          "sha256": "sha256:8b2d4787cbc6635cac348d20032d2c5bf96421fcb768db1171950714e397ac13",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/044-binary_output.bin.idx",
+          "bytes": 71,
+          "sha256": "sha256:2fc68506502f25e1781d2a24d49d91d4fd042e60c848676c6bc33d577f3e7127",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/045-binary_results.bin",
+          "bytes": 1136,
+          "sha256": "sha256:1c23391d734dd163145a40b4908f72c722ec604bffa131c06d293beef1da8a22",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "bytes": 826,
+          "sha256": "sha256:1b0aa96e39a5f09d5367662baf71e4df75b949da3905a47d413feeda364f1168",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+          "bytes": 653,
+          "sha256": "sha256:747116bba65d4f8d3482c0041e973616b342adc747dc90e37f74695d30ff1590",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+          "bytes": 1227,
+          "sha256": "sha256:0911ca7bf8d72bd24438b575fdbf0009d1ae20736808337cebfba61bae2888bd",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/049-model-config-reopened-1791595959029.png",
+          "bytes": 38279,
+          "sha256": "sha256:8efd4784735c7c599266e84b8f9334b549b2f28aab72c54e6e6d583ee6883bf0",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/050-model-config-saved-1791595553519.png",
+          "bytes": 39646,
+          "sha256": "sha256:d5faeed70fb7798e875a4bf48eabe397b75668832a0185fd237e7c21bfc80169",
+          "verified": true
+        },
+        {
+          "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+          "bytes": 1519654,
+          "sha256": "sha256:13a3c9fe65e1f5f69fd08dcbd8d1519267dd5658af92113d775c97d8a7cfd659",
+          "verified": true
+        }
+      ],
+      "phases": [
+        {
+          "phase": "initial",
+          "statusComplete": true,
+          "statusFailures": [],
+          "tracePresent": true,
+          "eventCount": 130,
+          "eventStages": {
+            "RECEIVED": 32,
+            "MAPPED": 24,
+            "SCHEDULED": 24,
+            "EDT_ENTERED": 24,
+            "RENDER_RETURNED": 24,
+            "CARD_ENTERED": 1,
+            "CARD_ADDED": 1
+          },
+          "failureEvents": [],
+          "approvalEvents": [
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.420947800Z",
+              "stage": "RECEIVED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "type": "approval_request",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.421950500Z",
+              "stage": "MAPPED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.422947500Z",
+              "stage": "SCHEDULED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.422947500Z",
+              "stage": "EDT_ENTERED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.424947300Z",
+              "stage": "CARD_ENTERED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.431948800Z",
+              "stage": "CARD_ADDED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:16.432949300Z",
+              "stage": "RENDER_RETURNED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:18.722502200Z",
+              "stage": "RECEIVED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "type": "approval_resolved",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:18.724503500Z",
+              "stage": "MAPPED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:18.726506900Z",
+              "stage": "EDT_ENTERED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:18.727506300Z",
+              "stage": "SCHEDULED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:25:18.730506200Z",
+              "stage": "RENDER_RETURNED",
+              "generation": "5b047964",
+              "session": "panel-1791595504986-1ae058",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            }
+          ],
+          "captured": [
+            {
+              "path": "host-events.jsonl.bin",
+              "source": "host-events.jsonl",
+              "bytes": 25813,
+              "sha256": "8dcb2619d3c0c8cc45f2c4a487628f1ba8b15798142c4edb6ad86cb288fc4df1",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log/idea.log",
+              "bytes": 46170,
+              "sha256": "55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-002.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 169129,
+              "sha256": "573712d0f09153471adbe1dcc845a63d05c00d212bfd28b4b14986d42c4b38a5",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": [
+            {
+              "line": 785,
+              "text": "2026-10-09 18:25:28,740 [  80588]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 786,
+              "text": "2026-10-09 18:25:28,743 [  80591]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 787,
+              "text": "2026-10-09 18:25:28,746 [  80594]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 788,
+              "text": "2026-10-09 18:25:28,775 [  80623]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 790,
+              "text": "2026-10-09 18:25:29,084 [  80932]   INFO - STDOUT - [ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 791,
+              "text": "2026-10-09 18:25:29,087 [  80935]   INFO - STDOUT - [ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 792,
+              "text": "2026-10-09 18:25:29,089 [  80937]   INFO - STDOUT - [ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 793,
+              "text": "2026-10-09 18:25:29,096 [  80944]   INFO - STDOUT - [ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 794,
+              "text": "2026-10-09 18:25:32,469 [  84317]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 795,
+              "text": "2026-10-09 18:25:32,472 [  84320]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 796,
+              "text": "2026-10-09 18:25:32,472 [  84320]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 797,
+              "text": "2026-10-09 18:25:32,496 [  84344]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 798,
+              "text": "2026-10-09 18:25:32,785 [  84633]   INFO - STDOUT - [ui-popup-enter] Restore conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 799,
+              "text": "2026-10-09 18:25:32,788 [  84636]   INFO - STDOUT - [ui-popup-enter] Restore conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 800,
+              "text": "2026-10-09 18:25:32,788 [  84636]   INFO - STDOUT - [ui-popup-enter] Restore conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 801,
+              "text": "2026-10-09 18:25:32,796 [  84644]   INFO - STDOUT - [ui-popup-enter] Restore conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 802,
+              "text": "2026-10-09 18:25:36,122 [  87970]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 803,
+              "text": "2026-10-09 18:25:36,126 [  87974]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 804,
+              "text": "2026-10-09 18:25:36,126 [  87974]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 805,
+              "text": "2026-10-09 18:25:36,150 [  87998]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 806,
+              "text": "2026-10-09 18:25:36,501 [  88349]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 807,
+              "text": "2026-10-09 18:25:36,503 [  88351]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 808,
+              "text": "2026-10-09 18:25:36,504 [  88352]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 809,
+              "text": "2026-10-09 18:25:36,510 [  88358]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 810,
+              "text": "2026-10-09 18:25:39,817 [  91665]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 811,
+              "text": "2026-10-09 18:25:39,820 [  91668]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 812,
+              "text": "2026-10-09 18:25:39,820 [  91668]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 813,
+              "text": "2026-10-09 18:25:39,843 [  91691]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 814,
+              "text": "2026-10-09 18:25:40,102 [  91950]   INFO - STDOUT - [ui-popup-enter] Summarize from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 815,
+              "text": "2026-10-09 18:25:40,104 [  91952]   INFO - STDOUT - [ui-popup-enter] Summarize from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 816,
+              "text": "2026-10-09 18:25:40,105 [  91953]   INFO - STDOUT - [ui-popup-enter] Summarize from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 817,
+              "text": "2026-10-09 18:25:40,111 [  91959]   INFO - STDOUT - [ui-popup-enter] Summarize from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 818,
+              "text": "2026-10-09 18:25:43,310 [  95158]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 819,
+              "text": "2026-10-09 18:25:43,312 [  95160]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 820,
+              "text": "2026-10-09 18:25:43,313 [  95161]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 821,
+              "text": "2026-10-09 18:25:43,334 [  95182]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 822,
+              "text": "2026-10-09 18:25:43,593 [  95441]   INFO - STDOUT - [ui-popup-enter] Summarize up to here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 823,
+              "text": "2026-10-09 18:25:43,596 [  95444]   INFO - STDOUT - [ui-popup-enter] Summarize up to here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 824,
+              "text": "2026-10-09 18:25:43,596 [  95444]   INFO - STDOUT - [ui-popup-enter] Summarize up to here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 825,
+              "text": "2026-10-09 18:25:43,602 [  95450]   INFO - STDOUT - [ui-popup-enter] Summarize up to here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 829,
+              "text": "2026-10-09 18:25:46,803 [  98651]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 830,
+              "text": "2026-10-09 18:25:46,805 [  98653]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 831,
+              "text": "2026-10-09 18:25:46,806 [  98654]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 832,
+              "text": "2026-10-09 18:25:46,829 [  98677]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 833,
+              "text": "2026-10-09 18:25:47,074 [  98922]   INFO - STDOUT - [ui-popup-enter] Branch from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 834,
+              "text": "2026-10-09 18:25:47,077 [  98925]   INFO - STDOUT - [ui-popup-enter] Branch from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 835,
+              "text": "2026-10-09 18:25:47,077 [  98925]   INFO - STDOUT - [ui-popup-enter] Branch from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 836,
+              "text": "2026-10-09 18:25:47,084 [  98932]   INFO - STDOUT - [ui-popup-enter] Branch from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            }
+          ]
+        },
+        {
+          "phase": "restart",
+          "statusComplete": true,
+          "statusFailures": [],
+          "tracePresent": true,
+          "eventCount": 11,
+          "eventStages": {
+            "RECEIVED": 3,
+            "MAPPED": 2,
+            "SCHEDULED": 2,
+            "EDT_ENTERED": 2,
+            "RENDER_RETURNED": 2
+          },
+          "failureEvents": [],
+          "approvalEvents": [],
+          "captured": [
+            {
+              "path": "host-events.jsonl.bin",
+              "source": "host-events.jsonl",
+              "bytes": 2344,
+              "sha256": "33ecf7feeac74a0063887385dfbcd5dde202965c2e948007ef748115edc4af18",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log/idea.log",
+              "bytes": 46170,
+              "sha256": "55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-002.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 277764,
+              "sha256": "793a8d4344dc4aa08751376d8e6b6ceb6bd31321ae574a73146dc3f924d72f4e",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": [
+            {
+              "line": 785,
+              "text": "2026-10-09 18:25:28,740 [  80588]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 786,
+              "text": "2026-10-09 18:25:28,743 [  80591]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 787,
+              "text": "2026-10-09 18:25:28,746 [  80594]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 788,
+              "text": "2026-10-09 18:25:28,775 [  80623]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 790,
+              "text": "2026-10-09 18:25:29,084 [  80932]   INFO - STDOUT - [ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 791,
+              "text": "2026-10-09 18:25:29,087 [  80935]   INFO - STDOUT - [ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 792,
+              "text": "2026-10-09 18:25:29,089 [  80937]   INFO - STDOUT - [ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 793,
+              "text": "2026-10-09 18:25:29,096 [  80944]   INFO - STDOUT - [ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 794,
+              "text": "2026-10-09 18:25:32,469 [  84317]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 795,
+              "text": "2026-10-09 18:25:32,472 [  84320]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 796,
+              "text": "2026-10-09 18:25:32,472 [  84320]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 797,
+              "text": "2026-10-09 18:25:32,496 [  84344]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 798,
+              "text": "2026-10-09 18:25:32,785 [  84633]   INFO - STDOUT - [ui-popup-enter] Restore conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 799,
+              "text": "2026-10-09 18:25:32,788 [  84636]   INFO - STDOUT - [ui-popup-enter] Restore conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 800,
+              "text": "2026-10-09 18:25:32,788 [  84636]   INFO - STDOUT - [ui-popup-enter] Restore conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 801,
+              "text": "2026-10-09 18:25:32,796 [  84644]   INFO - STDOUT - [ui-popup-enter] Restore conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 802,
+              "text": "2026-10-09 18:25:36,122 [  87970]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 803,
+              "text": "2026-10-09 18:25:36,126 [  87974]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 804,
+              "text": "2026-10-09 18:25:36,126 [  87974]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 805,
+              "text": "2026-10-09 18:25:36,150 [  87998]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 806,
+              "text": "2026-10-09 18:25:36,501 [  88349]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 807,
+              "text": "2026-10-09 18:25:36,503 [  88351]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 808,
+              "text": "2026-10-09 18:25:36,504 [  88352]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 809,
+              "text": "2026-10-09 18:25:36,510 [  88358]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 810,
+              "text": "2026-10-09 18:25:39,817 [  91665]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 811,
+              "text": "2026-10-09 18:25:39,820 [  91668]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 812,
+              "text": "2026-10-09 18:25:39,820 [  91668]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 813,
+              "text": "2026-10-09 18:25:39,843 [  91691]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 814,
+              "text": "2026-10-09 18:25:40,102 [  91950]   INFO - STDOUT - [ui-popup-enter] Summarize from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 815,
+              "text": "2026-10-09 18:25:40,104 [  91952]   INFO - STDOUT - [ui-popup-enter] Summarize from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 816,
+              "text": "2026-10-09 18:25:40,105 [  91953]   INFO - STDOUT - [ui-popup-enter] Summarize from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 817,
+              "text": "2026-10-09 18:25:40,111 [  91959]   INFO - STDOUT - [ui-popup-enter] Summarize from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 818,
+              "text": "2026-10-09 18:25:43,310 [  95158]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 819,
+              "text": "2026-10-09 18:25:43,312 [  95160]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 820,
+              "text": "2026-10-09 18:25:43,313 [  95161]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 821,
+              "text": "2026-10-09 18:25:43,334 [  95182]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 822,
+              "text": "2026-10-09 18:25:43,593 [  95441]   INFO - STDOUT - [ui-popup-enter] Summarize up to here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 823,
+              "text": "2026-10-09 18:25:43,596 [  95444]   INFO - STDOUT - [ui-popup-enter] Summarize up to here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 824,
+              "text": "2026-10-09 18:25:43,596 [  95444]   INFO - STDOUT - [ui-popup-enter] Summarize up to here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 825,
+              "text": "2026-10-09 18:25:43,602 [  95450]   INFO - STDOUT - [ui-popup-enter] Summarize up to here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 829,
+              "text": "2026-10-09 18:25:46,803 [  98651]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 830,
+              "text": "2026-10-09 18:25:46,805 [  98653]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 831,
+              "text": "2026-10-09 18:25:46,806 [  98654]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 832,
+              "text": "2026-10-09 18:25:46,829 [  98677]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 833,
+              "text": "2026-10-09 18:25:47,074 [  98922]   INFO - STDOUT - [ui-popup-enter] Branch from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 834,
+              "text": "2026-10-09 18:25:47,077 [  98925]   INFO - STDOUT - [ui-popup-enter] Branch from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 835,
+              "text": "2026-10-09 18:25:47,077 [  98925]   INFO - STDOUT - [ui-popup-enter] Branch from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 836,
+              "text": "2026-10-09 18:25:47,084 [  98932]   INFO - STDOUT - [ui-popup-enter] Branch from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scope": "Actual passed exact-head Windows IDE journeys; capture completeness is reported per original status, never inferred from fixture output."
+}

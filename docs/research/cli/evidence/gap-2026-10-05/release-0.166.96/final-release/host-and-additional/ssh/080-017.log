@@ -1,0 +1,668 @@
+[01:52:39.955] Log Level: 2
+[01:52:39.961] VS Code version: 1.96.4
+[01:52:39.961] Remote-SSH version: remote-ssh@0.120.0
+[01:52:39.961] linux x64
+[01:52:40.016] SSH Resolver called for "ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3", attempt 1
+[01:52:40.019] remote.SSH.useLocalServer = false
+[01:52:40.020] remote.SSH.useExecServer = true
+[01:52:40.020] remote.SSH.bindHost = {}
+[01:52:40.020] remote.SSH.showLoginTerminal = false
+[01:52:40.020] remote.SSH.remotePlatform = {"cc-roadmap-ssh-2353ca819996ac398c6145c3":"linux"}
+[01:52:40.020] remote.SSH.path = undefined
+[01:52:40.021] remote.SSH.configFile = /tmp/cc-remote-ssh-Hxjq9K/ssh_config
+[01:52:40.021] remote.SSH.useFlock = true
+[01:52:40.021] remote.SSH.lockfilesInTmp = false
+[01:52:40.021] remote.SSH.localServerDownload = always
+[01:52:40.021] remote.SSH.remoteServerListenOnSocket = false
+[01:52:40.021] remote.SSH.defaultExtensions = []
+[01:52:40.021] remote.SSH.defaultExtensionsIfInstalledLocally = []
+[01:52:40.021] remote.SSH.loglevel = 2
+[01:52:40.021] remote.SSH.enableDynamicForwarding = true
+[01:52:40.021] remote.SSH.enableRemoteCommand = false
+[01:52:40.021] remote.SSH.serverPickPortsFromRange = {}
+[01:52:40.021] remote.SSH.serverInstallPath = {}
+[01:52:40.022] remote.SSH.permitPtyAllocation = false
+[01:52:40.022] remote.SSH.preferredLocalPortRange = undefined
+[01:52:40.022] remote.SSH.useCurlAndWgetConfigurationFiles = false
+[01:52:40.022] remote.SSH.experimental.chat = false
+[01:52:40.022] remote.SSH.experimental.enhancedSessionLogs = false
+[01:52:40.022] remote.SSH.httpProxy = {}
+[01:52:40.022] remote.SSH.httpsProxy = {}
+[01:52:40.040] SSH Resolver called for host: cc-roadmap-ssh-2353ca819996ac398c6145c3
+[01:52:40.040] Setting up SSH remote "cc-roadmap-ssh-2353ca819996ac398c6145c3"
+[01:52:40.050] Using commit id "cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba" and quality "stable" for server
+[01:52:40.050] Extensions to install: 
+[01:52:40.060] Install and start server if needed
+[01:52:40.065] PATH: /opt/hostedtoolcache/node/22.12.0/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+[01:52:40.065] Checking ssh with "ssh -V"
+[01:52:40.078] > OpenSSH_9.6p1 Ubuntu-3ubuntu13.19, OpenSSL 3.0.13 30 Jan 2024
+
+[01:52:40.081] Using SSH config file "/tmp/cc-remote-ssh-Hxjq9K/ssh_config"
+[01:52:40.081] Running script with connection command: ssh -T -D 33947 -F '/tmp/cc-remote-ssh-Hxjq9K/ssh_config' 'cc-roadmap-ssh-2353ca819996ac398c6145c3' sh
+[01:52:40.081] Generated SSH command: 'ssh -T -D 33947 -F '/tmp/cc-remote-ssh-Hxjq9K/ssh_config' 'cc-roadmap-ssh-2353ca819996ac398c6145c3' sh << 'EOSSH'
+# shellcheck shell=sh
+
+echo "1ae1a34edcc0: running"
+echo "Script executing under PID: $$"
+
+VSC_TMP="${XDG_RUNTIME_DIR:-/tmp}"
+
+# Configuration
+UUID="1ae1a34edcc0"
+COMMIT_ID="cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba"
+QUALITY="stable"
+TOKEN="[REDACTED]"
+VSCODE_AGENT_FOLDER="$HOME/.vscode-server"
+ALLOW_CLIENT_DOWNLOAD="1"
+FORCE_CLIENT_DOWNLOAD="1"
+CLI_NAME_IN_ARCHIVE="code"
+IGNORE_WGET_CONFIG_FLAG=" --no-config "
+IGNORE_CURL_CONFIG_FLAG=" --disable "
+WGET_TRIES_SEGMENT="--tries=1"
+LISTEN_ARGS="--on-host=127.0.0.1 --on-port"
+VERBOSE="0"
+HTTP_PROXY_INPUT=""
+HTTPS_PROXY_INPUT=""
+
+CLI_NAME_ON_DISK="${CLI_NAME_IN_ARCHIVE}-${COMMIT_ID}"
+CLI_PATH="${VSCODE_AGENT_FOLDER}/${CLI_NAME_ON_DISK}"
+CLI_LOG_FILE="${VSCODE_AGENT_FOLDER}/.cli.${COMMIT_ID}.log"
+
+# Marker strings
+GET_DOWNLOAD_SERVER_START_TRIGGER="1ae1a34edcc0:trigger_server_download"
+GET_DOWNLOAD_SERVER_END_TRIGGER="1ae1a34edcc0:trigger_server_download_end"
+GET_PROGRESS_DOWNLOADING="1ae1a34edcc0%%1%%"
+GET_PROGRESS_INSTALLING="1ae1a34edcc0%%2%%"
+
+UNPACK_RESULT=
+DID_LOCAL_DOWNLOAD=0
+DOWNLOAD_TIME=
+INSTALL_TIME=
+SERVER_START_TIME=
+
+fail_with_exitcode() {
+	echo "${UUID}: start"
+	echo "exitCode==$1=="
+	echo_common_results
+	echo "${UUID}: end"
+	exit 0
+}
+
+echo_common_results() {
+	echo "listeningOn==$LISTENING_ON=="
+	echo "osReleaseId==$OSRELEASEID=="
+	echo "arch==$ARCH=="
+	echo "vscodeArch==$VSCODE_ARCH=="
+	echo "bitness==$BITNESS=="
+	echo "tmpDir==$VSC_TMP=="
+	echo "platform==$PLATFORM=="
+	echo "unpackResult==$UNPACK_RESULT=="
+	echo "didLocalDownload==$DID_LOCAL_DOWNLOAD=="
+	echo "downloadTime==$DOWNLOAD_TIME=="
+	echo "installTime==$INSTALL_TIME=="
+	echo "serverStartTime==$SERVER_START_TIME=="
+	echo "execServerToken=[REDACTED]}=="
+	echo "platformDownloadPath==$PLATFORM_DOWNLOAD_PATH=="
+	echo "SSH_AUTH_SOCK==$SSH_AUTH_SOCK=="
+echo "DISPLAY==$DISPLAY=="
+}
+
+millis() {
+	d=$(date +%s%N)
+	# Test if 'd' contains any non-digit characters
+	if [ -z "${d##*[!0-9]*}" ] || [ "$PLATFORM" != "linux" ]; then
+	    # Fallback for MacOS or any date binary that doesn't handle '%N'
+		echo $(($(date +%s)*1000))
+		return
+	fi
+	echo $((d/1000000))
+}
+
+elapsed() {
+	echo $(($(millis) - $1))
+}
+
+printenv_indent() {
+	if [ "$VERBOSE" = "1" ]; then
+		echo "printenv:"
+		printenv | sed 's/^/    /'
+	fi
+}
+
+[ -z "${http_proxy}" ] && [ "${HTTP_PROXY_INPUT}" != "" ] && export http_proxy="$HTTP_PROXY_INPUT"
+[ -z "${https_proxy}" ] && [ "${HTTPS_PROXY_INPUT}" != "" ] && export https_proxy="$HTTPS_PROXY_INPUT"
+
+#
+# Get OS name
+#
+OSRELEASEID=$(cat /etc/os-release 2>/dev/null | grep -a -E '^ID=' | sed 's/^[Ii][Dd]=//g' | sed 's/"//g')
+if [ -z "$OSRELEASEID" ]
+then
+	OSRELEASEID=$(cat /usr/lib/os-release 2>/dev/null | grep -a -E '^ID=' | sed 's/^[Ii][Dd]=//g' | sed 's/"//g')
+	if [ -z "$OSRELEASEID" ]
+	then
+		OSRELEASEID=$(uname -s)
+	fi
+fi
+
+#
+# Get host platform/architecture
+#
+UNAME=$(uname -s)
+case $UNAME in
+	Linux) PLATFORM=linux;;
+	Darwin) PLATFORM=macOS;;
+	*)
+		echo "Unsupported platform: $UNAME"
+		fail_with_exitcode 203
+		;;
+esac
+
+BITNESS=$(getconf LONG_BIT)
+ARCH=$(uname -m)
+case $ARCH in
+	x86_64) VSCODE_ARCH="x64";;
+	armv7l | armv8l)
+		VSCODE_ARCH="armhf"
+		;;
+	arm64 | aarch64)
+		if [ "$BITNESS" = 32 ]; then
+			# Can have 32-bit userland on 64-bit kernel
+			VSCODE_ARCH="armhf"
+		else
+			VSCODE_ARCH="arm64"
+		fi
+		;;
+	*)
+		OSRELEASE=$(uname -r)
+		case $OSRELEASE in
+			*x86_64*) VSCODE_ARCH="x64";;
+			*)
+				echo "Unsupported architecture: $ARCH"
+				fail_with_exitcode 196
+			;;
+		esac
+		;;
+esac
+
+if [ "$PLATFORM" = linux ]; then
+	if [ "$VSCODE_ARCH" = armhf ]; then
+		PLATFORM_DOWNLOAD_PATH=cli-linux-armhf
+	else
+		PLATFORM_DOWNLOAD_PATH=cli-alpine-$VSCODE_ARCH
+	fi
+elif [ "$VSCODE_ARCH" = "arm64" ]; then
+	PLATFORM_DOWNLOAD_PATH=cli-darwin-arm64
+else
+	PLATFORM_DOWNLOAD_PATH=cli-darwin-x64
+fi
+
+if [ ! -d "$VSCODE_AGENT_FOLDER" ]; then
+	mkdir -p "$VSCODE_AGENT_FOLDER"
+	chmod 750 "$VSCODE_AGENT_FOLDER"
+
+	error_code=$?
+	if [ "${error_code}" -gt 0 ]; then
+		echo "Creating the server install dir failed..."
+		fail_with_exitcode 202
+	fi
+fi
+
+#
+# Delete old CLIs if needed
+#
+
+# shellcheck disable=SC2010
+TO_DELETE=$(ls -1 -t "$VSCODE_AGENT_FOLDER" | grep -E "code(-insiders)?-[a-fA-F0-9]{40}" | tail -n +6)
+for CLI_TO_DELETE in $TO_DELETE; do
+	target_dir="$VSCODE_AGENT_FOLDER/$CLI_TO_DELETE"
+	echo "Deleting old install $target_dir"
+	rm -rf "$target_dir"
+done
+
+do_client_download() {
+	DID_LOCAL_DOWNLOAD=1
+	echo "Trigger local server download"
+	echo "${GET_DOWNLOAD_SERVER_START_TRIGGER}"
+	echo artifact==$PLATFORM_DOWNLOAD_PATH==
+	echo destFolder==$VSCODE_AGENT_FOLDER==
+	echo destFolder2==/vscode-cli-$COMMIT_ID.tar.gz==
+	echo "${GET_DOWNLOAD_SERVER_END_TRIGGER}"
+	echo "Waiting for client to transfer server archive..."
+	echo "Waiting for $VSCODE_AGENT_FOLDER/vscode-cli-$COMMIT_ID.tar.gz.done and vscode-server.tar.gz to exist"
+
+	while true; do
+		if [ -f "$VSCODE_AGENT_FOLDER/vscode-cli-$COMMIT_ID.tar.gz.done" ]; then
+			if [ ! -f "$VSCODE_AGENT_FOLDER/vscode-cli-$COMMIT_ID.tar.gz" ]; then
+				echo "Found flag but not server tar - server transfer failed"
+				fail_with_exitcode 199
+			fi
+
+			echo "Found flag and server on host"
+			rm "$VSCODE_AGENT_FOLDER/vscode-cli-$COMMIT_ID.tar.gz.done"
+			break
+		else
+			printf ' '
+			sleep 3
+		fi
+	done
+}
+
+do_client_download_or_fail() {
+	error_code="${1:-"1"}"
+	if [ "$DID_LOCAL_DOWNLOAD" = "1" ]; then
+		echo "Already attempted local download, failing"
+		fail_with_exitcode "$error_code"
+	elif [ $ALLOW_CLIENT_DOWNLOAD = "1" ]; then
+		do_client_download
+	else
+		fail_with_exitcode "$error_code"
+	fi
+}
+
+is_program_from_busybox() {
+	program=$1
+	if command -v busybox > /dev/null 2>&1
+	then
+		# Check symlink from program to busybox
+		if [ -L "$(command -v "$program")" ] && [ "$(readlink -f "$(command -v "$program")")" = "$(command -v busybox)" ]
+		then
+			echo "Program '$program' is provided by busybox" >&2
+			echo 'yes'
+			return
+		fi
+	fi
+	echo 'no'
+}
+
+supports_flag() {
+    program="$1"
+    flag="$2"
+
+    if command -v "$program" > /dev/null 2>&1; then
+        if "$program" --help 2>&1 | grep -q -- "$flag"
+		then
+			echo "Program '$program' appears to support flag '$flag'" >&2
+			echo 'yes'
+			return
+		fi
+    fi
+		echo "Program '$program' is not available or does not appear to support flag '$flag'" >&2
+        echo 'no'
+}
+
+do_host_download() {
+	start=$(millis)
+	echo "${GET_PROGRESS_DOWNLOADING}"
+
+	DOWNLOAD_URL=https://update.code.visualstudio.com/commit:$COMMIT_ID/$PLATFORM_DOWNLOAD_PATH/${QUALITY}
+
+	if command -v wget > /dev/null 2>&1
+	then
+		echo "Downloading with wget"
+		IS_WGET_BUSYBOX=$(is_program_from_busybox wget)
+
+		echo "wget is from busybox: $IS_WGET_BUSYBOX"
+
+		if [ "$IS_WGET_BUSYBOX" = 'no' ]
+		then
+			# Not busybox.
+			# Assuming its GNU wget or similar
+
+			if [ -n "$IGNORE_WGET_CONFIG_FLAG" ] && [ "$(supports_flag 'wget' '--no-config')" = "no" ]; then
+				echo "Detected that this version of wget does not support '--no-config'. Will not ignore wget default configuration files."
+				IGNORE_WGET_CONFIG_FLAG=""
+			fi
+
+			WGET_ERRORS=$(2>&1 wget ${IGNORE_WGET_CONFIG_FLAG} ${WGET_TRIES_SEGMENT} --connect-timeout=7 --dns-timeout=7 -nv -O vscode-cli-$COMMIT_ID.tar.gz ${DOWNLOAD_URL})
+		else
+			# Is busybox.
+			# Remove flags for the sake of compatibility
+
+			WGET_ERRORS=$(2>&1 wget -O vscode-cli-$COMMIT_ID.tar.gz ${DOWNLOAD_URL})
+		fi
+
+		error_code=$?
+		if [ $error_code -ne 0 ]
+		then
+			echo "wget download failed"
+			echo "$WGET_ERRORS"
+			printenv_indent
+
+			do_client_download_or_fail 193
+		else
+			echo "Download complete"
+			DOWNLOAD_TIME=$(elapsed $start)
+		fi
+	else
+		command -v curl > /dev/null 2>&1
+		error_code=$?
+		if [ $error_code -eq 0 ]
+		then
+			echo "Downloading with curl"
+			CURL_STATUS_CODE_RESULT=$(curl ${IGNORE_CURL_CONFIG_FLAG} --connect-timeout 7 -L $DOWNLOAD_URL --output vscode-cli-$COMMIT_ID.tar.gz -w "%{http_code}")
+			error_code=$?
+			curl_status_code_if_2xx=$(echo "$CURL_STATUS_CODE_RESULT" | grep -E "^2[0-9]{2}$")
+			if [ $error_code -ne 0 ] || [ -z "$curl_status_code_if_2xx" ]
+			then
+				echo "curl download failed"
+				echo "HTTP status code: $CURL_STATUS_CODE_RESULT"
+				printenv_indent
+
+				do_client_download_or_fail 193
+			else
+				echo "Download complete"
+				DOWNLOAD_TIME=$(elapsed $start)
+			fi
+		else
+			printenv_indent
+			echo "Neither wget nor curl is installed"
+
+			do_client_download_or_fail 194
+		fi
+	fi
+}
+
+do_install() {
+	start=$(millis)
+	echo "${GET_PROGRESS_INSTALLING}"
+	UNPACK_RESULT="success"
+	echo "tar --version: $(tar --version)"
+	tar -xf vscode-cli-$COMMIT_ID.tar.gz --no-same-owner
+	TAR_EXIT=$?
+	INSTALL_TIME=$(elapsed $start)
+
+	if [ $TAR_EXIT -ne 0 ]
+	then
+		echo "ERROR: tar exited with a non-zero exit code: $TAR_EXIT"
+		UNPACK_RESULT="error"
+		do_client_download_or_fail "205"
+		do_install
+		return
+	fi
+
+	mv "$CLI_NAME_IN_ARCHIVE" "$CLI_PATH"
+
+	# cheap sanity check
+
+	if ! eval "$CLI_PATH --version"
+	then
+		UNPACK_RESULT="missingFiles"
+		echo "ERROR: $CLI_PATH don't exist"
+		do_client_download_or_fail "205"
+		do_install
+		return
+	fi
+
+	# Delete the leftover folder which might have -web prefix, and the .tar.gz
+	rm -rf vscode-cli*
+}
+
+#
+# Install if needed
+#
+if [ ! -f "$CLI_PATH" ]
+then
+	echo "Installing to $VSCODE_AGENT_FOLDER..."
+	STASHED_WORKING_DIR="$(pwd)"
+	cd "$VSCODE_AGENT_FOLDER" || fail_with_exitcode 206
+
+	if [ $FORCE_CLIENT_DOWNLOAD = "1" ]; then
+		do_client_download
+	else
+		do_host_download
+	fi
+
+	do_install
+	cd "$STASHED_WORKING_DIR" || fail_with_exitcode 206
+else
+	echo "Found existing installation at $VSCODE_AGENT_FOLDER..."
+fi
+
+
+#
+# Start the server
+#
+start_server() {
+	echo "Starting VS Code CLI..."
+	printenv_indent
+	start=$(millis)
+	if [ -f $CLI_LOG_FILE ]; then
+		echo "Removing old logfile at $CLI_LOG_FILE"
+		rm "$CLI_LOG_FILE" # See #6265
+	fi
+
+	# Stop exporting VSCODE_AGENT_FOLDER once https://github.com/microsoft/vscode/pull/228287 is available and replace with:
+	# --extensions-dir "$VSCODE_AGENT_FOLDER/extensions" --user-data-dir "$VSCODE_AGENT_FOLDER/data"
+	# See https://github.com/microsoft/vscode-internalbacklog/issues/2604, https://github.com/microsoft/vscode-remote-release/issues/10255
+	export VSCODE_AGENT_FOLDER
+
+	touch $CLI_LOG_FILE
+	chmod 600 $CLI_LOG_FILE
+
+	VSCODE_CLI_REQUIRE_TOKEN=[REDACTED]} "$CLI_PATH" command-shell --cli-data-dir "$VSCODE_AGENT_FOLDER/cli" --parent-process-id $$ ${LISTEN_ARGS} > "$CLI_LOG_FILE" 2>&1 < /dev/null &
+	CLI_PID=$!
+	echo "Spawned remote CLI: $!"
+
+	count=0
+	max_retries=15
+	while [ $count -lt $max_retries ]; do
+		count=$((count + 1))
+		LISTENING_ON=$(cat "$CLI_LOG_FILE" | grep -a -E 'Listening on .+' | grep -v grep | sed 's/Listening on //')
+		if [ "$LISTENING_ON" != '' ]
+		then
+			break
+		fi
+
+		# "If sig is 0 (the null signal), error checking is performed but no signal is actually sent.
+		# The null signal can be used to check the validity of pid.""
+		# Source: https://pubs.opengroup.org/onlinepubs/007908799/xsh/kill.html
+		if ! kill -0 $CLI_PID > /dev/null; then
+			echo "Exec server process not found"
+			cat $CLI_LOG_FILE
+			if grep -q "This machine does not meet .* prerequisites, expected either..." "$CLI_LOG_FILE"; then
+				fail_with_exitcode 207
+			fi
+			break
+		fi
+
+		echo "Waiting for server log..."
+		sleep .03
+	done
+	SERVER_START_TIME=$(elapsed $start)
+}
+
+start_server
+
+# What we echo below cannot be wider than 80 characters
+echo "${UUID}: start"
+echo_common_results
+echo "${UUID}: end"
+
+while true; do sleep 180; printf ' '; done
+
+EOSSH'
+[01:52:40.082] Using connect timeout of 3 seconds
+[01:52:40.747] > 1ae1a34edcc0: running
+> Script executing under PID: 2840
+[01:52:40.748] Got some output, clearing connection timeout
+[01:52:40.756] > Installing to /home/cc-roadmap/.vscode-server...
+> Trigger local server download
+> 1ae1a34edcc0:trigger_server_download
+> artifact==cli-alpine-x64==
+> destFolder==/home/cc-roadmap/.vscode-server==
+> destFolder2==/vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz==
+> 1ae1a34edcc0:trigger_server_download_end
+> Waiting for client to transfer server archive...
+> Waiting for /home/cc-roadmap/.vscode-server/vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz.done and vscode-server.tar.gz to exist
+>  
+[01:52:40.756] Got request to download on client for {"artifact":"cli-alpine-x64","destPath":"/home/cc-roadmap/.vscode-server/vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz"}
+[01:52:40.757] server download URL: https://update.code.visualstudio.com/commit:cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba/cli-alpine-x64/stable
+[01:52:40.757] Downloading VS Code server locally...
+[01:52:41.092] Downloaded VS Code server to /tmp/7c77876f-cfc0-47a2-a0be-d97584c87ddc
+[01:52:41.092] Renamed VS Code server to /tmp/vscode_server_1791597161092/vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz
+[01:52:41.092] Preparing to scp to host cc-roadmap-ssh-2353ca819996ac398c6145c3
+[01:52:41.096] PATH: /opt/hostedtoolcache/node/22.12.0/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+[01:52:41.096] Checking ssh with "ssh -V"
+[01:52:41.109] > OpenSSH_9.6p1 Ubuntu-3ubuntu13.19, OpenSSL 3.0.13 30 Jan 2024
+
+[01:52:41.110] Testing scp with "scp"
+[01:52:41.132] scp exited with code: 1
+[01:52:41.132] Got stderr from scp: usage: scp [-346ABCOpqRrsTv] [-c cipher] [-D sftp_server_path] [-F ssh_config]
+           [-i identity_file] [-J destination] [-l limit] [-o ssh_option]
+           [-P port] [-S program] [-X sftp_option] source ... target
+[01:52:41.132] Using SSH config file "/tmp/cc-remote-ssh-Hxjq9K/ssh_config"
+[01:52:41.133] Copying file to remote with scp -F '/tmp/cc-remote-ssh-Hxjq9K/ssh_config' 'vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz' 'vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba.tar.gz.done' 'cc-roadmap-ssh-2353ca819996ac398c6145c3':'/home/cc-roadmap/.vscode-server'
+[01:52:41.133] Using cwd: file:///tmp/vscode_server_1791597161092
+[01:52:41.490] > vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d   0%    0     0.0KB/s   --:-- ETA
+[01:52:41.605] > vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d 100% 8835KB  74.3MB/s   00:00    
+> vscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d   0%    0     0.0KB/s   --:-- ETAvscode-cli-cd4ee3b1c348a13bafd8f9ad8060705f6d 100%    9    18.9KB/s   00:00    
+[01:52:41.851] "Copy server to host" terminal command done
+[01:52:43.757] > Found flag and server on host
+> 1ae1a34edcc0%%2%%
+> tar --version: tar (GNU tar) 1.35
+> Copyright (C) 2023 Free Software Foundation, Inc.
+> License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+> This is free software: you are free to change and redistribute it.
+> There is NO WARRANTY, to the extent permitted by law.
+> 
+> Written by John Gilmore and Jay Fenlason.
+[01:52:43.928] > code 1.96.4 (commit cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba)
+> Starting VS Code CLI...
+> Spawned remote CLI: 2888
+[01:52:43.936] > Waiting for server log...
+[01:52:43.971] > 1ae1a34edcc0: start
+> listeningOn==127.0.0.1:43191==
+> osReleaseId==ubuntu==
+> arch==x86_64==
+> vscodeArch==x64==
+> bitness==64==
+> tmpDir==/tmp==
+> platform==linux==
+> unpackResult==success==
+> didLocalDownload==1==
+> downloadTime====
+> installTime==163==
+> serverStartTime==41==
+> execServerToken=[REDACTED]
+> platformDownloadPath==cli-alpine-x64==
+> SSH_AUTH_SOCK====
+> DISPLAY====
+> 1ae1a34edcc0: end
+[01:52:43.972] Received install output: 
+listeningOn==127.0.0.1:43191==
+osReleaseId==ubuntu==
+arch==x86_64==
+vscodeArch==x64==
+bitness==64==
+tmpDir==/tmp==
+platform==linux==
+unpackResult==success==
+didLocalDownload==1==
+downloadTime====
+installTime==163==
+serverStartTime==41==
+execServerToken=[REDACTED]
+platformDownloadPath==cli-alpine-x64==
+SSH_AUTH_SOCK====
+DISPLAY====
+
+[01:52:43.972] Remote server is listening on port 43191
+[01:52:43.972] Parsed server configuration: {"serverConfiguration":{"remoteListeningOn":{"port":43191},"osReleaseId":"ubuntu","arch":"x86_64","sshAuthSock":"","display":"","tmpDir":"/tmp","platform":"linux","execServerToken":"[REDACTED]"},"installTime":163,"serverStartTime":41,"didLocalDownload":true,"installUnpackCode":"success"}
+[01:52:43.976] Starting forwarding server. local port 32975 -> socksPort 33947 -> remotePort 43191
+[01:52:43.976] Forwarding server listening on port 32975
+[01:52:43.976] Waiting for ssh tunnel to be ready
+[01:52:43.978] [Forwarding server port 32975] Got connection 0
+[01:52:43.979] Tunneled port 43191 to local port 32975
+[01:52:43.979] Resolved "ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3" to "port 32975"
+[01:52:43.988] Initizing new exec server for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3
+[01:52:43.988] Resolving exec server at port 32975
+[01:52:43.989] [Forwarding server port 32975] Got connection 1
+[01:52:44.029] Exec server for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3 created and cached
+[01:52:44.029] Extensions to install: 
+[01:52:44.033] ------
+
+
+
+
+[01:52:44.034] No hints found in the recent session.
+[01:52:44.051] [server] Checking /home/cc-roadmap/.vscode-server/cli/servers/Stable-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba/log.txt and /home/cc-roadmap/.vscode-server/cli/servers/Stable-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba/pid.txt for a running server...
+[01:52:44.057] [server] Installing and setting up Visual Studio Code Server...
+[01:52:44.455] [server] Downloading Visual Studio Code server -> /tmp/.tmpPWxx3Q/vscode-server-linux-x64.tar.gz
+[01:52:44.456] [server] server download progress: 0/60552082 (0%)
+[01:52:44.521] [server] server download progress: 2105344/60552082 (3%)
+[01:52:44.541] [server] server download progress: 4210688/60552082 (7%)
+[01:52:44.557] [server] server download progress: 6313188/60552082 (10%)
+[01:52:44.573] [server] server download progress: 8413184/60552082 (14%)
+[01:52:44.587] [server] server download progress: 10518528/60552082 (17%)
+[01:52:44.601] [server] server download progress: 12623872/60552082 (21%)
+[01:52:44.615] [server] server download progress: 14728529/60552082 (24%)
+[01:52:44.631] [server] server download progress: 16826368/60552082 (28%)
+[01:52:44.644] [server] server download progress: 18931712/60552082 (31%)
+[01:52:44.660] [server] server download progress: 21033934/60552082 (35%)
+[01:52:44.674] [server] server download progress: 23138753/60552082 (38%)
+[01:52:44.689] [server] server download progress: 25237786/60552082 (42%)
+[01:52:44.702] [server] server download progress: 27335785/60552082 (45%)
+[01:52:44.716] [server] server download progress: 29438519/60552082 (49%)
+[01:52:44.729] [server] server download progress: 31543715/60552082 (52%)
+[01:52:44.742] [server] server download progress: 33644264/60552082 (56%)
+[01:52:44.755] [server] server download progress: 35749341/60552082 (59%)
+[01:52:44.771] [server] server download progress: 37853766/60552082 (63%)
+[01:52:44.784] [server] server download progress: 39956940/60552082 (66%)
+[01:52:44.797] [server] server download progress: 42061941/60552082 (69%)
+[01:52:44.810] [server] server download progress: 44159555/60552082 (73%)
+[01:52:44.822] [server] server download progress: 46257558/60552082 (76%)
+[01:52:44.836] [server] server download progress: 48361832/60552082 (80%)
+[01:52:44.849] [server] server download progress: 50459623/60552082 (83%)
+[01:52:44.866] [server] server download progress: 52564967/60552082 (87%)
+[01:52:44.879] [server] server download progress: 54668414/60552082 (90%)
+[01:52:44.893] [server] server download progress: 56767887/60552082 (94%)
+[01:52:44.906] [server] server download progress: 58867079/60552082 (97%)
+[01:52:44.916] [server] server download progress: 60552082/60552082 (100%)
+[01:52:45.541] [server] server inflate progress: 102/2033 (5%)
+[01:52:45.555] [server] server inflate progress: 205/2033 (10%)
+[01:52:45.584] [server] server inflate progress: 308/2033 (15%)
+[01:52:45.600] [server] server inflate progress: 411/2033 (20%)
+[01:52:45.651] [server] server inflate progress: 514/2033 (25%)
+[01:52:45.681] [server] server inflate progress: 617/2033 (30%)
+[01:52:46.154] [server] server inflate progress: 720/2033 (35%)
+[01:52:46.169] [server] server inflate progress: 823/2033 (40%)
+[01:52:46.185] [server] server inflate progress: 926/2033 (46%)
+[01:52:46.230] [server] server inflate progress: 1029/2033 (51%)
+[01:52:46.326] [server] server inflate progress: 1132/2033 (56%)
+[01:52:46.335] [server] server inflate progress: 1235/2033 (61%)
+[01:52:46.349] [server] server inflate progress: 1338/2033 (66%)
+[01:52:46.381] [server] server inflate progress: 1441/2033 (71%)
+[01:52:46.392] [server] server inflate progress: 1544/2033 (76%)
+[01:52:46.401] [server] server inflate progress: 1647/2033 (81%)
+[01:52:46.410] [server] server inflate progress: 1750/2033 (86%)
+[01:52:46.418] [server] server inflate progress: 1853/2033 (91%)
+[01:52:46.427] [server] server inflate progress: 1956/2033 (96%)
+[01:52:46.439] [server] server inflate progress: 2033/2033 (100%)
+[01:52:46.584] [server] Server integrity verified, version: 1.96.4 / cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba / x64 / 
+[01:52:46.597] [server] Server setup complete
+[01:52:46.598] [server] Starting server...
+[01:52:46.598] [server] Starting server with command... Command { std: "/home/cc-roadmap/.vscode-server/cli/servers/Stable-cd4ee3b1c348a13bafd8f9ad8060705f6d4b9cba/server/bin/code-server" "--connection-token=[REDACTED]" "--accept-server-license-terms" "--start-server" "--enable-remote-auto-shutdown" "--socket-path=/tmp/code-fe76f460-fd67-4f76-942b-b8676e493389", kill_on_drop: false }
+[01:52:46.682] [server] *
+[01:52:46.683] [server] * Visual Studio Code Server
+[01:52:46.683] [server] *
+[01:52:46.683] [server] * By using the software, you agree to
+[01:52:46.684] [server] * the Visual Studio Code Server License Terms (https://aka.ms/vscode-server-license) and
+[01:52:46.684] [server] * the Microsoft Privacy Statement (https://privacy.microsoft.com/en-US/privacystatement).
+[01:52:46.684] [server] *
+[01:52:46.686] [server] Server bound to /tmp/code-fe76f460-fd67-4f76-942b-b8676e493389
+[01:52:46.686] [server] Extension host agent listening on /tmp/code-fe76f460-fd67-4f76-942b-b8676e493389
+[01:52:46.686] [server] parsed location: "/tmp/code-fe76f460-fd67-4f76-942b-b8676e493389"
+[01:52:46.686] [server] 
+[01:52:46.686] [server] Server started
+[01:52:46.744] [server] [01:52:46] 
+[01:52:46.785] [server] 
+[01:52:46.786] [server] 
+[01:52:46.786] [server] 
+[01:52:46.810] [server] [01:52:46] Extension host agent started.
+[01:52:46.859] [server] [01:52:46] Started initializing default profile extensions in extensions installation folder. file:///home/cc-roadmap/.vscode-server/extensions
+[01:52:46.866] [server] [01:52:46] [<unknown>][92d36e7b][ManagementConnection] New connection established.
+[01:52:46.869] [server] [01:52:46] [<unknown>][1c7aa97a][ExtensionHostConnection] New connection established.
+[01:52:46.910] [server] [01:52:46] Completed initializing default profile extensions in extensions installation folder. file:///home/cc-roadmap/.vscode-server/extensions
+[01:52:46.919] [server] [01:52:46] [<unknown>][1c7aa97a][ExtensionHostConnection] <2953> Launched Extension Host Process.
+[01:52:47.508] [server] [01:52:47] Loading development extension at /home/cc-roadmap/driver

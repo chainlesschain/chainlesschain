@@ -867,3 +867,31 @@ CI Tests run `37987544143` 的 global install job `114013172321` 报 AWS tarball
 版本仍为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。新提交须重新完成自身全部矩阵，再按子包 → CLI → IDE → 合并顺序发行；保留原 `.95` 标签，不移动标签，不改为本地或 token 发布。
 
 正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**以及完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 仍开放，本轮无新增付费 provider 调用。
+
+### 20.22 CLI 0.166.96 与双 IDE 发行回读
+
+准确发行源码 `da91e730d802b7c9dcdc075b222ecc257021e552` 的 CLI CI **71/71**、Strict **5/5**、IDE Extensions **18 success / 1 非标签后验证 skip**、ARM64 **10/10** 及其余完整测试门全部通过。既有 GitHub Actions OIDC 已先发布并核验 Agent SDK `0.2.14`，再发布 CLI `0.166.96`；公开包与不可变制品的摘要、SRI、来源证明和十个直接子包安装/精确版本均匹配。随后发布 Open VSX `0.37.140`，公开可下载内容与标签制品一致。JetBrains `0.4.158` 的标签发布已成功提交 Marketplace，当前仍 `pending`，等待公开审批，不能声称已公开可安装。
+
+Windows unit 11/16 的完整集合用例通过，日志记 56,098ms；只读审计文件 7/7、71,140ms，分片 110 文件、2,676 tests 通过及 1 项原有跳过。新 hosted 日志没有阶段标记或分段时长，不填补未记录的数值，仍不确认原超时根因或生产 SLO。本次 Windows ARM64 真实 UI 旅程成功，artifact 原 manifest 51 个引用全部匹配，initial/restart capture 均 complete=true。Remote SSH 真实旅程、48 个 manifest 引用及 9 个 collector 引用全部匹配，wrongCommitBindingCount=0；实际一次 Docker Hub 拉取成功、canonicalRef=usedRef、fallbackReason=null，没有实际触发镜像回退。可信汇总保持原 selected-cases / advisory / releaseReady=null 边界，不把这份选集声明成全面正式验收。三系统 Global Install Smoke 与 Windows 单元任务的独立 production 依赖安装均成功；新安装结果不改写旧 E404/ETARGET 失败。 Windows x64 2024.2 与 2025.2 功能旅程均成功，各自两个原 manifest 共 94 引用均匹配；两宿主 canonical restart 的诊断均仍 complete=false、event-trace-or-capture-root-unavailable，功能成功不代表这两轮取证完整。
+
+- CLI CI：[38012166593](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166593)，71 success
+- CLI Strict Sandbox：[38012166296](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166296)，5 success
+- IDE Extensions：[38012166401](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166401)，18 success / 1 skipped
+- IDE ARM64 Host Validation：[38012166408](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166408)，10 success
+- Code Quality & Security：[38012166451](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166451)，7 success / 2 skipped
+- Model Catalog Review：[38012166435](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166435)，1 success
+- PR Tests：[38012166379](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166379)，2 success
+- CI Tests：[38012166446](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166446)，13 success / 1 skipped
+- Full Test Automation with Diagnostics：[38012166228](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166228)，3 success / 1 skipped
+- IDE Roadmap Safety Matrix：[38012166313](https://github.com/chainlesschain/chainlesschain/actions/runs/38012166313)，4 success
+- Publish CLI release to npm：[38019727506](https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506)，5 success / 2 skipped
+- IDE Extensions：[38021103046](https://github.com/chainlesschain/chainlesschain/actions/runs/38021103046)，11 success / 3 skipped
+- IDE Extensions：[38021102825](https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825)，13 success / 6 skipped
+
+[发行原件选集](./cli/evidence/gap-2026-10-05/release-0.166.96/final-release/manifest.json)保存终态 workflow/latest jobs、制品摘要和公开包逐项验证。归档保留五组选集及原路径映射，不是所有 artifact 的完整解压树。两份大型 CLI smoke bundle 仅保存 metadata，payloadVerified=false；其余已下载的 21 份 CLI ZIP 和 6 份 Strict ZIP 已逐项验证。CLI/Strict/IDE/ARM64 的发行门显式检出准确发行 head；其余 PR 门可能检出 synthetic merge ref，API head_sha 单独不证明 checkout 源码。SDK 和 CLI 来源签名由成功 OIDC job 的 npm audit signatures --include-attestations 及 digest-bound 回读制品证明，补充本地回读未重复执行签名审计。
+
+旧 `3900` 完整门失败、SDK NOT_RUN、AWS 安装失败及后续恢复保持原记录。新 head 的真实 host 与完整矩阵结果属于本次发行，局部合同和冻结正式验收分开记录。旧 x64 canonical restart trace 缺失、capture-status.complete=false 与旧 8e5 根因未确认不因本轮成功改写。
+
+发行标签均绑定 `da91e730d802b7c9dcdc075b222ecc257021e552`，没有移动旧 `.95` 标签或发行未测 merge SHA。发布在合并之前完成；后续文档归档提交需自身六项主分支 required contexts 成功，再用 expected-head guard 合并 PR #425，不使用 admin 绕过。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 继续开放；本轮无新增付费 provider 调用。

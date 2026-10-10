@@ -1,0 +1,36 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "jobId": 114094369439,
+  "conclusion": "success",
+  "sourceLog": {
+    "file": "job.log",
+    "bytes": 88857,
+    "sha256": "c71673a0a6dce0120941de5e7681b9fd591b695c625785919a205270f47f8b46"
+  },
+  "largeCollectionCase": {
+    "name": "retains and freezes the entire verified event collection above aggregate document limits",
+    "passed": true,
+    "durationMs": 56098,
+    "logLine": 580
+  },
+  "readonlyAuditSuite": {
+    "file": "__tests__/unit/evolution-eval-readonly-audit.test.js",
+    "passed": 7,
+    "durationMs": 71140,
+    "logLine": 578
+  },
+  "shardTotals": {
+    "filesPassed": 110,
+    "testsPassed": 2676,
+    "testsSkipped": 1,
+    "testsTotal": 2677,
+    "logLines": [764, 765]
+  },
+  "phaseTimingsAvailableInDownloadedLog": false,
+  "limitations": [
+    "The downloaded job log contains the case and suite results but no eval-readonly-large-collection console markers or per-phase timings.",
+    "The 56,098 ms hosted case observation is not a production SLO and does not establish the cause of the earlier 3900 timeout.",
+    "This passing shard does not assert the remaining CLI matrix or SDK gates passed."
+  ]
+}

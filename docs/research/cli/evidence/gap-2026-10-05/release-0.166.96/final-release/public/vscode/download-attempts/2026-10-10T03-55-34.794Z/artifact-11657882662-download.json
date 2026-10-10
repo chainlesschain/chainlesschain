@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021103046,
+  "artifactId": 11657882662,
+  "status": "COMPLETE_SIZE_AND_DIGEST_VERIFIED",
+  "receivedBytes": 698528,
+  "digest": "sha256:6949dd6e8c54cd97d365b82cb7ef388e3cc707be37216ebfd12310e9e39a0c97",
+  "expectedBytes": 698528,
+  "expectedDigest": "sha256:6949dd6e8c54cd97d365b82cb7ef388e3cc707be37216ebfd12310e9e39a0c97",
+  "elapsedMs": 15024,
+  "destination": ".work/release-readback-0.166.96/vscode-38021103046/chainlesschain-ide-vscode-candidate.zip"
+}

@@ -1,0 +1,483 @@
+{
+  "schema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+  "required": true,
+  "releaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "host": {
+    "name": "jetbrains",
+    "version": "2025.2",
+    "operatingSystem": "win32",
+    "architecture": "x64",
+    "transport": "local-ide-bridge"
+  },
+  "cliVersion": "0.166.96",
+  "extensionVersion": "0.4.158",
+  "startedAt": "2026-10-10T01:50:24.822Z",
+  "finishedAt": "2026-10-10T02:05:54.766Z",
+  "result": "passed",
+  "evidenceComplete": true,
+  "artifactBundleDigest": "sha256:381375831c99a9fdb746528f9eb30c87ba1606a13ce1dbdd1dd894074b882c60",
+  "artifacts": [
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/001-fake-cli-bin_cc",
+      "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+      "bytes": 166,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/002-fake-cli-bin_cc.cmd",
+      "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+      "bytes": 161,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/003-fake-cli-bin_chainlesschain",
+      "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+      "bytes": 166,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+      "bytes": 161,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/005-fake-cli-bin_clc",
+      "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+      "bytes": 166,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/006-fake-cli-bin_clc.cmd",
+      "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+      "bytes": 161,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/007-fake-cli-bin_clchain",
+      "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+      "bytes": 166,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/008-fake-cli-bin_clchain.cmd",
+      "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+      "bytes": 161,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/009-fake-cli-protocol.jsonl",
+      "sha256": "sha256:6aeb9e5cbea5d1b7e15f7618c1472720b574b6ab62acd868ab89856387e48ca1",
+      "bytes": 357283,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/010-fake-cli-state.json",
+      "sha256": "sha256:e8fe0a80bc977ef7e00280c325f1fcbc5724eabe9f89edf6409957a98dd7d7e9",
+      "bytes": 210,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/011-fake-cli-state.json.llm.json",
+      "sha256": "sha256:3bea14be95172dd0634d23f1d7f776bea93c6e74019261c1518c7367395e3164",
+      "bytes": 136,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/012-fake-cli-state.json.receipts_0df99bddcd08db3ba7eb407dc2cd1622813f77f0e27de7bb900172292130c2e6.json",
+      "sha256": "sha256:5c59b0046e88afb822a0c22bee2c27543f093414c740a2cc4685fae7a55e81d7",
+      "bytes": 274,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/013-fake-cli-state.json.receipts_569d7a15eaab2b7805d247408f804fa0632c80728deb83729050dd23d11fafb1.json",
+      "sha256": "sha256:8fa3d701a54a3d055c772399e72e7ec3315f6e1411f048225473ce757e14314f",
+      "bytes": 274,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/014-fake-cli-state.json.receipts_56b20dcb399fe954b97f40c11c0fb337d45f396525fa354fb906505a6bf79228.json",
+      "sha256": "sha256:e8bd200778324ccd11951b2283b5c58d235874d23c5faff4e5a903f6ff438c79",
+      "bytes": 274,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/015-fake-cli-state.json.receipts_671cd3ca6d73111e9bb8425bc938014273ff211b79987d2b26fd5e5e2e231f63.json",
+      "sha256": "sha256:9a7dbff99e3c4a6b6d8fc328cf6d95d1cec981be2c700095b6e24280807d76a6",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/016-fake-cli-state.json.receipts_6b1c9b3a6f62413412a391d532cab54b45b072a4babcfba4fda27c2fd3adbb69.json",
+      "sha256": "sha256:20d9756dbf573b971402027c5b06023e63cb8d994d5bad00c359a7e3a50bc14e",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/017-fake-cli-state.json.receipts_830fc849dee1d00519a27dc9238dae58b6d0a376784b7d28823c4eff3a4ae97a.json",
+      "sha256": "sha256:bd8fb2a899fb64aff42d532a0d6752901d41bf836aa9e7fe36c83b9be81533d1",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/018-fake-cli-state.json.receipts_96d63c0ba75278e11a765fe9fc5c669416af4891d3da468514cc803203545e00.json",
+      "sha256": "sha256:c150a41884a8431b34d10511a7fffbc6a4439fdcab5e089cfcab9450a08f68b5",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/019-fake-cli-state.json.receipts_cfaeebb083a0fe0e513a11b24293dff6932ee7c8ee315f6e807fbef7f2d7b9a0.json",
+      "sha256": "sha256:58ddf111978bedb97350d6556eea4fd5c26938f6496f98a096a8baa8ea9fa1ad",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/020-fake-cli-state.json.receipts_d5729320384a31a571a4dfe8d872c77ddffc154b3e60354ce76001d25e5cd648.json",
+      "sha256": "sha256:5daa45019fc6608980bf9bde4124739ec2f08baaace1166e0903da88135041ab",
+      "bytes": 260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/021-host-capture-initial_capture-status.json",
+      "sha256": "sha256:4b0a9ce914b0fa9cdc69317f1da1e21b8c5c03d8e412d792d2da1433695e25b5",
+      "bytes": 886,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/022-host-capture-initial_host-events.jsonl",
+      "sha256": "sha256:f6b3c6c20466a28d640a73fce263b58033f87683f8af6dbc0bbe6a5c14387d68",
+      "bytes": 25842,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "sha256": "sha256:f6b3c6c20466a28d640a73fce263b58033f87683f8af6dbc0bbe6a5c14387d68",
+      "bytes": 25842,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "sha256": "sha256:8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+      "bytes": 45315,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "sha256": "sha256:bed7fe8a2764d1b6ef4ee37558acfa825adf9515543942d27237c0857a93e40c",
+      "bytes": 127355,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/026-host-capture-restart_capture-status.json",
+      "sha256": "sha256:936004944fe2e8db497e01deabfc88a95a7095364ad88bca7ef010c7dfb20d0d",
+      "bytes": 885,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/027-host-capture-restart_host-events.jsonl",
+      "sha256": "sha256:c26af3f3d1f659c615de831db29fec9dcc4d65ac51efe9cf74dd99dff02da6e8",
+      "bytes": 2344,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "sha256": "sha256:c26af3f3d1f659c615de831db29fec9dcc4d65ac51efe9cf74dd99dff02da6e8",
+      "bytes": 2344,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "sha256": "sha256:8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+      "bytes": 45315,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "sha256": "sha256:2ad995720d6826819956b41aa3f3ac9febb4563775d92eedefcc8953018969fd",
+      "bytes": 204665,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/031-prepare.stderr.log",
+      "sha256": "sha256:7a6896fea0730585c2efda4767505132f273e97d18fb9dcfc580f2bcd7d18d09",
+      "bytes": 991,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/032-prepare.stdout.log",
+      "sha256": "sha256:99771d68f7a3f8df913b22e66da083236bf265e11dddc8f4b71aec6e40b3e74b",
+      "bytes": 21310,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/033-sandbox-ide-initial.stderr.log",
+      "sha256": "sha256:b23f4b3d5531371129559b4b35420647f627ca3951e43ed37785b63ea57ef027",
+      "bytes": 5054,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/034-sandbox-ide-initial.stdout.log",
+      "sha256": "sha256:47d4af6b30090d01c466dadd9418ba7a7e335761bfa01bcf1b64c70790d58789",
+      "bytes": 6994,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/035-sandbox-ide-restart.stderr.log",
+      "sha256": "sha256:b1af80b52afcacd535f8d46fb6ba2734d05b5f4ca78cb9041f3a6bf906a81ab7",
+      "bytes": 5998,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/036-sandbox-ide-restart.stdout.log",
+      "sha256": "sha256:792bbb05989dea1cd1432d57d2ce516745eaad994828109a54972b53fb5df0b3",
+      "bytes": 1342,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/037-ui-smoke-initial.stderr.log",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/038-ui-smoke-initial.stdout.log",
+      "sha256": "sha256:fd140ba0058a727227d31b81c2b050841112a235d73e91ca31a9daf886fdd5db",
+      "bytes": 13260,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/039-ui-smoke-restart.stderr.log",
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/040-ui-smoke-restart.stdout.log",
+      "sha256": "sha256:7dc27185b1cb996776879ba867fbb79b703b47d5fbe40c271fb68abeef5e987c",
+      "bytes": 13293,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/041-workbench-host-phases.json",
+      "sha256": "sha256:cf098cbcf1ce6e9edc042dab223528d4eafcb4ce4e861f546882351dc84d9836",
+      "bytes": 1874,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/042-workbench-metrics.jsonl",
+      "sha256": "sha256:4811250ddbc98779bba60aa8abfd63b7df23d5c378c5cb5b946b5a77d7f47a59",
+      "bytes": 25933,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/043-binary_output.bin",
+      "sha256": "sha256:5030656c0b79d6428b9b8fdfa0f1563c338126f90893485d58cf089e21e3e3e3",
+      "bytes": 382,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/044-binary_output.bin.idx",
+      "sha256": "sha256:a901cec49b3252cb30c92c3a78a52c6836e25ba34d5d199a346eda9eece0f957",
+      "bytes": 71,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/045-binary_results.bin",
+      "sha256": "sha256:db37863cc12bd3dbbf6189b3952d2ab91eb495774c50488b1dba57e0928be556",
+      "bytes": 1136,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sha256": "sha256:b708e15b465f0f965fc5aaeb51d0e9aee37bac40ae87c982edeed32319d3977c",
+      "bytes": 721,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "sha256": "sha256:27a95e9439f82709a153c04108dff77e0487af344a6219164227234fbbe2fbd3",
+      "bytes": 649,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "sha256": "sha256:037041c6f9b3cb19c9cc07fba0a6db6e304cb8724b37e5020f02d1c9ab479578",
+      "bytes": 1222,
+      "truncated": false,
+      "redacted": true,
+      "sensitivity": "redacted-text"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/049-model-config-reopened-1791597952486.png",
+      "sha256": "sha256:a1d799689711db823594c84705783c3d02c583fc17194ab96d1769f74131b25b",
+      "bytes": 37830,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "host-diagnostic",
+      "path": "diagnostics/050-model-config-saved-1791597549077.png",
+      "sha256": "sha256:03311a1c9479a798a45d6338e6dcc2661109d85bf2231ea97e6cd888f8c08ad3",
+      "bytes": 38830,
+      "truncated": false,
+      "redacted": false,
+      "sensitivity": "restricted-binary"
+    },
+    {
+      "kind": "release-artifact",
+      "name": "chainlesschain-ide-bridge-0.4.158.zip",
+      "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "sha256": "sha256:5fcc9ba79acfb99f7e663177353ff5242ec0d355ce069f1a43cc734739f74ab6",
+      "bytes": 1520052
+    }
+  ],
+  "incidents": [],
+  "evidenceDigest": "sha256:68b034e53007ab0a9a4818aa4e6a2fd780930976838fc76b2d943d1fea00fb1f"
+}

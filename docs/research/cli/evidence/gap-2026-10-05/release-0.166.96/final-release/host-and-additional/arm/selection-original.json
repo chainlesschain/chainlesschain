@@ -1,0 +1,367 @@
+{
+  "schema": "astra.selected-original-host-evidence/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "workflowRunId": 38012166408,
+  "jobId": 114094368176,
+  "artifactId": 11655477147,
+  "jobConclusion": "success",
+  "originalJourneyManifestsUnmodified": true,
+  "artifactExtractionTreePreserved": false,
+  "scope": "Byte-exact selection, not the original full artifact extraction tree. Original journey manifests retain all original references. All original manifest entries and ZIP digest were verified before selection. Missing diagnostic flags, if any, are preserved unchanged; fixture stdout alone is not host-rendering evidence.",
+  "verifiedArtifactEntries": [
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "entries": 51
+    }
+  ],
+  "captureStatus": [
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "phases": [
+        {
+          "phase": "initial",
+          "complete": true,
+          "failures": [],
+          "tracePresent": true
+        },
+        {
+          "phase": "restart",
+          "complete": true,
+          "failures": [],
+          "tracePresent": true
+        }
+      ]
+    }
+  ],
+  "selectedOriginalFiles": 39,
+  "selectedBytes": 1313672,
+  "noZipJarClassPayloadCopied": true,
+  "excludedPayloads": [
+    {
+      "kind": "Complete GitHub artifact ZIP",
+      "path": "artifact.zip",
+      "bytes": 1781898,
+      "sha256": "sha256:f92e844ff836d7377ea8d22c8b5c39166cc53e230df1701736245d11bca0a837"
+    },
+    {
+      "kind": "Packaged plugin ZIP, compiled class/JAR payload",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1519654,
+      "sha256": "sha256:13a3c9fe65e1f5f69fd08dcbd8d1519267dd5658af92113d775c97d8a7cfd659"
+    }
+  ],
+  "files": [
+    {
+      "source": ".work/astra-da91-native/arm/run.json",
+      "target": "github-run.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/github-run.json",
+      "originalArtifactPath": null,
+      "bytes": 13746,
+      "sha256": "6146c4e795b4a989300247bb30a7203f442c7c04a14764fe0dafc47cd603139a"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/job.json",
+      "target": "github-job.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/github-job.json",
+      "originalArtifactPath": null,
+      "bytes": 4480,
+      "sha256": "a2a9ff62cd487bbc5e82fb99ea58434d5d66c658b0ae9d0ca6d0927aecc0efbf"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/job.log",
+      "target": "github-job.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/github-job.log",
+      "originalArtifactPath": null,
+      "bytes": 232083,
+      "sha256": "6c4e7f017c29af3412b9a6ea85dd2a5b1fc357523bfae5aee50ac8dea85134ed"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/metadata.json",
+      "target": "github-artifact.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/github-artifact.json",
+      "originalArtifactPath": null,
+      "bytes": 812,
+      "sha256": "05c5a9bad662d902a3eef620de6cdbc20ae49ec9c61863962f31e982854d57e8"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/download-verification.json",
+      "target": "download-receipt.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/download-receipt.json",
+      "originalArtifactPath": null,
+      "bytes": 533,
+      "sha256": "e9eabec52d4ddad2005ac9ff88bcffc3b86b8195ab4103f9d98344c78a3f36b4"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/verification.json",
+      "target": "all-entries-verified.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/all-entries-verified.json",
+      "originalArtifactPath": null,
+      "bytes": 45432,
+      "sha256": "044d9ac698365e31dce850c8b2bccf9fc10738dbb24cba81b9e88864a3abad97"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "target": "deterministic/journey-original.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/journey-original.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "bytes": 17337,
+      "sha256": "04dac914676bc8bc7d23a6a26c137aee43d4b88bad0d92d25f75cc1671dfe2bb"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "target": "deterministic/fixture-protocol.jsonl",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/fixture-protocol.jsonl",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "bytes": 355666,
+      "sha256": "cfd57347b08c8b16d24b67da3d04e2fe877fb2e8263c6578e283adb97caa3c3c"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "target": "deterministic/fixture-state.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/fixture-state.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "bytes": 210,
+      "sha256": "5cd9be287c2e8be8f407e288a96817562c3861748d768ad4ff58f244ebb074bb"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_2611ec7b861a3e9f2214836180d78b5650f0dd10a05e1e6c6a2ca183229d85b3.json",
+      "target": "deterministic/control-receipt-01.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-01.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_2611ec7b861a3e9f2214836180d78b5650f0dd10a05e1e6c6a2ca183229d85b3.json",
+      "bytes": 260,
+      "sha256": "3301b749ca6d7fb78fa25f8d49d37ee73238d2c21f7167ddbe267e80ca45d99a"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_2633c09bb7430f70bfeade1c83cdc00127b715cb1be03c8e5a85bfb696498c5d.json",
+      "target": "deterministic/control-receipt-02.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-02.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_2633c09bb7430f70bfeade1c83cdc00127b715cb1be03c8e5a85bfb696498c5d.json",
+      "bytes": 260,
+      "sha256": "9d258b0ce5c085ad35dcd111a05ffe280edbd6f1882d57a3df2b788ec4033817"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_272f48420560432d838bc4edaacc58953b5eb8eeb8b93a69598de1e596df6a22.json",
+      "target": "deterministic/control-receipt-03.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-03.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_272f48420560432d838bc4edaacc58953b5eb8eeb8b93a69598de1e596df6a22.json",
+      "bytes": 274,
+      "sha256": "b5eb10e9842df11d86e1874b0fb96131f4c50f1a1833fdf45325bffd44447435"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_5e33fc278cb3dca65f3d1a5ac9239b131571be8d8e5446dc3b036c7b0ab5cfc6.json",
+      "target": "deterministic/control-receipt-04.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-04.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_5e33fc278cb3dca65f3d1a5ac9239b131571be8d8e5446dc3b036c7b0ab5cfc6.json",
+      "bytes": 260,
+      "sha256": "5af1dfc2b4a6d2c00151e09dd5b10794a55b9bb842b1b042dc336a935e58179c"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_61111b3713161091d931bbf62e59ac1d660a0a23c63cded15d39c7f9265723ec.json",
+      "target": "deterministic/control-receipt-05.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-05.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_61111b3713161091d931bbf62e59ac1d660a0a23c63cded15d39c7f9265723ec.json",
+      "bytes": 260,
+      "sha256": "04481b9dae5a1e0ed3c3b517c387173db36f275e2327e56819a8315a0e629329"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/017-fake-cli-state.json.receipts_9d1338001fc4663d42f9ed7e3cde9ef93a250a01b0d94cfa4feb76ae7c71e438.json",
+      "target": "deterministic/control-receipt-06.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-06.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/017-fake-cli-state.json.receipts_9d1338001fc4663d42f9ed7e3cde9ef93a250a01b0d94cfa4feb76ae7c71e438.json",
+      "bytes": 260,
+      "sha256": "009dc1da95912d6f44a3972bc42703f096a3cc5488daec3a8407066aa05a4f2e"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/018-fake-cli-state.json.receipts_c7c4d88e6a73f567b6705aacfe4708f6b3e8692f2518672ed872741a2719fc5a.json",
+      "target": "deterministic/control-receipt-07.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-07.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/018-fake-cli-state.json.receipts_c7c4d88e6a73f567b6705aacfe4708f6b3e8692f2518672ed872741a2719fc5a.json",
+      "bytes": 260,
+      "sha256": "0632e66eacaec8c8b36870deb3803eebe509fefbc38a8cadc57d75278126a414"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/019-fake-cli-state.json.receipts_e7c3a3da47cc82868e0329872d79c209bcbb2a427593c6b8c2747ca347d27396.json",
+      "target": "deterministic/control-receipt-08.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-08.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/019-fake-cli-state.json.receipts_e7c3a3da47cc82868e0329872d79c209bcbb2a427593c6b8c2747ca347d27396.json",
+      "bytes": 274,
+      "sha256": "20a96a2a28620ff5f5fc61318cd6381c598ab9350d6b498fd68822a728432d23"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/020-fake-cli-state.json.receipts_fa79a9d8245c708d8eea30bb39d2d90588d9949f8622a7cdd8650e78ce0eee03.json",
+      "target": "deterministic/control-receipt-09.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/control-receipt-09.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/020-fake-cli-state.json.receipts_fa79a9d8245c708d8eea30bb39d2d90588d9949f8622a7cdd8650e78ce0eee03.json",
+      "bytes": 274,
+      "sha256": "efd62934b701e11d42cdae3c898061af51c9a182250f1caa701f9c990147350a"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_capture-status.json",
+      "target": "deterministic/initial-capture.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-capture.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_capture-status.json",
+      "bytes": 886,
+      "sha256": "e960fdc07d40bbcb952f88cff616cc0c21e807ef3dc36dd34d2af35933d6769d"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "target": "deterministic/initial-events.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-events.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "bytes": 25813,
+      "sha256": "8dcb2619d3c0c8cc45f2c4a487628f1ba8b15798142c4edb6ad86cb288fc4df1"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "target": "deterministic/initial-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-idea-001.log.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "bytes": 46170,
+      "sha256": "55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "target": "deterministic/initial-idea-002.log.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-idea-002.log.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "bytes": 169129,
+      "sha256": "573712d0f09153471adbe1dcc845a63d05c00d212bfd28b4b14986d42c4b38a5"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/026-host-capture-restart_capture-status.json",
+      "target": "deterministic/restart-capture.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-capture.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/026-host-capture-restart_capture-status.json",
+      "bytes": 885,
+      "sha256": "81ab5966891f96045cc51e6fc96b6660d6bb5abc8d26e1624a29b4d3bbcd8609"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "target": "deterministic/restart-events.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-events.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "bytes": 2344,
+      "sha256": "33ecf7feeac74a0063887385dfbcd5dde202965c2e948007ef748115edc4af18"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "target": "deterministic/restart-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-idea-001.log.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "bytes": 46170,
+      "sha256": "55af7d73e1f31f7b62aeb68011199fb1cd3fd29b6e4d7fb80ca457b1632df236"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "target": "deterministic/restart-idea-002.log.bin",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-idea-002.log.bin",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "bytes": 277764,
+      "sha256": "793a8d4344dc4aa08751376d8e6b6ceb6bd31321ae574a73146dc3f924d72f4e"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "target": "deterministic/initial-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-host-stderr.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "bytes": 3079,
+      "sha256": "2695d24cff7564b563afe297ff49a442f3be2ad5fb5e6c966566e491581c2d06"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/034-sandbox-ide-initial.stdout.log",
+      "target": "deterministic/initial-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-host-stdout.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/034-sandbox-ide-initial.stdout.log",
+      "bytes": 6665,
+      "sha256": "789a936a636667f80910af0708a45d49e843cf08d0ed7118a41b2314af4d8c66"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "target": "deterministic/restart-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-host-stderr.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "bytes": 2810,
+      "sha256": "ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/036-sandbox-ide-restart.stdout.log",
+      "target": "deterministic/restart-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-host-stdout.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/036-sandbox-ide-restart.stdout.log",
+      "bytes": 1013,
+      "sha256": "f088e20f98d1626def5107736edd5cb403e508319d036ab1ac517147511c51b4"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/037-ui-smoke-initial.stderr.log",
+      "target": "deterministic/initial-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-ui-stderr.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/037-ui-smoke-initial.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/038-ui-smoke-initial.stdout.log",
+      "target": "deterministic/initial-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/initial-ui-stdout.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/038-ui-smoke-initial.stdout.log",
+      "bytes": 13869,
+      "sha256": "6138dcda0b7592d39f243abbaf2d4a1b380edce9b8e296aaa75806ab3b749154"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/039-ui-smoke-restart.stderr.log",
+      "target": "deterministic/restart-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-ui-stderr.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/039-ui-smoke-restart.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/040-ui-smoke-restart.stdout.log",
+      "target": "deterministic/restart-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/restart-ui-stdout.log",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/040-ui-smoke-restart.stdout.log",
+      "bytes": 13868,
+      "sha256": "4f89c102819c26c5e65220e9dc1d124ffbf350edf615e2e25afc5ade4dd47581"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/041-workbench-host-phases.json",
+      "target": "deterministic/host-phases.json",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/host-phases.json",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/041-workbench-host-phases.json",
+      "bytes": 1883,
+      "sha256": "104b7493c090741d026965b222a5f03b19547d7e1d353c896c5098a45efbff75"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/042-workbench-metrics.jsonl",
+      "target": "deterministic/workbench-metrics.jsonl",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/workbench-metrics.jsonl",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/042-workbench-metrics.jsonl",
+      "bytes": 25937,
+      "sha256": "153f38b683d666a3be9edecbca1036ddbf28c9f3d6c44c207f0d5538c4f27417"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "target": "deterministic/ui-result.xml",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/ui-result.xml",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "bytes": 826,
+      "sha256": "1b0aa96e39a5f09d5367662baf71e4df75b949da3905a47d413feeda364f1168"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "target": "deterministic/native-probe-result.xml",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/native-probe-result.xml",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "bytes": 653,
+      "sha256": "747116bba65d4f8d3482c0041e973616b342adc747dc90e37f74695d30ff1590"
+    },
+    {
+      "source": ".work/astra-da91-native/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "target": "deterministic/startup-result.xml",
+      "selectedSource": ".work/astra-da91-native/arm/selected/deterministic/startup-result.xml",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "bytes": 1227,
+      "sha256": "0911ca7bf8d72bd24438b575fdbf0009d1ae20736808337cebfba61bae2888bd"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657517929,
+  "name": "pm-exploration-recovery-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/metadata.json",
+    "bytes": 800,
+    "sha256": "6da0800f1fd30a418e5a4f662672279b88fe4eca648266e83bafcad58fbfbae9",
+    "endpoint": "actions/artifacts/11657517929"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/artifact.zip",
+    "bytes": 1249,
+    "sha256": "afbf0e4420b15e1c6ecbf2c9cb45e5c2ec55bfc9c99f7258cffa3444f6900a9c",
+    "endpoint": "actions/artifacts/11657517929/zip"
+  },
+  "githubDigestMatched": true
+}

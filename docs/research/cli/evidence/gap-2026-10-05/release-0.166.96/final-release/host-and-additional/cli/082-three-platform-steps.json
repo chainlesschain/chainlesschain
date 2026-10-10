@@ -1,0 +1,56 @@
+{
+  "capturedAt": "2026-10-10T03:08:25.826Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "scope": "Three SDK source build/test steps succeeded; remaining CLI steps and workflow may still be pending",
+  "captures": [
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.json",
+      "bytes": 7599,
+      "sha256": "f016641d91ad3c1834575bc5c1c67963c7cdf4c11f24fd5218dbbdcd51493d7b",
+      "endpoint": "actions/jobs/114115687778",
+      "jobId": 114115687778,
+      "name": "verify-cli (macos-latest)",
+      "sdkStep": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-10T03:04:48Z",
+        "completed_at": "2026-10-10T03:05:13Z"
+      }
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.json",
+      "bytes": 6676,
+      "sha256": "29ec5ea8dcf675042ddf9d1408e502b03f6ac867b8b4274845a88169c4c265f9",
+      "endpoint": "actions/jobs/114115687783",
+      "jobId": 114115687783,
+      "name": "verify-cli (windows-latest)",
+      "sdkStep": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-10T03:06:46Z",
+        "completed_at": "2026-10-10T03:08:04Z"
+      }
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.json",
+      "bytes": 7601,
+      "sha256": "1d1902dfbb61616087de2c2d5b224233e004528dbb5e81fa46462c13856ff4d6",
+      "endpoint": "actions/jobs/114115687813",
+      "jobId": 114115687813,
+      "name": "verify-cli (ubuntu-latest)",
+      "sdkStep": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-10T03:03:02Z",
+        "completed_at": "2026-10-10T03:03:21Z"
+      }
+    }
+  ]
+}

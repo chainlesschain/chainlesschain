@@ -1,0 +1,228 @@
+{
+  "capturedAt": "2026-10-10T02:27:23.778Z",
+  "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "results": [
+    {
+      "scope": "ide",
+      "id": 38012166401,
+      "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "counts": {
+        "success": 18,
+        "skipped": 1
+      },
+      "jobs": [
+        {
+          "id": 114100102783,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:51:41Z",
+          "completedAt": "2026-10-10T01:52:53Z"
+        },
+        {
+          "id": 114102805601,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:53:31Z",
+          "completedAt": "2026-10-10T01:53:56Z"
+        }
+      ]
+    },
+    {
+      "scope": "ci",
+      "id": 38012166446,
+      "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "counts": {
+        "success": 13,
+        "skipped": 1
+      },
+      "jobs": [
+        {
+          "id": 114094368733,
+          "name": "Build Check (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:26:44Z",
+          "completedAt": "2026-10-10T01:34:50Z"
+        },
+        {
+          "id": 114094368875,
+          "name": "CLI Global Install Smoke (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:42:30Z",
+          "completedAt": "2026-10-10T01:43:41Z"
+        },
+        {
+          "id": 114094368905,
+          "name": "Unit Tests (macos-latest, 22.x)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:48:40Z",
+          "completedAt": "2026-10-10T02:07:37Z"
+        },
+        {
+          "id": 114094368926,
+          "name": "CLI Global Install Smoke (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:34:31Z",
+          "completedAt": "2026-10-10T01:43:28Z"
+        },
+        {
+          "id": 114094368964,
+          "name": "Unit Tests (ubuntu-latest, 22.x)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:14:24Z",
+          "completedAt": "2026-10-10T01:33:12Z"
+        },
+        {
+          "id": 114094368965,
+          "name": "Database Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:22:09Z",
+          "completedAt": "2026-10-10T01:23:48Z"
+        },
+        {
+          "id": 114094368978,
+          "name": "Code Quality",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:39:48Z",
+          "completedAt": "2026-10-10T01:42:11Z"
+        },
+        {
+          "id": 114094368982,
+          "name": "PDH Data Hub Tests (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:34:52Z",
+          "completedAt": "2026-10-10T01:39:17Z"
+        },
+        {
+          "id": 114094368997,
+          "name": "Backend model-egress and real startup regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:33:08Z",
+          "completedAt": "2026-10-10T01:33:44Z"
+        },
+        {
+          "id": 114094369003,
+          "name": "PDH Data Hub Tests (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:17:18Z",
+          "completedAt": "2026-10-10T01:19:04Z"
+        },
+        {
+          "id": 114094369011,
+          "name": "CLI Global Install Smoke (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:42:13Z",
+          "completedAt": "2026-10-10T01:43:20Z"
+        },
+        {
+          "id": 114094369019,
+          "name": "Build Check (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:46:56Z",
+          "completedAt": "2026-10-10T01:51:38Z"
+        },
+        {
+          "id": 114094369045,
+          "name": "Unit Tests (windows-latest, 22.x)",
+          "status": "completed",
+          "conclusion": "success",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:45:49Z",
+          "completedAt": "2026-10-10T02:26:44Z"
+        },
+        {
+          "id": 114094370207,
+          "name": "Full Test Suite",
+          "status": "completed",
+          "conclusion": "skipped",
+          "activeSteps": [],
+          "startedAt": "2026-10-10T01:11:02Z",
+          "completedAt": "2026-10-10T01:11:02Z"
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "path": "2026-10-10T02-27-14-110Z/ide-run.json",
+      "endpoint": "actions/runs/38012166401",
+      "bytes": 13738,
+      "sha256": "3bbf85451853fbb3fcc4f2318bee07d89c58cc50acce1cd9956e1a79fa33d84d"
+    },
+    {
+      "path": "2026-10-10T02-27-14-110Z/ide-jobs-1.json",
+      "endpoint": "actions/runs/38012166401/jobs?filter=latest&per_page=100&page=1",
+      "bytes": 67882,
+      "sha256": "ff80774a5243bf24f337c342f791be5ad446f3bd3fcc2cf49204c0d3004c8d76"
+    },
+    {
+      "path": "2026-10-10T02-27-14-110Z/ide-artifacts.json",
+      "endpoint": "actions/runs/38012166401/artifacts?per_page=100",
+      "bytes": 17769,
+      "sha256": "b928119f6d80ad1a19b00d0a90fb780eae39881eb148989301bab7b7ac1432ec"
+    },
+    {
+      "path": "2026-10-10T02-27-14-110Z/ci-run.json",
+      "endpoint": "actions/runs/38012166446",
+      "bytes": 13722,
+      "sha256": "5bad3b181d025da83c4fa530d3a0fee63ace2e4f06475ef661b4b4bed1401cc2"
+    },
+    {
+      "path": "2026-10-10T02-27-14-110Z/ci-jobs-1.json",
+      "endpoint": "actions/runs/38012166446/jobs?filter=latest&per_page=100&page=1",
+      "bytes": 38636,
+      "sha256": "14ab2e7da51a50228e170fe4993b2c44b96d6888bf05f92641fd5b7d4f34056e"
+    },
+    {
+      "path": "jobs/114094369045/job.json",
+      "endpoint": "actions/jobs/114094369045",
+      "bytes": 4003,
+      "sha256": "c26fd04ca276978beaf0f86eae122855655f4a0fbce891176f38ca4db664b474"
+    },
+    {
+      "path": "jobs/114094369045/job.log",
+      "endpoint": "actions/jobs/114094369045/logs",
+      "bytes": 866884,
+      "sha256": "b020aa6cbeb2c44614b9141b25891f9efebd26cb1fc5502e216b67510543995d"
+    },
+    {
+      "path": "jobs/114094369045/annotations.json",
+      "endpoint": "check-runs/114094369045/annotations?per_page=100",
+      "bytes": 310,
+      "sha256": "0fcb45cacb323b4fc7481d9fbb0ff50edb0b83e4f030d8566b74984a215beb7e"
+    }
+  ]
+}

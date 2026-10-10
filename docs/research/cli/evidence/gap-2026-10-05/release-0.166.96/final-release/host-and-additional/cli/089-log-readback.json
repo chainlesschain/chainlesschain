@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-10T03:09:52.515Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "jobId": 114115687783,
+  "name": "verify-cli (windows-latest)",
+  "conclusion": "success",
+  "capture": {
+    "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.log",
+    "bytes": 467455,
+    "sha256": "fa9ba61b7107e491285bead5052cf4363937dfc26e5441eaa0b47127eb7e223c",
+    "endpoint": "actions/jobs/114115687783/logs"
+  }
+}

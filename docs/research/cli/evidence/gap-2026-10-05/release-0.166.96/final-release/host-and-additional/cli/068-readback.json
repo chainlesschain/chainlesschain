@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11658235211,
+  "name": "session-message-fabric-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/metadata.json",
+    "bytes": 804,
+    "sha256": "df5b8191b41df30042d5de4c6e2a2177b3e23b6c43f25c4fd6d0de9b7c92b797",
+    "endpoint": "actions/artifacts/11658235211"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/artifact.zip",
+    "bytes": 2267,
+    "sha256": "10a15f7cb532f9c2b2b48f0954473410b8f5651dfab452b380610bf211e515b6",
+    "endpoint": "actions/artifacts/11658235211/zip"
+  },
+  "githubDigestMatched": true
+}

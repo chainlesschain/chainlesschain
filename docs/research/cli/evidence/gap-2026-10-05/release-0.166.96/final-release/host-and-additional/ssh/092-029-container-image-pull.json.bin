@@ -1,0 +1,19 @@
+{
+  "canonicalRef": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+  "usedRef": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+  "fallbackReason": null,
+  "attempts": [
+    {
+      "reference": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+      "status": 0,
+      "signal": null,
+      "stdout": "docker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467: Pulling from library/ubuntu\n966c395d29cb: Pulling fs layer\n966c395d29cb: Verifying Checksum\n966c395d29cb: Download complete\n966c395d29cb: Pull complete\nDigest: sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\nStatus: Downloaded newer image for ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\ndocker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "imageId": "sha256:045183670ef29ce21bc22a8d4f62511ce472679ca8fc9774f04181f7f383ca62",
+  "repoDigests": [
+    "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+  ]
+}

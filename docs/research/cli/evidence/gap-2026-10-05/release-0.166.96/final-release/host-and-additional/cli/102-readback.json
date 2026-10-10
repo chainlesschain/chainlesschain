@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T01:51:47.263Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166296,
+  "artifactId": 11655118011,
+  "name": "native-capsule-transport-windows",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/metadata.json",
+    "bytes": 751,
+    "sha256": "f6598c820421dd16a327c9f3c6b781651cc4c5450bb8ac379594f95b0af70c1f",
+    "endpoint": "actions/artifacts/11655118011"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/artifact.zip",
+    "bytes": 7245,
+    "sha256": "6bc57f996493ea2bd2d2b31ff50449a54d10de13edd9b741c11aaaa968bae3fc",
+    "endpoint": "actions/artifacts/11655118011/zip"
+  },
+  "githubDigestMatched": true
+}

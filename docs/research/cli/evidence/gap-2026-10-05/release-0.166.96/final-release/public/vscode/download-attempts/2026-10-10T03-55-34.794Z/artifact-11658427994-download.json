@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021103046,
+  "artifactId": 11658427994,
+  "status": "COMPLETE_SIZE_AND_DIGEST_VERIFIED",
+  "receivedBytes": 1420,
+  "digest": "sha256:e225923e3552d95e2106911da6377befca8895e766d9920c6aa2a8efe23bee6b",
+  "expectedBytes": 1420,
+  "expectedDigest": "sha256:e225923e3552d95e2106911da6377befca8895e766d9920c6aa2a8efe23bee6b",
+  "elapsedMs": 2010,
+  "destination": ".work/release-readback-0.166.96/vscode-38021103046/ide-cli-prerequisite-vscode-1.zip"
+}

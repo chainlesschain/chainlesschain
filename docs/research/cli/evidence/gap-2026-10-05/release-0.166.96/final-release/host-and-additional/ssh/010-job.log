@@ -1,0 +1,1263 @@
+﻿2026-10-10T01:26:45.0387486Z Current runner version: '2.337.0'
+2026-10-10T01:26:45.0413384Z ##[group]Runner Image Provisioner
+2026-10-10T01:26:45.0414208Z Hosted Compute Agent
+2026-10-10T01:26:45.0414771Z Version: 20260901.588
+2026-10-10T01:26:45.0415367Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-10T01:26:45.0416106Z Build Date: 2026-09-01T19:56:44Z
+2026-10-10T01:26:45.0416801Z Worker ID: {f2e977aa-7ff4-4523-8e10-7505ba7e0c57}
+2026-10-10T01:26:45.0417481Z Azure Region: westcentralus
+2026-10-10T01:26:45.0418087Z ##[endgroup]
+2026-10-10T01:26:45.0419496Z ##[group]Operating System
+2026-10-10T01:26:45.0420189Z Microsoft Windows Server 2025
+2026-10-10T01:26:45.0420778Z 10.0.26100
+2026-10-10T01:26:45.0421257Z Datacenter
+2026-10-10T01:26:45.0421773Z ##[endgroup]
+2026-10-10T01:26:45.0422291Z ##[group]Runner Image
+2026-10-10T01:26:45.0422863Z Image: windows-2025-vs2026
+2026-10-10T01:26:45.0423458Z Version: 20260925.250.1
+2026-10-10T01:26:45.0424967Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-10T01:26:45.0427098Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-10T01:26:45.0428074Z ##[endgroup]
+2026-10-10T01:26:45.0431257Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T01:26:45.0433398Z Actions: write
+2026-10-10T01:26:45.0433991Z ArtifactMetadata: write
+2026-10-10T01:26:45.0434552Z Attestations: write
+2026-10-10T01:26:45.0435112Z Checks: write
+2026-10-10T01:26:45.0435634Z CodeQuality: write
+2026-10-10T01:26:45.0436158Z Contents: write
+2026-10-10T01:26:45.0436706Z CopilotRequests: write
+2026-10-10T01:26:45.0437288Z Deployments: write
+2026-10-10T01:26:45.0437850Z Discussions: write
+2026-10-10T01:26:45.0438378Z Drives: write
+2026-10-10T01:26:45.0438886Z Issues: write
+2026-10-10T01:26:45.0439402Z Metadata: read
+2026-10-10T01:26:45.0439961Z Models: read
+2026-10-10T01:26:45.0440478Z Packages: write
+2026-10-10T01:26:45.0441025Z Pages: write
+2026-10-10T01:26:45.0441539Z PullRequests: write
+2026-10-10T01:26:45.0442164Z RepositoryProjects: write
+2026-10-10T01:26:45.0442761Z SecurityEvents: write
+2026-10-10T01:26:45.0443322Z Statuses: write
+2026-10-10T01:26:45.0443854Z VulnerabilityAlerts: read
+2026-10-10T01:26:45.0444412Z ##[endgroup]
+2026-10-10T01:26:45.0447228Z Secret source: Actions
+2026-10-10T01:26:45.0448149Z Cache mode: write
+2026-10-10T01:26:45.0448881Z Prepare workflow directory
+2026-10-10T01:26:45.0868395Z Prepare all required actions
+2026-10-10T01:26:45.0917636Z Getting action download info
+2026-10-10T01:26:45.3490453Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T01:26:45.7063591Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T01:26:45.8926802Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T01:26:46.2287796Z Complete job name: Build Check (windows-latest)
+2026-10-10T01:26:46.3921240Z ##[group]Run actions/checkout@v5
+2026-10-10T01:26:46.3922424Z with:
+2026-10-10T01:26:46.3922959Z   repository: chainlesschain/chainlesschain
+2026-10-10T01:26:46.3931104Z   token: ***
+2026-10-10T01:26:46.3931549Z   ssh-strict: true
+2026-10-10T01:26:46.3932008Z   ssh-user: git
+2026-10-10T01:26:46.3932941Z   persist-credentials: true
+2026-10-10T01:26:46.3933558Z   clean: true
+2026-10-10T01:26:46.3934035Z   sparse-checkout-cone-mode: true
+2026-10-10T01:26:46.3934655Z   fetch-depth: 1
+2026-10-10T01:26:46.3935107Z   fetch-tags: false
+2026-10-10T01:26:46.3935585Z   show-progress: true
+2026-10-10T01:26:46.3936075Z   lfs: false
+2026-10-10T01:26:46.3936522Z   submodules: false
+2026-10-10T01:26:46.3937006Z   set-safe-directory: true
+2026-10-10T01:26:46.3937590Z   allow-unsafe-pr-checkout: false
+2026-10-10T01:26:46.3938509Z ##[endgroup]
+2026-10-10T01:26:46.5489327Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T01:26:46.5491598Z ##[group]Getting Git version info
+2026-10-10T01:26:46.5495395Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-10T01:26:46.6464079Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-10T01:26:46.9821889Z git version 2.55.0.windows.5
+2026-10-10T01:26:46.9870187Z ##[endgroup]
+2026-10-10T01:26:46.9890097Z Temporarily overriding HOME='D:\a\_temp\b53c350a-8463-4331-a18f-3bead48519a3' before making global git config changes
+2026-10-10T01:26:46.9890949Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:26:46.9901205Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-10T01:26:47.0560637Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-10T01:26:47.0567261Z ##[group]Initializing the repository
+2026-10-10T01:26:47.0579932Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-10T01:26:47.1451570Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-10T01:26:47.1498836Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:26:47.2134081Z ##[endgroup]
+2026-10-10T01:26:47.2134621Z ##[group]Disabling automatic garbage collection
+2026-10-10T01:26:47.2143852Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-10T01:26:47.2455635Z ##[endgroup]
+2026-10-10T01:26:47.2456124Z ##[group]Setting up auth
+2026-10-10T01:26:47.2469438Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:26:47.2778340Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-10T01:26:48.6796667Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:26:48.7129080Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-10T01:26:49.2601099Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:26:49.2930095Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-10T01:26:49.8682944Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-10T01:26:49.9005831Z ##[endgroup]
+2026-10-10T01:26:49.9006677Z ##[group]Fetching the repository
+2026-10-10T01:26:49.9025451Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0371e00f1425aa9d842517f4feea0d750810ee23:refs/remotes/pull/425/merge
+2026-10-10T01:27:02.3543976Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:27:02.3545400Z  * [new ref]           0371e00f1425aa9d842517f4feea0d750810ee23 -> pull/425/merge
+2026-10-10T01:27:02.3596348Z ##[endgroup]
+2026-10-10T01:27:02.3599372Z ##[group]Determining the checkout info
+2026-10-10T01:27:02.3600140Z ##[endgroup]
+2026-10-10T01:27:02.3610619Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-10T01:27:02.4074621Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-10T01:27:02.4499563Z ##[group]Checking out the ref
+2026-10-10T01:27:02.4500591Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/425/merge
+2026-10-10T01:27:03.6334276Z Updating files:  12% (2848/23576)
+2026-10-10T01:27:03.7080753Z Updating files:  13% (3065/23576)
+2026-10-10T01:27:03.8219451Z Updating files:  14% (3301/23576)
+2026-10-10T01:27:03.8867452Z Updating files:  15% (3537/23576)
+2026-10-10T01:27:03.9440266Z Updating files:  16% (3773/23576)
+2026-10-10T01:27:04.0002772Z Updating files:  17% (4008/23576)
+2026-10-10T01:27:04.0718820Z Updating files:  18% (4244/23576)
+2026-10-10T01:27:04.1486894Z Updating files:  19% (4480/23576)
+2026-10-10T01:27:04.2199103Z Updating files:  20% (4716/23576)
+2026-10-10T01:27:04.2899398Z Updating files:  21% (4951/23576)
+2026-10-10T01:27:04.5235976Z Updating files:  22% (5187/23576)
+2026-10-10T01:27:04.5463778Z Updating files:  22% (5356/23576)
+2026-10-10T01:27:04.6248164Z Updating files:  23% (5423/23576)
+2026-10-10T01:27:04.7007912Z Updating files:  24% (5659/23576)
+2026-10-10T01:27:04.7746371Z Updating files:  25% (5894/23576)
+2026-10-10T01:27:04.8617989Z Updating files:  26% (6130/23576)
+2026-10-10T01:27:04.9391735Z Updating files:  27% (6366/23576)
+2026-10-10T01:27:05.0162653Z Updating files:  28% (6602/23576)
+2026-10-10T01:27:05.0927475Z Updating files:  29% (6838/23576)
+2026-10-10T01:27:05.1690365Z Updating files:  30% (7073/23576)
+2026-10-10T01:27:05.2403738Z Updating files:  31% (7309/23576)
+2026-10-10T01:27:05.3066699Z Updating files:  32% (7545/23576)
+2026-10-10T01:27:05.3757431Z Updating files:  33% (7781/23576)
+2026-10-10T01:27:05.4435584Z Updating files:  34% (8016/23576)
+2026-10-10T01:27:05.5114790Z Updating files:  35% (8252/23576)
+2026-10-10T01:27:05.5300164Z Updating files:  36% (8488/23576)
+2026-10-10T01:27:05.5836068Z Updating files:  36% (8546/23576)
+2026-10-10T01:27:05.6445985Z Updating files:  37% (8724/23576)
+2026-10-10T01:27:05.7124157Z Updating files:  38% (8959/23576)
+2026-10-10T01:27:05.9873155Z Updating files:  39% (9195/23576)
+2026-10-10T01:27:06.0631940Z Updating files:  40% (9431/23576)
+2026-10-10T01:27:06.1287743Z Updating files:  41% (9667/23576)
+2026-10-10T01:27:06.2019155Z Updating files:  42% (9902/23576)
+2026-10-10T01:27:06.2684429Z Updating files:  43% (10138/23576)
+2026-10-10T01:27:06.3410468Z Updating files:  44% (10374/23576)
+2026-10-10T01:27:06.4263806Z Updating files:  45% (10610/23576)
+2026-10-10T01:27:06.5139700Z Updating files:  46% (10845/23576)
+2026-10-10T01:27:06.5434162Z Updating files:  47% (11081/23576)
+2026-10-10T01:27:06.5975903Z Updating files:  47% (11163/23576)
+2026-10-10T01:27:06.6791314Z Updating files:  48% (11317/23576)
+2026-10-10T01:27:06.7582548Z Updating files:  49% (11553/23576)
+2026-10-10T01:27:06.8217620Z Updating files:  50% (11788/23576)
+2026-10-10T01:27:06.9044176Z Updating files:  51% (12024/23576)
+2026-10-10T01:27:06.9938543Z Updating files:  52% (12260/23576)
+2026-10-10T01:27:07.1089927Z Updating files:  53% (12496/23576)
+2026-10-10T01:27:07.5540340Z Updating files:  54% (12732/23576)
+2026-10-10T01:27:07.6575140Z Updating files:  54% (12912/23576)
+2026-10-10T01:27:08.2456731Z Updating files:  55% (12967/23576)
+2026-10-10T01:27:08.5606433Z Updating files:  56% (13203/23576)
+2026-10-10T01:27:08.7448523Z Updating files:  56% (13344/23576)
+2026-10-10T01:27:08.8781663Z Updating files:  57% (13439/23576)
+2026-10-10T01:27:08.9647617Z Updating files:  58% (13675/23576)
+2026-10-10T01:27:09.0559285Z Updating files:  59% (13910/23576)
+2026-10-10T01:27:09.1383338Z Updating files:  60% (14146/23576)
+2026-10-10T01:27:09.2230099Z Updating files:  61% (14382/23576)
+2026-10-10T01:27:09.3176989Z Updating files:  62% (14618/23576)
+2026-10-10T01:27:09.4252654Z Updating files:  63% (14853/23576)
+2026-10-10T01:27:09.5013190Z Updating files:  64% (15089/23576)
+2026-10-10T01:27:09.5694477Z Updating files:  65% (15325/23576)
+2026-10-10T01:27:09.6497620Z Updating files:  66% (15561/23576)
+2026-10-10T01:27:09.7499499Z Updating files:  67% (15796/23576)
+2026-10-10T01:27:09.8257078Z Updating files:  68% (16032/23576)
+2026-10-10T01:27:09.9057093Z Updating files:  69% (16268/23576)
+2026-10-10T01:27:09.9950532Z Updating files:  70% (16504/23576)
+2026-10-10T01:27:10.0662137Z Updating files:  71% (16739/23576)
+2026-10-10T01:27:10.1463551Z Updating files:  72% (16975/23576)
+2026-10-10T01:27:10.2185335Z Updating files:  73% (17211/23576)
+2026-10-10T01:27:10.2813220Z Updating files:  74% (17447/23576)
+2026-10-10T01:27:10.3515491Z Updating files:  75% (17682/23576)
+2026-10-10T01:27:10.4218401Z Updating files:  76% (17918/23576)
+2026-10-10T01:27:10.4902398Z Updating files:  77% (18154/23576)
+2026-10-10T01:27:10.5528749Z Updating files:  78% (18390/23576)
+2026-10-10T01:27:10.5701433Z Updating files:  79% (18626/23576)
+2026-10-10T01:27:10.6203775Z Updating files:  79% (18690/23576)
+2026-10-10T01:27:10.6957709Z Updating files:  80% (18861/23576)
+2026-10-10T01:27:10.7645632Z Updating files:  81% (19097/23576)
+2026-10-10T01:27:10.8335811Z Updating files:  82% (19333/23576)
+2026-10-10T01:27:10.9066688Z Updating files:  83% (19569/23576)
+2026-10-10T01:27:10.9861834Z Updating files:  84% (19804/23576)
+2026-10-10T01:27:11.0641022Z Updating files:  85% (20040/23576)
+2026-10-10T01:27:11.1417646Z Updating files:  86% (20276/23576)
+2026-10-10T01:27:11.2155196Z Updating files:  87% (20512/23576)
+2026-10-10T01:27:11.2902913Z Updating files:  88% (20747/23576)
+2026-10-10T01:27:11.3635651Z Updating files:  89% (20983/23576)
+2026-10-10T01:27:11.4293086Z Updating files:  90% (21219/23576)
+2026-10-10T01:27:11.5007169Z Updating files:  91% (21455/23576)
+2026-10-10T01:27:11.5740837Z Updating files:  92% (21690/23576)
+2026-10-10T01:27:11.5817508Z Updating files:  93% (21926/23576)
+2026-10-10T01:27:11.6391711Z Updating files:  93% (21953/23576)
+2026-10-10T01:27:11.7133563Z Updating files:  94% (22162/23576)
+2026-10-10T01:27:11.7952446Z Updating files:  95% (22398/23576)
+2026-10-10T01:27:11.8628128Z Updating files:  96% (22633/23576)
+2026-10-10T01:27:11.9266904Z Updating files:  97% (22869/23576)
+2026-10-10T01:27:11.9934828Z Updating files:  98% (23105/23576)
+2026-10-10T01:27:12.0608364Z Updating files:  99% (23341/23576)
+2026-10-10T01:27:12.0608869Z Updating files: 100% (23576/23576)
+2026-10-10T01:27:12.0609224Z Updating files: 100% (23576/23576), done.
+2026-10-10T01:27:12.1048495Z Note: switching to 'refs/remotes/pull/425/merge'.
+2026-10-10T01:27:12.1049154Z 
+2026-10-10T01:27:12.1049533Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T01:27:12.1050294Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T01:27:12.1051098Z state without impacting any branches by switching back to a branch.
+2026-10-10T01:27:12.1051573Z 
+2026-10-10T01:27:12.1051863Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T01:27:12.1052601Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T01:27:12.1053082Z 
+2026-10-10T01:27:12.1053266Z   git switch -c <new-branch-name>
+2026-10-10T01:27:12.1053567Z 
+2026-10-10T01:27:12.1053735Z Or undo this operation with:
+2026-10-10T01:27:12.1054017Z 
+2026-10-10T01:27:12.1054170Z   git switch -
+2026-10-10T01:27:12.1054361Z 
+2026-10-10T01:27:12.1054712Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T01:27:12.1055293Z 
+2026-10-10T01:27:12.1056387Z HEAD is now at 0371e00f Merge da91e730d802b7c9dcdc075b222ecc257021e552 into 976c4f394fbab4fccc041787051f00abe08113c9
+2026-10-10T01:27:12.1289869Z ##[endgroup]
+2026-10-10T01:27:12.1637316Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-10T01:27:12.1926809Z 0371e00f1425aa9d842517f4feea0d750810ee23
+2026-10-10T01:27:12.2430044Z ##[group]Run actions/setup-node@v5
+2026-10-10T01:27:12.2430356Z with:
+2026-10-10T01:27:12.2430533Z   node-version: 22.x
+2026-10-10T01:27:12.2430721Z   cache: npm
+2026-10-10T01:27:12.2431063Z   cache-dependency-path: package-lock.json
+desktop-app-vue/package-lock.json
+
+2026-10-10T01:27:12.2431806Z   always-auth: false
+2026-10-10T01:27:12.2432154Z   check-latest: false
+2026-10-10T01:27:12.2435057Z   token: ***
+2026-10-10T01:27:12.2435251Z   package-manager-cache: true
+2026-10-10T01:27:12.2435477Z ##[endgroup]
+2026-10-10T01:27:12.4408102Z Found in cache @ C:\hostedtoolcache\windows\node\22.23.3\x64
+2026-10-10T01:27:12.4417245Z (node:2172) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:27:12.4418823Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:27:12.4421479Z ##[group]Environment details
+2026-10-10T01:27:17.2190156Z node: v22.23.3
+2026-10-10T01:27:17.2190629Z npm: 10.9.9
+2026-10-10T01:27:17.2190904Z yarn: 1.22.22
+2026-10-10T01:27:17.2192220Z ##[endgroup]
+2026-10-10T01:27:17.2990465Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\22.23.3\x64\npm.cmd config get cache"
+2026-10-10T01:27:17.8734048Z C:\npm\cache
+2026-10-10T01:27:18.2540769Z Cache hit for: node-cache-Windows-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93
+2026-10-10T01:27:18.2677629Z (node:2172) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-10T01:27:19.4657863Z Received 88080384 of 639281969 (13.8%), 83.7 MBs/sec
+2026-10-10T01:27:20.4714213Z Received 243269632 of 639281969 (38.1%), 115.5 MBs/sec
+2026-10-10T01:27:21.4822797Z Received 406847488 of 639281969 (63.6%), 128.5 MBs/sec
+2026-10-10T01:27:22.5176013Z Received 570425344 of 639281969 (89.2%), 134.2 MBs/sec
+2026-10-10T01:27:22.9625189Z Received 639281969 of 639281969 (100.0%), 135.7 MBs/sec
+2026-10-10T01:27:22.9626020Z Cache Size: ~610 MB (639281969 B)
+2026-10-10T01:27:22.9658613Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/ba516f82-851c-4cad-af5b-24d6d41a49a6/cache.tzst -P -C D:/a/chainlesschain/chainlesschain --force-local --use-compress-program "zstd -d"
+2026-10-10T01:27:40.0752537Z Cache restored successfully
+2026-10-10T01:27:40.1095461Z Cache restored from key: node-cache-Windows-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93
+2026-10-10T01:27:40.1539722Z Prepare all required actions
+2026-10-10T01:27:40.1645946Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-10T01:27:40.1646252Z with:
+2026-10-10T01:27:40.1646449Z   install-desktop-app-vue: true
+2026-10-10T01:27:40.1646686Z   working-directory: .
+2026-10-10T01:27:40.1646925Z   install-command: npm ci --legacy-peer-deps
+2026-10-10T01:27:40.1647207Z ##[endgroup]
+2026-10-10T01:27:40.1711862Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run]
+2026-10-10T01:27:40.1898835Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-10T01:27:40.1899344Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-10T01:27:40.1899665Z [36;1mattempt_install() {[0m
+2026-10-10T01:27:40.1899909Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-10T01:27:40.1900132Z [36;1m}[0m
+2026-10-10T01:27:40.1900323Z [36;1mcleanup_partial_install() {[0m
+2026-10-10T01:27:40.1900748Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-10T01:27:40.1901225Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-10T01:27:40.1901710Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-10T01:27:40.1902164Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-10T01:27:40.1902600Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-10T01:27:40.1903062Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-10T01:27:40.1904087Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-10T01:27:40.1904978Z [36;1m}[0m
+2026-10-10T01:27:40.1905154Z [36;1mfor i in 1 2 3; do[0m
+2026-10-10T01:27:40.1905385Z [36;1m  if attempt_install; then[0m
+2026-10-10T01:27:40.1905632Z [36;1m    exit 0[0m
+2026-10-10T01:27:40.1906740Z [36;1m  fi[0m
+2026-10-10T01:27:40.1906935Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-10T01:27:40.1907178Z [36;1m    delay=$((i * 15))[0m
+2026-10-10T01:27:40.1907540Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-10T01:27:40.1907922Z [36;1m    sleep "$delay"[0m
+2026-10-10T01:27:40.1908166Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-10T01:27:40.1908586Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-10T01:27:40.1908987Z [36;1m      exit 1[0m
+2026-10-10T01:27:40.1909172Z [36;1m    fi[0m
+2026-10-10T01:27:40.1909343Z [36;1m  fi[0m
+2026-10-10T01:27:40.1909508Z [36;1mdone[0m
+2026-10-10T01:27:40.1909752Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-10T01:27:40.1910049Z [36;1mexit 1[0m
+2026-10-10T01:27:40.1931948Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:27:40.1932354Z ##[endgroup]
+2026-10-10T01:27:45.4887618Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-10T01:28:02.0453312Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-10T01:28:02.0494770Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:28:02.1611357Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-10T01:28:02.1839118Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-10T01:28:02.2045668Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-10T01:28:02.4268939Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-10T01:28:02.4390487Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-10T01:28:02.7139418Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:28:02.7149695Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:28:02.7253865Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:28:03.1166955Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:28:03.6290338Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.6301023Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.6315208Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.6374920Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.6401193Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.7051409Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.7088776Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.7199769Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.7206846Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:03.8856709Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-10T01:28:04.8424755Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:28:05.1285268Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-10T01:28:05.3584835Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-10T01:28:06.8775726Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:28:07.5184070Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:28:08.1243266Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:28:09.4148089Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:28:09.5981282Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-10T01:28:11.0353127Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-10T01:28:15.1398417Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-10T01:28:15.8022044Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-10T01:28:15.8232135Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-10T01:28:22.0764059Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:28:22.0823020Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:28:23.4344455Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:23.5746646Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:23.5770578Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:28:23.6444525Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:28:37.5831802Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:28:43.9977960Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-10T01:30:37.7942138Z npm warn cleanup Failed to remove some directories [
+2026-10-10T01:30:37.7942738Z npm warn cleanup   [
+2026-10-10T01:30:37.7943252Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\appdmg',
+2026-10-10T01:30:37.7944604Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\appdmg\node_modules\async'] {
+2026-10-10T01:30:37.7945299Z npm warn cleanup       errno: -4048,
+2026-10-10T01:30:37.7945619Z npm warn cleanup       code: 'EPERM',
+2026-10-10T01:30:37.7945922Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T01:30:37.7946493Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\appdmg\\node_modules\\async'
+2026-10-10T01:30:37.7946989Z npm warn cleanup     }
+2026-10-10T01:30:37.7947210Z npm warn cleanup   ],
+2026-10-10T01:30:37.7947420Z npm warn cleanup   [
+2026-10-10T01:30:37.7948235Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\readable-stream',
+2026-10-10T01:30:37.7949275Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\readable-stream'] {
+2026-10-10T01:30:37.7949965Z npm warn cleanup       errno: -4048,
+2026-10-10T01:30:37.7950265Z npm warn cleanup       code: 'EPERM',
+2026-10-10T01:30:37.7950562Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T01:30:37.7951208Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\readable-stream'
+2026-10-10T01:30:37.7951759Z npm warn cleanup     }
+2026-10-10T01:30:37.7952342Z npm warn cleanup   ]
+2026-10-10T01:30:37.7952693Z npm warn cleanup ]
+2026-10-10T01:30:38.4723662Z 
+2026-10-10T01:30:38.4724441Z added 2514 packages, and audited 2530 packages in 3m
+2026-10-10T01:30:38.4724907Z 
+2026-10-10T01:30:38.4725164Z 471 packages are looking for funding
+2026-10-10T01:30:38.4725713Z   run `npm fund` for details
+2026-10-10T01:30:38.7321495Z 
+2026-10-10T01:30:38.7322447Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T01:30:38.7322936Z 
+2026-10-10T01:30:38.7323284Z To address issues that do not require attention, run:
+2026-10-10T01:30:38.7323842Z   npm audit fix
+2026-10-10T01:30:38.7324058Z 
+2026-10-10T01:30:38.7324475Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:30:38.7325123Z   npm audit fix --force
+2026-10-10T01:30:38.7325363Z 
+2026-10-10T01:30:38.7325666Z Some issues need review, and may require choosing
+2026-10-10T01:30:38.7326203Z a different dependency.
+2026-10-10T01:30:38.7326465Z 
+2026-10-10T01:30:38.7326665Z Run `npm audit` for details.
+2026-10-10T01:30:39.7432131Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=179573]
+2026-10-10T01:30:39.7436531Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_2]
+2026-10-10T01:30:39.7582567Z ##[group]Run attempt_install() {
+2026-10-10T01:30:39.7583087Z [36;1mattempt_install() {[0m
+2026-10-10T01:30:39.7583438Z [36;1m  npm install --legacy-peer-deps[0m
+2026-10-10T01:30:39.7583752Z [36;1m}[0m
+2026-10-10T01:30:39.7583990Z [36;1mfor i in 1 2 3; do[0m
+2026-10-10T01:30:39.7584249Z [36;1m  if attempt_install; then[0m
+2026-10-10T01:30:39.7584521Z [36;1m    exit 0[0m
+2026-10-10T01:30:39.7584711Z [36;1m  fi[0m
+2026-10-10T01:30:39.7584906Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-10T01:30:39.7585188Z [36;1m    delay=$((i * 15))[0m
+2026-10-10T01:30:39.7585608Z [36;1m    echo "::warning::desktop-app-vue npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-10T01:30:39.7586094Z [36;1m    sleep "$delay"[0m
+2026-10-10T01:30:39.7586341Z [36;1m  fi[0m
+2026-10-10T01:30:39.7586571Z [36;1mdone[0m
+2026-10-10T01:30:39.7586939Z [36;1mecho "::error::desktop-app-vue npm install failed after 3 attempts"[0m
+2026-10-10T01:30:39.7587359Z [36;1mexit 1[0m
+2026-10-10T01:30:39.7603100Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:30:39.7603562Z ##[endgroup]
+2026-10-10T01:30:40.4394625Z npm warn config ignoring workspace config at D:\a\chainlesschain\chainlesschain\desktop-app-vue/.npmrc
+2026-10-10T01:30:44.0228780Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:30:44.0416499Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:30:44.0863895Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:30:44.5878177Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:30:44.5989904Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:30:48.1447193Z npm warn cleanup Failed to remove some directories [
+2026-10-10T01:30:48.1447850Z npm warn cleanup   [
+2026-10-10T01:30:48.1448609Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs',
+2026-10-10T01:30:48.1450301Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\tar-fs'] {
+2026-10-10T01:30:48.1451412Z npm warn cleanup       errno: -4048,
+2026-10-10T01:30:48.1451937Z npm warn cleanup       code: 'EPERM',
+2026-10-10T01:30:48.1452460Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T01:30:48.1453475Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\tar-fs'
+2026-10-10T01:30:48.1454440Z npm warn cleanup     }
+2026-10-10T01:30:48.1454837Z npm warn cleanup   ]
+2026-10-10T01:30:48.1455199Z npm warn cleanup ]
+2026-10-10T01:30:50.1775678Z 
+2026-10-10T01:30:50.1776374Z changed 1 package, and audited 2530 packages in 10s
+2026-10-10T01:30:50.1777773Z 
+2026-10-10T01:30:50.1778940Z 471 packages are looking for funding
+2026-10-10T01:30:50.1779274Z   run `npm fund` for details
+2026-10-10T01:30:50.4115012Z 
+2026-10-10T01:30:50.4115743Z 119 vulnerabilities (8 low, 23 moderate, 87 high, 1 critical)
+2026-10-10T01:30:50.4116224Z 
+2026-10-10T01:30:50.4116540Z To address issues that do not require attention, run:
+2026-10-10T01:30:50.4117064Z   npm audit fix
+2026-10-10T01:30:50.4117266Z 
+2026-10-10T01:30:50.4117691Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:30:50.4119169Z   npm audit fix --force
+2026-10-10T01:30:50.4119405Z 
+2026-10-10T01:30:50.4119691Z Some issues need review, and may require choosing
+2026-10-10T01:30:50.4120215Z a different dependency.
+2026-10-10T01:30:50.4120448Z 
+2026-10-10T01:30:50.4120614Z Run `npm audit` for details.
+2026-10-10T01:30:50.4465093Z ##[end-action id=__self.__run_2;outcome=success;conclusion=success;duration_ms=10702]
+2026-10-10T01:30:50.4469191Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_3]
+2026-10-10T01:30:50.4603720Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-10T01:30:50.4604954Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-10T01:30:50.4605416Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-10T01:30:50.4605969Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-10T01:30:50.4606394Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-10T01:30:50.4606741Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-10T01:30:50.4607133Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-10T01:30:50.4607519Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-10T01:30:50.4607919Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-10T01:30:50.4608317Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-10T01:30:50.4608697Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-10T01:30:50.4609009Z [36;1m  *)             pkg="" ;;[0m
+2026-10-10T01:30:50.4609245Z [36;1mesac[0m
+2026-10-10T01:30:50.4609446Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-10T01:30:50.4609744Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-10T01:30:50.4610034Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-10T01:30:50.4610310Z [36;1m  echo "Installing: $packages"[0m
+2026-10-10T01:30:50.4610585Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-10T01:30:50.4610927Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-10T01:30:50.4611280Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-10T01:30:50.4611598Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-10T01:30:50.4611869Z [36;1m  else[0m
+2026-10-10T01:30:50.4612142Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-10T01:30:50.4613055Z [36;1m  fi[0m
+2026-10-10T01:30:50.4613257Z [36;1mfi[0m
+2026-10-10T01:30:50.4629163Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:30:50.4629565Z env:
+2026-10-10T01:30:50.4629739Z   EXTRA_PACKAGES: 
+2026-10-10T01:30:50.4629935Z   INSTALL_WORKSPACE: 
+2026-10-10T01:30:50.4630140Z ##[endgroup]
+2026-10-10T01:30:50.5879230Z Installing: @rollup/rollup-win32-x64-msvc
+2026-10-10T01:30:54.9541122Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:30:55.0126407Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:30:55.3682592Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:30:55.4323785Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:30:55.4461132Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:30:58.9555061Z npm warn cleanup Failed to remove some directories [
+2026-10-10T01:30:58.9555478Z npm warn cleanup   [
+2026-10-10T01:30:58.9556111Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\bl',
+2026-10-10T01:30:58.9557202Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\bl\node_modules'] {
+2026-10-10T01:30:58.9557988Z npm warn cleanup       errno: -4048,
+2026-10-10T01:30:58.9558332Z npm warn cleanup       code: 'EPERM',
+2026-10-10T01:30:58.9558730Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T01:30:58.9559402Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\bl\\node_modules'
+2026-10-10T01:30:58.9559992Z npm warn cleanup     }
+2026-10-10T01:30:58.9560306Z npm warn cleanup   ]
+2026-10-10T01:30:58.9560584Z npm warn cleanup ]
+2026-10-10T01:30:59.5212256Z 
+2026-10-10T01:30:59.5213106Z added 1 package, changed 2 packages, and audited 2531 packages in 9s
+2026-10-10T01:30:59.5214311Z 
+2026-10-10T01:30:59.5215223Z 471 packages are looking for funding
+2026-10-10T01:30:59.5215884Z   run `npm fund` for details
+2026-10-10T01:30:59.7829441Z 
+2026-10-10T01:30:59.7830468Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T01:30:59.7831141Z 
+2026-10-10T01:30:59.7831571Z To address issues that do not require attention, run:
+2026-10-10T01:30:59.7832360Z   npm audit fix
+2026-10-10T01:30:59.7832540Z 
+2026-10-10T01:30:59.7832893Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:30:59.7833420Z   npm audit fix --force
+2026-10-10T01:30:59.7833645Z 
+2026-10-10T01:30:59.7833911Z Some issues need review, and may require choosing
+2026-10-10T01:30:59.7834373Z a different dependency.
+2026-10-10T01:30:59.7834614Z 
+2026-10-10T01:30:59.7834767Z Run `npm audit` for details.
+2026-10-10T01:30:59.8189650Z ##[end-action id=__self.__run_3;outcome=success;conclusion=success;duration_ms=9372]
+2026-10-10T01:30:59.8365992Z ##[group]Run npm run build:main
+2026-10-10T01:30:59.8366346Z [36;1mnpm run build:main[0m
+2026-10-10T01:30:59.8938045Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-10T01:30:59.8938442Z ##[endgroup]
+2026-10-10T01:31:00.8599258Z npm warn config ignoring workspace config at D:\a\chainlesschain\chainlesschain\desktop-app-vue/.npmrc
+2026-10-10T01:31:00.9123132Z 
+2026-10-10T01:31:00.9123929Z > chainlesschain-desktop-vue@5.0.3-alpha.140 build:main
+2026-10-10T01:31:00.9124652Z > node scripts/build-main.js
+2026-10-10T01:31:00.9124945Z 
+2026-10-10T01:31:00.9726972Z Building main process... (DEVELOPMENT)
+2026-10-10T01:31:02.1916512Z ✓ Main process files copied
+2026-10-10T01:31:02.1942312Z ✓ Preload files copied
+2026-10-10T01:31:02.1957429Z ✓ Shared files copied
+2026-10-10T01:31:02.1972389Z ✓ build-info.json written (productVersion=v5.0.3.140, appVersion=5.0.3-alpha.140)
+2026-10-10T01:31:02.1973520Z 
+2026-10-10T01:31:02.1973968Z Main process build completed successfully!
+2026-10-10T01:31:02.2912261Z ##[group]Run npm run build:renderer
+2026-10-10T01:31:02.2912626Z [36;1mnpm run build:renderer[0m
+2026-10-10T01:31:02.2982309Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-10T01:31:02.2982668Z ##[endgroup]
+2026-10-10T01:31:03.1452551Z npm warn config ignoring workspace config at D:\a\chainlesschain\chainlesschain\desktop-app-vue/.npmrc
+2026-10-10T01:31:03.1938103Z 
+2026-10-10T01:31:03.1939062Z > chainlesschain-desktop-vue@5.0.3-alpha.140 build:renderer
+2026-10-10T01:31:03.1939516Z > vite build
+2026-10-10T01:31:03.1939644Z 
+2026-10-10T01:31:03.9727475Z [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+2026-10-10T01:31:04.1130845Z <script src="/splash-logo-loader.js"> in "/index.html" can't be bundled without type="module" attribute
+2026-10-10T01:31:04.1190095Z 
+2026-10-10T01:31:04.1191010Z /splash-loading.css doesn't exist at build time, it will remain unchanged to be resolved at runtime
+2026-10-10T01:31:04.1264017Z transforming...
+2026-10-10T01:33:14.7698767Z [32m✓[39m 7985 modules transformed.
+2026-10-10T01:33:17.8268790Z [33m../node_modules/jspreadsheet-ce/dist/index.js (15:18691): Use of eval in "../node_modules/jspreadsheet-ce/dist/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.[39m
+2026-10-10T01:33:20.3340856Z rendering chunks...
+2026-10-10T01:34:35.1663393Z computing gzip size...
+2026-10-10T01:34:38.5647340Z [2m../../dist/renderer/[22m[32mindex.html                                              [39m[1m[2m    2.63 kB[22m[1m[22m[2m │ gzip:   1.11 kB[22m
+2026-10-10T01:34:38.5745019Z [2m../../dist/renderer/[22m[32massets/js/file-parser.worker-6RUgE7XU.js                [39m[1m[2m    6.16 kB[22m[1m[22m
+2026-10-10T01:34:38.5764332Z [2m../../dist/renderer/[22m[32massets/js/syntax-highlighter.worker-B04lxjkb.js         [39m[1m[2m    8.19 kB[22m[1m[22m
+2026-10-10T01:34:38.5865678Z [2m../../dist/renderer/[22m[32massets/ttf/codicon-ngg6Pgfi.ttf                         [39m[1m[2m  121.97 kB[22m[1m[22m
+2026-10-10T01:34:38.6024789Z [2m../../dist/renderer/[22m[32massets/png/logo-DBCYUiWP.png                            [39m[1m[2m  276.02 kB[22m[1m[22m
+2026-10-10T01:34:38.6062302Z [2m../../dist/renderer/[22m[32massets/json.worker-DqDuZKP7.js                          [39m[1m[2m  379.74 kB[22m[1m[22m
+2026-10-10T01:34:38.6081519Z [2m../../dist/renderer/[22m[32massets/html.worker-D7DrYk6r.js                          [39m[1m[2m  689.72 kB[22m[1m[22m
+2026-10-10T01:34:38.6202956Z [2m../../dist/renderer/[22m[32massets/css.worker-DRYVbuVN.js                           [39m[1m[2m1,028.51 kB[22m[1m[22m
+2026-10-10T01:34:38.6342319Z [2m../../dist/renderer/[22m[32massets/ts.worker-6HCVC-PJ.js                            [39m[1m[2m6,974.81 kB[22m[1m[22m
+2026-10-10T01:34:38.6380077Z [2m../../dist/renderer/[22m[35massets/css/GovernancePage-C0VMH7Nt.css                  [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.6398947Z [2m../../dist/renderer/[22m[35massets/css/TrustRootPage-DE2Co2i-.css                   [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.6519899Z [2m../../dist/renderer/[22m[35massets/css/FeedList-DPGP-LeD.css                        [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.6698046Z [2m../../dist/renderer/[22m[35massets/css/BLEDevicesPage-04tplx4S.css                  [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.6855778Z [2m../../dist/renderer/[22m[35massets/css/StressTestPage-mtzAxg6R.css                  [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7058679Z [2m../../dist/renderer/[22m[35massets/css/SLAManagerPage-DC6005ZA.css                  [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7183766Z [2m../../dist/renderer/[22m[35massets/css/HSMAdapterPage-ChgKq1de.css                  [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7371399Z [2m../../dist/renderer/[22m[35massets/css/AssetStatistics-B4YqKxFW.css                 [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7393148Z [2m../../dist/renderer/[22m[35massets/css/NostrBridgePage-BPSM0Zs9.css                 [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7479477Z [2m../../dist/renderer/[22m[35massets/css/DLPPoliciesPage-BOAba2YZ.css                 [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7511487Z [2m../../dist/renderer/[22m[35massets/css/FirmwareOTAPage-5_uvDYvo.css                 [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7709255Z [2m../../dist/renderer/[22m[35massets/css/PQCMigrationPage-BzeXAv6_.css                [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7711348Z [2m../../dist/renderer/[22m[35massets/css/MatrixBridgePage-BlyxsyfL.css                [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7808460Z [2m../../dist/renderer/[22m[35massets/css/TechLearningPage-mHof5dT8.css                [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7829220Z [2m../../dist/renderer/[22m[35massets/css/PQCEcosystemPage-D3n9vCQb.css                [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7899641Z [2m../../dist/renderer/[22m[35massets/css/SatelliteCommPage-C2p957vw.css               [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7923739Z [2m../../dist/renderer/[22m[35massets/css/TokenIncentivePage-7X7KFUGn.css              [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7926288Z [2m../../dist/renderer/[22m[35massets/css/ProtocolFusionPage-Csy74HXM.css              [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7929873Z [2m../../dist/renderer/[22m[35massets/css/AntiCensorshipPage-B2fBASzF.css              [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7934304Z [2m../../dist/renderer/[22m[35massets/css/SCIMIntegrationPage-B81MkYKB.css             [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7936732Z [2m../../dist/renderer/[22m[35massets/css/SIEMIntegrationPage-Co7-MH-D.css             [39m[1m[2m    0.05 kB[22m[1m[22m[2m │ gzip:   0.07 kB[22m
+2026-10-10T01:34:38.7938889Z [2m../../dist/renderer/[22m[35massets/css/EvoMapFederationPage-xOuTlO26.css            [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7940949Z [2m../../dist/renderer/[22m[35massets/css/EvoMapGovernancePage-C0A4T0OY.css            [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7943931Z [2m../../dist/renderer/[22m[35massets/css/TransactionStatistics-BuYjSWju.css           [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7946277Z [2m../../dist/renderer/[22m[35massets/css/ActivityPubBridgePage-BkErkGDZ.css           [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7947982Z [2m../../dist/renderer/[22m[35massets/css/ThresholdSecurityPage-CCYB4V9w.css           [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7949683Z [2m../../dist/renderer/[22m[35massets/css/TerraformProviderPage-BJpba8X_.css           [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7950937Z [2m../../dist/renderer/[22m[35massets/css/ComplianceDashboardPage-Dju8UqYz.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7953258Z [2m../../dist/renderer/[22m[35massets/css/ProductionHardeningPage-BdQi3X6d.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7954601Z [2m../../dist/renderer/[22m[35massets/css/FederationHardeningPage-BGDmsqhj.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7955815Z [2m../../dist/renderer/[22m[35massets/css/ReputationOptimizerPage-DtMvn4Ta.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7957030Z [2m../../dist/renderer/[22m[35massets/css/AutonomousDeveloperPage-Dlo5hj5y.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7958212Z [2m../../dist/renderer/[22m[35massets/css/AISocialEnhancementPage-DhCVLHvO.css         [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7959422Z [2m../../dist/renderer/[22m[35massets/css/DecentralizedStoragePage-Drck5xeF.css        [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7960636Z [2m../../dist/renderer/[22m[35massets/css/CollaborationGovernancePage-qMwUcQGJ.css     [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7961892Z [2m../../dist/renderer/[22m[35massets/css/PermissionSettingsPage-HwgCadyr.css          [39m[1m[2m    0.06 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7963094Z [2m../../dist/renderer/[22m[35massets/css/SharedWorkspaceDetailPage-DJ3_j5az.css       [39m[1m[2m    0.07 kB[22m[1m[22m[2m │ gzip:   0.08 kB[22m
+2026-10-10T01:34:38.7964269Z [2m../../dist/renderer/[22m[35massets/css/DatabaseEncryptionStatus-C5Dm5Xrv.css        [39m[1m[2m    0.08 kB[22m[1m[22m[2m │ gzip:   0.09 kB[22m
+2026-10-10T01:34:38.7965715Z [2m../../dist/renderer/[22m[35massets/css/OfflineQueueManager-BzPVrDtV.css             [39m[1m[2m    0.08 kB[22m[1m[22m[2m │ gzip:   0.10 kB[22m
+2026-10-10T01:34:38.7967280Z [2m../../dist/renderer/[22m[35massets/css/FileIcon-jal7-Oz9.css                        [39m[1m[2m    0.09 kB[22m[1m[22m[2m │ gzip:   0.10 kB[22m
+2026-10-10T01:34:38.7968661Z [2m../../dist/renderer/[22m[35massets/css/MobileBridgeStatus-CgupSc8r.css              [39m[1m[2m    0.09 kB[22m[1m[22m[2m │ gzip:   0.10 kB[22m
+2026-10-10T01:34:38.7969878Z [2m../../dist/renderer/[22m[35massets/css/B2BTransactionsPage-C5ftYyfm.css             [39m[1m[2m    0.11 kB[22m[1m[22m[2m │ gzip:   0.11 kB[22m
+2026-10-10T01:34:38.7971013Z [2m../../dist/renderer/[22m[35massets/css/AccountManager-CuZP-TSR.css                  [39m[1m[2m    0.11 kB[22m[1m[22m[2m │ gzip:   0.11 kB[22m
+2026-10-10T01:34:38.7972193Z [2m../../dist/renderer/[22m[35massets/css/ContactManagement-CHf2kDhw.css               [39m[1m[2m    0.12 kB[22m[1m[22m[2m │ gzip:   0.12 kB[22m
+2026-10-10T01:34:38.7973362Z [2m../../dist/renderer/[22m[35massets/css/PartnerCenterPage-CpdsJrtt.css               [39m[1m[2m    0.16 kB[22m[1m[22m[2m │ gzip:   0.12 kB[22m
+2026-10-10T01:34:38.7974529Z [2m../../dist/renderer/[22m[35massets/css/RemoteControl-KP80ZO75.css                   [39m[1m[2m    0.20 kB[22m[1m[22m[2m │ gzip:   0.16 kB[22m
+2026-10-10T01:34:38.7975678Z [2m../../dist/renderer/[22m[35massets/css/CrossOrgAuditPage-Dm2zkbnf.css               [39m[1m[2m    0.20 kB[22m[1m[22m[2m │ gzip:   0.16 kB[22m
+2026-10-10T01:34:38.7976802Z [2m../../dist/renderer/[22m[35massets/css/SimpleTestPage-UkxzU3xQ.css                  [39m[1m[2m    0.20 kB[22m[1m[22m[2m │ gzip:   0.15 kB[22m
+2026-10-10T01:34:38.7977958Z [2m../../dist/renderer/[22m[35massets/css/SocialInsightsPage-6qocnibL.css              [39m[1m[2m    0.21 kB[22m[1m[22m[2m │ gzip:   0.17 kB[22m
+2026-10-10T01:34:38.7979109Z [2m../../dist/renderer/[22m[35massets/css/SkillMarketplacePage-hBz1By1u.css            [39m[1m[2m    0.21 kB[22m[1m[22m[2m │ gzip:   0.15 kB[22m
+2026-10-10T01:34:38.7980371Z [2m../../dist/renderer/[22m[35massets/css/CollabEditorPage-DPHchpxE.css                [39m[1m[2m    0.29 kB[22m[1m[22m[2m │ gzip:   0.19 kB[22m
+2026-10-10T01:34:38.7981545Z [2m../../dist/renderer/[22m[35massets/css/LanguageSwitcher-BVfv0DOj.css                [39m[1m[2m    0.29 kB[22m[1m[22m[2m │ gzip:   0.19 kB[22m
+2026-10-10T01:34:38.7982702Z [2m../../dist/renderer/[22m[35massets/css/OrganizationActivityLogPage-BEBAWWys.css     [39m[1m[2m    0.31 kB[22m[1m[22m[2m │ gzip:   0.21 kB[22m
+2026-10-10T01:34:38.7983869Z [2m../../dist/renderer/[22m[35massets/css/TxArtifact-DpNvpB51.css                      [39m[1m[2m    0.31 kB[22m[1m[22m[2m │ gzip:   0.19 kB[22m
+2026-10-10T01:34:38.8386151Z [2m../../dist/renderer/[22m[35massets/css/MyPurchases-DSXpewid.css                     [39m[1m[2m    0.31 kB[22m[1m[22m[2m │ gzip:   0.22 kB[22m
+2026-10-10T01:34:38.8549520Z [2m../../dist/renderer/[22m[35massets/css/EmailComposer-BHyg-LB7.css                   [39m[1m[2m    0.31 kB[22m[1m[22m[2m │ gzip:   0.18 kB[22m
+2026-10-10T01:34:38.8563367Z [2m../../dist/renderer/[22m[35massets/css/TeamSettingsPage-Bxu_djOu.css                [39m[1m[2m    0.32 kB[22m[1m[22m[2m │ gzip:   0.20 kB[22m
+2026-10-10T01:34:38.8583709Z [2m../../dist/renderer/[22m[35massets/css/PermissionManagementPage-Bzq7USt2.css        [39m[1m[2m    0.33 kB[22m[1m[22m[2m │ gzip:   0.20 kB[22m
+2026-10-10T01:34:38.8721880Z [2m../../dist/renderer/[22m[35massets/css/DesignCanvas-DrJk2-GK.css                    [39m[1m[2m    0.37 kB[22m[1m[22m[2m │ gzip:   0.22 kB[22m
+2026-10-10T01:34:38.8880259Z [2m../../dist/renderer/[22m[35massets/css/SyncWebDAV-DaHxe63B.css                      [39m[1m[2m    0.39 kB[22m[1m[22m[2m │ gzip:   0.23 kB[22m
+2026-10-10T01:34:38.8900513Z [2m../../dist/renderer/[22m[35massets/css/PerformanceDashboard-DJtRVaTd.css            [39m[1m[2m    0.40 kB[22m[1m[22m[2m │ gzip:   0.21 kB[22m
+2026-10-10T01:34:38.9022108Z [2m../../dist/renderer/[22m[35massets/css/ContentDetail-BrJBky1b.css                   [39m[1m[2m    0.40 kB[22m[1m[22m[2m │ gzip:   0.21 kB[22m
+2026-10-10T01:34:38.9025041Z [2m../../dist/renderer/[22m[35massets/css/MessageArtifact-DzMWT4mN.css                 [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:   0.26 kB[22m
+2026-10-10T01:34:38.9059078Z [2m../../dist/renderer/[22m[35massets/css/CommandLogsPage-Bqh_I5Vb.css                 [39m[1m[2m    0.44 kB[22m[1m[22m[2m │ gzip:   0.23 kB[22m
+2026-10-10T01:34:38.9197279Z [2m../../dist/renderer/[22m[35massets/css/NoteArtifact-CFstgTge.css                    [39m[1m[2m    0.44 kB[22m[1m[22m[2m │ gzip:   0.26 kB[22m
+2026-10-10T01:34:38.9218337Z [2m../../dist/renderer/[22m[35massets/css/SyncSettings-Q7C3iB34.css                    [39m[1m[2m    0.45 kB[22m[1m[22m[2m │ gzip:   0.23 kB[22m
+2026-10-10T01:34:38.9236008Z [2m../../dist/renderer/[22m[35massets/css/ImageUpload-D_mqByaj.css                     [39m[1m[2m    0.46 kB[22m[1m[22m[2m │ gzip:   0.23 kB[22m
+2026-10-10T01:34:38.9394011Z [2m../../dist/renderer/[22m[35massets/css/TransactionList-BTBrhGlm.css                 [39m[1m[2m    0.46 kB[22m[1m[22m[2m │ gzip:   0.22 kB[22m
+2026-10-10T01:34:38.9525365Z [2m../../dist/renderer/[22m[35massets/css/EnterpriseOrgPage-8MtgyOmd.css               [39m[1m[2m    0.48 kB[22m[1m[22m[2m │ gzip:   0.23 kB[22m
+2026-10-10T01:34:38.9527661Z [2m../../dist/renderer/[22m[35massets/css/DeviceManagementPage-CBZSOF7l.css            [39m[1m[2m    0.57 kB[22m[1m[22m[2m │ gzip:   0.24 kB[22m
+2026-10-10T01:34:38.9535696Z [2m../../dist/renderer/[22m[35massets/css/VCArtifact-BRToeyPU.css                      [39m[1m[2m    0.58 kB[22m[1m[22m[2m │ gzip:   0.31 kB[22m
+2026-10-10T01:34:38.9573495Z [2m../../dist/renderer/[22m[35massets/css/PluginPublisher-DlbwJ23O.css                 [39m[1m[2m    0.60 kB[22m[1m[22m[2m │ gzip:   0.31 kB[22m
+2026-10-10T01:34:38.9726864Z [2m../../dist/renderer/[22m[35massets/css/MyReviews-BsNWM21P.css                       [39m[1m[2m    0.62 kB[22m[1m[22m[2m │ gzip:   0.26 kB[22m
+2026-10-10T01:34:38.9863470Z [2m../../dist/renderer/[22m[35massets/css/ProjectManagementPage-DfJF4flH.css           [39m[1m[2m    0.63 kB[22m[1m[22m[2m │ gzip:   0.31 kB[22m
+2026-10-10T01:34:38.9865690Z [2m../../dist/renderer/[22m[35massets/css/TaskDashboardPage-BuRRKhZQ.css               [39m[1m[2m    0.64 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+2026-10-10T01:34:38.9903527Z [2m../../dist/renderer/[22m[35massets/css/IPFSStoragePage-DfEsFjxE.css                 [39m[1m[2m    0.68 kB[22m[1m[22m[2m │ gzip:   0.33 kB[22m
+2026-10-10T01:34:39.0053009Z [2m../../dist/renderer/[22m[35massets/css/SharedWorkspacesPage-CVIeNI3v.css            [39m[1m[2m    0.69 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+2026-10-10T01:34:39.0063703Z [2m../../dist/renderer/[22m[35massets/css/SignArtifact-XMgJpep2.css                    [39m[1m[2m    0.71 kB[22m[1m[22m[2m │ gzip:   0.35 kB[22m
+2026-10-10T01:34:39.0180664Z [2m../../dist/renderer/[22m[35massets/css/LoginPage-BipXx88D.css                       [39m[1m[2m    0.72 kB[22m[1m[22m[2m │ gzip:   0.39 kB[22m
+2026-10-10T01:34:39.0201154Z [2m../../dist/renderer/[22m[35massets/css/VirtualGrid-Bb5SNhT7.css                     [39m[1m[2m    0.74 kB[22m[1m[22m[2m │ gzip:   0.30 kB[22m
+2026-10-10T01:34:39.0248109Z [2m../../dist/renderer/[22m[35massets/css/FileTransferPage-BRutEuEb.css                [39m[1m[2m    0.75 kB[22m[1m[22m[2m │ gzip:   0.25 kB[22m
+2026-10-10T01:34:39.0401092Z [2m../../dist/renderer/[22m[35massets/css/SyncMobile-DBUqPcqN.css                      [39m[1m[2m    0.78 kB[22m[1m[22m[2m │ gzip:   0.37 kB[22m
+2026-10-10T01:34:39.0499547Z [2m../../dist/renderer/[22m[35massets/css/HardwareWalletPage-DWqQ5Bn3.css              [39m[1m[2m    0.80 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+2026-10-10T01:34:39.0519957Z [2m../../dist/renderer/[22m[35massets/css/WorkflowOptimizationsDashboard-CGejJI7D.css  [39m[1m[2m    0.81 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+2026-10-10T01:34:39.0575949Z [2m../../dist/renderer/[22m[35massets/css/SyncConflictsPage-wgzqcYWa.css               [39m[1m[2m    0.82 kB[22m[1m[22m[2m │ gzip:   0.38 kB[22m
+2026-10-10T01:34:39.0735466Z [2m../../dist/renderer/[22m[35massets/css/TradingHub-LQ9X7DoX.css                      [39m[1m[2m    0.83 kB[22m[1m[22m[2m │ gzip:   0.39 kB[22m
+2026-10-10T01:34:39.0834074Z [2m../../dist/renderer/[22m[35massets/css/MtcInclusionProofDrawer-iL3mt1nC.css         [39m[1m[2m    0.84 kB[22m[1m[22m[2m │ gzip:   0.35 kB[22m
+2026-10-10T01:34:39.0839029Z [2m../../dist/renderer/[22m[35massets/css/AndroidFeaturesTestPage-BV3Dr-oF.css         [39m[1m[2m    0.85 kB[22m[1m[22m[2m │ gzip:   0.32 kB[22m
+2026-10-10T01:34:39.0844137Z [2m../../dist/renderer/[22m[35massets/css/BackupDashboard-pt2hmnA3.css                 [39m[1m[2m    0.88 kB[22m[1m[22m[2m │ gzip:   0.39 kB[22m
+2026-10-10T01:34:39.0851783Z [2m../../dist/renderer/[22m[35massets/css/MessageQueuePage-DhQJK47K.css                [39m[1m[2m    0.91 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+2026-10-10T01:34:39.0853906Z [2m../../dist/renderer/[22m[35massets/css/FileImport-DIzXAZdE.css                      [39m[1m[2m    0.92 kB[22m[1m[22m[2m │ gzip:   0.37 kB[22m
+2026-10-10T01:34:39.0855893Z [2m../../dist/renderer/[22m[35massets/css/VCManagement-GC1yixR8.css                    [39m[1m[2m    0.94 kB[22m[1m[22m[2m │ gzip:   0.37 kB[22m
+2026-10-10T01:34:39.0858162Z [2m../../dist/renderer/[22m[35massets/css/CoworkSessionArtifact-CqUZTRnN.css           [39m[1m[2m    0.94 kB[22m[1m[22m[2m │ gzip:   0.41 kB[22m
+2026-10-10T01:34:39.0860265Z [2m../../dist/renderer/[22m[35massets/css/SkillDependencyGraph-B46AlWB5.css            [39m[1m[2m    0.95 kB[22m[1m[22m[2m │ gzip:   0.45 kB[22m
+2026-10-10T01:34:39.0863626Z [2m../../dist/renderer/[22m[35massets/css/WalletSelector-BW2BAgvb.css                  [39m[1m[2m    0.96 kB[22m[1m[22m[2m │ gzip:   0.37 kB[22m
+2026-10-10T01:34:39.0865750Z [2m../../dist/renderer/[22m[35massets/css/PluginManagement-Y47h21h2.css                [39m[1m[2m    1.02 kB[22m[1m[22m[2m │ gzip:   0.40 kB[22m
+2026-10-10T01:34:39.0867769Z [2m../../dist/renderer/[22m[35massets/css/P2PArtifact-xA_dRNBX.css                     [39m[1m[2m    1.03 kB[22m[1m[22m[2m │ gzip:   0.43 kB[22m
+2026-10-10T01:34:39.0869751Z [2m../../dist/renderer/[22m[35massets/css/ChainSelector-BZDE2Nbl.css                   [39m[1m[2m    1.03 kB[22m[1m[22m[2m │ gzip:   0.41 kB[22m
+2026-10-10T01:34:39.0871715Z [2m../../dist/renderer/[22m[35massets/css/github-CDab0zVI.css                          [39m[1m[2m    1.06 kB[22m[1m[22m[2m │ gzip:   0.45 kB[22m
+2026-10-10T01:34:39.0873633Z [2m../../dist/renderer/[22m[35massets/css/WorkspaceManager-CylecqsD.css                [39m[1m[2m    1.06 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+2026-10-10T01:34:39.0875816Z [2m../../dist/renderer/[22m[35massets/css/PluginPageWrapper-BvlCiqtJ.css               [39m[1m[2m    1.07 kB[22m[1m[22m[2m │ gzip:   0.38 kB[22m
+2026-10-10T01:34:39.0878011Z [2m../../dist/renderer/[22m[35massets/css/P2PMessaging-DtpvFC0R.css                    [39m[1m[2m    1.14 kB[22m[1m[22m[2m │ gzip:   0.44 kB[22m
+2026-10-10T01:34:39.0880165Z [2m../../dist/renderer/[22m[35massets/css/AgentTemplateEditorPage-572zvFNl.css         [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.46 kB[22m
+2026-10-10T01:34:39.0882777Z [2m../../dist/renderer/[22m[35massets/css/ReviewList-DeT6bnwg.css                      [39m[1m[2m    1.21 kB[22m[1m[22m[2m │ gzip:   0.46 kB[22m
+2026-10-10T01:34:39.0885054Z [2m../../dist/renderer/[22m[35massets/css/KnowledgeListPage-DIs2t_zH.css               [39m[1m[2m    1.23 kB[22m[1m[22m[2m │ gzip:   0.49 kB[22m
+2026-10-10T01:34:39.0887315Z [2m../../dist/renderer/[22m[35massets/css/TaskBoardPage-C4lxrhio.css                   [39m[1m[2m    1.24 kB[22m[1m[22m[2m │ gzip:   0.47 kB[22m
+2026-10-10T01:34:39.0890059Z [2m../../dist/renderer/[22m[35massets/css/MultimodalCollabPage-f9hScJ1m.css            [39m[1m[2m    1.29 kB[22m[1m[22m[2m │ gzip:   0.46 kB[22m
+2026-10-10T01:34:39.0892303Z [2m../../dist/renderer/[22m[35massets/css/CreditScore-BH2MsEA6.css                     [39m[1m[2m    1.30 kB[22m[1m[22m[2m │ gzip:   0.45 kB[22m
+2026-10-10T01:34:39.0894844Z [2m../../dist/renderer/[22m[35massets/css/CoworkAnalytics-DD9uubjm.css                 [39m[1m[2m    1.34 kB[22m[1m[22m[2m │ gzip:   0.38 kB[22m
+2026-10-10T01:34:39.0897073Z [2m../../dist/renderer/[22m[35massets/css/PermissionAuditLog-Bg4UOz8A.css              [39m[1m[2m    1.34 kB[22m[1m[22m[2m │ gzip:   0.42 kB[22m
+2026-10-10T01:34:39.0899037Z [2m../../dist/renderer/[22m[35massets/css/EmailReader--Ax0pTOB.css                     [39m[1m[2m    1.39 kB[22m[1m[22m[2m │ gzip:   0.51 kB[22m
+2026-10-10T01:34:39.0901040Z [2m../../dist/renderer/[22m[35massets/css/EvoMapBrowser-DvETao0I.css                   [39m[1m[2m    1.44 kB[22m[1m[22m[2m │ gzip:   0.46 kB[22m
+2026-10-10T01:34:39.0903149Z [2m../../dist/renderer/[22m[35massets/css/projectsQuick-DV9dXwBi.css                   [39m[1m[2m    1.44 kB[22m[1m[22m[2m │ gzip:   0.60 kB[22m
+2026-10-10T01:34:39.0905413Z [2m../../dist/renderer/[22m[35massets/css/RichTextEditor-CeU4shmk.css                  [39m[1m[2m    1.45 kB[22m[1m[22m[2m │ gzip:   0.50 kB[22m
+2026-10-10T01:34:39.0907609Z [2m../../dist/renderer/[22m[35massets/css/KnowledgeGraphPage-CCBo1KLD.css              [39m[1m[2m    1.47 kB[22m[1m[22m[2m │ gzip:   0.56 kB[22m
+2026-10-10T01:34:39.0909867Z [2m../../dist/renderer/[22m[35massets/css/ArticleReader-Cx5Gpyn1.css                   [39m[1m[2m    1.47 kB[22m[1m[22m[2m │ gzip:   0.52 kB[22m
+2026-10-10T01:34:39.0912485Z [2m../../dist/renderer/[22m[35massets/css/CategoryManagePage-v-4Mxjtm.css              [39m[1m[2m    1.58 kB[22m[1m[22m[2m │ gzip:   0.42 kB[22m
+2026-10-10T01:34:39.0915058Z [2m../../dist/renderer/[22m[35massets/css/ContentStore-DY5H8mSz.css                    [39m[1m[2m    1.60 kB[22m[1m[22m[2m │ gzip:   0.54 kB[22m
+2026-10-10T01:34:39.0917294Z [2m../../dist/renderer/[22m[35massets/css/DatabasePerformancePage-D24rIyh-.css         [39m[1m[2m    1.65 kB[22m[1m[22m[2m │ gzip:   0.54 kB[22m
+2026-10-10T01:34:39.0919571Z [2m../../dist/renderer/[22m[35massets/css/SSOLoginPage-Ba-yYjz_.css                    [39m[1m[2m    1.67 kB[22m[1m[22m[2m │ gzip:   0.62 kB[22m
+2026-10-10T01:34:39.0921754Z [2m../../dist/renderer/[22m[35massets/css/DemoTemplatesPage-CP00SW16.css               [39m[1m[2m    1.68 kB[22m[1m[22m[2m │ gzip:   0.57 kB[22m
+2026-10-10T01:34:39.0924006Z [2m../../dist/renderer/[22m[35massets/css/StatusBadge-DPkpndR1.css                     [39m[1m[2m    1.68 kB[22m[1m[22m[2m │ gzip:   0.42 kB[22m
+2026-10-10T01:34:39.0926150Z [2m../../dist/renderer/[22m[35massets/css/SimpleEditor-DGEaogqV.css                    [39m[1m[2m    1.71 kB[22m[1m[22m[2m │ gzip:   0.54 kB[22m
+2026-10-10T01:34:39.0928318Z [2m../../dist/renderer/[22m[35massets/css/PromptTemplates-xgFb01Sc.css                 [39m[1m[2m    1.71 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.0930606Z [2m../../dist/renderer/[22m[35massets/css/EnterpriseDashboard-DhCVEJKI.css             [39m[1m[2m    1.71 kB[22m[1m[22m[2m │ gzip:   0.38 kB[22m
+2026-10-10T01:34:39.0932835Z [2m../../dist/renderer/[22m[35massets/css/MomentsTimeline-lvka5vVU.css                 [39m[1m[2m    1.74 kB[22m[1m[22m[2m │ gzip:   0.58 kB[22m
+2026-10-10T01:34:39.0935391Z [2m../../dist/renderer/[22m[35massets/css/DevicePairingPage-B598GyuR.css               [39m[1m[2m    1.76 kB[22m[1m[22m[2m │ gzip:   0.47 kB[22m
+2026-10-10T01:34:39.0937608Z [2m../../dist/renderer/[22m[35massets/css/ErrorMonitorPage-D_CJuA4X.css                [39m[1m[2m    1.80 kB[22m[1m[22m[2m │ gzip:   0.50 kB[22m
+2026-10-10T01:34:39.0941468Z [2m../../dist/renderer/[22m[35massets/css/CodeEditor-2Rd5awDj.css                      [39m[1m[2m    1.81 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.0943725Z [2m../../dist/renderer/[22m[35massets/css/SystemSettings-CrPMneae.css                  [39m[1m[2m    1.84 kB[22m[1m[22m[2m │ gzip:   0.65 kB[22m
+2026-10-10T01:34:39.0945949Z [2m../../dist/renderer/[22m[35massets/css/DatabaseSecurity-DSPCb9Dl.css                [39m[1m[2m    2.01 kB[22m[1m[22m[2m │ gzip:   0.57 kB[22m
+2026-10-10T01:34:39.0948208Z [2m../../dist/renderer/[22m[35massets/css/TagManagerPage-S3JIc50H.css                  [39m[1m[2m    2.02 kB[22m[1m[22m[2m │ gzip:   0.57 kB[22m
+2026-10-10T01:34:39.0950445Z [2m../../dist/renderer/[22m[35massets/css/ToolsExplorerPage-Q6neuGEP.css               [39m[1m[2m    2.14 kB[22m[1m[22m[2m │ gzip:   0.73 kB[22m
+2026-10-10T01:34:39.0952677Z [2m../../dist/renderer/[22m[35massets/css/SafetyNumbersPage-BnQz0hwP.css               [39m[1m[2m    2.19 kB[22m[1m[22m[2m │ gzip:   0.58 kB[22m
+2026-10-10T01:34:39.0955314Z [2m../../dist/renderer/[22m[35massets/css/TemplateManagementPage-EB9OsK0H.css          [39m[1m[2m    2.22 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.0957582Z [2m../../dist/renderer/[22m[35massets/css/CoworkDashboard-KeJjoM97.css                 [39m[1m[2m    2.22 kB[22m[1m[22m[2m │ gzip:   0.57 kB[22m
+2026-10-10T01:34:39.0959936Z [2m../../dist/renderer/[22m[35massets/css/KnowledgeDetailPage-CLKx2oEz.css             [39m[1m[2m    2.24 kB[22m[1m[22m[2m │ gzip:   0.62 kB[22m
+2026-10-10T01:34:39.0962239Z [2m../../dist/renderer/[22m[35massets/css/MCPServerMarketplace-B3O4Y4Tk.css            [39m[1m[2m    2.25 kB[22m[1m[22m[2m │ gzip:   0.59 kB[22m
+2026-10-10T01:34:39.0964822Z [2m../../dist/renderer/[22m[35massets/css/OrganizationSettingsPage-VmyrN5hQ.css        [39m[1m[2m    2.27 kB[22m[1m[22m[2m │ gzip:   0.49 kB[22m
+2026-10-10T01:34:39.0967219Z [2m../../dist/renderer/[22m[35massets/css/messageTypes-DQ3D-MvE.css                    [39m[1m[2m    2.32 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.0969855Z [2m../../dist/renderer/[22m[35massets/css/EnhancedVoiceInput-CofV02lT.css              [39m[1m[2m    2.40 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.0971799Z [2m../../dist/renderer/[22m[35massets/css/OrganizationsPage-CXpoIvLd.css               [39m[1m[2m    2.40 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.0973038Z [2m../../dist/renderer/[22m[35massets/css/xterm-DFuMZ0ql.css                           [39m[1m[2m    2.53 kB[22m[1m[22m[2m │ gzip:   0.76 kB[22m
+2026-10-10T01:34:39.0974207Z [2m../../dist/renderer/[22m[35massets/css/WebDevEditor-CGRDmFDG.css                    [39m[1m[2m    2.55 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.0975413Z [2m../../dist/renderer/[22m[35massets/css/TeamDetailPanel-BgDz5epG.css                 [39m[1m[2m    2.58 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.0976593Z [2m../../dist/renderer/[22m[35massets/css/OrganizationRolesPage-B_b3OT8_.css           [39m[1m[2m    2.62 kB[22m[1m[22m[2m │ gzip:   0.82 kB[22m
+2026-10-10T01:34:39.0977746Z [2m../../dist/renderer/[22m[35massets/css/AudioImportPage-DvXXCJH2.css                 [39m[1m[2m    2.67 kB[22m[1m[22m[2m │ gzip:   0.69 kB[22m
+2026-10-10T01:34:39.0978907Z [2m../../dist/renderer/[22m[35massets/css/MarkdownEditor-DHFYlSMe.css                  [39m[1m[2m    2.69 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.0980018Z [2m../../dist/renderer/[22m[35massets/css/PostFeed-DjxkBFg5.css                        [39m[1m[2m    2.74 kB[22m[1m[22m[2m │ gzip:   0.88 kB[22m
+2026-10-10T01:34:39.0981160Z [2m../../dist/renderer/[22m[35massets/css/AIPromptsPage-B4MVpjao.css                   [39m[1m[2m    2.76 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.0982499Z [2m../../dist/renderer/[22m[35massets/css/LLMTestChatPage-BryQjByg.css                 [39m[1m[2m    2.78 kB[22m[1m[22m[2m │ gzip:   0.55 kB[22m
+2026-10-10T01:34:39.0983664Z [2m../../dist/renderer/[22m[35massets/css/OrganizationMembersPage-ZCcFR_j3.css         [39m[1m[2m    2.80 kB[22m[1m[22m[2m │ gzip:   0.65 kB[22m
+2026-10-10T01:34:39.0984825Z [2m../../dist/renderer/[22m[35massets/css/ForumList-BbbmyPhU.css                       [39m[1m[2m    2.89 kB[22m[1m[22m[2m │ gzip:   0.75 kB[22m
+2026-10-10T01:34:39.0985958Z [2m../../dist/renderer/[22m[35massets/css/PluginMarketplace-C9Fik3-P.css               [39m[1m[2m    2.94 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.0987198Z [2m../../dist/renderer/[22m[35massets/css/SessionFingerprintPage-BRryuGFf.css          [39m[1m[2m    2.99 kB[22m[1m[22m[2m │ gzip:   0.62 kB[22m
+2026-10-10T01:34:39.0988388Z [2m../../dist/renderer/[22m[35massets/css/ExternalDeviceBrowser-Bfh18tJR.css           [39m[1m[2m    3.05 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.0989534Z [2m../../dist/renderer/[22m[35massets/css/DesignEditorPage-DUMDAZSB.css                [39m[1m[2m    3.05 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.0990682Z [2m../../dist/renderer/[22m[35massets/css/MarkdownViewer-DNNn9xet.css                  [39m[1m[2m    3.08 kB[22m[1m[22m[2m │ gzip:   0.73 kB[22m
+2026-10-10T01:34:39.0992197Z [2m../../dist/renderer/[22m[35massets/css/Bridge-Bf5vLJZ9.css                          [39m[1m[2m    3.12 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.0993321Z [2m../../dist/renderer/[22m[35massets/css/CollabEditorPage-BpJm6zLo.css                [39m[1m[2m    3.36 kB[22m[1m[22m[2m │ gzip:   1.08 kB[22m
+2026-10-10T01:34:39.0994626Z [2m../../dist/renderer/[22m[35massets/css/ConversationInput-DPEz5Wfg.css               [39m[1m[2m    3.36 kB[22m[1m[22m[2m │ gzip:   0.99 kB[22m
+2026-10-10T01:34:39.0995816Z [2m../../dist/renderer/[22m[35massets/css/AnalyticsDashboardPage-ipyujrhz.css          [39m[1m[2m    3.38 kB[22m[1m[22m[2m │ gzip:   0.83 kB[22m
+2026-10-10T01:34:39.0997001Z [2m../../dist/renderer/[22m[35massets/css/ProjectSidebar-v7Ki2rK4.css                  [39m[1m[2m    3.43 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.0998113Z [2m../../dist/renderer/[22m[35massets/css/BrowserControl-0fDN9oJZ.css                  [39m[1m[2m    3.44 kB[22m[1m[22m[2m │ gzip:   0.97 kB[22m
+2026-10-10T01:34:39.0999224Z [2m../../dist/renderer/[22m[35massets/css/ToolManagement-Cj5MB1-T.css                  [39m[1m[2m    3.58 kB[22m[1m[22m[2m │ gzip:   1.04 kB[22m
+2026-10-10T01:34:39.1000366Z [2m../../dist/renderer/[22m[35massets/css/TaskMonitor-B7xJBQr7.css                     [39m[1m[2m    3.65 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1001491Z [2m../../dist/renderer/[22m[35massets/css/VoiceInputTestPage-Br5Dw2SF.css              [39m[1m[2m    3.78 kB[22m[1m[22m[2m │ gzip:   0.96 kB[22m
+2026-10-10T01:34:39.1002645Z [2m../../dist/renderer/[22m[35massets/css/Marketplace-C9AmWygq.css                     [39m[1m[2m    3.84 kB[22m[1m[22m[2m │ gzip:   1.08 kB[22m
+2026-10-10T01:34:39.1003760Z [2m../../dist/renderer/[22m[35massets/css/LivestreamPage-DMsYzFkv.css                  [39m[1m[2m    4.04 kB[22m[1m[22m[2m │ gzip:   1.18 kB[22m
+2026-10-10T01:34:39.1004867Z [2m../../dist/renderer/[22m[35massets/css/ArchivedPage-KywnDjFa.css                    [39m[1m[2m    4.15 kB[22m[1m[22m[2m │ gzip:   1.02 kB[22m
+2026-10-10T01:34:39.1006008Z [2m../../dist/renderer/[22m[35massets/css/ShareProjectView-4vGOHRMX.css                [39m[1m[2m    4.36 kB[22m[1m[22m[2m │ gzip:   1.14 kB[22m
+2026-10-10T01:34:39.1007126Z [2m../../dist/renderer/[22m[35massets/css/ContractList-Cv80UvYK.css                    [39m[1m[2m    4.44 kB[22m[1m[22m[2m │ gzip:   1.12 kB[22m
+2026-10-10T01:34:39.1008378Z [2m../../dist/renderer/[22m[35massets/css/MarkdownEditor-CwtWeGe1.css                  [39m[1m[2m    4.52 kB[22m[1m[22m[2m │ gzip:   1.29 kB[22m
+2026-10-10T01:34:39.1009508Z [2m../../dist/renderer/[22m[35massets/css/AssetList-C-VnM2DT.css                       [39m[1m[2m    4.81 kB[22m[1m[22m[2m │ gzip:   1.29 kB[22m
+2026-10-10T01:34:39.1010614Z [2m../../dist/renderer/[22m[35massets/css/SkillManager-cRiTsCZx.css                    [39m[1m[2m    4.88 kB[22m[1m[22m[2m │ gzip:   1.06 kB[22m
+2026-10-10T01:34:39.1012158Z [2m../../dist/renderer/[22m[35massets/css/SkillManagement-B7fpWbzo.css                 [39m[1m[2m    4.89 kB[22m[1m[22m[2m │ gzip:   1.20 kB[22m
+2026-10-10T01:34:39.1013559Z [2m../../dist/renderer/[22m[35massets/css/WebIDEPage-CUWaD03Z.css                      [39m[1m[2m    4.92 kB[22m[1m[22m[2m │ gzip:   1.16 kB[22m
+2026-10-10T01:34:39.1015186Z [2m../../dist/renderer/[22m[35massets/css/CollaborationPage-DuM_nCX-.css               [39m[1m[2m    5.35 kB[22m[1m[22m[2m │ gzip:   1.13 kB[22m
+2026-10-10T01:34:39.1016331Z [2m../../dist/renderer/[22m[35massets/css/EscrowList-BKJDLGzi.css                      [39m[1m[2m    5.44 kB[22m[1m[22m[2m │ gzip:   1.35 kB[22m
+2026-10-10T01:34:39.1017484Z [2m../../dist/renderer/[22m[35massets/css/OrganizationKnowledgePage-CM2RlSl8.css       [39m[1m[2m    5.44 kB[22m[1m[22m[2m │ gzip:   0.99 kB[22m
+2026-10-10T01:34:39.1018674Z [2m../../dist/renderer/[22m[35massets/css/PluginDetailPage-Cb-gPxGZ.css                [39m[1m[2m    6.32 kB[22m[1m[22m[2m │ gzip:   1.00 kB[22m
+2026-10-10T01:34:39.1019797Z [2m../../dist/renderer/[22m[35massets/css/MultimediaDemo-BsR8ltOB.css                  [39m[1m[2m    6.33 kB[22m[1m[22m[2m │ gzip:   1.61 kB[22m
+2026-10-10T01:34:39.1021662Z [2m../../dist/renderer/[22m[35massets/css/PluginMarketplacePage-Qqn4dEiV.css           [39m[1m[2m    6.51 kB[22m[1m[22m[2m │ gzip:   1.20 kB[22m
+2026-10-10T01:34:39.1022942Z [2m../../dist/renderer/[22m[35massets/css/Wallet-Dhg0w1WT.css                          [39m[1m[2m    6.57 kB[22m[1m[22m[2m │ gzip:   1.52 kB[22m
+2026-10-10T01:34:39.1024080Z [2m../../dist/renderer/[22m[35massets/css/PPTEditor-BA32-67K.css                       [39m[1m[2m    6.64 kB[22m[1m[22m[2m │ gzip:   1.49 kB[22m
+2026-10-10T01:34:39.1025244Z [2m../../dist/renderer/[22m[35massets/css/MarketPage-DgnQGHj2.css                      [39m[1m[2m    8.08 kB[22m[1m[22m[2m │ gzip:   1.74 kB[22m
+2026-10-10T01:34:39.1026363Z [2m../../dist/renderer/[22m[35massets/css/GraphRunDebugger-g_-iL8Bc.css                [39m[1m[2m    8.27 kB[22m[1m[22m[2m │ gzip:   1.88 kB[22m
+2026-10-10T01:34:39.1027510Z [2m../../dist/renderer/[22m[35massets/css/SessionManagerPage-Qu0rTlsn.css              [39m[1m[2m   12.54 kB[22m[1m[22m[2m │ gzip:   2.37 kB[22m
+2026-10-10T01:34:39.1028679Z [2m../../dist/renderer/[22m[35massets/css/SettingsPage-B3nt0BgY.css                    [39m[1m[2m   13.50 kB[22m[1m[22m[2m │ gzip:   2.24 kB[22m
+2026-10-10T01:34:39.1029789Z [2m../../dist/renderer/[22m[35massets/css/NewProjectPage-DonJf2if.css                  [39m[1m[2m   14.47 kB[22m[1m[22m[2m │ gzip:   2.77 kB[22m
+2026-10-10T01:34:39.1030954Z [2m../../dist/renderer/[22m[35massets/css/WorkflowDesignerPage-DkYrXyr-.css            [39m[1m[2m   15.15 kB[22m[1m[22m[2m │ gzip:   3.12 kB[22m
+2026-10-10T01:34:39.1032572Z [2m../../dist/renderer/[22m[35massets/css/WorkflowMonitorPage-DQ1lo_Ky.css             [39m[1m[2m   16.03 kB[22m[1m[22m[2m │ gzip:   2.97 kB[22m
+2026-10-10T01:34:39.1033718Z [2m../../dist/renderer/[22m[35massets/css/ChatWindow-BdmzON2k.css                      [39m[1m[2m   16.87 kB[22m[1m[22m[2m │ gzip:   3.43 kB[22m
+2026-10-10T01:34:39.1034875Z [2m../../dist/renderer/[22m[35massets/css/ExcelEditor-DPFcYJgb.css                     [39m[1m[2m   17.90 kB[22m[1m[22m[2m │ gzip:   4.67 kB[22m
+2026-10-10T01:34:39.1036177Z [2m../../dist/renderer/[22m[35massets/css/LLMPerformancePage-BlK8mMIQ.css              [39m[1m[2m   19.42 kB[22m[1m[22m[2m │ gzip:   3.35 kB[22m
+2026-10-10T01:34:39.1037333Z [2m../../dist/renderer/[22m[35massets/css/MainLayout-CPAiWNZ-.css                      [39m[1m[2m   20.61 kB[22m[1m[22m[2m │ gzip:   3.98 kB[22m
+2026-10-10T01:34:39.1038543Z [2m../../dist/renderer/[22m[35massets/css/AIChatPage-G-c5FU3p.css                      [39m[1m[2m   27.52 kB[22m[1m[22m[2m │ gzip:   5.29 kB[22m
+2026-10-10T01:34:39.1039640Z [2m../../dist/renderer/[22m[35massets/css/ProjectsPage-0_s0tD2F.css                    [39m[1m[2m   29.62 kB[22m[1m[22m[2m │ gzip:   4.64 kB[22m
+2026-10-10T01:34:39.1040778Z [2m../../dist/renderer/[22m[35massets/css/index-g2GET1Ep.css                           [39m[1m[2m   33.98 kB[22m[1m[22m[2m │ gzip:   7.13 kB[22m
+2026-10-10T01:34:39.1041913Z [2m../../dist/renderer/[22m[35massets/css/AppShellPreview-BNlpf0wu.css                 [39m[1m[2m   35.30 kB[22m[1m[22m[2m │ gzip:   5.50 kB[22m
+2026-10-10T01:34:39.1043053Z [2m../../dist/renderer/[22m[35massets/css/ProjectDetailPage-D6gsvG1E.css               [39m[1m[2m   52.42 kB[22m[1m[22m[2m │ gzip:   9.04 kB[22m
+2026-10-10T01:34:39.1044168Z [2m../../dist/renderer/[22m[35massets/css/AppShell-Wp-KXp6v.css                        [39m[1m[2m  117.78 kB[22m[1m[22m[2m │ gzip:  14.57 kB[22m
+2026-10-10T01:34:39.1045278Z [2m../../dist/renderer/[22m[35massets/css/monaco-BtCvkqEG.css                          [39m[1m[2m  146.36 kB[22m[1m[22m[2m │ gzip:  23.00 kB[22m
+2026-10-10T01:34:39.1046338Z [2m../../dist/renderer/[22m[36massets/js/index-D7OGpBF4.js                             [39m[1m[2m    0.10 kB[22m[1m[22m[2m │ gzip:   0.11 kB[22m
+2026-10-10T01:34:39.1047498Z [2m../../dist/renderer/[22m[36massets/js/index-CRX_nWyC.js                             [39m[1m[2m    0.14 kB[22m[1m[22m[2m │ gzip:   0.13 kB[22m
+2026-10-10T01:34:39.1048623Z [2m../../dist/renderer/[22m[36massets/js/_commonjs-dynamic-modules-BHR_E30J.js         [39m[1m[2m    0.24 kB[22m[1m[22m[2m │ gzip:   0.19 kB[22m
+2026-10-10T01:34:39.1049716Z [2m../../dist/renderer/[22m[36massets/js/auth-Dd08WsLa.js                              [39m[1m[2m    0.30 kB[22m[1m[22m[2m │ gzip:   0.24 kB[22m
+2026-10-10T01:34:39.1050810Z [2m../../dist/renderer/[22m[36massets/js/echartsConfig-Dw72NOq8.js                     [39m[1m[2m    0.41 kB[22m[1m[22m[2m │ gzip:   0.25 kB[22m
+2026-10-10T01:34:39.1051907Z [2m../../dist/renderer/[22m[36massets/js/SimpleTestPage-6XBaLuGJ.js                    [39m[1m[2m    0.55 kB[22m[1m[22m[2m │ gzip:   0.39 kB[22m
+2026-10-10T01:34:39.1053023Z [2m../../dist/renderer/[22m[36massets/js/azcli-Y6nb8tq_.js                             [39m[1m[2m    0.71 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+2026-10-10T01:34:39.1054085Z [2m../../dist/renderer/[22m[36massets/js/javascript-C5fdERss.js                        [39m[1m[2m    0.80 kB[22m[1m[22m[2m │ gzip:   0.44 kB[22m
+2026-10-10T01:34:39.1055164Z [2m../../dist/renderer/[22m[36massets/js/NoteArtifact-BunzXhZ0.js                      [39m[1m[2m    0.83 kB[22m[1m[22m[2m │ gzip:   0.55 kB[22m
+2026-10-10T01:34:39.1056292Z [2m../../dist/renderer/[22m[36massets/js/PauseOutlined-BGkGiN7o.js                     [39m[1m[2m    0.93 kB[22m[1m[22m[2m │ gzip:   0.58 kB[22m
+2026-10-10T01:34:39.1057840Z [2m../../dist/renderer/[22m[36massets/js/MoreOutlined-DPSOv5tM.js                      [39m[1m[2m    0.94 kB[22m[1m[22m[2m │ gzip:   0.54 kB[22m
+2026-10-10T01:34:39.1059062Z [2m../../dist/renderer/[22m[36massets/js/CaretDownOutlined-9LxXoTv2.js                 [39m[1m[2m    0.94 kB[22m[1m[22m[2m │ gzip:   0.60 kB[22m
+2026-10-10T01:34:39.1060236Z [2m../../dist/renderer/[22m[36massets/js/CaretRightOutlined-lxh-tQVN.js                [39m[1m[2m    0.95 kB[22m[1m[22m[2m │ gzip:   0.60 kB[22m
+2026-10-10T01:34:39.1061511Z [2m../../dist/renderer/[22m[36massets/js/ini-Kd9XrMLS.js                               [39m[1m[2m    0.96 kB[22m[1m[22m[2m │ gzip:   0.50 kB[22m
+2026-10-10T01:34:39.1062643Z [2m../../dist/renderer/[22m[36massets/js/MobileOutlined-CUhfawKs.js                    [39m[1m[2m    1.00 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.1063771Z [2m../../dist/renderer/[22m[36massets/js/LeftOutlined-D03te24-.js                      [39m[1m[2m    1.00 kB[22m[1m[22m[2m │ gzip:   0.63 kB[22m
+2026-10-10T01:34:39.1064914Z [2m../../dist/renderer/[22m[36massets/js/LayoutOutlined-DRljv4pg.js                    [39m[1m[2m    1.01 kB[22m[1m[22m[2m │ gzip:   0.63 kB[22m
+2026-10-10T01:34:39.1066032Z [2m../../dist/renderer/[22m[36massets/js/RollbackOutlined-CrTR-yef.js                  [39m[1m[2m    1.03 kB[22m[1m[22m[2m │ gzip:   0.64 kB[22m
+2026-10-10T01:34:39.1067172Z [2m../../dist/renderer/[22m[36massets/js/ArrowLeftOutlined-De-dskek.js                 [39m[1m[2m    1.05 kB[22m[1m[22m[2m │ gzip:   0.67 kB[22m
+2026-10-10T01:34:39.1068343Z [2m../../dist/renderer/[22m[36massets/js/ArrowRightOutlined-DNOhzj-D.js                [39m[1m[2m    1.06 kB[22m[1m[22m[2m │ gzip:   0.67 kB[22m
+2026-10-10T01:34:39.1069996Z [2m../../dist/renderer/[22m[36massets/js/MessageArtifact-DeQhFkNN.js                   [39m[1m[2m    1.06 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.1071684Z [2m../../dist/renderer/[22m[36massets/js/DesktopOutlined-Dz-OTcHr.js                   [39m[1m[2m    1.06 kB[22m[1m[22m[2m │ gzip:   0.66 kB[22m
+2026-10-10T01:34:39.1073578Z [2m../../dist/renderer/[22m[36massets/js/FilterOutlined-BEbSLpPo.js                    [39m[1m[2m    1.07 kB[22m[1m[22m[2m │ gzip:   0.69 kB[22m
+2026-10-10T01:34:39.1075575Z [2m../../dist/renderer/[22m[36massets/js/WalletOutlined-BQku1XCy.js                    [39m[1m[2m    1.08 kB[22m[1m[22m[2m │ gzip:   0.65 kB[22m
+2026-10-10T01:34:39.1077968Z [2m../../dist/renderer/[22m[36massets/js/VerticalAlignTopOutlined-Biqbd0eN.js          [39m[1m[2m    1.10 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.1079891Z [2m../../dist/renderer/[22m[36massets/js/RiseOutlined-C4V9V58-.js                      [39m[1m[2m    1.10 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.1081731Z [2m../../dist/renderer/[22m[36massets/js/StopOutlined-DpA0VK6Y.js                      [39m[1m[2m    1.11 kB[22m[1m[22m[2m │ gzip:   0.69 kB[22m
+2026-10-10T01:34:39.1083451Z [2m../../dist/renderer/[22m[36massets/js/UploadOutlined-zvEgrSQ9.js                    [39m[1m[2m    1.12 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.1085281Z [2m../../dist/renderer/[22m[36massets/js/MinusCircleOutlined-CYWP92W7.js               [39m[1m[2m    1.12 kB[22m[1m[22m[2m │ gzip:   0.66 kB[22m
+2026-10-10T01:34:39.1087061Z [2m../../dist/renderer/[22m[36massets/js/SwapOutlined-_dPVrbgG.js                      [39m[1m[2m    1.13 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.1088864Z [2m../../dist/renderer/[22m[36massets/js/TableOutlined-C1nGKV7F.js                     [39m[1m[2m    1.15 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.1090538Z [2m../../dist/renderer/[22m[36massets/js/MailOutlined-D2buZRAO.js                      [39m[1m[2m    1.16 kB[22m[1m[22m[2m │ gzip:   0.71 kB[22m
+2026-10-10T01:34:39.1092490Z [2m../../dist/renderer/[22m[36massets/js/LockOutlined-5NcE5mPu.js                      [39m[1m[2m    1.16 kB[22m[1m[22m[2m │ gzip:   0.71 kB[22m
+2026-10-10T01:34:39.1094319Z [2m../../dist/renderer/[22m[36massets/js/DeleteOutlined-DB_nN5gi.js                    [39m[1m[2m    1.16 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.1095650Z [2m../../dist/renderer/[22m[36massets/js/Html5Outlined-E3Vz8FQ3.js                     [39m[1m[2m    1.16 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1096962Z [2m../../dist/renderer/[22m[36massets/js/ShoppingOutlined-TsYB_Uht.js                  [39m[1m[2m    1.17 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.1098525Z [2m../../dist/renderer/[22m[36massets/js/VideoCameraOutlined-DrXzFxOB.js               [39m[1m[2m    1.17 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1099700Z [2m../../dist/renderer/[22m[36massets/js/StarFilled-vCokancy.js                        [39m[1m[2m    1.17 kB[22m[1m[22m[2m │ gzip:   0.73 kB[22m
+2026-10-10T01:34:39.1100815Z [2m../../dist/renderer/[22m[36massets/js/CalendarOutlined-BOC9sG18.js                  [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-10T01:34:39.1102570Z [2m../../dist/renderer/[22m[36massets/js/LineChartOutlined-8kTjWDZ-.js                 [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.1103999Z [2m../../dist/renderer/[22m[36massets/js/PlayCircleOutlined-kySxso7I.js                [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.1105137Z [2m../../dist/renderer/[22m[36massets/js/PauseCircleOutlined-B1_I8oNl.js               [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.66 kB[22m
+2026-10-10T01:34:39.1106327Z [2m../../dist/renderer/[22m[36massets/js/CheckSquareOutlined-BpkXVKSi.js               [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.73 kB[22m
+2026-10-10T01:34:39.1107457Z [2m../../dist/renderer/[22m[36massets/js/UnlockOutlined-DIPuMzwC.js                    [39m[1m[2m    1.18 kB[22m[1m[22m[2m │ gzip:   0.72 kB[22m
+2026-10-10T01:34:39.1108806Z [2m../../dist/renderer/[22m[36massets/js/HomeOutlined-B_dx7sFC.js                      [39m[1m[2m    1.19 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1110094Z [2m../../dist/renderer/[22m[36massets/js/UnderlineOutlined-C25EAB_H.js                 [39m[1m[2m    1.20 kB[22m[1m[22m[2m │ gzip:   0.71 kB[22m
+2026-10-10T01:34:39.1111260Z [2m../../dist/renderer/[22m[36massets/js/SendOutlined-BIACorGr.js                      [39m[1m[2m    1.22 kB[22m[1m[22m[2m │ gzip:   0.76 kB[22m
+2026-10-10T01:34:39.1112423Z [2m../../dist/renderer/[22m[36massets/js/PlusCircleOutlined-GKYTjmFg.js                [39m[1m[2m    1.22 kB[22m[1m[22m[2m │ gzip:   0.69 kB[22m
+2026-10-10T01:34:39.1113542Z [2m../../dist/renderer/[22m[36massets/js/FileZipOutlined-C9Xm2073.js                   [39m[1m[2m    1.22 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1114667Z [2m../../dist/renderer/[22m[36massets/js/UnorderedListOutlined-BCIoFZas.js             [39m[1m[2m    1.22 kB[22m[1m[22m[2m │ gzip:   0.62 kB[22m
+2026-10-10T01:34:39.1115817Z [2m../../dist/renderer/[22m[36massets/js/ProjectOutlined-ysyVroRF.js                   [39m[1m[2m    1.23 kB[22m[1m[22m[2m │ gzip:   0.67 kB[22m
+2026-10-10T01:34:39.1116926Z [2m../../dist/renderer/[22m[36massets/js/CodeOutlined-DehObRX9.js                      [39m[1m[2m    1.23 kB[22m[1m[22m[2m │ gzip:   0.76 kB[22m
+2026-10-10T01:34:39.1118457Z [2m../../dist/renderer/[22m[36massets/js/ZoomOutOutlined-B6p2EsdD.js                   [39m[1m[2m    1.24 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1119570Z [2m../../dist/renderer/[22m[36massets/js/P2PArtifact-DMkWxOEN.js                       [39m[1m[2m    1.24 kB[22m[1m[22m[2m │ gzip:   0.76 kB[22m
+2026-10-10T01:34:39.1120674Z [2m../../dist/renderer/[22m[36massets/js/FolderAddOutlined-BXyubb8q.js                 [39m[1m[2m    1.24 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1121823Z [2m../../dist/renderer/[22m[36massets/js/FileImageOutlined--Cfz-9_q.js                 [39m[1m[2m    1.25 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1123814Z [2m../../dist/renderer/[22m[36massets/js/SaveOutlined-0yV8Hy5z.js                      [39m[1m[2m    1.25 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1126247Z [2m../../dist/renderer/[22m[36massets/js/LanguageSwitcher-jmEKuEMn.js                  [39m[1m[2m    1.27 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.1128801Z [2m../../dist/renderer/[22m[36massets/js/FormatPainterOutlined-TsV5Lfz1.js             [39m[1m[2m    1.27 kB[22m[1m[22m[2m │ gzip:   0.79 kB[22m
+2026-10-10T01:34:39.1131015Z [2m../../dist/renderer/[22m[36massets/js/ApartmentOutlined-DWbRI42l.js                 [39m[1m[2m    1.27 kB[22m[1m[22m[2m │ gzip:   0.70 kB[22m
+2026-10-10T01:34:39.1133170Z [2m../../dist/renderer/[22m[36massets/js/FilePptOutlined-NNy7LfK4.js                   [39m[1m[2m    1.27 kB[22m[1m[22m[2m │ gzip:   0.79 kB[22m
+2026-10-10T01:34:39.1135217Z [2m../../dist/renderer/[22m[36massets/js/FormOutlined-IbMQIu6-.js                      [39m[1m[2m    1.28 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1136426Z [2m../../dist/renderer/[22m[36massets/js/csp-D-4FJmMZ.js                               [39m[1m[2m    1.28 kB[22m[1m[22m[2m │ gzip:   0.49 kB[22m
+2026-10-10T01:34:39.1137569Z [2m../../dist/renderer/[22m[36massets/js/FontSizeOutlined-CX6Iz0P_.js                  [39m[1m[2m    1.29 kB[22m[1m[22m[2m │ gzip:   0.67 kB[22m
+2026-10-10T01:34:39.1138699Z [2m../../dist/renderer/[22m[36massets/js/BarChartOutlined-BopzuJ6A.js                  [39m[1m[2m    1.29 kB[22m[1m[22m[2m │ gzip:   0.64 kB[22m
+2026-10-10T01:34:39.1139838Z [2m../../dist/renderer/[22m[36massets/js/StarOutlined-CKJJhuB5.js                      [39m[1m[2m    1.29 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.1140954Z [2m../../dist/renderer/[22m[36massets/js/BgColorsOutlined-BObpxRyz.js                  [39m[1m[2m    1.29 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1142301Z [2m../../dist/renderer/[22m[36massets/js/SnippetsOutlined-B-fY6eSS.js                  [39m[1m[2m    1.31 kB[22m[1m[22m[2m │ gzip:   0.75 kB[22m
+2026-10-10T01:34:39.1143489Z [2m../../dist/renderer/[22m[36massets/js/AudioOutlined-BG4SOQKM.js                     [39m[1m[2m    1.32 kB[22m[1m[22m[2m │ gzip:   0.79 kB[22m
+2026-10-10T01:34:39.1144582Z [2m../../dist/renderer/[22m[36massets/js/CrownOutlined-DgexnbSB.js                     [39m[1m[2m    1.32 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.1145717Z [2m../../dist/renderer/[22m[36massets/js/DisconnectOutlined-DWnahiD-.js                [39m[1m[2m    1.33 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1146817Z [2m../../dist/renderer/[22m[36massets/js/TagsOutlined-B-TIfMxV.js                      [39m[1m[2m    1.33 kB[22m[1m[22m[2m │ gzip:   0.79 kB[22m
+2026-10-10T01:34:39.1148341Z [2m../../dist/renderer/[22m[36massets/js/ZoomInOutlined-CXbk4IF6.js                    [39m[1m[2m    1.33 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1149528Z [2m../../dist/renderer/[22m[36massets/js/AppstoreOutlined-Bnf0nT44.js                  [39m[1m[2m    1.34 kB[22m[1m[22m[2m │ gzip:   0.63 kB[22m
+2026-10-10T01:34:39.1150668Z [2m../../dist/renderer/[22m[36massets/js/SafetyCertificateOutlined-B4d1V-sw.js         [39m[1m[2m    1.34 kB[22m[1m[22m[2m │ gzip:   0.83 kB[22m
+2026-10-10T01:34:39.1151848Z [2m../../dist/renderer/[22m[36massets/js/ExperimentOutlined-BT3NJ67z.js                [39m[1m[2m    1.35 kB[22m[1m[22m[2m │ gzip:   0.84 kB[22m
+2026-10-10T01:34:39.1152968Z [2m../../dist/renderer/[22m[36massets/js/CompressOutlined-B2-4W5wP.js                  [39m[1m[2m    1.35 kB[22m[1m[22m[2m │ gzip:   0.69 kB[22m
+2026-10-10T01:34:39.1154082Z [2m../../dist/renderer/[22m[36massets/js/BranchesOutlined-pWXDywvy.js                  [39m[1m[2m    1.35 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1155257Z [2m../../dist/renderer/[22m[36massets/js/FileMarkdownOutlined-BZv2Pe7A.js              [39m[1m[2m    1.36 kB[22m[1m[22m[2m │ gzip:   0.82 kB[22m
+2026-10-10T01:34:39.1156566Z [2m../../dist/renderer/[22m[36massets/js/TrophyOutlined-CqW_i7gl.js                    [39m[1m[2m    1.38 kB[22m[1m[22m[2m │ gzip:   0.84 kB[22m
+2026-10-10T01:34:39.1157689Z [2m../../dist/renderer/[22m[36massets/js/ScissorOutlined-DTqVrF8G.js                   [39m[1m[2m    1.39 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1158899Z [2m../../dist/renderer/[22m[36massets/js/VideoCameraAddOutlined-Bjw6OToj.js            [39m[1m[2m    1.39 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1160102Z [2m../../dist/renderer/[22m[36massets/js/AppstoreAddOutlined-BpdXlkY_.js               [39m[1m[2m    1.40 kB[22m[1m[22m[2m │ gzip:   0.71 kB[22m
+2026-10-10T01:34:39.1161249Z [2m../../dist/renderer/[22m[36massets/js/ToolOutlined-CA0g5GP2.js                      [39m[1m[2m    1.42 kB[22m[1m[22m[2m │ gzip:   0.86 kB[22m
+2026-10-10T01:34:39.1162373Z [2m../../dist/renderer/[22m[36massets/js/FileExcelOutlined-Dtwudqfr.js                 [39m[1m[2m    1.43 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1163498Z [2m../../dist/renderer/[22m[36massets/js/FileWordOutlined-DZSiLPKO.js                  [39m[1m[2m    1.43 kB[22m[1m[22m[2m │ gzip:   0.85 kB[22m
+2026-10-10T01:34:39.1164648Z [2m../../dist/renderer/[22m[36massets/js/ShareAltOutlined-Brk4Zt-i.js                  [39m[1m[2m    1.45 kB[22m[1m[22m[2m │ gzip:   0.83 kB[22m
+2026-10-10T01:34:39.1165772Z [2m../../dist/renderer/[22m[36massets/js/MergeCellsOutlined-kxdeDPKt.js                [39m[1m[2m    1.46 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.1166952Z [2m../../dist/renderer/[22m[36massets/js/PushpinOutlined-C7XFAyuT.js                   [39m[1m[2m    1.46 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1168624Z [2m../../dist/renderer/[22m[36massets/js/MobileBridgeStatus-Dk07GJj4.js                [39m[1m[2m    1.46 kB[22m[1m[22m[2m │ gzip:   0.95 kB[22m
+2026-10-10T01:34:39.1169856Z [2m../../dist/renderer/[22m[36massets/js/SoundOutlined-DzQkv5yj.js                     [39m[1m[2m    1.48 kB[22m[1m[22m[2m │ gzip:   0.86 kB[22m
+2026-10-10T01:34:39.1171005Z [2m../../dist/renderer/[22m[36massets/js/AuditOutlined-BcdRFxqK.js                     [39m[1m[2m    1.48 kB[22m[1m[22m[2m │ gzip:   0.83 kB[22m
+2026-10-10T01:34:39.1172098Z [2m../../dist/renderer/[22m[36massets/js/TxArtifact-CDHBMhAy.js                        [39m[1m[2m    1.49 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1173746Z [2m../../dist/renderer/[22m[36massets/js/UndoOutlined-PSGWRyDG.js                      [39m[1m[2m    1.50 kB[22m[1m[22m[2m │ gzip:   0.88 kB[22m
+2026-10-10T01:34:39.1175616Z [2m../../dist/renderer/[22m[36massets/js/RedoOutlined-Q49Ejvqz.js                      [39m[1m[2m    1.51 kB[22m[1m[22m[2m │ gzip:   0.89 kB[22m
+2026-10-10T01:34:39.1177446Z [2m../../dist/renderer/[22m[36massets/js/SignArtifact-CpY3VO8v.js                      [39m[1m[2m    1.52 kB[22m[1m[22m[2m │ gzip:   0.85 kB[22m
+2026-10-10T01:34:39.1179406Z [2m../../dist/renderer/[22m[36massets/js/DatabaseEncryptionStatus-DKH9ks3Q.js          [39m[1m[2m    1.54 kB[22m[1m[22m[2m │ gzip:   0.93 kB[22m
+2026-10-10T01:34:39.1181312Z [2m../../dist/renderer/[22m[36massets/js/pla-DSh2-awV.js                               [39m[1m[2m    1.55 kB[22m[1m[22m[2m │ gzip:   0.61 kB[22m
+2026-10-10T01:34:39.1183226Z [2m../../dist/renderer/[22m[36massets/js/SyncOutlined-D0ZDSicv.js                      [39m[1m[2m    1.55 kB[22m[1m[22m[2m │ gzip:   0.94 kB[22m
+2026-10-10T01:34:39.1185180Z [2m../../dist/renderer/[22m[36massets/js/IdcardOutlined-Vn8xd4TO.js                    [39m[1m[2m    1.55 kB[22m[1m[22m[2m │ gzip:   0.91 kB[22m
+2026-10-10T01:34:39.1187186Z [2m../../dist/renderer/[22m[36massets/js/PhoneOutlined-DlG42VQW.js                     [39m[1m[2m    1.55 kB[22m[1m[22m[2m │ gzip:   0.89 kB[22m
+2026-10-10T01:34:39.1189870Z [2m../../dist/renderer/[22m[36massets/js/LogoutOutlined-onhKR071.js                    [39m[1m[2m    1.58 kB[22m[1m[22m[2m │ gzip:   0.92 kB[22m
+2026-10-10T01:34:39.1191891Z [2m../../dist/renderer/[22m[36massets/js/PieChartOutlined-D6P9b-qC.js                  [39m[1m[2m    1.59 kB[22m[1m[22m[2m │ gzip:   0.93 kB[22m
+2026-10-10T01:34:39.1193793Z [2m../../dist/renderer/[22m[36massets/js/OrderedListOutlined-DZBzPbCH.js               [39m[1m[2m    1.60 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1195800Z [2m../../dist/renderer/[22m[36massets/js/HeartOutlined-BaTW0Bwd.js                     [39m[1m[2m    1.61 kB[22m[1m[22m[2m │ gzip:   0.95 kB[22m
+2026-10-10T01:34:39.1197834Z [2m../../dist/renderer/[22m[36massets/js/CoworkSessionArtifact-D4Kanxvf.js             [39m[1m[2m    1.62 kB[22m[1m[22m[2m │ gzip:   0.92 kB[22m
+2026-10-10T01:34:39.1199958Z [2m../../dist/renderer/[22m[36massets/js/AudioMutedOutlined-Dpx6C6QL.js                [39m[1m[2m    1.63 kB[22m[1m[22m[2m │ gzip:   0.98 kB[22m
+2026-10-10T01:34:39.1201922Z [2m../../dist/renderer/[22m[36massets/js/scheme-BPhDTwHR.js                            [39m[1m[2m    1.63 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1203943Z [2m../../dist/renderer/[22m[36massets/js/PaperClipOutlined-jhuN7xHD.js                 [39m[1m[2m    1.65 kB[22m[1m[22m[2m │ gzip:   0.93 kB[22m
+2026-10-10T01:34:39.1205729Z [2m../../dist/renderer/[22m[36massets/js/FileProtectOutlined-DCsHqSvJ.js               [39m[1m[2m    1.65 kB[22m[1m[22m[2m │ gzip:   0.95 kB[22m
+2026-10-10T01:34:39.1206893Z [2m../../dist/renderer/[22m[36massets/js/ClusterOutlined-DNE4m8R6.js                   [39m[1m[2m    1.66 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1208233Z [2m../../dist/renderer/[22m[36massets/js/LikeOutlined-CF0iFxfP.js                      [39m[1m[2m    1.66 kB[22m[1m[22m[2m │ gzip:   0.91 kB[22m
+2026-10-10T01:34:39.1209807Z [2m../../dist/renderer/[22m[36massets/js/DislikeOutlined-DYAqH0SE.js                   [39m[1m[2m    1.66 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.1210953Z [2m../../dist/renderer/[22m[36massets/js/ShoppingCartOutlined-CTxbae5F.js              [39m[1m[2m    1.66 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1212115Z [2m../../dist/renderer/[22m[36massets/js/flow9-BeJ5waoc.js                             [39m[1m[2m    1.67 kB[22m[1m[22m[2m │ gzip:   0.81 kB[22m
+2026-10-10T01:34:39.1213219Z [2m../../dist/renderer/[22m[36massets/js/CloudUploadOutlined-DPe6j1pE.js               [39m[1m[2m    1.67 kB[22m[1m[22m[2m │ gzip:   1.00 kB[22m
+2026-10-10T01:34:39.1214383Z [2m../../dist/renderer/[22m[36massets/js/VCArtifact-VbKiPM_G.js                        [39m[1m[2m    1.68 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.1215523Z [2m../../dist/renderer/[22m[36massets/js/CloudDownloadOutlined-Do1tmiut.js             [39m[1m[2m    1.68 kB[22m[1m[22m[2m │ gzip:   0.99 kB[22m
+2026-10-10T01:34:39.1216658Z [2m../../dist/renderer/[22m[36massets/js/UserAddOutlined-Ds0_U8VP.js                   [39m[1m[2m    1.69 kB[22m[1m[22m[2m │ gzip:   0.97 kB[22m
+2026-10-10T01:34:39.1217755Z [2m../../dist/renderer/[22m[36massets/js/sb-BBc9UKZt.js                                [39m[1m[2m    1.69 kB[22m[1m[22m[2m │ gzip:   0.79 kB[22m
+2026-10-10T01:34:39.1218800Z [2m../../dist/renderer/[22m[36massets/js/addon-fit-CKTWxYTh.js                         [39m[1m[2m    1.70 kB[22m[1m[22m[2m │ gzip:   0.78 kB[22m
+2026-10-10T01:34:39.1219847Z [2m../../dist/renderer/[22m[36massets/js/bat-BwHxbl9M.js                               [39m[1m[2m    1.71 kB[22m[1m[22m[2m │ gzip:   0.83 kB[22m
+2026-10-10T01:34:39.1220935Z [2m../../dist/renderer/[22m[36massets/js/dockerfile-BG73LgW2.js                        [39m[1m[2m    1.73 kB[22m[1m[22m[2m │ gzip:   0.63 kB[22m
+2026-10-10T01:34:39.1222176Z [2m../../dist/renderer/[22m[36massets/js/FileIcon---YnW9EY.js                          [39m[1m[2m    1.75 kB[22m[1m[22m[2m │ gzip:   0.94 kB[22m
+2026-10-10T01:34:39.1223315Z [2m../../dist/renderer/[22m[36massets/js/CloudServerOutlined-BromqeoZ.js               [39m[1m[2m    1.77 kB[22m[1m[22m[2m │ gzip:   1.02 kB[22m
+2026-10-10T01:34:39.1224454Z [2m../../dist/renderer/[22m[36massets/js/NodeIndexOutlined-C5ZkYezU.js                 [39m[1m[2m    1.78 kB[22m[1m[22m[2m │ gzip:   1.03 kB[22m
+2026-10-10T01:34:39.1225564Z [2m../../dist/renderer/[22m[36massets/js/CommentOutlined-CZ1zrmK0.js                   [39m[1m[2m    1.78 kB[22m[1m[22m[2m │ gzip:   0.99 kB[22m
+2026-10-10T01:34:39.1226700Z [2m../../dist/renderer/[22m[36massets/js/ReadOutlined-Cx0DL-sy.js                      [39m[1m[2m    1.80 kB[22m[1m[22m[2m │ gzip:   0.91 kB[22m
+2026-10-10T01:34:39.1227815Z [2m../../dist/renderer/[22m[36massets/js/QrcodeOutlined-CXvM6XFt.js                    [39m[1m[2m    1.81 kB[22m[1m[22m[2m │ gzip:   0.77 kB[22m
+2026-10-10T01:34:39.1229391Z [2m../../dist/renderer/[22m[36massets/js/ShopOutlined-DXVUkphs.js                      [39m[1m[2m    1.86 kB[22m[1m[22m[2m │ gzip:   1.01 kB[22m
+2026-10-10T01:34:39.1230528Z [2m../../dist/renderer/[22m[36massets/js/pascaligo-DtZ0uQbO.js                         [39m[1m[2m    1.86 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1231623Z [2m../../dist/renderer/[22m[36massets/js/FilePdfOutlined-D42cNNE_.js                   [39m[1m[2m    1.89 kB[22m[1m[22m[2m │ gzip:   1.12 kB[22m
+2026-10-10T01:34:39.1232740Z [2m../../dist/renderer/[22m[36massets/js/git-hooks-DHxqdd_c.js                         [39m[1m[2m    1.92 kB[22m[1m[22m[2m │ gzip:   0.65 kB[22m
+2026-10-10T01:34:39.1233951Z [2m../../dist/renderer/[22m[36massets/js/FireOutlined-CtbZYQum.js                      [39m[1m[2m    1.93 kB[22m[1m[22m[2m │ gzip:   1.12 kB[22m
+2026-10-10T01:34:39.1235085Z [2m../../dist/renderer/[22m[36massets/js/xml-Ni9nFm4N.js                               [39m[1m[2m    1.94 kB[22m[1m[22m[2m │ gzip:   0.74 kB[22m
+2026-10-10T01:34:39.1236201Z [2m../../dist/renderer/[22m[36massets/js/StrikethroughOutlined-B4QBryxj.js             [39m[1m[2m    1.97 kB[22m[1m[22m[2m │ gzip:   1.13 kB[22m
+2026-10-10T01:34:39.1237305Z [2m../../dist/renderer/[22m[36massets/js/lua-Cyyb5UIc.js                               [39m[1m[2m    1.99 kB[22m[1m[22m[2m │ gzip:   0.89 kB[22m
+2026-10-10T01:34:39.1238397Z [2m../../dist/renderer/[22m[36massets/js/BugOutlined-DnCwzvyH.js                       [39m[1m[2m    2.03 kB[22m[1m[22m[2m │ gzip:   1.08 kB[22m
+2026-10-10T01:34:39.1239470Z [2m../../dist/renderer/[22m[36massets/js/cameligo-Bf6VGUru.js                          [39m[1m[2m    2.05 kB[22m[1m[22m[2m │ gzip:   0.92 kB[22m
+2026-10-10T01:34:39.1240575Z [2m../../dist/renderer/[22m[36massets/js/graphql-BxJiqAUM.js                           [39m[1m[2m    2.12 kB[22m[1m[22m[2m │ gzip:   0.99 kB[22m
+2026-10-10T01:34:39.1241682Z [2m../../dist/renderer/[22m[36massets/js/UsergroupAddOutlined-B2VpuFxs.js              [39m[1m[2m    2.13 kB[22m[1m[22m[2m │ gzip:   1.17 kB[22m
+2026-10-10T01:34:39.1242801Z [2m../../dist/renderer/[22m[36massets/js/ItalicOutlined-HNHnb2JH.js                    [39m[1m[2m    2.13 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.1243942Z [2m../../dist/renderer/[22m[36massets/js/CloudSyncOutlined-D5BtHLZ5.js                 [39m[1m[2m    2.16 kB[22m[1m[22m[2m │ gzip:   1.23 kB[22m
+2026-10-10T01:34:39.1245048Z [2m../../dist/renderer/[22m[36massets/js/unified-tools-CrTCp0JT.js                     [39m[1m[2m    2.17 kB[22m[1m[22m[2m │ gzip:   0.80 kB[22m
+2026-10-10T01:34:39.1246136Z [2m../../dist/renderer/[22m[36massets/js/sessionCore-FY2sZv8s.js                       [39m[1m[2m    2.21 kB[22m[1m[22m[2m │ gzip:   0.81 kB[22m
+2026-10-10T01:34:39.1247347Z [2m../../dist/renderer/[22m[36massets/js/objective-c-DBm-qgi-.js                       [39m[1m[2m    2.26 kB[22m[1m[22m[2m │ gzip:   1.02 kB[22m
+2026-10-10T01:34:39.1248457Z [2m../../dist/renderer/[22m[36massets/js/lexon-OrD6JF1K.js                             [39m[1m[2m    2.30 kB[22m[1m[22m[2m │ gzip:   0.89 kB[22m
+2026-10-10T01:34:39.1249978Z [2m../../dist/renderer/[22m[36massets/js/DoubleRightOutlined-Bt6cswP4.js               [39m[1m[2m    2.31 kB[22m[1m[22m[2m │ gzip:   0.87 kB[22m
+2026-10-10T01:34:39.1251146Z [2m../../dist/renderer/[22m[36massets/js/bicep-C6ulU1r4.js                             [39m[1m[2m    2.36 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+2026-10-10T01:34:39.1252424Z [2m../../dist/renderer/[22m[36massets/js/sparql-CJmd_6j2.js                            [39m[1m[2m    2.41 kB[22m[1m[22m[2m │ gzip:   1.12 kB[22m
+2026-10-10T01:34:39.1253540Z [2m../../dist/renderer/[22m[36massets/js/mips-CiqrrVzr.js                              [39m[1m[2m    2.44 kB[22m[1m[22m[2m │ gzip:   1.03 kB[22m
+2026-10-10T01:34:39.1254580Z [2m../../dist/renderer/[22m[36massets/js/go-acbASCJo.js                                [39m[1m[2m    2.52 kB[22m[1m[22m[2m │ gzip:   1.11 kB[22m
+2026-10-10T01:34:39.1255675Z [2m../../dist/renderer/[22m[36massets/js/MarkdownViewer-CoaPR_Ow.js                    [39m[1m[2m    2.56 kB[22m[1m[22m[2m │ gzip:   1.28 kB[22m
+2026-10-10T01:34:39.1256744Z [2m../../dist/renderer/[22m[36massets/js/index-B18mRc2P.js                             [39m[1m[2m    2.60 kB[22m[1m[22m[2m │ gzip:   1.21 kB[22m
+2026-10-10T01:34:39.1257831Z [2m../../dist/renderer/[22m[36massets/js/AndroidOutlined-CzFDclJ4.js                   [39m[1m[2m    2.62 kB[22m[1m[22m[2m │ gzip:   1.22 kB[22m
+2026-10-10T01:34:39.1260155Z [2m../../dist/renderer/[22m[36massets/js/typespec-Dhh-p9HY.js                          [39m[1m[2m    2.62 kB[22m[1m[22m[2m │ gzip:   1.02 kB[22m
+2026-10-10T01:34:39.1261378Z [2m../../dist/renderer/[22m[36massets/js/sophia-CnS9iZB_.js                            [39m[1m[2m    2.63 kB[22m[1m[22m[2m │ gzip:   1.17 kB[22m
+2026-10-10T01:34:39.1262541Z [2m../../dist/renderer/[22m[36massets/js/SettingOutlined-CodAQEDV.js                   [39m[1m[2m    2.63 kB[22m[1m[22m[2m │ gzip:   1.33 kB[22m
+2026-10-10T01:34:39.1263646Z [2m../../dist/renderer/[22m[36massets/js/m3-LY51E2VB.js                                [39m[1m[2m    2.68 kB[22m[1m[22m[2m │ gzip:   1.28 kB[22m
+2026-10-10T01:34:39.1264711Z [2m../../dist/renderer/[22m[36massets/js/index-DUPFaBR6.js                             [39m[1m[2m    2.79 kB[22m[1m[22m[2m │ gzip:   1.14 kB[22m
+2026-10-10T01:34:39.1265813Z [2m../../dist/renderer/[22m[36massets/js/fsharp-PahG7c26.js                            [39m[1m[2m    2.85 kB[22m[1m[22m[2m │ gzip:   1.28 kB[22m
+2026-10-10T01:34:39.1266890Z [2m../../dist/renderer/[22m[36massets/js/pascal-vHIfCaH5.js                            [39m[1m[2m    2.86 kB[22m[1m[22m[2m │ gzip:   1.36 kB[22m
+2026-10-10T01:34:39.1267974Z [2m../../dist/renderer/[22m[36massets/js/StatusBadge-Bc4tdBiT.js                       [39m[1m[2m    2.86 kB[22m[1m[22m[2m │ gzip:   1.30 kB[22m
+2026-10-10T01:34:39.1269510Z [2m../../dist/renderer/[22m[36massets/js/shell-DiJ1NA_G.js                             [39m[1m[2m    2.94 kB[22m[1m[22m[2m │ gzip:   1.16 kB[22m
+2026-10-10T01:34:39.1270592Z [2m../../dist/renderer/[22m[36massets/js/r-j7ic8hl3.js                                 [39m[1m[2m    2.99 kB[22m[1m[22m[2m │ gzip:   1.24 kB[22m
+2026-10-10T01:34:39.1272136Z [2m../../dist/renderer/[22m[36massets/js/DecentralizedStoragePage-DrhJsI6N.js          [39m[1m[2m    3.01 kB[22m[1m[22m[2m │ gzip:   1.28 kB[22m
+2026-10-10T01:34:39.1273316Z [2m../../dist/renderer/[22m[36massets/js/cssMode-D6bSvkLo.js                           [39m[1m[2m    3.01 kB[22m[1m[22m[2m │ gzip:   1.13 kB[22m
+2026-10-10T01:34:39.1274567Z [2m../../dist/renderer/[22m[36massets/js/qsharp-Bw9ernYp.js                            [39m[1m[2m    3.05 kB[22m[1m[22m[2m │ gzip:   1.37 kB[22m
+2026-10-10T01:34:39.1275657Z [2m../../dist/renderer/[22m[36massets/js/java-CXBNlu9o.js                              [39m[1m[2m    3.08 kB[22m[1m[22m[2m │ gzip:   1.36 kB[22m
+2026-10-10T01:34:39.1276730Z [2m../../dist/renderer/[22m[36massets/js/PQCEcosystemPage-CpeXhVRa.js                  [39m[1m[2m    3.10 kB[22m[1m[22m[2m │ gzip:   1.44 kB[22m
+2026-10-10T01:34:39.1277893Z [2m../../dist/renderer/[22m[36massets/js/EvoMapFederationPage-DDAqT84_.js              [39m[1m[2m    3.12 kB[22m[1m[22m[2m │ gzip:   1.28 kB[22m
+2026-10-10T01:34:39.1278994Z [2m../../dist/renderer/[22m[36massets/js/powershell-COWaemsV.js                        [39m[1m[2m    3.13 kB[22m[1m[22m[2m │ gzip:   1.34 kB[22m
+2026-10-10T01:34:39.1280102Z [2m../../dist/renderer/[22m[36massets/js/TrustRootPage-CnolLhfd.js                     [39m[1m[2m    3.22 kB[22m[1m[22m[2m │ gzip:   1.36 kB[22m
+2026-10-10T01:34:39.1281201Z [2m../../dist/renderer/[22m[36massets/js/cypher-Xe3m_mFX.js                            [39m[1m[2m    3.25 kB[22m[1m[22m[2m │ gzip:   1.40 kB[22m
+2026-10-10T01:34:39.1282292Z [2m../../dist/renderer/[22m[36massets/js/EvoMapGovernancePage-CSN0ttc4.js              [39m[1m[2m    3.26 kB[22m[1m[22m[2m │ gzip:   1.32 kB[22m
+2026-10-10T01:34:39.1283428Z [2m../../dist/renderer/[22m[36massets/js/kotlin-s7OhZKlX.js                            [39m[1m[2m    3.26 kB[22m[1m[22m[2m │ gzip:   1.43 kB[22m
+2026-10-10T01:34:39.1284557Z [2m../../dist/renderer/[22m[36massets/js/AntiCensorshipPage-Yzy7EaCv.js                [39m[1m[2m    3.31 kB[22m[1m[22m[2m │ gzip:   1.24 kB[22m
+2026-10-10T01:34:39.1285745Z [2m../../dist/renderer/[22m[36massets/js/redis-Bu5POkcn.js                             [39m[1m[2m    3.42 kB[22m[1m[22m[2m │ gzip:   1.44 kB[22m
+2026-10-10T01:34:39.1287295Z [2m../../dist/renderer/[22m[36massets/js/tcl-Dm6ycUr_.js                               [39m[1m[2m    3.43 kB[22m[1m[22m[2m │ gzip:   1.33 kB[22m
+2026-10-10T01:34:39.1288468Z [2m../../dist/renderer/[22m[36massets/js/coffee-CozJ4qrN.js                            [39m[1m[2m    3.45 kB[22m[1m[22m[2m │ gzip:   1.26 kB[22m
+2026-10-10T01:34:39.1289562Z [2m../../dist/renderer/[22m[36massets/js/hcl-DtV1sZF8.js                               [39m[1m[2m    3.45 kB[22m[1m[22m[2m │ gzip:   1.45 kB[22m
+2026-10-10T01:34:39.1290616Z [2m../../dist/renderer/[22m[36massets/js/htmlMode-CVPW6D3y.js                          [39m[1m[2m    3.48 kB[22m[1m[22m[2m │ gzip:   1.24 kB[22m
+2026-10-10T01:34:39.1291689Z [2m../../dist/renderer/[22m[36massets/js/liquid-CEAnUAI-.js                            [39m[1m[2m    3.48 kB[22m[1m[22m[2m │ gzip:   1.43 kB[22m
+2026-10-10T01:34:39.1292785Z [2m../../dist/renderer/[22m[36massets/js/index-Bp5zncFU.js                             [39m[1m[2m    3.49 kB[22m[1m[22m[2m │ gzip:   1.49 kB[22m
+2026-10-10T01:34:39.1293870Z [2m../../dist/renderer/[22m[36massets/js/MenuUnfoldOutlined-DGN12yzq.js                [39m[1m[2m    3.53 kB[22m[1m[22m[2m │ gzip:   1.04 kB[22m
+2026-10-10T01:34:39.1295010Z [2m../../dist/renderer/[22m[36massets/js/yaml-BOhE3lrv.js                              [39m[1m[2m    3.54 kB[22m[1m[22m[2m │ gzip:   1.29 kB[22m
+2026-10-10T01:34:39.1296302Z [2m../../dist/renderer/[22m[36massets/js/PluginPageWrapper-Lte35lnQ.js                 [39m[1m[2m    3.56 kB[22m[1m[22m[2m │ gzip:   1.74 kB[22m
+2026-10-10T01:34:39.1297435Z [2m../../dist/renderer/[22m[36massets/js/ProtocolFusionPage-Bj--1opv.js                [39m[1m[2m    3.64 kB[22m[1m[22m[2m │ gzip:   1.44 kB[22m
+2026-10-10T01:34:39.1298565Z [2m../../dist/renderer/[22m[36massets/js/markdown-B2IVEJkz.js                          [39m[1m[2m    3.67 kB[22m[1m[22m[2m │ gzip:   1.35 kB[22m
+2026-10-10T01:34:39.1299824Z [2m../../dist/renderer/[22m[36massets/js/GlobalOutlined-DxVD1O0r.js                    [39m[1m[2m    3.68 kB[22m[1m[22m[2m │ gzip:   1.85 kB[22m
+2026-10-10T01:34:39.1300959Z [2m../../dist/renderer/[22m[36massets/js/AISocialEnhancementPage-DW27pMWl.js           [39m[1m[2m    3.68 kB[22m[1m[22m[2m │ gzip:   1.50 kB[22m
+2026-10-10T01:34:39.1302104Z [2m../../dist/renderer/[22m[36massets/js/python-DlYBgs6Y.js                            [39m[1m[2m    3.72 kB[22m[1m[22m[2m │ gzip:   1.45 kB[22m
+2026-10-10T01:34:39.1303178Z [2m../../dist/renderer/[22m[36massets/js/less-BnJUVY2t.js                              [39m[1m[2m    3.76 kB[22m[1m[22m[2m │ gzip:   1.37 kB[22m
+2026-10-10T01:34:39.1304284Z [2m../../dist/renderer/[22m[36massets/js/restructuredtext-CdmJ0L9T.js                  [39m[1m[2m    3.77 kB[22m[1m[22m[2m │ gzip:   1.34 kB[22m
+2026-10-10T01:34:39.1305408Z [2m../../dist/renderer/[22m[36massets/js/SatelliteCommPage-T_6H9pZm.js                 [39m[1m[2m    3.79 kB[22m[1m[22m[2m │ gzip:   1.54 kB[22m
+2026-10-10T01:34:39.1306480Z [2m../../dist/renderer/[22m[36massets/js/apex-BNdX0WAH.js                              [39m[1m[2m    3.81 kB[22m[1m[22m[2m │ gzip:   1.73 kB[22m
+2026-10-10T01:34:39.1307964Z [2m../../dist/renderer/[22m[36massets/js/index-T_5YKmRB.js                             [39m[1m[2m    3.83 kB[22m[1m[22m[2m │ gzip:   1.36 kB[22m
+2026-10-10T01:34:39.1309048Z [2m../../dist/renderer/[22m[36massets/js/HSMAdapterPage-B9u_uW3H.js                    [39m[1m[2m    3.87 kB[22m[1m[22m[2m │ gzip:   1.62 kB[22m
+2026-10-10T01:34:39.1310170Z [2m../../dist/renderer/[22m[36massets/js/identityStore-WJ6-QDOs.js                     [39m[1m[2m    3.99 kB[22m[1m[22m[2m │ gzip:   1.19 kB[22m
+2026-10-10T01:34:39.1311370Z [2m../../dist/renderer/[22m[36massets/js/VirtualGrid-m07_Ic5y.js                       [39m[1m[2m    4.00 kB[22m[1m[22m[2m │ gzip:   1.79 kB[22m
+2026-10-10T01:34:39.1312456Z [2m../../dist/renderer/[22m[36massets/js/rust-BzKRNQWT.js                              [39m[1m[2m    4.02 kB[22m[1m[22m[2m │ gzip:   1.79 kB[22m
+2026-10-10T01:34:39.1313561Z [2m../../dist/renderer/[22m[36massets/js/StressTestPage-DgT8AJTV.js                    [39m[1m[2m    4.10 kB[22m[1m[22m[2m │ gzip:   1.71 kB[22m
+2026-10-10T01:34:39.1314637Z [2m../../dist/renderer/[22m[36massets/js/dart-BqPeQaEN.js                              [39m[1m[2m    4.11 kB[22m[1m[22m[2m │ gzip:   1.61 kB[22m
+2026-10-10T01:34:39.1315742Z [2m../../dist/renderer/[22m[36massets/js/ReputationOptimizerPage-CEvc01W1.js           [39m[1m[2m    4.21 kB[22m[1m[22m[2m │ gzip:   1.68 kB[22m
+2026-10-10T01:34:39.1316885Z [2m../../dist/renderer/[22m[36massets/js/index-DVTTP1Jc.js                             [39m[1m[2m    4.21 kB[22m[1m[22m[2m │ gzip:   1.93 kB[22m
+2026-10-10T01:34:39.1317984Z [2m../../dist/renderer/[22m[36massets/js/analytics-dashboard-fBNyXUTr.js               [39m[1m[2m    4.23 kB[22m[1m[22m[2m │ gzip:   1.37 kB[22m
+2026-10-10T01:34:39.1319157Z [2m../../dist/renderer/[22m[36massets/js/SSOLoginPage-BFXT1izw.js                      [39m[1m[2m    4.25 kB[22m[1m[22m[2m │ gzip:   2.14 kB[22m
+2026-10-10T01:34:39.1320240Z [2m../../dist/renderer/[22m[36massets/js/mdx-DuIbDmjW.js                               [39m[1m[2m    4.32 kB[22m[1m[22m[2m │ gzip:   1.21 kB[22m
+2026-10-10T01:34:39.1321352Z [2m../../dist/renderer/[22m[36massets/js/css-B3WdvWL3.js                               [39m[1m[2m    4.38 kB[22m[1m[22m[2m │ gzip:   1.34 kB[22m
+2026-10-10T01:34:39.1322533Z [2m../../dist/renderer/[22m[36massets/js/FederationHardeningPage-B5bSlLsP.js           [39m[1m[2m    4.39 kB[22m[1m[22m[2m │ gzip:   1.72 kB[22m
+2026-10-10T01:34:39.1323654Z [2m../../dist/renderer/[22m[36massets/js/csharp-Co3qMtFm.js                            [39m[1m[2m    4.39 kB[22m[1m[22m[2m │ gzip:   1.69 kB[22m
+2026-10-10T01:34:39.1324899Z [2m../../dist/renderer/[22m[36massets/js/workflow-designer-DDSouAoS.js                 [39m[1m[2m    4.39 kB[22m[1m[22m[2m │ gzip:   1.46 kB[22m
+2026-10-10T01:34:39.1326041Z [2m../../dist/renderer/[22m[36massets/js/index-C102GhiR.js                             [39m[1m[2m    4.40 kB[22m[1m[22m[2m │ gzip:   2.02 kB[22m
+2026-10-10T01:34:39.1357158Z [2m../../dist/renderer/[22m[36massets/js/TokenIncentivePage-CdIkoe7j.js                [39m[1m[2m    4.50 kB[22m[1m[22m[2m │ gzip:   1.77 kB[22m
+2026-10-10T01:34:39.1359016Z [2m../../dist/renderer/[22m[36massets/js/sso-CHYkkbzg.js                               [39m[1m[2m    4.52 kB[22m[1m[22m[2m │ gzip:   1.11 kB[22m
+2026-10-10T01:34:39.1360843Z [2m../../dist/renderer/[22m[36massets/js/html-AEkljWFB.js                              [39m[1m[2m    4.56 kB[22m[1m[22m[2m │ gzip:   1.17 kB[22m
+2026-10-10T01:34:39.1362197Z [2m../../dist/renderer/[22m[36massets/js/index-CbhrdoG5.js                             [39m[1m[2m    4.57 kB[22m[1m[22m[2m │ gzip:   2.04 kB[22m
+2026-10-10T01:34:39.1363403Z [2m../../dist/renderer/[22m[36massets/js/GitHooksPage-D1HZVX0s.js                      [39m[1m[2m    4.68 kB[22m[1m[22m[2m │ gzip:   1.91 kB[22m
+2026-10-10T01:34:39.1364552Z [2m../../dist/renderer/[22m[36massets/js/evomap-BDGfmcy9.js                            [39m[1m[2m    4.68 kB[22m[1m[22m[2m │ gzip:   1.05 kB[22m
+2026-10-10T01:34:39.1365606Z [2m../../dist/renderer/[22m[36massets/js/pug-8SOpv6rk.js                               [39m[1m[2m    4.69 kB[22m[1m[22m[2m │ gzip:   1.61 kB[22m
+2026-10-10T01:34:39.1366682Z [2m../../dist/renderer/[22m[36massets/js/EvoMapBrowser-w1c2nU2B.js                     [39m[1m[2m    4.70 kB[22m[1m[22m[2m │ gzip:   2.08 kB[22m
+2026-10-10T01:34:39.1368337Z [2m../../dist/renderer/[22m[36massets/js/LLMTestChatPage-DOaQOavq.js                   [39m[1m[2m    4.70 kB[22m[1m[22m[2m │ gzip:   2.29 kB[22m
+2026-10-10T01:34:39.1369470Z [2m../../dist/renderer/[22m[36massets/js/SyncConflictsPage-kJ4UF-Rj.js                 [39m[1m[2m    4.77 kB[22m[1m[22m[2m │ gzip:   2.25 kB[22m
+2026-10-10T01:34:39.1370623Z [2m../../dist/renderer/[22m[36massets/js/template-BZwHlTsS.js                          [39m[1m[2m    4.77 kB[22m[1m[22m[2m │ gzip:   1.72 kB[22m
+2026-10-10T01:34:39.1371686Z [2m../../dist/renderer/[22m[36massets/js/msdax-DmeGPVcC.js                             [39m[1m[2m    4.77 kB[22m[1m[22m[2m │ gzip:   1.91 kB[22m
+2026-10-10T01:34:39.1372700Z [2m../../dist/renderer/[22m[36massets/js/swift-CnmFD0ga.js                             [39m[1m[2m    4.77 kB[22m[1m[22m[2m │ gzip:   2.00 kB[22m
+2026-10-10T01:34:39.1373826Z [2m../../dist/renderer/[22m[36massets/js/MtcInclusionProofDrawer-Cg2L4-0P.js           [39m[1m[2m    4.78 kB[22m[1m[22m[2m │ gzip:   2.20 kB[22m
+2026-10-10T01:34:39.1374911Z [2m../../dist/renderer/[22m[36massets/js/SharedWorkspacesPage-D7jXKElc.js              [39m[1m[2m    4.84 kB[22m[1m[22m[2m │ gzip:   2.09 kB[22m
+2026-10-10T01:34:39.1375982Z [2m../../dist/renderer/[22m[36massets/js/typescript-Dx63AgFe.js                        [39m[1m[2m    4.90 kB[22m[1m[22m[2m │ gzip:   1.94 kB[22m
+2026-10-10T01:34:39.1377045Z [2m../../dist/renderer/[22m[36massets/js/EnhancedVoiceInput-q_z_V78B.js                [39m[1m[2m    4.92 kB[22m[1m[22m[2m │ gzip:   2.25 kB[22m
+2026-10-10T01:34:39.1378148Z [2m../../dist/renderer/[22m[36massets/js/index-C4fStfmw.js                             [39m[1m[2m    5.00 kB[22m[1m[22m[2m │ gzip:   2.04 kB[22m
+2026-10-10T01:34:39.1379268Z [2m../../dist/renderer/[22m[36massets/js/TaskDashboardPage-88OLeqxx.js                 [39m[1m[2m    5.00 kB[22m[1m[22m[2m │ gzip:   2.05 kB[22m
+2026-10-10T01:34:39.1380392Z [2m../../dist/renderer/[22m[36massets/js/SafetyNumbersPage-vt77_KtV.js                 [39m[1m[2m    5.10 kB[22m[1m[22m[2m │ gzip:   2.40 kB[22m
+2026-10-10T01:34:39.1381670Z [2m../../dist/renderer/[22m[36massets/js/desktopContextCenter-B5f74SMX.js              [39m[1m[2m    5.12 kB[22m[1m[22m[2m │ gzip:   2.21 kB[22m
+2026-10-10T01:34:39.1382791Z [2m../../dist/renderer/[22m[36massets/js/cpp-BBo9EYEl.js                               [39m[1m[2m    5.16 kB[22m[1m[22m[2m │ gzip:   2.06 kB[22m
+2026-10-10T01:34:39.1383808Z [2m../../dist/renderer/[22m[36massets/js/LoginPage-CJ3dny2l.js                         [39m[1m[2m    5.18 kB[22m[1m[22m[2m │ gzip:   2.36 kB[22m
+2026-10-10T01:34:39.1384835Z [2m../../dist/renderer/[22m[36massets/js/ecl-BEgZUVRK.js                               [39m[1m[2m    5.20 kB[22m[1m[22m[2m │ gzip:   2.19 kB[22m
+2026-10-10T01:34:39.1385895Z [2m../../dist/renderer/[22m[36massets/js/marketplace-Dg9wPzwn.js                       [39m[1m[2m    5.27 kB[22m[1m[22m[2m │ gzip:   1.06 kB[22m
+2026-10-10T01:34:39.1386948Z [2m../../dist/renderer/[22m[36massets/js/TechLearningPage-B8rYJzxm.js                  [39m[1m[2m    5.50 kB[22m[1m[22m[2m │ gzip:   2.07 kB[22m
+2026-10-10T01:34:39.1388440Z [2m../../dist/renderer/[22m[36massets/js/KnowledgeDetailPage-CFsxhriS.js               [39m[1m[2m    5.51 kB[22m[1m[22m[2m │ gzip:   2.42 kB[22m
+2026-10-10T01:34:39.1389573Z [2m../../dist/renderer/[22m[36massets/js/KnowledgeListPage-B-J5uQtS.js                 [39m[1m[2m    5.57 kB[22m[1m[22m[2m │ gzip:   2.59 kB[22m
+2026-10-10T01:34:39.1390723Z [2m../../dist/renderer/[22m[36massets/js/BLEDevicesPage-qIHsfbuc.js                    [39m[1m[2m    5.60 kB[22m[1m[22m[2m │ gzip:   2.06 kB[22m
+2026-10-10T01:34:39.1391878Z [2m../../dist/renderer/[22m[36massets/js/SyncSettings-BHrjn0M8.js                      [39m[1m[2m    5.63 kB[22m[1m[22m[2m │ gzip:   2.53 kB[22m
+2026-10-10T01:34:39.1393067Z [2m../../dist/renderer/[22m[36massets/js/vb-Db0cS2oM.js                                [39m[1m[2m    5.65 kB[22m[1m[22m[2m │ gzip:   2.02 kB[22m
+2026-10-10T01:34:39.1394213Z [2m../../dist/renderer/[22m[36massets/js/ConversationInput-DTMYDXVX.js                 [39m[1m[2m    5.67 kB[22m[1m[22m[2m │ gzip:   2.66 kB[22m
+2026-10-10T01:34:39.1395308Z [2m../../dist/renderer/[22m[36massets/js/index-D9anogni.js                             [39m[1m[2m    5.70 kB[22m[1m[22m[2m │ gzip:   2.17 kB[22m
+2026-10-10T01:34:39.1396386Z [2m../../dist/renderer/[22m[36massets/js/FirmwareOTAPage-In1YPfoS.js                   [39m[1m[2m    5.70 kB[22m[1m[22m[2m │ gzip:   2.23 kB[22m
+2026-10-10T01:34:39.1397547Z [2m../../dist/renderer/[22m[36massets/js/SessionFingerprintPage-Bcgo31VY.js            [39m[1m[2m    5.70 kB[22m[1m[22m[2m │ gzip:   2.63 kB[22m
+2026-10-10T01:34:39.1398688Z [2m../../dist/renderer/[22m[36massets/js/DevicePairingPage-r7Cm-K2P.js                 [39m[1m[2m    5.75 kB[22m[1m[22m[2m │ gzip:   2.64 kB[22m
+2026-10-10T01:34:39.1399836Z [2m../../dist/renderer/[22m[36massets/js/OrganizationsPage-DRx90mJ6.js                 [39m[1m[2m    5.76 kB[22m[1m[22m[2m │ gzip:   2.37 kB[22m
+2026-10-10T01:34:39.1400903Z [2m../../dist/renderer/[22m[36massets/js/twig-CU7587ZD.js                              [39m[1m[2m    5.84 kB[22m[1m[22m[2m │ gzip:   1.49 kB[22m
+2026-10-10T01:34:39.1401995Z [2m../../dist/renderer/[22m[36massets/js/ContentDetail-wN-acm12.js                     [39m[1m[2m    5.85 kB[22m[1m[22m[2m │ gzip:   2.42 kB[22m
+2026-10-10T01:34:39.1403168Z [2m../../dist/renderer/[22m[36massets/js/AutonomousDeveloperPage-BIA2sVPb.js           [39m[1m[2m    5.93 kB[22m[1m[22m[2m │ gzip:   2.16 kB[22m
+2026-10-10T01:34:39.1404292Z [2m../../dist/renderer/[22m[36massets/js/AIPromptsPage-BAHY5qtY.js                     [39m[1m[2m    6.00 kB[22m[1m[22m[2m │ gzip:   2.79 kB[22m
+2026-10-10T01:34:39.1405439Z [2m../../dist/renderer/[22m[36massets/js/ActivityPubBridgePage-CtDtNzEF.js             [39m[1m[2m    6.04 kB[22m[1m[22m[2m │ gzip:   2.13 kB[22m
+2026-10-10T01:34:39.1406648Z [2m../../dist/renderer/[22m[36massets/js/index-9ZoyUwxt.js                             [39m[1m[2m    6.09 kB[22m[1m[22m[2m │ gzip:   2.58 kB[22m
+2026-10-10T01:34:39.1407774Z [2m../../dist/renderer/[22m[36massets/js/CollaborationGovernancePage-DtG0aM3M.js       [39m[1m[2m    6.16 kB[22m[1m[22m[2m │ gzip:   2.23 kB[22m
+2026-10-10T01:34:39.1409394Z [2m../../dist/renderer/[22m[36massets/js/SkillDependencyGraph-ps1Xvqrx.js              [39m[1m[2m    6.23 kB[22m[1m[22m[2m │ gzip:   2.83 kB[22m
+2026-10-10T01:34:39.1410526Z [2m../../dist/renderer/[22m[36massets/js/MyPurchases-4Rx_tVNL.js                       [39m[1m[2m    6.25 kB[22m[1m[22m[2m │ gzip:   2.56 kB[22m
+2026-10-10T01:34:39.1411621Z [2m../../dist/renderer/[22m[36massets/js/scss-CYJiWjYa.js                              [39m[1m[2m    6.27 kB[22m[1m[22m[2m │ gzip:   1.71 kB[22m
+2026-10-10T01:34:39.1412690Z [2m../../dist/renderer/[22m[36massets/js/handlebars-ukBY3UTA.js                        [39m[1m[2m    6.30 kB[22m[1m[22m[2m │ gzip:   1.38 kB[22m
+2026-10-10T01:34:39.1413771Z [2m../../dist/renderer/[22m[36massets/js/index-CMcnRz6g.js                             [39m[1m[2m    6.46 kB[22m[1m[22m[2m │ gzip:   2.15 kB[22m
+2026-10-10T01:34:39.1414898Z [2m../../dist/renderer/[22m[36massets/js/SCIMIntegrationPage-KT-34DnU.js               [39m[1m[2m    6.47 kB[22m[1m[22m[2m │ gzip:   2.42 kB[22m
+2026-10-10T01:34:39.1416008Z [2m../../dist/renderer/[22m[36massets/js/SLAManagerPage-BJzX4u_B.js                    [39m[1m[2m    6.47 kB[22m[1m[22m[2m │ gzip:   2.38 kB[22m
+2026-10-10T01:34:39.1417147Z [2m../../dist/renderer/[22m[36massets/js/ProductionHardeningPage-SbAYbZBq.js           [39m[1m[2m    6.58 kB[22m[1m[22m[2m │ gzip:   2.29 kB[22m
+2026-10-10T01:34:39.1418441Z [2m../../dist/renderer/[22m[36massets/js/AssetStatistics-BnstUbbB.js                   [39m[1m[2m    6.59 kB[22m[1m[22m[2m │ gzip:   2.53 kB[22m
+2026-10-10T01:34:39.1419573Z [2m../../dist/renderer/[22m[36massets/js/MyReviews-B8rurZ8N.js                         [39m[1m[2m    6.63 kB[22m[1m[22m[2m │ gzip:   2.73 kB[22m
+2026-10-10T01:34:39.1420715Z [2m../../dist/renderer/[22m[36massets/js/AgentTemplateEditorPage-C-5BUeKC.js           [39m[1m[2m    6.74 kB[22m[1m[22m[2m │ gzip:   2.82 kB[22m
+2026-10-10T01:34:39.1421835Z [2m../../dist/renderer/[22m[36massets/js/WalletSelector-B1uLpxDw.js                    [39m[1m[2m    6.91 kB[22m[1m[22m[2m │ gzip:   2.61 kB[22m
+2026-10-10T01:34:39.1422520Z [33m
+2026-10-10T01:34:39.1422932Z (!) Some chunks are larger than 1000 kB after minification. Consider:
+2026-10-10T01:34:39.1423463Z - Using dynamic import() to code-split the application
+2026-10-10T01:34:39.1424264Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2026-10-10T01:34:39.1425204Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+2026-10-10T01:34:39.1426205Z [2m../../dist/renderer/[22m[36massets/js/ArticleReader-CMJ2MhDn.js                     [39m[1m[2m    6.95 kB[22m[1m[22m[2m │ gzip:   2.76 kB[22m
+2026-10-10T01:34:39.1427295Z [2m../../dist/renderer/[22m[36massets/js/julia-cl7-CwDS.js                             [39m[1m[2m    7.01 kB[22m[1m[22m[2m │ gzip:   2.62 kB[22m
+2026-10-10T01:34:39.1428785Z [2m../../dist/renderer/[22m[36massets/js/CrossOrgAuditPage-CpC6t5Kd.js                 [39m[1m[2m    7.17 kB[22m[1m[22m[2m │ gzip:   2.80 kB[22m
+2026-10-10T01:34:39.1429927Z [2m../../dist/renderer/[22m[36massets/js/scala-D9hQfWCl.js                             [39m[1m[2m    7.18 kB[22m[1m[22m[2m │ gzip:   2.06 kB[22m
+2026-10-10T01:34:39.1431003Z [2m../../dist/renderer/[22m[36massets/js/st-CHwy0fLd.js                                [39m[1m[2m    7.26 kB[22m[1m[22m[2m │ gzip:   2.21 kB[22m
+2026-10-10T01:34:39.1433037Z [2m../../dist/renderer/[22m[36massets/js/ThresholdSecurityPage-vPDbUA19.js             [39m[1m[2m    7.29 kB[22m[1m[22m[2m │ gzip:   2.74 kB[22m
+2026-10-10T01:34:39.1434164Z [2m../../dist/renderer/[22m[36massets/js/CodeEditor-DtxMRS-5.js                        [39m[1m[2m    7.31 kB[22m[1m[22m[2m │ gzip:   2.99 kB[22m
+2026-10-10T01:34:39.1435318Z [2m../../dist/renderer/[22m[36massets/js/ToolsExplorerPage-D2WrxMM4.js                 [39m[1m[2m    7.43 kB[22m[1m[22m[2m │ gzip:   2.78 kB[22m
+2026-10-10T01:34:39.1436454Z [2m../../dist/renderer/[22m[36massets/js/MatrixBridgePage-Psoe-WnY.js                  [39m[1m[2m    7.43 kB[22m[1m[22m[2m │ gzip:   2.68 kB[22m
+2026-10-10T01:34:39.1437591Z [2m../../dist/renderer/[22m[36massets/js/systemverilog-Bs9z6M-B.js                     [39m[1m[2m    7.47 kB[22m[1m[22m[2m │ gzip:   2.72 kB[22m
+2026-10-10T01:34:39.1438714Z [2m../../dist/renderer/[22m[36massets/js/SIEMIntegrationPage-jGB_JEl6.js               [39m[1m[2m    7.47 kB[22m[1m[22m[2m │ gzip:   2.81 kB[22m
+2026-10-10T01:34:39.1439822Z [2m../../dist/renderer/[22m[36massets/js/DemoTemplatesPage-COs22ZCX.js                 [39m[1m[2m    7.58 kB[22m[1m[22m[2m │ gzip:   2.92 kB[22m
+2026-10-10T01:34:39.1440987Z [2m../../dist/renderer/[22m[36massets/js/TerraformProviderPage-DlHSAy27.js             [39m[1m[2m    7.63 kB[22m[1m[22m[2m │ gzip:   2.74 kB[22m
+2026-10-10T01:34:39.1442111Z [2m../../dist/renderer/[22m[36massets/js/ShareProjectView-1mo5kg9O.js                  [39m[1m[2m    7.71 kB[22m[1m[22m[2m │ gzip:   3.43 kB[22m
+2026-10-10T01:34:39.1443217Z [2m../../dist/renderer/[22m[36massets/js/postiats-CocnycG-.js                          [39m[1m[2m    7.72 kB[22m[1m[22m[2m │ gzip:   2.40 kB[22m
+2026-10-10T01:34:39.1444261Z [2m../../dist/renderer/[22m[36massets/js/taskBoard-FcvpvNLe.js                         [39m[1m[2m    7.76 kB[22m[1m[22m[2m │ gzip:   1.86 kB[22m
+2026-10-10T01:34:39.1445438Z [2m../../dist/renderer/[22m[36massets/js/permission-Bfn7gSnP.js                        [39m[1m[2m    7.89 kB[22m[1m[22m[2m │ gzip:   1.71 kB[22m
+2026-10-10T01:34:39.1447170Z [2m../../dist/renderer/[22m[36massets/js/php-BBUBE1dy.js                               [39m[1m[2m    7.89 kB[22m[1m[22m[2m │ gzip:   2.04 kB[22m
+2026-10-10T01:34:39.1448297Z [2m../../dist/renderer/[22m[36massets/js/MomentsTimeline-CzmFpQTF.js                   [39m[1m[2m    7.97 kB[22m[1m[22m[2m │ gzip:   3.27 kB[22m
+2026-10-10T01:34:39.1449426Z [2m../../dist/renderer/[22m[36massets/js/PermissionSettingsPage-5wEuwAor.js            [39m[1m[2m    8.00 kB[22m[1m[22m[2m │ gzip:   2.85 kB[22m
+2026-10-10T01:34:39.1450580Z [2m../../dist/renderer/[22m[36massets/js/SyncWebDAV-COpJWE7E.js                        [39m[1m[2m    8.03 kB[22m[1m[22m[2m │ gzip:   3.38 kB[22m
+2026-10-10T01:34:39.1451637Z [2m../../dist/renderer/[22m[36massets/js/index-DtP_sdn6.js                             [39m[1m[2m    8.04 kB[22m[1m[22m[2m │ gzip:   3.11 kB[22m
+2026-10-10T01:34:39.1452738Z [2m../../dist/renderer/[22m[36massets/js/FileImport-CiPQ3ytw.js                        [39m[1m[2m    8.05 kB[22m[1m[22m[2m │ gzip:   3.31 kB[22m
+2026-10-10T01:34:39.1453793Z [2m../../dist/renderer/[22m[36massets/js/ProjectSidebar-Bt59ufIO.js                    [39m[1m[2m    8.06 kB[22m[1m[22m[2m │ gzip:   3.31 kB[22m
+2026-10-10T01:34:39.1454881Z [2m../../dist/renderer/[22m[36massets/js/WebDevEditor-DCFZGz4j.js                      [39m[1m[2m    8.07 kB[22m[1m[22m[2m │ gzip:   3.34 kB[22m
+2026-10-10T01:34:39.1456002Z [2m../../dist/renderer/[22m[36massets/js/MarkdownEditor-uEqmpiUv.js                    [39m[1m[2m    8.08 kB[22m[1m[22m[2m │ gzip:   3.08 kB[22m
+2026-10-10T01:34:39.1457064Z [2m../../dist/renderer/[22m[36massets/js/perl-Ub6l9XKa.js                              [39m[1m[2m    8.12 kB[22m[1m[22m[2m │ gzip:   3.10 kB[22m
+2026-10-10T01:34:39.1458756Z [2m../../dist/renderer/[22m[36massets/js/DatabasePerformancePage-Cf7vHJ8Z.js           [39m[1m[2m    8.19 kB[22m[1m[22m[2m │ gzip:   3.05 kB[22m
+2026-10-10T01:34:39.1459931Z [2m../../dist/renderer/[22m[36massets/js/TransactionStatistics-DY_cqRxF.js             [39m[1m[2m    8.20 kB[22m[1m[22m[2m │ gzip:   3.36 kB[22m
+2026-10-10T01:34:39.1461074Z [2m../../dist/renderer/[22m[36massets/js/MCPServerMarketplace-nUx29vlf.js              [39m[1m[2m    8.24 kB[22m[1m[22m[2m │ gzip:   3.05 kB[22m
+2026-10-10T01:34:39.1462203Z [2m../../dist/renderer/[22m[36massets/js/index-DmQubkH8.js                             [39m[1m[2m    8.30 kB[22m[1m[22m[2m │ gzip:   3.34 kB[22m
+2026-10-10T01:34:39.1463280Z [2m../../dist/renderer/[22m[36massets/js/razor-CSdg73Jd.js                             [39m[1m[2m    8.31 kB[22m[1m[22m[2m │ gzip:   2.07 kB[22m
+2026-10-10T01:34:39.1464371Z [2m../../dist/renderer/[22m[36massets/js/index-TuYVyab8.js                             [39m[1m[2m    8.33 kB[22m[1m[22m[2m │ gzip:   2.51 kB[22m
+2026-10-10T01:34:39.1465401Z [2m../../dist/renderer/[22m[36massets/js/wgsl-DG5JRU1r.js                              [39m[1m[2m    8.33 kB[22m[1m[22m[2m │ gzip:   2.75 kB[22m
+2026-10-10T01:34:39.1466852Z [2m../../dist/renderer/[22m[36massets/js/ruby-DekwO-k2.js                              [39m[1m[2m    8.37 kB[22m[1m[22m[2m │ gzip:   2.54 kB[22m
+2026-10-10T01:34:39.1468010Z [2m../../dist/renderer/[22m[36massets/js/AndroidFeaturesTestPage-Y8r4QkZ8.js           [39m[1m[2m    8.39 kB[22m[1m[22m[2m │ gzip:   2.41 kB[22m
+2026-10-10T01:34:39.1469097Z [2m../../dist/renderer/[22m[36massets/js/EmailComposer-BmyT6Vvw.js                     [39m[1m[2m    8.40 kB[22m[1m[22m[2m │ gzip:   3.49 kB[22m
+2026-10-10T01:34:39.1470191Z [2m../../dist/renderer/[22m[36massets/js/SharedWorkspaceDetailPage-CGd38xgt.js         [39m[1m[2m    8.48 kB[22m[1m[22m[2m │ gzip:   2.95 kB[22m
+2026-10-10T01:34:39.1471412Z [2m../../dist/renderer/[22m[36massets/js/crossOrg-BG7C8vWj.js                          [39m[1m[2m    8.51 kB[22m[1m[22m[2m │ gzip:   1.76 kB[22m
+2026-10-10T01:34:39.1472463Z [2m../../dist/renderer/[22m[36massets/js/NostrBridgePage-K3PwmDgM.js                   [39m[1m[2m    8.53 kB[22m[1m[22m[2m │ gzip:   2.95 kB[22m
+2026-10-10T01:34:39.1473524Z [2m../../dist/renderer/[22m[36massets/js/GovernancePage-DUzeAwSn.js                    [39m[1m[2m    8.60 kB[22m[1m[22m[2m │ gzip:   3.03 kB[22m
+2026-10-10T01:34:39.1474585Z [2m../../dist/renderer/[22m[36massets/js/DeviceManagementPage-DKDfcWuo.js              [39m[1m[2m    8.60 kB[22m[1m[22m[2m │ gzip:   3.52 kB[22m
+2026-10-10T01:34:39.1475660Z [2m../../dist/renderer/[22m[36massets/js/ContactManagement-DD8ngYi0.js                 [39m[1m[2m    8.76 kB[22m[1m[22m[2m │ gzip:   3.28 kB[22m
+2026-10-10T01:34:39.1476718Z [2m../../dist/renderer/[22m[36massets/js/TransactionList-DqQaW4To.js                   [39m[1m[2m    8.83 kB[22m[1m[22m[2m │ gzip:   3.38 kB[22m
+2026-10-10T01:34:39.1477886Z [2m../../dist/renderer/[22m[36massets/js/ComplianceDashboardPage-DQWWBhi-.js           [39m[1m[2m    8.87 kB[22m[1m[22m[2m │ gzip:   2.72 kB[22m
+2026-10-10T01:34:39.1478973Z [2m../../dist/renderer/[22m[36massets/js/B2BTransactionsPage-BP8LK8RD.js               [39m[1m[2m    8.88 kB[22m[1m[22m[2m │ gzip:   3.22 kB[22m
+2026-10-10T01:34:39.1480006Z [2m../../dist/renderer/[22m[36massets/js/protobuf-CNF4Uy2b.js                          [39m[1m[2m    8.91 kB[22m[1m[22m[2m │ gzip:   2.03 kB[22m
+2026-10-10T01:34:39.1481011Z [2m../../dist/renderer/[22m[36massets/js/SyncMobile-d7hLQ8-p.js                        [39m[1m[2m    9.09 kB[22m[1m[22m[2m │ gzip:   3.94 kB[22m
+2026-10-10T01:34:39.1482042Z [2m../../dist/renderer/[22m[36massets/js/TaskBoardPage-BJWtrL9B.js                     [39m[1m[2m    9.39 kB[22m[1m[22m[2m │ gzip:   3.36 kB[22m
+2026-10-10T01:34:39.1483099Z [2m../../dist/renderer/[22m[36massets/js/SocialInsightsPage-Bf8FVHRZ.js                [39m[1m[2m    9.43 kB[22m[1m[22m[2m │ gzip:   3.13 kB[22m
+2026-10-10T01:34:39.1484133Z [2m../../dist/renderer/[22m[36massets/js/clojure-Dnu-v4kV.js                           [39m[1m[2m    9.51 kB[22m[1m[22m[2m │ gzip:   3.57 kB[22m
+2026-10-10T01:34:39.1485163Z [2m../../dist/renderer/[22m[36massets/js/MultimodalCollabPage-BIMAQOab.js              [39m[1m[2m    9.67 kB[22m[1m[22m[2m │ gzip:   3.28 kB[22m
+2026-10-10T01:34:39.1486235Z [2m../../dist/renderer/[22m[36massets/js/OfflineQueueManager-BZEPxdxl.js               [39m[1m[2m    9.73 kB[22m[1m[22m[2m │ gzip:   3.52 kB[22m
+2026-10-10T01:34:39.1487649Z [2m../../dist/renderer/[22m[36massets/js/tool-C4lMCme_.js                              [39m[1m[2m    9.74 kB[22m[1m[22m[2m │ gzip:   1.93 kB[22m
+2026-10-10T01:34:39.1488753Z [2m../../dist/renderer/[22m[36massets/js/project-QrDJrEdC.js                           [39m[1m[2m    9.79 kB[22m[1m[22m[2m │ gzip:   3.21 kB[22m
+2026-10-10T01:34:39.1489815Z [2m../../dist/renderer/[22m[36massets/js/PartnerCenterPage-vQUWzNvE.js                 [39m[1m[2m    9.82 kB[22m[1m[22m[2m │ gzip:   3.45 kB[22m
+2026-10-10T01:34:39.1490867Z [2m../../dist/renderer/[22m[36massets/js/PQCMigrationPage-lhVPcrbz.js                  [39m[1m[2m    9.84 kB[22m[1m[22m[2m │ gzip:   3.09 kB[22m
+2026-10-10T01:34:39.1491915Z [2m../../dist/renderer/[22m[36massets/js/DLPPoliciesPage-CyRZBh-H.js                   [39m[1m[2m    9.89 kB[22m[1m[22m[2m │ gzip:   3.22 kB[22m
+2026-10-10T01:34:39.1492950Z [2m../../dist/renderer/[22m[36massets/js/session-CorOoq_w.js                           [39m[1m[2m    9.94 kB[22m[1m[22m[2m │ gzip:   2.08 kB[22m
+2026-10-10T01:34:39.1493946Z [2m../../dist/renderer/[22m[36massets/js/ForumList-4CTZEb6N.js                         [39m[1m[2m    9.95 kB[22m[1m[22m[2m │ gzip:   3.57 kB[22m
+2026-10-10T01:34:39.1494951Z [2m../../dist/renderer/[22m[36massets/js/agents-CBPM-2On.js                            [39m[1m[2m   10.00 kB[22m[1m[22m[2m │ gzip:   2.18 kB[22m
+2026-10-10T01:34:39.1495980Z [2m../../dist/renderer/[22m[36massets/js/PluginDetailPage-DGEulx5F.js                  [39m[1m[2m   10.09 kB[22m[1m[22m[2m │ gzip:   3.76 kB[22m
+2026-10-10T01:34:39.1496994Z [2m../../dist/renderer/[22m[36massets/js/elixir-BkW5O-1t.js                            [39m[1m[2m   10.12 kB[22m[1m[22m[2m │ gzip:   2.50 kB[22m
+2026-10-10T01:34:39.1497980Z [2m../../dist/renderer/[22m[36massets/js/sql-ClhHkBeG.js                               [39m[1m[2m   10.16 kB[22m[1m[22m[2m │ gzip:   3.79 kB[22m
+2026-10-10T01:34:39.1498970Z [2m../../dist/renderer/[22m[36massets/js/ArchivedPage-D7Nc_0g0.js                      [39m[1m[2m   10.17 kB[22m[1m[22m[2m │ gzip:   3.84 kB[22m
+2026-10-10T01:34:39.1500000Z [2m../../dist/renderer/[22m[36massets/js/FileTransferPage-Bs3iw6Fo.js                  [39m[1m[2m   10.17 kB[22m[1m[22m[2m │ gzip:   3.86 kB[22m
+2026-10-10T01:34:39.1501196Z [2m../../dist/renderer/[22m[36massets/js/OrganizationActivityLogPage-h7gHHZoC.js       [39m[1m[2m   10.38 kB[22m[1m[22m[2m │ gzip:   3.76 kB[22m
+2026-10-10T01:34:39.1502288Z [2m../../dist/renderer/[22m[36massets/js/TagManagerPage-18vPaBvT.js                    [39m[1m[2m   10.42 kB[22m[1m[22m[2m │ gzip:   4.04 kB[22m
+2026-10-10T01:34:39.1503348Z [2m../../dist/renderer/[22m[36massets/js/HardwareWalletPage-CFxyjbX4.js                [39m[1m[2m   10.43 kB[22m[1m[22m[2m │ gzip:   3.40 kB[22m
+2026-10-10T01:34:39.1504378Z [2m../../dist/renderer/[22m[36massets/js/FeedList-CQ1JTE9V.js                          [39m[1m[2m   10.55 kB[22m[1m[22m[2m │ gzip:   3.72 kB[22m
+2026-10-10T01:34:39.1505392Z [2m../../dist/renderer/[22m[36massets/js/MessageQueuePage-DCSzE0eF.js                  [39m[1m[2m   10.83 kB[22m[1m[22m[2m │ gzip:   3.50 kB[22m
+2026-10-10T01:34:39.1506440Z [2m../../dist/renderer/[22m[36massets/js/CoworkDashboard-C9g2VvPE.js                   [39m[1m[2m   10.85 kB[22m[1m[22m[2m │ gzip:   3.97 kB[22m
+2026-10-10T01:34:39.1507841Z [2m../../dist/renderer/[22m[36massets/js/mysql-C_tMU-Nz.js                             [39m[1m[2m   11.14 kB[22m[1m[22m[2m │ gzip:   4.01 kB[22m
+2026-10-10T01:34:39.1508849Z [2m../../dist/renderer/[22m[36massets/js/CreditScore-B7AFtcPM.js                       [39m[1m[2m   11.22 kB[22m[1m[22m[2m │ gzip:   4.51 kB[22m
+2026-10-10T01:34:39.1509845Z [2m../../dist/renderer/[22m[36massets/js/index-CRCcIMk_.js                             [39m[1m[2m   11.25 kB[22m[1m[22m[2m │ gzip:   4.05 kB[22m
+2026-10-10T01:34:39.1510820Z [2m../../dist/renderer/[22m[36massets/js/index-BbpwBAaO.js                             [39m[1m[2m   11.33 kB[22m[1m[22m[2m │ gzip:   3.82 kB[22m
+2026-10-10T01:34:39.1511946Z [2m../../dist/renderer/[22m[36massets/js/RemoteControl-DQu7YdMl.js                     [39m[1m[2m   11.38 kB[22m[1m[22m[2m │ gzip:   4.24 kB[22m
+2026-10-10T01:34:39.1513003Z [2m../../dist/renderer/[22m[36massets/js/AccountManager-d7i1PUgo.js                    [39m[1m[2m   11.52 kB[22m[1m[22m[2m │ gzip:   3.99 kB[22m
+2026-10-10T01:34:39.1514016Z [2m../../dist/renderer/[22m[36massets/js/redshift-Bs9aos_-.js                          [39m[1m[2m   11.66 kB[22m[1m[22m[2m │ gzip:   4.30 kB[22m
+2026-10-10T01:34:39.1515067Z [2m../../dist/renderer/[22m[36massets/js/PermissionManagementPage-Dox39OzS.js          [39m[1m[2m   11.80 kB[22m[1m[22m[2m │ gzip:   3.43 kB[22m
+2026-10-10T01:34:39.1516122Z [2m../../dist/renderer/[22m[36massets/js/ContentStore-BfKQ_dXi.js                      [39m[1m[2m   12.10 kB[22m[1m[22m[2m │ gzip:   4.51 kB[22m
+2026-10-10T01:34:39.1517149Z [2m../../dist/renderer/[22m[36massets/js/jsonMode-BrcwnoDW.js                          [39m[1m[2m   12.24 kB[22m[1m[22m[2m │ gzip:   4.54 kB[22m
+2026-10-10T01:34:39.1518156Z [2m../../dist/renderer/[22m[36massets/js/cowork-BlfiU1RO.js                            [39m[1m[2m   12.33 kB[22m[1m[22m[2m │ gzip:   3.02 kB[22m
+2026-10-10T01:34:39.1519176Z [2m../../dist/renderer/[22m[36massets/js/CollabEditorPage-CDIOcBg9.js                  [39m[1m[2m   12.37 kB[22m[1m[22m[2m │ gzip:   3.84 kB[22m
+2026-10-10T01:34:39.1520240Z [2m../../dist/renderer/[22m[36massets/js/SkillMarketplacePage-BGLV8qwS.js              [39m[1m[2m   12.41 kB[22m[1m[22m[2m │ gzip:   4.78 kB[22m
+2026-10-10T01:34:39.1521293Z [2m../../dist/renderer/[22m[36massets/js/ChainSelector-CslsumoM.js                     [39m[1m[2m   12.67 kB[22m[1m[22m[2m │ gzip:   3.77 kB[22m
+2026-10-10T01:34:39.1522318Z [2m../../dist/renderer/[22m[36massets/js/dropdown-CkZJKCRK.js                          [39m[1m[2m   12.69 kB[22m[1m[22m[2m │ gzip:   4.11 kB[22m
+2026-10-10T01:34:39.1523343Z [2m../../dist/renderer/[22m[36massets/js/TeamSettingsPage-e6UyrMVc.js                  [39m[1m[2m   12.85 kB[22m[1m[22m[2m │ gzip:   4.38 kB[22m
+2026-10-10T01:34:39.1524499Z [2m../../dist/renderer/[22m[36massets/js/OrganizationRolesPage-B2AXDEiF.js             [39m[1m[2m   13.06 kB[22m[1m[22m[2m │ gzip:   4.93 kB[22m
+2026-10-10T01:34:39.1525586Z [2m../../dist/renderer/[22m[36massets/js/CategoryManagePage-urDr_4py.js                [39m[1m[2m   13.06 kB[22m[1m[22m[2m │ gzip:   4.27 kB[22m
+2026-10-10T01:34:39.1526636Z [2m../../dist/renderer/[22m[36massets/js/PluginMarketplace-Cc4G4flD.js                 [39m[1m[2m   13.11 kB[22m[1m[22m[2m │ gzip:   4.94 kB[22m
+2026-10-10T01:34:39.1528154Z [2m../../dist/renderer/[22m[36massets/js/VoiceInputTestPage-LtbXE5Qw.js                [39m[1m[2m   13.14 kB[22m[1m[22m[2m │ gzip:   4.92 kB[22m
+2026-10-10T01:34:39.1529204Z [2m../../dist/renderer/[22m[36massets/js/TradingHub-DtvfK_36.js                        [39m[1m[2m   13.32 kB[22m[1m[22m[2m │ gzip:   4.55 kB[22m
+2026-10-10T01:34:39.1530222Z [2m../../dist/renderer/[22m[36massets/js/pgsql-BlNEE0v7.js                             [39m[1m[2m   13.33 kB[22m[1m[22m[2m │ gzip:   4.46 kB[22m
+2026-10-10T01:34:39.1531236Z [2m../../dist/renderer/[22m[36massets/js/BackupDashboard-DG7YdObV.js                   [39m[1m[2m   13.58 kB[22m[1m[22m[2m │ gzip:   4.33 kB[22m
+2026-10-10T01:34:39.1532286Z [2m../../dist/renderer/[22m[36massets/js/PluginManagement-DvEsSDbv.js                  [39m[1m[2m   13.59 kB[22m[1m[22m[2m │ gzip:   4.67 kB[22m
+2026-10-10T01:34:39.1533337Z [2m../../dist/renderer/[22m[36massets/js/PluginPublisher-CZtBaUWn.js                   [39m[1m[2m   13.72 kB[22m[1m[22m[2m │ gzip:   5.28 kB[22m
+2026-10-10T01:34:39.1534378Z [2m../../dist/renderer/[22m[36massets/js/CoworkAnalytics-BYqHncjB.js                   [39m[1m[2m   13.96 kB[22m[1m[22m[2m │ gzip:   4.78 kB[22m
+2026-10-10T01:34:39.1535509Z [2m../../dist/renderer/[22m[36massets/js/index-BXi-H9a1.js                             [39m[1m[2m   13.99 kB[22m[1m[22m[2m │ gzip:   3.59 kB[22m
+2026-10-10T01:34:39.1536508Z [2m../../dist/renderer/[22m[36massets/js/abap-DLDM7-KI.js                              [39m[1m[2m   14.03 kB[22m[1m[22m[2m │ gzip:   5.27 kB[22m
+2026-10-10T01:34:39.1537519Z [2m../../dist/renderer/[22m[36massets/js/MarkdownEditor-6odYTWcn.js                    [39m[1m[2m   14.09 kB[22m[1m[22m[2m │ gzip:   5.32 kB[22m
+2026-10-10T01:34:39.1538555Z [2m../../dist/renderer/[22m[36massets/js/DesignEditorPage-DyMgkZe-.js                  [39m[1m[2m   14.25 kB[22m[1m[22m[2m │ gzip:   4.94 kB[22m
+2026-10-10T01:34:39.1539575Z [2m../../dist/renderer/[22m[36massets/js/index-CcZEkjGb.js                             [39m[1m[2m   14.41 kB[22m[1m[22m[2m │ gzip:   4.33 kB[22m
+2026-10-10T01:34:39.1540608Z [2m../../dist/renderer/[22m[36massets/js/OrganizationMembersPage-BVgrcKrf.js           [39m[1m[2m   14.44 kB[22m[1m[22m[2m │ gzip:   5.12 kB[22m
+2026-10-10T01:34:39.1541685Z [2m../../dist/renderer/[22m[36massets/js/SkillManager-BkeFHTLy.js                      [39m[1m[2m   14.53 kB[22m[1m[22m[2m │ gzip:   5.10 kB[22m
+2026-10-10T01:34:39.1542711Z [2m../../dist/renderer/[22m[36massets/js/TeamDetailPanel-Dt0gwk-H.js                   [39m[1m[2m   14.59 kB[22m[1m[22m[2m │ gzip:   5.50 kB[22m
+2026-10-10T01:34:39.1543765Z [2m../../dist/renderer/[22m[36massets/js/PerformanceDashboard-Bj5D3O8O.js              [39m[1m[2m   14.75 kB[22m[1m[22m[2m │ gzip:   4.55 kB[22m
+2026-10-10T01:34:39.1544836Z [2m../../dist/renderer/[22m[36massets/js/EnterpriseDashboard-CFETN1MJ.js               [39m[1m[2m   14.75 kB[22m[1m[22m[2m │ gzip:   4.51 kB[22m
+2026-10-10T01:34:39.1545885Z [2m../../dist/renderer/[22m[36massets/js/CommandLogsPage-Cxqia4D5.js                   [39m[1m[2m   14.77 kB[22m[1m[22m[2m │ gzip:   5.01 kB[22m
+2026-10-10T01:34:39.1547278Z [2m../../dist/renderer/[22m[36massets/js/PromptTemplates-LKcoMd3h.js                   [39m[1m[2m   14.91 kB[22m[1m[22m[2m │ gzip:   5.24 kB[22m
+2026-10-10T01:34:39.1548452Z [2m../../dist/renderer/[22m[36massets/js/trade-BmzMxRaR.js                             [39m[1m[2m   15.11 kB[22m[1m[22m[2m │ gzip:   3.42 kB[22m
+2026-10-10T01:34:39.1549523Z [2m../../dist/renderer/[22m[36massets/js/WorkflowOptimizationsDashboard-BOERCQge.js    [39m[1m[2m   15.14 kB[22m[1m[22m[2m │ gzip:   5.27 kB[22m
+2026-10-10T01:34:39.1550651Z [2m../../dist/renderer/[22m[36massets/js/OrganizationSettingsPage-l4lVdKNs.js          [39m[1m[2m   15.22 kB[22m[1m[22m[2m │ gzip:   5.17 kB[22m
+2026-10-10T01:34:39.1551704Z [2m../../dist/renderer/[22m[36massets/js/EmailReader-xiposKB2.js                       [39m[1m[2m   15.47 kB[22m[1m[22m[2m │ gzip:   5.01 kB[22m
+2026-10-10T01:34:39.1552733Z [2m../../dist/renderer/[22m[36massets/js/freemarker2-BDuRafzB.js                       [39m[1m[2m   15.60 kB[22m[1m[22m[2m │ gzip:   3.90 kB[22m
+2026-10-10T01:34:39.1553740Z [2m../../dist/renderer/[22m[36massets/js/PostFeed-DCw6WRZy.js                          [39m[1m[2m   15.70 kB[22m[1m[22m[2m │ gzip:   6.04 kB[22m
+2026-10-10T01:34:39.1554751Z [2m../../dist/renderer/[22m[36massets/js/projectsQuick-t8QUzsRT.js                     [39m[1m[2m   15.73 kB[22m[1m[22m[2m │ gzip:   5.68 kB[22m
+2026-10-10T01:34:39.1555811Z [2m../../dist/renderer/[22m[36massets/js/AnalyticsDashboardPage-DuerdRJa.js            [39m[1m[2m   15.77 kB[22m[1m[22m[2m │ gzip:   4.85 kB[22m
+2026-10-10T01:34:39.1556857Z [2m../../dist/renderer/[22m[36massets/js/ImageUpload-CyoIvStY.js                       [39m[1m[2m   16.47 kB[22m[1m[22m[2m │ gzip:   5.77 kB[22m
+2026-10-10T01:34:39.1557878Z [2m../../dist/renderer/[22m[36massets/js/WorkspaceManager-XTjV3_s0.js                  [39m[1m[2m   16.58 kB[22m[1m[22m[2m │ gzip:   5.30 kB[22m
+2026-10-10T01:34:39.1558989Z [2m../../dist/renderer/[22m[36massets/js/powerquery-tScXyioY.js                        [39m[1m[2m   16.80 kB[22m[1m[22m[2m │ gzip:   4.81 kB[22m
+2026-10-10T01:34:39.1560032Z [2m../../dist/renderer/[22m[36massets/js/CollaborationPage-BHxgFmwF.js                 [39m[1m[2m   16.83 kB[22m[1m[22m[2m │ gzip:   5.81 kB[22m
+2026-10-10T01:34:39.1561084Z [2m../../dist/renderer/[22m[36massets/js/CollabEditorPage-avJPIJNH.js                  [39m[1m[2m   17.39 kB[22m[1m[22m[2m │ gzip:   5.68 kB[22m
+2026-10-10T01:34:39.1562149Z [2m../../dist/renderer/[22m[36massets/js/PluginMarketplacePage-CVc1xP86.js             [39m[1m[2m   17.58 kB[22m[1m[22m[2m │ gzip:   5.73 kB[22m
+2026-10-10T01:34:39.1563253Z [2m../../dist/renderer/[22m[36massets/js/RichTextEditor-BONxTkIH.js                    [39m[1m[2m   17.71 kB[22m[1m[22m[2m │ gzip:   5.49 kB[22m
+2026-10-10T01:34:39.1564279Z [2m../../dist/renderer/[22m[36massets/js/ReviewList-BNpxmYQY.js                        [39m[1m[2m   18.01 kB[22m[1m[22m[2m │ gzip:   6.16 kB[22m
+2026-10-10T01:34:39.1565297Z [2m../../dist/renderer/[22m[36massets/js/solidity-Db0IVjzk.js                          [39m[1m[2m   18.46 kB[22m[1m[22m[2m │ gzip:   4.41 kB[22m
+2026-10-10T01:34:39.1566290Z [2m../../dist/renderer/[22m[36massets/js/Bridge-Cld7XB0f.js                            [39m[1m[2m   18.62 kB[22m[1m[22m[2m │ gzip:   6.47 kB[22m
+2026-10-10T01:34:39.1567649Z [2m../../dist/renderer/[22m[36massets/js/EnterpriseOrgPage-CXWJp8pv.js                 [39m[1m[2m   18.94 kB[22m[1m[22m[2m │ gzip:   5.24 kB[22m
+2026-10-10T01:34:39.1568714Z [2m../../dist/renderer/[22m[36massets/js/IPFSStoragePage-3h_cPrUP.js                   [39m[1m[2m   19.32 kB[22m[1m[22m[2m │ gzip:   5.75 kB[22m
+2026-10-10T01:34:39.1569723Z [2m../../dist/renderer/[22m[36massets/js/index-za2d6BOy.js                             [39m[1m[2m   19.39 kB[22m[1m[22m[2m │ gzip:   7.26 kB[22m
+2026-10-10T01:34:39.1570749Z [2m../../dist/renderer/[22m[36massets/js/KnowledgeGraphPage-l5nbS9op.js                [39m[1m[2m   19.42 kB[22m[1m[22m[2m │ gzip:   6.96 kB[22m
+2026-10-10T01:34:39.1571922Z [2m../../dist/renderer/[22m[36massets/js/MarketPage-Cv6Xhn2g.js                        [39m[1m[2m   19.46 kB[22m[1m[22m[2m │ gzip:   6.94 kB[22m
+2026-10-10T01:34:39.1572916Z [2m../../dist/renderer/[22m[36massets/js/index-DJgtPATZ.js                             [39m[1m[2m   19.52 kB[22m[1m[22m[2m │ gzip:   6.87 kB[22m
+2026-10-10T01:34:39.1573914Z [2m../../dist/renderer/[22m[36massets/js/P2PMessaging-BemnDrR2.js                      [39m[1m[2m   19.86 kB[22m[1m[22m[2m │ gzip:   6.71 kB[22m
+2026-10-10T01:34:39.1574947Z [2m../../dist/renderer/[22m[36massets/js/AudioImportPage-lLUPOJ6Y.js                   [39m[1m[2m   20.02 kB[22m[1m[22m[2m │ gzip:   7.02 kB[22m
+2026-10-10T01:34:39.1575986Z [2m../../dist/renderer/[22m[36massets/js/ErrorMonitorPage-BK77gjzI.js                  [39m[1m[2m   20.36 kB[22m[1m[22m[2m │ gzip:   6.65 kB[22m
+2026-10-10T01:34:39.1577057Z [2m../../dist/renderer/[22m[36massets/js/ExternalDeviceBrowser-oeir6oXJ.js             [39m[1m[2m   20.60 kB[22m[1m[22m[2m │ gzip:   6.77 kB[22m
+2026-10-10T01:34:39.1578087Z [2m../../dist/renderer/[22m[36massets/js/index-DcQnMUNG.js                             [39m[1m[2m   20.65 kB[22m[1m[22m[2m │ gzip:   7.50 kB[22m
+2026-10-10T01:34:39.1579087Z [2m../../dist/renderer/[22m[36massets/js/LivestreamPage-DsuYJs3c.js                    [39m[1m[2m   20.80 kB[22m[1m[22m[2m │ gzip:   6.52 kB[22m
+2026-10-10T01:34:39.1580129Z [2m../../dist/renderer/[22m[36massets/js/DatabaseSecurity-CkQsTvgh.js                  [39m[1m[2m   21.15 kB[22m[1m[22m[2m │ gzip:   7.28 kB[22m
+2026-10-10T01:34:39.1581134Z [2m../../dist/renderer/[22m[36massets/js/tsMode-DNZlhNCs.js                            [39m[1m[2m   21.95 kB[22m[1m[22m[2m │ gzip:   6.07 kB[22m
+2026-10-10T01:34:39.1582213Z [2m../../dist/renderer/[22m[36massets/js/TaskMonitor-CaGQtUgP.js                       [39m[1m[2m   22.45 kB[22m[1m[22m[2m │ gzip:   7.56 kB[22m
+2026-10-10T01:34:39.1583250Z [2m../../dist/renderer/[22m[36massets/js/VCManagement-DMC4N8Cm.js                      [39m[1m[2m   22.53 kB[22m[1m[22m[2m │ gzip:   7.15 kB[22m
+2026-10-10T01:34:39.1584261Z [2m../../dist/renderer/[22m[36massets/js/WebIDEPage-DiSbtQh7.js                        [39m[1m[2m   23.34 kB[22m[1m[22m[2m │ gzip:   8.64 kB[22m
+2026-10-10T01:34:39.1585257Z [2m../../dist/renderer/[22m[36massets/js/browser-CZL-SkEB.js                           [39m[1m[2m   24.79 kB[22m[1m[22m[2m │ gzip:   9.35 kB[22m
+2026-10-10T01:34:39.1586290Z [2m../../dist/renderer/[22m[36massets/js/TemplateManagementPage-CDHPE2LJ.js            [39m[1m[2m   26.46 kB[22m[1m[22m[2m │ gzip:   8.13 kB[22m
+2026-10-10T01:34:39.1587702Z [2m../../dist/renderer/[22m[36massets/js/index-BH8mzZLi.js                             [39m[1m[2m   26.82 kB[22m[1m[22m[2m │ gzip:   7.05 kB[22m
+2026-10-10T01:34:39.1588765Z [2m../../dist/renderer/[22m[36massets/js/lspLanguageFeatures-BDt8yQmr.js               [39m[1m[2m   27.26 kB[22m[1m[22m[2m │ gzip:   7.66 kB[22m
+2026-10-10T01:34:39.1589866Z [2m../../dist/renderer/[22m[36massets/js/OrganizationKnowledgePage-DA7ihZu3.js         [39m[1m[2m   27.73 kB[22m[1m[22m[2m │ gzip:   9.09 kB[22m
+2026-10-10T01:34:39.1590912Z [2m../../dist/renderer/[22m[36massets/js/index-D1O5fLaR.js                             [39m[1m[2m   29.54 kB[22m[1m[22m[2m │ gzip:   9.36 kB[22m
+2026-10-10T01:34:39.1591915Z [2m../../dist/renderer/[22m[36massets/js/GraphRunDebugger-DaYi-_Lm.js                  [39m[1m[2m   32.27 kB[22m[1m[22m[2m │ gzip:   9.87 kB[22m
+2026-10-10T01:34:39.1592922Z [2m../../dist/renderer/[22m[36massets/js/index-DT3Fi8r2.js                             [39m[1m[2m   32.87 kB[22m[1m[22m[2m │ gzip:  11.25 kB[22m
+2026-10-10T01:34:39.1593940Z [2m../../dist/renderer/[22m[36massets/js/SkillManagement-Carpk-wU.js                   [39m[1m[2m   33.06 kB[22m[1m[22m[2m │ gzip:  10.48 kB[22m
+2026-10-10T01:34:39.1595085Z [2m../../dist/renderer/[22m[36massets/js/EscrowList-BRcROpCb.js                        [39m[1m[2m   35.03 kB[22m[1m[22m[2m │ gzip:  11.03 kB[22m
+2026-10-10T01:34:39.1596103Z [2m../../dist/renderer/[22m[36massets/js/messageTypes-CZ2bVUD0.js                      [39m[1m[2m   35.17 kB[22m[1m[22m[2m │ gzip:  11.74 kB[22m
+2026-10-10T01:34:39.1597098Z [2m../../dist/renderer/[22m[36massets/js/Wallet-BbjO_Be_.js                            [39m[1m[2m   35.35 kB[22m[1m[22m[2m │ gzip:  11.22 kB[22m
+2026-10-10T01:34:39.1598070Z [2m../../dist/renderer/[22m[36massets/js/marked.esm-B_U_Lde2.js                        [39m[1m[2m   35.70 kB[22m[1m[22m[2m │ gzip:  10.83 kB[22m
+2026-10-10T01:34:39.1599064Z [2m../../dist/renderer/[22m[36massets/js/AssetList-BfZUbn0s.js                         [39m[1m[2m   39.81 kB[22m[1m[22m[2m │ gzip:  11.96 kB[22m
+2026-10-10T01:34:39.1600101Z [2m../../dist/renderer/[22m[36massets/js/WorkflowMonitorPage-B2Cqetb-.js               [39m[1m[2m   40.09 kB[22m[1m[22m[2m │ gzip:  12.47 kB[22m
+2026-10-10T01:34:39.1601149Z [2m../../dist/renderer/[22m[36massets/js/ProjectsPage-B5O6SZe5.js                      [39m[1m[2m   43.55 kB[22m[1m[22m[2m │ gzip:  16.10 kB[22m
+2026-10-10T01:34:39.1602183Z [2m../../dist/renderer/[22m[36massets/js/ToolManagement-CI32ekyb.js                    [39m[1m[2m   43.61 kB[22m[1m[22m[2m │ gzip:  12.73 kB[22m
+2026-10-10T01:34:39.1603215Z [2m../../dist/renderer/[22m[36massets/js/NewProjectPage-BKkAIC26.js                    [39m[1m[2m   44.48 kB[22m[1m[22m[2m │ gzip:  14.70 kB[22m
+2026-10-10T01:34:39.1604270Z [2m../../dist/renderer/[22m[36massets/js/SessionManagerPage-C1tg3tXq.js                [39m[1m[2m   44.53 kB[22m[1m[22m[2m │ gzip:  13.52 kB[22m
+2026-10-10T01:34:39.1606495Z [2m../../dist/renderer/[22m[36massets/js/MultimediaDemo-Bo5kMRAf.js                    [39m[1m[2m   45.50 kB[22m[1m[22m[2m │ gzip:  13.65 kB[22m
+2026-10-10T01:34:39.1608771Z [2m../../dist/renderer/[22m[36massets/js/AppShellPreview-cXmzFPT5.js                   [39m[1m[2m   46.06 kB[22m[1m[22m[2m │ gzip:  15.22 kB[22m
+2026-10-10T01:34:39.1610705Z [2m../../dist/renderer/[22m[36massets/js/pako.esm-ARUSxnwE.js                          [39m[1m[2m   46.59 kB[22m[1m[22m[2m │ gzip:  14.60 kB[22m
+2026-10-10T01:34:39.1612524Z [2m../../dist/renderer/[22m[36massets/js/ChatWindow-CQeUyHvI.js                        [39m[1m[2m   49.84 kB[22m[1m[22m[2m │ gzip:  14.88 kB[22m
+2026-10-10T01:34:39.1614362Z [2m../../dist/renderer/[22m[36massets/js/ContractList-BcKx7zrF.js                      [39m[1m[2m   53.30 kB[22m[1m[22m[2m │ gzip:  13.98 kB[22m
+2026-10-10T01:34:39.1616139Z [2m../../dist/renderer/[22m[36massets/js/index-Cjc7DHi0.js                             [39m[1m[2m   53.45 kB[22m[1m[22m[2m │ gzip:  16.17 kB[22m
+2026-10-10T01:34:39.1617915Z [2m../../dist/renderer/[22m[36massets/js/Marketplace-L5L8NpHw.js                       [39m[1m[2m   58.47 kB[22m[1m[22m[2m │ gzip:  17.08 kB[22m
+2026-10-10T01:34:39.1619745Z [2m../../dist/renderer/[22m[36massets/js/PPTEditor-D2jcsCCV.js                         [39m[1m[2m   62.16 kB[22m[1m[22m[2m │ gzip:  21.64 kB[22m
+2026-10-10T01:34:39.1621583Z [2m../../dist/renderer/[22m[36massets/js/BrowserControl-ChYxYiBs.js                    [39m[1m[2m   62.25 kB[22m[1m[22m[2m │ gzip:  17.83 kB[22m
+2026-10-10T01:34:39.1623433Z [2m../../dist/renderer/[22m[36massets/js/LLMPerformancePage-tn830BHA.js                [39m[1m[2m   66.96 kB[22m[1m[22m[2m │ gzip:  19.50 kB[22m
+2026-10-10T01:34:39.1625584Z [2m../../dist/renderer/[22m[36massets/js/PermissionAuditLog-DpXKCmG-.js                [39m[1m[2m   67.93 kB[22m[1m[22m[2m │ gzip:  13.99 kB[22m
+2026-10-10T01:34:39.1627497Z [2m../../dist/renderer/[22m[36massets/js/SimpleEditor-D1IDnBde.js                      [39m[1m[2m   73.79 kB[22m[1m[22m[2m │ gzip:  25.73 kB[22m
+2026-10-10T01:34:39.1629505Z [2m../../dist/renderer/[22m[36massets/js/index-Hmpz38jt.js                             [39m[1m[2m   86.06 kB[22m[1m[22m[2m │ gzip:  27.42 kB[22m
+2026-10-10T01:34:39.1631262Z [2m../../dist/renderer/[22m[36massets/js/MainLayout-DCo07ezJ.js                        [39m[1m[2m   86.40 kB[22m[1m[22m[2m │ gzip:  25.76 kB[22m
+2026-10-10T01:34:39.1633086Z [2m../../dist/renderer/[22m[36massets/js/SystemSettings-DgKrPH7v.js                    [39m[1m[2m   90.49 kB[22m[1m[22m[2m │ gzip:  23.31 kB[22m
+2026-10-10T01:34:39.1634859Z [2m../../dist/renderer/[22m[36massets/js/dayjs-CtnBTqY3.js                             [39m[1m[2m   98.96 kB[22m[1m[22m[2m │ gzip:  29.01 kB[22m
+2026-10-10T01:34:39.1636587Z [2m../../dist/renderer/[22m[36massets/js/index-DffZFXoq.js                             [39m[1m[2m  103.36 kB[22m[1m[22m[2m │ gzip:  45.60 kB[22m
+2026-10-10T01:34:39.1638354Z [2m../../dist/renderer/[22m[36massets/js/vue-vendor-CSONQxeG.js                        [39m[1m[2m  115.17 kB[22m[1m[22m[2m │ gzip:  43.28 kB[22m
+2026-10-10T01:34:39.1640169Z [2m../../dist/renderer/[22m[36massets/js/SettingsPage-B0QIR9ls.js                      [39m[1m[2m  130.41 kB[22m[1m[22m[2m │ gzip:  35.10 kB[22m
+2026-10-10T01:34:39.1641940Z [2m../../dist/renderer/[22m[36massets/js/index-B4gZz_Do.js                             [39m[1m[2m  145.87 kB[22m[1m[22m[2m │ gzip:  51.40 kB[22m
+2026-10-10T01:34:39.1643698Z [2m../../dist/renderer/[22m[36massets/js/index-Bp9cC1sW.js                             [39m[1m[2m  167.52 kB[22m[1m[22m[2m │ gzip:  53.26 kB[22m
+2026-10-10T01:34:39.1645836Z [2m../../dist/renderer/[22m[36massets/js/AIChatPage-CRB4UY9q.js                        [39m[1m[2m  180.20 kB[22m[1m[22m[2m │ gzip:  50.38 kB[22m
+2026-10-10T01:34:39.1647890Z [2m../../dist/renderer/[22m[36massets/js/WorkflowDesignerPage-Ct9iObun.js              [39m[1m[2m  239.07 kB[22m[1m[22m[2m │ gzip:  76.55 kB[22m
+2026-10-10T01:34:39.1649801Z [2m../../dist/renderer/[22m[36massets/js/DesignCanvas-DJ01Tvj-.js                      [39m[1m[2m  286.57 kB[22m[1m[22m[2m │ gzip:  88.74 kB[22m
+2026-10-10T01:34:39.1651571Z [2m../../dist/renderer/[22m[36massets/js/xterm-6dqcr3xa.js                             [39m[1m[2m  288.47 kB[22m[1m[22m[2m │ gzip:  67.96 kB[22m
+2026-10-10T01:34:39.1653331Z [2m../../dist/renderer/[22m[36massets/js/codemirror-C3SlJj4H.js                        [39m[1m[2m  433.90 kB[22m[1m[22m[2m │ gzip: 150.64 kB[22m
+2026-10-10T01:34:39.1655101Z [2m../../dist/renderer/[22m[36massets/js/editor-xlluAW-M.js                            [39m[1m[2m  434.00 kB[22m[1m[22m[2m │ gzip: 128.14 kB[22m
+2026-10-10T01:34:39.1656871Z [2m../../dist/renderer/[22m[36massets/js/ExcelEditor-BUAqOsOO.js                       [39m[1m[2m  492.62 kB[22m[1m[22m[2m │ gzip: 130.96 kB[22m
+2026-10-10T01:34:39.1658648Z [2m../../dist/renderer/[22m[36massets/js/AppShell-DEu44_dX.js                          [39m[1m[2m  697.29 kB[22m[1m[22m[2m │ gzip: 180.03 kB[22m
+2026-10-10T01:34:39.1660463Z [2m../../dist/renderer/[22m[36massets/js/ProjectManagementPage-mWo4ArYi.js             [39m[1m[2m  944.23 kB[22m[1m[22m[2m │ gzip: 260.41 kB[22m
+2026-10-10T01:34:39.1662290Z [2m../../dist/renderer/[22m[36massets/js/github-ihtN5bI0.js                            [39m[1m[2m  963.12 kB[22m[1m[22m[2m │ gzip: 307.72 kB[22m
+2026-10-10T01:34:39.1664189Z [2m../../dist/renderer/[22m[36massets/js/installCanvasRenderer-DedaZqIk.js             [39m[1m[2m  971.65 kB[22m[1m[22m[2m │ gzip: 318.94 kB[22m
+2026-10-10T01:34:39.1666339Z [2m../../dist/renderer/[22m[36massets/js/index-B6PtWMtF.js                             [39m[1m[33m1,285.97 kB[39m[22m[2m │ gzip: 388.28 kB[22m
+2026-10-10T01:34:39.1668165Z [2m../../dist/renderer/[22m[36massets/js/ProjectDetailPage-hsKSsxdo.js                 [39m[1m[33m3,109.02 kB[39m[22m[2m │ gzip: 993.50 kB[22m
+2026-10-10T01:34:39.1670140Z [2m../../dist/renderer/[22m[36massets/js/monaco-lr46-x6x.js                            [39m[1m[33m3,714.77 kB[39m[22m[2m │ gzip: 937.96 kB[22m
+2026-10-10T01:34:39.1671153Z [32m✓ built in 3m 35s[39m
+2026-10-10T01:34:39.7563012Z ##[group]Run actions/upload-artifact@v6
+2026-10-10T01:34:39.7563381Z with:
+2026-10-10T01:34:39.7563595Z   name: build-windows-latest
+2026-10-10T01:34:39.7563845Z   path: desktop-app-vue/dist/
+
+2026-10-10T01:34:39.7564078Z   retention-days: 7
+2026-10-10T01:34:39.7564271Z   if-no-files-found: warn
+2026-10-10T01:34:39.7564529Z   compression-level: 6
+2026-10-10T01:34:39.7565096Z   overwrite: false
+2026-10-10T01:34:39.7565305Z   include-hidden-files: false
+2026-10-10T01:34:39.7565525Z ##[endgroup]
+2026-10-10T01:34:41.2467999Z With the provided path, there will be 3752 files uploaded
+2026-10-10T01:34:41.2474338Z Artifact name is valid!
+2026-10-10T01:34:41.2476565Z Root directory input is valid!
+2026-10-10T01:34:41.6700253Z Beginning upload of artifact content to blob storage
+2026-10-10T01:34:44.7924537Z Uploaded bytes 8388608
+2026-10-10T01:34:45.6329160Z Uploaded bytes 16777216
+2026-10-10T01:34:45.7286680Z Uploaded bytes 18749481
+2026-10-10T01:34:45.7895235Z Finished uploading artifact content to blob storage!
+2026-10-10T01:34:45.7912809Z SHA256 digest of uploaded artifact zip is da6b13e86b47e4d04f8457ed3c28be5e4fc176728fb2ed11f615df59b5944c9c
+2026-10-10T01:34:45.7914970Z Finalizing artifact upload
+2026-10-10T01:34:46.1327378Z Artifact build-windows-latest.zip successfully finalized. Artifact ID 11655177540
+2026-10-10T01:34:46.1333613Z Artifact build-windows-latest has been successfully uploaded! Final size is 18749481 bytes. Artifact ID is 11655177540
+2026-10-10T01:34:46.1351995Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38012166446/artifacts/11655177540
+2026-10-10T01:34:46.1800143Z Post job cleanup.
+2026-10-10T01:34:46.4749696Z (node:1472) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:34:46.4750762Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:34:46.4754219Z Cache hit occurred on the primary key node-cache-Windows-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93, not saving cache.
+2026-10-10T01:34:46.5052675Z Post job cleanup.
+2026-10-10T01:34:46.7381601Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-10T01:34:46.8292746Z git version 2.55.0.windows.5
+2026-10-10T01:34:46.8373187Z Temporarily overriding HOME='D:\a\_temp\0bdf966e-707c-48c6-b47c-217d40c657e7' before making global git config changes
+2026-10-10T01:34:46.8374275Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:34:46.8389686Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-10T01:34:46.8738885Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:34:46.9054628Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-10T01:34:47.5279532Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:34:47.5523797Z http.https://github.com/.extraheader
+2026-10-10T01:34:47.5562939Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T01:34:47.5855363Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-10T01:34:48.1119866Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:34:48.1403952Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-10T01:34:48.6847499Z Cleaning up orphan processes

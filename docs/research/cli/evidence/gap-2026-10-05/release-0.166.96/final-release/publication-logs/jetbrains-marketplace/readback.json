@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-10T04:09:06.676Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021102825,
+  "jobId": 114127270768,
+  "jobName": "JetBrains Marketplace (post-publish verification)",
+  "conclusion": "success",
+  "bytes": 20434,
+  "sha256": "98c0a4a924d788d84944b88cb0470666f4bd20d6b1d9378c56f151d37f66d09c"
+}

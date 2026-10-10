@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-10T03:08:25.826Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "jobId": 114115687778,
+  "name": "verify-cli (macos-latest)",
+  "conclusion": "success",
+  "capture": {
+    "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.log",
+    "bytes": 461168,
+    "sha256": "241491e1a2871107880d539ea493222d2791363db69faddd8f91901ee5fa3ad2",
+    "endpoint": "actions/jobs/114115687778/logs"
+  }
+}

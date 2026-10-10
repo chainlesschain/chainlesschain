@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38019727506,
+  "artifactId": 11658021052,
+  "status": "COMPLETE_SIZE_AND_DIGEST_VERIFIED",
+  "receivedBytes": 9435303,
+  "digest": "sha256:55194ab5718c5a8a00d1c1ce0f1072f10105fa28f09b22b690ea0cc43ec15a9f",
+  "expectedBytes": 9435303,
+  "expectedDigest": "sha256:55194ab5718c5a8a00d1c1ce0f1072f10105fa28f09b22b690ea0cc43ec15a9f",
+  "elapsedMs": 3344,
+  "destination": ".work/release-readback-0.166.96/npm-38019727506/chainlesschain-npm-da91e730d802b7c9dcdc075b222ecc257021e552.zip"
+}

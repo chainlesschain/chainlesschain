@@ -1,0 +1,198 @@
+{
+  "collectedAt": "2026-10-09T20:35:04.202Z",
+  "cliCandidateVersion": "0.166.96",
+  "packageCount": 10,
+  "requiredChildrenVerified": true,
+  "children": [
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.8",
+      "sri": "sha512-feZpA7f7bwrfR26cmBHexAaGHQJ+4zlsW+jDW5LlxiMp8Eyf7wTFNKK2rjR8jtJSySftJaDUe492Hu2JpRESuA==",
+      "bytes": 50055,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-context-memory-kernel-0.1.8.tgz",
+      "sha256": "f7e9f6a96d12fd0c14ccbbc056a4da419eab566cd31ce5ffea4a8212eed59de4",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcontext-memory-kernel@0.1.8",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "65e8c21d3adfc37058ac9223a0c059b1b9a976d7"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "sri": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "bytes": 3991,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-config-0.1.2.tgz",
+      "sha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "dependencies": [
+        {
+          "name": "@chainlesschain/core-env",
+          "range": "0.1.2",
+          "cliPinnedVersion": "0.1.2"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-config@0.1.2",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "sri": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "bytes": 10302,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-db-0.1.5.tgz",
+      "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-db@0.1.5",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": null
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "sri": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "bytes": 2600,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-env-0.1.2.tgz",
+      "sha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-env@0.1.2",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "sri": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "bytes": 3482,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-infra-0.1.1.tgz",
+      "sha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "dependencies": [
+        {
+          "name": "@chainlesschain/shared-logger",
+          "range": "0.1.1",
+          "cliPinnedVersion": "0.1.1"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-infra@0.1.1",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "sri": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "bytes": 38297,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-mtc-0.2.3.tgz",
+      "sha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-mtc@0.2.3",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "sri": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "bytes": 13952,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-core-multisig-0.1.4.tgz",
+      "sha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "dependencies": [
+        {
+          "name": "@chainlesschain/core-mtc",
+          "range": "^0.2.0",
+          "cliPinnedVersion": "0.2.3"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fcore-multisig@0.1.4",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "sri": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q==",
+      "bytes": 890625,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-personal-data-hub-0.4.64.tgz",
+      "sha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fpersonal-data-hub@0.4.64",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "23afea300b76a161233eac46269d74e04100a9cd"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.18",
+      "sri": "sha512-n9AJI/pGGTtAAPtjGj1DjitylVhwPLeoskSZXeBTtDQkHeDIkVLU8/6Aw0uwF7UI/4kwwtWiA7I9B+bOMlDWOw==",
+      "bytes": 285649,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-session-core-0.3.18.tgz",
+      "sha256": "6189574f7bd8170ef355d7ec95db6c403b557d11364ccf566bdb39fbada2fc23",
+      "dependencies": [],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fsession-core@0.3.18",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": null
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "sri": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "bytes": 4058,
+      "archive": ".work/release-preflight-0.166.96/chainlesschain-shared-logger-0.1.1.tgz",
+      "sha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "dependencies": [
+        {
+          "name": "@chainlesschain/core-env",
+          "range": "0.1.2",
+          "cliPinnedVersion": "0.1.2"
+        }
+      ],
+      "attestations": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fshared-logger@0.1.1",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      },
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    }
+  ],
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "preflightScope": "Exact direct CLI dependency registry identity, alignment and bytes only; package tree reuse and npm signature gates remain authoritative in Actions",
+  "packageTreeReuseChecked": false,
+  "sdkCandidateVersion": "0.2.14",
+  "newSdkPublicationRequired": true,
+  "publishingMethod": "GitHub Actions OIDC only; publish and verify new SDK 0.2.14 before CLI; ten direct CLI dependency versions remain unchanged"
+}

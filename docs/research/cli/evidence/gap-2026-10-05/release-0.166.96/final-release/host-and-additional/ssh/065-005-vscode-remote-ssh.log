@@ -1,0 +1,113 @@
+[6022:1010/015236.195489:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015236.195697:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015236.195713:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015236.195725:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015236.195734:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+Warning: 'disable-extension-update-checks' is not in the list of known options, but still passed to Electron/Chromium.
+Warning: 'cached-data' is not in the list of known options, but still passed to Electron/Chromium.
+[90m[main 2026-10-10T01:52:36.451Z][0m update#setState disabled
+[90m[main 2026-10-10T01:52:36.451Z][0m update#ctor - updates are disabled by the environment
+[6022:1010/015236.452824:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6053:1010/015237.651430:ERROR:viz_main_impl.cc(166)] Exiting GPU process due to errors during initialization
+workbench#open()
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-vscode.vscode-selfhost-test-provider' wants API proposal 'attributableCoverage' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.python' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.debugpy' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+[6022:1010/015238.674758:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+Invoking getCanonicalURI for authority ssh-remote...
+getCanonicalURI returned for authority ssh-remote.
+Starting to wait on IWorkspaceTrustManagementService.workspaceResolved...
+Started local extension host with pid 6243.
+IExtensionHostStarter.start() took 37 ms.
+[6022:1010/015239.231891:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.scannedExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.configuration-editing,vscode.cpp,vscode.csharp,vscode.css,vscode.css-language-features,vscode.dart,vscode.debug-auto-launch,vscode.debug-server-ready,vscode.diff,vscode.docker,vscode.emmet,vscode.extension-editing,vscode.fsharp,vscode.git,vscode.git-base,vscode.github,vscode.github-authentication,vscode.go,vscode.groovy,vscode.grunt,vscode.gulp,vscode.handlebars,vscode.hlsl,vscode.html,vscode.html-language-features,vscode.ini,vscode.ipynb,vscode.jake,vscode.java,vscode.javascript,vscode.json,vscode.json-language-features,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.markdown-language-features,vscode.markdown-math,vscode.media-preview,vscode.merge-conflict,vscode.microsoft-authentication,ms-vscode.js-debug,ms-vscode.js-debug-companion,ms-vscode.vscode-js-profile-table,vscode.builtin-notebook-renderers,vscode.npm,vscode.objective-c,vscode.perl,vscode.php,vscode.php-language-features,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.references-view,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.search-result,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.terminal-suggest,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.tunnel-forwarding,vscode.typescript,vscode.typescript-language-features,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+filterEnabledExtensions: extension 'vscode.configuration-editing' is disabled
+filterEnabledExtensions: extension 'vscode.css-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.debug-auto-launch' is disabled
+filterEnabledExtensions: extension 'vscode.debug-server-ready' is disabled
+filterEnabledExtensions: extension 'vscode.emmet' is disabled
+filterEnabledExtensions: extension 'vscode.extension-editing' is disabled
+filterEnabledExtensions: extension 'vscode.git' is disabled
+filterEnabledExtensions: extension 'vscode.git-base' is disabled
+filterEnabledExtensions: extension 'vscode.github' is disabled
+filterEnabledExtensions: extension 'vscode.grunt' is disabled
+filterEnabledExtensions: extension 'vscode.gulp' is disabled
+filterEnabledExtensions: extension 'vscode.html-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.jake' is disabled
+filterEnabledExtensions: extension 'vscode.json-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.markdown-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.markdown-math' is disabled
+filterEnabledExtensions: extension 'vscode.merge-conflict' is disabled
+filterEnabledExtensions: extension 'ms-vscode.js-debug' is disabled
+filterEnabledExtensions: extension 'ms-vscode.vscode-js-profile-table' is disabled
+filterEnabledExtensions: extension 'vscode.npm' is disabled
+filterEnabledExtensions: extension 'vscode.php-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.references-view' is disabled
+filterEnabledExtensions: extension 'vscode.search-result' is disabled
+filterEnabledExtensions: extension 'vscode.terminal-suggest' is disabled
+filterEnabledExtensions: extension 'vscode.tunnel-forwarding' is disabled
+filterEnabledExtensions: extension 'vscode.typescript-language-features' is disabled
+NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.localExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.cpp,vscode.csharp,vscode.css,vscode.dart,vscode.diff,vscode.docker,vscode.fsharp,vscode.github-authentication,vscode.go,vscode.groovy,vscode.handlebars,vscode.hlsl,vscode.html,vscode.ini,vscode.ipynb,vscode.java,vscode.javascript,vscode.json,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.media-preview,vscode.microsoft-authentication,ms-vscode.js-debug-companion,vscode.builtin-notebook-renderers,vscode.objective-c,vscode.perl,vscode.php,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.typescript,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.myExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.cpp,vscode.csharp,vscode.css,vscode.dart,vscode.diff,vscode.docker,vscode.fsharp,vscode.github-authentication,vscode.go,vscode.groovy,vscode.handlebars,vscode.hlsl,vscode.html,vscode.ini,vscode.ipynb,vscode.java,vscode.javascript,vscode.json,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.media-preview,vscode.microsoft-authentication,ms-vscode.js-debug-companion,vscode.builtin-notebook-renderers,vscode.objective-c,vscode.perl,vscode.php,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.typescript,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+[6022:1010/015239.766202:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015239.977340:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+Finished waiting on IWorkspaceTrustManagementService.workspaceResolved.
+Invoking resolveAuthority(ssh-remote)...
+[LocalProcess0][resolveAuthority(ssh-remote,1)][0ms] obtaining proxy...
+[LocalProcess0][resolveAuthority(ssh-remote,1)][0ms] invoking...
+[6022:1010/015240.292618:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[LocalProcess0][resolveAuthority(ssh-remote,1)][1000ms] waiting...
+[6022:1010/015241.369753:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[LocalProcess0][resolveAuthority(ssh-remote,1)][2000ms] waiting...
+[LocalProcess0][resolveAuthority(ssh-remote,1)][3000ms] waiting...
+[LocalProcess0][resolveAuthority(ssh-remote,1)][4000ms] waiting...
+[LocalProcess0][resolveAuthority(ssh-remote,1)][4034ms] returned Managed(1)
+resolveAuthority(ssh-remote) returned 'Managed(1)' after 4035 ms
+Creating a socket (renderer-Management-92d36e7b-3b3f-4afa-bb9c-7e782547e52c)...
+Creating a socket (renderer-ExtensionHost-1c7aa97a-d529-47cf-aebe-27b116b94117)...
+[6022:1010/015244.202106:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+Creating a socket (renderer-Management-92d36e7b-3b3f-4afa-bb9c-7e782547e52c) was successful after 2770 ms.
+Creating a socket (renderer-ExtensionHost-1c7aa97a-d529-47cf-aebe-27b116b94117) was successful after 2770 ms.
+[6022:1010/015247.328800:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[6022:1010/015247.556230:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+filterEnabledExtensions: extension 'ms-vscode.js-debug-companion' is disabled
+filterEnabledExtensions: extension 'vscode.configuration-editing' is disabled
+filterEnabledExtensions: extension 'vscode.css-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.debug-auto-launch' is disabled
+filterEnabledExtensions: extension 'vscode.debug-server-ready' is disabled
+filterEnabledExtensions: extension 'vscode.emmet' is disabled
+filterEnabledExtensions: extension 'vscode.extension-editing' is disabled
+filterEnabledExtensions: extension 'vscode.git' is disabled
+filterEnabledExtensions: extension 'vscode.git-base' is disabled
+filterEnabledExtensions: extension 'vscode.github' is disabled
+filterEnabledExtensions: extension 'vscode.grunt' is disabled
+filterEnabledExtensions: extension 'vscode.gulp' is disabled
+filterEnabledExtensions: extension 'vscode.html-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.jake' is disabled
+filterEnabledExtensions: extension 'vscode.json-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.markdown-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.markdown-math' is disabled
+filterEnabledExtensions: extension 'vscode.merge-conflict' is disabled
+filterEnabledExtensions: extension 'ms-vscode.js-debug' is disabled
+filterEnabledExtensions: extension 'ms-vscode.vscode-js-profile-table' is disabled
+filterEnabledExtensions: extension 'vscode.npm' is disabled
+filterEnabledExtensions: extension 'vscode.php-language-features' is disabled
+filterEnabledExtensions: extension 'vscode.references-view' is disabled
+filterEnabledExtensions: extension 'vscode.search-result' is disabled
+filterEnabledExtensions: extension 'vscode.terminal-suggest' is disabled
+filterEnabledExtensions: extension 'vscode.tunnel-forwarding' is disabled
+filterEnabledExtensions: extension 'vscode.typescript-language-features' is disabled
+Settings Sync: Account status changed from uninitialized to unavailable
+Error getting latest version of the extension chainlesschain.chainlesschain-ide 404
+[6022:1010/015248.858705:ERROR:bus.cc(407)] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+Git installation not found.
+[extension-host-smoke] initial: driver entered
+[extension-host-smoke] initial: 2 workspace roots verified
+[extension-host-smoke] initial: installed VSIX discovered
+[extension-host-smoke] initial: activating VSIX
+[extension-host-smoke] initial: VSIX activated
+[extension-host-smoke] initial: bridge verified
+[extension-host-smoke] activated installed chainlesschain.chainlesschain-ide@0.37.140; 19 commands, bridge port, and initial host-api phase verified
+Extension host test runner exit code: 0
+Asking native host service to exit with code 0.
+[90m[main 2026-10-10T01:52:49.436Z][0m Extension host with pid 6243 exited with code: 0, signal: unknown.

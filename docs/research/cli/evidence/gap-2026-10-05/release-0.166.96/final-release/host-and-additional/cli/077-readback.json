@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-10-10T02:23:31.797Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "jobId": 114094369439,
+  "conclusion": "success",
+  "captures": [
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/unit11/job.json",
+      "bytes": 2650,
+      "sha256": "a2bf7e109588e12701533e9cb25e13cb8604db2ef3ad9d414ffa9224a5e1fa6d",
+      "endpoint": "actions/jobs/114094369439"
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/unit11/job.log",
+      "bytes": 88857,
+      "sha256": "c71673a0a6dce0120941de5e7681b9fd591b695c625785919a205270f47f8b46",
+      "endpoint": "actions/jobs/114094369439/logs"
+    }
+  ]
+}

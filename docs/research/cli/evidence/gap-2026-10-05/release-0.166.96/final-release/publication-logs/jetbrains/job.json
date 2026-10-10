@@ -1,0 +1,180 @@
+{
+  "id": 114126071052,
+  "run_id": 38021102825,
+  "workflow_name": "IDE Extensions",
+  "head_branch": "ide-jetbrains-v0.4.158",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38021102825",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAaknGlDA",
+  "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/114126071052",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825/job/114126071052",
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-10-10T03:58:24Z",
+  "started_at": "2026-10-10T03:58:27Z",
+  "completed_at": "2026-10-10T04:05:10Z",
+  "name": "JetBrains plugin (build + publish)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-10T03:58:27Z",
+      "completed_at": "2026-10-10T03:58:28Z"
+    },
+    {
+      "name": "Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-10T03:58:28Z",
+      "completed_at": "2026-10-10T03:58:43Z"
+    },
+    {
+      "name": "Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-10T03:58:43Z",
+      "completed_at": "2026-10-10T03:58:43Z"
+    },
+    {
+      "name": "Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-10T03:58:43Z",
+      "completed_at": "2026-10-10T03:58:48Z"
+    },
+    {
+      "name": "Make gradlew executable",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-10T03:58:48Z",
+      "completed_at": "2026-10-10T03:58:48Z"
+    },
+    {
+      "name": "Validate JetBrains version sources and release tag",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-10T03:58:48Z",
+      "completed_at": "2026-10-10T03:58:48Z"
+    },
+    {
+      "name": "Verify JetBrains release metadata coherence",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-10T03:58:48Z",
+      "completed_at": "2026-10-10T03:58:48Z"
+    },
+    {
+      "name": "Pure-logic smoke (smokeTest)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-10T03:58:48Z",
+      "completed_at": "2026-10-10T04:01:22Z"
+    },
+    {
+      "name": "Unit tests (JUnit)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-10T04:01:22Z",
+      "completed_at": "2026-10-10T04:02:33Z"
+    },
+    {
+      "name": "Build plugin",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10,
+      "started_at": "2026-10-10T04:02:33Z",
+      "completed_at": "2026-10-10T04:03:02Z"
+    },
+    {
+      "name": "Verify plugin structure and project configuration",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-10T04:03:02Z",
+      "completed_at": "2026-10-10T04:03:17Z"
+    },
+    {
+      "name": "Verify plugin compatibility",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12,
+      "started_at": "2026-10-10T04:03:17Z",
+      "completed_at": "2026-10-10T04:04:26Z"
+    },
+    {
+      "name": "Upload plugin artifact",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13,
+      "started_at": "2026-10-10T04:04:26Z",
+      "completed_at": "2026-10-10T04:04:27Z"
+    },
+    {
+      "name": "Require published CLI before JetBrains release",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-10T04:04:27Z",
+      "completed_at": "2026-10-10T04:04:44Z"
+    },
+    {
+      "name": "Publish to JetBrains Marketplace",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15,
+      "started_at": "2026-10-10T04:04:44Z",
+      "completed_at": "2026-10-10T04:05:07Z"
+    },
+    {
+      "name": "Post Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 28,
+      "started_at": "2026-10-10T04:05:07Z",
+      "completed_at": "2026-10-10T04:05:07Z"
+    },
+    {
+      "name": "Post Run actions/setup-java@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 29,
+      "started_at": "2026-10-10T04:05:07Z",
+      "completed_at": "2026-10-10T04:05:07Z"
+    },
+    {
+      "name": "Post Run actions/checkout@v5",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 30,
+      "started_at": "2026-10-10T04:05:07Z",
+      "completed_at": "2026-10-10T04:05:08Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 31,
+      "started_at": "2026-10-10T04:05:08Z",
+      "completed_at": "2026-10-10T04:05:08Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/114126071052",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000388453,
+  "runner_name": "GitHub Actions 1000388453",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

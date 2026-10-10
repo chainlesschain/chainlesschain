@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.uitest.PluginStartupContractTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-10T02:10:31" hostname="runnervmfi6oq" time="0.239">
+  <properties/>
+  <testcase name="doesNotTreatAnUnexpectedNullResponseAsStartupReadiness()" classname="com.chainlesschain.ide.uitest.PluginStartupContractTest" time="0.004"/>
+  <testcase name="rejectsContractDriftImmediatelyAfterStartup()" classname="com.chainlesschain.ide.uitest.PluginStartupContractTest" time="0.002"/>
+  <testcase name="propagatesRemoteClassLoadingFailuresWithoutRetry()" classname="com.chainlesschain.ide.uitest.PluginStartupContractTest" time="0.007"/>
+  <testcase name="failsWithAReadinessDiagnosticIfTheLoaderNeverAppears()" classname="com.chainlesschain.ide.uitest.PluginStartupContractTest" time="0.005"/>
+  <testcase name="waitsForThePluginLoaderAfterTheFrameAppears()" classname="com.chainlesschain.ide.uitest.PluginStartupContractTest" time="0.215"/>
+  <system-out><![CDATA[[ui-smoke] verified governed automatic-completion contract: false|650|60|240000|30000|800|12|2000|5000|20
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,72 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: runIdeForUiTests
+> Task :initializeIntellijPlatformPlugin
+> Task :patchPluginXml UP-TO-DATE
+> Task :generateManifest UP-TO-DATE
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :generatePluginMetadata UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :instrumentCode SKIPPED
+> Task :jar UP-TO-DATE
+> Task :composedJar UP-TO-DATE
+> Task :prepareSandbox UP-TO-DATE
+> Task :buildSearchableOptions UP-TO-DATE
+> Task :prepareJarSearchableOptions UP-TO-DATE
+> Task :jarSearchableOptions UP-TO-DATE
+> Task :buildPlugin UP-TO-DATE
+> Task :prepareSandbox_runIdeForUiTests
+> Task :installUiJourneyPlugin
+
+> Task :runIdeForUiTests
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code + conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code + conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize up to here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize up to here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize up to here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Summarize up to here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Branch from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Branch from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Branch from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList
+[ui-popup-enter] Branch from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList

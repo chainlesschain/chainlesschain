@@ -1,0 +1,1116 @@
+﻿2026-10-10T03:58:27.7672920Z Current runner version: '2.337.0'
+2026-10-10T03:58:27.7709047Z ##[group]Runner Image Provisioner
+2026-10-10T03:58:27.7711379Z Hosted Compute Agent
+2026-10-10T03:58:27.7712469Z Version: 20261002.596
+2026-10-10T03:58:27.7713830Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T03:58:27.7715542Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T03:58:27.7716773Z Worker ID: {bcf6501e-6885-4007-a309-be3fe2644834}
+2026-10-10T03:58:27.7718109Z Region: eastus
+2026-10-10T03:58:27.7719081Z Cloud: Azure
+2026-10-10T03:58:27.7720070Z ##[endgroup]
+2026-10-10T03:58:27.7722427Z ##[group]Operating System
+2026-10-10T03:58:27.7723626Z Ubuntu
+2026-10-10T03:58:27.7724491Z 24.04.5
+2026-10-10T03:58:27.7725639Z LTS
+2026-10-10T03:58:27.7726740Z ##[endgroup]
+2026-10-10T03:58:27.7727753Z ##[group]Runner Image
+2026-10-10T03:58:27.7729045Z Image: ubuntu-24.04
+2026-10-10T03:58:27.7730059Z Version: 20261004.327.1
+2026-10-10T03:58:27.7732463Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T03:58:27.7735622Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T03:58:27.7737355Z ##[endgroup]
+2026-10-10T03:58:27.7739296Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T03:58:27.7742175Z Contents: read
+2026-10-10T03:58:27.7743120Z Metadata: read
+2026-10-10T03:58:27.7744222Z ##[endgroup]
+2026-10-10T03:58:27.7747381Z Secret source: Actions
+2026-10-10T03:58:27.7749189Z Cache mode: write
+2026-10-10T03:58:27.7750790Z Prepare workflow directory
+2026-10-10T03:58:27.8562894Z Prepare all required actions
+2026-10-10T03:58:27.8637670Z Getting action download info
+2026-10-10T03:58:28.0354025Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T03:58:28.1465467Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+2026-10-10T03:58:28.3787263Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T03:58:28.5123137Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T03:58:28.7603500Z Complete job name: JetBrains plugin (build + publish)
+2026-10-10T03:58:28.8418342Z ##[group]Run actions/checkout@v5
+2026-10-10T03:58:28.8419338Z with:
+2026-10-10T03:58:28.8419874Z   ref: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:28.8420570Z   repository: chainlesschain/chainlesschain
+2026-10-10T03:58:28.8425550Z   token: ***
+2026-10-10T03:58:28.8426078Z   ssh-strict: true
+2026-10-10T03:58:28.8426561Z   ssh-user: git
+2026-10-10T03:58:28.8427058Z   persist-credentials: true
+2026-10-10T03:58:28.8427621Z   clean: true
+2026-10-10T03:58:28.8428141Z   sparse-checkout-cone-mode: true
+2026-10-10T03:58:28.8428745Z   fetch-depth: 1
+2026-10-10T03:58:28.8429247Z   fetch-tags: false
+2026-10-10T03:58:28.8429761Z   show-progress: true
+2026-10-10T03:58:28.8430294Z   lfs: false
+2026-10-10T03:58:28.8430779Z   submodules: false
+2026-10-10T03:58:28.8431338Z   set-safe-directory: true
+2026-10-10T03:58:28.8431919Z   allow-unsafe-pr-checkout: false
+2026-10-10T03:58:28.8432838Z env:
+2026-10-10T03:58:28.8433326Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:28.8434074Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:28.8435302Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:28.8436030Z ##[endgroup]
+2026-10-10T03:58:28.9437863Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T03:58:28.9439959Z ##[group]Getting Git version info
+2026-10-10T03:58:28.9440860Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:58:28.9442089Z [command]/usr/bin/git version
+2026-10-10T03:58:28.9568478Z git version 2.55.0
+2026-10-10T03:58:28.9677895Z ##[endgroup]
+2026-10-10T03:58:28.9686592Z Temporarily overriding HOME='/home/runner/work/_temp/71976bba-1199-4d31-b3d0-e479f9b2cabe' before making global git config changes
+2026-10-10T03:58:28.9689713Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T03:58:28.9692516Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:58:28.9696412Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:58:28.9698729Z ##[group]Initializing the repository
+2026-10-10T03:58:28.9699619Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:58:28.9863593Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T03:58:28.9876512Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T03:58:28.9878443Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T03:58:28.9879736Z hint: call:
+2026-10-10T03:58:28.9880218Z hint:
+2026-10-10T03:58:28.9880807Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T03:58:28.9881506Z hint:
+2026-10-10T03:58:28.9882156Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T03:58:28.9883227Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T03:58:28.9884077Z hint:
+2026-10-10T03:58:28.9884556Z hint: 	git branch -m <name>
+2026-10-10T03:58:28.9886546Z hint:
+2026-10-10T03:58:28.9888918Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T03:58:28.9892495Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T03:58:28.9896491Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:58:28.9958272Z ##[endgroup]
+2026-10-10T03:58:28.9960096Z ##[group]Disabling automatic garbage collection
+2026-10-10T03:58:28.9962252Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T03:58:28.9999820Z ##[endgroup]
+2026-10-10T03:58:29.0001487Z ##[group]Setting up auth
+2026-10-10T03:58:29.0008396Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T03:58:29.0046818Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T03:58:29.0496907Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T03:58:29.0535731Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T03:58:29.0762543Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T03:58:29.0800935Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T03:58:29.1029051Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T03:58:29.1070002Z ##[endgroup]
+2026-10-10T03:58:29.1070884Z ##[group]Fetching the repository
+2026-10-10T03:58:29.1081666Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:39.9892771Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:58:39.9893930Z  * branch              da91e730d802b7c9dcdc075b222ecc257021e552 -> FETCH_HEAD
+2026-10-10T03:58:39.9897351Z ##[endgroup]
+2026-10-10T03:58:39.9898193Z ##[group]Determining the checkout info
+2026-10-10T03:58:39.9899589Z ##[endgroup]
+2026-10-10T03:58:39.9906336Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T03:58:39.9963922Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T03:58:39.9996627Z ##[group]Checking out the ref
+2026-10-10T03:58:40.0000951Z [command]/usr/bin/git checkout --progress --force da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:41.0438471Z Updating files:  48% (11396/23576)
+2026-10-10T03:58:41.0687997Z Updating files:  49% (11553/23576)
+2026-10-10T03:58:41.0835812Z Updating files:  50% (11788/23576)
+2026-10-10T03:58:41.1114076Z Updating files:  51% (12024/23576)
+2026-10-10T03:58:41.1473948Z Updating files:  52% (12260/23576)
+2026-10-10T03:58:41.2026174Z Updating files:  53% (12496/23576)
+2026-10-10T03:58:41.4738657Z Updating files:  54% (12732/23576)
+2026-10-10T03:58:41.8892369Z Updating files:  55% (12967/23576)
+2026-10-10T03:58:42.0309561Z Updating files:  56% (13203/23576)
+2026-10-10T03:58:42.2165047Z Updating files:  56% (13282/23576)
+2026-10-10T03:58:42.2858613Z Updating files:  57% (13439/23576)
+2026-10-10T03:58:42.3138707Z Updating files:  58% (13675/23576)
+2026-10-10T03:58:42.3430443Z Updating files:  59% (13910/23576)
+2026-10-10T03:58:42.3700611Z Updating files:  60% (14146/23576)
+2026-10-10T03:58:42.3969330Z Updating files:  61% (14382/23576)
+2026-10-10T03:58:42.4330154Z Updating files:  62% (14618/23576)
+2026-10-10T03:58:42.4825882Z Updating files:  63% (14853/23576)
+2026-10-10T03:58:42.5048822Z Updating files:  64% (15089/23576)
+2026-10-10T03:58:42.5198440Z Updating files:  65% (15325/23576)
+2026-10-10T03:58:42.5463211Z Updating files:  66% (15561/23576)
+2026-10-10T03:58:42.5599200Z Updating files:  67% (15796/23576)
+2026-10-10T03:58:42.5810490Z Updating files:  68% (16032/23576)
+2026-10-10T03:58:42.6030877Z Updating files:  69% (16268/23576)
+2026-10-10T03:58:42.6198936Z Updating files:  70% (16504/23576)
+2026-10-10T03:58:42.6409681Z Updating files:  71% (16739/23576)
+2026-10-10T03:58:42.6659910Z Updating files:  72% (16975/23576)
+2026-10-10T03:58:42.6867777Z Updating files:  73% (17211/23576)
+2026-10-10T03:58:42.7015020Z Updating files:  74% (17447/23576)
+2026-10-10T03:58:42.7219303Z Updating files:  75% (17682/23576)
+2026-10-10T03:58:42.7424171Z Updating files:  76% (17918/23576)
+2026-10-10T03:58:42.7685659Z Updating files:  77% (18154/23576)
+2026-10-10T03:58:42.7845024Z Updating files:  78% (18390/23576)
+2026-10-10T03:58:42.8027516Z Updating files:  79% (18626/23576)
+2026-10-10T03:58:42.8225120Z Updating files:  80% (18861/23576)
+2026-10-10T03:58:42.8414256Z Updating files:  81% (19097/23576)
+2026-10-10T03:58:42.8602500Z Updating files:  82% (19333/23576)
+2026-10-10T03:58:42.8826037Z Updating files:  83% (19569/23576)
+2026-10-10T03:58:42.9112874Z Updating files:  84% (19804/23576)
+2026-10-10T03:58:42.9367536Z Updating files:  85% (20040/23576)
+2026-10-10T03:58:42.9616109Z Updating files:  86% (20276/23576)
+2026-10-10T03:58:42.9846552Z Updating files:  87% (20512/23576)
+2026-10-10T03:58:43.0080102Z Updating files:  88% (20747/23576)
+2026-10-10T03:58:43.0269224Z Updating files:  89% (20983/23576)
+2026-10-10T03:58:43.0325492Z Updating files:  89% (21190/23576)
+2026-10-10T03:58:43.0479998Z Updating files:  90% (21219/23576)
+2026-10-10T03:58:43.0661902Z Updating files:  91% (21455/23576)
+2026-10-10T03:58:43.0860561Z Updating files:  92% (21690/23576)
+2026-10-10T03:58:43.1019721Z Updating files:  93% (21926/23576)
+2026-10-10T03:58:43.1217791Z Updating files:  94% (22162/23576)
+2026-10-10T03:58:43.1413761Z Updating files:  95% (22398/23576)
+2026-10-10T03:58:43.1630039Z Updating files:  96% (22633/23576)
+2026-10-10T03:58:43.1788252Z Updating files:  97% (22869/23576)
+2026-10-10T03:58:43.1968870Z Updating files:  98% (23105/23576)
+2026-10-10T03:58:43.2137876Z Updating files:  99% (23341/23576)
+2026-10-10T03:58:43.2138522Z Updating files: 100% (23576/23576)
+2026-10-10T03:58:43.2139062Z Updating files: 100% (23576/23576), done.
+2026-10-10T03:58:43.2393630Z Note: switching to 'da91e730d802b7c9dcdc075b222ecc257021e552'.
+2026-10-10T03:58:43.2395363Z 
+2026-10-10T03:58:43.2395741Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T03:58:43.2396585Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T03:58:43.2397371Z state without impacting any branches by switching back to a branch.
+2026-10-10T03:58:43.2397854Z 
+2026-10-10T03:58:43.2398171Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T03:58:43.2399375Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T03:58:43.2399828Z 
+2026-10-10T03:58:43.2399999Z   git switch -c <new-branch-name>
+2026-10-10T03:58:43.2400294Z 
+2026-10-10T03:58:43.2400475Z Or undo this operation with:
+2026-10-10T03:58:43.2400730Z 
+2026-10-10T03:58:43.2401014Z   git switch -
+2026-10-10T03:58:43.2401228Z 
+2026-10-10T03:58:43.2401618Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T03:58:43.2402158Z 
+2026-10-10T03:58:43.2447959Z HEAD is now at da91e730 fix(ci): preserve popup receipts and bound host test work
+2026-10-10T03:58:43.2449765Z ##[endgroup]
+2026-10-10T03:58:43.2511024Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T03:58:43.2531525Z da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:43.2822872Z ##[group]Run actions/setup-java@v5
+2026-10-10T03:58:43.2823163Z with:
+2026-10-10T03:58:43.2823364Z   distribution: temurin
+2026-10-10T03:58:43.2823586Z   java-version: 21
+2026-10-10T03:58:43.2823817Z   java-package: jdk
+2026-10-10T03:58:43.2824025Z   check-latest: false
+2026-10-10T03:58:43.2824235Z   set-default: true
+2026-10-10T03:58:43.2824439Z   verify-signature: false
+2026-10-10T03:58:43.2824947Z   server-id: github
+2026-10-10T03:58:43.2825171Z   server-username: GITHUB_ACTOR
+2026-10-10T03:58:43.2825425Z   server-password: GITHUB_TOKEN
+2026-10-10T03:58:43.2825669Z   overwrite-settings: true
+2026-10-10T03:58:43.2825895Z   job-status: success
+2026-10-10T03:58:43.2828636Z   token: ***
+2026-10-10T03:58:43.2828861Z   show-download-progress: false
+2026-10-10T03:58:43.2829106Z env:
+2026-10-10T03:58:43.2829289Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:43.2829600Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:43.2830046Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:43.2830376Z ##[endgroup]
+2026-10-10T03:58:43.4400415Z ##[group]Installed distributions
+2026-10-10T03:58:43.4552594Z Resolved Java 21.0.12+1 from tool-cache
+2026-10-10T03:58:43.4553175Z Setting Java 21.0.12+1 as the default
+2026-10-10T03:58:43.4563970Z Creating toolchains.xml for JDK version 21 from temurin
+2026-10-10T03:58:43.4637161Z Writing to /home/runner/.m2/toolchains.xml
+2026-10-10T03:58:43.4637637Z 
+2026-10-10T03:58:43.4637823Z Java configuration:
+2026-10-10T03:58:43.4638197Z   Distribution: temurin
+2026-10-10T03:58:43.4638576Z   Version: 21.0.12+1
+2026-10-10T03:58:43.4639104Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:43.4639593Z 
+2026-10-10T03:58:43.4640041Z ##[endgroup]
+2026-10-10T03:58:43.4670596Z Creating settings.xml with server-id: github
+2026-10-10T03:58:43.4670987Z Writing to /home/runner/.m2/settings.xml
+2026-10-10T03:58:43.4671729Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-10T03:58:43.4858124Z ##[group]Run actions/setup-node@v5
+2026-10-10T03:58:43.4858567Z with:
+2026-10-10T03:58:43.4858875Z   node-version: 22.12.0
+2026-10-10T03:58:43.4859261Z   always-auth: false
+2026-10-10T03:58:43.4859605Z   check-latest: false
+2026-10-10T03:58:43.4864871Z   token: ***
+2026-10-10T03:58:43.4865232Z   package-manager-cache: true
+2026-10-10T03:58:43.4865638Z env:
+2026-10-10T03:58:43.4865945Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:43.4866439Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:43.4867111Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:43.4867842Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:43.4868701Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:43.4869354Z   MAVEN_ARGS: -ntp
+2026-10-10T03:58:43.4869687Z ##[endgroup]
+2026-10-10T03:58:43.6359160Z Attempting to download 22.12.0...
+2026-10-10T03:58:43.6466928Z (node:2304) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T03:58:43.6468890Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T03:58:44.1062774Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-x64.tar.gz
+2026-10-10T03:58:44.5443776Z Extracting ...
+2026-10-10T03:58:44.5648972Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/bd69d799-1cc1-4ce5-ae70-939d3fdd2696 -f /home/runner/work/_temp/4c1c78f6-7bb6-47da-b912-540d7958c16e
+2026-10-10T03:58:45.7434854Z Adding to the cache ...
+2026-10-10T03:58:47.9995632Z ##[group]Environment details
+2026-10-10T03:58:48.2338594Z node: v22.12.0
+2026-10-10T03:58:48.2339003Z npm: 10.9.0
+2026-10-10T03:58:48.2339335Z yarn: 1.22.22
+2026-10-10T03:58:48.2340023Z ##[endgroup]
+2026-10-10T03:58:48.2556037Z ##[group]Run chmod +x ./gradlew
+2026-10-10T03:58:48.2556408Z [36;1mchmod +x ./gradlew[0m
+2026-10-10T03:58:48.2899732Z shell: /usr/bin/bash -e {0}
+2026-10-10T03:58:48.2900058Z env:
+2026-10-10T03:58:48.2900313Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:48.2900696Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.2901199Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.2901746Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.2902374Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.2902856Z   MAVEN_ARGS: -ntp
+2026-10-10T03:58:48.2903104Z ##[endgroup]
+2026-10-10T03:58:48.3057954Z ##[group]Run set -euo pipefail
+2026-10-10T03:58:48.3058337Z [36;1mset -euo pipefail[0m
+2026-10-10T03:58:48.3058830Z [36;1mgradle_version="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)"[[:space:]]*$/\1/p' build.gradle.kts)"[0m
+2026-10-10T03:58:48.3059630Z [36;1mplugin_xml_version="$(sed -nE 's@^[[:space:]]*<version>([^<]+)</version>[[:space:]]*$@\1@p' src/main/resources/META-INF/plugin.xml)"[0m
+2026-10-10T03:58:48.3060288Z [36;1mif [[ -z "$gradle_version" || "$gradle_version" == *$'\n'* ]]; then[0m
+2026-10-10T03:58:48.3060804Z [36;1m  echo "::error::Expected exactly one project version in build.gradle.kts."[0m
+2026-10-10T03:58:48.3061209Z [36;1m  exit 1[0m
+2026-10-10T03:58:48.3061408Z [36;1mfi[0m
+2026-10-10T03:58:48.3061727Z [36;1mif [[ -z "$plugin_xml_version" || "$plugin_xml_version" == *$'\n'* ]]; then[0m
+2026-10-10T03:58:48.3062215Z [36;1m  echo "::error::Expected exactly one <version> in plugin.xml."[0m
+2026-10-10T03:58:48.3062603Z [36;1m  exit 1[0m
+2026-10-10T03:58:48.3062804Z [36;1mfi[0m
+2026-10-10T03:58:48.3063061Z [36;1mif [ "$gradle_version" != "$plugin_xml_version" ]; then[0m
+2026-10-10T03:58:48.3063620Z [36;1m  echo "::error::JetBrains version mismatch: Gradle=$gradle_version plugin.xml=$plugin_xml_version."[0m
+2026-10-10T03:58:48.3064112Z [36;1m  exit 1[0m
+2026-10-10T03:58:48.3064303Z [36;1mfi[0m
+2026-10-10T03:58:48.3064565Z [36;1mif [[ "$GITHUB_REF" == refs/tags/ide-jetbrains-v* ]]; then[0m
+2026-10-10T03:58:48.3065365Z [36;1m  expected_tag="ide-jetbrains-v${gradle_version}"[0m
+2026-10-10T03:58:48.3065748Z [36;1m  if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then[0m
+2026-10-10T03:58:48.3066369Z [36;1m    echo "::error::Release tag '$GITHUB_REF_NAME' does not match JetBrains version '$gradle_version' (expected '$expected_tag')."[0m
+2026-10-10T03:58:48.3066927Z [36;1m    exit 1[0m
+2026-10-10T03:58:48.3067125Z [36;1m  fi[0m
+2026-10-10T03:58:48.3067374Z [36;1m  echo "Validated release tag: $expected_tag"[0m
+2026-10-10T03:58:48.3067679Z [36;1melse[0m
+2026-10-10T03:58:48.3068002Z [36;1m  echo "Validated matching JetBrains version sources: $gradle_version"[0m
+2026-10-10T03:58:48.3068380Z [36;1mfi[0m
+2026-10-10T03:58:48.3131535Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T03:58:48.3131877Z env:
+2026-10-10T03:58:48.3132072Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:48.3132395Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3132804Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3133415Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3133908Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3134289Z   MAVEN_ARGS: -ntp
+2026-10-10T03:58:48.3134499Z ##[endgroup]
+2026-10-10T03:58:48.3255642Z Validated release tag: ide-jetbrains-v0.4.158
+2026-10-10T03:58:48.3282960Z ##[group]Run node scripts/verify-release-metadata.mjs
+2026-10-10T03:58:48.3283458Z [36;1mnode scripts/verify-release-metadata.mjs[0m
+2026-10-10T03:58:48.3344518Z shell: /usr/bin/bash -e {0}
+2026-10-10T03:58:48.3344898Z env:
+2026-10-10T03:58:48.3345100Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:48.3345429Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3345848Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3346296Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3346812Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3347201Z   MAVEN_ARGS: -ntp
+2026-10-10T03:58:48.3347408Z ##[endgroup]
+2026-10-10T03:58:48.3712748Z JetBrains release metadata verified: {"pluginVersion":"0.4.158","cliVersion":"0.166.96","sourceCliVersion":"0.166.96"}
+2026-10-10T03:58:48.3771499Z ##[group]Run ./gradlew smokeTest --no-daemon --stacktrace
+2026-10-10T03:58:48.3771955Z [36;1m./gradlew smokeTest --no-daemon --stacktrace[0m
+2026-10-10T03:58:48.3837956Z shell: /usr/bin/bash -e {0}
+2026-10-10T03:58:48.3838215Z env:
+2026-10-10T03:58:48.3838411Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T03:58:48.3838728Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3839240Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:58:48.3839710Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3840205Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T03:58:48.3840611Z   MAVEN_ARGS: -ntp
+2026-10-10T03:58:48.3840821Z ##[endgroup]
+2026-10-10T03:58:50.0012789Z Downloading https://services.gradle.org/distributions/gradle-8.7-bin.zip
+2026-10-10T03:58:52.6901989Z ............10%.............20%.............30%.............40%............50%.............60%.............70%.............80%.............90%............100%
+2026-10-10T03:58:54.7212202Z 
+2026-10-10T03:58:54.7225607Z Welcome to Gradle 8.7!
+2026-10-10T03:58:54.7225851Z 
+2026-10-10T03:58:54.7226051Z Here are the highlights of this release:
+2026-10-10T03:58:54.7226714Z  - Compiling and testing with Java 22
+2026-10-10T03:58:54.7227253Z  - Cacheable Groovy script compilation
+2026-10-10T03:58:54.7227803Z  - New methods in lazy collection properties
+2026-10-10T03:58:54.7228158Z 
+2026-10-10T03:58:54.7228627Z For more details see https://docs.gradle.org/8.7/release-notes.html
+2026-10-10T03:58:54.7229124Z 
+2026-10-10T03:58:54.9211022Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T03:58:56.2206683Z Daemon will be stopped at the end of the build 
+2026-10-10T03:58:57.6207836Z Calculating task graph as no cached configuration is available for tasks: smokeTest
+2026-10-10T03:59:39.7220687Z 
+2026-10-10T03:59:39.7246138Z > Configure project :
+2026-10-10T03:59:39.7278658Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build.gradle.kts:214:13: 'ide(IntelliJPlatformType, String, Boolean = ..., ProductMode = ...): Unit' is deprecated. Please use the create(type, version, configure) method with a configuration lambda instead.
+2026-10-10T04:00:19.2229981Z 
+2026-10-10T04:00:19.2231359Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:00:19.2232360Z > Task :generatePluginMetadata
+2026-10-10T04:00:19.5218620Z 
+2026-10-10T04:00:19.5230235Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:00:19.5256177Z [org.jetbrains.intellij.platform] IntelliJ Platform Gradle Plugin is outdated: 2.7.2. Update `org.jetbrains.intellij.platform` to: 2.19.0
+2026-10-10T04:00:19.6235747Z 
+2026-10-10T04:00:19.6261438Z > Task :patchPluginXml
+2026-10-10T04:00:19.6317031Z [org.jetbrains.intellij.platform] Patching plugin.xml: value of 'change-notes[
+2026-10-10T04:00:19.6318674Z         <b>0.4.29 / 0.4.30</b> — fix: <b>"Configure LLM" now pre-fills your config</b>
+2026-10-10T04:00:19.6319870Z         — no more re-typing model+key. The wizard pre-fills your current model, base
+2026-10-10T04:00:19.6321002Z         URL and vision model, pre-selects your current provider (✓ 当前), and lets you
+2026-10-10T04:00:19.6321999Z         <b>leave the API key blank to keep the stored one</b> (only required when there's
+2026-10-10T04:00:19.6323174Z         no key yet or you switch providers). The config itself was never lost — it lives
+2026-10-10T04:00:19.6324153Z         in <code>~/.chainlesschain/config.json</code> and survives CLI updates; the
+2026-10-10T04:00:19.6325585Z         wizard just didn't pre-fill it. (Mirrors the VS Code 0.34.0 fix. 0.4.30 adds
+2026-10-10T04:00:19.6326485Z         this very change-note, which 0.4.29 omitted.)
+2026-10-10T04:00:19.6327057Z         <br/><br/>
+2026-10-10T04:00:19.6328463Z         <b>0.4.28</b> — docs: the Marketplace "What's New" now lists every release
+2026-10-10T04:00:19.6329819Z         (it had silently stopped at 0.4.19 — change-notes are no longer missed).
+2026-10-10T04:00:19.6330632Z         <br/><br/>
+2026-10-10T04:00:19.6331505Z         <b>0.4.27</b> — cleared the 2 deprecated-API usages the Marketplace verifier
+2026-10-10T04:00:19.6332547Z         flagged (now <code>URI.toURL()</code> + a combo-box dialog), so the plugin
+2026-10-10T04:00:19.6333429Z         stays compatible with future IntelliJ releases.
+2026-10-10T04:00:19.6334001Z         <br/><br/>
+2026-10-10T04:00:19.6335087Z         <b>0.4.26</b> — fix: no more false "未检测到 cc CLI" when <code>cc</code> IS
+2026-10-10T04:00:19.6336280Z         installed. The version probe timeout went 5s → 12s (cold starts), and since
+2026-10-10T04:00:19.6337388Z         <code>cc</code> is also the C compiler's name, the plugin now resolves the
+2026-10-10T04:00:19.6338756Z         binary with fallback (<code>cc → chainlesschain → clc → clchain</code>) and
+2026-10-10T04:00:19.6339685Z         uses it for the chat spawn and every probe.
+2026-10-10T04:00:19.6340284Z         <br/><br/>
+2026-10-10T04:00:19.6341042Z         <b>0.4.25</b> — the agent can actually ask you a question:
+2026-10-10T04:00:19.6342073Z         <code>ask_user_question</code> now pops a dialog (single-choice / multi-select
+2026-10-10T04:00:19.6343229Z         checkboxes / free-text input) so the agent can clarify instead of guessing.
+2026-10-10T04:00:19.6344232Z         Requires <code>cc</code> ≥ 0.162.95.
+2026-10-10T04:00:19.6395158Z         <br/><br/>
+2026-10-10T04:00:19.6396115Z         <b>0.4.24</b> — fix: a graceful "couldn't ask in the panel" degradation no
+2026-10-10T04:00:19.6397172Z         longer renders as a scary <b>✗ ask_user_question</b> failure.
+2026-10-10T04:00:19.6397802Z         <br/><br/>
+2026-10-10T04:00:19.6398563Z         <b>0.4.23</b> — new <b>⚙ LLM → 检查 cc 更新…</b> menu item (check on demand),
+2026-10-10T04:00:19.6399454Z         plus a clear hint when the <code>cc</code> CLI isn't installed.
+2026-10-10T04:00:19.6400074Z         <br/><br/>
+2026-10-10T04:00:19.6400852Z         <b>0.4.22</b> — you're now told when a newer <code>cc</code> CLI is published
+2026-10-10T04:00:19.6401681Z         on npm, so you don't silently miss new features.
+2026-10-10T04:00:19.6402329Z         <br/><br/>
+2026-10-10T04:00:19.6403117Z         <b>0.4.21</b> — fix: reconfiguring the LLM now restarts the running chat so it
+2026-10-10T04:00:19.6404190Z         picks up the new provider/model/key (no more "配置完还没用 / 新开对话才行").
+2026-10-10T04:00:19.6405040Z         <br/><br/>
+2026-10-10T04:00:19.6405811Z         <b>0.4.20</b> — new <code>/review</code> command: review your uncommitted git
+2026-10-10T04:00:19.6407007Z         diff right from the chat (matches the VS Code panel).
+2026-10-10T04:00:19.6407597Z         <br/><br/>
+2026-10-10T04:00:19.6408322Z         <b>0.4.19</b> — fix: the suggested vision model now matches the CLI's
+2026-10-10T04:00:19.6409275Z         actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
+2026-10-10T04:00:19.6410144Z         older snapshot, so the prefilled value equals what
+2026-10-10T04:00:19.6410792Z         <code>cc agent --image</code> uses.
+2026-10-10T04:00:19.6411275Z         <br/><br/>
+2026-10-10T04:00:19.6412002Z         <b>0.4.18</b> — dedicated image-recognition (vision) model entry: the
+2026-10-10T04:00:19.6413079Z         <b>⚙ LLM</b> button is now a small menu (configure full LLM <i>or</i> just
+2026-10-10T04:00:19.6414138Z         the vision model), plus a <b>Tools → Configure Vision Model</b> action.
+2026-10-10T04:00:19.6415339Z         Set <code>llm.visionModel</code> without re-running the whole wizard or
+2026-10-10T04:00:19.6416251Z         re-typing your API key; blank reverts to the text model.
+2026-10-10T04:00:19.6416835Z         <br/><br/>
+2026-10-10T04:00:19.6417584Z         <b>0.4.17</b> — first-run nudge: when no LLM provider is configured yet,
+2026-10-10T04:00:19.6418887Z         the chat panel now shows a dim hint pointing at the <b>⚙ LLM</b> button
+2026-10-10T04:00:19.6419889Z         instead of staying blank until the first turn fails with a 401 (VS Code
+2026-10-10T04:00:19.6445328Z         onboarding parity).
+2026-10-10T04:00:19.6445786Z         <br/><br/>
+2026-10-10T04:00:19.6446607Z         <b>0.4.16</b> — chat panel LLM UX: (1) paste screenshots — Ctrl/Cmd+V an
+2026-10-10T04:00:19.6447656Z         image to attach it to your next message (vision); (2) a <b>⚙ LLM</b>
+2026-10-10T04:00:19.6448604Z         quick-entry button by Send opens the provider/model wizard, and auth
+2026-10-10T04:00:19.6449564Z         failures (401/403/missing key) now hint at it; (3) the wizard can set a
+2026-10-10T04:00:19.6450710Z         separate <b>image-recognition (vision) model</b> — text and vision models
+2026-10-10T04:00:19.6451479Z         no longer have to be the same.
+2026-10-10T04:00:19.6451955Z         <br/><br/>
+2026-10-10T04:00:19.6452670Z         <b>0.4.15</b> — multi-line chat composer: the input now wraps across
+2026-10-10T04:00:19.6453670Z         lines — <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
+2026-10-10T04:00:19.6454315Z         parity).
+2026-10-10T04:00:19.6454859Z         <br/><br/>
+2026-10-10T04:00:19.6455656Z         <b>0.4.14</b> — extended-thinking reasoning (with <code>/think</code>) now
+2026-10-10T04:00:19.6456576Z         streams into the transcript dimmed/italic, set apart from the answer
+2026-10-10T04:00:19.6457247Z         (VS Code parity).
+2026-10-10T04:00:19.6457635Z         <br/><br/>
+2026-10-10T04:00:19.6458370Z         <b>0.4.13</b> — Markdown rendering in the chat transcript: fenced/inline
+2026-10-10T04:00:19.6459294Z         <code>code</code> (monospace) and <b>bold</b> now render instead of raw
+2026-10-10T04:00:19.6460250Z         markers (VS Code parity). Streaming stays plain, then snaps to styled.
+2026-10-10T04:00:19.6460918Z         <br/><br/>
+2026-10-10T04:00:19.6461637Z         <b>0.4.12</b> — "Fix with ChainlessChain" intention: on an error/warning
+2026-10-10T04:00:19.6462625Z         line, Alt+Enter offers a quick-fix that seeds the chat with a fix request
+2026-10-10T04:00:19.6463490Z         scoped to that file + those problems (VS Code parity).
+2026-10-10T04:00:19.6464054Z         <br/><br/>
+2026-10-10T04:00:19.6464987Z         <b>0.4.11</b> — slash-command autocomplete: typing <code>/</code> at the
+2026-10-10T04:00:19.6465865Z         start of the chat input pops a chooser of the panel's commands
+2026-10-10T04:00:19.6466855Z         (<code>/new</code>, <code>/compact</code>, <code>/think</code>, …),
+2026-10-10T04:00:19.6467566Z         filtered as you type (VS Code parity).
+2026-10-10T04:00:19.6468079Z         <br/><br/>
+2026-10-10T04:00:19.6468996Z         <b>0.4.10</b> — fix: wrap the diff-review document reads
+2026-10-10T04:00:19.6469867Z         (<code>openDiff</code>/<code>openMultiDiff</code>) in a read action.
+2026-10-10T04:00:19.6470780Z         Since 2026.2 the EDT no longer grants implicit read access, so building
+2026-10-10T04:00:19.6471692Z         the diff threw "Read access is allowed from inside read-action only" on
+2026-10-10T04:00:19.6472440Z         2026.2+. No behavior change on 2025.x.
+2026-10-10T04:00:19.6472920Z         <br/><br/>
+2026-10-10T04:00:19.6473633Z         <b>0.4.9</b> — fix: the chat tool window now deterministically uses the
+2026-10-10T04:00:19.6474545Z         LLM provider you configured (<code>cc config</code> / Configure LLM),
+2026-10-10T04:00:19.6536310Z         reading <code>~/.chainlesschain/config.json</code> and passing it
+2026-10-10T04:00:19.6537412Z         explicitly to <code>cc agent</code> — no more spurious
+2026-10-10T04:00:19.6538423Z         <code>Anthropic error: 401</code> when another provider is configured.
+2026-10-10T04:00:19.6539161Z         <br/><br/>
+2026-10-10T04:00:19.6539927Z         <b>0.4.8</b> — <code>/compact</code> in the chat tool window (Claude-Code
+2026-10-10T04:00:19.6540896Z         IDE parity): trims the live conversation history between turns (no extra
+2026-10-10T04:00:19.6542132Z         LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0
+2026-10-10T04:00:19.6542794Z         feature.
+2026-10-10T04:00:19.6543139Z         <br/><br/>
+2026-10-10T04:00:19.6543919Z         <b>0.4.7</b> — cleared the remaining API-compatibility flags the Plugin
+2026-10-10T04:00:19.6545111Z         Verifier reported on 2026.x: the @-mention list renderer no longer uses a
+2026-10-10T04:00:19.6546121Z         scheduled-for-removal helper, and the deprecated terminal customizer was
+2026-10-10T04:00:19.6547126Z         removed (a <code>cc</code> you run in a terminal still auto-connects via the
+2026-10-10T04:00:19.6547897Z         bridge's discovery lockfile).
+2026-10-10T04:00:19.6548383Z         <br/><br/>
+2026-10-10T04:00:19.6549124Z         <b>0.4.6</b> — newer-IDE compatibility: removed the last deprecated-API
+2026-10-10T04:00:19.6550122Z         usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
+2026-10-10T04:00:19.6551210Z         reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
+2026-10-10T04:00:19.6551965Z         <br/><br/>
+2026-10-10T04:00:19.6552769Z         <b>0.4.5</b> — reverted the experimental 0.4.4 <code>getTerminalOutput</code>
+2026-10-10T04:00:19.6553778Z         tool: the terminal API it used is not stable across IDE versions and caused
+2026-10-10T04:00:19.6554918Z         errors on some builds. Everything else is unchanged from 0.4.3.
+2026-10-10T04:00:19.6555568Z         <br/><br/>
+2026-10-10T04:00:19.6556302Z         <b>0.4.3</b> — the <code>@</code>-mention symbol completion now covers
+2026-10-10T04:00:19.6557334Z         <b>methods/functions</b> too (not just classes) — type a method name to
+2026-10-10T04:00:19.6558114Z         reference the file where it's defined.
+2026-10-10T04:00:19.6558585Z         <br/><br/>
+2026-10-10T04:00:19.6559324Z         <b>0.4.2</b> — the <code>@</code>-mention popup now includes project class
+2026-10-10T04:00:19.6560263Z         symbols (type a class name to reference the file where it's defined),
+2026-10-10T04:00:19.6561226Z         alongside <code>@selection</code>/<code>@diagnostics</code> and files.
+2026-10-10T04:00:19.6561906Z         <br/><br/>
+2026-10-10T04:00:19.6562740Z         <b>0.4.1</b> — expanded the plugin description / what's-new (no functional
+2026-10-10T04:00:19.6563441Z         change since 0.4.0).
+2026-10-10T04:00:19.6563868Z         <br/><br/>
+2026-10-10T04:00:19.6564419Z         <b>0.4.0</b> — VS Code feature parity.
+2026-10-10T04:00:19.6593163Z         <ul>
+2026-10-10T04:00:19.6593978Z           <li>Multi-conversation <b>tabs</b> (one agent per tab, resume across restarts).</li>
+2026-10-10T04:00:19.6595564Z           <li><b>Approval modes</b> (<code>/auto</code>·<code>/bypass</code>·<code>/normal</code>)
+2026-10-10T04:00:19.6597170Z               and <b>extended thinking</b> (<code>/think</code>·<code>/ultrathink</code>·<code>/think-off</code>),
+2026-10-10T04:00:19.6598410Z               plus <code>/new</code> <code>/stop</code> <code>/cost</code> <code>/context</code>
+2026-10-10T04:00:19.6599466Z               <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+2026-10-10T04:00:19.6600769Z           <li><b>Interactive plan &amp; approval cards</b> (Approve/Deny buttons).</li>
+2026-10-10T04:00:19.6601932Z           <li>Editor <b>Explain / Refactor</b> actions, <code>@file#L</code> reference
+2026-10-10T04:00:19.6603066Z               insertion (<code>Ctrl/Cmd+Alt+K</code>), and an <code>@</code>-mention popup.</li>
+2026-10-10T04:00:19.6604510Z           <li>Native diff "<b>Request changes…</b>" with inline notes, and batch
+2026-10-10T04:00:19.6605599Z               <b>openMultiDiff</b> multi-file review.</li>
+2026-10-10T04:00:19.6606388Z           <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
+2026-10-10T04:00:19.6607361Z           <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
+2026-10-10T04:00:19.6608093Z         </ul>
+2026-10-10T04:00:19.6627980Z     ]' tag will be set to '<b>[0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)</b><br/><ul><li>Recommend CLI <code>0.166.96</code> after its public npm release and this extension's exact-commit release gates pass.</li><li>Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.</li><li>Retain the compatibility floor and runtime capability diagnostics; experimental native review and durable Windows/macOS recovery remain outside release acceptance.</li></ul><br/><b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br/><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br/><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br/><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br/><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul><br/><b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br/><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul>'
+2026-10-10T04:00:19.6644853Z 
+2026-10-10T04:00:19.6645098Z > Task :processTestResources
+2026-10-10T04:00:19.6645615Z > Task :processResources
+2026-10-10T04:00:48.0235745Z 
+2026-10-10T04:00:48.0236272Z > Task :compileKotlin
+2026-10-10T04:00:48.0238097Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:123:34 Redundant '?'
+2026-10-10T04:00:48.0244322Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:127:28 Redundant '?'
+2026-10-10T04:00:48.0248681Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:135:31 Redundant '?'
+2026-10-10T04:00:48.0252109Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:137:36 Redundant '?'
+2026-10-10T04:00:48.0254309Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:144:28 Redundant '?'
+2026-10-10T04:00:48.0256706Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:147:27 Redundant '?'
+2026-10-10T04:00:48.0258922Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:150:31 Redundant '?'
+2026-10-10T04:00:48.0261476Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:156:29 Redundant '?'
+2026-10-10T04:00:48.0263634Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:163:29 Redundant '?'
+2026-10-10T04:00:48.0266107Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:166:35 Redundant '?'
+2026-10-10T04:00:48.0268307Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:184:32 Redundant '?'
+2026-10-10T04:00:48.0270502Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:211:33 Redundant '?'
+2026-10-10T04:00:48.0273861Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:260:34 Redundant '?'
+2026-10-10T04:00:48.0283241Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:293:28 Redundant '?'
+2026-10-10T04:00:48.0285667Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:301:40 Redundant '?'
+2026-10-10T04:00:48.0288010Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:303:35 Redundant '?'
+2026-10-10T04:00:48.0290152Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:310:33 Redundant '?'
+2026-10-10T04:00:48.0300526Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:314:31 Redundant '?'
+2026-10-10T04:00:48.0306962Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:324:47 Redundant '?'
+2026-10-10T04:00:48.0313188Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:326:31 Redundant '?'
+2026-10-10T04:00:48.0315616Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:327:36 Redundant '?'
+2026-10-10T04:00:48.0321433Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:360:28 Redundant '?'
+2026-10-10T04:00:48.0323685Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:373:27 Redundant '?'
+2026-10-10T04:00:48.0326131Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:374:40 Redundant '?'
+2026-10-10T04:00:48.0328577Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:384:31 Redundant '?'
+2026-10-10T04:00:48.0330940Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:385:33 Redundant '?'
+2026-10-10T04:00:48.0333095Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:421:29 Redundant '?'
+2026-10-10T04:00:48.0335421Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:427:32 Redundant '?'
+2026-10-10T04:00:48.0337540Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:428:32 Redundant '?'
+2026-10-10T04:00:48.0339621Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:429:34 Redundant '?'
+2026-10-10T04:00:48.0341775Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:435:28 Redundant '?'
+2026-10-10T04:00:48.0343886Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:443:32 Redundant '?'
+2026-10-10T04:00:48.0349549Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:448:31 Redundant '?'
+2026-10-10T04:00:48.0352753Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:474:28 Redundant '?'
+2026-10-10T04:00:48.0360243Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:487:25 Redundant '?'
+2026-10-10T04:00:48.0366492Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:527:30 Redundant '?'
+2026-10-10T04:00:48.0372708Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:530:36 Redundant '?'
+2026-10-10T04:00:48.0379809Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:602:24 Redundant '?'
+2026-10-10T04:00:48.0385427Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:603:34 Redundant '?'
+2026-10-10T04:00:48.0388667Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:632:27 Redundant '?'
+2026-10-10T04:00:48.0390871Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:633:28 Redundant '?'
+2026-10-10T04:00:48.0393015Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:639:26 Redundant '?'
+2026-10-10T04:00:48.0396602Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:669:30 Redundant '?'
+2026-10-10T04:00:48.0401856Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:694:25 Redundant '?'
+2026-10-10T04:00:48.0409100Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:717:25 Redundant '?'
+2026-10-10T04:00:48.0411297Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:780:41 Redundant '?'
+2026-10-10T04:00:48.0413436Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:797:25 Redundant '?'
+2026-10-10T04:00:48.0415997Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:808:26 Redundant '?'
+2026-10-10T04:00:48.0418126Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:810:39 Redundant '?'
+2026-10-10T04:00:48.0420535Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:819:24 Redundant '?'
+2026-10-10T04:00:48.0422656Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:824:27 Redundant '?'
+2026-10-10T04:00:48.1220951Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:839:26 Redundant '?'
+2026-10-10T04:00:48.1223885Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:998:37 Redundant '?'
+2026-10-10T04:00:48.1226884Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/agent-protocol/generated/kotlin/CcAgentProtocol.kt:1022:28 Redundant '?'
+2026-10-10T04:00:48.1230092Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/src/main/kotlin/com/chainlesschain/ide/intellij/CcInlineCompletionProvider.kt:52:40 Unnecessary safe call on a non-null receiver of type PsiFile
+2026-10-10T04:00:48.1234306Z w: file:///home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/src/main/kotlin/com/chainlesschain/ide/intellij/CcInlineCompletionProvider.kt:54:32 Unnecessary safe call on a non-null receiver of type PsiFile
+2026-10-10T04:01:17.7203981Z 
+2026-10-10T04:01:17.7205979Z > Task :compileJava
+2026-10-10T04:01:17.7207580Z > Task :classes
+2026-10-10T04:01:17.7209222Z > Task :instrumentCode SKIPPED
+2026-10-10T04:01:17.7210893Z > Task :compileTestKotlin NO-SOURCE
+2026-10-10T04:01:21.5211767Z > Task :compileTestJava
+2026-10-10T04:01:21.5236954Z > Task :testClasses
+2026-10-10T04:01:21.5241197Z > Task :instrumentTestCode SKIPPED
+2026-10-10T04:01:21.9203474Z 
+2026-10-10T04:01:21.9216220Z > Task :smokeTest
+2026-10-10T04:01:21.9232266Z ConversationManager:
+2026-10-10T04:01:21.9233438Z PreviewDetect:
+2026-10-10T04:01:21.9234199Z MultiDiff:
+2026-10-10T04:01:21.9235067Z Mentions:
+2026-10-10T04:01:21.9266711Z SessionArgs:
+2026-10-10T04:01:21.9267144Z IntrospectArgs:
+2026-10-10T04:01:21.9267688Z LlmConfig.parseLlmProviderModel:
+2026-10-10T04:01:21.9268223Z SlashCommands:
+2026-10-10T04:01:21.9268602Z CliVersionCheck:
+2026-10-10T04:01:21.9269316Z AgentChatSession.looksLikeCcVersion (cc-conflict resolution):
+2026-10-10T04:01:21.9270406Z MiniJson depth cap (SOE → catchable IAE):
+2026-10-10T04:01:21.9271279Z TokenTally (live token counter + iteration warning, VS Code 0.37.2 parity):
+2026-10-10T04:01:21.9272604Z CliLauncher (PATH augmentation — makes cc reachable from the IDE):
+2026-10-10T04:01:21.9273348Z FixWithCc:
+2026-10-10T04:01:21.9273641Z MarkdownLite:
+2026-10-10T04:01:21.9273871Z TranscriptCap:
+2026-10-10T04:01:21.9274142Z LockfileWriter.pruneStale:
+2026-10-10T04:01:21.9274525Z JetbrainsMcpProbe:
+2026-10-10T04:01:21.9275425Z StatusBarText (status-bar widget label/tooltip)
+2026-10-10T04:01:21.9276233Z DiffHunks (hunk-level partial accept)
+2026-10-10T04:01:21.9277080Z ReviewNote (request-changes line-anchor prefix)
+2026-10-10T04:01:21.9277950Z RewindCommands (/rewind checkpoint args + parsers)
+2026-10-10T04:01:21.9278795Z SessionList (/sessions args + parser)
+2026-10-10T04:01:21.9279405Z UsageReport (attribution):
+2026-10-10T04:01:21.9280154Z ImageAttachments (drag-drop filter + cap)
+2026-10-10T04:01:21.9280886Z ProjectMemory (init / memory files args)
+2026-10-10T04:01:21.9281779Z WhatsNew (cc changelog --json args + parser + renderer)
+2026-10-10T04:01:21.9282641Z IdeDoctor (Diagnose Bridge args + report)
+2026-10-10T04:01:21.9283394Z IdeContextV2 (versioned context metadata)
+2026-10-10T04:01:21.9284139Z ContextCenter (persistent preferences):
+2026-10-10T04:01:21.9285096Z ContextExternalSources (metadata-only MCP catalog):
+2026-10-10T04:01:21.9285597Z TeamMonitor (cc team --state parse + summarize + report)
+2026-10-10T04:01:21.9286108Z BackgroundAgents (cc agent --bg state list + display correction)
+2026-10-10T04:01:21.9286898Z RemoteHandoff (loopback-safe IDE wrapper):
+2026-10-10T04:01:21.9287306Z ActivityLog (bridge tool-call ring buffer + report)
+2026-10-10T04:01:21.9288415Z DeepLink (jetbrains:// URI parser — VS uri-handler.js twin)
+2026-10-10T04:01:21.9289529Z AutoExecGuard (auto-exec config guard — VS auto-exec-guard.js twin)
+2026-10-10T04:01:21.9290560Z RemoteDoctor (remote/WSL doctor — VS remote-doctor.js twin)
+2026-10-10T04:01:21.9291597Z SemanticTools (PSI semantic bridge tools — pure core)
+2026-10-10T04:01:21.9292272Z SessionsWorkbench:
+2026-10-10T04:01:21.9292675Z Artifacts:
+2026-10-10T04:01:21.9293044Z PolicyViewer:
+2026-10-10T04:01:21.9294012Z PluginQuality (plugin/LSP quality board — VS plugin-quality.js twin)
+2026-10-10T04:01:21.9295482Z RemoteDoctorFixes (one-click fixes — VS remote-doctor-fixes.js twin)
+2026-10-10T04:01:21.9296326Z ManagedCli (twin fixtures + tar + seam):
+2026-10-10T04:01:21.9297108Z bundleParity (l10n action keys en <-> zh <-> plugin.xml)
+2026-10-10T04:01:21.9297416Z 
+2026-10-10T04:01:21.9297662Z === PureLogicSmokeMain: 1445 passed, 0 failed ===
+2026-10-10T04:01:21.9297903Z 
+2026-10-10T04:01:21.9298032Z BUILD SUCCESSFUL in 2m 32s
+2026-10-10T04:01:21.9298332Z 10 actionable tasks: 10 executed
+2026-10-10T04:01:21.9298645Z Configuration cache entry stored.
+2026-10-10T04:01:22.2745522Z ##[group]Run ./gradlew test --no-daemon --stacktrace
+2026-10-10T04:01:22.2745961Z [36;1m./gradlew test --no-daemon --stacktrace[0m
+2026-10-10T04:01:22.2810373Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:01:22.2810636Z env:
+2026-10-10T04:01:22.2810843Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:01:22.2811159Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:01:22.2811583Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:01:22.2812028Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:01:22.2812519Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:01:22.2812921Z   MAVEN_ARGS: -ntp
+2026-10-10T04:01:22.2813126Z ##[endgroup]
+2026-10-10T04:01:22.9055816Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T04:01:23.9049112Z Daemon will be stopped at the end of the build 
+2026-10-10T04:01:25.2047843Z Calculating task graph as no cached configuration is available for tasks: test
+2026-10-10T04:01:40.7106586Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:01:40.7155688Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:01:40.7196267Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-10T04:01:40.7231544Z > Task :patchPluginXml UP-TO-DATE
+2026-10-10T04:01:40.7248144Z > Task :processTestResources UP-TO-DATE
+2026-10-10T04:01:40.7249159Z > Task :processResources UP-TO-DATE
+2026-10-10T04:01:40.8052753Z > Task :generateManifest
+2026-10-10T04:01:40.9046015Z > Task :compileKotlin UP-TO-DATE
+2026-10-10T04:01:40.9066502Z > Task :compileJava UP-TO-DATE
+2026-10-10T04:01:40.9071590Z > Task :classes UP-TO-DATE
+2026-10-10T04:01:40.9103036Z > Task :instrumentCode SKIPPED
+2026-10-10T04:01:41.0056131Z > Task :compileTestKotlin NO-SOURCE
+2026-10-10T04:01:41.0056923Z > Task :compileTestJava UP-TO-DATE
+2026-10-10T04:01:41.0057526Z > Task :testClasses UP-TO-DATE
+2026-10-10T04:01:41.0058093Z > Task :instrumentTestCode SKIPPED
+2026-10-10T04:01:41.2046007Z > Task :jar
+2026-10-10T04:01:41.6046057Z > Task :composedJar
+2026-10-10T04:01:41.7066840Z > Task :prepareTestSandbox
+2026-10-10T04:01:41.7069324Z > Task :prepareTest
+2026-10-10T04:02:11.7043097Z > Task :test
+2026-10-10T04:02:33.3664572Z 
+2026-10-10T04:02:33.3665929Z BUILD SUCCESSFUL in 1m 11s
+2026-10-10T04:02:33.3682445Z 14 actionable tasks: 7 executed, 7 up-to-date
+2026-10-10T04:02:33.3704383Z Configuration cache entry stored.
+2026-10-10T04:02:33.6927699Z ##[group]Run ./gradlew buildPlugin --no-daemon --stacktrace
+2026-10-10T04:02:33.6928410Z [36;1m./gradlew buildPlugin --no-daemon --stacktrace[0m
+2026-10-10T04:02:33.7009606Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:02:33.7010023Z env:
+2026-10-10T04:02:33.7010344Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:02:33.7010862Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:02:33.7011569Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:02:33.7012339Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:02:33.7013186Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:02:33.7013848Z   MAVEN_ARGS: -ntp
+2026-10-10T04:02:33.7014194Z ##[endgroup]
+2026-10-10T04:02:34.3166810Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T04:02:35.3158331Z Daemon will be stopped at the end of the build 
+2026-10-10T04:02:36.5156771Z Calculating task graph as no cached configuration is available for tasks: buildPlugin
+2026-10-10T04:02:47.4209476Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:02:47.4210299Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:02:47.4210977Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-10T04:02:47.4211614Z > Task :patchPluginXml UP-TO-DATE
+2026-10-10T04:02:47.5166993Z > Task :generateManifest UP-TO-DATE
+2026-10-10T04:02:47.5168145Z > Task :processResources UP-TO-DATE
+2026-10-10T04:02:47.6176212Z > Task :compileKotlin UP-TO-DATE
+2026-10-10T04:02:47.6177613Z > Task :compileJava UP-TO-DATE
+2026-10-10T04:02:47.6205631Z > Task :classes UP-TO-DATE
+2026-10-10T04:02:47.6228688Z > Task :instrumentCode SKIPPED
+2026-10-10T04:02:47.6236835Z > Task :jar UP-TO-DATE
+2026-10-10T04:02:47.6237550Z > Task :composedJar UP-TO-DATE
+2026-10-10T04:02:47.7159666Z > Task :prepareSandbox
+2026-10-10T04:02:49.7167519Z Oct 10, 2026 4:02:48 AM java.util.prefs.FileSystemPreferences$1 run
+2026-10-10T04:02:49.7168193Z 
+2026-10-10T04:02:49.7205750Z INFO: Created user preferences directory.
+2026-10-10T04:02:49.7206506Z > Task :buildSearchableOptions
+2026-10-10T04:02:49.7248181Z 2026-10-10 04:02:49,042 [    733]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition for key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrains.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.registry.RegistryKeyBean.overrides for more details.
+2026-10-10T04:02:49.7288194Z 2026-10-10 04:02:49,463 [   1154]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: /home/runner/.gradle/caches/transforms-4/e7c09dee951b3df15cfb1f7b410c0b98/transformed/ideaIC-2024.2/jdk-shared-indexes
+2026-10-10T04:02:51.1155201Z Warning: Service not supported: com.jetbrains.WindowMove
+2026-10-10T04:02:51.1220889Z 	at com.jetbrains.JBR$WindowMove__Holder.<clinit>(JBR.java:679)
+2026-10-10T04:02:51.1233742Z 	at com.jetbrains.JBR.isWindowMoveSupported(JBR.java:689)
+2026-10-10T04:02:51.1255999Z 	at com.intellij.openapi.wm.impl.IdeRootPane$Companion.getHideNativeLinuxTitleSupported$intellij_platform_ide_impl(IdeRootPane.kt:324)
+2026-10-10T04:02:51.1267129Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$rightColumnControls$1$7.invoke(AppearanceConfigurable.kt:448)
+2026-10-10T04:02:51.1272505Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$rightColumnControls$1$7.invoke(AppearanceConfigurable.kt:441)
+2026-10-10T04:02:51.1326027Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2$1$1.invoke(AppearanceConfigurable.kt:479)
+2026-10-10T04:02:51.1328073Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2$1$1.invoke(AppearanceConfigurable.kt:478)
+2026-10-10T04:02:51.1356090Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:56)
+2026-10-10T04:02:51.1357207Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:18)
+2026-10-10T04:02:51.1367760Z 	at com.intellij.ui.dsl.builder.Panel.row$default(Panel.kt:75)
+2026-10-10T04:02:51.1369074Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2$1.invoke(AppearanceConfigurable.kt:478)
+2026-10-10T04:02:51.1370725Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2$1.invoke(AppearanceConfigurable.kt:476)
+2026-10-10T04:02:51.1372152Z 	at com.intellij.ui.dsl.builder.impl.RowImpl.panel(RowImpl.kt:176)
+2026-10-10T04:02:51.1373243Z 	at com.intellij.ui.dsl.builder.impl.RowImpl.panel(RowImpl.kt:40)
+2026-10-10T04:02:51.1374572Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2.invoke(AppearanceConfigurable.kt:476)
+2026-10-10T04:02:51.1376472Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4$2.invoke(AppearanceConfigurable.kt:465)
+2026-10-10T04:02:51.1378019Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1$2$1.invoke(PanelImpl.kt:88)
+2026-10-10T04:02:51.1379442Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1$2$1.invoke(PanelImpl.kt:83)
+2026-10-10T04:02:51.1380674Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:56)
+2026-10-10T04:02:51.1381826Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:18)
+2026-10-10T04:02:51.1382895Z 	at com.intellij.ui.dsl.builder.Panel.row$default(Panel.kt:75)
+2026-10-10T04:02:51.1384096Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1$2.invoke(PanelImpl.kt:83)
+2026-10-10T04:02:51.1385790Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1$2.invoke(PanelImpl.kt:82)
+2026-10-10T04:02:51.1387097Z 	at com.intellij.ui.dsl.builder.impl.RowImpl.panel(RowImpl.kt:176)
+2026-10-10T04:02:51.1388233Z 	at com.intellij.ui.dsl.builder.impl.RowImpl.panel(RowImpl.kt:40)
+2026-10-10T04:02:51.1389510Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1.invoke(PanelImpl.kt:82)
+2026-10-10T04:02:51.1390935Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl$twoColumnsRow$1.invoke(PanelImpl.kt:71)
+2026-10-10T04:02:51.1392344Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:56)
+2026-10-10T04:02:51.1393519Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.row(PanelImpl.kt:18)
+2026-10-10T04:02:51.1394630Z 	at com.intellij.ui.dsl.builder.Panel.row$default(Panel.kt:75)
+2026-10-10T04:02:51.1396162Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.twoColumnsRow(PanelImpl.kt:71)
+2026-10-10T04:02:51.1397686Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4.invoke(AppearanceConfigurable.kt:465)
+2026-10-10T04:02:51.1399308Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3$4.invoke(AppearanceConfigurable.kt:383)
+2026-10-10T04:02:51.1400754Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.indent(PanelImpl.kt:360)
+2026-10-10T04:02:51.1402076Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.groupRowsRange(PanelImpl.kt:184)
+2026-10-10T04:02:51.1412473Z 	at com.intellij.ui.dsl.builder.impl.PanelImpl.groupRowsRange(PanelImpl.kt:18)
+2026-10-10T04:02:51.1413696Z 	at com.intellij.ui.dsl.builder.Panel.groupRowsRange$default(Panel.kt:126)
+2026-10-10T04:02:51.1415272Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3.invoke(AppearanceConfigurable.kt:383)
+2026-10-10T04:02:51.1416858Z 	at com.intellij.ide.ui.AppearanceConfigurable$createPanel$3.invoke(AppearanceConfigurable.kt:182)
+2026-10-10T04:02:51.1418052Z 	at com.intellij.ui.dsl.builder.BuilderKt.panel(builder.kt:19)
+2026-10-10T04:02:51.1419141Z 	at com.intellij.ide.ui.AppearanceConfigurable.createPanel(AppearanceConfigurable.kt:182)
+2026-10-10T04:02:51.1420450Z 	at com.intellij.openapi.options.DslConfigurableBase$panel$1.compute(BoundConfigurable.kt:35)
+2026-10-10T04:02:51.1421747Z 	at com.intellij.openapi.options.DslConfigurableBase$panel$1.compute(BoundConfigurable.kt:30)
+2026-10-10T04:02:51.1423010Z 	at com.intellij.openapi.util.ClearableLazyValue.getValue(ClearableLazyValue.java:43)
+2026-10-10T04:02:51.1424921Z 	at com.intellij.openapi.options.DslConfigurableBase.createComponent(BoundConfigurable.kt:43)
+2026-10-10T04:02:51.1426728Z 	at com.intellij.openapi.options.ex.ConfigurableWrapper.createComponent(ConfigurableWrapper.java:183)
+2026-10-10T04:02:51.1429270Z 	at com.intellij.ide.ui.search.TraverseUIStarterKt.processConfigurables(TraverseUIStarter.kt:418)
+2026-10-10T04:02:51.1430964Z 	at com.intellij.ide.ui.search.TraverseUIStarterKt.access$processConfigurables(TraverseUIStarter.kt:1)
+2026-10-10T04:02:51.1432696Z 	at com.intellij.ide.ui.search.TraverseUIStarterKt$doBuildSearchableOptions$2$1.invoke(TraverseUIStarter.kt:361)
+2026-10-10T04:02:51.1434482Z 	at com.intellij.ide.ui.search.TraverseUIStarterKt$doBuildSearchableOptions$2$1.invoke(TraverseUIStarter.kt:357)
+2026-10-10T04:02:51.1436332Z 	at com.intellij.openapi.progress.CoroutinesKt.blockingContextInner(coroutines.kt:339)
+2026-10-10T04:02:51.1437849Z 	at com.intellij.openapi.progress.CoroutinesKt$blockingContext$2.invokeSuspend(coroutines.kt:232)
+2026-10-10T04:02:51.1439379Z 	at com.intellij.openapi.progress.CoroutinesKt$blockingContext$2.invoke(coroutines.kt)
+2026-10-10T04:02:51.1440725Z 	at com.intellij.openapi.progress.CoroutinesKt$blockingContext$2.invoke(coroutines.kt)
+2026-10-10T04:02:51.1442285Z 	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:62)
+2026-10-10T04:02:51.1443765Z 	at kotlinx.coroutines.CoroutineScopeKt.coroutineScope(CoroutineScope.kt:261)
+2026-10-10T04:02:51.1445425Z 	at com.intellij.openapi.progress.CoroutinesKt.blockingContext(coroutines.kt:231)
+2026-10-10T04:02:51.1447073Z 	at com.intellij.ide.ui.search.TraverseUIStarterKt$doBuildSearchableOptions$2.invokeSuspend(TraverseUIStarter.kt:357)
+2026-10-10T04:02:51.1449164Z 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+2026-10-10T04:02:51.1450538Z 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:104)
+2026-10-10T04:02:51.1451836Z 	at com.intellij.openapi.application.impl.DispatchedRunnable.run(DispatchedRunnable.kt:44)
+2026-10-10T04:02:51.1453690Z 	at com.intellij.openapi.application.TransactionGuardImpl.runWithWritingAllowed(TransactionGuardImpl.java:229)
+2026-10-10T04:02:51.1455916Z 	at com.intellij.openapi.application.TransactionGuardImpl.access$100(TransactionGuardImpl.java:22)
+2026-10-10T04:02:51.1457645Z 	at com.intellij.openapi.application.TransactionGuardImpl$2.run(TransactionGuardImpl.java:211)
+2026-10-10T04:02:51.1459611Z 	at com.intellij.openapi.application.impl.AnyThreadWriteThreadingSupport.runWithImplicitRead(AnyThreadWriteThreadingSupport.kt:122)
+2026-10-10T04:02:51.1461800Z 	at com.intellij.openapi.application.impl.ApplicationImpl.runWithImplicitRead(ApplicationImpl.java:1162)
+2026-10-10T04:02:51.1463493Z 	at com.intellij.openapi.application.impl.FlushQueue.doRun(FlushQueue.java:78)
+2026-10-10T04:02:51.1465166Z 	at com.intellij.openapi.application.impl.FlushQueue.runNextEvent(FlushQueue.java:119)
+2026-10-10T04:02:51.1466624Z 	at com.intellij.openapi.application.impl.FlushQueue.flushNow(FlushQueue.java:41)
+2026-10-10T04:02:51.1467922Z 	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:318)
+2026-10-10T04:02:51.1469246Z 	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:781)
+2026-10-10T04:02:51.1470397Z 	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:728)
+2026-10-10T04:02:51.1471286Z 	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:722)
+2026-10-10T04:02:51.1472564Z 	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+2026-10-10T04:02:51.1474265Z 	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+2026-10-10T04:02:51.1476153Z 	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:750)
+2026-10-10T04:02:51.1477395Z 	at com.intellij.ide.IdeEventQueue.defaultDispatchEvent(IdeEventQueue.kt:696)
+2026-10-10T04:02:51.1478756Z 	at com.intellij.ide.IdeEventQueue._dispatchEvent$lambda$16(IdeEventQueue.kt:590)
+2026-10-10T04:02:51.1480944Z 	at com.intellij.openapi.application.impl.AnyThreadWriteThreadingSupport.runWithoutImplicitRead(AnyThreadWriteThreadingSupport.kt:117)
+2026-10-10T04:02:51.1482969Z 	at com.intellij.ide.IdeEventQueue._dispatchEvent(IdeEventQueue.kt:590)
+2026-10-10T04:02:51.1484203Z 	at com.intellij.ide.IdeEventQueue.access$_dispatchEvent(IdeEventQueue.kt:73)
+2026-10-10T04:02:51.1485988Z 	at com.intellij.ide.IdeEventQueue$dispatchEvent$processEventRunnable$1$1$1.invoke(IdeEventQueue.kt:353)
+2026-10-10T04:02:51.1492538Z 	at com.intellij.ide.IdeEventQueue$dispatchEvent$processEventRunnable$1$1$1.invoke(IdeEventQueue.kt:351)
+2026-10-10T04:02:51.1494269Z 	at com.intellij.ide.IdeEventQueueKt$performActivity$runnableWithWIL$1.invoke$lambda$0(IdeEventQueue.kt:1035)
+2026-10-10T04:02:51.1496289Z 	at com.intellij.openapi.application.WriteIntentReadAction.lambda$run$0(WriteIntentReadAction.java:24)
+2026-10-10T04:02:51.1498372Z 	at com.intellij.openapi.application.impl.AnyThreadWriteThreadingSupport.runWriteIntentReadAction(AnyThreadWriteThreadingSupport.kt:84)
+2026-10-10T04:02:51.1500541Z 	at com.intellij.openapi.application.impl.ApplicationImpl.runWriteIntentReadAction(ApplicationImpl.java:910)
+2026-10-10T04:02:51.1502320Z 	at com.intellij.openapi.application.WriteIntentReadAction.compute(WriteIntentReadAction.java:55)
+2026-10-10T04:02:51.1503942Z 	at com.intellij.openapi.application.WriteIntentReadAction.run(WriteIntentReadAction.java:23)
+2026-10-10T04:02:51.1505906Z 	at com.intellij.ide.IdeEventQueueKt$performActivity$runnableWithWIL$1.invoke(IdeEventQueue.kt:1035)
+2026-10-10T04:02:51.1507525Z 	at com.intellij.ide.IdeEventQueueKt$performActivity$runnableWithWIL$1.invoke(IdeEventQueue.kt:1035)
+2026-10-10T04:02:51.1509036Z 	at com.intellij.ide.IdeEventQueueKt.performActivity$lambda$1(IdeEventQueue.kt:1036)
+2026-10-10T04:02:51.1510889Z 	at com.intellij.openapi.application.TransactionGuardImpl.performActivity(TransactionGuardImpl.java:106)
+2026-10-10T04:02:51.1512420Z 	at com.intellij.ide.IdeEventQueueKt.performActivity(IdeEventQueue.kt:1036)
+2026-10-10T04:02:51.1513623Z 	at com.intellij.ide.IdeEventQueue.dispatchEvent$lambda$10(IdeEventQueue.kt:351)
+2026-10-10T04:02:51.1529204Z 	at com.intellij.ide.IdeEventQueue.dispatchEvent(IdeEventQueue.kt:397)
+2026-10-10T04:02:51.1530621Z 	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:207)
+2026-10-10T04:02:51.1532128Z 	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:128)
+2026-10-10T04:02:51.1533623Z 	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:117)
+2026-10-10T04:02:51.1535227Z 	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:113)
+2026-10-10T04:02:51.1536657Z 	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:105)
+2026-10-10T04:02:51.1537869Z 	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:92)
+2026-10-10T04:02:51.7161053Z 2026-10-10 04:02:51,635 [   3326]   WARN - java.util.prefs - Prefs file removed in background /home/runner/.java/.userPrefs/prefs.xml
+2026-10-10T04:02:53.7159378Z 2026-10-10 04:02:53,606 [   5297]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-10T04:02:53.7161142Z 2026-10-10 04:02:53,607 [   5298]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-10T04:02:59.2176939Z 2026-10-10 04:02:59,182 [  10873]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.browser.jcef.headless.enabled=false'
+2026-10-10T04:03:00.4178703Z Found 220 configurables
+2026-10-10T04:03:01.5156147Z save to /home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/tmp/buildSearchableOptions
+2026-10-10T04:03:02.4169235Z 
+2026-10-10T04:03:02.4196282Z > Task :prepareJarSearchableOptions
+2026-10-10T04:03:02.5156472Z > Task :jarSearchableOptions
+2026-10-10T04:03:02.5157166Z > Task :buildPlugin
+2026-10-10T04:03:02.5157430Z 
+2026-10-10T04:03:02.5157667Z BUILD SUCCESSFUL in 28s
+2026-10-10T04:03:02.5165505Z 15 actionable tasks: 7 executed, 8 up-to-date
+2026-10-10T04:03:02.5166327Z Configuration cache entry stored.
+2026-10-10T04:03:02.8703882Z ##[group]Run ./gradlew verifyPluginStructure verifyPluginProjectConfiguration --no-daemon --stacktrace
+2026-10-10T04:03:02.8705772Z [36;1m./gradlew verifyPluginStructure verifyPluginProjectConfiguration --no-daemon --stacktrace[0m
+2026-10-10T04:03:02.8794094Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:03:02.8794500Z env:
+2026-10-10T04:03:02.8795006Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:03:02.8795545Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:03:02.8796243Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:03:02.8796992Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:03:02.8797846Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:03:02.8798516Z   MAVEN_ARGS: -ntp
+2026-10-10T04:03:02.8798861Z ##[endgroup]
+2026-10-10T04:03:03.4967301Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T04:03:04.4953212Z Daemon will be stopped at the end of the build 
+2026-10-10T04:03:05.6951996Z Calculating task graph as no cached configuration is available for tasks: verifyPluginStructure verifyPluginProjectConfiguration
+2026-10-10T04:03:16.2986161Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:03:16.2987096Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:03:16.3051201Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-10T04:03:16.3080139Z > Task :patchPluginXml UP-TO-DATE
+2026-10-10T04:03:16.3105774Z > Task :processResources UP-TO-DATE
+2026-10-10T04:03:16.3148519Z > Task :generateManifest UP-TO-DATE
+2026-10-10T04:03:16.4967334Z > Task :compileKotlin UP-TO-DATE
+2026-10-10T04:03:16.4989008Z > Task :compileJava UP-TO-DATE
+2026-10-10T04:03:16.4995778Z > Task :classes UP-TO-DATE
+2026-10-10T04:03:16.4996752Z > Task :instrumentCode SKIPPED
+2026-10-10T04:03:16.5950944Z > Task :jar UP-TO-DATE
+2026-10-10T04:03:16.5966114Z > Task :composedJar UP-TO-DATE
+2026-10-10T04:03:16.5966984Z > Task :prepareSandbox UP-TO-DATE
+2026-10-10T04:03:16.5967935Z > Task :verifyPluginProjectConfiguration
+2026-10-10T04:03:16.6768775Z > Task :verifyPluginStructure
+2026-10-10T04:03:16.6795318Z 
+2026-10-10T04:03:16.6801878Z BUILD SUCCESSFUL in 13s
+2026-10-10T04:03:16.6825706Z 13 actionable tasks: 4 executed, 9 up-to-date
+2026-10-10T04:03:16.6845860Z Configuration cache entry stored.
+2026-10-10T04:03:17.0040522Z ##[group]Run ./gradlew verifyPlugin --no-daemon --stacktrace
+2026-10-10T04:03:17.0041007Z [36;1m./gradlew verifyPlugin --no-daemon --stacktrace[0m
+2026-10-10T04:03:17.0105506Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:03:17.0105764Z env:
+2026-10-10T04:03:17.0106005Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:03:17.0106334Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:03:17.0106755Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:03:17.0107202Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:03:17.0107712Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:03:17.0108098Z   MAVEN_ARGS: -ntp
+2026-10-10T04:03:17.0108311Z ##[endgroup]
+2026-10-10T04:03:17.6486236Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T04:03:18.6455596Z Daemon will be stopped at the end of the build 
+2026-10-10T04:03:19.8476882Z Calculating task graph as no cached configuration is available for tasks: verifyPlugin
+2026-10-10T04:04:05.5508281Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:04:05.5511692Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:04:05.5512602Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-10T04:04:05.5513180Z > Task :patchPluginXml UP-TO-DATE
+2026-10-10T04:04:05.5514188Z > Task :generateManifest UP-TO-DATE
+2026-10-10T04:04:05.5515440Z > Task :processResources UP-TO-DATE
+2026-10-10T04:04:05.6453654Z > Task :compileKotlin UP-TO-DATE
+2026-10-10T04:04:05.6463257Z > Task :compileJava UP-TO-DATE
+2026-10-10T04:04:05.6464056Z > Task :classes UP-TO-DATE
+2026-10-10T04:04:05.6465054Z > Task :instrumentCode SKIPPED
+2026-10-10T04:04:05.7453457Z > Task :jar UP-TO-DATE
+2026-10-10T04:04:05.7475879Z > Task :composedJar UP-TO-DATE
+2026-10-10T04:04:05.7476668Z > Task :prepareSandbox UP-TO-DATE
+2026-10-10T04:04:05.7482484Z > Task :buildSearchableOptions UP-TO-DATE
+2026-10-10T04:04:05.7483516Z > Task :prepareJarSearchableOptions UP-TO-DATE
+2026-10-10T04:04:05.7484527Z > Task :jarSearchableOptions UP-TO-DATE
+2026-10-10T04:04:05.7485854Z > Task :buildPlugin UP-TO-DATE
+2026-10-10T04:04:07.7451670Z 
+2026-10-10T04:04:07.7480152Z > Task :verifyPlugin
+2026-10-10T04:04:07.7499053Z Starting the IntelliJ Plugin Verifier 1.410
+2026-10-10T04:04:07.7501130Z Verification reports directory: /home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/reports/pluginVerifier
+2026-10-10T04:04:07.7503745Z 2026-10-10T04:04:06 [main] INFO  verification - Reading IDE /home/runner/.gradle/caches/transforms-4/59143024121c2f8e49bbb32340b74fac/transformed/ideaIC-2025.2
+2026-10-10T04:04:07.7506981Z 2026-10-10T04:04:06 [main] INFO  c.j.p.options.OptionsParser - Reading IDE from /home/runner/.gradle/caches/transforms-4/59143024121c2f8e49bbb32340b74fac/transformed/ideaIC-2025.2
+2026-10-10T04:04:07.7509997Z 2026-10-10T04:04:06 [main] INFO  c.j.p.options.OptionsParser - Using Java runtime from /home/runner/.gradle/caches/transforms-4/e7c09dee951b3df15cfb1f7b410c0b98/transformed/ideaIC-2024.2/jbr
+2026-10-10T04:04:07.7514201Z 2026-10-10T04:04:06 [main] WARN  c.j.p.s.i.r.ValidatingLayoutComponentsProvider - Layout component 'intellij.android.gradle.declarative.lang.flags' has some nonexistent 'classPath' elements: 'plugins/android-gradle-declarative-lang-ide/lib/modules/intellij.android.gradle.declarative.lang.flags.jar'
+2026-10-10T04:04:07.7518763Z Layout component 'intellij.android.gradle.declarative.lang.sync' has some nonexistent 'classPath' elements: 'plugins/android-gradle-declarative-lang-ide/lib/modules/intellij.android.gradle.declarative.lang.sync.jar'
+2026-10-10T04:04:07.7521812Z Layout component 'intellij.driver.client' has some nonexistent 'classPath' elements: 'plugins/performanceTesting/lib/modules/intellij.driver.client.jar'
+2026-10-10T04:04:07.7525009Z Layout component 'intellij.driver.impl' has some nonexistent 'classPath' elements: 'plugins/performanceTesting/lib/modules/intellij.driver.impl.jar'
+2026-10-10T04:04:07.7527668Z Layout component 'intellij.driver.model' has some nonexistent 'classPath' elements: 'plugins/performanceTesting/lib/modules/intellij.driver.model.jar'
+2026-10-10T04:04:07.7530359Z Layout component 'intellij.java.debugger.impl.shared' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.debugger.impl.shared.jar'
+2026-10-10T04:04:07.7533083Z Layout component 'intellij.java.execution.impl.shared' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.execution.impl.shared.jar'
+2026-10-10T04:04:07.7536272Z Layout component 'intellij.java.frontback.impl' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.frontback.impl.jar'
+2026-10-10T04:04:07.7539099Z Layout component 'intellij.java.frontback.psi' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.frontback.psi.jar'
+2026-10-10T04:04:07.7541630Z Layout component 'intellij.java.frontback.psi.impl' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.frontback.psi.impl.jar'
+2026-10-10T04:04:07.7543996Z Layout component 'intellij.java.psi' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.psi.jar'
+2026-10-10T04:04:07.7546514Z Layout component 'intellij.java.psi.impl' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.psi.impl.jar'
+2026-10-10T04:04:07.7548998Z Layout component 'intellij.java.syntax' has some nonexistent 'classPath' elements: 'plugins/java/lib/modules/intellij.java.syntax.jar'
+2026-10-10T04:04:07.7551046Z Layout component 'intellij.json' has some nonexistent 'classPath' elements: 'plugins/json/lib/modules/intellij.json.jar'
+2026-10-10T04:04:07.7553161Z Layout component 'intellij.markdown' has some nonexistent 'classPath' elements: 'plugins/markdown/lib/modules/intellij.markdown.jar'
+2026-10-10T04:04:07.7555768Z Layout component 'intellij.platform.debugger.impl.rpc' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.debugger.impl.rpc.jar'
+2026-10-10T04:04:07.7558457Z Layout component 'intellij.platform.debugger.impl.shared' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.debugger.impl.shared.jar'
+2026-10-10T04:04:07.7560931Z Layout component 'intellij.platform.eel.impl' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.eel.impl.jar'
+2026-10-10T04:04:07.7563155Z Layout component 'intellij.platform.find' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.find.jar'
+2026-10-10T04:04:07.7565799Z Layout component 'intellij.platform.managed.cache' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.managed.cache.jar'
+2026-10-10T04:04:07.7568327Z Layout component 'intellij.platform.polySymbols' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.polySymbols.jar'
+2026-10-10T04:04:07.7570875Z Layout component 'intellij.platform.polySymbols.backend' has some nonexistent 'classPath' elements: 'lib/modules/intellij.platform.polySymbols.backend.jar'
+2026-10-10T04:04:07.7573535Z Layout component 'intellij.properties' has some nonexistent 'classPath' elements: 'plugins/properties/lib/modules/intellij.properties.jar'
+2026-10-10T04:04:07.7576156Z Layout component 'intellij.properties.psi' has some nonexistent 'classPath' elements: 'plugins/properties/lib/modules/intellij.properties.psi.jar'
+2026-10-10T04:04:07.7578559Z Layout component 'intellij.qodana.sarif' has some nonexistent 'classPath' elements: 'plugins/qodana/lib/modules/intellij.qodana.sarif.jar'
+2026-10-10T04:04:07.7580759Z Layout component 'intellij.toml.core' has some nonexistent 'classPath' elements: 'plugins/toml/lib/modules/intellij.toml.core.jar'
+2026-10-10T04:04:07.7583324Z Layout component 'intellij.vcs.git.shared' has some nonexistent 'classPath' elements: 'plugins/vcs-git/lib/modules/intellij.vcs.git.shared.jar'
+2026-10-10T04:04:07.7586097Z Layout component 'intellij.vcs.git/localHistory' has some nonexistent 'classPath' elements: 'plugins/vcs-git/lib/modules/intellij.vcs.git/localHistory.jar'
+2026-10-10T04:04:07.7588478Z Layout component 'intellij.vcs.github' has some nonexistent 'classPath' elements: 'plugins/vcs-github-IU/lib/modules/intellij.vcs.github.jar'
+2026-10-10T04:04:07.7590819Z Layout component 'intellij.vcs.gitlab' has some nonexistent 'classPath' elements: 'plugins/vcs-gitlab-IU/lib/modules/intellij.vcs.gitlab.jar'
+2026-10-10T04:04:07.7593092Z Layout component 'intellij.xml.analysis' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.analysis.jar'
+2026-10-10T04:04:07.7595337Z Layout component 'intellij.xml.dom' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.dom.jar'
+2026-10-10T04:04:07.7597354Z Layout component 'intellij.xml.dom.impl' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.dom.impl.jar'
+2026-10-10T04:04:07.7599367Z Layout component 'intellij.xml.psi' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.psi.jar'
+2026-10-10T04:04:07.7601852Z Layout component 'intellij.xml.psi.impl' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.psi.impl.jar'
+2026-10-10T04:04:07.7604044Z Layout component 'intellij.xml.structureView' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.structureView.jar'
+2026-10-10T04:04:07.7606663Z Layout component 'intellij.xml.structureView.impl' has some nonexistent 'classPath' elements: 'lib/modules/intellij.xml.structureView.impl.jar'
+2026-10-10T04:04:07.7609648Z Layout component 'intellij.yaml' has some nonexistent 'classPath' elements: 'plugins/yaml/lib/modules/intellij.yaml.jar'
+2026-10-10T04:04:07.7612566Z 2026-10-10T04:04:07 [main] INFO  verification - Reading plugin to check from /home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.158.zip
+2026-10-10T04:04:09.1453698Z 2026-10-10T04:04:09 [main] INFO  verification - Task check-plugin parameters:
+2026-10-10T04:04:09.1455174Z Scheduled verifications (1):
+2026-10-10T04:04:09.1456182Z com.chainlesschain.ide:0.4.158 against IC-252.23892.409
+2026-10-10T04:04:09.1456685Z 
+2026-10-10T04:04:25.4453570Z 2026-10-10T04:04:25 [main] INFO  verification - Finished 1 of 1 verifications (in 16.3 s): IC-252.23892.409 against com.chainlesschain.ide:0.4.158: Compatible
+2026-10-10T04:04:25.4456509Z 2026-10-10T04:04:25 [main] INFO  c.j.p.PluginVerifierMain - Started printing results (CheckPluginResultPrinter)
+2026-10-10T04:04:25.4457893Z Plugin com.chainlesschain.ide:0.4.158 against IC-252.23892.409: Compatible
+2026-10-10T04:04:25.4458868Z Dynamic Plugin Eligibility:
+2026-10-10T04:04:25.4459682Z     Plugin can probably be enabled or disabled without IDE restart
+2026-10-10T04:04:25.4460176Z 
+2026-10-10T04:04:25.5464551Z 2026-10-10T04:04:25 [main] INFO  c.j.p.PluginVerifierMain - Finished printing results in 147ms
+2026-10-10T04:04:25.5466937Z 2026-10-10T04:04:25 [main] INFO  verification - Total time spent downloading plugins and their dependencies: 1 s 393 ms
+2026-10-10T04:04:25.5468892Z 2026-10-10T04:04:25 [main] INFO  verification - Total amount of plugins and dependencies downloaded: 60.13 MB
+2026-10-10T04:04:25.5470768Z 2026-10-10T04:04:25 [main] INFO  verification - Total amount of space used for plugins and dependencies: 60.13 MB
+2026-10-10T04:04:25.5472885Z 2026-10-10T04:04:25 [main] INFO  verification - PluginDetailsCache statistics: hits=4, misses=4, failures=0, evictions=0, total=8, hit-rate=50.0%
+2026-10-10T04:04:25.5476399Z 2026-10-10T04:04:25 [main] INFO  verification - Verification reports for com.chainlesschain.ide:0.4.158 saved to /home/runner/work/chainlesschain/chainlesschain/packages/jetbrains-plugin/build/reports/pluginVerifier/IC-252.23892.409
+2026-10-10T04:04:25.5479014Z 2026-10-10T04:04:25 [main] INFO  verification - Total time spent in plugin verification: 18 s 763 ms
+2026-10-10T04:04:26.2305590Z 
+2026-10-10T04:04:26.2346085Z BUILD SUCCESSFUL in 1m 9s
+2026-10-10T04:04:26.2385987Z 16 actionable tasks: 3 executed, 13 up-to-date
+2026-10-10T04:04:26.2405496Z Configuration cache entry stored.
+2026-10-10T04:04:26.5665477Z ##[group]Run actions/upload-artifact@v6
+2026-10-10T04:04:26.5665807Z with:
+2026-10-10T04:04:26.5666037Z   name: chainlesschain-ide-jetbrains-1
+2026-10-10T04:04:26.5666395Z   path: packages/jetbrains-plugin/build/distributions/*.zip
+2026-10-10T04:04:26.5666747Z   if-no-files-found: error
+2026-10-10T04:04:26.5666983Z   compression-level: 6
+2026-10-10T04:04:26.5667215Z   overwrite: false
+2026-10-10T04:04:26.5667426Z   include-hidden-files: false
+2026-10-10T04:04:26.5667658Z env:
+2026-10-10T04:04:26.5667843Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:04:26.5668135Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:26.5668534Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:26.5668973Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:26.5669485Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:26.5669877Z   MAVEN_ARGS: -ntp
+2026-10-10T04:04:26.5670113Z ##[endgroup]
+2026-10-10T04:04:26.7447212Z With the provided path, there will be 1 file uploaded
+2026-10-10T04:04:26.7455499Z Artifact name is valid!
+2026-10-10T04:04:26.7456055Z Root directory input is valid!
+2026-10-10T04:04:26.9571332Z Beginning upload of artifact content to blob storage
+2026-10-10T04:04:27.1389208Z Uploaded bytes 1520335
+2026-10-10T04:04:27.1550712Z Finished uploading artifact content to blob storage!
+2026-10-10T04:04:27.1552093Z SHA256 digest of uploaded artifact zip is 5c67c74b9f5f3e731debb817f45caa0b994d0c9da6710386ca591c1a2f247da2
+2026-10-10T04:04:27.1553211Z Finalizing artifact upload
+2026-10-10T04:04:27.3770113Z Artifact chainlesschain-ide-jetbrains-1.zip successfully finalized. Artifact ID 11658539265
+2026-10-10T04:04:27.3772287Z Artifact chainlesschain-ide-jetbrains-1 has been successfully uploaded! Final size is 1520335 bytes. Artifact ID is 11658539265
+2026-10-10T04:04:27.3775033Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825/artifacts/11658539265
+2026-10-10T04:04:27.3985706Z Prepare all required actions
+2026-10-10T04:04:27.3986265Z Getting action download info
+2026-10-10T04:04:27.5203818Z ##[group]Run ./.github/actions/verify-published-cli
+2026-10-10T04:04:27.5204153Z env:
+2026-10-10T04:04:27.5204348Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:04:27.5204863Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:27.5205301Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:27.5205757Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:27.5206256Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:27.5206650Z   MAVEN_ARGS: -ntp
+2026-10-10T04:04:27.5206860Z ##[endgroup]
+2026-10-10T04:04:27.5262018Z ##[start-action display=Install and probe the paired public CLI;id=__self.verify]
+2026-10-10T04:04:27.5287009Z ##[group]Run set -euo pipefail
+2026-10-10T04:04:27.5287309Z [36;1mset -euo pipefail[0m
+2026-10-10T04:04:27.5287728Z [36;1mVERSION=$(node -p "require('./packages/cli/package.json').version")[0m
+2026-10-10T04:04:27.5288224Z [36;1mPROBE_ROOT=$(mktemp -d "$RUNNER_TEMP/cc-ide-cli-XXXXXX")[0m
+2026-10-10T04:04:27.5288598Z [36;1mmkdir -p "$PROBE_ROOT/install"[0m
+2026-10-10T04:04:27.5288941Z [36;1mexport CHAINLESSCHAIN_HOME="$PROBE_ROOT/home"[0m
+2026-10-10T04:04:27.5289389Z [36;1mexport CHAINLESSCHAIN_SECURITY_ANCHOR_HOME="$PROBE_ROOT/security"[0m
+2026-10-10T04:04:27.5289774Z [36;1m([0m
+2026-10-10T04:04:27.5289984Z [36;1m  cd "$PROBE_ROOT/install"[0m
+2026-10-10T04:04:27.5290259Z [36;1m  npm init --yes >/dev/null[0m
+2026-10-10T04:04:27.5290657Z [36;1m  npm install --ignore-scripts --no-audit --no-fund --prefer-online \[0m
+2026-10-10T04:04:27.5291185Z [36;1m    --registry=https://registry.npmjs.org "chainlesschain@$VERSION"[0m
+2026-10-10T04:04:27.5291806Z [36;1m  node node_modules/chainlesschain/bin/chainlesschain.js --version > "$PROBE_ROOT/cli-version.txt"[0m
+2026-10-10T04:04:27.5292621Z [36;1m  node node_modules/chainlesschain/bin/chainlesschain.js agent --capabilities > "$PROBE_ROOT/agent-capabilities.json"[0m
+2026-10-10T04:04:27.5293186Z [36;1m)[0m
+2026-10-10T04:04:27.5293501Z [36;1mnode scripts/verify-ide-cli-prerequisite.mjs "$PROBE_ROOT" \[0m
+2026-10-10T04:04:27.5293970Z [36;1m  packages/cli/package.json "$PROBE_ROOT/receipt.json"[0m
+2026-10-10T04:04:27.5294410Z [36;1mecho "receipt=$PROBE_ROOT/receipt.json" >> "$GITHUB_OUTPUT"[0m
+2026-10-10T04:04:27.5409288Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T04:04:27.5409667Z env:
+2026-10-10T04:04:27.5409872Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:04:27.5410215Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:27.5410648Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:27.5411105Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:27.5411620Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:27.5412033Z   MAVEN_ARGS: -ntp
+2026-10-10T04:04:27.5412249Z ##[endgroup]
+2026-10-10T04:04:38.0939787Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T04:04:38.1886046Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-10T04:04:43.3559338Z 
+2026-10-10T04:04:43.3560166Z added 439 packages in 15s
+2026-10-10T04:04:44.2606004Z Verified published CLI 0.166.96 and 10 public child packages before IDE upload
+2026-10-10T04:04:44.2673268Z ##[end-action id=__self.verify;outcome=success;conclusion=success;duration_ms=16740]
+2026-10-10T04:04:44.2680919Z ##[start-action display=Preserve public CLI prerequisite receipt;id=__self.__actions_upload-artifact]
+2026-10-10T04:04:44.2751378Z ##[group]Run actions/upload-artifact@v6
+2026-10-10T04:04:44.2751686Z with:
+2026-10-10T04:04:44.2751928Z   name: ide-cli-prerequisite-jetbrains-1
+2026-10-10T04:04:44.2752557Z   path: /home/runner/work/_temp/cc-ide-cli-IzudTD/receipt.json
+2026-10-10T04:04:44.2752990Z   if-no-files-found: error
+2026-10-10T04:04:44.2753261Z   compression-level: 6
+2026-10-10T04:04:44.2753507Z   overwrite: false
+2026-10-10T04:04:44.2753758Z   include-hidden-files: false
+2026-10-10T04:04:44.2754021Z env:
+2026-10-10T04:04:44.2754231Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:04:44.2754586Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:44.2755404Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:44.2755926Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:44.2756504Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:44.2756957Z   MAVEN_ARGS: -ntp
+2026-10-10T04:04:44.2757188Z ##[endgroup]
+2026-10-10T04:04:44.4401870Z With the provided path, there will be 1 file uploaded
+2026-10-10T04:04:44.4408241Z Artifact name is valid!
+2026-10-10T04:04:44.4410484Z Root directory input is valid!
+2026-10-10T04:04:44.6394520Z Beginning upload of artifact content to blob storage
+2026-10-10T04:04:44.7109697Z Uploaded bytes 1420
+2026-10-10T04:04:44.7285502Z Finished uploading artifact content to blob storage!
+2026-10-10T04:04:44.7286818Z SHA256 digest of uploaded artifact zip is a528447480b86fde0fcbd7258246ab136c4602de03eb76ca12012d9b73477c0b
+2026-10-10T04:04:44.7287858Z Finalizing artifact upload
+2026-10-10T04:04:44.9471213Z Artifact ide-cli-prerequisite-jetbrains-1.zip successfully finalized. Artifact ID 11658939015
+2026-10-10T04:04:44.9472715Z Artifact ide-cli-prerequisite-jetbrains-1 has been successfully uploaded! Final size is 1420 bytes. Artifact ID is 11658939015
+2026-10-10T04:04:44.9476830Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825/artifacts/11658939015
+2026-10-10T04:04:44.9587481Z ##[end-action id=__self.__actions_upload-artifact;outcome=success;conclusion=success;duration_ms=690]
+2026-10-10T04:04:44.9631414Z ##[group]Run if [ -z "$JETBRAINS_PUBLISH_TOKEN" ]; then
+2026-10-10T04:04:44.9631873Z [36;1mif [ -z "$JETBRAINS_PUBLISH_TOKEN" ]; then[0m
+2026-10-10T04:04:44.9632353Z [36;1m  echo "::error::JETBRAINS_PUBLISH_TOKEN secret is not set — cannot publish."[0m
+2026-10-10T04:04:44.9632796Z [36;1m  exit 1[0m
+2026-10-10T04:04:44.9633007Z [36;1mfi[0m
+2026-10-10T04:04:44.9633239Z [36;1msigning_secret_count=0[0m
+2026-10-10T04:04:44.9633644Z [36;1mfor secret_name in CERTIFICATE_CHAIN PRIVATE_KEY PRIVATE_KEY_PASSWORD; do[0m
+2026-10-10T04:04:44.9634095Z [36;1m  if [ -z "${!secret_name:-}" ]; then[0m
+2026-10-10T04:04:44.9634455Z [36;1m    echo "::notice::$secret_name is not configured."[0m
+2026-10-10T04:04:44.9635181Z [36;1m  else[0m
+2026-10-10T04:04:44.9635492Z [36;1m    signing_secret_count=$((signing_secret_count + 1))[0m
+2026-10-10T04:04:44.9635827Z [36;1m  fi[0m
+2026-10-10T04:04:44.9636025Z [36;1mdone[0m
+2026-10-10T04:04:44.9636405Z [36;1mif [ "$signing_secret_count" -ne 0 ] && [ "$signing_secret_count" -ne 3 ]; then[0m
+2026-10-10T04:04:44.9637041Z [36;1m  echo "::error::JetBrains author signing is only safe with all three signing secrets configured."[0m
+2026-10-10T04:04:44.9637525Z [36;1m  exit 1[0m
+2026-10-10T04:04:44.9637730Z [36;1mfi[0m
+2026-10-10T04:04:44.9637967Z [36;1mif [ "$signing_secret_count" -eq 0 ]; then[0m
+2026-10-10T04:04:44.9638824Z [36;1m  echo "::warning::Author signing secrets are not configured; signPlugin will be skipped, matching the existing Marketplace release path."[0m
+2026-10-10T04:04:44.9639444Z [36;1melse[0m
+2026-10-10T04:04:44.9639739Z [36;1m  echo "All JetBrains author signing secrets are configured."[0m
+2026-10-10T04:04:44.9640097Z [36;1mfi[0m
+2026-10-10T04:04:44.9640357Z [36;1m./gradlew publishPlugin --no-daemon --stacktrace[0m
+2026-10-10T04:04:44.9702759Z shell: /usr/bin/bash -e {0}
+2026-10-10T04:04:44.9703029Z env:
+2026-10-10T04:04:44.9703244Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T04:04:44.9703583Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:44.9704013Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T04:04:44.9704470Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:44.9705302Z   JAVA_HOME_21_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/21.0.12-1/x64
+2026-10-10T04:04:44.9705718Z   MAVEN_ARGS: -ntp
+2026-10-10T04:04:44.9706472Z   JETBRAINS_PUBLISH_TOKEN: ***
+2026-10-10T04:04:44.9706757Z   CERTIFICATE_CHAIN: 
+2026-10-10T04:04:44.9706991Z   PRIVATE_KEY: 
+2026-10-10T04:04:44.9707211Z   PRIVATE_KEY_PASSWORD: 
+2026-10-10T04:04:44.9707453Z ##[endgroup]
+2026-10-10T04:04:44.9814339Z ##[notice]CERTIFICATE_CHAIN is not configured.
+2026-10-10T04:04:44.9823346Z ##[notice]PRIVATE_KEY is not configured.
+2026-10-10T04:04:44.9825189Z ##[notice]PRIVATE_KEY_PASSWORD is not configured.
+2026-10-10T04:04:44.9829009Z ##[warning]Author signing secrets are not configured; signPlugin will be skipped, matching the existing Marketplace release path.
+2026-10-10T04:04:45.6506510Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-10-10T04:04:46.7496254Z Daemon will be stopped at the end of the build 
+2026-10-10T04:04:47.8479770Z Calculating task graph as no cached configuration is available for tasks: publishPlugin
+2026-10-10T04:05:01.3630045Z > Task :initializeIntellijPlatformPlugin
+2026-10-10T04:05:01.3685586Z > Task :generatePluginMetadata UP-TO-DATE
+2026-10-10T04:05:01.3745619Z > Task :checkKotlinGradlePluginConfigurationErrors
+2026-10-10T04:05:01.4491799Z > Task :patchPluginXml UP-TO-DATE
+2026-10-10T04:05:01.4492903Z > Task :processResources UP-TO-DATE
+2026-10-10T04:05:01.4493801Z > Task :generateManifest UP-TO-DATE
+2026-10-10T04:05:01.5481579Z > Task :compileKotlin UP-TO-DATE
+2026-10-10T04:05:01.6518321Z > Task :compileJava UP-TO-DATE
+2026-10-10T04:05:01.6519348Z > Task :classes UP-TO-DATE
+2026-10-10T04:05:01.6519940Z > Task :instrumentCode SKIPPED
+2026-10-10T04:05:01.6520465Z > Task :jar UP-TO-DATE
+2026-10-10T04:05:01.6520992Z > Task :composedJar UP-TO-DATE
+2026-10-10T04:05:01.6521766Z > Task :prepareSandbox UP-TO-DATE
+2026-10-10T04:05:01.6522590Z > Task :buildSearchableOptions UP-TO-DATE
+2026-10-10T04:05:01.6523407Z > Task :prepareJarSearchableOptions UP-TO-DATE
+2026-10-10T04:05:01.6526648Z > Task :jarSearchableOptions UP-TO-DATE
+2026-10-10T04:05:01.6527303Z > Task :buildPlugin UP-TO-DATE
+2026-10-10T04:05:01.6527841Z > Task :signPlugin SKIPPED
+2026-10-10T04:05:07.3039782Z > Task :publishPlugin
+2026-10-10T04:05:07.3065096Z 
+2026-10-10T04:05:07.3096814Z BUILD SUCCESSFUL in 22s
+2026-10-10T04:05:07.3097682Z 16 actionable tasks: 3 executed, 13 up-to-date
+2026-10-10T04:05:07.3098472Z Configuration cache entry stored.
+2026-10-10T04:05:07.6408465Z Post job cleanup.
+2026-10-10T04:05:07.7717738Z (node:4848) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T04:05:07.7719536Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T04:05:07.7933044Z Post job cleanup.
+2026-10-10T04:05:07.9513827Z Post job cleanup.
+2026-10-10T04:05:08.0560430Z [command]/usr/bin/git version
+2026-10-10T04:05:08.0606612Z git version 2.55.0
+2026-10-10T04:05:08.0651096Z Temporarily overriding HOME='/home/runner/work/_temp/5c1bcd95-25a6-47f7-9164-f1cb22015f2d' before making global git config changes
+2026-10-10T04:05:08.0652357Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T04:05:08.0656957Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T04:05:08.0699858Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T04:05:08.0741186Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T04:05:08.1052325Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T04:05:08.1082707Z http.https://github.com/.extraheader
+2026-10-10T04:05:08.1094096Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T04:05:08.1133414Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T04:05:08.1444089Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T04:05:08.1485075Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T04:05:08.1895813Z Cleaning up orphan processes

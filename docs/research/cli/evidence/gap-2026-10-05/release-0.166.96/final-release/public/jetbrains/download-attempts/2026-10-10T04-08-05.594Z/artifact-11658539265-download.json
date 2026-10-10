@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021102825,
+  "artifactId": 11658539265,
+  "status": "COMPLETE_SIZE_AND_DIGEST_VERIFIED",
+  "receivedBytes": 1520335,
+  "digest": "sha256:5c67c74b9f5f3e731debb817f45caa0b994d0c9da6710386ca591c1a2f247da2",
+  "expectedBytes": 1520335,
+  "expectedDigest": "sha256:5c67c74b9f5f3e731debb817f45caa0b994d0c9da6710386ca591c1a2f247da2",
+  "elapsedMs": 2236,
+  "destination": ".work/release-readback-0.166.96/jetbrains-38021102825/chainlesschain-ide-jetbrains-1.zip"
+}

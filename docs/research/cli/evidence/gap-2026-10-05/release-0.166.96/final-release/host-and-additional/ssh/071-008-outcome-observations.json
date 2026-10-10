@@ -1,0 +1,10 @@
+{
+  "schema": "chainlesschain.ide-roadmap-outcome-observations.v1",
+  "credentialLeakCount": 0,
+  "wrongCommitBindingCount": 0,
+  "evidenceReplacementCount": 0,
+  "orderedWorkspaceRootsBound": true,
+  "workspaceRootCount": 2,
+  "remoteTransportExercised": true,
+  "missingRequiredArtifactsFail": true
+}

@@ -1,0 +1,685 @@
+{
+  "schema": "chainlesschain.evidence-selection/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "status": "CLI_AND_STRICT_FULL_MATRICES_PASSED",
+  "files": [
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/selected/summary.json",
+      "target": "cli-sdk-summary.json",
+      "bytes": 7478,
+      "sha256": "aa8851325c3e1692b65bbdfc0867f540a49b32e378ed7c1bb0cdedcf51e7a22a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654600497/metadata.json",
+      "target": "cli/artifact-11654600497/metadata.json",
+      "bytes": 788,
+      "sha256": "ac51b34436ba6f1c5db088351d9460d9879574f00884f02b86c836954e9236bf"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654600497/readback.json",
+      "target": "cli/artifact-11654600497/readback.json",
+      "bytes": 877,
+      "sha256": "0e1389fb595ce0a14d74fdb12815bdf9ea0ec66c8dc43ac7471133e08d0593f2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654615466/artifact.zip",
+      "target": "cli/artifact-11654615466/artifact.zip",
+      "bytes": 409551,
+      "sha256": "02366e924a387647c063b83536414d05706688da8cefdb6911d8835f3da9850d"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654615466/metadata.json",
+      "target": "cli/artifact-11654615466/metadata.json",
+      "bytes": 781,
+      "sha256": "dadf2821acb3260e47d3dff973f9a839beb08dbb1b9e0bc0a8bb58e6856302cc"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654615466/readback.json",
+      "target": "cli/artifact-11654615466/readback.json",
+      "bytes": 784,
+      "sha256": "1ac84e07fbee53e61719e6dcba53cd1e9db1a06490aaeec62528998bb05606ca"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/artifact.zip",
+      "target": "cli/artifact-11655163056/artifact.zip",
+      "bytes": 185742,
+      "sha256": "ee595e1e69e6ceee408725d35ac82aa6e1235005691596a193f36ee40b2619d5"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/metadata.json",
+      "target": "cli/artifact-11655163056/metadata.json",
+      "bytes": 788,
+      "sha256": "8632bb91fd82ce420b13629a2607949f0657b7ef6e59baddd070d6fadc648584"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/readback.json",
+      "target": "cli/artifact-11655163056/readback.json",
+      "bytes": 791,
+      "sha256": "509cf55a6918c0e925e1182a9077c37dfd6db16b1f69141eabf76d9109707da6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/artifact.zip",
+      "target": "cli/artifact-11655205893/artifact.zip",
+      "bytes": 181904,
+      "sha256": "d59275a04b2870af0f71a5da3b87b328f4321150860af6bddacbbfacbad14eb7"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/metadata.json",
+      "target": "cli/artifact-11655205893/metadata.json",
+      "bytes": 787,
+      "sha256": "5f31883613b251e905d0c05f3ebc19460d4225c9a53e2d1e4d243f786960e924"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/readback.json",
+      "target": "cli/artifact-11655205893/readback.json",
+      "bytes": 790,
+      "sha256": "14d76f832c572b0780676ec907e8460b658ac9c81c65f6afa4309f348bab066a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/artifact.zip",
+      "target": "cli/artifact-11655365410/artifact.zip",
+      "bytes": 180116,
+      "sha256": "0552cdef46ae1afc82589f9d234e306e23ecf7dc5e6cc7fcdebe40e3b1120c70"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/metadata.json",
+      "target": "cli/artifact-11655365410/metadata.json",
+      "bytes": 789,
+      "sha256": "5c26344b7db8434b92a73e8efa3f163119f24c3ffd8a4336be35780999730aeb"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/readback.json",
+      "target": "cli/artifact-11655365410/readback.json",
+      "bytes": 792,
+      "sha256": "f836df1ab25b2f2a8413a49ffaadda9553bc2ff65a44738443832c3f7495877f"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655495860/metadata.json",
+      "target": "cli/artifact-11655495860/metadata.json",
+      "bytes": 790,
+      "sha256": "f98ca31f93e4011974c548a9d62eb5ba98ec21b74cb1622782463519d1a4991e"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655495860/readback.json",
+      "target": "cli/artifact-11655495860/readback.json",
+      "bytes": 879,
+      "sha256": "1cf9c64af5193ce139a8c71088b8ac062d4a2d0832b4860490d61edb346fd1c5"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/artifact.zip",
+      "target": "cli/artifact-11655655757/artifact.zip",
+      "bytes": 335579,
+      "sha256": "d7a6e7d77288fa96a897b4baaa0ef4e427f2917ad094d38dbcf9f38519c2977a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/metadata.json",
+      "target": "cli/artifact-11655655757/metadata.json",
+      "bytes": 783,
+      "sha256": "44bb10c81e7083579bfa033b2844be424af44d0fbe24b21087801aedc53edc1f"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/readback.json",
+      "target": "cli/artifact-11655655757/readback.json",
+      "bytes": 786,
+      "sha256": "d39f3bd3d702f485912f4443db3d44e7eb8b2bae1ae31d739871fb28d648fb61"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11656719979/artifact.zip",
+      "target": "cli/artifact-11656719979/artifact.zip",
+      "bytes": 1218,
+      "sha256": "4f253b625014b082af06001147ca30d814659e394c21de65f9bbbb1f9b0f70c8"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11656719979/metadata.json",
+      "target": "cli/artifact-11656719979/metadata.json",
+      "bytes": 798,
+      "sha256": "f7cf68722d86553dde13edde7aa927cf398e3263d3f0a258847bd83770642db0"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11656719979/readback.json",
+      "target": "cli/artifact-11656719979/readback.json",
+      "bytes": 801,
+      "sha256": "32e0082fb298e3db05c84235058173d97ab99a035dc7d84297b67a0f05f14349"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/artifact.zip",
+      "target": "cli/artifact-11657142798/artifact.zip",
+      "bytes": 1221,
+      "sha256": "041083b571dbe0a648201dfeb1d9f881705fc10bf02e8ccc6af1cca152f73f46"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/metadata.json",
+      "target": "cli/artifact-11657142798/metadata.json",
+      "bytes": 799,
+      "sha256": "9c7ff8f3efa59c169ce649efd9eb533f8fc7e7da610051abc673e9e3dd760e0a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/readback.json",
+      "target": "cli/artifact-11657142798/readback.json",
+      "bytes": 802,
+      "sha256": "7177c281862220060c69b5a10c3bd60adcc0f0f41b8579f1347d8f64c5f2e069"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/artifact.zip",
+      "target": "cli/artifact-11657143147/artifact.zip",
+      "bytes": 1734,
+      "sha256": "ad16b86e7eec4a2e8d66621b9e794f86d312b238707bc3ba2e54a957f0e253e3"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/metadata.json",
+      "target": "cli/artifact-11657143147/metadata.json",
+      "bytes": 796,
+      "sha256": "e9157cf1ba3d11ddd83714ea653b27065332328e37b10bcebc84bff279e1c1a2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/readback.json",
+      "target": "cli/artifact-11657143147/readback.json",
+      "bytes": 799,
+      "sha256": "9fb08ef4ae61fc22fe9f6a29f591b6d8c9f39a20b3ddd54f93bf1748022cb209"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/artifact.zip",
+      "target": "cli/artifact-11657198055/artifact.zip",
+      "bytes": 2703,
+      "sha256": "913ba6447accb3fe858a66ff464927ec5cff181634619a1c08ae6c71db056272"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/metadata.json",
+      "target": "cli/artifact-11657198055/metadata.json",
+      "bytes": 793,
+      "sha256": "83ab86049eb13d748d927a2fc202a8d1039db13675b7384300e3636c86b9e7bb"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/readback.json",
+      "target": "cli/artifact-11657198055/readback.json",
+      "bytes": 796,
+      "sha256": "7f5b91cd5fc4be396a824228d32266db10ab6bb9e63650efec7ecf1ce1608e6e"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/artifact.zip",
+      "target": "cli/artifact-11657237833/artifact.zip",
+      "bytes": 2265,
+      "sha256": "8ef25cb493dd635edd011b7d9ee0377c53d5ce64a822d44429173d4a81e373aa"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/metadata.json",
+      "target": "cli/artifact-11657237833/metadata.json",
+      "bytes": 803,
+      "sha256": "4758f68492e53f9a88258e307ee317e9ed178df82cd7960791cb024bfc42ce49"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/readback.json",
+      "target": "cli/artifact-11657237833/readback.json",
+      "bytes": 806,
+      "sha256": "d231fd60782ef895c81615a1d1baa8917b61d41282b1d3dc76a9da0bc2fe8e76"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657327825/artifact.zip",
+      "target": "cli/artifact-11657327825/artifact.zip",
+      "bytes": 2703,
+      "sha256": "44cd8eab7566a36c617b609de57237a2e9792c0a3c14b67ff023c9a2535aa67b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657327825/metadata.json",
+      "target": "cli/artifact-11657327825/metadata.json",
+      "bytes": 794,
+      "sha256": "362c6c75a6b864c56078a0b3bc41298bbc5fe8d0c2e4fb6e7c6eb1056ec4e91a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657327825/readback.json",
+      "target": "cli/artifact-11657327825/readback.json",
+      "bytes": 797,
+      "sha256": "ba2d94872bbf26fa77b42ac75673529b9b577ac157e7270ccd4281ec6e66d686"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/artifact.zip",
+      "target": "cli/artifact-11657337691/artifact.zip",
+      "bytes": 33218,
+      "sha256": "ed4ab941b0bb94d6c10a69eafb0aa994eaae52dc195c0469f89318c83d80d8b5"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/metadata.json",
+      "target": "cli/artifact-11657337691/metadata.json",
+      "bytes": 801,
+      "sha256": "f3c08c6d47c7f44c2fb23908e7aa62793ed30590cd1805f7c3ea1f5b5e896611"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/readback.json",
+      "target": "cli/artifact-11657337691/readback.json",
+      "bytes": 804,
+      "sha256": "842b31cf87682d168d97d07c94b7a0e9a635f5a12c3e2291a1c5f486dce66b04"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/artifact.zip",
+      "target": "cli/artifact-11657342737/artifact.zip",
+      "bytes": 1734,
+      "sha256": "1625908d2029599086f107f580c6d7bf5d2ff535ef6194d4e41d416ed53459bd"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/metadata.json",
+      "target": "cli/artifact-11657342737/metadata.json",
+      "bytes": 797,
+      "sha256": "9c1231e1e7ee36f7fcbae9f554e8ebde79ca91903cb194ec0301afa54ee7a33b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/readback.json",
+      "target": "cli/artifact-11657342737/readback.json",
+      "bytes": 800,
+      "sha256": "bf74d89009ad8d844548667ca259921d36d82817858ac79d3adc6e649b7c450a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/artifact.zip",
+      "target": "cli/artifact-11657517929/artifact.zip",
+      "bytes": 1249,
+      "sha256": "afbf0e4420b15e1c6ecbf2c9cb45e5c2ec55bfc9c99f7258cffa3444f6900a9c"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/metadata.json",
+      "target": "cli/artifact-11657517929/metadata.json",
+      "bytes": 800,
+      "sha256": "6da0800f1fd30a418e5a4f662672279b88fe4eca648266e83bafcad58fbfbae9"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/readback.json",
+      "target": "cli/artifact-11657517929/readback.json",
+      "bytes": 803,
+      "sha256": "a8fb94bf13931668ab12f3f3edbe4874f021e2ce509d9f30e63ca74558ba35c7"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/artifact.zip",
+      "target": "cli/artifact-11657607802/artifact.zip",
+      "bytes": 2267,
+      "sha256": "a5303b04e0d070f0a6e1514cdbca53288aebf7ac84e16c410702c456d837e0c2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/metadata.json",
+      "target": "cli/artifact-11657607802/metadata.json",
+      "bytes": 802,
+      "sha256": "802ed06b86351229047646ca6a721430e31ced13690a200fcbc292ece3898f3c"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/readback.json",
+      "target": "cli/artifact-11657607802/readback.json",
+      "bytes": 805,
+      "sha256": "a6d91910a391c6d650e1d47a5359a8ec9e1a0a339322b61a2cbc7faebf1f1510"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/artifact.zip",
+      "target": "cli/artifact-11657682882/artifact.zip",
+      "bytes": 33187,
+      "sha256": "aa40120dbcb7d421b29e6e58a042281b7c96100a733d94631024aa2e217017ce"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/metadata.json",
+      "target": "cli/artifact-11657682882/metadata.json",
+      "bytes": 800,
+      "sha256": "a16b430a98ea1cfa8bce8501cb59f76a4d3a0a1abab8a37e1c1a90c2ae0f56af"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/readback.json",
+      "target": "cli/artifact-11657682882/readback.json",
+      "bytes": 803,
+      "sha256": "bdac3bf532177e18064eff6ced1f94ff1b3b4e39c45427df134cbadd534d0c29"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/artifact.zip",
+      "target": "cli/artifact-11657693302/artifact.zip",
+      "bytes": 891,
+      "sha256": "19f997f5d7427e7044283ef4cca6d57373b88db7350c8d2a601a66754a8d3dd9"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/metadata.json",
+      "target": "cli/artifact-11657693302/metadata.json",
+      "bytes": 804,
+      "sha256": "321dca3f9a1c38c0a33f7f8971f9257bbbdff10e221dd7936dc64eaa299d8bd6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/readback.json",
+      "target": "cli/artifact-11657693302/readback.json",
+      "bytes": 807,
+      "sha256": "b55b686d361550e5cb47c6036947e7cb149eb892b5e8b59dbdd08fe4db75ba89"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/artifact.zip",
+      "target": "cli/artifact-11657785624/artifact.zip",
+      "bytes": 1738,
+      "sha256": "eb653c6eade304564416e5e6498665f9f116cf897c6141ef422d736a90ae5600"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/metadata.json",
+      "target": "cli/artifact-11657785624/metadata.json",
+      "bytes": 798,
+      "sha256": "df577149984f1ea97ee5617cc718cabb7c763021e4f0fafeaeba23d4dc33add6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/readback.json",
+      "target": "cli/artifact-11657785624/readback.json",
+      "bytes": 801,
+      "sha256": "ebb8ec176bea42d50b2df16e2703a8e035663cd6c42d9dfd1695307c8eeaf854"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657960487/artifact.zip",
+      "target": "cli/artifact-11657960487/artifact.zip",
+      "bytes": 2708,
+      "sha256": "2241a06461648903ae7e27a335afd649418934c9f3178375a8e89307a60ca465"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657960487/metadata.json",
+      "target": "cli/artifact-11657960487/metadata.json",
+      "bytes": 795,
+      "sha256": "09481dcb6e80e476fee0450684482e5e14eb91071db797005d7caf181858cff2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657960487/readback.json",
+      "target": "cli/artifact-11657960487/readback.json",
+      "bytes": 798,
+      "sha256": "d7d9d0e21c1fd671c24419add4bff694c19e1cf87a187d59625399f3086a4ec3"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/artifact.zip",
+      "target": "cli/artifact-11658110312/artifact.zip",
+      "bytes": 33160,
+      "sha256": "bd5e3e4cee527c2df30bebdac3fe93b84e36ee80d7318628aa53c4b1e1c835b7"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/metadata.json",
+      "target": "cli/artifact-11658110312/metadata.json",
+      "bytes": 802,
+      "sha256": "2604aef874e8b84710c7485167760c689dcdd119486071e9285dc871b8a358e3"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/readback.json",
+      "target": "cli/artifact-11658110312/readback.json",
+      "bytes": 805,
+      "sha256": "a7e5ed3116efebcbba7c69a9f3d07d87f81e09f8a2b51dde3ae875f01db740a3"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/artifact.zip",
+      "target": "cli/artifact-11658235211/artifact.zip",
+      "bytes": 2267,
+      "sha256": "10a15f7cb532f9c2b2b48f0954473410b8f5651dfab452b380610bf211e515b6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/metadata.json",
+      "target": "cli/artifact-11658235211/metadata.json",
+      "bytes": 804,
+      "sha256": "df5b8191b41df30042d5de4c6e2a2177b3e23b6c43f25c4fd6d0de9b7c92b797"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/readback.json",
+      "target": "cli/artifact-11658235211/readback.json",
+      "bytes": 807,
+      "sha256": "cff7006d423684121ec8f628f5384d8536565f3e8ff86a5cea39af728bfef3f9"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/artifacts-1.json",
+      "target": "cli/snapshot/artifacts-1.json",
+      "bytes": 18347,
+      "sha256": "d8d8632aebc73c4003e60bbaf2f247c3939eb2e5b36b125cb368892faa38e777"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/jobs-1.json",
+      "target": "cli/snapshot/jobs-1.json",
+      "bytes": 204758,
+      "sha256": "e150b09bde7c6e6fdf4dfc907fc55b3c0167c421fdeb0cc537d1b1b570942eda"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/readback.json",
+      "target": "cli/snapshot/readback.json",
+      "bytes": 25175,
+      "sha256": "5cd2b7cc52ef0e6087c399f90fcc5869296969f594907b1b1b4cf90f7f8314a2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/run.json",
+      "target": "cli/snapshot/run.json",
+      "bytes": 14114,
+      "sha256": "67e3c9b14550fbf0382034dae86006cb0c0c2ba99f3b06188750d7fb4a43ec9a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/cli-terminal-readback.json",
+      "target": "cli/terminal.json",
+      "bytes": 25175,
+      "sha256": "5cd2b7cc52ef0e6087c399f90fcc5869296969f594907b1b1b4cf90f7f8314a2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/unit11/job.json",
+      "target": "cli/unit11/job.json",
+      "bytes": 2650,
+      "sha256": "a2bf7e109588e12701533e9cb25e13cb8604db2ef3ad9d414ffa9224a5e1fa6d"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/unit11/job.log",
+      "target": "cli/unit11/job.log",
+      "bytes": 88857,
+      "sha256": "c71673a0a6dce0120941de5e7681b9fd591b695c625785919a205270f47f8b46"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/unit11/observation.json",
+      "target": "cli/unit11/observation.json",
+      "bytes": 1227,
+      "sha256": "4683f6b9d9b35bff075b96572332dbeb0420fe99442897546580c8dbb9fbc29e"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/unit11/readback.json",
+      "target": "cli/unit11/readback.json",
+      "bytes": 668,
+      "sha256": "dd53926a1c50306bf5257a098dabc999f07ccc936dc8a9c28f9c01b29731af88"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778-final.json",
+      "target": "sdk/macos-latest/final-job.json",
+      "bytes": 7599,
+      "sha256": "f016641d91ad3c1834575bc5c1c67963c7cdf4c11f24fd5218dbbdcd51493d7b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.log",
+      "target": "sdk/macos-latest/job.log",
+      "bytes": 461168,
+      "sha256": "241491e1a2871107880d539ea493222d2791363db69faddd8f91901ee5fa3ad2"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778-log-readback.json",
+      "target": "sdk/macos-latest/log-readback.json",
+      "bytes": 473,
+      "sha256": "6f627e48c0e850929b703f7d182551f2108be4a2d8041002252f37ccfc57e8fc"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.json",
+      "target": "sdk/macos-latest/step-job.json",
+      "bytes": 7599,
+      "sha256": "f016641d91ad3c1834575bc5c1c67963c7cdf4c11f24fd5218dbbdcd51493d7b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-three-platform-success.json",
+      "target": "sdk/three-platform-steps.json",
+      "bytes": 2009,
+      "sha256": "1d0d7bb6ab77a3c398d676d64288f7ced870080e2db00ae4d3650f5c6d5afb57"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813-final.json",
+      "target": "sdk/ubuntu-latest/final-job.json",
+      "bytes": 7601,
+      "sha256": "1d1902dfbb61616087de2c2d5b224233e004528dbb5e81fa46462c13856ff4d6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.log",
+      "target": "sdk/ubuntu-latest/job.log",
+      "bytes": 457607,
+      "sha256": "87d04aa4612b2da6283ae2504edaba2b4d78fb1b80330915cbaf161346d06562"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813-log-readback.json",
+      "target": "sdk/ubuntu-latest/log-readback.json",
+      "bytes": 474,
+      "sha256": "c2e346defaf96605115fdd7bc08d67405b7f4d71e739f4951f50758881cdd64d"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.json",
+      "target": "sdk/ubuntu-latest/step-job.json",
+      "bytes": 7601,
+      "sha256": "1d1902dfbb61616087de2c2d5b224233e004528dbb5e81fa46462c13856ff4d6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783-final.json",
+      "target": "sdk/windows-latest/final-job.json",
+      "bytes": 7603,
+      "sha256": "f9168a29fdc8415c7fabd206a7f0a8c5e1fc1b97e687d3d524a5203e8acb0c3c"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.log",
+      "target": "sdk/windows-latest/job.log",
+      "bytes": 467455,
+      "sha256": "fa9ba61b7107e491285bead5052cf4363937dfc26e5441eaa0b47127eb7e223c"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783-log-readback.json",
+      "target": "sdk/windows-latest/log-readback.json",
+      "bytes": 475,
+      "sha256": "015bec3666062fddbdef82cfa3c08a3651b9c860f69254a70406a783e09f376b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.json",
+      "target": "sdk/windows-latest/step-job.json",
+      "bytes": 6676,
+      "sha256": "29ec5ea8dcf675042ddf9d1408e502b03f6ac867b8b4274845a88169c4c265f9"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/artifact.zip",
+      "target": "strict/artifact-11654471033/artifact.zip",
+      "bytes": 147799,
+      "sha256": "947fe6ec28f278095bd98ff1c73b6ace462ae0ab4914d7900b0aae952ea15f2b"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/metadata.json",
+      "target": "strict/artifact-11654471033/metadata.json",
+      "bytes": 751,
+      "sha256": "5910b2a4aa0b6d53ac8eb5618f5300f2321d458dcc717af5ad0be4a3912b047a"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/readback.json",
+      "target": "strict/artifact-11654471033/readback.json",
+      "bytes": 760,
+      "sha256": "fd76cd5e953cc514ddf2fc245507aac4b45026fe27e251c74daeea6b3b5b9aef"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/artifact.zip",
+      "target": "strict/artifact-11654563333/artifact.zip",
+      "bytes": 146820,
+      "sha256": "de38291d032234ca0dcd2c6e7f1125e35231bc27a07f5328b19ef076c38bc551"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/metadata.json",
+      "target": "strict/artifact-11654563333/metadata.json",
+      "bytes": 757,
+      "sha256": "e26431ed8464a07b9881d112995e68d5db1e10302c5e668d056ccc8db549b311"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/readback.json",
+      "target": "strict/artifact-11654563333/readback.json",
+      "bytes": 766,
+      "sha256": "c6adddb0f80318cfec11db90a3f23999de89d7b8d108a5720c4eb8e2514e9ab6"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655094573/artifact.zip",
+      "target": "strict/artifact-11655094573/artifact.zip",
+      "bytes": 404,
+      "sha256": "af869ca682cdc11914309c29d076a27ea6a919280cb83d656fb36879c01cb135"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655094573/metadata.json",
+      "target": "strict/artifact-11655094573/metadata.json",
+      "bytes": 749,
+      "sha256": "68c22bbf4908bf2d2f670c37fb851464148679d30155142f1c618040dc4f0ec9"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655094573/readback.json",
+      "target": "strict/artifact-11655094573/readback.json",
+      "bytes": 758,
+      "sha256": "a9d810c9ba7e16325bc4e46f1bf8400fcbd0abd6e3e6dfe043ea8519ba2b9851"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/artifact.zip",
+      "target": "strict/artifact-11655118011/artifact.zip",
+      "bytes": 7245,
+      "sha256": "6bc57f996493ea2bd2d2b31ff50449a54d10de13edd9b741c11aaaa968bae3fc"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/metadata.json",
+      "target": "strict/artifact-11655118011/metadata.json",
+      "bytes": 751,
+      "sha256": "f6598c820421dd16a327c9f3c6b781651cc4c5450bb8ac379594f95b0af70c1f"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/readback.json",
+      "target": "strict/artifact-11655118011/readback.json",
+      "bytes": 760,
+      "sha256": "ffd95e601296e2083e2f660f5b6d10bf78a2922f6732b315bf0dd9c52278b313"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655435657/artifact.zip",
+      "target": "strict/artifact-11655435657/artifact.zip",
+      "bytes": 149895,
+      "sha256": "c34ac19e02263964ac98d3fb3973521633c54c9b0d394f80abec3e7d8dd38f0e"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655435657/metadata.json",
+      "target": "strict/artifact-11655435657/metadata.json",
+      "bytes": 755,
+      "sha256": "aba00e9f4ba22a9a8c8eeeddb1cd05e39387ffe7d8c9ef03f6b21c6f808656c4"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655435657/readback.json",
+      "target": "strict/artifact-11655435657/readback.json",
+      "bytes": 764,
+      "sha256": "f2cf83566c9ba67a476676084c08123a87beffcb582f9c94b78302db48c47cae"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/artifact.zip",
+      "target": "strict/artifact-11655765114/artifact.zip",
+      "bytes": 6019,
+      "sha256": "6757341498ccd6fd24f5a220917b222b0e1834d467df4d4ec8fbff8b2968f075"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/metadata.json",
+      "target": "strict/artifact-11655765114/metadata.json",
+      "bytes": 757,
+      "sha256": "849888ad823a60bff7655e425dd62485012d4120a57eccc60eade948c0c5c500"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/readback.json",
+      "target": "strict/artifact-11655765114/readback.json",
+      "bytes": 766,
+      "sha256": "0a9d1a51dcf92de7144eb0b76ebe203514c68366f1d790fc6633c80735f3db83"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/artifacts-1.json",
+      "target": "strict/snapshot/artifacts-1.json",
+      "bytes": 4557,
+      "sha256": "cecabc579107faf1254320ca2336bda4e1672c2dc1db3eab8ab27489045f4ef7"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/jobs-1.json",
+      "target": "strict/snapshot/jobs-1.json",
+      "bytes": 21590,
+      "sha256": "b8afceb7cf2c37b0056c9b9ea9feccf638f7337717ac66a0cefe6550b0852d99"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/readback.json",
+      "target": "strict/snapshot/readback.json",
+      "bytes": 5072,
+      "sha256": "fc31bb25a743d4d9a50681cca61cc63012ac64e2160193cb99244d520aec570e"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/run.json",
+      "target": "strict/snapshot/run.json",
+      "bytes": 13746,
+      "sha256": "bc69f4a0577d26d48c25107ea4114a50a63c59e8c62479767ef4b210eaebee75"
+    },
+    {
+      "source": ".work/cli-sdk-da91e730-20261010/strict-terminal-readback.json",
+      "target": "strict/terminal.json",
+      "bytes": 5072,
+      "sha256": "fc31bb25a743d4d9a50681cca61cc63012ac64e2160193cb99244d520aec570e"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021102825,
+  "captures": [
+    {
+      "path": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/run.json",
+      "bytes": 13193,
+      "sha256": "8ea9f3bc7795d4f7e87fa8bf735d699c36356f4a07be9f6e13b4687405f1704e"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifacts-1.json",
+      "bytes": 13684,
+      "sha256": "3b563f26f386caaa5ad776efcbf6489288ff184de030bb10aef58dddf78b2380"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658939015-metadata.json",
+      "bytes": 734,
+      "sha256": "af463fdb5aec255cdb2838f078d654b2c00cf0c60a25c11b12fc6e87f3d75e14"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658539265-metadata.json",
+      "bytes": 735,
+      "sha256": "21e3d57e369bbb322466c798823e47d85ac2e478a3cce7bccb40de749c3f4969"
+    }
+  ]
+}

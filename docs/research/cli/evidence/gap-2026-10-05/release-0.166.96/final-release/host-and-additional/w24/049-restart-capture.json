@@ -1,0 +1,29 @@
+{
+  "schema": "chainlesschain.ui-host-capture/v1",
+  "complete": true,
+  "scope": "Metadata event trace and original IDE log bytes after this host phase stopped",
+  "files": [
+    {
+      "path": "host-events.jsonl.bin",
+      "source": "host-events.jsonl",
+      "bytes": 2347,
+      "sha256": "bb46ff810ebef08f00d43ddfacfc01df0bb109d9613df84ebf13d6fb7480589d",
+      "originalBytes": true
+    },
+    {
+      "path": "idea-001.log.bin",
+      "source": "IC-2024.2/log/idea.log",
+      "bytes": 45313,
+      "sha256": "57eeea028d10a374901095adc3027432c426bc1bfee7c8fb8b6e23cec6029b5e",
+      "originalBytes": true
+    },
+    {
+      "path": "idea-002.log.bin",
+      "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+      "bytes": 162439,
+      "sha256": "b6f44664067961781b3939722639b81d3b583a03cf75c96149b1a5f2b0f27a50",
+      "originalBytes": true
+    }
+  ],
+  "failures": []
+}

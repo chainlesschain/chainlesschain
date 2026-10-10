@@ -1,0 +1,1 @@
+[verify-ide-marketplace] JetBrains Marketplace has not exposed 0.4.158; manual review may still be pending; --allow-pending requested, reporting pending review without failing

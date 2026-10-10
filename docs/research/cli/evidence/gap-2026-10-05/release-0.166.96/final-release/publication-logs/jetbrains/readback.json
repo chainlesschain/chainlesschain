@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-10T04:08:49.167Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021102825,
+  "jobId": 114126071052,
+  "jobName": "JetBrains plugin (build + publish)",
+  "conclusion": "success",
+  "bytes": 104176,
+  "sha256": "c5829a43fc80a5180c0d3fac029b85c95184124e7f4e0d71a8f322c85d7ca131"
+}

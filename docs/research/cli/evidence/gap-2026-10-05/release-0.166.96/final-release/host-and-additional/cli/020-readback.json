@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11655655757,
+  "name": "linux-subreaper-arm64-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/metadata.json",
+    "bytes": 783,
+    "sha256": "44bb10c81e7083579bfa033b2844be424af44d0fbe24b21087801aedc53edc1f",
+    "endpoint": "actions/artifacts/11655655757"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/artifact.zip",
+    "bytes": 335579,
+    "sha256": "d7a6e7d77288fa96a897b4baaa0ef4e427f2917ad094d38dbcf9f38519c2977a",
+    "endpoint": "actions/artifacts/11655655757/zip"
+  },
+  "githubDigestMatched": true
+}

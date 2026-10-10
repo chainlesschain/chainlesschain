@@ -1,0 +1,790 @@
+{
+  "capturedAt": "2026-10-10T03:11:17.364Z",
+  "label": "cli",
+  "runId": 38012166593,
+  "headSha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "event": "pull_request",
+  "branch": "feature/cli-ide-gap-completion-20261009",
+  "runAttempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "expectedJobCount": 71,
+  "actualJobCount": 71,
+  "counts": {
+    "success": 71
+  },
+  "fullMatrixPassed": true,
+  "sdkThreePlatformStepsPassed": true,
+  "captures": [
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/run.json",
+      "bytes": 14114,
+      "sha256": "67e3c9b14550fbf0382034dae86006cb0c0c2ba99f3b06188750d7fb4a43ec9a",
+      "endpoint": "actions/runs/38012166593"
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/jobs-1.json",
+      "bytes": 204758,
+      "sha256": "e150b09bde7c6e6fdf4dfc907fc55b3c0167c421fdeb0cc537d1b1b570942eda",
+      "endpoint": "actions/runs/38012166593/jobs?filter=latest&per_page=100&page=1"
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/artifacts-1.json",
+      "bytes": 18347,
+      "sha256": "d8d8632aebc73c4003e60bbaf2f247c3939eb2e5b36b125cb368892faa38e777",
+      "endpoint": "actions/runs/38012166593/artifacts?per_page=100&page=1"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 114094369194,
+      "name": "PDH native release tests (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369240,
+      "name": "test-macos / integration (macos-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369249,
+      "name": "test-windows / integration (windows-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369254,
+      "name": "test-macos / integration (macos-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369255,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369261,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369263,
+      "name": "test-windows / integration (windows-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369270,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369274,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369276,
+      "name": "PDH native release tests (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369284,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369286,
+      "name": "test-macos / integration (macos-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369294,
+      "name": "test-macos / integration (macos-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369297,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369299,
+      "name": "test-windows / unit (windows-latest, shard 3/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369314,
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369319,
+      "name": "test-windows / unit (windows-latest, shard 7/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369327,
+      "name": "test-windows / unit (windows-latest, shard 2/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369334,
+      "name": "test-windows / unit (windows-latest, shard 6/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369337,
+      "name": "test-windows / integration (windows-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369339,
+      "name": "test-windows / unit (windows-latest, shard 9/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369344,
+      "name": "test-windows / unit (windows-latest, shard 14/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369354,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369355,
+      "name": "test-windows / unit (windows-latest, shard 13/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369360,
+      "name": "test-windows / unit (windows-latest, shard 4/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369362,
+      "name": "test-windows / integration (windows-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369367,
+      "name": "test-macos / unit (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369370,
+      "name": "PDH native release tests (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369371,
+      "name": "test-windows / unit (windows-latest, shard 1/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369372,
+      "name": "test-windows / integration (windows-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369376,
+      "name": "test-windows / integration (windows-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369388,
+      "name": "test-windows / e2e (windows-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369391,
+      "name": "test-windows / integration (windows-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369396,
+      "name": "test-windows / integration (windows-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369400,
+      "name": "test-macos / unit (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369414,
+      "name": "test-windows / unit (windows-latest, shard 12/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369415,
+      "name": "test-windows / unit (windows-latest, shard 5/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369424,
+      "name": "test-windows / unit (windows-latest, shard 10/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369435,
+      "name": "test-windows / unit (windows-latest, shard 8/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369439,
+      "name": "test-windows / unit (windows-latest, shard 11/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369446,
+      "name": "test-windows / e2e (windows-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369451,
+      "name": "test-windows / e2e (windows-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369452,
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369469,
+      "name": "test-macos / e2e (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369502,
+      "name": "test-macos / e2e (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369506,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369513,
+      "name": "test-macos / unit (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369517,
+      "name": "test-macos / unit (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369518,
+      "name": "test-macos / e2e (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369519,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369520,
+      "name": "test-macos / integration (macos-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369542,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369545,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369552,
+      "name": "test-windows / e2e (windows-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369583,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369591,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369599,
+      "name": "test-macos / e2e (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369606,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369616,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369643,
+      "name": "test-macos / integration (macos-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369734,
+      "name": "test-macos / integration (macos-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369792,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094370310,
+      "name": "test-macos / integration (macos-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094370379,
+      "name": "test-windows / unit (windows-latest, shard 15/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094370381,
+      "name": "test-windows / unit (windows-latest, shard 16/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114107371173,
+      "name": "dry-run-publish",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114107371192,
+      "name": "pack-linux-dryrun",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114115687778,
+      "name": "verify-cli (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114115687783,
+      "name": "verify-cli (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114115687813,
+      "name": "verify-cli (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114117388383,
+      "name": "Test-only PM exploration recovery three-OS aggregate",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11658235211,
+      "name": "session-message-fabric-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2267,
+      "digest": "sha256:10a15f7cb532f9c2b2b48f0954473410b8f5651dfab452b380610bf211e515b6",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11658110312,
+      "name": "claude-security-map-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 33160,
+      "digest": "sha256:bd5e3e4cee527c2df30bebdac3fe93b84e36ee80d7318628aa53c4b1e1c835b7",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657960487,
+      "name": "mcp-lifecycle-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2708,
+      "digest": "sha256:2241a06461648903ae7e27a335afd649418934c9f3178375a8e89307a60ca465",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657785624,
+      "name": "rc-default-audit-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 1738,
+      "digest": "sha256:eb653c6eade304564416e5e6498665f9f116cf897c6141ef422d736a90ae5600",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657693302,
+      "name": "pm-exploration-recovery-test-only-aggregate-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 891,
+      "digest": "sha256:19f997f5d7427e7044283ef4cca6d57373b88db7350c8d2a601a66754a8d3dd9",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657682882,
+      "name": "claude-security-map-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 33187,
+      "digest": "sha256:aa40120dbcb7d421b29e6e58a042281b7c96100a733d94631024aa2e217017ce",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657607802,
+      "name": "session-message-fabric-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2267,
+      "digest": "sha256:a5303b04e0d070f0a6e1514cdbca53288aebf7ac84e16c410702c456d837e0c2",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657517929,
+      "name": "pm-exploration-recovery-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 1249,
+      "digest": "sha256:afbf0e4420b15e1c6ecbf2c9cb45e5c2ec55bfc9c99f7258cffa3444f6900a9c",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657342737,
+      "name": "rc-default-audit-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 1734,
+      "digest": "sha256:1625908d2029599086f107f580c6d7bf5d2ff535ef6194d4e41d416ed53459bd",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657337691,
+      "name": "claude-security-map-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 33218,
+      "digest": "sha256:ed4ab941b0bb94d6c10a69eafb0aa994eaae52dc195c0469f89318c83d80d8b5",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657327825,
+      "name": "mcp-lifecycle-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2703,
+      "digest": "sha256:44cd8eab7566a36c617b609de57237a2e9792c0a3c14b67ff023c9a2535aa67b",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657237833,
+      "name": "session-message-fabric-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2265,
+      "digest": "sha256:8ef25cb493dd635edd011b7d9ee0377c53d5ce64a822d44429173d4a81e373aa",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657198055,
+      "name": "mcp-lifecycle-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 2703,
+      "digest": "sha256:913ba6447accb3fe858a66ff464927ec5cff181634619a1c08ae6c71db056272",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657143147,
+      "name": "rc-default-audit-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 1734,
+      "digest": "sha256:ad16b86e7eec4a2e8d66621b9e794f86d312b238707bc3ba2e54a957f0e253e3",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11657142798,
+      "name": "pm-exploration-recovery-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 1221,
+      "digest": "sha256:041083b571dbe0a648201dfeb1d9f881705fc10bf02e8ccc6af1cca152f73f46",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11656719979,
+      "name": "pm-exploration-recovery-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 1218,
+      "digest": "sha256:4f253b625014b082af06001147ca30d814659e394c21de65f9bbbb1f9b0f70c8",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655655757,
+      "name": "linux-subreaper-arm64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 335579,
+      "digest": "sha256:d7a6e7d77288fa96a897b4baaa0ef4e427f2917ad094d38dbcf9f38519c2977a",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655495860,
+      "name": "linux-subreaper-smoke-arm64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 7337137,
+      "digest": "sha256:4f916b491a8873603d2cd4ec6d130b88d650bea8b502bdac996b08e469734803",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655365410,
+      "name": "pdh-native-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 180116,
+      "digest": "sha256:0552cdef46ae1afc82589f9d234e306e23ecf7dc5e6cc7fcdebe40e3b1120c70",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655205893,
+      "name": "pdh-native-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 181904,
+      "digest": "sha256:d59275a04b2870af0f71a5da3b87b328f4321150860af6bddacbbfacbad14eb7",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655163056,
+      "name": "pdh-native-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+      "bytes": 185742,
+      "digest": "sha256:ee595e1e69e6ceee408725d35ac82aa6e1235005691596a193f36ee40b2619d5",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11654615466,
+      "name": "linux-subreaper-x64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 409551,
+      "digest": "sha256:02366e924a387647c063b83536414d05706688da8cefdb6911d8835f3da9850d",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11654600497,
+      "name": "linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 7410714,
+      "digest": "sha256:ea55ec8cc7980a0b4f6ce334dd863c96161412f8df375c823dec567fef06f156",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166593,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    }
+  ]
+}

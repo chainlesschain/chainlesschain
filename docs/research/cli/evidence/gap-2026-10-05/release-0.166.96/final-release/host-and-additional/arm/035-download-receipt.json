@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166408,
+  "jobId": 114094368176,
+  "jobConclusion": "success",
+  "artifactId": 11655477147,
+  "bytes": 1781898,
+  "digest": "sha256:f92e844ff836d7377ea8d22c8b5c39166cc53e230df1701736245d11bca0a837",
+  "metadataBytes": 1781898,
+  "metadataDigest": "sha256:f92e844ff836d7377ea8d22c8b5c39166cc53e230df1701736245d11bca0a837",
+  "jobLogBytes": 232083,
+  "jobLogSha256": "6c4e7f017c29af3412b9a6ea85dd2a5b1fc357523bfae5aee50ac8dea85134ed",
+  "verified": true
+}

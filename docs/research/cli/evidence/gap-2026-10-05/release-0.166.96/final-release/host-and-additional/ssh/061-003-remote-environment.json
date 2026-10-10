@@ -1,0 +1,36 @@
+{
+  "schema": "chainlesschain.remote-ssh-container-observation.v2",
+  "remoteName": "ssh-remote",
+  "remoteAuthority": "ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3",
+  "workspaceUriPresentation": "remote-extension-host-native-file",
+  "workspaceSchemes": [
+    "file",
+    "file"
+  ],
+  "workspaceAuthorities": [
+    "",
+    ""
+  ],
+  "orderedWorkspacePaths": [
+    "/home/cc-roadmap/workspace-primary",
+    "/home/cc-roadmap/workspace-secondary"
+  ],
+  "extensionHostPid": 2953,
+  "extensionHostCwd": "/home/cc-roadmap",
+  "extensionPath": "/home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-0.37.140",
+  "extensionVersion": "0.37.140",
+  "candidateVsixSha256": "sha256:437d2c4ff1025ba617e77c078c8fe66f26b25bafc9456ee9bf1271cf6198ffcb",
+  "candidateVsixBytes": 714971,
+  "containerHostname": "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+  "containerMarkerDigest": "sha256:a1976af1de42df3d9a980404d120b9713c58c50149282d8993f57058c9a0ccf7",
+  "releaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "journeyPassed": true,
+  "hostJourneyStages": [
+    "installed-vsix-discovered",
+    "vsix-activated",
+    "commands-verified",
+    "bridge-verified",
+    "view-command-dispatched",
+    "phase-completed"
+  ]
+}

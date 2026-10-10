@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:14:00.710Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11655205893,
+  "name": "pdh-native-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/metadata.json",
+    "bytes": 787,
+    "sha256": "5f31883613b251e905d0c05f3ebc19460d4225c9a53e2d1e4d243f786960e924",
+    "endpoint": "actions/artifacts/11655205893"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/artifact.zip",
+    "bytes": 181904,
+    "sha256": "d59275a04b2870af0f71a5da3b87b328f4321150860af6bddacbbfacbad14eb7",
+    "endpoint": "actions/artifacts/11655205893/zip"
+  },
+  "githubDigestMatched": true
+}

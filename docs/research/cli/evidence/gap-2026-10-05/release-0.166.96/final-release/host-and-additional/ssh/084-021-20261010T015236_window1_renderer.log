@@ -1,0 +1,91 @@
+2026-10-10 01:52:38.380 [info] workbench#open()
+2026-10-10 01:52:38.396 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-vscode.vscode-selfhost-test-provider' wants API proposal 'attributableCoverage' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-10-10 01:52:38.397 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.python' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-10-10 01:52:38.398 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.debugpy' wants API proposal 'contribIssueReporter' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-10-10 01:52:38.686 [info] Invoking getCanonicalURI for authority ssh-remote...
+2026-10-10 01:52:38.687 [info] getCanonicalURI returned for authority ssh-remote.
+2026-10-10 01:52:38.687 [info] Starting to wait on IWorkspaceTrustManagementService.workspaceResolved...
+2026-10-10 01:52:38.749 [info] Started local extension host with pid 6243.
+2026-10-10 01:52:38.749 [info] IExtensionHostStarter.start() took 37 ms.
+2026-10-10 01:52:39.617 [info] NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.scannedExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.configuration-editing,vscode.cpp,vscode.csharp,vscode.css,vscode.css-language-features,vscode.dart,vscode.debug-auto-launch,vscode.debug-server-ready,vscode.diff,vscode.docker,vscode.emmet,vscode.extension-editing,vscode.fsharp,vscode.git,vscode.git-base,vscode.github,vscode.github-authentication,vscode.go,vscode.groovy,vscode.grunt,vscode.gulp,vscode.handlebars,vscode.hlsl,vscode.html,vscode.html-language-features,vscode.ini,vscode.ipynb,vscode.jake,vscode.java,vscode.javascript,vscode.json,vscode.json-language-features,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.markdown-language-features,vscode.markdown-math,vscode.media-preview,vscode.merge-conflict,vscode.microsoft-authentication,ms-vscode.js-debug,ms-vscode.js-debug-companion,ms-vscode.vscode-js-profile-table,vscode.builtin-notebook-renderers,vscode.npm,vscode.objective-c,vscode.perl,vscode.php,vscode.php-language-features,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.references-view,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.search-result,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.terminal-suggest,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.tunnel-forwarding,vscode.typescript,vscode.typescript-language-features,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+2026-10-10 01:52:39.625 [info] filterEnabledExtensions: extension 'vscode.configuration-editing' is disabled
+2026-10-10 01:52:39.629 [info] filterEnabledExtensions: extension 'vscode.css-language-features' is disabled
+2026-10-10 01:52:39.629 [info] filterEnabledExtensions: extension 'vscode.debug-auto-launch' is disabled
+2026-10-10 01:52:39.630 [info] filterEnabledExtensions: extension 'vscode.debug-server-ready' is disabled
+2026-10-10 01:52:39.632 [info] filterEnabledExtensions: extension 'vscode.emmet' is disabled
+2026-10-10 01:52:39.632 [info] filterEnabledExtensions: extension 'vscode.extension-editing' is disabled
+2026-10-10 01:52:39.633 [info] filterEnabledExtensions: extension 'vscode.git' is disabled
+2026-10-10 01:52:39.633 [info] filterEnabledExtensions: extension 'vscode.git-base' is disabled
+2026-10-10 01:52:39.633 [info] filterEnabledExtensions: extension 'vscode.github' is disabled
+2026-10-10 01:52:39.634 [info] filterEnabledExtensions: extension 'vscode.grunt' is disabled
+2026-10-10 01:52:39.634 [info] filterEnabledExtensions: extension 'vscode.gulp' is disabled
+2026-10-10 01:52:39.635 [info] filterEnabledExtensions: extension 'vscode.html-language-features' is disabled
+2026-10-10 01:52:39.637 [info] filterEnabledExtensions: extension 'vscode.jake' is disabled
+2026-10-10 01:52:39.637 [info] filterEnabledExtensions: extension 'vscode.json-language-features' is disabled
+2026-10-10 01:52:39.638 [info] filterEnabledExtensions: extension 'vscode.markdown-language-features' is disabled
+2026-10-10 01:52:39.638 [info] filterEnabledExtensions: extension 'vscode.markdown-math' is disabled
+2026-10-10 01:52:39.639 [info] filterEnabledExtensions: extension 'vscode.merge-conflict' is disabled
+2026-10-10 01:52:39.639 [info] filterEnabledExtensions: extension 'ms-vscode.js-debug' is disabled
+2026-10-10 01:52:39.640 [info] filterEnabledExtensions: extension 'ms-vscode.vscode-js-profile-table' is disabled
+2026-10-10 01:52:39.641 [info] filterEnabledExtensions: extension 'vscode.npm' is disabled
+2026-10-10 01:52:39.642 [info] filterEnabledExtensions: extension 'vscode.php-language-features' is disabled
+2026-10-10 01:52:39.642 [info] filterEnabledExtensions: extension 'vscode.references-view' is disabled
+2026-10-10 01:52:39.643 [info] filterEnabledExtensions: extension 'vscode.search-result' is disabled
+2026-10-10 01:52:39.643 [info] filterEnabledExtensions: extension 'vscode.terminal-suggest' is disabled
+2026-10-10 01:52:39.644 [info] filterEnabledExtensions: extension 'vscode.tunnel-forwarding' is disabled
+2026-10-10 01:52:39.644 [info] filterEnabledExtensions: extension 'vscode.typescript-language-features' is disabled
+2026-10-10 01:52:39.645 [info] NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.localExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.cpp,vscode.csharp,vscode.css,vscode.dart,vscode.diff,vscode.docker,vscode.fsharp,vscode.github-authentication,vscode.go,vscode.groovy,vscode.handlebars,vscode.hlsl,vscode.html,vscode.ini,vscode.ipynb,vscode.java,vscode.javascript,vscode.json,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.media-preview,vscode.microsoft-authentication,ms-vscode.js-debug-companion,vscode.builtin-notebook-renderers,vscode.objective-c,vscode.perl,vscode.php,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.typescript,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+2026-10-10 01:52:39.645 [info] NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.myExtensions: vscode.bat,vscode.clojure,vscode.coffeescript,vscode.cpp,vscode.csharp,vscode.css,vscode.dart,vscode.diff,vscode.docker,vscode.fsharp,vscode.github-authentication,vscode.go,vscode.groovy,vscode.handlebars,vscode.hlsl,vscode.html,vscode.ini,vscode.ipynb,vscode.java,vscode.javascript,vscode.json,vscode.julia,vscode.latex,vscode.less,vscode.log,vscode.lua,vscode.make,vscode.markdown,vscode.media-preview,vscode.microsoft-authentication,ms-vscode.js-debug-companion,vscode.builtin-notebook-renderers,vscode.objective-c,vscode.perl,vscode.php,vscode.powershell,vscode.pug,vscode.python,vscode.r,vscode.razor,vscode.restructuredtext,vscode.ruby,vscode.rust,vscode.scss,vscode.shaderlab,vscode.shellscript,vscode.simple-browser,vscode.sql,vscode.swift,vscode.theme-abyss,vscode.theme-defaults,vscode.theme-kimbie-dark,vscode.theme-monokai,vscode.theme-monokai-dimmed,vscode.theme-quietlight,vscode.theme-red,vscode.vscode-theme-seti,vscode.theme-solarized-dark,vscode.theme-solarized-light,vscode.theme-tomorrow-night-blue,vscode.typescript,vscode.vb,vscode.xml,vscode.yaml,ms-vscode-remote.remote-ssh,ms-vscode-remote.remote-ssh-edit,ms-vscode.remote-explorer
+2026-10-10 01:52:40.012 [info] Finished waiting on IWorkspaceTrustManagementService.workspaceResolved.
+2026-10-10 01:52:40.013 [info] Invoking resolveAuthority(ssh-remote)...
+2026-10-10 01:52:40.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][0ms] obtaining proxy...
+2026-10-10 01:52:40.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][0ms] invoking...
+2026-10-10 01:52:41.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][1000ms] waiting...
+2026-10-10 01:52:42.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][2000ms] waiting...
+2026-10-10 01:52:43.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][3000ms] waiting...
+2026-10-10 01:52:44.014 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][4000ms] waiting...
+2026-10-10 01:52:44.047 [info] [LocalProcess0][resolveAuthority(ssh-remote,1)][4034ms] returned Managed(1)
+2026-10-10 01:52:44.048 [info] resolveAuthority(ssh-remote) returned 'Managed(1)' after 4035 ms
+2026-10-10 01:52:44.049 [info] Creating a socket (renderer-Management-92d36e7b-3b3f-4afa-bb9c-7e782547e52c)...
+2026-10-10 01:52:44.049 [info] Creating a socket (renderer-ExtensionHost-1c7aa97a-d529-47cf-aebe-27b116b94117)...
+2026-10-10 01:52:46.818 [info] Creating a socket (renderer-Management-92d36e7b-3b3f-4afa-bb9c-7e782547e52c) was successful after 2770 ms.
+2026-10-10 01:52:46.820 [info] Creating a socket (renderer-ExtensionHost-1c7aa97a-d529-47cf-aebe-27b116b94117) was successful after 2770 ms.
+2026-10-10 01:52:47.828 [info] filterEnabledExtensions: extension 'ms-vscode.js-debug-companion' is disabled
+2026-10-10 01:52:47.831 [info] filterEnabledExtensions: extension 'vscode.configuration-editing' is disabled
+2026-10-10 01:52:47.832 [info] filterEnabledExtensions: extension 'vscode.css-language-features' is disabled
+2026-10-10 01:52:47.833 [info] filterEnabledExtensions: extension 'vscode.debug-auto-launch' is disabled
+2026-10-10 01:52:47.834 [info] filterEnabledExtensions: extension 'vscode.debug-server-ready' is disabled
+2026-10-10 01:52:47.834 [info] filterEnabledExtensions: extension 'vscode.emmet' is disabled
+2026-10-10 01:52:47.835 [info] filterEnabledExtensions: extension 'vscode.extension-editing' is disabled
+2026-10-10 01:52:47.835 [info] filterEnabledExtensions: extension 'vscode.git' is disabled
+2026-10-10 01:52:47.835 [info] filterEnabledExtensions: extension 'vscode.git-base' is disabled
+2026-10-10 01:52:47.836 [info] filterEnabledExtensions: extension 'vscode.github' is disabled
+2026-10-10 01:52:47.836 [info] filterEnabledExtensions: extension 'vscode.grunt' is disabled
+2026-10-10 01:52:47.837 [info] filterEnabledExtensions: extension 'vscode.gulp' is disabled
+2026-10-10 01:52:47.837 [info] filterEnabledExtensions: extension 'vscode.html-language-features' is disabled
+2026-10-10 01:52:47.837 [info] filterEnabledExtensions: extension 'vscode.jake' is disabled
+2026-10-10 01:52:47.838 [info] filterEnabledExtensions: extension 'vscode.json-language-features' is disabled
+2026-10-10 01:52:47.838 [info] filterEnabledExtensions: extension 'vscode.markdown-language-features' is disabled
+2026-10-10 01:52:47.839 [info] filterEnabledExtensions: extension 'vscode.markdown-math' is disabled
+2026-10-10 01:52:47.839 [info] filterEnabledExtensions: extension 'vscode.merge-conflict' is disabled
+2026-10-10 01:52:47.840 [info] filterEnabledExtensions: extension 'ms-vscode.js-debug' is disabled
+2026-10-10 01:52:47.841 [info] filterEnabledExtensions: extension 'ms-vscode.vscode-js-profile-table' is disabled
+2026-10-10 01:52:47.843 [info] filterEnabledExtensions: extension 'vscode.npm' is disabled
+2026-10-10 01:52:47.843 [info] filterEnabledExtensions: extension 'vscode.php-language-features' is disabled
+2026-10-10 01:52:47.844 [info] filterEnabledExtensions: extension 'vscode.references-view' is disabled
+2026-10-10 01:52:47.845 [info] filterEnabledExtensions: extension 'vscode.search-result' is disabled
+2026-10-10 01:52:47.845 [info] filterEnabledExtensions: extension 'vscode.terminal-suggest' is disabled
+2026-10-10 01:52:47.845 [info] filterEnabledExtensions: extension 'vscode.tunnel-forwarding' is disabled
+2026-10-10 01:52:47.846 [info] filterEnabledExtensions: extension 'vscode.typescript-language-features' is disabled
+2026-10-10 01:52:48.240 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2026-10-10 01:52:48.658 [warning] Error getting latest version of the extension chainlesschain.chainlesschain-ide 404
+2026-10-10 01:52:48.866 [warning] Git installation not found.
+2026-10-10 01:52:48.973 [info] [extension-host-smoke] initial: driver entered
+2026-10-10 01:52:48.974 [info] [extension-host-smoke] initial: 2 workspace roots verified
+2026-10-10 01:52:48.974 [info] [extension-host-smoke] initial: installed VSIX discovered
+2026-10-10 01:52:48.974 [info] [extension-host-smoke] initial: activating VSIX
+2026-10-10 01:52:49.289 [info] [extension-host-smoke] initial: VSIX activated
+2026-10-10 01:52:49.341 [info] [extension-host-smoke] initial: bridge verified
+2026-10-10 01:52:49.393 [info] [extension-host-smoke] activated installed chainlesschain.chainlesschain-ide@0.37.140; 19 commands, bridge port, and initial host-api phase verified
+2026-10-10 01:52:49.393 [info] Extension host test runner exit code: 0
+2026-10-10 01:52:49.422 [info] Asking native host service to exit with code 0.

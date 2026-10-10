@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657142798,
+  "name": "pm-exploration-recovery-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/metadata.json",
+    "bytes": 799,
+    "sha256": "9c7ff8f3efa59c169ce649efd9eb533f8fc7e7da610051abc673e9e3dd760e0a",
+    "endpoint": "actions/artifacts/11657142798"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/artifact.zip",
+    "bytes": 1221,
+    "sha256": "041083b571dbe0a648201dfeb1d9f881705fc10bf02e8ccc6af1cca152f73f46",
+    "endpoint": "actions/artifacts/11657142798/zip"
+  },
+  "githubDigestMatched": true
+}

@@ -1,0 +1,135 @@
+{
+  "capturedAt": "2026-10-10T03:14:46.167Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "status": "CLI_AND_STRICT_FULL_MATRICES_PASSED",
+  "cli": {
+    "runId": 38012166593,
+    "actual": 71,
+    "expected": 71,
+    "counts": {
+      "success": 71
+    },
+    "fullMatrixPassed": true
+  },
+  "strict": {
+    "runId": 38012166296,
+    "actual": 5,
+    "expected": 5,
+    "counts": {
+      "success": 5
+    },
+    "fullMatrixPassed": true
+  },
+  "sdkThreePlatforms": [
+    {
+      "platform": "macos-latest",
+      "jobId": 114115687778,
+      "jobConclusion": "success",
+      "sdkStep": "success"
+    },
+    {
+      "platform": "windows-latest",
+      "jobId": 114115687783,
+      "jobConclusion": "success",
+      "sdkStep": "success"
+    },
+    {
+      "platform": "ubuntu-latest",
+      "jobId": 114115687813,
+      "jobConclusion": "success",
+      "sdkStep": "success"
+    }
+  ],
+  "sdkStatus": "THREE_PLATFORM_STEPS_PASSED",
+  "scope": "Only CLI CI, SDK steps and CLI Strict Sandbox on the exact source commit; no publication or other workflow success is asserted.",
+  "excludedPayloads": [
+    {
+      "artifactId": 11654600497,
+      "name": "linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 7410714,
+      "sha256": "ea55ec8cc7980a0b4f6ce334dd863c96161412f8df375c823dec567fef06f156",
+      "payloadVerified": false,
+      "reason": "Large smoke bundle payload omitted; source metadata and GitHub digest are selected. No payload verification is claimed when only metadata is present."
+    },
+    {
+      "artifactId": 11655495860,
+      "name": "linux-subreaper-smoke-arm64-da91e730d802b7c9dcdc075b222ecc257021e552",
+      "bytes": 7337137,
+      "sha256": "4f916b491a8873603d2cd4ec6d130b88d650bea8b502bdac996b08e469734803",
+      "payloadVerified": false,
+      "reason": "Large smoke bundle payload omitted; source metadata and GitHub digest are selected. No payload verification is claimed when only metadata is present."
+    }
+  ],
+  "receiptChecks": [
+    ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/run.json",
+    ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/jobs-1.json",
+    ".work/cli-sdk-da91e730-20261010/cli-2026-10-10T03-11-17.364Z/artifacts-1.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654600497/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654615466/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654615466/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655205893/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655495860/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655655757/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11656719979/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11656719979/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657142798/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657198055/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657327825/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657327825/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657517929/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657607802/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657960487/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657960487/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658235211/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/run.json",
+    ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/jobs-1.json",
+    ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/artifacts-1.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655094573/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655094573/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655118011/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655435657/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655435657/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/metadata.json",
+    ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/artifact.zip",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.json",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687778.log",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.json",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687783.log",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.json",
+    ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.log",
+    ".work/cli-sdk-da91e730-20261010/unit11/job.json",
+    ".work/cli-sdk-da91e730-20261010/unit11/job.log"
+  ]
+}
