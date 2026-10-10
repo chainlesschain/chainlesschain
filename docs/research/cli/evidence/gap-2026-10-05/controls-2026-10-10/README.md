@@ -10,7 +10,7 @@
 | 沙箱内基线 b                       | `host-token` 阶段拒绝；未创建原生 root，不能计为执行成功                    | [清单](./restricted-token-b/manifest.json)                                        |
 | 最终基线 c                         | 52/52 assertions 通过，原始 reporter、来源和原生结算全部确认                | [清单](./baseline/manifest.json)                                                  |
 | verify-12 / argv 边界              | 串行轮 **12 = 11 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant12/manifest.json)，[并行失败](./failed12-parallel/manifest.json) |
-| verify-20 / deny 优先              | 并行轮在行为断言前退出；串行复核进行中                                      | [失败原件](./failed20-parallel/manifest.json)                                     |
+| verify-20 / deny 优先              | 串行轮 **5 = 4 pass / 1 行为断言拒绝**，检出及原生结算确认                  | [新结果](./mutant20/manifest.json)，[并行失败](./failed20-parallel/manifest.json) |
 | verify-29 / session-bound ACK      | 尚未执行                                                                    | 待归档                                                                            |
 | verify-30 / 动画 fallback 像素预算 | 尚未执行                                                                    | 待归档                                                                            |
 

@@ -1,0 +1,120 @@
+{
+  "recordedAt": "2026-10-10T08:24:55.747Z",
+  "formalSample": false,
+  "observationsCreated": false,
+  "sources": [
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-controls.mjs",
+      "bytes": 5995,
+      "digest": "sha256:547de5439acecfed4cfa5f2a729d31dc6afe9d13f998b1d2a7fa8f73e62e0f04"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-result.mjs",
+      "bytes": 35686,
+      "digest": "sha256:b553281c67def5c6c8be5d11ad1ae55fb6f4e8cd64ce33fc9bf7b1561b8029ba"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-diagnostic.mjs",
+      "bytes": 35407,
+      "digest": "sha256:feeaadaeab220a34df23b32c906526a00845689f2b3f4cfe43811726d58a154d"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-controls.node-test.mjs",
+      "bytes": 6896,
+      "digest": "sha256:6d2b05f87a9072a7d6fb8668bb1a0e4c48bb1df227aebf4aea91f86dd1667012"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-result.node-test.mjs",
+      "bytes": 41913,
+      "digest": "sha256:96c757e53e6e027f2ac95013cc9321d9ef540e927a750f1ee37af314fee58784"
+    },
+    {
+      "file": "packages/cli/scripts/scheduler-kernel-soak.mjs",
+      "bytes": 89498,
+      "digest": "sha256:7f719b87ba2ffd51d700fda0766845b5b2b0dae99df1c918b8b418f68b83ae90"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/scheduler-kernel-soak.test.js",
+      "bytes": 36182,
+      "digest": "sha256:e8cda059767b9ec1b88e4fa0acc3d16797f8bd064b2028f7578760851d123ca8"
+    }
+  ],
+  "nodeControls": {
+    "tests": 134,
+    "passed": 134,
+    "failed": 0,
+    "skipped": 0,
+    "platform": "Windows",
+    "runtime": "22.22.2",
+    "command": "node --test packages/cli/test-node/windows-node-private-v4-controls.node-test.mjs packages/cli/test-node/windows-node-private-v4-result.node-test.mjs",
+    "outputProvenance": "assistant tool execution and Astra execution; raw stdout not separately archived"
+  },
+  "schedulerFaults": {
+    "windows": {
+      "passed": 48,
+      "skipped": 1,
+      "runtime": "22.22.2"
+    },
+    "linux": {
+      "passed": 49,
+      "skipped": 0,
+      "runtime": "22.12.0",
+      "host": "WSL Ubuntu"
+    },
+    "outputProvenance": "Astra tool execution; raw stdout not separately archived; repetitions do not create additional formal samples"
+  },
+  "schedulerIntegration": {
+    "name": "scheduler-integration-attempt3",
+    "command": "C:\\nvm4w\\nodejs\\node.exe",
+    "args": [
+      "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+      "run",
+      "__tests__/integration/scheduler-kernel-soak-worker.test.js",
+      "__tests__/integration/scheduler-kernel-soak.test.js",
+      "--reporter=dot"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "outputs": {
+      "stdout": {
+        "file": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt3.stdout",
+        "bytes": 249,
+        "digest": "sha256:7165f04e639b23c02f8a5b8194e8ecb695631d25febb0a85ae1277dc10342b69"
+      },
+      "stderr": {
+        "file": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt3.stderr",
+        "bytes": 0,
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "capturedAt": "2026-10-10T08:09:27.207Z",
+    "passed": 11,
+    "failed": 0,
+    "captures": [
+      {
+        "file": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt3.stdout",
+        "bytes": 249,
+        "digest": "sha256:7165f04e639b23c02f8a5b8194e8ecb695631d25febb0a85ae1277dc10342b69",
+        "archived": "scheduler-fix-stdout.txt"
+      },
+      {
+        "file": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt3.stderr",
+        "bytes": 0,
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "archived": "scheduler-fix-stderr.txt"
+      }
+    ]
+  },
+  "lint": {
+    "focused": true,
+    "exitCode": 0,
+    "existingUnsafeFinallyRemoved": true
+  },
+  "prettier": {
+    "focused": true,
+    "exitCode": 0
+  },
+  "authoritativeGitHubMatrixPassed": false
+}
