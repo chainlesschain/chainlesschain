@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.93 | Open VSX 0.37.138 | JetBrains 0.4.156"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.96 | Open VSX 0.37.140 | JetBrains 0.4.158"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,8 +22,8 @@ hero:
 features:
   - icon: 🛡️
     title: 最新发行与 Windows 验证边界
-    details: CLI .93 与产品 .140 已公开；冻结工具链及 Node runtime 胶囊仍是独立实验，不获得生产 strict 准入。
-    link: /release-runtime-update-2026-10-08-latest
+    details: CLI .96 与产品 .140 已公开；冻结工具链及 Node runtime 胶囊仍是独立实验，不获得生产 strict 准入。
+    link: /release-runtime-update-2026-10-10
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -41,7 +41,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.93
+    title: Agent Platform 0.166.96
     details: 公开 CLI 包含投影恢复、回执维护、离线任务预览与风险检查；本轮桌面源码提供个人项目受控修改，产品安装包单独验收。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
@@ -61,7 +61,7 @@ features:
 
   - icon: 🧠
     title: Context/Memory Kernel
-    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；Kernel 0.1.7 已公开，产品面仍按各自 writer/cutover 证据判断
+    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；Kernel 0.1.8 已公开，产品面仍按各自 writer/cutover 证据判断
     link: /modules/m108-context-memory-kernel
 
   - icon: 🔐
@@ -81,11 +81,13 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **当前核对**：2026-10-08 核对：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，两个 IDE 均推荐 CLI `0.166.93`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.140** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
+> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮设计](/release-runtime-update-2026-10-10)。
 
-## 2026-10-07 最新增量
+> **当前核对**：2026-10-10 公开 CLI **0.166.96**、SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158**，两个 IDE 均推荐 CLI `0.166.96`，发行提交 `da91e730d8`。产品 **v5.0.3.140** 的独立发行提交为 `f733f92cb9`；源码核对至 `main@2650447476`。详见[最新设计](https://design.chainlesschain.com/release-runtime-update-2026-10-10.html)。
 
-主线项目目标与 RRSI 设计及使用说明已补齐。公开版本为 CLI 0.166.93、Open VSX 0.37.138、JetBrains 0.4.156；下方带日期内容保留历史范围。
+## 2026-10-07 历史增量
+
+当前 CLI 0.166.96、SDK 0.2.14、Open VSX 0.37.140 与 JetBrains 0.4.158 已公开；设置公平性、审批布局和 Windows 取证设计已补齐。下方带日期内容保留历史范围。
 
 > **2026-09-28 历史核对**：npm CLI `0.166.78@3400318446`、Open VSX `0.37.119` 与 JetBrains Marketplace `0.4.140` 均已公开。CLI 增加分页会话历史与恢复、草稿边界及后台进程清理；逐槽签名 PM 回执对账已进入本版源码。主线 `c2ff6d036e` 随后修正 IDE 清单配对。真实 PM/Pilot 收益、完整启动覆盖与总成本仍待独立验收，自动晋升保持 HOLD。详见[增量设计](/agent-runtime-update-2026-09-26)和[用户发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 

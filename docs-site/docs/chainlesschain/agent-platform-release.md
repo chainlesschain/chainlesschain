@@ -1,6 +1,14 @@
 # Agent Platform 发布与升级指南
 
-## 2026-10-08 最新发布与升级
+## 2026-10-10 最新发布与升级
+
+2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。
+
+安装 `chainlesschain@0.166.96`（官方 registry），核对 `cc --version` 与 `cc doctor`，升级 Open VSX 0.37.140 或 JetBrains 0.4.158 后重启聊天宿主。详见[逐步升级与故障排查](./cli-ide-update-2026-10-10)及[本轮设计](/design/release-runtime-update-2026-10-10)。SDK 0.2.14 先于 CLI 经过既有 OIDC 发布；`.95` 复用检查失败没有发布，失败标签保留。
+
+发行提交的 CLI CI 71/71、Strict 5/5、IDE 18 成功/1 条件跳过、ARM64 10/10 已归档；后续文档头 Windows Scheduler 非必需 smoke 曾失败，根因未确认，不能用发行通过记录覆盖。正式 36+9、完整 native review 与长时验收保持开放。
+
+## 2026-10-08 发布与升级（历史快照）
 
 2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。
 

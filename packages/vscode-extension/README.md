@@ -6,19 +6,18 @@ MCP bridge.
 
 ## Current release
 
-Public Open VSX **0.37.139** recommends public CLI **0.166.94**, verified on 2026-10-09. Microsoft Marketplace remains unpublished; stock VS Code can install the Open VSX VSIX. Source **0.37.140** is the next candidate, pairing with CLI **0.166.96** after its public release. [Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html).
+Public Open VSX **0.37.140** recommends public CLI **0.166.96**, freshly
+verified on 2026-10-10. Microsoft Marketplace remains unpublished; stock
+VS Code can install the public Open VSX VSIX. Both use release commit
+`da91e730d8`; exact-commit CLI and IDE release gates passed before publication.
+[Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
 
-> Candidate extension `0.37.140` pairs with `chainlesschain@0.166.96`.
-> IDE publication requires this exact commit to pass its release gates.
-
-Candidate `0.37.140` pairs with CLI `0.166.96`, Session Core `0.3.18`, and
-Context/Memory Kernel `0.1.8` for the current runtime and packaging fixes.
-The candidates remain unpublished; complete gates on the exact release commit
-remain required.
+This pairing uses Agent SDK 0.2.14, Session Core 0.3.18 and Memory Kernel 0.1.8.
+Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.140**; candidate runtime and packaging fixes       |
+| VS Code extension         | **0.37.140**; public Open VSX release                     |
 | Recommended CLI           | **`chainlesschain@0.166.96`**                             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
@@ -27,7 +26,7 @@ remain required.
 ### What's new in 0.37.140
 
 - Pair with CLI 0.166.96 for official stable model release review and retained
-  diagnostic evidence after the release gates pass.
+  diagnostic evidence, published after exact-commit release gates.
 - Include foreign-session mode acknowledgment and APNG decoded pixel budget
   regressions in the unit gate.
 

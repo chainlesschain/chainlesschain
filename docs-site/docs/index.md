@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.93 | Open VSX 0.37.138 | 桌面与移动端"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.96 | Open VSX 0.37.140 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,8 +22,8 @@ hero:
 features:
   - icon: 🛡️
     title: 最新发行与 Windows 验证边界
-    details: CLI .93 与产品 .140 已公开；冻结工具链及 Node runtime 胶囊仍是独立实验，不获得生产 strict 准入。
-    link: /design/release-runtime-update-2026-10-08-latest
+    details: CLI .96 与产品 .140 已公开；冻结工具链及 Node runtime 胶囊仍是独立实验，不获得生产 strict 准入。
+    link: /design/release-runtime-update-2026-10-10
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -37,12 +37,12 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.93
+    title: Agent Platform 0.166.96
     details: 公开 CLI 包含记忆索引与快照分页、冻结评估及 Linux cgroup2 恢复；真实模型验收和 Docker 整包验收仍开放。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.138 推荐 CLI 0.166.93；JetBrains 0.4.156 也已公开并推荐 CLI 0.166.93。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
+    details: Open VSX 0.37.140 推荐 CLI 0.166.96；JetBrains 0.4.158 也已公开并推荐 CLI 0.166.96。两端不保存决策模型凭据，也不获得 Skill 路由或执行权限。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -66,7 +66,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 5 万下载
-    details: Open VSX 0.37.138 已公开并推荐 CLI 0.166.93；JetBrains 0.4.156 也推荐 CLI 0.166.93；Microsoft Marketplace 未发行。
+    details: Open VSX 0.37.140 已公开并推荐 CLI 0.166.96；JetBrains 0.4.158 也推荐 CLI 0.166.96；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -76,14 +76,16 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.93@e812a89952；准确提交 CLI CI 70 成功、Strict 5/5、IDE 宿主门 18 成功，子包和 CLI OIDC 发布均已核验。
+    details: npm latest 为 CLI 0.166.96@da91e730d8；准确发行提交 CLI CI 71/71、Strict 5/5、IDE 18 成功及 1 条件跳过、ARM64 10/10，SDK 先于 CLI 经 OIDC 发布。
 ---
 
-> **当前核对**：2026-10-08 核对：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，两个 IDE 均推荐 CLI `0.166.93`；Session Core **0.3.17**、Context/Memory Kernel **0.1.7**、PDH **0.4.64**。发行提交 `e812a89952`，产品 **v5.0.3.140** 已公开。主线核对至 `381f8018ef`：产品已包含个人目标巡检/动作/独立验收与组织任务工作台；个人记忆面板、组织转移/风险/共享目标/巡检/验收/记忆、站内通知和 IDE 调查循环恢复属于后续源码。 使用[个人目标](https://docs.chainlesschain.com/chainlesschain/project-goals-current.html)、[组织项目](https://docs.chainlesschain.com/chainlesschain/organization-project-current.html)与[RRSI](https://docs.chainlesschain.com/chainlesschain/rrsi-current.html)指南；详见[最新设计](https://design.chainlesschain.com/governance-runtime-update-2026-10-08.html)。
+> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮设计](/design/release-runtime-update-2026-10-10)。
 
-## 2026-10-08 最新增量
+> **当前核对**：2026-10-10 公开 CLI **0.166.96**、SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158**，两个 IDE 均推荐 CLI `0.166.96`，发行提交 `da91e730d8`。产品 **v5.0.3.140** 的独立发行提交为 `f733f92cb9`；源码核对至 `main@2650447476`。详见[最新设计](https://design.chainlesschain.com/release-runtime-update-2026-10-10.html)。
 
-组织共享目标、审批、独立验收、授权记忆、站内通知与 RRSI/IDE 保护已按源码补齐。公开版本为 CLI 0.166.93、Open VSX 0.37.138、JetBrains 0.4.156；下方带日期内容保留历史范围。
+## 2026-10-08 历史增量
+
+当前发行与源码范围见本页顶部及最新设计。下方带日期内容和测试统计保留历史范围。
 
 > **2026-09-26 历史快照**：当时 CLI `0.166.76` 与 Open VSX `0.37.117` 已公开，JetBrains 商店为 `0.4.137`；对应的 PM 效果证据、Eval 启动准入与并发锁修复已被后续公开版本承接。
 
@@ -121,7 +123,7 @@ features:
 
 > 2026-05-07 更新：**B4 post-pack ASAR surgery 落地（v5.0.3.39，issue #8）**。重启 `asar: true`（v5.0.3.4-13 因 electron-builder walker 漏掉 4 个 transitive 包改成 `asar: false`，代价是 NSIS 内 ~110k loose files → Windows 安装 ~20 分钟）。新 `scripts/asar-surgery.js` 在 afterPack 钩子里 extract → inject 4 个 walker-dropped 包（call-bind-apply-helpers / side-channel-{list,map,weakmap}）到 asar header top-level → 重新 createPackageWithOptions，并保留 electron-builder 原始 unpackDir 决策。新 `scripts/build-win-with-deref.js` Win 包装 `electron-builder --win`，临时把 `@chainlesschain/{core-mtc,session-core}` workspace symlinks 替换成 verbatim 拷贝（asar packer 拒绝跨 app-root 符号链接），finally 用 'junction' 还原（Win 非 admin 不能创建 'dir' symlink）。预期 Windows 安装 ~5 分钟、安装包 ~300 MB 减重。Tests：`tests/unit/scripts/asar-surgery.test.js`（8 用例）+ `build-win-with-deref.test.js`（15 用例）真 fs + 真 `@electron/asar` 跑 fixture，过程中暴露并修掉一个真 bug：`@electron/asar` 有 module-level `filesystemCache` keyed by archive path，extractAll 后必须 `asar.uncache(asarPath)` 才能让 listPackage 读到 fresh header（否则 verification gate 永远抛 stale）。Mac/Linux 通过 afterPack 同一路径自动获益。Refuted 路径（不要再走）：asarUnpack glob（issue #6 经验证）、extraResources to app.asar.unpacked/（v5.0.3.12）、4 包提为直接 dep（v5.0.3.6）。
 
-## 当前验证结果
+## 历史验证结果（原记录，非本轮重跑）
 
 - CLI 单元（`__tests__/unit`，含全部 V2 治理表面）：`14255/14255` (332 文件)
 - CLI 集成（`__tests__/integration`）：`696/696` (40 文件)

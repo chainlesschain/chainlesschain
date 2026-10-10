@@ -2,24 +2,24 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-09)
+## Current release and source (2026-10-10)
 
-Public npm latest is **chainlesschain@0.166.94**, pinning Session Core **0.3.18**,
-PDH **0.4.64** and Context/Memory Kernel **0.1.8**. Open VSX **0.37.139** and
-JetBrains **0.4.157** are public and recommend that CLI; the JetBrains release is
-approved/listed. Public release evidence was read back on 2026-10-09.
+Public npm latest is **chainlesschain@0.166.96**, with Agent SDK **0.2.14**,
+Session Core **0.3.18**, PDH **0.4.64** and Context/Memory Kernel **0.1.8**.
+Open VSX **0.37.140** and JetBrains **0.4.158** are public and recommend that
+CLI. Release commit `da91e730d8` passed CLI CI (71/71), Strict (5/5), IDE
+(18 success / 1 conditional skip) and ARM64 (10/10), then the established
+GitHub Actions OIDC published SDK before CLI and IDEs.
 
-Source **0.166.96** is the next release candidate, paired with VS Code
-**0.37.140** and JetBrains **0.4.158** after exact-commit release gates and
-public CLI availability. It reviews official stable model release data and
-retains upstream bytes and drift/parse-failure evidence without automatic model
-enablement. Agent SDK **0.2.14** will be published first; its changed test tree
-cannot reuse the signed **0.2.13** package. CLI **0.166.95** passed its complete
-CI matrix but stopped at that strict reuse check before CLI publication.
+This release improves concurrent permission writes, official stable upstream
+model review and retained diagnostic evidence. JetBrains refreshes approval
+card layout and host diagnostics. SDK test diagnostics changed its complete
+signed source identity without changing runtime output; SDK 0.2.14 replaces
+reuse of 0.2.13. CLI 0.166.95 stopped at that reuse check and was not published.
 
-Independent Windows native toolchain and Job recovery diagnostics remain
-experimental. Full native review and Windows/macOS durable recovery require
-separate acceptance; publication does not complete formal 36+9 evaluation.
+Windows toolchain and Job cleanup diagnostics remain experimental; full native
+review is NOT_ADMITTED and formal 36+9 evaluation NOT_RUN. Native product
+v5.0.3.140 has its own release identity. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
 
 ### Linux process ownership recovery (public 0.166.91)
 

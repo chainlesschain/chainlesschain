@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-10 CLI / IDE 与 Windows 取证",
+            link: "/release-runtime-update-2026-10-10",
+          },
+          {
             text: "2026-10-08 组织目标与运行时保护",
             link: "/governance-runtime-update-2026-10-08",
           },

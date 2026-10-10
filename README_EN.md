@@ -1,6 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-08)
+## Current source and public release (2026-10-10)
+
+CLI **0.166.96**, Agent SDK **0.2.14**, Open VSX **0.37.140** and JetBrains **0.4.158** are public at release commit `da91e730d8`; both IDEs recommend CLI `0.166.96`. Source was reviewed at `main@2650447476`. Session Core **0.3.18**, Memory Kernel **0.1.8**, PDH **0.4.64** and product **v5.0.3.140** retain their independent versions; the product uses `f733f92cb9`.
+
+This update improves concurrent permission writes, JetBrains approval-card layout and failure diagnostics, official stable model-catalog review, and Windows toolchain/cleanup evidence. SDK 0.2.14 binds changed test diagnostics to a new signed source identity; runtime output is unchanged. CLI 0.166.95 stopped at the SDK source-reuse gate and was never published.
+
+```bash
+npm i -g chainlesschain@0.166.96 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+Upgrade the paired IDE, restart its chat host and run Doctor. Download native clients from [product v5.0.3.140](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140) separately; close clients before backing up SQLite/WAL/SHM. Formal 36+9 evaluation remains NOT_RUN, full native review NOT_ADMITTED and automatic promotion HOLD. Release gates do not close these acceptance items.
+
+See [current design](docs/design/release-runtime-update-2026-10-10.md), [upgrade and troubleshooting](docs-site/docs/chainlesschain/cli-ide-update-2026-10-10.md), [release guide](docs-site/docs/chainlesschain/agent-platform-release.md) and [fresh public observations](docs/research/cli/evidence/documentation-release-status-2026-10-10.json). Dated records below retain their historical scope.
+
+## Public release snapshot (2026-10-08)
 
 Public CLI **0.166.93**, Open VSX **0.37.138** and JetBrains **0.4.156** use release commit `65e8c21d3a`; both IDEs recommend CLI `0.166.93`. Session Core **0.3.18**, Context/Memory Kernel **0.1.8** and PDH **0.4.64** are independently published. Product **v5.0.3.140** is public at `f733f92cb9`. Source was reviewed at `1e5477aebe`.
 
@@ -2613,7 +2629,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.92-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.96-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

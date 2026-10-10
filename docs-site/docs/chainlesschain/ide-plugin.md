@@ -1,14 +1,14 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> 2026-10-08 最新回读：公开 CLI **0.166.93**、Open VSX **0.37.138**、JetBrains **0.4.156**，IDE 推荐 CLI `0.166.93`；Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64**。CLI/IDE 发行提交 `65e8c21d3a`；独立产品 **v5.0.3.140** 来自 `f733f92cb9`，已公开桌面、Android 与 iOS 制品。源码核对至 `1e5477aebe`。组织目标、授权记忆、站内通知、IDE 调查恢复与 RRSI 有界读取已进入本轮对应制品；后续 Windows 冻结工具链及 Node runtime 验证仍是实验，未获生产准入。 详见[发布指南](./agent-platform-release)。
+> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮升级与诊断](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html)。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.138`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.156`。执行 `npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。Open VSX `0.37.138` 推荐 `0.166.93`，JetBrains 公开 `0.4.156` 也推荐 `0.166.93`，两端按制品清单配对，版本与完整门禁见[发布指南](/chainlesschain/agent-platform-release)。
+从 Open VSX 安装 `0.37.140`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”；JetBrains 从 Marketplace 安装公开 `0.4.158`。执行 `npm i -g chainlesschain@0.166.96 --registry https://registry.npmjs.org`，确认 `cc --version` 后重启聊天宿主。两个 IDE 均推荐 CLI `0.166.96`；详见[升级与故障排查](./cli-ide-update-2026-10-10)。
 
 ## 重复调查与证据总结（公开 .93）
 
-公开 CLI 0.166.93 已包含重复 Git/GitHub 和 IDE 证据调查保护。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复已进入 CLI 0.166.93；按配对 IDE 版本升级并重启聊天宿主。
+历史能力（CLI 0.166.93 起，0.166.96 继续包含）：公开 CLI 0.166.93 已包含重复 Git/GitHub 和 IDE 证据调查保护。有效进展重置相关重复状态；持续读相同证据时先给恢复指引，再提供一次禁止工具的总结机会，回答原问题并保留未知项。继续请求工具会以 CC_AGENT_INSPECTION_STALLED 结束，不标为任务成功。此修复已进入 CLI 0.166.93；按配对 IDE 版本升级并重启聊天宿主。
 
 git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，表示不是祖先；源码进展跟踪器保留它，避免误判为工具失败。见[最新设计](/design/governance-runtime-update-2026-10-08)。
 

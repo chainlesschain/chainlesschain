@@ -1,7 +1,7 @@
 ---
-import SourceUpdate from '../components/SourceUpdate.astro';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import releaseStatus from '../data/release-status.json';
+import SourceUpdate from "../components/SourceUpdate.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import releaseStatus from "../data/release-status.json";
 
 const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
@@ -10,6 +10,7 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayZh;
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${VSCODE_VERSION}/file/chainlesschain.chainlesschain-ide-${VSCODE_VERSION}.vsix`;
 ---
+
 <BaseLayout
   title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
   description="ChainlessChain IDE 桥接：VS Code（Open VSX）+ JetBrains（Marketplace）双扩展。耐久任务记录、新会话接力、原生 diff 审批、CLI-owned Sessions、侧边栏 Chat 与 App 预览。"
@@ -19,30 +20,109 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE 集成 · Open VSX {VSCODE_VERSION} 已公开 · JetBrains {JETBRAINS_VERSION} 已公开</div>
+        <div class="chip mb-6 animate-fade-in">
+          IDE 集成 · Open VSX {VSCODE_VERSION} 已公开 · JetBrains{" "}
+          {JETBRAINS_VERSION} 已公开
+        </div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
-          agent 进编辑器：<br/><span class="italic text-ember">看你所看，改你所审</span>。
+          agent 进编辑器：
+          <br />
+          <span class="italic text-ember">看你所看，改你所审</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
-          编辑器扩展内置一个本地 MCP server，在集成终端里跑 <code class="font-mono text-base bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连接 ——
-          编辑器能力变成 agent 工具，agent 的改动经编辑器原生 diff 受你裁决。
+          编辑器扩展内置一个本地 MCP server，在集成终端里跑{" "}
+          <code class="font-mono text-base bg-paper border border-line px-2 py-0.5 rounded">
+            cc agent
+          </code>{" "}
+          即自动连接 —— 编辑器能力变成 agent 工具，agent 的改动经编辑器原生 diff
+          受你裁决。
         </p>
         <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" rel="noopener" target="_blank" class="btn-ember">Open VSX 安装 ↗</a>
-          <a href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge" rel="noopener" target="_blank" class="btn-ghost">JetBrains Marketplace ↗</a>
-          <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
-          <a href="https://docs.chainlesschain.com/chainlesschain/ide-task-worklog.html" rel="noopener" class="btn-ghost">任务记录指南 ↗</a>
-          <a href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html" rel="noopener" class="btn-ghost">Skill 决策模型指南 ↗</a>
+          <a
+            href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide"
+            rel="noopener"
+            target="_blank"
+            class="btn-ember"
+          >
+            Open VSX 安装 ↗
+          </a>
+          <a
+            href="https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge"
+            rel="noopener"
+            target="_blank"
+            class="btn-ghost"
+          >
+            JetBrains Marketplace ↗
+          </a>
+          <a
+            href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html"
+            rel="noopener"
+            class="btn-ghost"
+          >
+            完整文档 ↗
+          </a>
+          <a
+            href="https://docs.chainlesschain.com/chainlesschain/ide-task-worklog.html"
+            rel="noopener"
+            class="btn-ghost"
+          >
+            任务记录指南 ↗
+          </a>
+          <a
+            href="https://docs.chainlesschain.com/chainlesschain/jev-decision-layer.html"
+            rel="noopener"
+            class="btn-ghost"
+          >
+            Skill 决策模型指南 ↗
+          </a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>，其制品清单推荐 CLI <strong class="text-ink">{releaseStatus.openVsxRecommendedCliVersion}</strong>。JetBrains Marketplace <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已批准并公开上架，内置推荐 CLI <strong class="text-ink">{releaseStatus.jetBrainsRecommendedCliVersion}</strong>。npm latest CLI 为 {CLI_VERSION}；微软 VS Code Marketplace 版本仍未发布。
+          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong>{" "}
+          已公开上架 Open VSX，累计下载{" "}
+          <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>，其制品清单推荐
+          CLI{" "}
+          <strong class="text-ink">
+            {releaseStatus.openVsxRecommendedCliVersion}
+          </strong>
+          。JetBrains Marketplace{" "}
+          <strong class="text-ink">{JETBRAINS_VERSION}</strong>{" "}
+          已批准并公开上架，内置推荐 CLI{" "}
+          <strong class="text-ink">
+            {releaseStatus.jetBrainsRecommendedCliVersion}
+          </strong>
+          。npm latest CLI 为 {CLI_VERSION}；微软 VS Code Marketplace
+          版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
-          Open VSX {VSCODE_VERSION} 已包含长回复的选区与滚动保持，以及跨 Webview 重载的图片草稿隔离；恢复图片需手动发送。公开版已包含有界快照、图片解码保护、实际会话能力 Doctor、慢初始化草稿保护及显式协议/UI 采集和 CLI 身份诊断。Open VSX {releaseStatus.sourceVsCodeVersion} 已公开流式诊断范围、选区替换和过期帧修复；JetBrains {releaseStatus.sourceJetBrainsVersion} 也已批准公开，两个 IDE 均推荐 CLI {CLI_VERSION}。<a href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html" class="text-ember underline">查看安装与诊断指南</a>。
+          Open VSX {VSCODE_VERSION} 已包含长回复的选区与滚动保持，以及跨 Webview
+          重载的图片草稿隔离；恢复图片需手动发送。公开版已包含有界快照、图片解码保护、实际会话能力
+          Doctor、慢初始化草稿保护及显式协议/UI 采集和 CLI 身份诊断。Open VSX{" "}
+          {releaseStatus.sourceVsCodeVersion}{" "}
+          已公开流式诊断范围、选区替换和过期帧修复；JetBrains{" "}
+          {releaseStatus.sourceJetBrainsVersion} 也已批准公开，两个 IDE 均推荐
+          CLI {CLI_VERSION}。
+          <a
+            href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html"
+            class="text-ember underline"
+          >
+            查看安装与诊断指南
+          </a>
+          。
         </p>
         <p class="mt-3 text-sm text-muted">
-          配套 CLI 在同一进程/模块实例内，于官方 settings/scoped 权限写入前撤销旧 Shell 许可；恢复规则不恢复旧许可，跨进程即时通知仍待闭合。
-          公开 VS Code {VSCODE_VERSION} 推荐 CLI {releaseStatus.openVsxRecommendedCliVersion}，已继承初始化超时回收和模式选择器。JetBrains 在写入桥接 token 前验证 Windows 单用户 ACL，并保留活跃 writer 临时锁。已公开版本支持已提交会话历史分页、跨重启恢复与有界草稿；Stop 后重新对齐 CLI 权威状态。TypeSafe、Laya 与兼容 System One 的 Skill 决策仅限 CLI 的耐久、单 prompt、headless 入口；IDE 不保存决策模型凭据，也不取得路由或 Skill 执行 authority。
+          配套 CLI 在同一进程/模块实例内，于官方 settings/scoped
+          权限写入前撤销旧 Shell
+          许可；恢复规则不恢复旧许可，跨进程即时通知仍待闭合。 JetBrains{" "}
+          {JETBRAINS_VERSION}{" "}
+          本轮更新审批卡片的高度分配与宿主失败诊断；升级后重启 IDE 并运行
+          Doctor。公开 VS Code {VSCODE_VERSION} 推荐 CLI{" "}
+          {releaseStatus.openVsxRecommendedCliVersion}
+          ，已继承初始化超时回收和模式选择器。JetBrains 在写入桥接 token 前验证
+          Windows 单用户 ACL，并保留活跃 writer
+          临时锁。已公开版本支持已提交会话历史分页、跨重启恢复与有界草稿；Stop
+          后重新对齐 CLI 权威状态。TypeSafe、Laya 与兼容 System One 的 Skill
+          决策仅限 CLI 的耐久、单 prompt、headless 入口；IDE
+          不保存决策模型凭据，也不取得路由或 Skill 执行 authority。
         </p>
       </div>
     </div>
@@ -53,35 +133,151 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
       <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">在编辑器中完成任务。</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          ['接力', '耐久任务记录与独立新会话', `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 配合 CLI ${CLI_VERSION}，将目标、文件证据、失败和下一步保存为权威检查点及有界 WORKLOG.md；接力不复制旧对话或临时权限。`],
-          ['持续执行', '有界读取与循环恢复', `Open VSX ${VSCODE_VERSION} 配合 CLI ${CLI_VERSION}，允许恢复中的已知目标做有界续读；合成暂停不再污染重复读取/相同大输出计数，真实重复与无关远端发现仍失败闭合。`],
-          ['感知', '选区随 prompt 注入', '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。'],
-          ['自修', '诊断自动回喂', 'agent 改完文件，语言服务器的 error/warning 自动附回工具结果——同一循环内看到自己引入的报错并修掉。'],
-          ['审批', '原生 diff 评审', '文件编辑确认升级为编辑器原生并排 diff：右侧可顺手改、Accept 替代执行、hunk 级"Pick hunks…"部分接受、"Request changes…"行内批注回喂 agent 修订；跨多文件改动走 openMultiDiff 整 changeset 一屏批量评审。Reject 永不写盘。'],
-          ['执行', 'Jupyter kernel', 'executeCode 在活跃 notebook 的 kernel 里执行代码并取回输出，变量跨调用保持（VS Code 端）。'],
-          ['对话', '侧边栏 Chat 面板', '不开终端直接对话：流式回复 + 工具轨迹 + Plan 模式卡片 + Approve/Deny 审批卡 + 多会话 tab（各自独立 agent 进程、切换恢复 transcript）+ 会话跨重启续接 + /sessions 切换。'],
-          ['授权', '精确作用域审批', `Open VSX ${VSCODE_VERSION} 的审批卡保留单次批准快速路径，并可明确选择当前回合、当前会话、拒绝或取消。回合/会话 grant 只复用 CLI 请求携带的 exact capability、scope 与 binding，Webview 不能扩权。`],
-          ['预览', 'App 内嵌预览', 'Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → 编辑器内嵌打开（VS Code 内置 Simple Browser / JetBrains JCEF 浏览器，不支持时回退外部浏览器）；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。'],
-          ['终端', '终端上下文共享', 'getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。'],
-          ['质量', '测试 / 覆盖率 / 调试器上下文', 'cc-ide-quality/v1 发送有界质量快照并标记新鲜度；过期结果不会伪装成当前状态，VS Code Notebook 执行携带真实 notebook/cell 上下文。'],
-          ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
-          ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
-          ['消息', '生成事件与无正文投影', `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 使用 Schema 生成的 payload union 并保留未知未来事件；VS Code 继续展示 canonical message/follow-up 与 custody handoff 的有界计数。`],
-          ['平台', '固定能力 App Server pilot', 'VS Code 可显式开启默认关闭的 App Server pilot，只调用固定 Thread/Turn 方法，不提供任意 JSON-RPC 逃生口；审批 UI 未接入时 canonical decline，失败不绕过 CLI 权限与沙箱。'],
-          ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
-          ['自动化', 'Governed Automation Center', `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 展示 CLI-owned flow/Routine projection、scope、preflight 与 history。所有变更经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。`],
-          ['演进', 'Workbench、PM readiness 与签名部署', `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 可通过 CLI 验签、保存和暂停 deployment profile，并只读展示预算/签名 authority、SQLite seal、transition recovery 与 snapshot-store 配置。IDE 不取得 runner、grader、数据库字节、Ledger 或治理私钥；PM readiness 固定不可执行，automatic active promotion 保持 HOLD。`],
-          ['决策', '模型选择留在 CLI', '默认关闭的 TypeSafe、Laya 或兼容 System One 决策仅支持耐久、单 prompt、headless CLI。IDE 不读取或保存决策凭据，不自动打开 decision mode，也不获得 Skill 路由、执行或发布权限。'],
-          ['检索', '分页只读 Skill Library', '按来源与状态筛选 bundled、marketplace、managed 与 workspace Skill，分页展示 canonical digest、索引见证和 verified outcome 排序；浏览命中不会自动安装或晋升。'],
-          ['产物', '受审计的 Artifact 工作台', '预览、打开、复制路径、reveal 与下载先通过 CLI artifacts access 复核 managed bytes 并写 content-free audit；删除使用稳定 deletion id，响应丢失后按同一 id 回读/恢复，不重复执行。'],
-          ['会话', 'CLI-owned Sessions Workbench', `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 读取 CLI 生成的 immutable session/message projection；CLI ${CLI_VERSION} 为大量后台会话提供分页只读索引与权威全扫回退，过期动作继续失败闭合。`],
-          ['交付', '可恢复 delivery 与 rewind', '公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。'],
-          ['上下文', '请求级 Context Center', `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 显示执行位置、workspace authority、会话、工作流与恢复身份，并配合 CLI ${CLI_VERSION} 使用实际主请求窗口和 input/output/cache 用量；子调用不污染主指示，回退估算明确标记。`],
-          ['副作用', 'Side-effect Center', '双端汇总权限活动、作用域 grant 与 revoke 入口；所有变更继续通过 CLI 命令和精确上下文执行，IDE 不绕过权威存储。'],
-          ['内联', '选区旁直接问与改', `Open VSX ${VSCODE_VERSION} 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已公开。`],
-          ['调查', '失败证据跨会话保留', `配套 CLI ${CLI_VERSION} 将 Issue 查询、artifact 下载和日志解析统一纳入调查预算，失败断言、源码位置与测试结论在压缩、重启和任务交接中保留。升级 CLI 后重启聊天宿主；日志下载成功不代表测试通过。`],
-          ['同步', 'CLI 版本与渠道状态', `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI/Strict、npm OIDC 发布与公共回读成功。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均已公开；Microsoft Marketplace 尚未发行。`],
-          ['补全', '受治理自动 ghost-text', 'Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。'],
+          [
+            "接力",
+            "耐久任务记录与独立新会话",
+            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 配合 CLI ${CLI_VERSION}，将目标、文件证据、失败和下一步保存为权威检查点及有界 WORKLOG.md；接力不复制旧对话或临时权限。`,
+          ],
+          [
+            "持续执行",
+            "有界读取与循环恢复",
+            `Open VSX ${VSCODE_VERSION} 配合 CLI ${CLI_VERSION}，允许恢复中的已知目标做有界续读；合成暂停不再污染重复读取/相同大输出计数，真实重复与无关远端发现仍失败闭合。`,
+          ],
+          [
+            "感知",
+            "选区随 prompt 注入",
+            '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。',
+          ],
+          [
+            "自修",
+            "诊断自动回喂",
+            "agent 改完文件，语言服务器的 error/warning 自动附回工具结果——同一循环内看到自己引入的报错并修掉。",
+          ],
+          [
+            "审批",
+            "原生 diff 评审",
+            '文件编辑确认升级为编辑器原生并排 diff：右侧可顺手改、Accept 替代执行、hunk 级"Pick hunks…"部分接受、"Request changes…"行内批注回喂 agent 修订；跨多文件改动走 openMultiDiff 整 changeset 一屏批量评审。Reject 永不写盘。',
+          ],
+          [
+            "执行",
+            "Jupyter kernel",
+            "executeCode 在活跃 notebook 的 kernel 里执行代码并取回输出，变量跨调用保持（VS Code 端）。",
+          ],
+          [
+            "对话",
+            "侧边栏 Chat 面板",
+            "不开终端直接对话：流式回复 + 工具轨迹 + Plan 模式卡片 + Approve/Deny 审批卡 + 多会话 tab（各自独立 agent 进程、切换恢复 transcript）+ 会话跨重启续接 + /sessions 切换。",
+          ],
+          [
+            "授权",
+            "精确作用域审批",
+            `Open VSX ${VSCODE_VERSION} 的审批卡保留单次批准快速路径，并可明确选择当前回合、当前会话、拒绝或取消。回合/会话 grant 只复用 CLI 请求携带的 exact capability、scope 与 binding，Webview 不能扩权。`,
+          ],
+          [
+            "预览",
+            "App 内嵌预览",
+            "Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → 编辑器内嵌打开（VS Code 内置 Simple Browser / JetBrains JCEF 浏览器，不支持时回退外部浏览器）；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。",
+          ],
+          [
+            "终端",
+            "终端上下文共享",
+            "getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。",
+          ],
+          [
+            "质量",
+            "测试 / 覆盖率 / 调试器上下文",
+            "cc-ide-quality/v1 发送有界质量快照并标记新鲜度；过期结果不会伪装成当前状态，VS Code Notebook 执行携带真实 notebook/cell 上下文。",
+          ],
+          [
+            "插件",
+            "事务化升级 + 供应链治理",
+            "按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。",
+          ],
+          [
+            "治理",
+            "Distributed Agent Teams",
+            "IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。",
+          ],
+          [
+            "消息",
+            "生成事件与无正文投影",
+            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 使用 Schema 生成的 payload union 并保留未知未来事件；VS Code 继续展示 canonical message/follow-up 与 custody handoff 的有界计数。`,
+          ],
+          [
+            "平台",
+            "固定能力 App Server pilot",
+            "VS Code 可显式开启默认关闭的 App Server pilot，只调用固定 Thread/Turn 方法，不提供任意 JSON-RPC 逃生口；审批 UI 未接入时 canonical decline，失败不绕过 CLI 权限与沙箱。",
+          ],
+          [
+            "归因",
+            "耗时与重试可见",
+            "用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。",
+          ],
+          [
+            "自动化",
+            "Governed Automation Center",
+            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 展示 CLI-owned flow/Routine projection、scope、preflight 与 history。所有变更经 exact revision 与 CLI argv 执行，IDE 不直接写权威存储。`,
+          ],
+          [
+            "演进",
+            "Workbench、PM readiness 与签名部署",
+            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 可通过 CLI 验签、保存和暂停 deployment profile，并只读展示预算/签名 authority、SQLite seal、transition recovery 与 snapshot-store 配置。IDE 不取得 runner、grader、数据库字节、Ledger 或治理私钥；PM readiness 固定不可执行，automatic active promotion 保持 HOLD。`,
+          ],
+          [
+            "决策",
+            "模型选择留在 CLI",
+            "默认关闭的 TypeSafe、Laya 或兼容 System One 决策仅支持耐久、单 prompt、headless CLI。IDE 不读取或保存决策凭据，不自动打开 decision mode，也不获得 Skill 路由、执行或发布权限。",
+          ],
+          [
+            "检索",
+            "分页只读 Skill Library",
+            "按来源与状态筛选 bundled、marketplace、managed 与 workspace Skill，分页展示 canonical digest、索引见证和 verified outcome 排序；浏览命中不会自动安装或晋升。",
+          ],
+          [
+            "产物",
+            "受审计的 Artifact 工作台",
+            "预览、打开、复制路径、reveal 与下载先通过 CLI artifacts access 复核 managed bytes 并写 content-free audit；删除使用稳定 deletion id，响应丢失后按同一 id 回读/恢复，不重复执行。",
+          ],
+          [
+            "会话",
+            "CLI-owned Sessions Workbench",
+            `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 读取 CLI 生成的 immutable session/message projection；CLI ${CLI_VERSION} 为大量后台会话提供分页只读索引与权威全扫回退，过期动作继续失败闭合。`,
+          ],
+          [
+            "交付",
+            "可恢复 delivery 与 rewind",
+            "公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。",
+          ],
+          [
+            "上下文",
+            "请求级 Context Center",
+            `公开版 ${VSCODE_VERSION} / ${JETBRAINS_VERSION} 显示执行位置、workspace authority、会话、工作流与恢复身份，并配合 CLI ${CLI_VERSION} 使用实际主请求窗口和 input/output/cache 用量；子调用不污染主指示，回退估算明确标记。`,
+          ],
+          [
+            "副作用",
+            "Side-effect Center",
+            "双端汇总权限活动、作用域 grant 与 revoke 入口；所有变更继续通过 CLI 命令和精确上下文执行，IDE 不绕过权威存储。",
+          ],
+          [
+            "内联",
+            "选区旁直接问与改",
+            `Open VSX ${VSCODE_VERSION} 提供独立内联会话、流式响应、代码块操作和交互恢复，并延续 stable/minimum × Linux/Windows/macOS ARM64 多窗口隔离门；Explain / Refactor / Fix / Docs / Tests 已公开。`,
+          ],
+          [
+            "调查",
+            "失败证据跨会话保留",
+            `配套 CLI ${CLI_VERSION} 将 Issue 查询、artifact 下载和日志解析统一纳入调查预算，失败断言、源码位置与测试结论在压缩、重启和任务交接中保留。升级 CLI 后重启聊天宿主；日志下载成功不代表测试通过。`,
+          ],
+          [
+            "同步",
+            "CLI 版本与渠道状态",
+            `npm latest 为 chainlesschain@${CLI_VERSION}，提交 ${CLI_RELEASE_COMMIT} 的 CLI CI/Strict、npm OIDC 发布与公共回读成功。Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 均已公开；Microsoft Marketplace 尚未发行。`,
+          ],
+          [
+            "补全",
+            "受治理自动 ghost-text",
+            "Alt+\\ 手动补全保持不变；自动路径默认关闭，启用后采用 650ms 可取消 debounce、exact-context 去重/缓存、独立小时请求与上下文字数预算、有界输出和质量回退。超过 5 秒或质量不足时静默丢弃。",
+          ],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
             <div class="font-mono text-xs text-ember mb-3">{tag}</div>
@@ -99,21 +295,40 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
       <div class="max-w-3xl mb-10">
         <div class="chip mb-6">集成终端里的 cc agent</div>
         <h2 class="text-4xl md:text-5xl leading-tight">
-          扩展只是桥，<br/><span class="italic text-ember">真正干活的是 cc agent</span>。
+          扩展只是桥，
+          <br />
+          <span class="italic text-ember">真正干活的是 cc agent</span>。
         </h2>
         <p class="mt-6 text-lg text-muted">
-          在编辑器集成终端里跑 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连上扩展的 MCP server——上述能力就是这么发生的。
-          同一个 agent 还带一整套伴生命令：权限网关、检查点回滚、花费统计、循环自动化、结构化输出，在 IDE 里和在裸终端里完全一致。
+          在编辑器集成终端里跑{" "}
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">
+            cc agent
+          </code>{" "}
+          即自动连上扩展的 MCP server——上述能力就是这么发生的。 同一个 agent
+          还带一整套伴生命令：权限网关、检查点回滚、花费统计、循环自动化、结构化输出，在
+          IDE 里和在裸终端里完全一致。
         </p>
       </div>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          ['cc agent', '集成终端内自动连接编辑器 —— 选区注入、诊断回喂、原生 diff 审批全部生效'],
-          ['cc agent -p "…"', '无头单轮执行，进 CI / 任务脚本（text / json / stream-json 输出）'],
-          ['cc ide doctor', '诊断桥接为何连上 / 连不上（无锁 / stale / workspace 不匹配）'],
-          ['cc permissions', '.claude/settings.json 权限规则 allow / ask / deny + 凭据读取保护'],
-          ['cc checkpoint', 'git 仓内默认自动快照，改坏一键 restore 回滚'],
-          ['cc cost / cc loop / cc goal', '花费统计、定时循环、跨会话持久目标'],
+          [
+            "cc agent",
+            "集成终端内自动连接编辑器 —— 选区注入、诊断回喂、原生 diff 审批全部生效",
+          ],
+          [
+            'cc agent -p "…"',
+            "无头单轮执行，进 CI / 任务脚本（text / json / stream-json 输出）",
+          ],
+          [
+            "cc ide doctor",
+            "诊断桥接为何连上 / 连不上（无锁 / stale / workspace 不匹配）",
+          ],
+          [
+            "cc permissions",
+            ".claude/settings.json 权限规则 allow / ask / deny + 凭据读取保护",
+          ],
+          ["cc checkpoint", "git 仓内默认自动快照，改坏一键 restore 回滚"],
+          ["cc cost / cc loop / cc goal", "花费统计、定时循环、跨会话持久目标"],
         ].map(([cmd, desc]) => (
           <div class="p-6 rounded-xl bg-paper border border-line">
             <code class="font-mono text-sm text-ember">{cmd}</code>
@@ -122,7 +337,13 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
         ))}
       </div>
       <div class="mt-10">
-        <a href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html" rel="noopener" class="btn-ghost">Agent 模式命令大全 ↗</a>
+        <a
+          href="https://docs.chainlesschain.com/chainlesschain/cli-agent-mode.html"
+          rel="noopener"
+          class="btn-ghost"
+        >
+          Agent 模式命令大全 ↗
+        </a>
       </div>
     </div>
   </section>
@@ -132,11 +353,39 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
       <div class="max-w-3xl">
         <h2 class="text-3xl md:text-4xl mb-6 font-display">两步装好</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
-          <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain@{CLI_VERSION}</code>（当前 npm latest <code class="font-mono text-sm">{CLI_VERSION}</code>，桥接最低 <code class="font-mono text-sm">0.162.47</code>；<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
-          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">{VSCODE_VERSION}</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（当前公开 <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>，2024.2+）。官方版 VS Code 不查询 Open VSX，请不要点 Open VSX 的通用 Install 链接；直接下载 <a class="underline" href={VSCODE_VSIX_URL}>v{VSCODE_VERSION} VSIX</a>，再运行 <strong class="text-ink">Extensions: Install from VSIX...</strong>。</li>
+          <li>
+            <strong class="text-ink">1. 装 CLI：</strong>
+            <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">
+              npm i -g chainlesschain@{CLI_VERSION}
+            </code>
+            （当前 npm latest{" "}
+            <code class="font-mono text-sm">{CLI_VERSION}</code>，桥接最低{" "}
+            <code class="font-mono text-sm">0.162.47</code>；
+            <code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）
+          </li>
+          <li>
+            <strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor
+            等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>
+            （Open VSX 当前{" "}
+            <code class="font-mono text-sm">{VSCODE_VERSION}</code>）；IDEA /
+            PyCharm / WebStorm 在 Settings → Plugins → Marketplace
+            搜同名（当前公开{" "}
+            <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>
+            ，2024.2+）。官方版 VS Code 不查询 Open VSX，请不要点 Open VSX
+            的通用 Install 链接；直接下载{" "}
+            <a class="underline" href={VSCODE_VSIX_URL}>
+              v{VSCODE_VERSION} VSIX
+            </a>
+            ，再运行{" "}
+            <strong class="text-ink">Extensions: Install from VSIX...</strong>。
+          </li>
         </ol>
         <p class="mt-6 text-sm text-muted">
-          安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件 0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> 随时关闭对应行为。
+          安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件
+          0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> /{" "}
+          <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> /{" "}
+          <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code>{" "}
+          随时关闭对应行为。
         </p>
       </div>
     </div>
@@ -145,8 +394,17 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
   <section class="py-24 text-center">
     <div class="container-wide">
       <h2 class="text-4xl md:text-5xl mb-6">协议、排错、架构细节</h2>
-      <p class="text-muted mb-8">发现协议（lockfile + env 直连）、Streamable HTTP、双编辑器零改动设计 —— 都在文档站。</p>
-      <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ember">阅读 IDE 桥接文档 ↗</a>
+      <p class="text-muted mb-8">
+        发现协议（lockfile + env 直连）、Streamable HTTP、双编辑器零改动设计 ——
+        都在文档站。
+      </p>
+      <a
+        href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html"
+        rel="noopener"
+        class="btn-ember"
+      >
+        阅读 IDE 桥接文档 ↗
+      </a>
     </div>
   </section>
   <SourceUpdate lang="zh" />

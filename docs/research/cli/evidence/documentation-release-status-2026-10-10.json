@@ -1,0 +1,267 @@
+{
+  "schema": "chainlesschain.public-release-documentation-evidence/v1",
+  "assembledAt": "2026-10-10T05:48:25.066Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "documentationHead": "2650447476d6358254368b73ddc52b5319982608",
+  "npm": [
+    {
+      "name": "chainlesschain",
+      "latest": "0.166.96",
+      "metadataUrl": "https://registry.npmjs.org/chainlesschain/latest",
+      "observedAt": "2026-10-10T05:44:31.180Z",
+      "registryGitHead": null,
+      "dist": {
+        "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.96.tgz",
+        "integrity": "sha512-r+k658+9S5gfQQNzi41/JPGMKeYfS9mzVACiDVULTobi/CiqycIRCjDORlbHjXpDPKbOXkFZSHlrRsRQ5Q6U2A==",
+        "shasum": "30e5afcab0de509558587c05b9abaa72a690d6e1",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.96",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      },
+      "exactChildDependencies": {
+        "@chainlesschain/core-db": "0.1.5",
+        "@chainlesschain/core-env": "0.1.2",
+        "@chainlesschain/core-mtc": "0.2.3",
+        "@chainlesschain/core-infra": "0.1.1",
+        "@chainlesschain/core-config": "0.1.2",
+        "@chainlesschain/session-core": "0.3.18",
+        "@chainlesschain/core-multisig": "0.1.4",
+        "@chainlesschain/shared-logger": "0.1.1",
+        "@chainlesschain/personal-data-hub": "0.4.64",
+        "@chainlesschain/context-memory-kernel": "0.1.8"
+      },
+      "archiveVerification": {
+        "performedThisObservation": false,
+        "source": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/final-release/public/npm/cli-public-readback.json",
+        "observedAt": "2026-10-10T03:34:38.544Z",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "sha256": "3af8082b95c8ebfa6766dac6c3b7395c0996817c9a697b906795dd18ec1776d6",
+        "integrity": "sha512-r+k658+9S5gfQQNzi41/JPGMKeYfS9mzVACiDVULTobi/CiqycIRCjDORlbHjXpDPKbOXkFZSHlrRsRQ5Q6U2A==",
+        "metadataIntegrityMatchesHistoricalReceipt": true,
+        "note": "This observation read public latest metadata only. Archive bytes, SRI and provenance verification rely on the retained final-release receipt; no new tarball download or provenance verification was performed."
+      }
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "latest": "0.2.14",
+      "metadataUrl": "https://registry.npmjs.org/@chainlesschain/agent-sdk/latest",
+      "observedAt": "2026-10-10T05:44:31.864Z",
+      "registryGitHead": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "dist": {
+        "tarball": "https://registry.npmjs.org/@chainlesschain/agent-sdk/-/agent-sdk-0.2.14.tgz",
+        "integrity": "sha512-c+GhY0edugTPSF43cdQw7bNX3zQVBGEN4mQ4otw4wahD2Tgresll74ograJptzreP1hp3bwlfQrbjCT7hB7G4w==",
+        "shasum": "67511679ef77846a0e58e7df05b7d6250477d04e",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/@chainlesschain%2fagent-sdk@0.2.14",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      },
+      "exactChildDependencies": {},
+      "archiveVerification": {
+        "performedThisObservation": false,
+        "source": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/final-release/public/npm/agent-sdk-public-readback.json",
+        "observedAt": "2026-10-10T03:34:52.542Z",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "sha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537",
+        "integrity": "sha512-c+GhY0edugTPSF43cdQw7bNX3zQVBGEN4mQ4otw4wahD2Tgresll74ograJptzreP1hp3bwlfQrbjCT7hB7G4w==",
+        "metadataIntegrityMatchesHistoricalReceipt": true,
+        "note": "This observation read public latest metadata only. Archive bytes, SRI and provenance verification rely on the retained final-release receipt; no new tarball download or provenance verification was performed."
+      }
+    }
+  ],
+  "openVsx": {
+    "version": "0.37.140",
+    "status": "ready",
+    "metadataUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+    "metadataObservedAt": "2026-10-10T05:44:30.495Z",
+    "publicPage": "https://open-vsx.org/extension/chainlesschain/chainlesschain-ide",
+    "downloadUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.140/file/chainlesschain.chainlesschain-ide-0.37.140.vsix",
+    "pairing": {
+      "recommendedCliVersion": "0.166.96",
+      "manifestVersion": "0.37.140",
+      "verifiedThisObservation": true,
+      "source": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.140/file/package.json",
+      "observedAt": "2026-10-10T05:44:55.005Z"
+    },
+    "archiveVerification": {
+      "performedThisObservation": false,
+      "source": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/final-release/public/vscode/open-vsx-public-readback.json",
+      "observedAt": "2026-10-10T03:57:58.363Z",
+      "registryArchiveSha256": "f5a5ba7e4b24ebcbaf0add1e9e1057ac4746ac50a806abf80d6d9453cffb4d05",
+      "tagArchiveSha256": "f5a5ba7e4b24ebcbaf0add1e9e1057ac4746ac50a806abf80d6d9453cffb4d05",
+      "contentSha256": "b871da9bb36f396060114a9feff7e75af56b3576e8c6d92fe20ccb7aee390c4c",
+      "note": "Public package.json pairing was read again; VSIX archive content verification is retained historical evidence."
+    }
+  },
+  "jetbrains": {
+    "version": "0.4.158",
+    "status": "ready",
+    "metadataUrl": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "metadataObservedAt": "2026-10-10T05:44:29.458Z",
+    "updateId": 1190815,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "publicPage": "https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge/versions/stable/1190815",
+    "pairing": {
+      "recommendedCliVersion": "0.166.96",
+      "source": "public JAR com/chainlesschain/ide/CliVersionCheck.class constant pool, matched byte-for-byte to exact-tag JAR",
+      "verifiedThisObservation": true
+    },
+    "archiveVerification": {
+      "performedThisObservation": true,
+      "observedAt": "2026-10-10T05:46:02.298Z",
+      "downloadUrl": "https://plugins.jetbrains.com/files/32208/1190815/chainlesschain-ide-bridge-0.4.158.zip",
+      "publicArchiveSha256": "60a2b0432a6995c82a6e9cd6970b410095b61cb2958026d536809165fa831a03",
+      "tagArchiveSha256": "5f0da7e8d5c29d0746338cc0a04adb95d9105c9ecea86f5dab2c3fc401b84aeb",
+      "archiveContainerBytesEqual": false,
+      "uncompressedEntries": 4,
+      "allEntryNamesAndBytesEqual": true,
+      "changedEntries": [],
+      "tagArtifactId": 11658539265,
+      "tagWorkflowId": 38021102825,
+      "notes": "The ZIP container bytes differ; all four uncompressed entries are byte-identical. Do not claim equality of the whole ZIP digests."
+    },
+    "historicalPending": {
+      "observedAt": "2026-10-10T04:08:47.086Z",
+      "source": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/final-release/public/jetbrains/jetbrains-marketplace-readback.json",
+      "note": "Historical pending receipt is retained unchanged; the current public listing is approved and ready."
+    }
+  },
+  "github": {
+    "observedAt": "2026-10-10T05:46:25.170Z",
+    "runs": [
+      {
+        "id": 38012166593,
+        "name": "CLI CI",
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38012166593",
+        "counts": {
+          "success": 71
+        },
+        "countsSource": "Online jobs API counts rechecked this observation"
+      },
+      {
+        "id": 38012166296,
+        "name": "CLI Strict Sandbox",
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38012166296",
+        "counts": {
+          "success": 5
+        },
+        "countsSource": "Online jobs API counts rechecked this observation"
+      },
+      {
+        "id": 38012166401,
+        "name": "IDE Extensions",
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38012166401",
+        "counts": {
+          "success": 18,
+          "skipped": 1
+        },
+        "countsSource": "Online jobs API counts rechecked this observation"
+      },
+      {
+        "id": 38012166408,
+        "name": "IDE ARM64 Host Validation",
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38012166408",
+        "counts": {
+          "success": 10
+        },
+        "countsSource": "Online jobs API counts rechecked this observation"
+      },
+      {
+        "id": 38019727506,
+        "name": "Publish CLI release to npm",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506",
+        "counts": {
+          "success": 5,
+          "skipped": 2
+        },
+        "countsSource": "Retained final-release manifest counts; online run status and SHA rechecked"
+      },
+      {
+        "id": 38021103046,
+        "name": "IDE Extensions",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38021103046",
+        "counts": {
+          "success": 11,
+          "skipped": 3
+        },
+        "countsSource": "Retained final-release manifest counts; online run status and SHA rechecked"
+      },
+      {
+        "id": 38021102825,
+        "name": "IDE Extensions",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825",
+        "counts": {
+          "success": 13,
+          "skipped": 6
+        },
+        "countsSource": "Retained final-release manifest counts; online run status and SHA rechecked"
+      }
+    ],
+    "exactReleaseGateReceipt": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/final-release/public/npm/cli-release-gate-da91e730d802b7c9dcdc075b222ecc257021e552/cli-release-gate.json",
+    "note": "Run head_sha is not by itself checkout-source proof for a pull_request synthetic merge ref. Exact release binding additionally relies on the retained release-gate and package provenance evidence."
+  },
+  "acceptance": {
+    "formal36Tasks9FirstRuns": "NOT_RUN",
+    "formalBudget99AndObservations": "NOT_RUN",
+    "nativeFullReview": "NOT_ADMITTED",
+    "frozenWindows": {
+      "total": 211,
+      "passed": 194,
+      "failed": 16,
+      "skipped": 1
+    },
+    "mutations": {
+      "detected": 6,
+      "survived": 4,
+      "notRun": 4
+    },
+    "open": [
+      "Windows/macOS durable authority",
+      "protected journal",
+      "service self-recovery/WFP",
+      "official billing",
+      "independent human/assistive technology",
+      "8h/24h/SLO"
+    ]
+  },
+  "scope": {
+    "productTestsRun": false,
+    "paidProviderCallsMade": false,
+    "trackedFilesModified": false
+  }
+}

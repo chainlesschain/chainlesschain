@@ -1,8 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> **更新 2026-10-07 | 公开 Open VSX `0.37.136` / JetBrains `0.4.154`**
+> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 见[升级指南](./cli-ide-update-2026-10-10)。
+
+> **历史更新 2026-10-07 | 当时公开 Open VSX `0.37.136` / JetBrains `0.4.154`**
 >
-> 2026-10-07 当前公开 CLI **0.166.91**（发行提交 `23afea300b`），Open VSX **0.37.136**、JetBrains **0.4.154**（IDE 发行提交 `5b78b8d828`），均推荐 CLI 0.166.91。Session Core **0.3.16**、PDH **0.4.64** 先行 OIDC 发布并下载核验。新增桌面目标/RRSI 按 `36ca503291` 主线源码范围理解，不在公开 CLI/IDE 或 v5.0.3.138 安装包内；详见[发布指南](./agent-platform-release)。
+> 2026-10-07 历史公开 CLI **0.166.91**（发行提交 `23afea300b`），Open VSX **0.37.136**、JetBrains **0.4.154**（IDE 发行提交 `5b78b8d828`），均推荐 CLI 0.166.91。Session Core **0.3.16**、PDH **0.4.64** 先行 OIDC 发布并下载核验。新增桌面目标/RRSI 按 `36ca503291` 主线源码范围理解，不在公开 CLI/IDE 或 v5.0.3.138 安装包内；详见[发布指南](./agent-platform-release)。
 >
 > 公开版已包含图片解码预算、有界快照、实际会话能力诊断与慢初始化草稿保护。显式协议/UI 采集与 JetBrains CLI 身份诊断已随配对公开版发行；Open VSX `0.37.135` 已公开流式诊断修复，JetBrains `0.4.153` 也已批准公开，标签发布成功。CLI/可信宿主持有执行、handoff、Skill 与 knowledge merge 权限；显式 Linux 持久权限宿主需管理员配置，跨进程/Worker 100 ms 轮询不构成即时停止。发布证据见[升级指南](./agent-platform-release)。
 
