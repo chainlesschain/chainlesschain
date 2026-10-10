@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   existsSync,
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -13,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import {
   AGGREGATE_SCHEMA,
   RESULT_SCHEMA,
+  collectSchedulerSoakOccurrenceDiagnostics,
+  createSchedulerSoakFailureRecorder,
   createSchedulerSoakWorkerExitError,
   evaluateSchedulerTemporalVectors,
   resolveSchedulerSoakProfile,
@@ -292,6 +295,153 @@ describe("scheduler kernel soak coordinator", () => {
     expect(error.message).toContain("parseError=trailing invalid JSON");
     expect(error.message).not.toContain("prefix-");
     expect(error.message.length).toBeLessThan(4_000);
+  });
+
+  it("retains recent closed-worker failures without accumulating a formal soak's workers", () => {
+    const recorder = createSchedulerSoakFailureRecorder();
+    const worker = {
+      workerId: "replacement",
+      owner: "replacement-owner",
+      jobKind: "scheduler.soak.crash",
+      pid: 1234,
+      child: { exitCode: 1, signalCode: null },
+      failure: Object.assign(new Error("lost lease"), {
+        code: "SCHEDULER_LEASE_LOST",
+      }),
+      stderr: "诊断".repeat(20000),
+      events: Array.from({ length: 50 }, (_, sequence) => ({
+        type: "checkpoint",
+        sequence,
+        occurrence: { id: "occ-target", attempt: 2, fence: 2 },
+      })),
+    };
+    recorder.record(worker, { code: 1, signal: null, error: null });
+    worker.events.at(-1).occurrence.fence = 99;
+    const first = recorder.snapshot();
+    expect(first.workers[0]).toMatchObject({
+      workerId: "replacement",
+      exitCode: 1,
+      error: { code: "SCHEDULER_LEASE_LOST" },
+    });
+    expect(first.workers[0].events).toHaveLength(40);
+    expect(first.workers[0].events.at(-1).occurrence.fence).toBe(2);
+    first.workers[0].events.at(-1).occurrence.fence = 77;
+    expect(recorder.snapshot().workers[0].events.at(-1).occurrence.fence).toBe(
+      2,
+    );
+    expect(Buffer.byteLength(first.workers[0].stderr)).toBeLessThanOrEqual(
+      64 * 1024,
+    );
+    expect(first.workers[0].stderr).not.toContain("\ufffd");
+    for (let index = 0; index < 30; index += 1) {
+      recorder.record(
+        {
+          ...worker,
+          workerId: `retired-${index}`,
+          pid: 2000 + index,
+          events: [],
+        },
+        { code: 0, signal: null, error: null },
+      );
+    }
+    const bounded = recorder.snapshot([worker]);
+    expect(bounded).toMatchObject({
+      retiredCount: 31,
+      retainedRetiredCount: 24,
+      omittedRetiredCount: 7,
+    });
+    expect(bounded.workers).toHaveLength(25);
+    expect(
+      bounded.workers.find((item) => item.workerId === "retired-29").error,
+    ).toBeNull();
+  });
+
+  it("captures replacement lease history and preserves an individual query failure", () => {
+    const store = {
+      getOccurrence(id) {
+        if (id === "occ-broken")
+          throw Object.assign(new Error("database is locked"), {
+            code: "SQLITE_BUSY",
+          });
+        return { id, attempt: 2, fence: 2, leaseExpiresAt: 123 };
+      },
+      history: ({ occurrenceId }) => [
+        { type: "occurrence_renewed", occurrenceId, occurredAt: 122 },
+      ],
+    };
+    const records = collectSchedulerSoakOccurrenceDiagnostics(store, [
+      {
+        events: [
+          null,
+          { occurrence: { id: "occ-broken" } },
+          { occurrence: { id: "occ-replacement" } },
+          {
+            type: "fatal",
+            execution: { occurrence: { id: "occ-replacement" } },
+          },
+        ],
+      },
+    ]);
+    expect(records).toHaveLength(2);
+    expect(records[0]).toMatchObject({
+      occurrenceId: "occ-broken",
+      error: { code: "SQLITE_BUSY" },
+      occurrenceError: { code: "SQLITE_BUSY" },
+      history: [{ type: "occurrence_renewed", occurredAt: 122 }],
+    });
+    expect(records[1]).toMatchObject({
+      occurrenceId: "occ-replacement",
+      occurrence: { attempt: 2, fence: 2 },
+      history: [{ type: "occurrence_renewed", occurredAt: 122 }],
+    });
+  });
+
+  it("retains database evidence when the effect cannot be read", () => {
+    withEvidenceDirectory((directory) => {
+      mkdirSync(join(directory, "occ-target.json"));
+      const records = collectSchedulerSoakOccurrenceDiagnostics(
+        {
+          getOccurrence: (id) => ({ id, fence: 2 }),
+          history: () => [{ type: "occurrence_claimed", ownerId: "owner" }],
+        },
+        [{ events: [{ occurrence: { id: "occ-target" } }] }],
+        directory,
+      );
+      expect(records[0]).toMatchObject({
+        occurrence: { id: "occ-target", fence: 2 },
+        history: [{ type: "occurrence_claimed", ownerId: "owner" }],
+        effect: { exists: true, readError: { code: "EISDIR" } },
+      });
+      expect(records[0].error).toBeUndefined();
+    });
+  });
+
+  it("retains occurrence and effect evidence when history cannot be queried", () => {
+    withEvidenceDirectory((directory) => {
+      writeFileSync(join(directory, "occ-target.json"), "effect");
+      const records = collectSchedulerSoakOccurrenceDiagnostics(
+        {
+          getOccurrence: (id) => ({ id, fence: 2 }),
+          history: () => {
+            throw Object.assign(new Error("history unavailable"), {
+              code: "SQLITE_BUSY",
+            });
+          },
+        },
+        [{ events: [{ occurrence: { id: "occ-target" } }] }],
+        directory,
+      );
+      expect(records[0]).toMatchObject({
+        occurrence: { id: "occ-target", fence: 2 },
+        history: null,
+        historyError: { code: "SQLITE_BUSY" },
+        effect: {
+          exists: true,
+          bytes: 6,
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        },
+      });
+    });
   });
 
   it("publishes stable result and aggregate evidence schemas", () => {

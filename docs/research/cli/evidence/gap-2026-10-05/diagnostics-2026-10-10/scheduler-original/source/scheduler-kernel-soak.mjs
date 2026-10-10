@@ -32,9 +32,6 @@ const CAMPAIGN_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/u;
 const RUN_ID_PATTERN = /^[a-zA-Z0-9._:-]{1,128}$/u;
 const MAX_WORKER_EVENTS = 25_000;
 const MAX_WORKER_STDERR_BYTES = 256 * 1024;
-const MAX_RETIRED_WORKER_DIAGNOSTICS = 24;
-const MAX_DIAGNOSTIC_EVENTS = 40;
-const MAX_DIAGNOSTIC_STDERR_BYTES = 64 * 1024;
 const REQUIRED_INVARIANT_NAMES = Object.freeze([
   "twoWorkerContention",
   "beforeExecuteHigherFence",
@@ -916,139 +913,7 @@ async function withTimeout(promise, timeoutMs, label) {
   }
 }
 
-function diagnosticWorkerSnapshot(worker, result = null) {
-  const failed = result
-    ? result.code !== 0 || result.signal !== null || Boolean(result.error)
-    : Boolean(worker.failure);
-  let stderrBytes = Buffer.from(worker.stderr || "", "utf8");
-  if (stderrBytes.length > MAX_DIAGNOSTIC_STDERR_BYTES) {
-    stderrBytes = stderrBytes.subarray(-MAX_DIAGNOSTIC_STDERR_BYTES);
-    while (stderrBytes.length && (stderrBytes[0] & 0xc0) === 0x80) {
-      stderrBytes = stderrBytes.subarray(1);
-    }
-  }
-  return {
-    workerId: worker.workerId,
-    owner: worker.owner,
-    jobKind: worker.jobKind,
-    pid: worker.pid,
-    exitCode: result?.code ?? worker.child.exitCode,
-    signal: result?.signal ?? worker.child.signalCode,
-    error: failed && worker.failure ? safeError(worker.failure) : null,
-    stderr: stderrBytes.toString("utf8"),
-    events: JSON.parse(
-      JSON.stringify(worker.events.slice(-MAX_DIAGNOSTIC_EVENTS)),
-    ),
-  };
-}
-
-// Keep retired checkpoint workers separately from the live-process cleanup set.
-// A failing replacement is usually already closed when the coordinator catches
-// its exit, and retaining every worker would grow with a formal soak's rounds.
-export function createSchedulerSoakFailureRecorder() {
-  const retired = [];
-  const recordingErrors = [];
-  let retiredCount = 0;
-  let recordingErrorCount = 0;
-  return {
-    recordError(worker, error) {
-      recordingErrorCount += 1;
-      recordingErrors.push({
-        workerId: worker.workerId,
-        pid: worker.pid,
-        error: safeError(error),
-      });
-      if (recordingErrors.length > MAX_RETIRED_WORKER_DIAGNOSTICS) {
-        recordingErrors.shift();
-      }
-    },
-    record(worker, result) {
-      retiredCount += 1;
-      retired.push(diagnosticWorkerSnapshot(worker, result));
-      if (retired.length > MAX_RETIRED_WORKER_DIAGNOSTICS) retired.shift();
-    },
-    snapshot(workers = []) {
-      const seen = new Map();
-      for (const worker of retired) {
-        seen.set(`${worker.workerId}:${worker.pid}`, worker);
-      }
-      for (const worker of workers) {
-        const key = `${worker.workerId}:${worker.pid}`;
-        if (!seen.has(key)) seen.set(key, diagnosticWorkerSnapshot(worker));
-      }
-      return {
-        workers: JSON.parse(JSON.stringify([...seen.values()])),
-        retiredCount,
-        retainedRetiredCount: retired.length,
-        omittedRetiredCount: retiredCount - retired.length,
-        recordingErrors: JSON.parse(JSON.stringify(recordingErrors)),
-        recordingErrorCount,
-        omittedRecordingErrorCount:
-          recordingErrorCount - recordingErrors.length,
-      };
-    },
-  };
-}
-
-export function collectSchedulerSoakOccurrenceDiagnostics(
-  store,
-  workers,
-  effectsDir,
-) {
-  const ids = new Set();
-  for (const worker of workers) {
-    for (const event of worker.events) {
-      const id = event?.occurrence?.id ?? event?.execution?.occurrence?.id;
-      if (typeof id === "string" && id.length <= 256) ids.add(id);
-    }
-  }
-  return [...ids].slice(-100).map((id) => {
-    const record = {
-      occurrenceId: id,
-      occurrence: null,
-      history: null,
-      effect: null,
-    };
-    if (effectsDir) {
-      record.effect = {};
-      try {
-        const directory = path.resolve(effectsDir);
-        const file = path.resolve(directory, `${id}.json`);
-        if (path.dirname(file) !== directory) {
-          throw new Error(
-            "diagnostic effect path is outside the effect directory",
-          );
-        }
-        const exists = fs.existsSync(file);
-        record.effect.exists = exists;
-        if (exists) {
-          const bytes = fs.readFileSync(file);
-          record.effect.bytes = bytes.length;
-          record.effect.sha256 = createHash("sha256")
-            .update(bytes)
-            .digest("hex");
-        }
-      } catch (error) {
-        record.effect.readError = safeError(error);
-      }
-    }
-    try {
-      record.occurrence = store.getOccurrence(id);
-    } catch (error) {
-      record.occurrenceError = safeError(error);
-      record.error = record.occurrenceError;
-    }
-    try {
-      record.history = store.history({ occurrenceId: id, limit: 100 });
-    } catch (error) {
-      record.historyError = safeError(error);
-      record.error ||= record.historyError;
-    }
-    return record;
-  });
-}
-
-export function createWorkerProcess({
+function createWorkerProcess({
   db,
   effectsDir,
   owner,
@@ -1059,7 +924,6 @@ export function createWorkerProcess({
   leaseMs,
   pollMs,
   activeWorkers,
-  failureRecorder,
 }) {
   const argumentsList = [
     WORKER_PATH,
@@ -1096,7 +960,6 @@ export function createWorkerProcess({
   let closed = false;
   let exitError = null;
   let workerHandle = null;
-  const recordingErrors = [];
   child.stdin.on("error", (error) => {
     // A checkpoint worker can exit between the writable check and write(2).
     // Keep EPIPE inside the worker result instead of emitting it unhandled.
@@ -1166,20 +1029,6 @@ export function createWorkerProcess({
         stderr,
         parseError,
       });
-      try {
-        failureRecorder?.record(workerHandle, {
-          code,
-          signal,
-          error: parseError || spawnError,
-        });
-      } catch (error) {
-        recordingErrors.push(safeError(error));
-        try {
-          failureRecorder?.recordError?.(workerHandle, error);
-        } catch {
-          // Secondary diagnostics must not prevent the original exit result.
-        }
-      }
       for (const waiter of waiters) {
         clearTimeout(waiter.timer);
         waiter.reject(exitError);
@@ -1191,7 +1040,6 @@ export function createWorkerProcess({
         events,
         stderr,
         error: parseError || spawnError,
-        recordingErrors,
       });
     });
   });
@@ -1233,7 +1081,6 @@ export function createWorkerProcess({
     workerId,
     jobKind,
     events,
-    recordingErrors,
     done,
     waitFor,
     send,
@@ -1724,7 +1571,6 @@ async function runHeartbeatScenario(context) {
     db,
     effectsDir,
     activeWorkers,
-    failureRecorder,
     campaign,
     seed,
     retirements,
@@ -1748,7 +1594,6 @@ async function runHeartbeatScenario(context) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(winner, timeoutMs);
   const claimed = await winner.waitFor(
@@ -1797,7 +1642,6 @@ async function runHeartbeatScenario(context) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(contender, timeoutMs);
   const contenderResult = await requireWorkerSuccess(
@@ -1875,7 +1719,6 @@ async function runBeforeExecuteCrashScenario(context, roundIndex) {
     db,
     effectsDir,
     activeWorkers,
-    failureRecorder,
     campaign,
     seed,
     sample,
@@ -1899,7 +1742,6 @@ async function runBeforeExecuteCrashScenario(context, roundIndex) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(crashed, timeoutMs);
   const firstCheckpoint = await crashed.waitFor(
@@ -1940,7 +1782,6 @@ async function runBeforeExecuteCrashScenario(context, roundIndex) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(replacement, timeoutMs);
   const secondCheckpoint = await replacement.waitFor(
@@ -2015,7 +1856,6 @@ async function runAfterExecuteCrashScenario(context, roundIndex) {
     db,
     effectsDir,
     activeWorkers,
-    failureRecorder,
     campaign,
     seed,
     sample,
@@ -2038,7 +1878,6 @@ async function runAfterExecuteCrashScenario(context, roundIndex) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(crashed, timeoutMs);
   const checkpoint = await crashed.waitFor(
@@ -2076,7 +1915,6 @@ async function runAfterExecuteCrashScenario(context, roundIndex) {
     leaseMs: profile.leaseMs,
     pollMs: profile.pollMs,
     activeWorkers,
-    failureRecorder,
   });
   await waitForWorkerReady(observer, timeoutMs);
   const observerResult = await requireWorkerSuccess(
@@ -2289,7 +2127,6 @@ export async function runSchedulerKernelSoak(options = {}) {
   let temporaryRoot = null;
   let store = null;
   const activeWorkers = new Set();
-  const failureRecorder = createSchedulerSoakFailureRecorder();
   const transientRetirements = [];
   let longWorkers = [];
   const steadyOccurrenceIds = [];
@@ -2325,7 +2162,6 @@ export async function runSchedulerKernelSoak(options = {}) {
         leaseMs: profile.leaseMs,
         pollMs: profile.pollMs,
         activeWorkers,
-        failureRecorder,
       }),
     );
     const timeoutMs = workerScenarioTimeout(profile);
@@ -2366,7 +2202,6 @@ export async function runSchedulerKernelSoak(options = {}) {
       db,
       effectsDir,
       activeWorkers,
-      failureRecorder,
       campaign,
       seed,
       sample: checkpointPoll,
@@ -2679,62 +2514,55 @@ export async function runSchedulerKernelSoak(options = {}) {
     // The report otherwise contains only completed rounds, hiding the evidence
     // needed to distinguish expired-lease replay from concurrent live claims.
     if (store && temporaryRoot) {
-      report.failureDiagnostics = {
-        workers: [],
-        capturedAt: new Date().toISOString(),
-        occurrences: [],
-        unsettledSteady: [],
-        deadLetters: [],
-      };
       try {
-        const recordedWorkers = failureRecorder.snapshot([
-          ...activeWorkers,
-          ...longWorkers,
-        ]);
-        Object.assign(report.failureDiagnostics, recordedWorkers);
-        report.failureDiagnostics.occurrences =
-          collectSchedulerSoakOccurrenceDiagnostics(
-            store,
-            recordedWorkers.workers,
-            path.join(temporaryRoot, "effects"),
-          );
-        report.failureDiagnostics.unsettledSteady = steadyOccurrenceIds
-          .map((id) => store.getOccurrence(id))
-          .filter(
-            (occurrence) => occurrence && occurrence.status !== "succeeded",
-          )
-          .slice(-100)
-          .map((occurrence) => ({
-            occurrence,
-            history: store.history({
-              occurrenceId: occurrence.id,
-              limit: 100,
-            }),
-          }));
-        report.failureDiagnostics.deadLetters = store
-          .listDeadLetters({ limit: 100 })
-          .map((occurrence) => {
-            const effectFile = effectPath(
-              path.join(temporaryRoot, "effects"),
-              occurrence.id,
-            );
-            let effect = null;
-            try {
-              if (fs.existsSync(effectFile)) effect = readJson(effectFile);
-            } catch (readError) {
-              effect = { readError: safeError(readError) };
-            }
-            return {
+        report.failureDiagnostics = {
+          workers: longWorkers.map((worker) => ({
+            workerId: worker.workerId,
+            pid: worker.pid,
+            exitCode: worker.child.exitCode,
+            signal: worker.child.signalCode,
+            error: worker.failure ? safeError(worker.failure) : null,
+            stderr: worker.stderr,
+            events: worker.events.slice(-40),
+          })),
+          unsettledSteady: steadyOccurrenceIds
+            .map((id) => store.getOccurrence(id))
+            .filter(
+              (occurrence) => occurrence && occurrence.status !== "succeeded",
+            )
+            .slice(-100)
+            .map((occurrence) => ({
               occurrence,
               history: store.history({
                 occurrenceId: occurrence.id,
                 limit: 100,
               }),
-              effect,
-            };
-          });
+            })),
+          deadLetters: store
+            .listDeadLetters({ limit: 100 })
+            .map((occurrence) => {
+              const effectFile = effectPath(
+                path.join(temporaryRoot, "effects"),
+                occurrence.id,
+              );
+              let effect = null;
+              try {
+                if (fs.existsSync(effectFile)) effect = readJson(effectFile);
+              } catch (readError) {
+                effect = { readError: safeError(readError) };
+              }
+              return {
+                occurrence,
+                history: store.history({
+                  occurrenceId: occurrence.id,
+                  limit: 100,
+                }),
+                effect,
+              };
+            }),
+        };
       } catch (diagnosticError) {
-        report.failureDiagnostics.error = safeError(diagnosticError);
+        report.failureDiagnostics = { error: safeError(diagnosticError) };
       }
     }
     const emergencyWorkers = [...activeWorkers];

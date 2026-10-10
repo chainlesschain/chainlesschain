@@ -14,6 +14,11 @@ import {
   parseSchedulerSoakWorkerOptions,
 } from "../../scripts/scheduler-kernel-soak-worker.mjs";
 import { SchedulerRuntime } from "../../src/lib/scheduler-kernel/runtime.js";
+import {
+  collectSchedulerSoakOccurrenceDiagnostics,
+  createSchedulerSoakFailureRecorder,
+  createWorkerProcess,
+} from "../../scripts/scheduler-kernel-soak.mjs";
 
 const WORKER_PATH = fileURLToPath(
   new URL("../../scripts/scheduler-kernel-soak-worker.mjs", import.meta.url),
@@ -173,6 +178,10 @@ describe("scheduler kernel soak worker", () => {
     return {
       db,
       effectsDir,
+      trackWorker(worker) {
+        workers.push(worker);
+        return worker;
+      },
       worker(options) {
         const worker = startWorker({ db, effectsDir, ...options });
         workers.push(worker);
@@ -308,6 +317,132 @@ describe("scheduler kernel soak worker", () => {
       false,
     );
   });
+
+  it.each([false, true])(
+    "preserves a real transient worker's exit when diagnostic recording fails: %s",
+    async (recordingFails) => {
+      const f = fixture();
+      const kind = "soak.failed-replacement";
+      const seeded = seedOccurrence(f.db, kind, "failed-replacement-job");
+      const activeWorkers = new Set();
+      const failureRecorder = createSchedulerSoakFailureRecorder();
+      if (recordingFails) {
+        vi.spyOn(failureRecorder, "record").mockImplementation(() => {
+          throw Object.assign(new Error("injected diagnostic failure"), {
+            code: "DIAGNOSTIC_TEST_ERROR",
+          });
+        });
+      }
+      const worker = f.trackWorker(
+        createWorkerProcess({
+          db: f.db,
+          effectsDir: f.effectsDir,
+          owner: "replacement-owner",
+          jobKind: kind,
+          pause: "before-execute",
+          once: true,
+          leaseMs: OPERATIONAL_TEST_LEASE_MS,
+          pollMs: 5,
+          activeWorkers,
+          failureRecorder,
+        }),
+      );
+      const checkpoint = await worker.waitFor(
+        (event) => event.type === "checkpoint",
+        15000,
+      );
+      const store = openSchedulerStore({ file: f.db });
+      try {
+        // Deliberately expire only this real claim. The old CI failure remains
+        // unclassified; this regression proves retained evidence and no effect.
+        const update = store.db
+          .prepare(
+            "UPDATE occurrences SET lease_expires_at = ? WHERE occurrence_id = ? AND fence = ?",
+          )
+          .run(Date.now() - 1, seeded.id, checkpoint.occurrence.fence);
+        expect(update.changes).toBe(1);
+        const waiting = worker
+          .waitFor(() => false, 15000)
+          .catch((error) => error);
+        worker.send({ type: "resume", checkpoint: "before-execute" });
+        const result = await worker.done;
+        expect(result.code).toBe(1);
+        expect(activeWorkers.size).toBe(0);
+        const exitError = await waiting;
+        expect(exitError.code).toMatch(
+          /^SCHEDULER_(LEASE_LOST|SOAK_ABORTED)$/u,
+        );
+        const recorded = failureRecorder.snapshot([...activeWorkers]);
+        if (recordingFails) {
+          expect(result.error).toBeNull();
+          expect(result.recordingErrors).toMatchObject([
+            {
+              code: "DIAGNOSTIC_TEST_ERROR",
+              message: "injected diagnostic failure",
+              name: "Error",
+            },
+          ]);
+          expect(recorded.recordingErrors).toMatchObject([
+            {
+              workerId: "replacement-owner",
+              error: { code: "DIAGNOSTIC_TEST_ERROR" },
+            },
+          ]);
+          expect(
+            fs.existsSync(path.join(f.effectsDir, `${seeded.id}.json`)),
+          ).toBe(false);
+          return;
+        }
+        expect(recorded.workers).toHaveLength(1);
+        const failed = recorded.workers[0];
+        expect(failed).toMatchObject({
+          workerId: "replacement-owner",
+          exitCode: 1,
+          owner: "replacement-owner",
+        });
+        expect(failed.events).toContainEqual(
+          expect.objectContaining({
+            type: "checkpoint",
+            occurrence: expect.objectContaining({ id: seeded.id }),
+          }),
+        );
+        const fatal = failed.events.find((event) => event.type === "fatal");
+        expect(fatal.error.code).toMatch(
+          /^SCHEDULER_(LEASE_LOST|SOAK_ABORTED)$/u,
+        );
+        expect(fatal.execution).toMatchObject({
+          occurrence: { id: seeded.id },
+          effectCreated: false,
+          effectFlushed: false,
+        });
+        expect(failed.error.code).toBe(fatal.error.code);
+        expect(exitError.code).toBe(fatal.error.code);
+        expect(failed.stderr).not.toBe("");
+        const occurrences = collectSchedulerSoakOccurrenceDiagnostics(
+          store,
+          recorded.workers,
+          f.effectsDir,
+        );
+        expect(occurrences).toHaveLength(1);
+        expect(occurrences[0]).toMatchObject({
+          occurrenceId: seeded.id,
+          occurrence: { fence: checkpoint.occurrence.fence },
+          effect: { exists: false },
+        });
+        expect(occurrences[0].history).toContainEqual(
+          expect.objectContaining({
+            type: "occurrence_renewed",
+            ownerId: "replacement-owner",
+          }),
+        );
+        expect(
+          fs.existsSync(path.join(f.effectsDir, `${seeded.id}.json`)),
+        ).toBe(false);
+      } finally {
+        store.close();
+      }
+    },
+  );
 
   it("continues renewing while an effect flush takes longer than the lease", async () => {
     const f = fixture();

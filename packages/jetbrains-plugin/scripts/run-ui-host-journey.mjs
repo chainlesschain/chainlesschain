@@ -698,8 +698,30 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
       "Metadata event trace and original IDE log bytes after this host phase stopped",
     files: [],
     failures: [],
+    failureDetails: [],
   };
   const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+  // Exception messages/paths (including JSON parser excerpts) can contain secrets.
+  // Retain native error identity and fixed validation reasons, never raw messages.
+  const validationReasons = new Set([
+    "unsafe-sandbox-root",
+    "unsafe-event-trace",
+    "missing-or-invalid-event-trace",
+    "unsafe-idea-log",
+    "missing-idea-log",
+    "idea-log-exceeds-artifact-limit",
+  ]);
+  const recordFailure = (failure, stage, error) => {
+    status.failures.push(failure);
+    const detail = { failure, stage, name: error.name };
+    for (const key of ["code", "syscall"]) {
+      if (typeof error[key] === "string" && /^[A-Za-z0-9_]+$/u.test(error[key]))
+        detail[key] = error[key];
+    }
+    if (validationReasons.has(error.message)) detail.reason = error.message;
+    status.failureDetails.push(detail);
+  };
+  let stage = "event-trace.validate-sandbox-root";
   try {
     if (
       !path.isAbsolute(sandboxRoot) ||
@@ -707,22 +729,27 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
     )
       throw new Error("unsafe-sandbox-root");
     const trace = path.join(captureRoot, "host-events.jsonl");
+    stage = "event-trace.stat";
     if (!lstatSync(trace).isFile() || lstatSync(trace).isSymbolicLink())
       throw new Error("unsafe-event-trace");
+    stage = "event-trace.read";
     const bytes = readFileSync(trace);
+    stage = "event-trace.parse";
     const records = bytes
       .toString("utf8")
       .trim()
       .split(/\r?\n/u)
       .filter(Boolean)
       .map(JSON.parse);
+    stage = "event-trace.validate-schema";
     if (
       !records.length ||
       records.some(
-        (record) => record.schema !== "chainlesschain.ui-event-diagnostic/v1",
+        (record) => record?.schema !== "chainlesschain.ui-event-diagnostic/v1",
       )
     )
       throw new Error("missing-or-invalid-event-trace");
+    stage = "event-trace.write-original";
     writeFileSync(path.join(captureRoot, "host-events.jsonl.bin"), bytes, {
       mode: 0o600,
       flag: "wx",
@@ -734,11 +761,12 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
       sha256: digest(bytes),
       originalBytes: true,
     });
-  } catch {
-    status.failures.push("event-trace-or-capture-root-unavailable");
+  } catch (error) {
+    recordFailure("event-trace-or-capture-root-unavailable", stage, error);
   }
   if (stderr.includes("[cc-ui-event-diagnostic-write-failed]"))
     status.failures.push("event-diagnostic-write-failed");
+  stage = "idea-log.validate-sandbox-root";
   try {
     if (
       !path.isAbsolute(sandboxRoot) ||
@@ -747,6 +775,7 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
       throw new Error("unsafe-sandbox-root");
     const logs = [];
     const visit = (directory, depth) => {
+      stage = "idea-log.enumerate";
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
         const file = path.join(directory, entry.name);
         if (
@@ -756,6 +785,7 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
         )
           visit(file, depth + 1);
         else if (/^idea(?:\.\d+)?\.log(?:\.\d+)?$/u.test(entry.name)) {
+          stage = "idea-log.validate-file";
           if (!entry.isFile() || entry.isSymbolicLink())
             throw new Error("unsafe-idea-log");
           logs.push(file);
@@ -763,12 +793,16 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
       }
     };
     visit(sandboxRoot, 0);
+    stage = "idea-log.require-files";
     if (!logs.length) throw new Error("missing-idea-log");
     for (const [index, source] of logs.sort().entries()) {
+      stage = "idea-log.read";
       const bytes = readFileSync(source);
+      stage = "idea-log.validate-size";
       if (bytes.length > 20 * 1024 * 1024)
         throw new Error("idea-log-exceeds-artifact-limit");
       const name = `idea-${String(index + 1).padStart(3, "0")}.log.bin`;
+      stage = "idea-log.write-original";
       writeFileSync(path.join(captureRoot, name), bytes, {
         mode: 0o600,
         flag: "wx",
@@ -781,8 +815,8 @@ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
         originalBytes: true,
       });
     }
-  } catch {
-    status.failures.push("original-idea-log-capture-failed");
+  } catch (error) {
+    recordFailure("original-idea-log-capture-failed", stage, error);
   }
   status.complete = status.failures.length === 0;
   writeFileSync(

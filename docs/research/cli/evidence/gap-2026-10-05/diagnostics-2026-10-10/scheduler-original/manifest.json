@@ -1,0 +1,395 @@
+{
+  "schema": "chainlesschain.scheduler-failure-original-selection/v1",
+  "sourceCommit": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "workflowRunId": 38023140779,
+  "runAttempt": 1,
+  "workflowConclusion": "failure",
+  "createdAt": "2026-10-10T05:38:08.406Z",
+  "isOriginalExtractionTree": false,
+  "scope": "Short-path byte-exact original selection with all three original artifact ZIPs and unmodified payload JSONs. Original source/entry mappings are retained. Historical success is context and never substitutes for this failed attempt.",
+  "selectedOriginalFiles": 31,
+  "selectedBytes": 822109,
+  "artifactVerification": [
+    {
+      "id": 11659715423,
+      "name": "cli-scheduler-soak-macOS-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 4377,
+      "sha256": "4145c3711c784ab4e615e2b18ed2ad9fc34559ecc0b3b2a9bf6bcf726307cd07",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-macOS.json",
+          "bytes": 22194,
+          "sha256": "db02e0e92122d531179befd7c1504e6e28d65264a0fdd6738aad070c64a00a62",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": 11659185666,
+      "name": "cli-scheduler-soak-Linux-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 4364,
+      "sha256": "eca450079b89eeb8d61dc76d58d907c6d1ed4934739ab75623028397cbd93656",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-Linux.json",
+          "bytes": 22160,
+          "sha256": "fd1cf847da64f7da3886d314b6cd2a660539ebf8b1d9192c46a09e967c86c295",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": 11659065802,
+      "name": "cli-scheduler-soak-Windows-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 6771,
+      "sha256": "24a84a4f5e9a7c052628973deca49a91efed74e6be7ae0fd354eb8b2208d72b5",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-Windows.json",
+          "bytes": 63328,
+          "sha256": "b146843138b9c5e9a9315550c3d63533a52bdce25400b76cbcfad8299e895b80",
+          "status": "failed"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "source": ".work/astra-scheduler-next/run.json",
+      "target": "github/run.json",
+      "bytes": 13232,
+      "sha256": "547d01b5364804f9a0a9964bd9a38bad373cbfe1cfcb36185429e6169728446d",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/38023140779"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/jobs.json",
+      "target": "github/jobs.json",
+      "bytes": 11606,
+      "sha256": "41ba3503bad3a74ce4ff2dff909b701885575fc7e135115c5b4a70246e6bfc04",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/38023140779/jobs?filter=latest&per_page=100"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifacts.json",
+      "target": "github/artifacts.json",
+      "bytes": 2394,
+      "sha256": "dd6b8ce8e5adbf6612664faf3fa7220af5a2232629500e5a7c3a9425fd5169d1",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/38023140779/artifacts?per_page=100"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128248589.json",
+      "target": "jobs/114128248589.json",
+      "bytes": 2928,
+      "sha256": "1973149a31ff1bd6e6c2d82096d444fb6af058911c7e29abbb5156d32c3a3239",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128248589"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128248589.log",
+      "target": "jobs/114128248589.log",
+      "bytes": 48857,
+      "sha256": "47c31920933da0c18ffd48be501133172992873ede669f7d2bf063a1a75bbd58",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128248589/logs"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128248692.json",
+      "target": "jobs/114128248692.json",
+      "bytes": 2932,
+      "sha256": "fb16f0fb8bf3b874e0df3bc27c09c090d5e1e91dd155c3f8b945c15edc83b344",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128248692"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128248692.log",
+      "target": "jobs/114128248692.log",
+      "bytes": 55863,
+      "sha256": "0bc863368ed7aa0ccf3d304f38319c3071f5e96b10bca07b72e5c51f61d94c6d",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128248692/logs"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128249001.json",
+      "target": "jobs/114128249001.json",
+      "bytes": 2930,
+      "sha256": "6b8a8d62e57526622399006793ae58fcd0490f71c5eca6c77d7c3448a7bf3a4b",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128249001"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114128249001.log",
+      "target": "jobs/114128249001.log",
+      "bytes": 47588,
+      "sha256": "afbc7fdc5967f1c3861f8eab518d49e7a8c000954eb2c3553eb357d780988dff",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114128249001/logs"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114129530282.json",
+      "target": "jobs/114129530282.json",
+      "bytes": 2786,
+      "sha256": "ea24dbec0f48b7f21ecd9c0f3255040fc64c398f7812abd1738f6c004cc87458",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114129530282"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/job-114129530282.log",
+      "target": "jobs/114129530282.log",
+      "bytes": 5554,
+      "sha256": "968f052af6c6d2ee41d6ae5ef78e413c09de8f0c6d2653aef06fd6c3ce1fbb05",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/114129530282/logs"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659715423-metadata.json",
+      "target": "artifacts/macos/metadata.json",
+      "bytes": 786,
+      "sha256": "f303a74c16135158d86bb54df5ea636f8bbdbae37b43d65ca556e3fb776e36d4",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659715423"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659715423.zip",
+      "target": "artifacts/macos/artifact.zip",
+      "bytes": 4377,
+      "sha256": "4145c3711c784ab4e615e2b18ed2ad9fc34559ecc0b3b2a9bf6bcf726307cd07",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659715423/zip",
+        "officialSizeAndDigestVerified": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/extracted/macOS/scheduler-kernel-soak-macOS.json",
+      "target": "artifacts/macos/payload.json",
+      "bytes": 22194,
+      "sha256": "db02e0e92122d531179befd7c1504e6e28d65264a0fdd6738aad070c64a00a62",
+      "acquisition": {
+        "method": "Unmodified JSON entry from official-size-and-digest-verified artifact ZIP",
+        "artifactId": 11659715423,
+        "originalEntry": "scheduler-kernel-soak-macOS.json",
+        "originalZip": ".work/astra-scheduler-next/artifact-11659715423.zip"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659185666-metadata.json",
+      "target": "artifacts/linux/metadata.json",
+      "bytes": 786,
+      "sha256": "55f8f87202060e1bf9d93fc3aaecc125692d1c1022b172dd62a84678fe53bf06",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659185666"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659185666.zip",
+      "target": "artifacts/linux/artifact.zip",
+      "bytes": 4364,
+      "sha256": "eca450079b89eeb8d61dc76d58d907c6d1ed4934739ab75623028397cbd93656",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659185666/zip",
+        "officialSizeAndDigestVerified": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/extracted/Linux/scheduler-kernel-soak-Linux.json",
+      "target": "artifacts/linux/payload.json",
+      "bytes": 22160,
+      "sha256": "fd1cf847da64f7da3886d314b6cd2a660539ebf8b1d9192c46a09e967c86c295",
+      "acquisition": {
+        "method": "Unmodified JSON entry from official-size-and-digest-verified artifact ZIP",
+        "artifactId": 11659185666,
+        "originalEntry": "scheduler-kernel-soak-Linux.json",
+        "originalZip": ".work/astra-scheduler-next/artifact-11659185666.zip"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659065802-metadata.json",
+      "target": "artifacts/windows/metadata.json",
+      "bytes": 788,
+      "sha256": "c0fcaaafd6f06f56f87c501eae55ca8318e38aae4a25902b17b61bea77926160",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659065802"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/artifact-11659065802.zip",
+      "target": "artifacts/windows/artifact.zip",
+      "bytes": 6771,
+      "sha256": "24a84a4f5e9a7c052628973deca49a91efed74e6be7ae0fd354eb8b2208d72b5",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/artifacts/11659065802/zip",
+        "officialSizeAndDigestVerified": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/extracted/Windows/scheduler-kernel-soak-Windows.json",
+      "target": "artifacts/windows/payload.json",
+      "bytes": 63328,
+      "sha256": "b146843138b9c5e9a9315550c3d63533a52bdce25400b76cbcfad8299e895b80",
+      "acquisition": {
+        "method": "Unmodified JSON entry from official-size-and-digest-verified artifact ZIP",
+        "artifactId": 11659065802,
+        "originalEntry": "scheduler-kernel-soak-Windows.json",
+        "originalZip": ".work/astra-scheduler-next/artifact-11659065802.zip"
+      }
+    },
+    {
+      "source": ".work/root-scheduler-73f5-readback/scheduler-kernel-soak-Windows.json",
+      "target": "prior-download/windows.json",
+      "bytes": 63328,
+      "sha256": "b146843138b9c5e9a9315550c3d63533a52bdce25400b76cbcfad8299e895b80",
+      "acquisition": {
+        "method": "Root previously downloaded original JSON; exact byte comparison to newly verified official ZIP entry",
+        "byteIdenticalTo": "artifacts/windows/payload.json"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/historical-da91-run.json",
+      "target": "historical/da91-run.json",
+      "bytes": 13236,
+      "sha256": "e8630a29ec1ea67f6da34ce66a1f4b89c630b10a7f8b73285668e48bd7569a15",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/38012166326"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/historical-da91-jobs.json",
+      "target": "historical/da91-jobs.json",
+      "bytes": 11961,
+      "sha256": "b0e4c8fd75a0fe8847e36189e93ca8982aef0b79a66fa4394916963fd8778a68",
+      "acquisition": {
+        "method": "Authenticated standard gh api; raw stdout Buffer retained without PowerShell text conversion",
+        "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/38012166326/jobs?filter=latest&per_page=100"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-1-cli-scheduler-soak.yml",
+      "target": "source/cli-scheduler-soak.yml",
+      "bytes": 8749,
+      "sha256": "047eb27a58eab2d77cf2c0cc50f4352aa64069b3f4cee6ccf204ba36a6c9164d",
+      "acquisition": {
+        "method": "git show of pinned commit blob, byte-compared with historical commit blob",
+        "gitObject": "73f5a3550d87db724f0c539223e671fd3ea6d1e1:.github/workflows/cli-scheduler-soak.yml",
+        "historicalGitObject": "da91e730d802b7c9dcdc075b222ecc257021e552:.github/workflows/cli-scheduler-soak.yml",
+        "byteIdenticalToDa91": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-2-scheduler-kernel-soak.mjs",
+      "target": "source/scheduler-kernel-soak.mjs",
+      "bytes": 82753,
+      "sha256": "db7298e99c52f82230f4c92adc683051f9962615d8e79955dc6dcd0a3ed23c7e",
+      "acquisition": {
+        "method": "git show of pinned commit blob, byte-compared with historical commit blob",
+        "gitObject": "73f5a3550d87db724f0c539223e671fd3ea6d1e1:packages/cli/scripts/scheduler-kernel-soak.mjs",
+        "historicalGitObject": "da91e730d802b7c9dcdc075b222ecc257021e552:packages/cli/scripts/scheduler-kernel-soak.mjs",
+        "byteIdenticalToDa91": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-3-scheduler-kernel-soak-worker.mjs",
+      "target": "source/scheduler-kernel-soak-worker.mjs",
+      "bytes": 15376,
+      "sha256": "c27bb79146f6558dae1d6638aba588082652b55561cefbefdfc760fb3c7aea78",
+      "acquisition": {
+        "method": "git show of pinned commit blob, byte-compared with historical commit blob",
+        "gitObject": "73f5a3550d87db724f0c539223e671fd3ea6d1e1:packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+        "historicalGitObject": "da91e730d802b7c9dcdc075b222ecc257021e552:packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+        "byteIdenticalToDa91": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-4-scheduler-runtime.js",
+      "target": "source/scheduler-runtime.js",
+      "bytes": 27348,
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+      "acquisition": {
+        "method": "git show of pinned commit blob, byte-compared with historical commit blob",
+        "gitObject": "73f5a3550d87db724f0c539223e671fd3ea6d1e1:packages/session-core/lib/scheduler-runtime.js",
+        "historicalGitObject": "da91e730d802b7c9dcdc075b222ecc257021e552:packages/session-core/lib/scheduler-runtime.js",
+        "byteIdenticalToDa91": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-5-scheduler-store.js",
+      "target": "source/scheduler-store.js",
+      "bytes": 203109,
+      "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+      "acquisition": {
+        "method": "git show of pinned commit blob, byte-compared with historical commit blob",
+        "gitObject": "73f5a3550d87db724f0c539223e671fd3ea6d1e1:packages/session-core/lib/scheduler-store.js",
+        "historicalGitObject": "da91e730d802b7c9dcdc075b222ecc257021e552:packages/session-core/lib/scheduler-store.js",
+        "byteIdenticalToDa91": true
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/source-comparison.json",
+      "target": "source/comparison.json",
+      "bytes": 1584,
+      "sha256": "77f5f1338368393be45abe8ed67f6f17180ec0b7cf53b82e0b455271a461d1f2",
+      "acquisition": {
+        "method": "Derived exact pinned-blob byte comparisons"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/da91-to-73f5-paths.txt",
+      "target": "source/changed-paths.txt",
+      "bytes": 64190,
+      "sha256": "4ea1d89b9ac31c2469ff8ef06c781f54477527c36b82231c4442310f24069076",
+      "acquisition": {
+        "method": "Raw git diff --name-only between pinned historical and failed heads",
+        "from": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "to": "73f5a3550d87db724f0c539223e671fd3ea6d1e1"
+      }
+    },
+    {
+      "source": ".work/astra-scheduler-next/verification.json",
+      "target": "verification.json",
+      "bytes": 8251,
+      "sha256": "bd19918afed6c103c6e972bdc7713ad18101b4b21a392b5ee1175b682041298e",
+      "acquisition": {
+        "method": "Derived verification and bounded failure interpretation; original payloads/logs unchanged"
+      }
+    }
+  ]
+}

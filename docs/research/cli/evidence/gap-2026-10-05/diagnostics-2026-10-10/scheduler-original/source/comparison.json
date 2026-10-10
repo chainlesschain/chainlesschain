@@ -1,0 +1,43 @@
+{
+  "sourceCommit": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "historicalCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "historicalSuccessDoesNotTransfer": true,
+  "method": "git show pinned blobs, byte comparison",
+  "entries": [
+    {
+      "path": ".github/workflows/cli-scheduler-soak.yml",
+      "file": "source-1-cli-scheduler-soak.yml",
+      "bytes": 8749,
+      "sha256": "047eb27a58eab2d77cf2c0cc50f4352aa64069b3f4cee6ccf204ba36a6c9164d",
+      "byteIdenticalToDa91": true
+    },
+    {
+      "path": "packages/cli/scripts/scheduler-kernel-soak.mjs",
+      "file": "source-2-scheduler-kernel-soak.mjs",
+      "bytes": 82753,
+      "sha256": "db7298e99c52f82230f4c92adc683051f9962615d8e79955dc6dcd0a3ed23c7e",
+      "byteIdenticalToDa91": true
+    },
+    {
+      "path": "packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+      "file": "source-3-scheduler-kernel-soak-worker.mjs",
+      "bytes": 15376,
+      "sha256": "c27bb79146f6558dae1d6638aba588082652b55561cefbefdfc760fb3c7aea78",
+      "byteIdenticalToDa91": true
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-runtime.js",
+      "file": "source-4-scheduler-runtime.js",
+      "bytes": 27348,
+      "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+      "byteIdenticalToDa91": true
+    },
+    {
+      "path": "packages/session-core/lib/scheduler-store.js",
+      "file": "source-5-scheduler-store.js",
+      "bytes": 203109,
+      "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+      "byteIdenticalToDa91": true
+    }
+  ]
+}

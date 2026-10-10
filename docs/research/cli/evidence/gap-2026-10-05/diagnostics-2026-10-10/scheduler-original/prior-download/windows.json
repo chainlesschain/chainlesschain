@@ -1,0 +1,1635 @@
+{
+  "schema": "chainlesschain.scheduler-kernel-soak.v1",
+  "status": "failed",
+  "releaseCommit": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "headSha": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "expectedSha": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "exactShaVerified": true,
+  "seed": 1592598566,
+  "campaign": "p2-4-scheduler-long-soak-775d5667bc7b",
+  "startedAt": "2026-10-10T04:15:25.011Z",
+  "completedAt": "2026-10-10T04:15:46.453Z",
+  "source": {
+    "clean": true,
+    "changeCount": 0,
+    "finalClean": false,
+    "finalChangeCount": null
+  },
+  "runner": {
+    "operatingSystem": "windows",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.12.0",
+    "pid": 2392
+  },
+  "execution": {
+    "provider": "github-actions",
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": "CLI Scheduler Kernel Soak",
+    "eventName": "pull_request",
+    "runId": "38023140779",
+    "runAttempt": 1,
+    "controlPlaneSha": "e028f074f6122cfb0945b9a9e3a2942586703b29",
+    "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/38023140779/attempts/1"
+  },
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 15,
+    "rounds": 2,
+    "steadyOccurrencesPerRound": 4,
+    "steadyStateOccurrences": 8,
+    "leaseMs": 1000,
+    "pollMs": 10,
+    "checkpointIntervalSeconds": 2,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8,
+    "executionDelayMs": 25,
+    "heartbeatDelayMs": 1500
+  },
+  "continuousDurationSeconds": 16.370659900000003,
+  "temporal": {
+    "passed": true,
+    "timeZone": "America/New_York",
+    "springForward": {
+      "from": "2026-03-08T06:59:00.000Z",
+      "expected": "2026-03-09T06:30:00.000Z",
+      "agenda": "2026-03-09T06:30:00.000Z",
+      "cowork": "2026-03-09T06:30:00.000Z"
+    },
+    "fallBack": {
+      "first": "2026-11-01T05:30:00.000Z",
+      "second": "2026-11-01T06:30:00.000Z",
+      "coworkFirst": "2026-11-01T05:30:00.000Z",
+      "coworkSecond": "2026-11-01T06:30:00.000Z",
+      "distinctFireKeys": true
+    },
+    "backlog": {
+      "first": "2026-01-01T00:00:00.000Z",
+      "through": "2026-08-12T12:34:56.789Z",
+      "latest": "2026-08-12T12:34:56.000Z",
+      "expected": "2026-08-12T12:34:56.000Z"
+    }
+  },
+  "heartbeat": {
+    "occurrenceId": "occ_23446e19df1ea939c89a8744bfb8b5effb51bdac12bc3f06797ffc3d348c5239",
+    "initialLeaseExpiresAt": 1791605727610,
+    "renewedLeaseExpiresAt": 1791605727980,
+    "protectedLeaseExpiresAt": 1791605728314,
+    "renewalEvents": 6,
+    "contenderClaimed": false,
+    "finalStatus": "succeeded",
+    "effect": {
+      "owner": "heartbeat-winner-1592598566",
+      "fence": 1,
+      "sha256": "020d2994bc06122ee9d257fd57baa3f03b38e78e2952ca4e979162f114de0436"
+    },
+    "winnerRetirement": {
+      "pid": 6072,
+      "retired": true,
+      "retirementMs": 0,
+      "code": 0,
+      "signal": null
+    },
+    "contenderRetirement": {
+      "pid": 6236,
+      "retired": true,
+      "retirementMs": 0
+    },
+    "passed": true
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "steady": {
+        "occurrenceIds": [
+          "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+          "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+          "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+          "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae"
+        ],
+        "contentionClaims": [
+          {
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729304
+            }
+          },
+          {
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729322
+            }
+          }
+        ],
+        "statuses": [
+          "succeeded",
+          "succeeded",
+          "succeeded",
+          "succeeded"
+        ],
+        "effectOwners": [
+          "steady-1592598566-2",
+          "steady-1592598566-1",
+          "steady-1592598566-2",
+          "steady-1592598566-1"
+        ]
+      },
+      "beforeExecute": {
+        "occurrenceId": "occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f",
+        "firstClaim": {
+          "id": "occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "before-crashed-1592598566-0",
+          "leaseExpiresAt": 1791605729992
+        },
+        "replacementClaim": {
+          "id": "occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 2,
+          "fence": 2,
+          "leaseOwner": "before-replacement-1592598566-0",
+          "leaseExpiresAt": 1791605731667
+        },
+        "noEffectBeforeKill": true,
+        "hardKill": {
+          "pid": 6592,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [
+              5036
+            ],
+            "source": "cim"
+          },
+          "descendantKillRequests": [
+            {
+              "pid": 5036,
+              "requested": true,
+              "alreadyRetired": false,
+              "error": null
+            }
+          ],
+          "rootRetired": true,
+          "rootRetirementMs": 506,
+          "durationMs": 506.0536999999995,
+          "descendantRetirements": [
+            {
+              "pid": 5036,
+              "retired": true,
+              "elapsedMs": 0.004799999999704596
+            }
+          ],
+          "passed": true
+        },
+        "staleSettlement": {
+          "rejected": true,
+          "error": {
+            "name": "SchedulerKernelError",
+            "code": "SCHEDULER_LEASE_LOST",
+            "message": "Occurrence lease is absent, expired, or owned by another fence: occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f",
+            "stack": "SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f\n    at leaseLost (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2266:10)\n    at D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5118:15\n    at Function.<anonymous> (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (D:\\a\\chainlesschain\\chainlesschain\\node_modules\\better-sqlite3\\lib\\methods\\transaction.js:65:24)\n    at SchedulerStore._write (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2390:28)\n    at SchedulerStore.settle (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5106:17)\n    at runBeforeExecuteCrashScenario (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1797:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async runSchedulerKernelSoak (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)\n    at async main (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)"
+          }
+        },
+        "finalStatus": "succeeded",
+        "effectCount": 1,
+        "effect": {
+          "kind": "scheduler-soak-local-effect",
+          "occurrenceId": "occ_bad62bae2dc92847a88e1af22ab0995b78cf39d0f91fe11ea4b1ac42dfa5154f",
+          "jobId": "scheduler-soak-crash",
+          "jobRevision": 1,
+          "attempt": 2,
+          "fence": 2,
+          "owner": "before-replacement-1592598566-0",
+          "workerId": "before-replacement-1592598566-0",
+          "pid": 7904,
+          "resultDigest": "a45a4a2eadd11a044a44ae5f5a4e891759fa0b18b75c615ba1202660e67d2c4f"
+        },
+        "replacementRetirement": {
+          "pid": 7904,
+          "retired": true,
+          "retirementMs": 0,
+          "code": 0,
+          "signal": null
+        },
+        "passed": true
+      },
+      "afterExecute": {
+        "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+        "claim": {
+          "id": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+          "jobId": "scheduler-soak-outcome",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "after-crashed-1592598566-0",
+          "leaseExpiresAt": 1791605732160
+        },
+        "hardKill": {
+          "pid": 6916,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [
+              3236
+            ],
+            "source": "cim"
+          },
+          "descendantKillRequests": [
+            {
+              "pid": 3236,
+              "requested": true,
+              "alreadyRetired": false,
+              "error": null
+            }
+          ],
+          "rootRetired": true,
+          "rootRetirementMs": 392,
+          "durationMs": 392.3876,
+          "descendantRetirements": [
+            {
+              "pid": 3236,
+              "retired": true,
+              "elapsedMs": 0.010800000000017462
+            }
+          ],
+          "passed": true
+        },
+        "effect": {
+          "owner": "after-crashed-1592598566-0",
+          "fence": 1,
+          "countBefore": 1,
+          "countAfter": 1,
+          "hashBefore": "f4361dcace255a19fb8fe88ca158acc1f771f88e5dbe64625b9579f5ff0f9b09",
+          "hashAfter": "f4361dcace255a19fb8fe88ca158acc1f771f88e5dbe64625b9579f5ff0f9b09"
+        },
+        "observerClaimed": false,
+        "finalStatus": "dead_letter",
+        "lastError": {
+          "code": "lease_expired",
+          "message": "Execution lease expired after the final allowed attempt"
+        },
+        "observerRetirement": {
+          "pid": 6388,
+          "retired": true,
+          "retirementMs": 0
+        },
+        "passed": true
+      }
+    }
+  ],
+  "invariants": {
+    "twoWorkerContention": false,
+    "beforeExecuteHigherFence": false,
+    "staleSettlementRejected": false,
+    "afterExecuteDeadLettered": false,
+    "afterExecuteNoReplay": false,
+    "heartbeatRenewed": false,
+    "dstSemantics": false,
+    "backlogDrained": false,
+    "databaseQuickCheck": false,
+    "allProcessesRetired": false
+  },
+  "metrics": {
+    "passed": false,
+    "rounds": 0,
+    "steadyStateOccurrences": 0,
+    "workerProcessesSpawned": 0,
+    "productiveWorkers": 0,
+    "rssGrowthMb": 0,
+    "resourceGrowth": 0,
+    "targets": [],
+    "sampleCount": 0
+  },
+  "totals": {
+    "rounds": 1,
+    "steadyOccurrences": 4,
+    "hardKills": 2,
+    "effects": 7
+  },
+  "database": {
+    "quickCheck": null
+  },
+  "cleanup": {
+    "passed": false,
+    "deadlineMs": 10000,
+    "durationMs": 0,
+    "processes": []
+  },
+  "checkpoints": {
+    "writeCount": 11,
+    "lastWrittenAt": "2026-10-10T04:15:46.453Z"
+  },
+  "violations": [
+    {
+      "name": "Error",
+      "code": "SCHEDULER_SOAK_WORKER_FAILED",
+      "message": "before-execute replacement failed: code=1 signal=none SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_f0c7c0124f1e3f19bdbc2866097d17cb2c8202aef7e3ede18918ed3d5256236f\n    at leaseLost (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2266:10)\n    at D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5048:39\n    at Function.<anonymous> (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (D:\\a\\chainlesschain\\chainlesschain\\node_modules\\better-sqlite3\\lib\\methods\\transaction.js:65:24)\n    at SchedulerStore._write (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2390:28)\n    at SchedulerStore.renew (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5022:17)\n    at Object.renew [as renewLease] (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:552:20)\n    at writeEffect (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:245:13)\n    at async Object.execute (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:327:22)\n    at async SchedulerRuntime._executeClaim (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:672:18)\n",
+      "stack": "Error: before-execute replacement failed: code=1 signal=none SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_f0c7c0124f1e3f19bdbc2866097d17cb2c8202aef7e3ede18918ed3d5256236f\n    at leaseLost (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2266:10)\n    at D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5048:39\n    at Function.<anonymous> (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (D:\\a\\chainlesschain\\chainlesschain\\node_modules\\better-sqlite3\\lib\\methods\\transaction.js:65:24)\n    at SchedulerStore._write (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2390:28)\n    at SchedulerStore.renew (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5022:17)\n    at Object.renew [as renewLease] (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:552:20)\n    at writeEffect (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:245:13)\n    at async Object.execute (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:327:22)\n    at async SchedulerRuntime._executeClaim (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:672:18)\n\n    at assertInvariant (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:891:17)\n    at requireWorkerSuccess (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1100:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async retireSuccessfulWorker (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1543:18)\n    at async runBeforeExecuteCrashScenario (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1816:33)\n    at async runSchedulerKernelSoak (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)\n    at async main (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)\n    at async file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2684:20"
+    }
+  ],
+  "failureDiagnostics": {
+    "workers": [
+      {
+        "workerId": "steady-1",
+        "pid": 5048,
+        "exitCode": null,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "events": [
+          {
+            "type": "ready",
+            "db": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\scheduler.sqlite3",
+            "effectsDir": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects",
+            "schema": {
+              "applicationId": 1128485707,
+              "schemaVersion": 6,
+              "migration": {
+                "version": 6,
+                "name": "scheduler-kernel-runtime-control-v6",
+                "checksum": "a5e9518523bdc0d3d451bdd0c2cbd8287cad85931834505a72ad46b29b081810",
+                "appliedAt": 1791605725346
+              },
+              "quickCheck": "ok"
+            },
+            "pause": "before-execute",
+            "once": false,
+            "leaseMs": 1000,
+            "pollMs": 10,
+            "adapterKind": "scheduler.soak.steady",
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:25.821Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 1
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:25.824Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 2
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729304
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.455Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 3
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729304
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.455Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 4
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.494Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 5
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729304
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.495Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 6
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729304
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-1",
+              "workerId": "steady-1",
+              "pid": 5048,
+              "resultDigest": "c07259c030e9a6e930975b404508505a7a8d9f4034529c0e885f90bfb5575d16"
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.580Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 7
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_7bab611a0e695b27bfe976fa2a4ef2957b69961d2a90189c38e1219e49f7fe9a",
+              "owner": "steady-1592598566-1",
+              "resultValue": "steady-0-0"
+            },
+            "error": null,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.594Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 8
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729599
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.609Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 9
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729599
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.610Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 10
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.619Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 11
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729599
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.619Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 12
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605729599
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-1",
+              "workerId": "steady-1",
+              "pid": 5048,
+              "resultDigest": "0eb5a111e802db058ed94beb67972cab7a376ce0a1792960825af14fd0c20137"
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.658Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 13
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_cf4685a8be8947c1be8253b587cedc139762d1e83b55b3a2c1710c0a6f122bae",
+              "owner": "steady-1592598566-1",
+              "resultValue": "steady-0-3"
+            },
+            "error": null,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.663Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 14
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:28.663Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 15
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 248,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:33.675Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 16
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 454,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:38.694Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 17
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742315
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.340Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 18
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742315
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.340Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 19
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.340Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 20
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742315
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.340Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 21
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742315
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-1",
+              "workerId": "steady-1",
+              "pid": 5048,
+              "resultDigest": "ef67437e57ab67275e9838647967391963661083c0b2c108dee224e508e1be15"
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.412Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 22
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_c5d2bfc81a4931b1a1fbbc3fc7b492405c8b98a81b3cf7ab8298dea0c77c9110",
+              "owner": "steady-1592598566-1",
+              "resultValue": "steady-1-1"
+            },
+            "error": null,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.454Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 23
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742462
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.469Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 24
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742462
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.469Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 25
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.481Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 26
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742462
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.481Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 27
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605742462
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-1",
+              "workerId": "steady-1",
+              "pid": 5048,
+              "resultDigest": "14a4405cf20cf434f24f1dd4c9593fec7e679a5b9d5a34e9ac152c8a462e4da7"
+            },
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.524Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 28
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_9c8db68ec7bd474dd3e9e18b7e6d5e3ac72c9d19774e253ffe9daac035a8472c",
+              "owner": "steady-1592598566-1",
+              "resultValue": "steady-1-3"
+            },
+            "error": null,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.530Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 29
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 5048,
+            "timestamp": "2026-10-10T04:15:41.530Z",
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "sequence": 30
+          }
+        ]
+      },
+      {
+        "workerId": "steady-2",
+        "pid": 6108,
+        "exitCode": null,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "events": [
+          {
+            "type": "ready",
+            "db": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\scheduler.sqlite3",
+            "effectsDir": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects",
+            "schema": {
+              "applicationId": 1128485707,
+              "schemaVersion": 6,
+              "migration": {
+                "version": 6,
+                "name": "scheduler-kernel-runtime-control-v6",
+                "checksum": "a5e9518523bdc0d3d451bdd0c2cbd8287cad85931834505a72ad46b29b081810",
+                "appliedAt": 1791605725346
+              },
+              "quickCheck": "ok"
+            },
+            "pause": "before-execute",
+            "once": false,
+            "leaseMs": 1000,
+            "pollMs": 10,
+            "adapterKind": "scheduler.soak.steady",
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:25.839Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 1
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:25.842Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 2
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729322
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.487Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 3
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729322
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.487Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 4
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.489Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 5
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729322
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.490Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 6
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729322
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-2",
+              "workerId": "steady-2",
+              "pid": 6108,
+              "resultDigest": "e29091d3e2f278e7c7b3981986ecf9341fbcc14d994c01d9494c9f505ece598b"
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.545Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 7
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_8584a9152edc351b5df2eb637780f21ff76ebcda21784bdc97058b4253d09cdc",
+              "owner": "steady-1592598566-2",
+              "resultValue": "steady-0-1"
+            },
+            "error": null,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.552Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 8
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729558
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.568Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 9
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729558
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.569Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 10
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.577Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 11
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729558
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.577Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 12
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605729558
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-2",
+              "workerId": "steady-2",
+              "pid": 6108,
+              "resultDigest": "6fcead85512ed17545334e5623e34d2dfb9441f54cbf265e8d0204d14b57a75f"
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.625Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 13
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_3ff78336106fc8817d8f1805eff6a12ff89ee01554629cdd7a0a0179102a6602",
+              "owner": "steady-1592598566-2",
+              "resultValue": "steady-0-2"
+            },
+            "error": null,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.632Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 14
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:28.633Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 15
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 253,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:33.643Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 16
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 460,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:38.678Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 17
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742297
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.319Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 18
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742297
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.319Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 19
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.341Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 20
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742297
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.341Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 21
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742297
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-2",
+              "workerId": "steady-2",
+              "pid": 6108,
+              "resultDigest": "a4e94570784020580cfb462adee384354d4c77d1659fd2f5e79c43204e6cbe61"
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.391Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 22
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_a010383bba205b415a2358d25b404b320ae950ba2d930993b18e29da3dbc34b7",
+              "owner": "steady-1592598566-2",
+              "resultValue": "steady-1-0"
+            },
+            "error": null,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.410Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 23
+          },
+          {
+            "type": "claimed",
+            "occurrence": {
+              "id": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742437
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.445Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 24
+          },
+          {
+            "type": "checkpoint",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742437
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.445Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 25
+          },
+          {
+            "type": "control",
+            "command": "resume",
+            "checkpoint": "before-execute",
+            "accepted": true,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.465Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 26
+          },
+          {
+            "type": "resumed",
+            "checkpoint": "before-execute",
+            "occurrence": {
+              "id": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742437
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.465Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 27
+          },
+          {
+            "type": "effect-written",
+            "occurrence": {
+              "id": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605742437
+            },
+            "effect": {
+              "path": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cc-scheduler-kernel-soak-6m4v2e\\effects\\occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab.json",
+              "kind": "scheduler-soak-local-effect",
+              "occurrenceId": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "jobRevision": 1,
+              "attempt": 1,
+              "fence": 1,
+              "owner": "steady-1592598566-2",
+              "workerId": "steady-2",
+              "pid": 6108,
+              "resultDigest": "c6d028c05a4ee4bbd89f05fb32ae3924c0450f80230aee7e3960941e1242b424"
+            },
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.508Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 28
+          },
+          {
+            "type": "settled",
+            "status": "succeeded",
+            "occurrence": {
+              "id": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "jobId": "scheduler-soak-steady",
+              "status": "succeeded",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": null,
+              "leaseExpiresAt": null
+            },
+            "result": {
+              "attempt": 1,
+              "fence": 1,
+              "jobRevision": 1,
+              "kind": "scheduler-soak-local-result",
+              "occurrenceId": "occ_f0e23957ee801e54be1aa4723e8302d6f3df8c41a2d0f52b4949d5fa6bc48eab",
+              "owner": "steady-1592598566-2",
+              "resultValue": "steady-1-2"
+            },
+            "error": null,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.512Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 29
+          },
+          {
+            "type": "idle",
+            "consecutivePolls": 1,
+            "pid": 6108,
+            "timestamp": "2026-10-10T04:15:41.513Z",
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "sequence": 30
+          }
+        ]
+      }
+    ],
+    "unsettledSteady": [],
+    "deadLetters": [
+      {
+        "occurrence": {
+          "id": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+          "jobId": "scheduler-soak-outcome",
+          "jobRevision": 1,
+          "idempotencyKey": "scheduler:v1:cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+          "triggerKey": "p2-4-scheduler-long-soak-775d5667bc7b:1592598566:after-execute:0",
+          "scheduledFor": 1791605730852,
+          "availableAt": 1791605730852,
+          "status": "dead_letter",
+          "attempt": 1,
+          "maxAttempts": 1,
+          "fence": 1,
+          "leaseOwner": null,
+          "leaseExpiresAt": null,
+          "authority": {
+            "schemaVersion": 1,
+            "principal": {
+              "type": "scheduler-soak",
+              "id": "scheduler-soak-1592598566"
+            },
+            "tenantId": null,
+            "workspaceId": null,
+            "requestedCapabilities": [
+              "scheduler.soak.execute"
+            ],
+            "authorizationRefs": {
+              "decisionId": "scheduler-soak-decision-1592598566",
+              "policyRevision": "scheduler-soak-v1",
+              "grantIds": [],
+              "approvalIds": [],
+              "delegationIds": []
+            }
+          },
+          "payload": {
+            "resultValue": "after-execute-0"
+          },
+          "lastError": {
+            "code": "lease_expired",
+            "message": "Execution lease expired after the final allowed attempt"
+          },
+          "result": null,
+          "createdAt": 1791605730852,
+          "updatedAt": 1791605732533,
+          "settledAt": 1791605732533
+        },
+        "history": [
+          {
+            "eventId": 47,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_dead_lettered",
+            "occurredAt": 1791605732533,
+            "ownerId": "after-crashed-1592598566-0",
+            "fence": 1,
+            "data": {
+              "attempt": 1,
+              "maxAttempts": 1,
+              "reason": "lease_expired"
+            }
+          },
+          {
+            "eventId": 46,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_renewed",
+            "occurredAt": 1791605731519,
+            "ownerId": "after-crashed-1592598566-0",
+            "fence": 1,
+            "data": {
+              "leaseExpiresAt": 1791605732519
+            }
+          },
+          {
+            "eventId": 45,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_renewed",
+            "occurredAt": 1791605731290,
+            "ownerId": "after-crashed-1592598566-0",
+            "fence": 1,
+            "data": {
+              "leaseExpiresAt": 1791605732290
+            }
+          },
+          {
+            "eventId": 44,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_renewed",
+            "occurredAt": 1791605731160,
+            "ownerId": "after-crashed-1592598566-0",
+            "fence": 1,
+            "data": {
+              "leaseExpiresAt": 1791605732160
+            }
+          },
+          {
+            "eventId": 43,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_claimed",
+            "occurredAt": 1791605731154,
+            "ownerId": "after-crashed-1592598566-0",
+            "fence": 1,
+            "data": {
+              "attempt": 1,
+              "previousOwner": null,
+              "previousStatus": "queued"
+            }
+          },
+          {
+            "eventId": 42,
+            "jobId": "scheduler-soak-outcome",
+            "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+            "type": "occurrence_enqueued",
+            "occurredAt": 1791605730852,
+            "ownerId": null,
+            "fence": null,
+            "data": {
+              "jobRevision": 1,
+              "scheduledFor": 1791605730852,
+              "triggerKey": "p2-4-scheduler-long-soak-775d5667bc7b:1592598566:after-execute:0"
+            }
+          }
+        ],
+        "effect": {
+          "kind": "scheduler-soak-local-effect",
+          "occurrenceId": "occ_cd1fabf3ba5c6b8b79badd39be9eabf32e421538ed346fc9e0313dd482f79a32",
+          "jobId": "scheduler-soak-outcome",
+          "jobRevision": 1,
+          "attempt": 1,
+          "fence": 1,
+          "owner": "after-crashed-1592598566-0",
+          "workerId": "after-crashed-1592598566-0",
+          "pid": 6916,
+          "resultDigest": "f76e7432a2d3e49b7a524601c71c6a216716ea2214c91f6ea6aa75f9c1a937af"
+        }
+      }
+    ]
+  }
+}

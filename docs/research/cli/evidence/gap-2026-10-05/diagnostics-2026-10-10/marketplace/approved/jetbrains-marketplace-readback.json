@@ -1,0 +1,100 @@
+{
+  "observedAt": "2026-10-10T04:50:36.494Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "tagWorkflow": {
+    "id": 38021102825,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825"
+  },
+  "verificationSource": "Supplementary public readback using repository marketplace verifier and digest-bound exact-tag artifact.",
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "ready",
+  "version": "0.4.158",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "publicUpdate": {
+    "id": 1190815,
+    "link": "/plugin/32208-chainlesschain-ide-bridge/versions/stable/1190815",
+    "version": "0.4.158",
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "recalculateCompatibilityAllowed": true,
+    "cdate": "1791605107000",
+    "file": "32208/1190815/chainlesschain-ide-bridge-0.4.158.zip",
+    "notes": "<b>[0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)</b><br><ul><li>Recommend CLI <code>0.166.96</code> after its public npm release and this extension's exact-commit release gates pass.</li><li>Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.</li><li>Retain the compatibility floor and runtime capability diagnostics; experimental native review and durable Windows/macOS recovery remain outside release acceptance.</li></ul><br><b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul><br><b>[0.4.154] - Pair with cross-platform CLI fixes (2026-10-06)</b><br><ul><li>Recommend CLI <code>0.166.91</code> after its public npm release and the plugin's exact-commit release gates pass.</li><li>Include the current IDE source changes with the Windows native evaluator compatibility fixes and refreshed Session Core and Personal Data Hub packages.</li></ul>",
+    "since": "242.0",
+    "until": "",
+    "sinceUntil": "242.0+",
+    "channel": "",
+    "size": 1525786,
+    "downloads": 0,
+    "pluginId": 32208,
+    "compatibleVersions": {
+      "IDEA": "2024.2+",
+      "DATASPELL": "2024.2+",
+      "WEBSTORM": "2024.2+",
+      "MPS": "2024.3+",
+      "GOLAND": "2024.2+",
+      "JBCLIENT": "1.0+",
+      "GATEWAY": "2024.2+",
+      "RUBYMINE": "2024.2+",
+      "IDEA_COMMUNITY": "2024.2+",
+      "DBE": "2024.2+",
+      "PYCHARM_COMMUNITY": "2024.2+",
+      "CLION": "2024.2+",
+      "PYCHARM": "2024.2+",
+      "CWMGUEST": "1.0+",
+      "PHPSTORM": "2024.2+",
+      "RUST": "2024.2+",
+      "ANDROID_STUDIO": "Ladybug | 2024.2.1+",
+      "RIDER": "2024.2+"
+    },
+    "author": {
+      "id": "ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "name": "chainlesschain",
+      "link": "/author/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "hubLogin": "chainlesschain",
+      "icon": "https://hub.jetbrains.com/api/rest/avatar/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "showMarketoCheckbox": false
+    },
+    "modules": []
+  },
+  "packagedPlugin": {
+    "version": "0.4.158",
+    "pairedCliVersion": "0.166.96",
+    "tagArtifactSha256": "5f0da7e8d5c29d0746338cc0a04adb95d9105c9ecea86f5dab2c3fc401b84aeb"
+  },
+  "publicPackage": {
+    "downloadUrl": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1190815",
+    "bytes": 1525786,
+    "sha256": "60a2b0432a6995c82a6e9cd6970b410095b61cb2958026d536809165fa831a03",
+    "archiveExactMatch": false,
+    "allEntryBytesMatch": true,
+    "entries": [
+      {
+        "name": "chainlesschain-ide-bridge/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.158.jar",
+        "bytes": 1613879,
+        "sha256": "5dfe0bf6f788970fdb03088cc9e7ba8ee2d687b3843eb94f0915af53559ca369"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.158-searchableOptions.jar",
+        "bytes": 1263,
+        "sha256": "2f08f370b3da6a077bbcf7ffdd70be5cdbb68e907cc257d2a4c55ffd4ec61e23"
+      }
+    ]
+  }
+}

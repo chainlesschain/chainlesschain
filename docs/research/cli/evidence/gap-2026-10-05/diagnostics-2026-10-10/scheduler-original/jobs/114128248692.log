@@ -1,0 +1,638 @@
+﻿2026-10-10T04:11:24.8650563Z Current runner version: '2.337.0'
+2026-10-10T04:11:24.8678694Z ##[group]Runner Image Provisioner
+2026-10-10T04:11:24.8679533Z Hosted Compute Agent
+2026-10-10T04:11:24.8680073Z Version: 20260901.588
+2026-10-10T04:11:24.8680671Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-10T04:11:24.8681435Z Build Date: 2026-09-01T19:56:44Z
+2026-10-10T04:11:24.8682067Z Worker ID: {172dd3c4-7431-4b12-aa55-f82ed6aa02a6}
+2026-10-10T04:11:24.8682749Z Azure Region: westus
+2026-10-10T04:11:24.8683272Z ##[endgroup]
+2026-10-10T04:11:24.8684699Z ##[group]Operating System
+2026-10-10T04:11:24.8685325Z Microsoft Windows Server 2025
+2026-10-10T04:11:24.8685895Z 10.0.26100
+2026-10-10T04:11:24.8686393Z Datacenter
+2026-10-10T04:11:24.8686869Z ##[endgroup]
+2026-10-10T04:11:24.8687357Z ##[group]Runner Image
+2026-10-10T04:11:24.8687966Z Image: windows-2025-vs2026
+2026-10-10T04:11:24.8688523Z Version: 20260925.250.1
+2026-10-10T04:11:24.8690100Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-10T04:11:24.8691700Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-10T04:11:24.8692648Z ##[endgroup]
+2026-10-10T04:11:24.8693656Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T04:11:24.8695986Z Contents: read
+2026-10-10T04:11:24.8696559Z Metadata: read
+2026-10-10T04:11:24.8697107Z ##[endgroup]
+2026-10-10T04:11:24.8699267Z Secret source: Actions
+2026-10-10T04:11:24.8700184Z Cache mode: write
+2026-10-10T04:11:24.8700864Z Prepare workflow directory
+2026-10-10T04:11:24.9340293Z Prepare all required actions
+2026-10-10T04:11:24.9392181Z Getting action download info
+2026-10-10T04:11:25.2889846Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T04:11:25.4287493Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T04:11:25.6102900Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T04:11:25.9325779Z Complete job name: scheduler kill/restart/contention soak (windows-latest)
+2026-10-10T04:11:26.0732671Z ##[group]Run set -euo pipefail
+2026-10-10T04:11:26.0733745Z [36;1mset -euo pipefail[0m
+2026-10-10T04:11:26.0734607Z [36;1m[[ "${CC_SCHEDULER_SOAK_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]][0m
+2026-10-10T04:11:26.0735657Z [36;1m[[ "${CC_SCHEDULER_SOAK_WORKFLOW_SHA}" =~ ^[0-9a-f]{40}$ ]][0m
+2026-10-10T04:11:26.0764061Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T04:11:26.0765178Z env:
+2026-10-10T04:11:26.0765627Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:11:26.0766194Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:11:26.0766799Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:11:26.0767533Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:26.0768313Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:11:26.0769066Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:11:26.0770041Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:11:26.0770859Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:11:26.0771479Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:11:26.0772132Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:11:26.0773299Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:11:26.0773947Z ##[endgroup]
+2026-10-10T04:11:26.5829068Z ##[group]Run actions/checkout@v5
+2026-10-10T04:11:26.5830266Z with:
+2026-10-10T04:11:26.5831187Z   ref: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:26.5832492Z   repository: chainlesschain/chainlesschain
+2026-10-10T04:11:26.5841591Z   token: ***
+2026-10-10T04:11:26.5842445Z   ssh-strict: true
+2026-10-10T04:11:26.5843754Z   ssh-user: git
+2026-10-10T04:11:26.5844634Z   persist-credentials: true
+2026-10-10T04:11:26.5845597Z   clean: true
+2026-10-10T04:11:26.5848474Z   sparse-checkout-cone-mode: true
+2026-10-10T04:11:26.5849546Z   fetch-depth: 1
+2026-10-10T04:11:26.5850421Z   fetch-tags: false
+2026-10-10T04:11:26.5851292Z   show-progress: true
+2026-10-10T04:11:26.5852174Z   lfs: false
+2026-10-10T04:11:26.5852982Z   submodules: false
+2026-10-10T04:11:26.5853868Z   set-safe-directory: true
+2026-10-10T04:11:26.5854877Z   allow-unsafe-pr-checkout: false
+2026-10-10T04:11:26.5855926Z env:
+2026-10-10T04:11:26.5856735Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:11:26.5857873Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:11:26.5859030Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:11:26.5860466Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:26.5862000Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:11:26.5863795Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:11:26.5865618Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:11:26.5867185Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:11:26.5868375Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:11:26.5869611Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:11:26.5870928Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:11:26.5872131Z ##[endgroup]
+2026-10-10T04:11:26.7468681Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T04:11:26.7472244Z ##[group]Getting Git version info
+2026-10-10T04:11:26.7473723Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-10T04:11:26.8452324Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-10T04:11:27.2028217Z git version 2.55.0.windows.5
+2026-10-10T04:11:27.2083715Z ##[endgroup]
+2026-10-10T04:11:27.2103225Z Temporarily overriding HOME='D:\a\_temp\7feac291-6c20-4a9c-9042-eb234aaaf5e2' before making global git config changes
+2026-10-10T04:11:27.2106013Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T04:11:27.2116288Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-10T04:11:27.2758706Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-10T04:11:27.2766158Z ##[group]Initializing the repository
+2026-10-10T04:11:27.2778576Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-10T04:11:27.3710217Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-10T04:11:27.3759860Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T04:11:27.4371108Z ##[endgroup]
+2026-10-10T04:11:27.4373077Z ##[group]Disabling automatic garbage collection
+2026-10-10T04:11:27.4381361Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-10T04:11:27.4696219Z ##[endgroup]
+2026-10-10T04:11:27.4697699Z ##[group]Setting up auth
+2026-10-10T04:11:27.4709499Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T04:11:27.5038582Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-10T04:11:28.6901061Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T04:11:28.7224354Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-10T04:11:29.2848626Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T04:11:29.3183400Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-10T04:11:29.8936195Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-10T04:11:29.9251079Z ##[endgroup]
+2026-10-10T04:11:29.9251891Z ##[group]Fetching the repository
+2026-10-10T04:11:29.9264745Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:41.3240344Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T04:11:41.3241310Z  * branch              73f5a3550d87db724f0c539223e671fd3ea6d1e1 -> FETCH_HEAD
+2026-10-10T04:11:41.3283202Z ##[endgroup]
+2026-10-10T04:11:41.3286989Z ##[group]Determining the checkout info
+2026-10-10T04:11:41.3287800Z ##[endgroup]
+2026-10-10T04:11:41.3299250Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-10T04:11:41.3734610Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-10T04:11:41.4052743Z ##[group]Checking out the ref
+2026-10-10T04:11:41.4063339Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:42.6346457Z Updating files:  11% (2716/24115)
+2026-10-10T04:11:42.7035585Z Updating files:  12% (2894/24115)
+2026-10-10T04:11:42.7773989Z Updating files:  13% (3135/24115)
+2026-10-10T04:11:42.8760669Z Updating files:  14% (3377/24115)
+2026-10-10T04:11:42.9324303Z Updating files:  15% (3618/24115)
+2026-10-10T04:11:42.9888965Z Updating files:  16% (3859/24115)
+2026-10-10T04:11:43.0493911Z Updating files:  17% (4100/24115)
+2026-10-10T04:11:43.1186665Z Updating files:  18% (4341/24115)
+2026-10-10T04:11:43.1932361Z Updating files:  19% (4582/24115)
+2026-10-10T04:11:43.2730903Z Updating files:  20% (4823/24115)
+2026-10-10T04:11:43.3448347Z Updating files:  21% (5065/24115)
+2026-10-10T04:11:43.4208433Z Updating files:  22% (5306/24115)
+2026-10-10T04:11:43.4911462Z Updating files:  23% (5547/24115)
+2026-10-10T04:11:43.4941562Z Updating files:  23% (5778/24115)
+2026-10-10T04:11:43.5686256Z Updating files:  24% (5788/24115)
+2026-10-10T04:11:43.6430066Z Updating files:  25% (6029/24115)
+2026-10-10T04:11:43.7142361Z Updating files:  26% (6270/24115)
+2026-10-10T04:11:43.9785124Z Updating files:  27% (6512/24115)
+2026-10-10T04:11:44.0536806Z Updating files:  28% (6753/24115)
+2026-10-10T04:11:44.1281913Z Updating files:  29% (6994/24115)
+2026-10-10T04:11:44.1988423Z Updating files:  30% (7235/24115)
+2026-10-10T04:11:44.2685704Z Updating files:  31% (7476/24115)
+2026-10-10T04:11:44.3402844Z Updating files:  32% (7717/24115)
+2026-10-10T04:11:44.4137382Z Updating files:  33% (7958/24115)
+2026-10-10T04:11:44.4851933Z Updating files:  34% (8200/24115)
+2026-10-10T04:11:44.5018606Z Updating files:  35% (8441/24115)
+2026-10-10T04:11:44.5573806Z Updating files:  35% (8500/24115)
+2026-10-10T04:11:44.6215910Z Updating files:  36% (8682/24115)
+2026-10-10T04:11:44.6877159Z Updating files:  37% (8923/24115)
+2026-10-10T04:11:44.7554579Z Updating files:  38% (9164/24115)
+2026-10-10T04:11:44.8334641Z Updating files:  39% (9405/24115)
+2026-10-10T04:11:44.9028261Z Updating files:  40% (9646/24115)
+2026-10-10T04:11:44.9797878Z Updating files:  41% (9888/24115)
+2026-10-10T04:11:45.0441140Z Updating files:  42% (10129/24115)
+2026-10-10T04:11:45.1353370Z Updating files:  43% (10370/24115)
+2026-10-10T04:11:45.4242721Z Updating files:  44% (10611/24115)
+2026-10-10T04:11:45.5140832Z Updating files:  45% (10852/24115)
+2026-10-10T04:11:45.5155295Z Updating files:  46% (11093/24115)
+2026-10-10T04:11:45.6036984Z Updating files:  46% (11096/24115)
+2026-10-10T04:11:45.6875480Z Updating files:  47% (11335/24115)
+2026-10-10T04:11:45.7681563Z Updating files:  48% (11576/24115)
+2026-10-10T04:11:45.8325554Z Updating files:  49% (11817/24115)
+2026-10-10T04:11:45.9228415Z Updating files:  50% (12058/24115)
+2026-10-10T04:11:46.0031201Z Updating files:  51% (12299/24115)
+2026-10-10T04:11:46.1398405Z Updating files:  52% (12540/24115)
+2026-10-10T04:11:46.5406478Z Updating files:  53% (12781/24115)
+2026-10-10T04:11:46.6359569Z Updating files:  53% (12977/24115)
+2026-10-10T04:11:47.1940928Z Updating files:  54% (13023/24115)
+2026-10-10T04:11:47.5418966Z Updating files:  55% (13264/24115)
+2026-10-10T04:11:47.5861758Z Updating files:  55% (13435/24115)
+2026-10-10T04:11:47.7013011Z Updating files:  56% (13505/24115)
+2026-10-10T04:11:47.7919403Z Updating files:  57% (13746/24115)
+2026-10-10T04:11:47.8696959Z Updating files:  58% (13987/24115)
+2026-10-10T04:11:47.9613133Z Updating files:  59% (14228/24115)
+2026-10-10T04:11:48.1419807Z Updating files:  60% (14469/24115)
+2026-10-10T04:11:48.2302785Z Updating files:  61% (14711/24115)
+2026-10-10T04:11:48.3209433Z Updating files:  62% (14952/24115)
+2026-10-10T04:11:48.4096884Z Updating files:  63% (15193/24115)
+2026-10-10T04:11:48.5156614Z Updating files:  64% (15434/24115)
+2026-10-10T04:11:48.5555251Z Updating files:  65% (15675/24115)
+2026-10-10T04:11:48.5893814Z Updating files:  65% (15783/24115)
+2026-10-10T04:11:48.6689615Z Updating files:  66% (15916/24115)
+2026-10-10T04:11:48.7378007Z Updating files:  67% (16158/24115)
+2026-10-10T04:11:48.8457265Z Updating files:  68% (16399/24115)
+2026-10-10T04:11:48.9269159Z Updating files:  69% (16640/24115)
+2026-10-10T04:11:49.0058795Z Updating files:  70% (16881/24115)
+2026-10-10T04:11:49.0799311Z Updating files:  71% (17122/24115)
+2026-10-10T04:11:49.1626230Z Updating files:  72% (17363/24115)
+2026-10-10T04:11:49.2420907Z Updating files:  73% (17604/24115)
+2026-10-10T04:11:49.3124392Z Updating files:  74% (17846/24115)
+2026-10-10T04:11:49.3959977Z Updating files:  75% (18087/24115)
+2026-10-10T04:11:49.4681113Z Updating files:  76% (18328/24115)
+2026-10-10T04:11:49.5385055Z Updating files:  77% (18569/24115)
+2026-10-10T04:11:49.5562599Z Updating files:  78% (18810/24115)
+2026-10-10T04:11:49.6057842Z Updating files:  78% (18871/24115)
+2026-10-10T04:11:49.6713771Z Updating files:  79% (19051/24115)
+2026-10-10T04:11:49.7429293Z Updating files:  80% (19292/24115)
+2026-10-10T04:11:49.8155962Z Updating files:  81% (19534/24115)
+2026-10-10T04:11:49.8899372Z Updating files:  82% (19775/24115)
+2026-10-10T04:11:49.9652416Z Updating files:  83% (20016/24115)
+2026-10-10T04:11:50.0529765Z Updating files:  84% (20257/24115)
+2026-10-10T04:11:50.1405488Z Updating files:  85% (20498/24115)
+2026-10-10T04:11:50.2235927Z Updating files:  86% (20739/24115)
+2026-10-10T04:11:50.2993676Z Updating files:  87% (20981/24115)
+2026-10-10T04:11:50.3737984Z Updating files:  88% (21222/24115)
+2026-10-10T04:11:50.4487425Z Updating files:  89% (21463/24115)
+2026-10-10T04:11:50.5218004Z Updating files:  90% (21704/24115)
+2026-10-10T04:11:50.5621529Z Updating files:  91% (21945/24115)
+2026-10-10T04:11:50.5949986Z Updating files:  91% (22088/24115)
+2026-10-10T04:11:50.6691321Z Updating files:  92% (22186/24115)
+2026-10-10T04:11:50.7537069Z Updating files:  93% (22427/24115)
+2026-10-10T04:11:50.8303047Z Updating files:  94% (22669/24115)
+2026-10-10T04:11:50.9045991Z Updating files:  95% (22910/24115)
+2026-10-10T04:11:50.9784128Z Updating files:  96% (23151/24115)
+2026-10-10T04:11:51.0443905Z Updating files:  97% (23392/24115)
+2026-10-10T04:11:51.1141117Z Updating files:  98% (23633/24115)
+2026-10-10T04:11:51.1828363Z Updating files:  99% (23874/24115)
+2026-10-10T04:11:51.1828865Z Updating files: 100% (24115/24115)
+2026-10-10T04:11:51.1829475Z Updating files: 100% (24115/24115), done.
+2026-10-10T04:11:51.2277863Z Note: switching to '73f5a3550d87db724f0c539223e671fd3ea6d1e1'.
+2026-10-10T04:11:51.2278358Z 
+2026-10-10T04:11:51.2278693Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T04:11:51.2279541Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T04:11:51.2280328Z state without impacting any branches by switching back to a branch.
+2026-10-10T04:11:51.2280847Z 
+2026-10-10T04:11:51.2281524Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T04:11:51.2282326Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T04:11:51.2282812Z 
+2026-10-10T04:11:51.2283021Z   git switch -c <new-branch-name>
+2026-10-10T04:11:51.2283323Z 
+2026-10-10T04:11:51.2283486Z Or undo this operation with:
+2026-10-10T04:11:51.2283762Z 
+2026-10-10T04:11:51.2283891Z   git switch -
+2026-10-10T04:11:51.2284090Z 
+2026-10-10T04:11:51.2284468Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T04:11:51.2285044Z 
+2026-10-10T04:11:51.2285412Z HEAD is now at 73f5a355 docs(research): archive verified CLI and IDE releases
+2026-10-10T04:11:51.2527532Z ##[endgroup]
+2026-10-10T04:11:51.2874840Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-10T04:11:51.3162535Z 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:51.3531437Z ##[group]Run set -euo pipefail
+2026-10-10T04:11:51.3531852Z [36;1mset -euo pipefail[0m
+2026-10-10T04:11:51.3532196Z [36;1mactual_sha="$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')"[0m
+2026-10-10T04:11:51.3532639Z [36;1mtest "${actual_sha}" = "${CC_SCHEDULER_SOAK_EXPECTED_SHA}"[0m
+2026-10-10T04:11:51.3548995Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T04:11:51.3549398Z env:
+2026-10-10T04:11:51.3549591Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:11:51.3549848Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:11:51.3550118Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:11:51.3550462Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:51.3550829Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:11:51.3551168Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:11:51.3551655Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:11:51.3552021Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:11:51.3552299Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:11:51.3552570Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:11:51.3552987Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:11:51.3553302Z ##[endgroup]
+2026-10-10T04:11:51.4759711Z ##[group]Run actions/setup-node@v5
+2026-10-10T04:11:51.4760038Z with:
+2026-10-10T04:11:51.4760227Z   node-version: 22.12.0
+2026-10-10T04:11:51.4760476Z   cache: npm
+2026-10-10T04:11:51.4760726Z   cache-dependency-path: package-lock.json
+2026-10-10T04:11:51.4761010Z   always-auth: false
+2026-10-10T04:11:51.4761210Z   check-latest: false
+2026-10-10T04:11:51.4763760Z   token: ***
+2026-10-10T04:11:51.4763964Z   package-manager-cache: true
+2026-10-10T04:11:51.4764185Z env:
+2026-10-10T04:11:51.4764359Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:11:51.4764606Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:11:51.4764869Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:11:51.4765200Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:11:51.4765584Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:11:51.4765911Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:11:51.4766396Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:11:51.4766773Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:11:51.4767037Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:11:51.4767311Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:11:51.4767614Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:11:51.4767898Z ##[endgroup]
+2026-10-10T04:11:51.6608407Z Attempting to download 22.12.0...
+2026-10-10T04:11:51.6799977Z (node:10116) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T04:11:51.6801097Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T04:11:52.2851535Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-win32-x64.7z
+2026-10-10T04:11:52.7274577Z Extracting ...
+2026-10-10T04:11:55.4065569Z Adding to the cache ...
+2026-10-10T04:12:00.2928116Z ##[group]Environment details
+2026-10-10T04:12:01.4143363Z node: v22.12.0
+2026-10-10T04:12:01.4143731Z npm: 10.9.0
+2026-10-10T04:12:01.4144008Z yarn: 1.22.22
+2026-10-10T04:12:01.4144655Z ##[endgroup]
+2026-10-10T04:12:01.4993400Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\22.12.0\x64\npm.cmd config get cache"
+2026-10-10T04:12:01.8111274Z C:\npm\cache
+2026-10-10T04:12:02.1963190Z Cache hit for: node-cache-Windows-x64-npm-d3503fe765434c5023351fb7fd33f45f8516162ba8b99227ac409e5de2d4d52b
+2026-10-10T04:12:02.2085497Z (node:10116) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-10T04:12:03.4625938Z Received 54525952 of 639225452 (8.5%), 51.8 MBs/sec
+2026-10-10T04:12:04.4647797Z Received 209715200 of 639225452 (32.8%), 99.7 MBs/sec
+2026-10-10T04:12:05.5173389Z Received 381681664 of 639225452 (59.7%), 119.0 MBs/sec
+2026-10-10T04:12:06.5192746Z Received 528482304 of 639225452 (82.7%), 124.1 MBs/sec
+2026-10-10T04:12:07.5104640Z Received 639225452 of 639225452 (100.0%), 120.8 MBs/sec
+2026-10-10T04:12:07.5106242Z Cache Size: ~610 MB (639225452 B)
+2026-10-10T04:12:07.5107888Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/fecc2cff-32a2-45c2-969e-c8cde00e3901/cache.tzst -P -C D:/a/chainlesschain/chainlesschain --force-local --use-compress-program "zstd -d"
+2026-10-10T04:12:23.9007673Z Cache restored successfully
+2026-10-10T04:12:23.9336794Z Cache restored from key: node-cache-Windows-x64-npm-d3503fe765434c5023351fb7fd33f45f8516162ba8b99227ac409e5de2d4d52b
+2026-10-10T04:12:23.9761023Z Prepare all required actions
+2026-10-10T04:12:23.9852829Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-10T04:12:23.9853130Z with:
+2026-10-10T04:12:23.9853321Z   working-directory: .
+2026-10-10T04:12:23.9853587Z   install-command: npm ci --legacy-peer-deps
+2026-10-10T04:12:23.9853890Z   install-desktop-app-vue: false
+2026-10-10T04:12:23.9854122Z env:
+2026-10-10T04:12:23.9854299Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:12:23.9854553Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:12:23.9854814Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:12:23.9855160Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:12:23.9855532Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:12:23.9855886Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:12:23.9856331Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:12:23.9856755Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:12:23.9857026Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:12:23.9857320Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:12:23.9857635Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:12:23.9857923Z ##[endgroup]
+2026-10-10T04:12:23.9924472Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run]
+2026-10-10T04:12:24.0106843Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-10T04:12:24.0107341Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-10T04:12:24.0107661Z [36;1mattempt_install() {[0m
+2026-10-10T04:12:24.0107897Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-10T04:12:24.0108127Z [36;1m}[0m
+2026-10-10T04:12:24.0108318Z [36;1mcleanup_partial_install() {[0m
+2026-10-10T04:12:24.0108678Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-10T04:12:24.0109173Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-10T04:12:24.0109667Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-10T04:12:24.0110361Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-10T04:12:24.0110815Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-10T04:12:24.0111297Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-10T04:12:24.0112345Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-10T04:12:24.0113254Z [36;1m}[0m
+2026-10-10T04:12:24.0113447Z [36;1mfor i in 1 2 3; do[0m
+2026-10-10T04:12:24.0113678Z [36;1m  if attempt_install; then[0m
+2026-10-10T04:12:24.0113915Z [36;1m    exit 0[0m
+2026-10-10T04:12:24.0114100Z [36;1m  fi[0m
+2026-10-10T04:12:24.0114302Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-10T04:12:24.0114549Z [36;1m    delay=$((i * 15))[0m
+2026-10-10T04:12:24.0114904Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-10T04:12:24.0115294Z [36;1m    sleep "$delay"[0m
+2026-10-10T04:12:24.0115553Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-10T04:12:24.0115988Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-10T04:12:24.0116402Z [36;1m      exit 1[0m
+2026-10-10T04:12:24.0116592Z [36;1m    fi[0m
+2026-10-10T04:12:24.0116774Z [36;1m  fi[0m
+2026-10-10T04:12:24.0116947Z [36;1mdone[0m
+2026-10-10T04:12:24.0117187Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-10T04:12:24.0117493Z [36;1mexit 1[0m
+2026-10-10T04:12:24.0136559Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T04:12:24.0136963Z env:
+2026-10-10T04:12:24.0150624Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:12:24.0150990Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:12:24.0151291Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:12:24.0151647Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:12:24.0152029Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:12:24.0152379Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:12:24.0152831Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:12:24.0153226Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:12:24.0153516Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:12:24.0153802Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:12:24.0154115Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:12:24.0154483Z ##[endgroup]
+2026-10-10T04:12:26.2598193Z npm warn EBADENGINE Unsupported engine {
+2026-10-10T04:12:26.2598934Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+2026-10-10T04:12:26.2599662Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+2026-10-10T04:12:26.2600410Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-10T04:12:26.2600933Z npm warn EBADENGINE }
+2026-10-10T04:12:26.2669294Z npm warn EBADENGINE Unsupported engine {
+2026-10-10T04:12:26.2670392Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+2026-10-10T04:12:26.2671205Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+2026-10-10T04:12:26.2672062Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-10T04:12:26.2672711Z npm warn EBADENGINE }
+2026-10-10T04:12:27.8815824Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-10T04:12:43.8152359Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-10T04:12:43.8216083Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T04:12:43.9877505Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-10T04:12:44.0354419Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-10T04:12:44.0795800Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-10T04:12:44.3173844Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-10T04:12:44.3533752Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-10T04:12:44.6014307Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-10T04:12:44.6031352Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T04:12:44.6226213Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-10T04:12:45.1322893Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-10T04:12:45.1424730Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-10T04:12:45.6368088Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6376970Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6405692Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6495993Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6514707Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6544751Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6593894Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6718165Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:45.6731766Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:12:46.5919219Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-10T04:12:46.6136168Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-10T04:12:47.0288580Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T04:12:49.2584627Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T04:12:50.2010457Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T04:12:50.5601242Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-10T04:12:50.5640155Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T04:12:50.7137685Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T04:12:51.9011350Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-10T04:12:53.8010231Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-10T04:12:55.7471790Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-10T04:12:57.2052087Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-10T04:12:59.7088621Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T04:12:59.7092063Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T04:13:00.0562641Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:13:00.0597961Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:13:00.0604189Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T04:13:00.7351854Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T04:13:12.2262872Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T04:13:14.4948576Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-10T04:15:13.9777810Z npm warn cleanup Failed to remove some directories [
+2026-10-10T04:15:13.9778446Z npm warn cleanup   [
+2026-10-10T04:15:13.9779325Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\tar-fs',
+2026-10-10T04:15:13.9781065Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\tar-fs'] {
+2026-10-10T04:15:13.9784064Z npm warn cleanup       errno: -4048,
+2026-10-10T04:15:13.9784635Z npm warn cleanup       code: 'EPERM',
+2026-10-10T04:15:13.9785264Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T04:15:13.9786339Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\tar-fs'
+2026-10-10T04:15:13.9787246Z npm warn cleanup     }
+2026-10-10T04:15:13.9787592Z npm warn cleanup   ]
+2026-10-10T04:15:13.9788001Z npm warn cleanup ]
+2026-10-10T04:15:14.6878670Z 
+2026-10-10T04:15:14.6879484Z added 2514 packages, and audited 2530 packages in 3m
+2026-10-10T04:15:14.6879926Z 
+2026-10-10T04:15:14.6880498Z 471 packages are looking for funding
+2026-10-10T04:15:14.6881018Z   run `npm fund` for details
+2026-10-10T04:15:14.9960331Z 
+2026-10-10T04:15:14.9961201Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T04:15:14.9961678Z 
+2026-10-10T04:15:14.9962058Z To address issues that do not require attention, run:
+2026-10-10T04:15:14.9962620Z   npm audit fix
+2026-10-10T04:15:14.9962785Z 
+2026-10-10T04:15:14.9963343Z To address all issues possible (including breaking changes), run:
+2026-10-10T04:15:14.9963924Z   npm audit fix --force
+2026-10-10T04:15:14.9964140Z 
+2026-10-10T04:15:14.9964403Z Some issues need review, and may require choosing
+2026-10-10T04:15:14.9964909Z a different dependency.
+2026-10-10T04:15:14.9965128Z 
+2026-10-10T04:15:14.9965308Z Run `npm audit` for details.
+2026-10-10T04:15:15.0395625Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=171047]
+2026-10-10T04:15:15.0400623Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_2]
+2026-10-10T04:15:15.0411166Z ##[end-action id=__self.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-10T04:15:15.0415401Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_3]
+2026-10-10T04:15:15.0563865Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-10T04:15:15.0564363Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-10T04:15:15.0565303Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-10T04:15:15.0565898Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-10T04:15:15.0566326Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-10T04:15:15.0566670Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-10T04:15:15.0567067Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-10T04:15:15.0567454Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-10T04:15:15.0567843Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-10T04:15:15.0568244Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-10T04:15:15.0568634Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-10T04:15:15.0568951Z [36;1m  *)             pkg="" ;;[0m
+2026-10-10T04:15:15.0569181Z [36;1mesac[0m
+2026-10-10T04:15:15.0569390Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-10T04:15:15.0569690Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-10T04:15:15.0569985Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-10T04:15:15.0570239Z [36;1m  echo "Installing: $packages"[0m
+2026-10-10T04:15:15.0570530Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-10T04:15:15.0570881Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-10T04:15:15.0571237Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-10T04:15:15.0571552Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-10T04:15:15.0571841Z [36;1m  else[0m
+2026-10-10T04:15:15.0572122Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-10T04:15:15.0572484Z [36;1m  fi[0m
+2026-10-10T04:15:15.0572661Z [36;1mfi[0m
+2026-10-10T04:15:15.0589427Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-10T04:15:15.0590005Z env:
+2026-10-10T04:15:15.0590191Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:15:15.0590449Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:15:15.0590729Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:15:15.0591077Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:15:15.0591449Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:15:15.0591797Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:15:15.0592235Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:15:15.0592606Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:15:15.0592925Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:15:15.0593205Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:15:15.0593518Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:15:15.0593802Z   EXTRA_PACKAGES: 
+2026-10-10T04:15:15.0594006Z   INSTALL_WORKSPACE: 
+2026-10-10T04:15:15.0594202Z ##[endgroup]
+2026-10-10T04:15:15.1884640Z Installing: @rollup/rollup-win32-x64-msvc
+2026-10-10T04:15:18.4476856Z npm warn EBADENGINE Unsupported engine {
+2026-10-10T04:15:18.4477381Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+2026-10-10T04:15:18.4477906Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+2026-10-10T04:15:18.4478432Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-10T04:15:18.4478820Z npm warn EBADENGINE }
+2026-10-10T04:15:18.4570888Z npm warn EBADENGINE Unsupported engine {
+2026-10-10T04:15:18.4571792Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+2026-10-10T04:15:18.4572649Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+2026-10-10T04:15:18.4573563Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-10T04:15:18.4576805Z npm warn EBADENGINE }
+2026-10-10T04:15:19.0138608Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T04:15:19.3495045Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T04:15:19.4206271Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T04:15:19.4821065Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T04:15:19.4939576Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T04:15:23.0463696Z npm warn cleanup Failed to remove some directories [
+2026-10-10T04:15:23.0464104Z npm warn cleanup   [
+2026-10-10T04:15:23.0464565Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs',
+2026-10-10T04:15:23.0465563Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\node-abi\.github'] {
+2026-10-10T04:15:23.0466291Z npm warn cleanup       errno: -4048,
+2026-10-10T04:15:23.0466596Z npm warn cleanup       code: 'EPERM',
+2026-10-10T04:15:23.0466901Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T04:15:23.0467539Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\node-abi\\.github'
+2026-10-10T04:15:23.0468086Z npm warn cleanup     }
+2026-10-10T04:15:23.0468308Z npm warn cleanup   ],
+2026-10-10T04:15:23.0468528Z npm warn cleanup   [
+2026-10-10T04:15:23.0469043Z npm warn cleanup     'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\tar-stream',
+2026-10-10T04:15:23.0470187Z npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'D:\a\chainlesschain\chainlesschain\node_modules\robotjs\node_modules\tar-stream\node_modules\readable-stream\lib\internal'] {
+2026-10-10T04:15:23.0471105Z npm warn cleanup       errno: -4048,
+2026-10-10T04:15:23.0471495Z npm warn cleanup       code: 'EPERM',
+2026-10-10T04:15:23.0472087Z npm warn cleanup       syscall: 'rmdir',
+2026-10-10T04:15:23.0473793Z npm warn cleanup       path: 'D:\\a\\chainlesschain\\chainlesschain\\node_modules\\robotjs\\node_modules\\tar-stream\\node_modules\\readable-stream\\lib\\internal'
+2026-10-10T04:15:23.0474478Z npm warn cleanup     }
+2026-10-10T04:15:23.0474696Z npm warn cleanup   ]
+2026-10-10T04:15:23.0474963Z npm warn cleanup ]
+2026-10-10T04:15:23.6725235Z 
+2026-10-10T04:15:23.6726182Z added 1 package, changed 1 package, and audited 2531 packages in 8s
+2026-10-10T04:15:23.6726819Z 
+2026-10-10T04:15:23.6727104Z 471 packages are looking for funding
+2026-10-10T04:15:23.6727973Z   run `npm fund` for details
+2026-10-10T04:15:23.9539656Z 
+2026-10-10T04:15:23.9540739Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T04:15:23.9541508Z 
+2026-10-10T04:15:23.9541747Z To address issues that do not require attention, run:
+2026-10-10T04:15:23.9542097Z   npm audit fix
+2026-10-10T04:15:23.9542223Z 
+2026-10-10T04:15:23.9542481Z To address all issues possible (including breaking changes), run:
+2026-10-10T04:15:23.9542851Z   npm audit fix --force
+2026-10-10T04:15:23.9542986Z 
+2026-10-10T04:15:23.9543160Z Some issues need review, and may require choosing
+2026-10-10T04:15:23.9543473Z a different dependency.
+2026-10-10T04:15:23.9543614Z 
+2026-10-10T04:15:23.9543729Z Run `npm audit` for details.
+2026-10-10T04:15:23.9834623Z ##[end-action id=__self.__run_3;outcome=success;conclusion=success;duration_ms=8941]
+2026-10-10T04:15:24.0010730Z ##[group]Run npm run test:cli-scheduler-soak
+2026-10-10T04:15:24.0011154Z [36;1mnpm run test:cli-scheduler-soak[0m
+2026-10-10T04:15:24.0541191Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-10T04:15:24.0541757Z env:
+2026-10-10T04:15:24.0542029Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:15:24.0542387Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:15:24.0542781Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:15:24.0543301Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:15:24.0543844Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:15:24.0544329Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:15:24.0544998Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:15:24.0545541Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:15:24.0545935Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:15:24.0546408Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:15:24.0546878Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:15:24.0547528Z   CC_SCHEDULER_SOAK_OUTPUT: D:\a\_temp/scheduler-kernel-soak-Windows.json
+2026-10-10T04:15:24.0548068Z ##[endgroup]
+2026-10-10T04:15:24.8723341Z 
+2026-10-10T04:15:24.8724094Z > chainlesschain@5.0.3.54 test:cli-scheduler-soak
+2026-10-10T04:15:24.8724988Z > node packages/cli/scripts/scheduler-kernel-soak.mjs
+2026-10-10T04:15:24.8725441Z 
+2026-10-10T04:15:46.4561552Z Error: before-execute replacement failed: code=1 signal=none SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_f0c7c0124f1e3f19bdbc2866097d17cb2c8202aef7e3ede18918ed3d5256236f
+2026-10-10T04:15:46.4563634Z     at leaseLost (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-store.js:2266:10)
+2026-10-10T04:15:46.4564845Z     at D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-store.js:5048:39
+2026-10-10T04:15:46.4566204Z     at Function.<anonymous> (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-store.js:2375:24)
+2026-10-10T04:15:46.4567783Z     at Function.sqliteTransaction (D:\a\chainlesschain\chainlesschain\node_modules\better-sqlite3\lib\methods\transaction.js:65:24)
+2026-10-10T04:15:46.4569363Z     at SchedulerStore._write (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-store.js:2390:28)
+2026-10-10T04:15:46.4570859Z     at SchedulerStore.renew (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-store.js:5022:17)
+2026-10-10T04:15:46.4572737Z     at Object.renew [as renewLease] (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-runtime.js:552:20)
+2026-10-10T04:15:46.4574711Z     at writeEffect (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:245:13)
+2026-10-10T04:15:46.4576401Z     at async Object.execute (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:327:22)
+2026-10-10T04:15:46.4578064Z     at async SchedulerRuntime._executeClaim (D:\a\chainlesschain\chainlesschain\packages\session-core\lib\scheduler-runtime.js:672:18)
+2026-10-10T04:15:46.4578979Z 
+2026-10-10T04:15:46.4579727Z     at assertInvariant (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:891:17)
+2026-10-10T04:15:46.4581312Z     at requireWorkerSuccess (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1100:3)
+2026-10-10T04:15:46.4582653Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-10-10T04:15:46.4584111Z     at async retireSuccessfulWorker (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1543:18)
+2026-10-10T04:15:46.4585963Z     at async runBeforeExecuteCrashScenario (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1816:33)
+2026-10-10T04:15:46.4593428Z     at async runSchedulerKernelSoak (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)
+2026-10-10T04:15:46.4595588Z     at async main (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)
+2026-10-10T04:15:46.4597024Z     at async file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2684:20
+2026-10-10T04:15:46.5092950Z ##[error]Process completed with exit code 1.
+2026-10-10T04:15:46.5317140Z ##[group]Run actions/upload-artifact@v6
+2026-10-10T04:15:46.5317486Z with:
+2026-10-10T04:15:46.5317833Z   name: cli-scheduler-soak-Windows-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1
+2026-10-10T04:15:46.5318305Z   path: D:\a\_temp/scheduler-kernel-soak-Windows.json
+2026-10-10T04:15:46.5318619Z   if-no-files-found: error
+2026-10-10T04:15:46.5318833Z   retention-days: 90
+2026-10-10T04:15:46.5319035Z   compression-level: 6
+2026-10-10T04:15:46.5319234Z   overwrite: false
+2026-10-10T04:15:46.5319433Z   include-hidden-files: false
+2026-10-10T04:15:46.5319646Z env:
+2026-10-10T04:15:46.5319818Z   CC_SCHEDULER_SOAK_MODE: smoke
+2026-10-10T04:15:46.5320058Z   CC_SCHEDULER_SOAK_DURATION_SECONDS: 15
+2026-10-10T04:15:46.5320326Z   CC_SCHEDULER_SOAK_LEASE_MS: 1000
+2026-10-10T04:15:46.5320661Z   CC_SCHEDULER_SOAK_EXPECTED_SHA: 73f5a3550d87db724f0c539223e671fd3ea6d1e1
+2026-10-10T04:15:46.5321419Z   CC_SCHEDULER_SOAK_SEED: 1592598566
+2026-10-10T04:15:46.5321812Z   CC_SCHEDULER_SOAK_CAMPAIGN: p2-4-scheduler-long-soak-775d5667bc7b
+2026-10-10T04:15:46.5322266Z   CC_SCHEDULER_SOAK_WORKFLOW_SHA: e028f074f6122cfb0945b9a9e3a2942586703b29
+2026-10-10T04:15:46.5322626Z   CC_SCHEDULER_SOAK_MAX_RSS_GROWTH_MB: 128
+2026-10-10T04:15:46.5322895Z   CC_SCHEDULER_SOAK_MAX_RESOURCE_GROWTH: 8
+2026-10-10T04:15:46.5323170Z   CC_SCHEDULER_SOAK_CLEANUP_DEADLINE_MS: 10000
+2026-10-10T04:15:46.5323469Z   CC_SCHEDULER_SOAK_CHECKPOINT_INTERVAL_SECONDS: 30
+2026-10-10T04:15:46.5323739Z ##[endgroup]
+2026-10-10T04:15:46.7695857Z With the provided path, there will be 1 file uploaded
+2026-10-10T04:15:46.7702213Z Artifact name is valid!
+2026-10-10T04:15:46.7704323Z Root directory input is valid!
+2026-10-10T04:15:47.1637073Z Beginning upload of artifact content to blob storage
+2026-10-10T04:15:47.4544377Z Uploaded bytes 6771
+2026-10-10T04:15:47.5245329Z Finished uploading artifact content to blob storage!
+2026-10-10T04:15:47.5247530Z SHA256 digest of uploaded artifact zip is 24a84a4f5e9a7c052628973deca49a91efed74e6be7ae0fd354eb8b2208d72b5
+2026-10-10T04:15:47.5249686Z Finalizing artifact upload
+2026-10-10T04:15:47.9232286Z Artifact cli-scheduler-soak-Windows-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1.zip successfully finalized. Artifact ID 11659065802
+2026-10-10T04:15:47.9234442Z Artifact cli-scheduler-soak-Windows-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1 has been successfully uploaded! Final size is 6771 bytes. Artifact ID is 11659065802
+2026-10-10T04:15:47.9244596Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38023140779/artifacts/11659065802
+2026-10-10T04:15:47.9626646Z Post job cleanup.
+2026-10-10T04:15:48.1894249Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-10T04:15:48.2186772Z git version 2.55.0.windows.5
+2026-10-10T04:15:48.2266277Z Temporarily overriding HOME='D:\a\_temp\bc9c3d4e-5f91-41c3-a2e6-929170f464f1' before making global git config changes
+2026-10-10T04:15:48.2267740Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T04:15:48.2279358Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-10T04:15:48.2650918Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T04:15:48.3007145Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-10T04:15:49.1120344Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T04:15:49.1418901Z http.https://github.com/.extraheader
+2026-10-10T04:15:49.1472983Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T04:15:49.1885824Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-10T04:15:49.8950808Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T04:15:49.9281133Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-10T04:15:50.6337479Z Cleaning up orphan processes

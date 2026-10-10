@@ -1,0 +1,7631 @@
+﻿[
+  {
+    "id": "chainlesschain@0.166.96",
+    "name": "chainlesschain",
+    "version": "0.166.96",
+    "size": 7000368,
+    "unpackedSize": 32027397,
+    "shasum": "d67d10dbbd4ab379062fd3639e83427e4760c15d",
+    "integrity": "sha512-NSNza0IGScGNODf9nI7ewLcg40DzXXEsRMdi3eJHYcCDMBdqE3X+UkqF1ZL9FdcafVFZNKf60e0uj7Eg7ELscQ==",
+    "filename": "chainlesschain-0.166.96.tgz",
+    "files": [
+      {
+        "path": "README.md",
+        "size": 159648,
+        "mode": 420
+      },
+      {
+        "path": "bin/chainlesschain.js",
+        "size": 1023,
+        "mode": 420
+      },
+      {
+        "path": "completions/_cc",
+        "size": 3989,
+        "mode": 420
+      },
+      {
+        "path": "completions/cc.bash",
+        "size": 2144,
+        "mode": 420
+      },
+      {
+        "path": "completions/cc.fish",
+        "size": 2501,
+        "mode": 420
+      },
+      {
+        "path": "completions/cc.ps1",
+        "size": 3938,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 7356,
+        "mode": 420
+      },
+      {
+        "path": "scripts/build-windows-sandbox-helper.ps1",
+        "size": 5426,
+        "mode": 420
+      },
+      {
+        "path": "scripts/command-lifecycle-report.mjs",
+        "size": 12263,
+        "mode": 420
+      },
+      {
+        "path": "scripts/governed-learning-local-attestor-service.mjs",
+        "size": 7374,
+        "mode": 420
+      },
+      {
+        "path": "scripts/governed-learning-local-attestor-trust-approval-service.mjs",
+        "size": 10712,
+        "mode": 420
+      },
+      {
+        "path": "scripts/governed-learning-local-attestor-trust-operations-service.mjs",
+        "size": 18548,
+        "mode": 420
+      },
+      {
+        "path": "scripts/governed-learning-windows-secure-pipe-broker.ps1",
+        "size": 12584,
+        "mode": 420
+      },
+      {
+        "path": "scripts/macos-mcp-launcher-build.mjs",
+        "size": 10598,
+        "mode": 420
+      },
+      {
+        "path": "scripts/macos-mcp-launcher-postinstall.sh",
+        "size": 1795,
+        "mode": 420
+      },
+      {
+        "path": "scripts/macos-mcp-launcher-preinstall.sh",
+        "size": 2046,
+        "mode": 420
+      },
+      {
+        "path": "scripts/pm-exploration-effect.mjs",
+        "size": 7426,
+        "mode": 420
+      },
+      {
+        "path": "scripts/postinstall.mjs",
+        "size": 2230,
+        "mode": 420
+      },
+      {
+        "path": "scripts/repair-node-pty.mjs",
+        "size": 2169,
+        "mode": 420
+      },
+      {
+        "path": "src/assets/web-panel/index.html",
+        "size": 661,
+        "mode": 420
+      },
+      {
+        "path": "src/auth/npm-auth.js",
+        "size": 1930,
+        "mode": 420
+      },
+      {
+        "path": "src/cli-help.js",
+        "size": 5895,
+        "mode": 420
+      },
+      {
+        "path": "src/command-help-index.json",
+        "size": 439623,
+        "mode": 420
+      },
+      {
+        "path": "src/command-manifest.json",
+        "size": 74230,
+        "mode": 420
+      },
+      {
+        "path": "src/command-surface-policy.js",
+        "size": 8932,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/android.test.js",
+        "size": 9266,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-aichat.test.js",
+        "size": 10138,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-ask.test.js",
+        "size": 8561,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-bilibili-adb-sync.test.js",
+        "size": 12216,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-douyin-adb-sync.test.js",
+        "size": 6657,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-health.test.js",
+        "size": 3411,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-kuaishou-adb-sync.test.js",
+        "size": 5626,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-query-events.test.js",
+        "size": 4310,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-stats.test.js",
+        "size": 3405,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-toutiao-adb-sync.test.js",
+        "size": 5584,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-wechat.test.js",
+        "size": 15642,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-weibo-adb-sync.test.js",
+        "size": 5360,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/__tests__/hub-xhs-adb-sync.test.js",
+        "size": 5274,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/a2a.js",
+        "size": 37919,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/activitypub.js",
+        "size": 30357,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agenda.js",
+        "size": 31009,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agent-controlled-host.js",
+        "size": 8218,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agent-network.js",
+        "size": 38432,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agent-process-ownership.js",
+        "size": 4317,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agent.js",
+        "size": 155428,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/agents.js",
+        "size": 13761,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/android.js",
+        "size": 8928,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/artifacts.js",
+        "size": 37928,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ask.js",
+        "size": 11903,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/audit.js",
+        "size": 37039,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/auth.js",
+        "size": 11698,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/auto-mode.js",
+        "size": 4397,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/automation.js",
+        "size": 53760,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/background-session.js",
+        "size": 42437,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/batch.js",
+        "size": 16861,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/bi.js",
+        "size": 31635,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/bm25.js",
+        "size": 5106,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/browse.js",
+        "size": 28126,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ccron.js",
+        "size": 5325,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/changelog.js",
+        "size": 4875,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/chat.js",
+        "size": 27629,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/checkpoint-managed.js",
+        "size": 34497,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/checkpoint-restore-recovery.js",
+        "size": 53345,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/checkpoint.js",
+        "size": 53427,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/cli-anything.js",
+        "size": 20429,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/cloud.js",
+        "size": 7843,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/codegen.js",
+        "size": 24018,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/codeintel.js",
+        "size": 11387,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/collab.js",
+        "size": 31418,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/command.js",
+        "size": 9425,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/compact.js",
+        "size": 24133,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/complete.js",
+        "size": 7701,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/compliance.js",
+        "size": 92801,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/compt.js",
+        "size": 5367,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/config.js",
+        "size": 32570,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/consol.js",
+        "size": 6674,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/context.js",
+        "size": 19503,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/cost.js",
+        "size": 4607,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/cowork.js",
+        "size": 149918,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/crosschain.js",
+        "size": 69855,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/dao.js",
+        "size": 42193,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/db.js",
+        "size": 20036,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/dbevo.js",
+        "size": 29648,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/dev.js",
+        "size": 26042,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/did-v2.js",
+        "size": 26478,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/did.js",
+        "size": 28172,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/dlp.js",
+        "size": 31410,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/doctor.js",
+        "size": 7285,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/economy.js",
+        "size": 44953,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/encrypt.js",
+        "size": 22874,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/eval.js",
+        "size": 19681,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution-attestor-trust.js",
+        "size": 3254,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution-benchmark.js",
+        "size": 2291,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution-deployment.js",
+        "size": 7260,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution-knowledge.js",
+        "size": 2875,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution-workbench.js",
+        "size": 2486,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evolution.js",
+        "size": 40276,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/evomap.js",
+        "size": 61224,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/export.js",
+        "size": 17544,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/federation.js",
+        "size": 31064,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/fflag.js",
+        "size": 6785,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/fusion.js",
+        "size": 27758,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/git.js",
+        "size": 13059,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/goal.js",
+        "size": 15247,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/governance.js",
+        "size": 33613,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/governed-skill-marketplace.js",
+        "size": 4454,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/graph.js",
+        "size": 10997,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/hardening.js",
+        "size": 31562,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/hmemory.js",
+        "size": 37936,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/hook.js",
+        "size": 41218,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/hub.js",
+        "size": 166635,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ide.js",
+        "size": 7230,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/import.js",
+        "size": 21320,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/incentive.js",
+        "size": 28938,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/inference.js",
+        "size": 33361,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/infra.js",
+        "size": 25796,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/init.js",
+        "size": 101119,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/insights.js",
+        "size": 5046,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/instinct.js",
+        "size": 22785,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ipfs.js",
+        "size": 30177,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/itbudget.js",
+        "size": 5058,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/kg.js",
+        "size": 38961,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/learning.js",
+        "size": 14727,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/llm.js",
+        "size": 35451,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/loop.js",
+        "size": 22519,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/lowcode.js",
+        "size": 28752,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/marketplace.js",
+        "size": 38024,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/matrix.js",
+        "size": 26465,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/mcp.js",
+        "size": 101185,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/mcpscaf.js",
+        "size": 5042,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/meminj.js",
+        "size": 4823,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/memory.js",
+        "size": 47724,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/mtc.js",
+        "size": 120921,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/multimodal.js",
+        "size": 31221,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/multisig.js",
+        "size": 15956,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/nlprog.js",
+        "size": 30442,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/nostr.js",
+        "size": 24515,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/note.js",
+        "size": 28446,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/notification.js",
+        "size": 7450,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ops.js",
+        "size": 32504,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/orchestrate.js",
+        "size": 47386,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/orchgov.js",
+        "size": 4866,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/org.js",
+        "size": 28330,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/output-style.js",
+        "size": 4691,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/p2p.js",
+        "size": 29283,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pack.js",
+        "size": 27639,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pair.js",
+        "size": 8838,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pdfp.js",
+        "size": 5052,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pdh.js",
+        "size": 11506,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/perception.js",
+        "size": 29395,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/perf.js",
+        "size": 19662,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/perm.js",
+        "size": 4786,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/permissions.js",
+        "size": 22653,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/permmem.js",
+        "size": 13008,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/persona.js",
+        "size": 10455,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pipeline.js",
+        "size": 26314,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/planmode.js",
+        "size": 17068,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/plugin-ecosystem.js",
+        "size": 31174,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/plugin.js",
+        "size": 153212,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/pqc.js",
+        "size": 23819,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/privacy.js",
+        "size": 30578,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/project.js",
+        "size": 13895,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/promcomp.js",
+        "size": 5741,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/quantization.js",
+        "size": 27487,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/rcache.js",
+        "size": 13725,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/recommend.js",
+        "size": 35767,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/record-replay.js",
+        "size": 25355,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/remote-control.js",
+        "size": 19116,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/reputation.js",
+        "size": 27126,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/review.js",
+        "size": 47783,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/routine.js",
+        "size": 14257,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/runtime.js",
+        "size": 33853,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sandbox.js",
+        "size": 39522,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/scheduler-daemon.js",
+        "size": 24200,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/scim.js",
+        "size": 21740,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/search.js",
+        "size": 6897,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/serve.js",
+        "size": 11829,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/services.js",
+        "size": 8460,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/seshhook.js",
+        "size": 4985,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/seshsearch.js",
+        "size": 4772,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/seshtail.js",
+        "size": 4662,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/seshu.js",
+        "size": 4942,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-budget.js",
+        "size": 5739,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-group.js",
+        "size": 3571,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-location.js",
+        "size": 51568,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-mcp-recovery.js",
+        "size": 7481,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-message.js",
+        "size": 5517,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-observability.js",
+        "size": 10384,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session-show.js",
+        "size": 8178,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/session.js",
+        "size": 93100,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/setup.js",
+        "size": 13651,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sganal.js",
+        "size": 5242,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/siem.js",
+        "size": 18297,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/skill.js",
+        "size": 50813,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sla.js",
+        "size": 25689,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/slotfill.js",
+        "size": 4837,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/social.js",
+        "size": 54935,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sso.js",
+        "size": 38824,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/start.js",
+        "size": 8068,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/status.js",
+        "size": 5023,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/statusline.js",
+        "size": 3103,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/stop.js",
+        "size": 1484,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/stream.js",
+        "size": 9462,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/stress.js",
+        "size": 21387,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/svccont.js",
+        "size": 5178,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sync-providers.js",
+        "size": 13496,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/sync.js",
+        "size": 22209,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/team-distributed.js",
+        "size": 113010,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/team-merge-review.js",
+        "size": 28076,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/team.js",
+        "size": 128142,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/tech.js",
+        "size": 24213,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/tenant.js",
+        "size": 36907,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/terminal-setup.js",
+        "size": 4255,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/terraform.js",
+        "size": 19225,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/tms.js",
+        "size": 5255,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/tokens.js",
+        "size": 21089,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/topiccls.js",
+        "size": 5026,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/trust.js",
+        "size": 28154,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/ui.js",
+        "size": 8988,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/update.js",
+        "size": 9889,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/uprof.js",
+        "size": 4860,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/vcheck.js",
+        "size": 5304,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/video.js",
+        "size": 13573,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/wallet.js",
+        "size": 26144,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/webfetch.js",
+        "size": 4638,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/workflow.js",
+        "size": 38409,
+        "mode": 420
+      },
+      {
+        "path": "src/commands/zkp.js",
+        "size": 32706,
+        "mode": 420
+      },
+      {
+        "path": "src/constants.js",
+        "size": 4772,
+        "mode": 420
+      },
+      {
+        "path": "src/data/auto-mode-safety-eval-v1.json",
+        "size": 108635,
+        "mode": 420
+      },
+      {
+        "path": "src/data/changelog.json",
+        "size": 328820,
+        "mode": 420
+      },
+      {
+        "path": "src/esm-bridge.js",
+        "size": 42,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/discord/discord-formatter.js",
+        "size": 2980,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/gateway-base.js",
+        "size": 6048,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/http/envelope-http-server.js",
+        "size": 6667,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/remote-session-relay.js",
+        "size": 4631,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/repl/agent-repl.js",
+        "size": 59,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/repl/chat-repl.js",
+        "size": 57,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/telegram/telegram-formatter.js",
+        "size": 2680,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/terminal/PtyManager.js",
+        "size": 10664,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/terminal/RingBuffer.js",
+        "size": 1739,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/terminal/terminal-handlers.js",
+        "size": 3860,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ui/web-ui-server.js",
+        "size": 64,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/action-protocol.js",
+        "size": 21864,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/artifact-protocol.js",
+        "size": 9090,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/background-agent-protocol.js",
+        "size": 15560,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/chat-intent-protocol.js",
+        "size": 5354,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/evolution-deployment-topic-handlers.js",
+        "size": 2553,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/llm-chat-protocol.js",
+        "size": 5936,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/llm-creds.js",
+        "size": 2983,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/mcp-topic-handlers.js",
+        "size": 5514,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/message-dispatcher.js",
+        "size": 19652,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/personal-data-hub-protocol.js",
+        "size": 29026,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/remote-session-protocol.js",
+        "size": 44771,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/session-core-protocol.js",
+        "size": 16467,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/session-protocol.js",
+        "size": 76208,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/task-protocol.js",
+        "size": 1254,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/topic-handler-attachment.js",
+        "size": 6655,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/video-protocol.js",
+        "size": 7520,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/worktree-protocol.js",
+        "size": 8565,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/ws-agent-handler.js",
+        "size": 93302,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/ws-approval-gate.js",
+        "size": 11258,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/ws-server.js",
+        "size": 80900,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/ws-session-gateway.js",
+        "size": 69498,
+        "mode": 420
+      },
+      {
+        "path": "src/gateways/ws/ws-session-state.js",
+        "size": 17132,
+        "mode": 420
+      },
+      {
+        "path": "src/generated/cc-agent-protocol.schema.json",
+        "size": 133333,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/background-task-command-runner.js",
+        "size": 7005,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/background-task-manager.js",
+        "size": 29562,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/background-task-worker.js",
+        "size": 1120,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/compression-telemetry.js",
+        "size": 5806,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/feature-flags.js",
+        "size": 4921,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/golden-transcript.js",
+        "size": 2047,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/jsonl-session-store.js",
+        "size": 251379,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/mcp-client.js",
+        "size": 215517,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/mock-llm-provider.js",
+        "size": 5878,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/plugin-manager.js",
+        "size": 12332,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/prompt-compressor.js",
+        "size": 39408,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/provider-backed-compaction.js",
+        "size": 10161,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-command-ledger.js",
+        "size": 9682,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-audit-sink.js",
+        "size": 4331,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-audit.js",
+        "size": 3638,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-crypto.js",
+        "size": 39008,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-apns.js",
+        "size": 8177,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-errors.js",
+        "size": 566,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-fcm.js",
+        "size": 8400,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-huawei.js",
+        "size": 6102,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-oppo.js",
+        "size": 6297,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-senders.js",
+        "size": 1640,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-vivo.js",
+        "size": 6595,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-web.js",
+        "size": 10031,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push-xiaomi.js",
+        "size": 3913,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-push.js",
+        "size": 3317,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/remote-session-registry.js",
+        "size": 45911,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/session-index.js",
+        "size": 11741,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/session-list-index.js",
+        "size": 22289,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/session-mirror.js",
+        "size": 12183,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/structured-handoff.js",
+        "size": 12501,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/transcript-integrity.js",
+        "size": 6323,
+        "mode": 420
+      },
+      {
+        "path": "src/harness/worktree-isolator.js",
+        "size": 54415,
+        "mode": 420
+      },
+      {
+        "path": "src/index.js",
+        "size": 5699,
+        "mode": 420
+      },
+      {
+        "path": "src/lazy-dispatch.js",
+        "size": 29746,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/agents.test.js",
+        "size": 7264,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/cc-android-bridge.test.js",
+        "size": 8809,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/cowork-observe-html.test.js",
+        "size": 4731,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/logger.test.js",
+        "size": 4041,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/model-deprecation.test.js",
+        "size": 7325,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/pdh-load-error.test.js",
+        "size": 3391,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/pdh-wiring-load-error.test.js",
+        "size": 2527,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/personal-data-hub-aichat-wizard.test.js",
+        "size": 7709,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/project-inventory.test.js",
+        "size": 8852,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/project-root.test.js",
+        "size": 3050,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/provider-stream.test.js",
+        "size": 5883,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/sync-credentials.test.js",
+        "size": 8209,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/__tests__/sync-engine-cli.test.js",
+        "size": 9209,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/a2a-protocol.js",
+        "size": 47378,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/abort-utils.js",
+        "size": 2529,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/accessibility.js",
+        "size": 2095,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/activitypub-bridge.js",
+        "size": 43752,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/advisor-runtime.js",
+        "size": 34199,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-authority.js",
+        "size": 10709,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-batch.js",
+        "size": 7621,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-coordinator.js",
+        "size": 31367,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-core.js",
+        "size": 198,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-economy.js",
+        "size": 56133,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-execution-policy.js",
+        "size": 5509,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-ipc-bus.js",
+        "size": 23413,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-ipc-flow-control.js",
+        "size": 5226,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-network.js",
+        "size": 59440,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-notify.js",
+        "size": 2076,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-router.js",
+        "size": 41983,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-sandbox.js",
+        "size": 38522,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-schedule-store.js",
+        "size": 58835,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-session-export.js",
+        "size": 4685,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-stream.js",
+        "size": 1670,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/task-lease.js",
+        "size": 75372,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-adjudication.js",
+        "size": 48759,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-agent-stream.js",
+        "size": 14662,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-budget.js",
+        "size": 11996,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-control-store.js",
+        "size": 17846,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-distributed-graph-bridge.js",
+        "size": 7939,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-distributed-graph-writer.js",
+        "size": 16334,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-distributed-queue.js",
+        "size": 169282,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-graph-projection.js",
+        "size": 9269,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-graph-runtime-adapter.js",
+        "size": 64304,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-mailbox.js",
+        "size": 32533,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-merge-review-store.js",
+        "size": 24188,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-merge-review-transaction.js",
+        "size": 37180,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-merge-review.js",
+        "size": 54605,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-message-bridge.js",
+        "size": 21164,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-message-tools.js",
+        "size": 7881,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-process-checkpoint.js",
+        "size": 6858,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-run-state-lock.js",
+        "size": 6311,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-runner.js",
+        "size": 96797,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-scope-lock.js",
+        "size": 11450,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-session-message-adapter.js",
+        "size": 22284,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-task-contract.js",
+        "size": 7964,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-team/team-worktree.js",
+        "size": 88209,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-tool-admission.js",
+        "size": 8612,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agent-worktree.js",
+        "size": 9568,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/agents.js",
+        "size": 10268,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/aiops.js",
+        "size": 43382,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/api-key-helper.js",
+        "size": 2503,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-builder.js",
+        "size": 31311,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-preview.js",
+        "size": 13582,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/bounded-queue.js",
+        "size": 2281,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/cli-agent-kernel-adapter.js",
+        "size": 10268,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/context-memory-notifications.js",
+        "size": 1446,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/graph-runtime.js",
+        "size": 41063,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/protocol.js",
+        "size": 4716,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/rollout-store-factory.js",
+        "size": 3271,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/rollout-store.js",
+        "size": 26973,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/server.js",
+        "size": 54930,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/sqlite-rollout-store.js",
+        "size": 9863,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/stdio-transport.js",
+        "size": 3185,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/app-server/websocket-transport.js",
+        "size": 18767,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/approval-authority-store.js",
+        "size": 26924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/approval-grant-ledger.js",
+        "size": 7808,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-access-ledger.js",
+        "size": 14534,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-cleanup-ledger.js",
+        "size": 26934,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-deletion-ledger.js",
+        "size": 21619,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-recovery.js",
+        "size": 31867,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-store.js",
+        "size": 18984,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/artifact-workbench-projection.js",
+        "size": 5408,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/async-hook-queue.cjs",
+        "size": 10199,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/async-hook-supervisor.cjs",
+        "size": 25528,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/async-hook-supervisor.js",
+        "size": 2732,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/audit-logger.js",
+        "size": 31589,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/audit-mtc.js",
+        "size": 19751,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/audit-sanitizer.js",
+        "size": 8966,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/authority-launch-environment.js",
+        "size": 2883,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/auto-checkpoint-default.js",
+        "size": 1590,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/auto-mode-config.js",
+        "size": 20683,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/auto-mode-safety-classifier.js",
+        "size": 56409,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/auto-mode-safety-eval.js",
+        "size": 33539,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-center-incidents.js",
+        "size": 10279,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-center-routines.js",
+        "size": 9511,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-center-runtime.js",
+        "size": 12858,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-center.js",
+        "size": 17801,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-engine.js",
+        "size": 71975,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-execution-authority.js",
+        "size": 29984,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/automation-execution-incident.js",
+        "size": 22501,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/autonomous-agent.js",
+        "size": 38683,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/autonomous-developer.js",
+        "size": 38892,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-keeper-client.js",
+        "size": 8181,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-keeper-protocol.js",
+        "size": 14394,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-launch-barrier.js",
+        "size": 2789,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-list-index.js",
+        "size": 6735,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-phase.js",
+        "size": 5597,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-agent-supervisor.js",
+        "size": 152276,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-command-argv.js",
+        "size": 10623,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-interaction-journal.js",
+        "size": 23906,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-interaction-resolver.js",
+        "size": 14671,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-launch-profile.js",
+        "size": 35007,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-needs-input-incident.js",
+        "size": 6432,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-phase-reporter.js",
+        "size": 7010,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-session-transport.js",
+        "size": 17875,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-task-manager.js",
+        "size": 105,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-task-worker.js",
+        "size": 47,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-turn-bootstrap-protocol.js",
+        "size": 6299,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/background-worktree-policy.js",
+        "size": 3521,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/backpressure-policy.js",
+        "size": 3919,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/bi-engine.js",
+        "size": 39133,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/bm25-search.js",
+        "size": 17758,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/bounded-artifact-file-read.js",
+        "size": 4665,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/browser-automation.js",
+        "size": 27709,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/browser-evidence.js",
+        "size": 47032,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/capability-manifest.js",
+        "size": 19258,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/capability-negotiation.js",
+        "size": 8907,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/causal-observability.js",
+        "size": 84544,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cc-android-bridge.js",
+        "size": 6804,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/changelog.js",
+        "size": 11679,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/channels/channel-manager.js",
+        "size": 7563,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/channels/telegram-channel.js",
+        "size": 4870,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/channels/webhook-channel.js",
+        "size": 5450,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/chat-core.js",
+        "size": 44090,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/chat-intent-service.js",
+        "size": 20670,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/chat-session-admission.js",
+        "size": 2319,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-already-completed-controller.js",
+        "size": 31990,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-orchestrator.js",
+        "size": 33810,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-partial-rollback-controller.js",
+        "size": 67794,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-recovery-controller.js",
+        "size": 21509,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-recovery.js",
+        "size": 27264,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-retention.js",
+        "size": 4064,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-saga.js",
+        "size": 171450,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-session-recovery.js",
+        "size": 39232,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-restore-workspace-target-verifier.js",
+        "size": 9247,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-store.js",
+        "size": 71266,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-summary-projection.js",
+        "size": 3115,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-timeline-authority.js",
+        "size": 16282,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checkpoint-timeline.js",
+        "size": 20821,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/checksum.js",
+        "size": 632,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/chrome-connector.js",
+        "size": 43317,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/claude-code-bridge.js",
+        "size": 37778,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/claude-project-auto-memory.js",
+        "size": 14340,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/claude-project-storage-layout.js",
+        "size": 3039,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cli-anything-bridge.js",
+        "size": 23615,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cli-arg.js",
+        "size": 1556,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cli-context-engineering.js",
+        "size": 28089,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cli-numeric.js",
+        "size": 2330,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cloud/bundle.js",
+        "size": 3804,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cloud/cloud-client.js",
+        "size": 6114,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/code-agent.js",
+        "size": 33862,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/code-review.js",
+        "size": 2489,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/codex-app-server-adapter.js",
+        "size": 14493,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/collaboration-governance.js",
+        "size": 41253,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/collaboration-run-store.js",
+        "size": 39407,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/command-lifecycle-report.js",
+        "size": 55173,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/community-governance.js",
+        "size": 49472,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/compliance-framework-reporter.js",
+        "size": 30701,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/compliance-manager.js",
+        "size": 45462,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/compression-telemetry.js",
+        "size": 10979,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/computer-use/authorization.js",
+        "size": 5315,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/computer-use/computer-use-server.js",
+        "size": 8719,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/computer-use/control-backend.js",
+        "size": 5920,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/config-keys.js",
+        "size": 1220,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/config-manager.js",
+        "size": 20862,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/config-redaction.js",
+        "size": 1872,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/config-schema.js",
+        "size": 27257,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/content-recommendation.js",
+        "size": 43407,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/content-recommender.js",
+        "size": 17674,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-breakdown.js",
+        "size": 10529,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/authority.js",
+        "size": 2982,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/durable-memory-port.js",
+        "size": 12113,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/index.js",
+        "size": 351,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/jsonl-session-context-port.js",
+        "size": 8424,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/live-compaction.js",
+        "size": 12313,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/memory-query-index.js",
+        "size": 8733,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/memory-service.js",
+        "size": 23001,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/message-adapter.js",
+        "size": 13799,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/privacy-purge-port.js",
+        "size": 6954,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/provider-context.js",
+        "size": 9780,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/runtime.js",
+        "size": 2008,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/segmented-memory-port.js",
+        "size": 31349,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-memory-kernel/task-worklog-port.js",
+        "size": 15364,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/context-source-ledger.js",
+        "size": 6220,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cost-budget.js",
+        "size": 5188,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-adapter.js",
+        "size": 21598,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-cron.js",
+        "size": 62411,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-evomap-adapter.js",
+        "size": 14628,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-graph-authority-adapter.js",
+        "size": 14610,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-learning.js",
+        "size": 25911,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-mcp-tools.js",
+        "size": 20106,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-observe-html.js",
+        "size": 15833,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-observe.js",
+        "size": 16165,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-share.js",
+        "size": 22394,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-task-runner.js",
+        "size": 48534,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-task-templates.js",
+        "size": 31751,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-template-marketplace.js",
+        "size": 19610,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork-workflow.js",
+        "size": 92162,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/ab-comparator-cli.js",
+        "size": 7067,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/agent-group-runner.js",
+        "size": 4590,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/code-knowledge-graph-cli.js",
+        "size": 5726,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/debate-review-cli.js",
+        "size": 7182,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/decision-kb-cli.js",
+        "size": 4796,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cowork/project-style-analyzer-cli.js",
+        "size": 5534,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/crash-reporter.js",
+        "size": 100,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/credential-guard.js",
+        "size": 13386,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/credential-proxy.js",
+        "size": 7199,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cross-chain-mtc.js",
+        "size": 43777,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/cross-chain.js",
+        "size": 54279,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/crypto-manager.js",
+        "size": 27854,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dao-governance.js",
+        "size": 52741,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dbevo.js",
+        "size": 43392,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decentral-infra.js",
+        "size": 34689,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/benchmark.js",
+        "size": 7230,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/contracts.js",
+        "size": 11541,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/provider-authority.js",
+        "size": 1186,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/providers.js",
+        "size": 6619,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/runtime.js",
+        "size": 9122,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/decision-layer/typesafe-provider.js",
+        "size": 279,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/deferred-question-context.js",
+        "size": 8802,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/delivery-coordinator.js",
+        "size": 42583,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/delivery-evidence.js",
+        "size": 14579,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/delivery-production-adapter.js",
+        "size": 58533,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/delivery-production-runner.js",
+        "size": 7908,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dependency-install-policy.js",
+        "size": 4502,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/diagnostic-bundle.js",
+        "size": 9265,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/diagnostic-excerpt.js",
+        "size": 4573,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/diagnostic-workflow.js",
+        "size": 2334,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/did-manager.js",
+        "size": 30871,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/did-v2-manager.js",
+        "size": 43294,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/diff-review-follow-up.js",
+        "size": 4392,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/direct-model-usage.js",
+        "size": 4877,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dlp-engine.js",
+        "size": 45061,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/docs-drift.js",
+        "size": 5772,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/doctor-checkup.js",
+        "size": 49066,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/downloader.js",
+        "size": 19670,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/durable-security-store.js",
+        "size": 4610,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dynamic-workflow-draft.js",
+        "size": 17670,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dynamic-workflow-facade.js",
+        "size": 57091,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/dynamic-workflow-runtime.js",
+        "size": 215858,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ensure-utf8.js",
+        "size": 3517,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/evidence.js",
+        "size": 11015,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/outcomes.js",
+        "size": 13229,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/plugin-suite.js",
+        "size": 37370,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/runner.js",
+        "size": 11607,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/stream-terminal.js",
+        "size": 1653,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/tasks.js",
+        "size": 24100,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/trend.js",
+        "size": 7631,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/verify01-contracts.js",
+        "size": 11165,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/verify01-execution.js",
+        "size": 20291,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/verify01-host-capture.js",
+        "size": 14153,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/eval/verify01-host-evidence.js",
+        "size": 22290,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/event-runtime-host.js",
+        "size": 8825,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/event-runtime-producer.js",
+        "size": 1834,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/event-runtime-store.js",
+        "size": 18272,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/event-runtime-worker.js",
+        "size": 5446,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/event-seq-replay.js",
+        "size": 6169,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution-system.js",
+        "size": 53070,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/agent-evolution-ingress.js",
+        "size": 22768,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/agent-evolution-runtime-composition-brand.js",
+        "size": 1073,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/agent-evolution-runtime-composition.js",
+        "size": 29834,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/agent-evolution-session-lifecycle.js",
+        "size": 1664,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/agent-model-projection.js",
+        "size": 17280,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/bounded-descriptor-read.js",
+        "size": 1052,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/bounded-skill-improvement-pilot.js",
+        "size": 15791,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-download-action-authority.js",
+        "size": 24661,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-download-artifact-disposal-authority.js",
+        "size": 14482,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-filesystem-quarantine-custody.js",
+        "size": 81778,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-filesystem-quarantine-disposal.js",
+        "size": 1315,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-keyboard-action-authority.js",
+        "size": 16562,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-navigation-action-authority.js",
+        "size": 17780,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-quarantine-lock-maintenance-authority.js",
+        "size": 19927,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-quarantine-operator-revocation-authority.js",
+        "size": 15808,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-quarantine-retention-authority.js",
+        "size": 17507,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-quarantine-retention-scheduler.js",
+        "size": 6468,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-quarantined-download-executor.js",
+        "size": 16536,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-tab-open-action-authority.js",
+        "size": 15950,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-vision-action-authority.js",
+        "size": 14615,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/browser-vision-observation-authority.js",
+        "size": 10213,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/controlled-skill-pilot-ledger-adapter.js",
+        "size": 17853,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/controlled-skill-production-pilot.js",
+        "size": 39508,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evidence-backed-wiki-maintainer.js",
+        "size": 35464,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evidence-json-text.js",
+        "size": 7673,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-artifact-identity.js",
+        "size": 810,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-artifact-ports.js",
+        "size": 118568,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-deployment-config.js",
+        "size": 10826,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-deployment-descriptor-revocations.js",
+        "size": 4626,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-deployment-loader.js",
+        "size": 48147,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-deployment-profile.js",
+        "size": 13663,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-deployment-root-rotation.js",
+        "size": 5479,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-child-evidence-ledger-adapter.js",
+        "size": 13572,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-cohort-enrollment.js",
+        "size": 48140,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-cohort-receipt-reconciliation.js",
+        "size": 13918,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-contracts.js",
+        "size": 4323,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-gate.js",
+        "size": 216142,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-launch-admission.js",
+        "size": 19462,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-ledger-capture.js",
+        "size": 1957,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-process-supervisor-worker.mjs",
+        "size": 2891,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-process-supervisor.js",
+        "size": 30894,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-readonly-audit.js",
+        "size": 3177,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-eval-runtime-composition.js",
+        "size": 8142,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-evidence-artifact-adapter.js",
+        "size": 18065,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-evidence-projector.js",
+        "size": 127695,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-file-identity.js",
+        "size": 2530,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-file-witness.js",
+        "size": 29754,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-immutable-ledger-segment-store.js",
+        "size": 24228,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-file-backend.js",
+        "size": 7299,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+        "size": 7316,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+        "size": 7857,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-manifest-catalog.js",
+        "size": 14191,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-manifest-chain.js",
+        "size": 37101,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-manifest-head-store.js",
+        "size": 12402,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-manifest-witness-adapter.js",
+        "size": 17044,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-ports.js",
+        "size": 135979,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-v2-journal.js",
+        "size": 19102,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger-v2-manifest-backend.js",
+        "size": 19352,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-ledger.js",
+        "size": 184610,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-raw-crypto-shred.js",
+        "size": 7022,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-raw-deletion-ledger-adapter.js",
+        "size": 28608,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-release-train-domain-stages.js",
+        "size": 26712,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-release-train-ledger-adapter.js",
+        "size": 12103,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-release-train-stage-output-ledger-adapter.js",
+        "size": 10845,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-release-train.js",
+        "size": 19292,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-run-ledger-adapter.js",
+        "size": 15662,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-run-runtime-adapter.js",
+        "size": 192,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-run-wiki-evidence-resolver.js",
+        "size": 8767,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-run-wiki-maintenance-source.js",
+        "size": 8883,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-test-deployment.js",
+        "size": 12850,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-witness-segments.js",
+        "size": 11551,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-batch-executor.js",
+        "size": 5419,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-cli-host.js",
+        "size": 5224,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-control-ports.js",
+        "size": 7783,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-file-resources.js",
+        "size": 13952,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-metrics-ledger-adapter.js",
+        "size": 22486,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-metrics.js",
+        "size": 33430,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-projection.js",
+        "size": 28127,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-registry-source.js",
+        "size": 16094,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-review-ledger-adapter.js",
+        "size": 28922,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-review-protocol.js",
+        "size": 5168,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-rollback-authorization.js",
+        "size": 1926,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-rollback-ledger-adapter.js",
+        "size": 36499,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-runtime.js",
+        "size": 5348,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolution-workbench-version-control.js",
+        "size": 10183,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/evolvable-artifact-ledger-adapter.js",
+        "size": 25373,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-hub-llm.js",
+        "size": 10083,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-hub-resolver.js",
+        "size": 4928,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-hub-skill.js",
+        "size": 663,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-artifact-lifecycle.js",
+        "size": 12399,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-candidate-rejection.js",
+        "size": 12179,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-conflict-merge.js",
+        "size": 11375,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-dependency-authority.js",
+        "size": 14814,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-dependency-inventory.js",
+        "size": 13610,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-dependency-ledger-executor.js",
+        "size": 25380,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-merge-ledger-executor.js",
+        "size": 22011,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-merge-publisher-authority.js",
+        "size": 10361,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-node-crypto-authority.js",
+        "size": 11325,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-quarantine-release.js",
+        "size": 33053,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-rbac-approval-authority.js",
+        "size": 19053,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-record.js",
+        "size": 5452,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-review-host.js",
+        "size": 8260,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-revocation-host.js",
+        "size": 1859,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-revocation-record.js",
+        "size": 3881,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-skill-rollback.js",
+        "size": 18475,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-sync-ledger-adapter.js",
+        "size": 23600,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-sync-merge-publisher.js",
+        "size": 11255,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-sync.js",
+        "size": 30305,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-trust-ledger.js",
+        "size": 22931,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-knowledge-wiki-tombstone.js",
+        "size": 18524,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-model-turn.js",
+        "size": 2776,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-marketplace-badge.js",
+        "size": 9228,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-marketplace-candidate.js",
+        "size": 10693,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-marketplace-cli-host.js",
+        "size": 11443,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-marketplace-ledger-adapter.js",
+        "size": 13619,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-marketplace.js",
+        "size": 23238,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-ipc-endpoint.js",
+        "size": 2783,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js",
+        "size": 15263,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-ipc-capability.js",
+        "size": 5367,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-ledger.js",
+        "size": 40695,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-cli-host.js",
+        "size": 25405,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js",
+        "size": 13868,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-operations.js",
+        "size": 34698,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-attestor-trust-operator-registry.js",
+        "size": 47914,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-candidate-evaluator.js",
+        "size": 4360,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-cli-host.js",
+        "size": 3675,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-evaluation-ledger-adapter.js",
+        "size": 25382,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-external-attestor.js",
+        "size": 14701,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-model-evaluator.js",
+        "size": 16629,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-process-attestor-worker.mjs",
+        "size": 5806,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-process-attestor.js",
+        "size": 16438,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+        "size": 3935,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-process-grader.js",
+        "size": 12821,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-provider-chat.js",
+        "size": 6218,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-skill-synthesis-windows-secure-pipe-host.js",
+        "size": 6409,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-journal.js",
+        "size": 10107,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-ledger-adapter.js",
+        "size": 16763,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-maintenance.js",
+        "size": 20205,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-plan-authority.js",
+        "size": 5357,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-raw-shred.js",
+        "size": 7361,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-retrieval.js",
+        "size": 21518,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-runtime.js",
+        "size": 5303,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning-skill-rollback.js",
+        "size": 13228,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/governed-wiki-pruning.js",
+        "size": 20472,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/independent-skill-revocation-source.js",
+        "size": 7406,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/knowledge-wiki-source-admission.js",
+        "size": 8913,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/knowledge-wiki-source-provenance.js",
+        "size": 12549,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-benchmark.js",
+        "size": 97266,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-budget-executor.js",
+        "size": 13531,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-business-grader.js",
+        "size": 17647,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-egress-authority.js",
+        "size": 11706,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-evidence-bundle.js",
+        "size": 23594,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-execution-host.js",
+        "size": 72421,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-ledger-adapter.js",
+        "size": 28620,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-process-grader.js",
+        "size": 14864,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-process-reviewer.js",
+        "size": 14952,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-process-runner.js",
+        "size": 16426,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-provider-settlement-adapter.js",
+        "size": 13166,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-receipts.js",
+        "size": 25789,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-recovery-snapshot-store.js",
+        "size": 30624,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-rounds.js",
+        "size": 27588,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-transition-committer.js",
+        "size": 22063,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-exploration-volcengine-provider.js",
+        "size": 22438,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/pm-result-grader.cjs",
+        "size": 9214,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/progressive-canary-external-watchdog.js",
+        "size": 18477,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/progressive-canary-traffic-worker.js",
+        "size": 20619,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/progressive-canary-watchdog-file-store.js",
+        "size": 9689,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/progressive-canary-watchdog-node-pki.js",
+        "size": 7615,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-cohort-registration.js",
+        "size": 9820,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-contracts.js",
+        "size": 20615,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-data.js",
+        "size": 5902,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-evaluation-adapter.js",
+        "size": 10043,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-evaluation-variants.js",
+        "size": 9649,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-group-statistics.js",
+        "size": 18924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-history-ledger-adapter.js",
+        "size": 117332,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-installation-route-contracts.js",
+        "size": 9245,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-installation-route-reader.js",
+        "size": 9660,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-batch-evidence.js",
+        "size": 17878,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-eval-row-collector.js",
+        "size": 19980,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-evaluation-batch.js",
+        "size": 18329,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-evaluation-plan.js",
+        "size": 16117,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-group-statistics-plan.js",
+        "size": 4646,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-group-statistics.js",
+        "size": 17239,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-quality-receipt-contracts.js",
+        "size": 10577,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-quality-receipt.js",
+        "size": 9855,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-native-statistics-protocol.js",
+        "size": 12127,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-observed-text-index.js",
+        "size": 35166,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-parent-binding.js",
+        "size": 10948,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-pm-execution-bridge.js",
+        "size": 17278,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-pm-training-mapping.js",
+        "size": 5294,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-preparation-contracts.js",
+        "size": 6888,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-registry-history-binding.js",
+        "size": 7570,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-registry-runtime-policy.js",
+        "size": 22128,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-registry-store-policy.js",
+        "size": 46769,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-runtime-composition.js",
+        "size": 3024,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-selector.js",
+        "size": 14071,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-statistics-simulation.js",
+        "size": 11951,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-tenant-index-anchor-contracts.js",
+        "size": 7511,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+        "size": 6068,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/scheduled-batch-wiki-maintenance-source.js",
+        "size": 10780,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-candidate-registry.js",
+        "size": 99139,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-evaluated-promotion-durability.js",
+        "size": 27233,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-evaluated-promotion.js",
+        "size": 14821,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-execution-manifest.js",
+        "size": 28724,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-mutation-authority.js",
+        "size": 51964,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-outcome-index-authority.js",
+        "size": 8740,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-outcome-source-catalog-authority.js",
+        "size": 7485,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-promotion-controller.js",
+        "size": 23479,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-promotion-review-ledger-adapter.js",
+        "size": 19599,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-promotion-review.js",
+        "size": 25266,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-registry-maintenance.js",
+        "size": 2880,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-registry-transition-capability.js",
+        "size": 1726,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-registry-transition-ledger-adapter.js",
+        "size": 46924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-registry-transition-source.js",
+        "size": 10684,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-registry-writer-control.js",
+        "size": 4597,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-release-registry.js",
+        "size": 192330,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-retrieval-revocation-authority.js",
+        "size": 11550,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-retrieval-revocation-ledger-adapter.js",
+        "size": 11525,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-revocation-propagation.js",
+        "size": 13937,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-runtime-revalidation-ledger-adapter.js",
+        "size": 8334,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-runtime-revalidation.js",
+        "size": 17352,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-target-matrix-eval.js",
+        "size": 116908,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-wiki-reconciliation.js",
+        "size": 30554,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-writer-inventory-manifest.js",
+        "size": 33477,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/skill-writer-inventory-validator.js",
+        "size": 24558,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/statistical-progressive-canary.js",
+        "size": 27071,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-agent-control-plane.js",
+        "size": 11791,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-authority-ledger-adapter.js",
+        "size": 11943,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-ledger-adapter.js",
+        "size": 11313,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-policy-receipt-writer.js",
+        "size": 5432,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-post-compact-hook.js",
+        "size": 4654,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-promotion-receipt-writer.js",
+        "size": 12125,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/structured-memory-semantic-review-pipeline.js",
+        "size": 9968,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/volcengine-function-execution-authority.js",
+        "size": 92475,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/volcengine-function-process-executor.js",
+        "size": 20111,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/volcengine-function-replay-store.js",
+        "size": 26992,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/volcengine-function-revocation-status-floor-store.js",
+        "size": 14654,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-evidence-commit-guard.js",
+        "size": 12886,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-informed-skill-proposer.js",
+        "size": 15038,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-maintainer-ledger-adapter.js",
+        "size": 30482,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-maintenance-trigger-ledger-adapter.js",
+        "size": 22258,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-revision-protocol.js",
+        "size": 3995,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-skill-proposal-ledger-adapter.js",
+        "size": 10331,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wiki-target-tombstone-revision.js",
+        "size": 3631,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wikiskill-benchmark-cli-host.js",
+        "size": 5779,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wikiskill-benchmark-execution-host.js",
+        "size": 19945,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wikiskill-benchmark-ledger-adapter.js",
+        "size": 19379,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evolution/wikiskill-benchmark.js",
+        "size": 18405,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evomap-client.js",
+        "size": 14860,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evomap-federation.js",
+        "size": 24856,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evomap-governance.js",
+        "size": 29301,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/evomap-manager.js",
+        "size": 28631,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/executable-path.js",
+        "size": 1112,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-backend.js",
+        "size": 30364,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-contract.js",
+        "size": 21360,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-failure-site.js",
+        "size": 2832,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-local-supervisor.mjs",
+        "size": 7207,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-result-apply.js",
+        "size": 10036,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-result-artifact.js",
+        "size": 8369,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-result-review.js",
+        "size": 7830,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-result-store.js",
+        "size": 10990,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-result.js",
+        "size": 19812,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-runner-lifecycle.js",
+        "size": 30448,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-runtime.js",
+        "size": 4101,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-target-preflight.js",
+        "size": 10209,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location-target.js",
+        "size": 66055,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-location.js",
+        "size": 10614,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-support.js",
+        "size": 2167,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-trace/index.js",
+        "size": 298,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-trace/metrics-collector.js",
+        "size": 5631,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-trace/trace-context.cjs",
+        "size": 4860,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/execution-trace/trace-context.js",
+        "size": 562,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/exit-codes.cjs",
+        "size": 2806,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/external-agent-adapters.js",
+        "size": 7959,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/fatal-handler.js",
+        "size": 2790,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/feature-flags.js",
+        "size": 10851,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/federation-hardening.js",
+        "size": 36538,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/file-checkpoint.js",
+        "size": 158833,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/file-lines.js",
+        "size": 8729,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/formal-quality-eval-runtime.js",
+        "size": 6105,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/gateway-client-resilience.js",
+        "size": 16300,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/git-integration.js",
+        "size": 20713,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/git-tool-input.js",
+        "size": 1667,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/gitlab-mr-worktree.js",
+        "size": 5390,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/goal-assess.js",
+        "size": 7309,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/goal-condition-engine.js",
+        "size": 12172,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/goal-context.js",
+        "size": 3460,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/goal-store.js",
+        "size": 20365,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/governance-coverage.js",
+        "size": 6791,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/governance-v2-helpers.js",
+        "size": 3341,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/adapters.js",
+        "size": 9503,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/authority.js",
+        "size": 9616,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/compiler.js",
+        "size": 47328,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/cutover-authority-resolver.js",
+        "size": 7738,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/cutover-contract.js",
+        "size": 190,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/cutover-ledger.js",
+        "size": 22006,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/eval.js",
+        "size": 6986,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/event-store.js",
+        "size": 3033,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/evidence-digest.js",
+        "size": 1515,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/evolution-run-runtime-adapter.js",
+        "size": 194,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/graph-runtime-surfaces.json",
+        "size": 60353,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/index.js",
+        "size": 472,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/migration-saga.js",
+        "size": 9724,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/production-cutover-evidence.js",
+        "size": 43041,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/production-source-evidence.js",
+        "size": 52263,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/retirement-evidence.js",
+        "size": 17468,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/runtime-surface-manifest.js",
+        "size": 18756,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/runtime.js",
+        "size": 146711,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/store-cutover-evidence.js",
+        "size": 10991,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/trace-reducer.js",
+        "size": 13121,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/graph-kernel/trigger-adapter.js",
+        "size": 7274,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hardening-manager.js",
+        "size": 44182,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hashline.js",
+        "size": 17680,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/headless-config-command.js",
+        "size": 2570,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/headless-manifest.js",
+        "size": 6186,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hierarchical-memory.js",
+        "size": 56264,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-audit-store.js",
+        "size": 7507,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-environment.cjs",
+        "size": 1320,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-event-bus.cjs",
+        "size": 8108,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-event-log.cjs",
+        "size": 6730,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-manager.js",
+        "size": 33951,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-runner.cjs",
+        "size": 31695,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-runner.js",
+        "size": 3742,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-runtime-adapters.js",
+        "size": 7241,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-runtime-contract.cjs",
+        "size": 7014,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-runtime-contract.js",
+        "size": 460,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-shell-command.cjs",
+        "size": 4046,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-stats-store.cjs",
+        "size": 6336,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hook-trust.js",
+        "size": 6101,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hooks-v2-producers.js",
+        "size": 8012,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hooks-v2-runtime.js",
+        "size": 47001,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hooks-v2-workspace-context.js",
+        "size": 10126,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/host-adb-bridge.js",
+        "size": 23717,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/host-resource-budget.js",
+        "size": 8987,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/host-tool-policy-authority.js",
+        "size": 4659,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/hub-llm-client.js",
+        "size": 11015,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ide-bridge.js",
+        "size": 9317,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ide-context-redaction.js",
+        "size": 5824,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ide-context.js",
+        "size": 40122,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/idempotency.js",
+        "size": 4276,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/image-file-boundary.js",
+        "size": 4915,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/image-input.js",
+        "size": 12086,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/impacted-gate-selector.js",
+        "size": 12150,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/inference-network.js",
+        "size": 43971,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/init-ai-refine.js",
+        "size": 2678,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/install-command-policy.js",
+        "size": 13293,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/instinct-manager.js",
+        "size": 29247,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/interaction-adapter.js",
+        "size": 38843,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/interaction-binding.js",
+        "size": 2112,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/interactive-planner.js",
+        "size": 26316,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ipc-attach-protocol.js",
+        "size": 2870,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ipfs-storage.js",
+        "size": 42192,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/iteration-budget.js",
+        "size": 16881,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/jetbrains-bridge.js",
+        "size": 5464,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/json-schema-output.js",
+        "size": 23277,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/json-schema-validate.js",
+        "size": 16059,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/jsonl-session-store.js",
+        "size": 428,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/knowledge-exporter.js",
+        "size": 31461,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/knowledge-graph.js",
+        "size": 56171,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/knowledge-importer.js",
+        "size": 30789,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lan-pairing-preflight.js",
+        "size": 13301,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lan-pairing-tokens.js",
+        "size": 10222,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/learning-tables.js",
+        "size": 5031,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/outcome-feedback.js",
+        "size": 7592,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/reflection-engine.js",
+        "size": 9609,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/skill-improver.js",
+        "size": 25768,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/skill-synthesizer.js",
+        "size": 19343,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/learning/trajectory-store.js",
+        "size": 11910,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/legacy-runtime-authority.js",
+        "size": 5182,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/listen-with-port-fallback.js",
+        "size": 3603,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/llm-config-defaults.js",
+        "size": 7541,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/llm-connection-config.js",
+        "size": 4015,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/llm-connection-probe.js",
+        "size": 3639,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/llm-pricing.js",
+        "size": 18087,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/llm-providers.js",
+        "size": 35622,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/logger.js",
+        "size": 3161,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/loop.js",
+        "size": 10332,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/benchmark.test.js",
+        "size": 4377,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/code-intelligence.integration.test.js",
+        "size": 4497,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/code-intelligence.test.js",
+        "size": 6467,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/diagnostics-scheduler.test.js",
+        "size": 3553,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/jsonrpc-stream.test.js",
+        "size": 3680,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/lsp-client.test.js",
+        "size": 10828,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/lsp-manager.test.js",
+        "size": 14382,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/__tests__/lsp-server-registry.test.js",
+        "size": 5696,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/benchmark.js",
+        "size": 8834,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/code-intelligence.js",
+        "size": 13047,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/diagnostics-scheduler.js",
+        "size": 4570,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/jsonrpc-stream.js",
+        "size": 4930,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/lsp-client.js",
+        "size": 13714,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/lsp-manager.js",
+        "size": 18065,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/lsp-server-registry.js",
+        "size": 9776,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/lsp/workspace-roots.js",
+        "size": 4248,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/managed-checkpoint-render.js",
+        "size": 2063,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/managed-tool-checkpoint.js",
+        "size": 7632,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/matrix-bridge.js",
+        "size": 37588,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-auth-target.js",
+        "size": 2215,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-call-ledger-store.js",
+        "size": 41510,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-call-ledger.js",
+        "size": 25671,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-client.js",
+        "size": 863,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-conflict-scheduler.js",
+        "size": 15151,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-effect-contract.js",
+        "size": 3073,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-headers-helper-trust.js",
+        "size": 4337,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-headers-helper.js",
+        "size": 22718,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-host-recovery-runtime.js",
+        "size": 4236,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-ledger-recovery-admission.js",
+        "size": 33961,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-lifecycle-authority.js",
+        "size": 27979,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-oauth.js",
+        "size": 34945,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-recovery-adjudication.js",
+        "size": 22448,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-registry.js",
+        "size": 32926,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-sandbox-policy.js",
+        "size": 6422,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-scaffold.js",
+        "size": 22844,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-serve.js",
+        "size": 13656,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-capsule-builder-worker.cjs",
+        "size": 16293,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-environment.js",
+        "size": 1163,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-executable-identity.js",
+        "size": 39546,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-execution-authority.js",
+        "size": 16850,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-immutable-vfs-resolver.cjs",
+        "size": 24417,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-native-code-policy.js",
+        "size": 2698,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-package-materialization.js",
+        "size": 66788,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-stdio-workspace-authority.js",
+        "size": 8155,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-tls.js",
+        "size": 10274,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-tool-metadata.js",
+        "size": 12956,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/mcp-tool-result.js",
+        "size": 10335,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/memory-injection.js",
+        "size": 13354,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/memory-manager.js",
+        "size": 30924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/metrics-collector.js",
+        "size": 3219,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/micro-compact.js",
+        "size": 2528,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-capabilities.js",
+        "size": 9351,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-catalog-review.js",
+        "size": 5166,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-context-catalog.js",
+        "size": 5760,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-context-window.js",
+        "size": 303,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-deprecation.js",
+        "size": 8689,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/model-failure-policy.js",
+        "size": 1075,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/monitor-event.js",
+        "size": 10358,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/multimodal.js",
+        "size": 43048,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/multisig-runtime.js",
+        "size": 4892,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/nl-programming.js",
+        "size": 39330,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/nostr-bridge.js",
+        "size": 34873,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/note-versioning.js",
+        "size": 27446,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/_http.js",
+        "size": 1031,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/dingtalk.js",
+        "size": 3139,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/feishu.js",
+        "size": 3323,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/index.js",
+        "size": 5978,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/telegram.js",
+        "size": 4053,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/websocket.js",
+        "size": 1818,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/notifiers/wecom.js",
+        "size": 2349,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/npm-invocation.js",
+        "size": 821,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/observability/index.js",
+        "size": 7953,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/observability/otlp-exporter.js",
+        "size": 40102,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/openai-responses.js",
+        "size": 15241,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/operation-fingerprint.js",
+        "size": 16524,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/orchestrator.js",
+        "size": 33540,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/org-manager.js",
+        "size": 32037,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/otlp-exporter.js",
+        "size": 473,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/output-context.js",
+        "size": 2518,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/output-styles.js",
+        "size": 7619,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/p2p-manager.js",
+        "size": 33840,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/config-template-builder.js",
+        "size": 4502,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/errors.js",
+        "size": 804,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/file-identity.js",
+        "size": 5009,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/index.js",
+        "size": 14410,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/manifest-writer.js",
+        "size": 2880,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/native-prebuild-collector.js",
+        "size": 9772,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/native-update-state.js",
+        "size": 38540,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pack-update-applier.js",
+        "size": 99859,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pack-update-checker.js",
+        "size": 6575,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pack-update-downloader.js",
+        "size": 29488,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pack-update-signature.js",
+        "size": 2738,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pkg-config-generator.js",
+        "size": 26150,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pkg-runner.js",
+        "size": 6944,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/pkg-targets.js",
+        "size": 2608,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/precheck.js",
+        "size": 8767,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/project-assets-collector.js",
+        "size": 8848,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/smoke-runner.js",
+        "size": 14566,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/packer/web-panel-builder.js",
+        "size": 5183,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/parse-json-option.js",
+        "size": 1852,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/parse-number-option.js",
+        "size": 1364,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/paths.js",
+        "size": 12638,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdf-parser.js",
+        "size": 13233,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdh-bridge.js",
+        "size": 8691,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdh-dedicated-batch-collectors.js",
+        "size": 3363,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdh-egress.js",
+        "size": 7494,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdh-feedback-ledger.js",
+        "size": 4435,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pdh-load-error.js",
+        "size": 2349,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/perception.js",
+        "size": 37644,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/perf-tuning.js",
+        "size": 33028,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permanent-memory.js",
+        "size": 31897,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-authority.js",
+        "size": 10344,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-decision.js",
+        "size": 2827,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-denial-store.js",
+        "size": 5379,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-engine.js",
+        "size": 20587,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-request.js",
+        "size": 1388,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-rules.cjs",
+        "size": 15999,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/permission-side-effect-center.js",
+        "size": 16808,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/personal-data-hub-aichat-wizard.js",
+        "size": 10064,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/personal-data-hub-wiring.js",
+        "size": 80207,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pipeline-orchestrator.js",
+        "size": 49439,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plan-mode.js",
+        "size": 67924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plan-persistence.js",
+        "size": 16440,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/platform.js",
+        "size": 826,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-autodiscovery.js",
+        "size": 18255,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-ecosystem.js",
+        "size": 55443,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-manager.js",
+        "size": 821,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-monitor-supervisor.js",
+        "size": 10332,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/__tests__/remote-source.test.js",
+        "size": 8494,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/agents.js",
+        "size": 1860,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/bin.js",
+        "size": 40490,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/capabilities.js",
+        "size": 15611,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/capability-consent.js",
+        "size": 7442,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/governance.js",
+        "size": 5967,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/hooks.js",
+        "size": 11224,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/install.js",
+        "size": 204108,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/lsp.js",
+        "size": 4551,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/manifest.js",
+        "size": 17220,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-archive-source.js",
+        "size": 12784,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-artifact-readback.js",
+        "size": 50476,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-catalog.js",
+        "size": 42428,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-command-descriptor.js",
+        "size": 9850,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-command-source.js",
+        "size": 17547,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-impact.js",
+        "size": 18924,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-network.js",
+        "size": 10015,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-pac-worker.js",
+        "size": 509,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+        "size": 46231,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-source-adapter.js",
+        "size": 5845,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/marketplace-source-cache.js",
+        "size": 11883,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/mcp.js",
+        "size": 6909,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/monitors.js",
+        "size": 6457,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/plugin-options.js",
+        "size": 13872,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/policy.js",
+        "size": 10038,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/publisher-trust.js",
+        "size": 11062,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/reload.js",
+        "size": 3240,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/remote-source.js",
+        "size": 35893,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/sandbox-policy.js",
+        "size": 6759,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/scopes.js",
+        "size": 18879,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/settings.js",
+        "size": 4191,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/signature.js",
+        "size": 8183,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/skills.js",
+        "size": 1428,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/transaction-journal.js",
+        "size": 23394,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-runtime/trust.js",
+        "size": 13137,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-security.js",
+        "size": 16711,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-source-identity.js",
+        "size": 26491,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/plugin-usage-attribution.js",
+        "size": 1397,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/policy-decision-event.js",
+        "size": 4493,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pqc-manager.js",
+        "size": 33448,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-automation-policy.js",
+        "size": 13159,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-close-intent.js",
+        "size": 3033,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-create.js",
+        "size": 2747,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-investigation-policy.js",
+        "size": 2286,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-link-ledger.js",
+        "size": 6737,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/pr-link-store.js",
+        "size": 740,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/privacy-computing.js",
+        "size": 40819,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/credential-agent.js",
+        "size": 42487,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/credential-transport-worker.js",
+        "size": 7927,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/credential-transport.js",
+        "size": 11409,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/index.js",
+        "size": 216534,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-bwrap-descriptor-launch.js",
+        "size": 12514,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-cgroup-v2.js",
+        "size": 11926,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-generic-bwrap-runtime.js",
+        "size": 51189,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-generic-bwrap.js",
+        "size": 48373,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-open-flags.js",
+        "size": 896,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-subreaper-artifact.js",
+        "size": 4032,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-subreaper-helper.js",
+        "size": 13660,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-subreaper-process.js",
+        "size": 11291,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/linux-subreaper-supervisor.c",
+        "size": 13923,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/macos-mcp-launcher-contract.js",
+        "size": 10126,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/macos-mcp-launcher-protocol.json",
+        "size": 867,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/macos-mcp-launcher.c",
+        "size": 50490,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/mcp-fd-entry-bootstrap.js",
+        "size": 1670,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/owned-posix-process-group-worker.mjs",
+        "size": 3545,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/owned-posix-process-group.js",
+        "size": 8994,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/packer-build-policy.js",
+        "size": 1106,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/patch-child-process.js",
+        "size": 1755,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/platform-sandbox.js",
+        "size": 323487,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/process-ownership-journal.js",
+        "size": 15484,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/process-ownership-quarantine.js",
+        "size": 4722,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/process-recovery-cgroup.js",
+        "size": 8503,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/SPAWN_AUDIT_REPORT.md",
+        "size": 4998,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/spawn-audit.json",
+        "size": 105844,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/windows-native-evaluator-capabilities.js",
+        "size": 40119,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/windows-native-evaluator.js",
+        "size": 17847,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/windows-sandbox-helper.dll",
+        "size": 82432,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/windows-sandbox-helper.exe",
+        "size": 82944,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/windows-sandbox.cs",
+        "size": 198548,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-execution-broker/workspace-transaction.js",
+        "size": 142294,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-manager.js",
+        "size": 15774,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/process-tree-termination.js",
+        "size": 8316,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-detector.js",
+        "size": 3376,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-instructions.js",
+        "size": 26469,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-inventory.js",
+        "size": 9605,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-mcp-trust.js",
+        "size": 10215,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-root.cjs",
+        "size": 3308,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/project-runtime.js",
+        "size": 5053,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/prompt-compressor.js",
+        "size": 422,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/prompts.js",
+        "size": 493,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/protocol-fusion.js",
+        "size": 38328,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/protocol-replay.js",
+        "size": 6495,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/provenance-api.js",
+        "size": 102,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/provider-http-error.js",
+        "size": 3233,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/provider-options.js",
+        "size": 15895,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/provider-stream.js",
+        "size": 15844,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/proxy-bootstrap.js",
+        "size": 328,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/public-ide-capability-manifest.js",
+        "size": 10240,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/public-ide-capability-validation.js",
+        "size": 12086,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/publish-workspace.js",
+        "size": 3284,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/quantization.js",
+        "size": 33043,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/read-file-loop-guard.js",
+        "size": 13595,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/read-file-page.js",
+        "size": 8910,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/recent-session.js",
+        "size": 2302,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/browser-target-policy.js",
+        "size": 11539,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/index.js",
+        "size": 257,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/playwright-ui-driver.js",
+        "size": 12379,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/playwright-ui-recorder.js",
+        "size": 19383,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/recorded-skill-package.js",
+        "size": 14013,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/recorded-skill-store.js",
+        "size": 32891,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/record-replay/skill-recorder.js",
+        "size": 30315,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-approval-bridge.js",
+        "size": 50208,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-approval-decision.js",
+        "size": 2972,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-control.js",
+        "size": 16093,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-membership-authority.js",
+        "size": 21283,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-membership-coordinator.js",
+        "size": 101817,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-membership-host-store.js",
+        "size": 60813,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-path-mapping.js",
+        "size": 8339,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/remote-read-loop-guard.js",
+        "size": 33790,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-bang-memorize.js",
+        "size": 8467,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-completer.js",
+        "size": 9155,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-denials.js",
+        "size": 6070,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-goal.js",
+        "size": 5429,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-multiline.js",
+        "size": 2909,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-rewind.js",
+        "size": 17625,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/repl-vim.js",
+        "size": 14521,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/reputation-optimizer.js",
+        "size": 38146,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/response-cache.js",
+        "size": 25558,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/resume-session.js",
+        "size": 2901,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/review-comment-anchor.js",
+        "size": 8516,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/review-pipeline.js",
+        "size": 8998,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/routine-store.js",
+        "size": 29563,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/runnable-provider.js",
+        "size": 13374,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/runtime-checkup.js",
+        "size": 18171,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/runtime-provenance-ledger.js",
+        "size": 9417,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/runtime-usage-ledger.js",
+        "size": 7151,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/safe-json.js",
+        "size": 808,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/safe-mode.js",
+        "size": 3563,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-docker-egress.js",
+        "size": 18273,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-egress-authority-monitor.js",
+        "size": 5379,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-egress-proxy.js",
+        "size": 15873,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-egress-worker-thread.js",
+        "size": 1212,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-egress-worker.js",
+        "size": 5782,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-fs-policy.js",
+        "size": 4439,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-network-policy.js",
+        "size": 7575,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sandbox-v2.js",
+        "size": 40834,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/schedule-planner.js",
+        "size": 5748,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/agenda-adapter.js",
+        "size": 35154,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/authority-resolver.js",
+        "size": 484,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/automation-adapter.js",
+        "size": 35982,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/automation-event-adapter.js",
+        "size": 25977,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/contract.js",
+        "size": 741,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/cowork-cron-adapter.js",
+        "size": 34703,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/graph-authority-adapter.js",
+        "size": 16446,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/loop-adapter.js",
+        "size": 29020,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/migration-admin.js",
+        "size": 11072,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/migration-rollback-admin.js",
+        "size": 31498,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/routine-adapter.js",
+        "size": 38342,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/runtime-control-capabilities.js",
+        "size": 1064,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/runtime.js",
+        "size": 1037,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/service.js",
+        "size": 354,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/source-locator-path.js",
+        "size": 246,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scheduler-kernel/store.js",
+        "size": 2566,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scim-manager.js",
+        "size": 28763,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/scoped-permission-store.js",
+        "size": 18845,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/search-command.js",
+        "size": 2534,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/secret-scan.js",
+        "size": 13733,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/secret-store.js",
+        "size": 12067,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/secure-file-identity.js",
+        "size": 15752,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/secure-fs.js",
+        "size": 456,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/security-audit.js",
+        "size": 1880,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sensitive-file-guard.js",
+        "size": 5034,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/service-container.js",
+        "size": 15698,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/service-manager.js",
+        "size": 15613,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-anti-rollback-anchor.js",
+        "size": 33674,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-branch-history.js",
+        "size": 8425,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-branch.js",
+        "size": 8903,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-budget-production-root.js",
+        "size": 11822,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-budget-runtime.js",
+        "size": 46709,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-budget-usage.js",
+        "size": 1591,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-consolidator.js",
+        "size": 16764,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-core-singletons.js",
+        "size": 15441,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-history-origins.js",
+        "size": 9470,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-hooks.js",
+        "size": 14157,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-host-lease.js",
+        "size": 36293,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-host-snapshot.js",
+        "size": 13758,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-input-receipt.js",
+        "size": 2991,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-insights.js",
+        "size": 4840,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-lifecycle-scope.js",
+        "size": 4825,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-lifecycle.js",
+        "size": 11964,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-manager.js",
+        "size": 29623,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-message-fabric.js",
+        "size": 48763,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-message-provenance.js",
+        "size": 13213,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-persistence-failure.js",
+        "size": 4121,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-picker.js",
+        "size": 3686,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-projection.js",
+        "size": 35466,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-resource-budget.js",
+        "size": 67541,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-runtime-retention.js",
+        "size": 4942,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-search.js",
+        "size": 16477,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-store-guard.js",
+        "size": 1797,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-tail.js",
+        "size": 21694,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-telemetry-middleware.js",
+        "size": 135,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-transcript-history.js",
+        "size": 15530,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-transcript-migration.js",
+        "size": 5723,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-transcript-page.js",
+        "size": 5157,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-transcript-reference.js",
+        "size": 1113,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-transcript-structure.js",
+        "size": 2901,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-usage.js",
+        "size": 36987,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/session-workbench-store.js",
+        "size": 13258,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-authority-domain.cjs",
+        "size": 31704,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-authority-record.cjs",
+        "size": 20871,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-hook-events.cjs",
+        "size": 2785,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-hook-events.js",
+        "size": 6136,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-hooks.cjs",
+        "size": 17654,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-loader.cjs",
+        "size": 26043,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-permission-authority.cjs",
+        "size": 11989,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/settings-source-observation.cjs",
+        "size": 8667,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/shell-approval.js",
+        "size": 10310,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/shell-output.js",
+        "size": 1289,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/shell-selector.cjs",
+        "size": 7884,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/side-effect-ledger-store.js",
+        "size": 5281,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/side-effect-ledger.js",
+        "size": 14558,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/siem-exporter.js",
+        "size": 27269,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-budget.js",
+        "size": 6849,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-execution-authority.js",
+        "size": 11878,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-execution-identity.js",
+        "size": 7966,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-loader.js",
+        "size": 70492,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-marketplace.js",
+        "size": 35565,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-mcp.js",
+        "size": 21706,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-outcome-authority.js",
+        "size": 1346,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-outcome-transcript-authority.js",
+        "size": 9477,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-packs/generator.js",
+        "size": 20345,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-packs/schema.js",
+        "size": 15105,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-path-scope.js",
+        "size": 2432,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-retrieval-router-benchmark.js",
+        "size": 4267,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-retrieval-router.js",
+        "size": 8206,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-vector-authority.js",
+        "size": 10422,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/skill-vector-process-authority.js",
+        "size": 11298,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sla-manager.js",
+        "size": 37913,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/slash-commands.js",
+        "size": 10186,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/slash-dispatch.js",
+        "size": 1214,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/slot-filler.js",
+        "size": 26982,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/social-graph-analytics.js",
+        "size": 33095,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/social-graph.js",
+        "size": 22634,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/social-manager.js",
+        "size": 31071,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/spellcheck.js",
+        "size": 6088,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sql-like.js",
+        "size": 934,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sso-manager.js",
+        "size": 47507,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/status-line.cjs",
+        "size": 8514,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/status-line.js",
+        "size": 861,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/stix-parser.js",
+        "size": 16341,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/stream-retry.js",
+        "size": 4488,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/stress-tester.js",
+        "size": 33820,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sub-agent-context.js",
+        "size": 72877,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sub-agent-profiles.js",
+        "size": 16205,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sub-agent-registry.js",
+        "size": 29636,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/subagent-contract.js",
+        "size": 17339,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/subagent-inheritance.js",
+        "size": 4527,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/suggest-name.js",
+        "size": 3378,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-cli-db.js",
+        "size": 14930,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-credentials.js",
+        "size": 7938,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-engine-cli.js",
+        "size": 11865,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-manager.js",
+        "size": 32825,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-oss-client.js",
+        "size": 8339,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/sync-webdav-client.js",
+        "size": 5768,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/task-list.js",
+        "size": 1375,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/task-model-selector.js",
+        "size": 17339,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/task-progress-tracker.js",
+        "size": 23385,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/tech-learning-engine.js",
+        "size": 45061,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/telemetry-ids.js",
+        "size": 6458,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/telemetry/span-recorder.js",
+        "size": 10241,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/tenant-saas.js",
+        "size": 55179,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/terminal-context.js",
+        "size": 7589,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/terminal-setup.js",
+        "size": 7084,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/terraform-manager.js",
+        "size": 28788,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/text-file-search-worker.js",
+        "size": 4418,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/text-file-search.js",
+        "size": 4126,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/threat-intel.js",
+        "size": 29682,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/todo-manager.js",
+        "size": 29311,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/todo-persistence.js",
+        "size": 13011,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/token-incentive.js",
+        "size": 41013,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/token-tracker.js",
+        "size": 26034,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/tool-recovery-result.js",
+        "size": 470,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/topic-classifier.js",
+        "size": 22287,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/trace-api.js",
+        "size": 96,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/trust-security.js",
+        "size": 36946,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/turn-binding-store.js",
+        "size": 6622,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/turn-binding.js",
+        "size": 27430,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/turn-context.js",
+        "size": 3576,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ueba.js",
+        "size": 36391,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/unattended-action-policy.js",
+        "size": 20991,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/universal-runtime.js",
+        "size": 42958,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/update-notice-refresh.mjs",
+        "size": 365,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/update-notice.js",
+        "size": 4297,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/usage-pricing-context.js",
+        "size": 2847,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/user-profile.js",
+        "size": 16680,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/version-checker.js",
+        "size": 14475,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/version-skew.js",
+        "size": 4529,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/wallet-manager.js",
+        "size": 31469,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/web-fetch-snapshots.js",
+        "size": 6232,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/web-fetch.js",
+        "size": 32723,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/web-search.js",
+        "size": 21044,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/web-ui-envelope.js",
+        "size": 3790,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/web-ui-server.js",
+        "size": 66170,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/webhook-security.js",
+        "size": 17761,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/with-file-lock.js",
+        "size": 31146,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/workflow-definition-contract.js",
+        "size": 5048,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/workflow-engine.js",
+        "size": 48184,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/workflow-expr.js",
+        "size": 20099,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/workflow-state-reader.js",
+        "size": 3089,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/workspace-trust.js",
+        "size": 24510,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/worktree-cleanup-safety.js",
+        "size": 5994,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/worktree-isolator.js",
+        "size": 511,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/worktree-sparse.js",
+        "size": 5671,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ws-agent-handler.js",
+        "size": 504,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ws-chat-handler.js",
+        "size": 16051,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ws-rpc-client.js",
+        "size": 4677,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ws-server.js",
+        "size": 568,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/ws-session-manager.js",
+        "size": 538,
+        "mode": 420
+      },
+      {
+        "path": "src/lib/zkp-engine.js",
+        "size": 36634,
+        "mode": 420
+      },
+      {
+        "path": "src/program-base.js",
+        "size": 1966,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/__tests__/mcp-prompt.test.js",
+        "size": 4868,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/__tests__/slash-macro.test.js",
+        "size": 2890,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/add-dir.js",
+        "size": 4741,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/advisor-command.js",
+        "size": 3630,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/agent-repl.js",
+        "size": 388158,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/agents-status.js",
+        "size": 4088,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/bg-dashboard.js",
+        "size": 13352,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/btw-command.js",
+        "size": 4958,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/chat-repl.js",
+        "size": 15061,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/clipboard-copy.js",
+        "size": 3701,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/clipboard-image.js",
+        "size": 26261,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/config-summary.js",
+        "size": 4560,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/conversation-export.js",
+        "size": 4563,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/doctor-status.js",
+        "size": 3432,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/empty-turn-notice.js",
+        "size": 1373,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/fast-mode.js",
+        "size": 3755,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/fullscreen-tui.js",
+        "size": 7024,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/hooks-status.js",
+        "size": 2508,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/ide-status.js",
+        "size": 2767,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/mcp-prompt.js",
+        "size": 4299,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/memory-status.js",
+        "size": 1676,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/permission-prompt.js",
+        "size": 4403,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/permission-tier.js",
+        "size": 4301,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/permissions-status.js",
+        "size": 1962,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/pr-comments.js",
+        "size": 6576,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/prompt-editor.js",
+        "size": 6276,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/prompt-interactions.js",
+        "size": 16008,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/prompt-stash.js",
+        "size": 9971,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/prompt-suggestions.js",
+        "size": 9827,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/recent-sessions.js",
+        "size": 1816,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/release-notes.js",
+        "size": 1025,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/remote-approval.js",
+        "size": 4444,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/repl-keybindings.js",
+        "size": 8061,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/repl-theme.js",
+        "size": 2692,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/repl-tool-executor.js",
+        "size": 1429,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/repl-turn-binding.js",
+        "size": 4409,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/review-args.js",
+        "size": 3073,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/session-cost.js",
+        "size": 8493,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/session-recap.js",
+        "size": 6739,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/slash-command-registry.js",
+        "size": 6133,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/slash-macro.js",
+        "size": 1979,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/status-summary.js",
+        "size": 1346,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/stream-decision.js",
+        "size": 798,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/tasks-status.js",
+        "size": 2859,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/terminal-layout.js",
+        "size": 2889,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/think-command.js",
+        "size": 2780,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/todos-status.js",
+        "size": 2144,
+        "mode": 420
+      },
+      {
+        "path": "src/repl/voice-dictation.js",
+        "size": 4874,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/__tests__/auto-pin.test.js",
+        "size": 4854,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/__tests__/coding-agent-contract-shared.test.js",
+        "size": 4950,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/__tests__/coding-agent-events.test.js",
+        "size": 8695,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/__tests__/message-roles.test.js",
+        "size": 8710,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/agent-core.js",
+        "size": 633895,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/agent-runtime.js",
+        "size": 38474,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/auto-pin.js",
+        "size": 5064,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/bootstrap.js",
+        "size": 5266,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/cleanup-deadline.js",
+        "size": 4609,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-contract-shared.cjs",
+        "size": 54071,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-contract.js",
+        "size": 3103,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-events.cjs",
+        "size": 19023,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-managed-tool-policy.cjs",
+        "size": 7716,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-policy.cjs",
+        "size": 22034,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/coding-agent-shell-policy.cjs",
+        "size": 14008,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/contracts/agent-turn.js",
+        "size": 286,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/contracts/session-record.js",
+        "size": 1654,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/contracts/task-record.js",
+        "size": 613,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/contracts/telemetry-record.js",
+        "size": 830,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/contracts/worktree-record.js",
+        "size": 550,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/diagnostics.js",
+        "size": 15338,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/fallback-model.js",
+        "size": 15939,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/file-ref-expander.js",
+        "size": 20635,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/headless-runner.js",
+        "size": 165098,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/headless-stream.js",
+        "size": 202041,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/index.js",
+        "size": 1286,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/mcp-config.js",
+        "size": 66564,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/mcp-tool-search.js",
+        "size": 25494,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/message-roles.js",
+        "size": 5265,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/output-backpressure.js",
+        "size": 11796,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/permission-authority-host.js",
+        "size": 4613,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/pipe-safety.js",
+        "size": 3096,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/policies/agent-policy.js",
+        "size": 6371,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/provider-stream-state.js",
+        "size": 12857,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/quiet-stdout.js",
+        "size": 1413,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/runtime-context.js",
+        "size": 195,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/runtime-events.js",
+        "size": 2199,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/runtime-factory.js",
+        "size": 6012,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/session-slash-commands.js",
+        "size": 17480,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/status-diagnostics-lite.js",
+        "size": 4591,
+        "mode": 420
+      },
+      {
+        "path": "src/runtime/system-prompt.js",
+        "size": 5427,
+        "mode": 420
+      },
+      {
+        "path": "src/session/index.js",
+        "size": 439,
+        "mode": 420
+      },
+      {
+        "path": "src/skills-bundled/run/SKILL.md",
+        "size": 2694,
+        "mode": 420
+      },
+      {
+        "path": "src/skills-bundled/verify/SKILL.md",
+        "size": 2346,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/beat-snap.js",
+        "size": 3452,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/extractors/audio-extractor.js",
+        "size": 5842,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/extractors/subtitle-extractor.js",
+        "size": 2416,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/extractors/video-extractor.js",
+        "size": 3804,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/media-process.js",
+        "size": 402,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/parallel-orchestrator.js",
+        "size": 5913,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/pipeline.js",
+        "size": 14855,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/aesthetic-analysis.md",
+        "size": 377,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/audio-segment.md",
+        "size": 353,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/character-identify.md",
+        "size": 429,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/dense-caption.md",
+        "size": 508,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/editor-system.md",
+        "size": 1271,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/hook-dialogue.md",
+        "size": 431,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/protagonist-detect.md",
+        "size": 448,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/scene-caption.md",
+        "size": 424,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/shot-caption.md",
+        "size": 515,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/shot-plan.md",
+        "size": 628,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/structure-proposal.md",
+        "size": 438,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/prompts/vlog-scene-caption.md",
+        "size": 485,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/render/audio-mix.js",
+        "size": 3629,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/render/ffmpeg-concat.js",
+        "size": 1270,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/render/ffmpeg-extract.js",
+        "size": 1784,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/reviewer.js",
+        "size": 4418,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/SKILL.md",
+        "size": 1541,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/tools/commit.js",
+        "size": 3415,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/tools/review-clip.js",
+        "size": 1366,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/tools/semantic-retrieval.js",
+        "size": 1472,
+        "mode": 420
+      },
+      {
+        "path": "src/skills/video-editing/tools/shot-trimming.js",
+        "size": 2161,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/index.js",
+        "size": 1067,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/legacy-agent-tools.js",
+        "size": 850,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/registry.js",
+        "size": 3582,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/tool-context.js",
+        "size": 459,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/tool-permissions.js",
+        "size": 896,
+        "mode": 420
+      },
+      {
+        "path": "src/tools/tool-telemetry.js",
+        "size": 1087,
+        "mode": 420
+      },
+      {
+        "path": "src/workers/background-agent-keeper.js",
+        "size": 26924,
+        "mode": 420
+      },
+      {
+        "path": "src/workers/background-agent-worker.js",
+        "size": 64916,
+        "mode": 420
+      },
+      {
+        "path": "src/workers/background-turn-bootstrap.js",
+        "size": 5511,
+        "mode": 420
+      }
+    ],
+    "entryCount": 1523,
+    "bundled": []
+  }
+]

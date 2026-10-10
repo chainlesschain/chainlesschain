@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-10-10T04:08:47.086Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "tagWorkflow": {
+    "id": 38021102825,
+    "name": "IDE Extensions",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38021102825"
+  },
+  "verificationSource": "Supplementary public readback using repository marketplace verifier and digest-bound exact-tag artifact.",
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "pending",
+  "version": "0.4.158",
+  "approve": null,
+  "listed": null,
+  "hidden": null,
+  "reason": "version-not-visible",
+  "attempts": 1,
+  "publicUpdate": null,
+  "packagedPlugin": {
+    "version": "0.4.158",
+    "pairedCliVersion": "0.166.96",
+    "tagArtifactSha256": "5f0da7e8d5c29d0746338cc0a04adb95d9105c9ecea86f5dab2c3fc401b84aeb"
+  }
+}

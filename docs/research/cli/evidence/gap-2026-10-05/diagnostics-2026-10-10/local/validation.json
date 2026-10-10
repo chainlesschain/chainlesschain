@@ -1,0 +1,118 @@
+{
+  "schema": "chainlesschain.gap-diagnostics-local-validation/v1",
+  "createdAt": "2026-10-10T05:59:21.186Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "baseCommit": "2650447476d6358254368b73ddc52b5319982608",
+  "sources": [
+    {
+      "file": "packages/cli/scripts/scheduler-kernel-soak.mjs",
+      "sha256": "406b7d58f4e971567f186b45fad9b9495525359669b796efebbe24a7b785d091"
+    },
+    {
+      "file": "packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+      "sha256": "346b5d69f6336e3fcb7c7330ee01326758b3715f2f270a2f8ace7a11c304c6cf"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/scheduler-kernel-soak.test.js",
+      "sha256": "509518b91b4bd44a737bbe49cbf4b4462f156846911884ace492b013db2352d1"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/scheduler-kernel-soak-worker.test.js",
+      "sha256": "6bbf62a47b0d4aaf7081309c06b03f04b2693d2af2288f9a6f1ab83ca8cd93cb"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      "sha256": "92fb63e1c887943c367f8ab28efde5bbd9fb1e5e8acf9baa73d225a061f99017"
+    },
+    {
+      "file": "packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+      "sha256": "d70fc993ed5e55664d30df8d57d63d2d507569eb0268a025c2ba1d80f02d4ad5"
+    }
+  ],
+  "lint": {
+    "commandExitCode": 1,
+    "file": "packages/cli/scripts/scheduler-kernel-soak.mjs",
+    "messages": [
+      {
+        "ruleId": "no-unsafe-finally",
+        "severity": 2,
+        "message": "Unsafe usage of ThrowStatement.",
+        "line": 486,
+        "column": 37
+      }
+    ],
+    "identicalReleaseBaselineMessages": [
+      {
+        "ruleId": "no-unsafe-finally",
+        "severity": 2,
+        "message": "Unsafe usage of ThrowStatement.",
+        "line": 483,
+        "column": 37
+      }
+    ],
+    "note": "The existing no-unsafe-finally error at line 486 is unchanged in the released source. The other five changed source/test files produced no lint findings. This is not a clean full lint result."
+  },
+  "tests": [
+    {
+      "suite": "Scheduler unit/worker/coordinator",
+      "files": 3,
+      "total": 54,
+      "initialPassed": 53,
+      "initialFailed": 1,
+      "initialDurationSeconds": 65.66,
+      "failure": "New assertion used toEqual without allowing the existing safeError.stack field; original child exit completion and error propagation succeeded."
+    },
+    {
+      "suite": "Scheduler unit",
+      "passed": 43,
+      "reusedUnmodifiedSource": true
+    },
+    {
+      "suite": "Scheduler real coordinator",
+      "passed": 1,
+      "reusedUnmodifiedSource": true
+    },
+    {
+      "suite": "Scheduler worker after assertion correction",
+      "files": 1,
+      "passed": 10,
+      "failed": 0,
+      "durationSeconds": 35.37
+    },
+    {
+      "suite": "Scheduler workflow/campaign contracts",
+      "files": 3,
+      "passed": 15,
+      "failed": 0,
+      "durationSeconds": 4.94
+    },
+    {
+      "suite": "JetBrains collector",
+      "files": 1,
+      "passed": 22,
+      "failed": 0,
+      "source": "Astra execution on identical collector and test bytes before worktree copy; not rerun."
+    }
+  ],
+  "payloadScope": {
+    "comparisonReleaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+    "cliPackFileCount": 1523,
+    "changedCliFiles": [
+      "packages/cli/__tests__/integration/scheduler-kernel-soak-worker.test.js",
+      "packages/cli/__tests__/unit/scheduler-kernel-soak.test.js",
+      "packages/cli/scripts/scheduler-kernel-soak-worker.mjs",
+      "packages/cli/scripts/scheduler-kernel-soak.mjs"
+    ],
+    "changedCliFilesIncludedInPack": [],
+    "pluginRuntimeOrVersionChanges": [],
+    "conclusion": "Changes do not affect CLI npm file membership or IDE runtime/build/version sources. No version bump or new publication is needed for this helper-only patch.",
+    "limitation": "This is a source and package-file scope check, not an independent build or byte comparison with the public npm/Marketplace payload. It does not satisfy any release CI gate.",
+    "packDryRunFile": "local/cli-pack-dry-run.json",
+    "packDryRunSha256": "5f89421cf5bdfb814384eb01d6437567881649f55686b87a8f44fd8f3f9e1d53"
+  },
+  "historicalFailureRootCause": "UNKNOWN",
+  "formalPlanStatus": "NOT_RUN",
+  "nativeReviewStatus": "NOT_ADMITTED",
+  "paidProviderCalls": 0
+}

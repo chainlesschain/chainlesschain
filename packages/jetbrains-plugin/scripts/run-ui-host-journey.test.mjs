@@ -66,6 +66,7 @@ test("host capture preserves complete original IDE log bytes and rotations", (t)
   writeFileSync(path.join(fixture.logs, "idea.log.1"), "previous phase\r\n");
   const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
   assert.equal(result.complete, true);
+  assert.deepEqual(result.failureDetails, []);
   assert.equal(result.files.length, 3);
   const entry = result.files.find((file) => file.source?.endsWith("/idea.log"));
   assert.equal(entry.originalBytes, true);
@@ -98,6 +99,143 @@ test("missing idea.log is retained as a capture failure rather than success", (t
   const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
   assert.equal(result.complete, false);
   assert.deepEqual(result.failures, ["original-idea-log-capture-failed"]);
+  assert.deepEqual(result.failureDetails, [
+    {
+      failure: "original-idea-log-capture-failed",
+      stage: "idea-log.require-files",
+      name: "Error",
+      reason: "missing-idea-log",
+    },
+  ]);
+});
+
+test("missing event trace retains native error metadata and still captures the IDE log", (t) => {
+  const fixture = diagnosticFixture(t);
+  rmSync(path.join(fixture.capture, "host-events.jsonl"));
+  writeFileSync(path.join(fixture.logs, "idea.log"), "original log");
+  const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+  assert.equal(result.complete, false);
+  assert.deepEqual(result.failureDetails, [
+    {
+      failure: "event-trace-or-capture-root-unavailable",
+      stage: "event-trace.stat",
+      name: "Error",
+      code: "ENOENT",
+      syscall: "lstat",
+    },
+  ]);
+  assert.equal(result.files.length, 1);
+  assert.equal(
+    readFileSync(path.join(fixture.capture, result.files[0].path), "utf8"),
+    "original log",
+  );
+  assert.deepEqual(
+    JSON.parse(readFileSync(path.join(fixture.capture, "capture-status.json"))),
+    result,
+  );
+});
+
+for (const [label, contents, stage, name, reason] of [
+  [
+    "malformed JSON",
+    '{"secret":"private-payload"',
+    "event-trace.parse",
+    "SyntaxError",
+    undefined,
+  ],
+  [
+    "invalid schema",
+    '{"schema":"private-payload"}',
+    "event-trace.validate-schema",
+    "Error",
+    "missing-or-invalid-event-trace",
+  ],
+  [
+    "null record",
+    "null\n",
+    "event-trace.validate-schema",
+    "Error",
+    "missing-or-invalid-event-trace",
+  ],
+  [
+    "empty trace",
+    "\n",
+    "event-trace.validate-schema",
+    "Error",
+    "missing-or-invalid-event-trace",
+  ],
+]) {
+  test(`capture distinguishes ${label} without exposing payloads`, (t) => {
+    const fixture = diagnosticFixture(t);
+    writeFileSync(path.join(fixture.capture, "host-events.jsonl"), contents);
+    writeFileSync(path.join(fixture.logs, "idea.log"), "original log");
+    const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+    assert.equal(result.complete, false);
+    assert.equal(result.failureDetails.length, 1);
+    assert.equal(result.failureDetails[0].stage, stage);
+    assert.equal(result.failureDetails[0].name, name);
+    assert.equal(result.failureDetails[0].reason, reason);
+    assert.equal(JSON.stringify(result).includes("private-payload"), false);
+    assert.equal(JSON.stringify(result).includes(fixture.root), false);
+    assert.equal(result.files.length, 1);
+  });
+}
+
+for (const [output, stage] of [
+  ["host-events.jsonl.bin", "event-trace.write-original"],
+  ["idea-001.log.bin", "idea-log.write-original"],
+]) {
+  test(`capture identifies ${output} collision and preserves existing bytes`, (t) => {
+    const fixture = diagnosticFixture(t);
+    writeFileSync(path.join(fixture.logs, "idea.log"), "original log");
+    const destination = path.join(fixture.capture, output);
+    writeFileSync(destination, "previous evidence");
+    const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+    assert.equal(result.complete, false);
+    assert.equal(result.failureDetails.length, 1);
+    assert.equal(result.failureDetails[0].stage, stage);
+    assert.equal(result.failureDetails[0].code, "EEXIST");
+    assert.equal(result.failureDetails[0].syscall, "open");
+    assert.equal(readFileSync(destination, "utf8"), "previous evidence");
+    assert.equal(result.files.length, 1);
+  });
+}
+
+test("capture identifies an unsafe trace file type independently of log capture", (t) => {
+  const fixture = diagnosticFixture(t);
+  const trace = path.join(fixture.capture, "host-events.jsonl");
+  rmSync(trace);
+  mkdirSync(trace);
+  writeFileSync(path.join(fixture.logs, "idea.log"), "original log");
+  const result = captureHostDiagnostics(fixture.sandbox, fixture.capture);
+  assert.equal(result.complete, false);
+  assert.equal(result.failureDetails[0].stage, "event-trace.stat");
+  assert.equal(result.failureDetails[0].reason, "unsafe-event-trace");
+  assert.equal(result.files.length, 1);
+});
+
+test("capture distinguishes sandbox validation failures in both collectors", (t) => {
+  const fixture = diagnosticFixture(t);
+  const result = captureHostDiagnostics("relative-sandbox", fixture.capture);
+  assert.equal(result.complete, false);
+  assert.deepEqual(
+    result.failureDetails.map(({ stage, reason }) => ({ stage, reason })),
+    [
+      {
+        stage: "event-trace.validate-sandbox-root",
+        reason: "unsafe-sandbox-root",
+      },
+      {
+        stage: "idea-log.validate-sandbox-root",
+        reason: "unsafe-sandbox-root",
+      },
+    ],
+  );
+  assert.deepEqual(result.files, []);
+  assert.throws(
+    () => captureHostDiagnostics(fixture.sandbox, "relative-capture"),
+    /unsafe-capture-root/u,
+  );
 });
 
 test("canonical recovery isolates real CLI storage outside the log worktree", (t) => {
