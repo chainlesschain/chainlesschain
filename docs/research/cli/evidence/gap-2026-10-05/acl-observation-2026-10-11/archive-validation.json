@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.private-acl-archive-validation/v1",
+  "verifiedAt": "2026-10-10T23:37:23.430Z",
+  "gzipFilesVerified": 46,
+  "compressedAndOriginalHashesVerified": true,
+  "originalsByteIdentical": true,
+  "archivedVerifierRecomputed": true,
+  "actualAceRawBytesReparsed": true,
+  "sourceFilesVerified": 14,
+  "binariesRetainedLocallyVerified": 3,
+  "copiedArtifactPairsVerified": 7,
+  "nativeExecutionCount": 1,
+  "originalHandleSettlementVerified": true,
+  "ownerOnlyContract": "FAIL",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "powershellSpawnLocated": false
+}

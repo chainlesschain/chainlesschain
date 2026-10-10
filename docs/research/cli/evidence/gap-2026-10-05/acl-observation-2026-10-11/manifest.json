@@ -1,0 +1,744 @@
+{
+  "schema": "chainlesschain.private-acl-observation-lossless-archive/v1",
+  "createdAt": "2026-10-10T23:37:08.569Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "originalDirectory": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "compatibilityConfirmed": false,
+  "authorityProven": false,
+  "continuousStabilityProven": false,
+  "formalSample": false,
+  "observationsCreated": false,
+  "nativeExecutionCount": 1,
+  "execution": {
+    "started": "2026-10-10T23:36:10.206Z",
+    "finished": "2026-10-10T23:36:13.723Z",
+    "status": 0,
+    "signal": null,
+    "error": null
+  },
+  "diagnosticCompleted": true,
+  "ownerOnlyContract": "FAIL",
+  "scope": "One fixed directory created by the actor in its own capsule scratch; read-only GetSecurityInfo on held local handles.",
+  "restrictions": {
+    "arbitraryPathsAccepted": false,
+    "hostOpenedProbeObject": false,
+    "probeWritesDacl": false,
+    "probeChangesNamespace": false,
+    "probeAccessesDriveD": false,
+    "executableAuthorizationExpanded": false,
+    "powershellAttempted": false,
+    "powershellOriginalSpawnFailureLocated": false,
+    "fullFrozenReviewRun": false,
+    "paidProviderCalled": false
+  },
+  "result": {
+    "ownerEqualsCurrentUser": true,
+    "daclProtected": false,
+    "daclPresent": true,
+    "daclNull": false,
+    "daclDefaulted": false,
+    "aceCount": 3,
+    "aces": [
+      {
+        "index": 0,
+        "type": 0,
+        "flags": 19,
+        "bytes": 36,
+        "mask": 2032127,
+        "sid": "S-1-5-21-3149645766-3194426450-591925376-1001",
+        "basicDecoded": true,
+        "rawHex": "00132400ff011f00010500000000000515000000c6c7bbbb521467be80104823e9030000"
+      },
+      {
+        "index": 1,
+        "type": 0,
+        "flags": 19,
+        "bytes": 20,
+        "mask": 2032127,
+        "sid": "S-1-5-18",
+        "basicDecoded": true,
+        "rawHex": "00131400ff011f00010100000000000512000000"
+      },
+      {
+        "index": 2,
+        "type": 0,
+        "flags": 19,
+        "bytes": 48,
+        "mask": 1245631,
+        "sid": "S-1-15-2-1739388597-3509619273-3650818068-751584623-3769497498-1634394738-3543876681",
+        "basicDecoded": true,
+        "rawHex": "00133000bf011300010800000000000f02000000b5f6ac67498a30d114109bd96f45cc2c9af7ade072e26a6149443bd3"
+      }
+    ],
+    "securityError": 0,
+    "fileBefore": {
+      "observed": true,
+      "error": 0,
+      "volumeSerial": "3816218020381368311",
+      "fileId": "cd4f0900000066010000000000000000",
+      "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\scratch\\private-v4-acl-probe",
+      "directory": true,
+      "reparse": false,
+      "links": 1
+    },
+    "fileAfter": {
+      "observed": true,
+      "error": 0,
+      "volumeSerial": "3816218020381368311",
+      "fileId": "cd4f0900000066010000000000000000",
+      "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\scratch\\private-v4-acl-probe",
+      "directory": true,
+      "reparse": false,
+      "links": 1
+    },
+    "contextBefore": {
+      "threadId": 24784,
+      "pid": 28452,
+      "threadTokenOpened": false,
+      "threadTokenError": 1008,
+      "noImpersonationObserved": true,
+      "effectiveTokenKnown": true,
+      "error": 0,
+      "tokenType": 1,
+      "appContainer": true,
+      "userSid": "S-1-5-21-3149645766-3194426450-591925376-1001",
+      "appContainerSid": "S-1-15-2-1739388597-3509619273-3650818068-751584623-3769497498-1634394738-3543876681",
+      "capabilityCount": 0
+    },
+    "contextAfter": {
+      "threadId": 24784,
+      "pid": 28452,
+      "threadTokenOpened": false,
+      "threadTokenError": 1008,
+      "noImpersonationObserved": true,
+      "effectiveTokenKnown": true,
+      "error": 0,
+      "tokenType": 1,
+      "appContainer": true,
+      "userSid": "S-1-5-21-3149645766-3194426450-591925376-1001",
+      "appContainerSid": "S-1-15-2-1739388597-3509619273-3650818068-751584623-3769497498-1634394738-3543876681",
+      "capabilityCount": 0
+    },
+    "checks": {
+      "ownerEqualsCurrentUser": true,
+      "daclProtected": false,
+      "exactlyOneAce": false,
+      "allAcesAllowedCurrentUserFullControl": false,
+      "directoryInheritanceAndNoPropagation": false
+    }
+  },
+  "settlement": {
+    "rootPid": 28452,
+    "rootExit": 0,
+    "rootWait": 0,
+    "jobActiveProcesses": 0,
+    "cleanupConfirmed": true,
+    "profileDeleted": true,
+    "hostMapUnchanged": true,
+    "loopbackExemptionAbsent": true,
+    "launchRequests": 0,
+    "creationLedger": [
+      {
+        "terminationCallError": 0,
+        "preTerminationWait": 4294967295,
+        "preTerminationExit": 259,
+        "terminationCallSucceeded": false,
+        "terminationWait": 4294967295,
+        "actualExit": 259,
+        "creationSequence": 0,
+        "terminationChildSequence": 0,
+        "terminationRequested": false,
+        "terminationRequesterRegistrationId": null,
+        "terminationExitCode": 0,
+        "callerHandleObjectCompared": false,
+        "inheritedHandleCount": 9,
+        "stdioCount": 3,
+        "callerOriginalHandleRetained": false,
+        "commandKind": "trusted-root-checker",
+        "pid": 28452,
+        "jobAssigned": true,
+        "tokenAndSameJobProven": true,
+        "mapInstalled": true,
+        "mapStatus": 0,
+        "wait": 0,
+        "exitKnown": true,
+        "exit": 0,
+        "kind": "root",
+        "registrationId": "938cf036-83e6-436c-99ac-51713ebf7031",
+        "parentRegistrationId": null,
+        "registered": true,
+        "launchRequests": 0
+      }
+    ]
+  },
+  "sourceAndBinaryBinding": {
+    "sourceCount": 14,
+    "binaryCount": 3,
+    "copiedPairCount": 7,
+    "producerInputsUnchanged": true,
+    "copyInputsUnchanged": true,
+    "independentReadback": {
+      "checkedAt": "2026-10-10T23:36:35.709Z",
+      "frozenCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+      "frozenGitObjectsVerified": 10,
+      "sourcesVerified": 14,
+      "binariesVerified": 3,
+      "copiedPairsVerified": 7,
+      "changedOriginalSources": [
+        "windows-node-private-v4-adapter.cpp"
+      ],
+      "actorRunCount": 1,
+      "inspectionRecomputed": true,
+      "originalBytesMatch": true
+    },
+    "binaryInputsRetainedLocally": [
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\broker.exe",
+        "bytes": 908288,
+        "digest": "sha256:160d3d99bcb96b7bde9f50139490d9e34270603842cf5be90967db01bb6c7e9b"
+      },
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\windows-node-private-v4.node",
+        "bytes": 838656,
+        "digest": "sha256:2910b25e8ebc0f32f79c6312dfc2cef50a33f4f61dedab74529a5eddc80f5925"
+      },
+      {
+        "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\esbuild-private-shim.dll",
+        "bytes": 54784,
+        "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+      }
+    ],
+    "copiedArtifacts": [
+      {
+        "source": {
+          "path": "C:\\nvm4w\\nodejs\\node.exe",
+          "bytes": 87074816,
+          "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\control\\node.exe",
+          "bytes": 87074816,
+          "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\check.cjs",
+          "bytes": 1122,
+          "digest": "sha256:25ee137cbb37849338893882659e8d50143d0382dfc7902f0cfc0c333329336a"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\control\\check.cjs",
+          "bytes": 1122,
+          "digest": "sha256:25ee137cbb37849338893882659e8d50143d0382dfc7902f0cfc0c333329336a"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\windows-node-private-v4.node",
+          "bytes": 838656,
+          "digest": "sha256:2910b25e8ebc0f32f79c6312dfc2cef50a33f4f61dedab74529a5eddc80f5925"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\workspace\\adapter\\windows-node-private-v4.node",
+          "bytes": 838656,
+          "digest": "sha256:2910b25e8ebc0f32f79c6312dfc2cef50a33f4f61dedab74529a5eddc80f5925"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\esbuild-private-shim.dll",
+          "bytes": 54784,
+          "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\workspace\\adapter\\esbuild-private-shim.dll",
+          "bytes": 54784,
+          "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-preload.cjs",
+          "bytes": 8947,
+          "digest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\workspace\\adapter\\windows-node-private-v4-preload.cjs",
+          "bytes": 8947,
+          "digest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-identity.cjs",
+          "bytes": 13925,
+          "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\workspace\\adapter\\windows-node-private-v4-identity.cjs",
+          "bytes": 13925,
+          "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+        }
+      },
+      {
+        "source": {
+          "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+          "bytes": 11670528,
+          "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+        },
+        "destination": {
+          "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-acl-DYlDWT\\workspace\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+          "bytes": 11670528,
+          "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+        }
+      }
+    ]
+  },
+  "sourceDiff": {
+    "changedOriginalSources": [
+      "windows-node-private-v4-adapter.cpp"
+    ],
+    "unchangedNativePolicy": "The frozen broker, supervisor, launch whitelist, existing map creation and ACL setup retain exact 22ef bytes.",
+    "additions": [
+      "aclapi.h include",
+      "acl-probe.h include after coordinateContext",
+      "observeFixedScratchAcl no-argument N-API export",
+      "independent read-only probe header, actor, verifier and driver"
+    ],
+    "frozenOriginalDriverCopied": true,
+    "actualDriver": "run.mjs (standalone adaptation of original-coordinate-driver.mjs; original tracked driver also retained)"
+  },
+  "compilerClosureVerified": false,
+  "compilerClosureLimitation": "Existing local LLVM-MinGW and Node headers; not a hermetic compiler closure. Three generated binaries remain under .work and are not archived.",
+  "limitations": [
+    "Observation is of a new actor-created scratch directory, not a completed frozen journal execution or its final repaired ACL.",
+    "The old exact owner-only directory contract fails this observed ACL. No permission repair was attempted.",
+    "Same-thread before/after token and file identity observations do not prove continuous binding or future immutability.",
+    "No PowerShell launch was attempted. The original windows-acl:spawn rejection has not been localized.",
+    "No runner terminal stdout file was captured; original host and actor stdout/stderr and per-build stdout/stderr are archived."
+  ],
+  "files": [
+    {
+      "original": "acl-probe.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\acl-probe.h",
+      "archived": "a001.h.gz",
+      "originalBytes": 8162,
+      "originalSha256": "7f5f6303b024a7bf68d55a2014584129b051ae981e3ef056945718a76e14680a",
+      "compressedBytes": 2783,
+      "compressedSha256": "1500dbb07afd8a5637343f2a6bd342b8135d8262f32b25d584e62b3b0df1e396"
+    },
+    {
+      "original": "adapter.diff",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\adapter.diff",
+      "archived": "a002.diff.gz",
+      "originalBytes": 1912,
+      "originalSha256": "eaad5c9adc2ef57c7cc06b81c4cd71f1ddafd0f2b813b16f7a3f2d7e7474c852",
+      "compressedBytes": 756,
+      "compressedSha256": "1242c8a4a7a43d213e237fe448499a35f605cee72f0a4fd0f21f2e71256c4487"
+    },
+    {
+      "original": "binaries.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\binaries.json",
+      "archived": "a003.json.gz",
+      "originalBytes": 652,
+      "originalSha256": "51612785135fce61c4f295542a64f6261ccd2db64d3262de792666ad88357b64",
+      "compressedBytes": 326,
+      "compressedSha256": "7da3e9c9a3b7ffc26e6e0dbc2e7d94e9a60dcfc25940c95fe1b4d1d018a9751f"
+    },
+    {
+      "original": "broker.exe.build.stderr",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\broker.exe.build.stderr",
+      "archived": "a004.stderr.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "broker.exe.build.stdout",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\broker.exe.build.stdout",
+      "archived": "a005.stdout.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "build.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\build.json",
+      "archived": "a006.json.gz",
+      "originalBytes": 2493,
+      "originalSha256": "059ffdc7e2c3953f99899df80652bf4716c691ff60d18b98fcc09e13ee71c40b",
+      "compressedBytes": 628,
+      "compressedSha256": "0e8ae949cc95da67c93bd1c72f1ec99c3d05bbd77f221288eeabc9143074e0dc"
+    },
+    {
+      "original": "check.cjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\check.cjs",
+      "archived": "a007.cjs.gz",
+      "originalBytes": 1122,
+      "originalSha256": "25ee137cbb37849338893882659e8d50143d0382dfc7902f0cfc0c333329336a",
+      "compressedBytes": 544,
+      "compressedSha256": "2141f6b821e41fc3e9ef6362280be4d38690eb5ee0160a62cf4095d660953e59"
+    },
+    {
+      "original": "esbuild-private-shim.dll.build.stderr",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\esbuild-private-shim.dll.build.stderr",
+      "archived": "a008.stderr.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "esbuild-private-shim.dll.build.stdout",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\esbuild-private-shim.dll.build.stdout",
+      "archived": "a009.stdout.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "frozen/original-coordinate-driver.mjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\original-coordinate-driver.mjs",
+      "archived": "a010.mjs.gz",
+      "originalBytes": 7553,
+      "originalSha256": "9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "compressedBytes": 2395,
+      "compressedSha256": "11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "original": "frozen/original-tracked-driver.mjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\original-tracked-driver.mjs",
+      "archived": "a011.mjs.gz",
+      "originalBytes": 37711,
+      "originalSha256": "26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "compressedBytes": 9728,
+      "compressedSha256": "e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "original": "frozen/windows-esbuild-private-map-shim.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-esbuild-private-map-shim.cpp",
+      "archived": "a012.cpp.gz",
+      "originalBytes": 12342,
+      "originalSha256": "a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "compressedBytes": 4106,
+      "compressedSha256": "3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "frozen/windows-esbuild-private-map-supervisor.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "a013.cpp.gz",
+      "originalBytes": 26434,
+      "originalSha256": "1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "compressedBytes": 9037,
+      "compressedSha256": "65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-adapter.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-adapter.cpp",
+      "archived": "a014.cpp.gz",
+      "originalBytes": 65180,
+      "originalSha256": "ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "compressedBytes": 16797,
+      "compressedSha256": "677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-adapter.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-adapter.h",
+      "archived": "a015.h.gz",
+      "originalBytes": 28012,
+      "originalSha256": "515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "compressedBytes": 8150,
+      "compressedSha256": "f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-broker.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-broker.cpp",
+      "archived": "a016.cpp.gz",
+      "originalBytes": 44840,
+      "originalSha256": "ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "compressedBytes": 13278,
+      "compressedSha256": "b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-identity.cjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-identity.cjs",
+      "archived": "a017.cjs.gz",
+      "originalBytes": 13925,
+      "originalSha256": "bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "compressedBytes": 4363,
+      "compressedSha256": "c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-paired.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-paired.h",
+      "archived": "a018.h.gz",
+      "originalBytes": 7924,
+      "originalSha256": "89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "compressedBytes": 2790,
+      "compressedSha256": "47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-preload.cjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-preload.cjs",
+      "archived": "a019.cjs.gz",
+      "originalBytes": 8947,
+      "originalSha256": "13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "compressedBytes": 3125,
+      "compressedSha256": "2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "original": "frozen/windows-node-private-v4-protocol.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\frozen\\windows-node-private-v4-protocol.h",
+      "archived": "a020.h.gz",
+      "originalBytes": 1137,
+      "originalSha256": "bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "compressedBytes": 516,
+      "compressedSha256": "ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "independent-readback.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\independent-readback.json",
+      "archived": "a021.json.gz",
+      "originalBytes": 381,
+      "originalSha256": "270ef8b831b7958f54ae47d3ebec27d95018a5d3d52c36e31a2038e56ecdbfeb",
+      "compressedBytes": 270,
+      "compressedSha256": "0bbb2f13db0f99812386ce12e4803c798bd03a1e503a02c5c051be7ac4a86e07"
+    },
+    {
+      "original": "origins.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\origins.json",
+      "archived": "a022.json.gz",
+      "originalBytes": 3817,
+      "originalSha256": "c63b56dba5fd47072397b4ee7c6d2fcf68668752df1fc8653df0af9dc15a6a1f",
+      "compressedBytes": 828,
+      "compressedSha256": "6097dde54607916dd2e034b494afe099a76424f29b6453f9a832845f961f8530"
+    },
+    {
+      "original": "run.mjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run.mjs",
+      "archived": "a023.mjs.gz",
+      "originalBytes": 9761,
+      "originalSha256": "b46320c45a006a5b5ea971e91b1b09e7e01eaa0888d9c780dc2815c02a4441dd",
+      "compressedBytes": 3124,
+      "compressedSha256": "8c09f92b8616adf49cab0d4aa601438520bc9140cd954c4265bf46a863615391"
+    },
+    {
+      "original": "run/acl-probe.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\acl-probe.json",
+      "archived": "a024.json.gz",
+      "originalBytes": 14752,
+      "originalSha256": "74fdd726fd662e676cc7533c43ab4e36402a72763cda407b97695fb5d9b5275a",
+      "compressedBytes": 2650,
+      "compressedSha256": "6777d8c28fd3257dcbed33d70adab1c2bf6db435e011f0267d995610934217f8"
+    },
+    {
+      "original": "run/actor.stderr",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\actor.stderr",
+      "archived": "a025.stderr.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "run/actor.stdout",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\actor.stdout",
+      "archived": "a026.stdout.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "run/host.stderr",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\host.stderr",
+      "archived": "a027.stderr.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "run/host.stdout",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\host.stdout",
+      "archived": "a028.stdout.gz",
+      "originalBytes": 1579,
+      "originalSha256": "d6e511ab2dc03bfeac0ee99b1152f03a96ec24a1a9597709a7045616d336d071",
+      "compressedBytes": 791,
+      "compressedSha256": "4fb1036fff7a9aed0d2c7e7f3a977f08d025b879c34db338d61039453bef5a6b"
+    },
+    {
+      "original": "run/manifest.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\manifest.json",
+      "archived": "a029.json.gz",
+      "originalBytes": 1379,
+      "originalSha256": "7677c20a561a0813913a54befeca9e1f73b11fba458df83b26bc4b6cc06f19f2",
+      "compressedBytes": 765,
+      "compressedSha256": "0091e547c62d2862303c959038166fd296d564f0c9a3cd3f5ee1e348ba85523e"
+    },
+    {
+      "original": "run/private-v4-28452-exit.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\private-v4-28452-exit.json",
+      "archived": "a030.json.gz",
+      "originalBytes": 4680,
+      "originalSha256": "bccd00d12adecde751460733d758a246926e602072609507140518516cee482a",
+      "compressedBytes": 1547,
+      "compressedSha256": "18e510b88c6a0cea5592a3392948dda80608585128595512065c864f6306ffb6"
+    },
+    {
+      "original": "run/private-v4-28452-installed.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\private-v4-28452-installed.json",
+      "archived": "a031.json.gz",
+      "originalBytes": 4632,
+      "originalSha256": "28179c6cc4d3b861024f6fd8ac38133abec6e3ad55184ead25f6708fa9152ed3",
+      "compressedBytes": 1518,
+      "compressedSha256": "4465146e9ea6d868681417b96221e8f07efa379b8edebb47a9450e27f7c01aa0"
+    },
+    {
+      "original": "run/report.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\run\\report.json",
+      "archived": "a032.json.gz",
+      "originalBytes": 39918,
+      "originalSha256": "d0b5d713f7fc6fef778d7355a81a2adcd57431745695a5fac6e9d70492bbbed2",
+      "compressedBytes": 5130,
+      "compressedSha256": "a082aab56b1896ce5a3a99a4b07c392302666dc7e52e2d169032e5b82f71bc7a"
+    },
+    {
+      "original": "source/acl-probe.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\acl-probe.h",
+      "archived": "a033.h.gz",
+      "originalBytes": 8162,
+      "originalSha256": "7f5f6303b024a7bf68d55a2014584129b051ae981e3ef056945718a76e14680a",
+      "compressedBytes": 2783,
+      "compressedSha256": "1500dbb07afd8a5637343f2a6bd342b8135d8262f32b25d584e62b3b0df1e396"
+    },
+    {
+      "original": "source/windows-esbuild-private-map-shim.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "a034.cpp.gz",
+      "originalBytes": 12342,
+      "originalSha256": "a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "compressedBytes": 4106,
+      "compressedSha256": "3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "source/windows-esbuild-private-map-supervisor.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "a035.cpp.gz",
+      "originalBytes": 26434,
+      "originalSha256": "1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "compressedBytes": 9037,
+      "compressedSha256": "65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "source/windows-node-private-v4-adapter.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "a036.cpp.gz",
+      "originalBytes": 65461,
+      "originalSha256": "f66c3c1954726f68f85d74da2e27450c964c6c71b60bfd5a0520db6aa6d489b6",
+      "compressedBytes": 16848,
+      "compressedSha256": "9b6895e729fa598244b70fd705b18c45e444874a1cc1296ff3b07dcd9f8f14b2"
+    },
+    {
+      "original": "source/windows-node-private-v4-adapter.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-adapter.h",
+      "archived": "a037.h.gz",
+      "originalBytes": 28012,
+      "originalSha256": "515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "compressedBytes": 8150,
+      "compressedSha256": "f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "source/windows-node-private-v4-broker.cpp",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "a038.cpp.gz",
+      "originalBytes": 44840,
+      "originalSha256": "ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "compressedBytes": 13278,
+      "compressedSha256": "b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "original": "source/windows-node-private-v4-identity.cjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "a039.cjs.gz",
+      "originalBytes": 13925,
+      "originalSha256": "bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "compressedBytes": 4363,
+      "compressedSha256": "c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "source/windows-node-private-v4-paired.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-paired.h",
+      "archived": "a040.h.gz",
+      "originalBytes": 7924,
+      "originalSha256": "89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "compressedBytes": 2790,
+      "compressedSha256": "47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "source/windows-node-private-v4-preload.cjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "a041.cjs.gz",
+      "originalBytes": 8947,
+      "originalSha256": "13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "compressedBytes": 3125,
+      "compressedSha256": "2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "original": "source/windows-node-private-v4-protocol.h",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\source\\windows-node-private-v4-protocol.h",
+      "archived": "a042.h.gz",
+      "originalBytes": 1137,
+      "originalSha256": "bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "compressedBytes": 516,
+      "compressedSha256": "ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "sources.json",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\sources.json",
+      "archived": "a043.json.gz",
+      "originalBytes": 3170,
+      "originalSha256": "d3cafb531382ef4f61ea022ef02f1e192cd667c0697e0c428a9953580a03ca5e",
+      "compressedBytes": 836,
+      "compressedSha256": "9ee8aa89a105785641f8a7b3c8668739127399d7eb39e507d5740635c1fc28a8"
+    },
+    {
+      "original": "verify.mjs",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\verify.mjs",
+      "archived": "a044.mjs.gz",
+      "originalBytes": 4309,
+      "originalSha256": "8e15803e2e1f68a580cc0d4b9cf40bae4da0b5f8138524a3f95a7a6f3c5dd0b4",
+      "compressedBytes": 1506,
+      "compressedSha256": "712ce1d17d50be30bfab83dbe8833af6f2d80177bbf70bad2bb6abd25d65c701"
+    },
+    {
+      "original": "windows-node-private-v4.node.build.stderr",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\windows-node-private-v4.node.build.stderr",
+      "archived": "a045.stderr.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "windows-node-private-v4.node.build.stdout",
+      "originalAbsolutePath": "C:\\code\\chainlesschain\\.work\\acl-observe-22ef-20261011-a\\windows-node-private-v4.node.build.stdout",
+      "archived": "a046.stdout.gz",
+      "originalBytes": 0,
+      "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compressedBytes": 20,
+      "compressedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    }
+  ],
+  "totals": {
+    "payloadFiles": 46,
+    "uncompressedBytes": 573908,
+    "compressedBytes": 163463
+  }
+}

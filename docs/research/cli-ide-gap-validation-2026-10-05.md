@@ -1027,3 +1027,15 @@ OIDC run **38094605922** / attempt1成功。独立[公开CLI回读](./cli/eviden
 CLI 公开回读后才推送两端 IDE 的不可变标签；Open VSX `0.37.141`（run `38095423362`）与 JetBrains `0.4.159`（run `38095423253`）发布矩阵正在运行，尚未确认市场上传或公开安装。 默认渠道仍Open VSX/JetBrains，未新增Microsoft Marketplace backfill；公开市场的实际状态以[发行索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/manifest.json)及各市场回读为准。
 
 正式 36 tasks + 9 firstRuns、$99 和 observations 保持 NOT_RUN/INSUFFICIENT_EVIDENCE；旧 Windows 211=194/16/1、mutants 6/4/4 以及新 fixture 211=208/2/1 均未改写，完整 native review 继续 NOT_ADMITTED。Windows/macOS durable、受保护 journal、服务自身恢复/WFP、正式目标宿主、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放。本轮无付费 provider 调用，草稿 PR #428 未合并。
+
+### 20.31 2026-10-11 LowBox scratch ACL 实际读取与兼容缺口
+
+现有 `packages/session-core/lib/private-storage.js` 的Windows私有存储先固定spawn PowerShell，再校验owner、protected DACL、唯一owner ACE和完整继承/权限。冻结journal失败在sessionPath/getSessionsDir/ensurePrivateDirectory阶段，尚未进入恢复断言；非timeout启动错误汇总为 `windows-acl:spawn`，旧原件缺精确launchStage，不能归因路径解析或native hook。
+
+本切片只在 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5` 的独立.work副本增加固定无参数 `observeFixedScratchAcl()`。actor自己新建 `X:\scratch\private-v4-acl-probe`；当前零capability LowBox线程以READ_CONTROL/FILE_READ_ATTRIBUTES和无reparse检查持有scratch与该目录HANDLE，用GetSecurityInfo读取实际owner/DACL/control及全部ACE原字节，没有宿主代开、任意路径、WRITE_DAC、namespace变更、可执行授权扩展或D访问。带参数调用实际拒绝；默认六槽保持。
+
+一次真实运行 **23:36:10.206Z → 23:36:13.723Z**（2026-10-10 UTC / 2026-10-11本地）。GetSecurityInfo Win32 error0、descriptor valid，owner=current user；DACL present=true/null=false/defaulted=false/protected=false。三条ALLOW ACE的flags均 **0x13 = OI|CI|INHERITED**：用户mask **0x1f01ff**、SYSTEM(S-1-5-18)mask **0x1f01ff**、当前AppContainer mask **0x1301bf**。独立解析原始ACL/ACE与SID字节并重算现有精确条件，ownerOnlyContract=**FAIL**；诊断root exit0只说明完成完整负观察，admissionEligible/compatibilityConfirmed/authorityProven/continuousStabilityProven均false。未设置ACL，不能据此推断设置后的语义结果。
+
+root PID28452、thread24784；前后有效primary token、无impersonation、capability0、FileId/卷号/NT路径一致，仅单次观察，不构成连续稳定证明。仅root启动，launchRequests0；原HANDLE wait0/exit0、Job0、profile删除、host map未变。14source、3binary、7copy前后绑定并独立复核；实验adapter仅三处接线，另八份原native/CJS源逐字节匹配22ef。没有工程源码改动，也没有进入已发行CLI/IDE；compiler closure非hermetic，本机Windows10/Node22.22.2不冒充正式目标宿主。
+
+[46份gzip原件索引](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/manifest.json)与[独立回读](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/archive-validation.json)保存完整header/actor/driver/verifier、源码diff、构建原件和运行结算；大二进制保留.local摘要绑定。归档双摘要/原始字节及verifier重算FAIL全部通过，未再次实跑。没有PowerShell调用，所以旧spawn拒绝仍未定位；未执行完整冻结journal/review。其余owner-only实际实现、junction、protected journal/durable服务、自身恢复/WFP、正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99/observations、旧211=194/16/1及6/4/4、新211=208/2/1、账单/独立人工/辅助技术/8h/24h/SLO仍保持原状态，无付费调用。

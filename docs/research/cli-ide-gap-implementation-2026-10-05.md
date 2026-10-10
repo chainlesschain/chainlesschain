@@ -460,3 +460,9 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 源码 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5` 已完成自身CLI/Strict/IDE/ARM64与相关失败门，按既有OIDC发布CLI `0.166.97`，再独立核验公共tarball、准确provenance、13个子包和registry安装来源。SDK `0.2.14` 与所有子包复用的整个Git subtree及公共字节一致，没有新子包发布。CLI 公开回读后才推送两端 IDE 的不可变标签；Open VSX `0.37.141`（run `38095423362`）与 JetBrains `0.4.159`（run `38095423253`）发布矩阵正在运行，尚未确认市场上传或公开安装。
 
 [CI归档](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/ci/manifest.json)、[CLI回读](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/public/npm/readback.json)及[发行索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/manifest.json)保存原始字节与绑定摘要；详细门及局部限制见[验证20.30](./cli-ide-gap-validation-2026-10-05.md#2030-2026-10-11-cli-016697-最终门与公开发行回读)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 NOT_RUN/INSUFFICIENT_EVIDENCE；旧 Windows 211=194/16/1、mutants 6/4/4 以及新 fixture 211=208/2/1 均未改写，完整 native review 继续 NOT_ADMITTED。Windows/macOS durable、受保护 journal、服务自身恢复/WFP、正式目标宿主、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放。本轮无付费 provider 调用，草稿 PR #428 未合并。
+
+## 32. 2026-10-11 固定 scratch ACL 观察与保留的失败
+
+在冻结22ef独立副本增加无参数、固定actor新建scratch目录的同LowBox只读GetSecurityInfo入口，只记录实际owner/DACL/control/完整ACE和同HANDLE的FileId/token前后观察。默认六槽不变，未增加可执行授权、宿主代开、WRITE_DAC或namespace修改，工程及已发行产物未改变。一次真实读取成功，但未protected、三条继承ALLOW ACE的默认DACL不满足原owner-only合同，结果FAIL/NOT_ADMITTED；原HANDLE/Job/profile清理和14source/3binary/7copy绑定确认。未设置ACL、未尝试PowerShell，旧spawn拒绝和owner-only实现仍开放。
+
+详见[独立实验原件](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/README.md)及[验证20.31](./cli-ide-gap-validation-2026-10-05.md#2031-2026-10-11-lowbox-scratch-acl-实际读取与兼容缺口)。本机Windows10/Node22.22.2、compiler closure非hermetic；没有把诊断完成计入正式36+9或改写冻结矩阵、$99、observations、durable/账单/人工/长时状态，无付费调用。
