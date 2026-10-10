@@ -7,3 +7,7 @@
 修复仅给原证据目录增加 `!eol`，使脚本最终属性为 `text: unset / eol: unspecified`；原件字节、源码校验器、生产 runtime 及 soak 期限/重试/lease 均未改变。Windows Node 22.22.2 与 WSL Ubuntu Node 22.12.0 分别建立独立 Git fixture，复现旧拒绝、提交修复后通过生产源码校验；每个环境另做 `core.autocrlf=false/true` 两次真实克隆，核对准确 SHA、脚本工作树与 blob 原字节。见[Windows](./windows-source-validation.json)、[Linux](./linux-source-validation.json)和[验证清单](./local-validation.json)。选定既有源码合同 3 项通过，6 项未选择；首次误用根目录 Vitest 配置的调用已中断并排除。
 
 十份压缩 API/日志/制品的原字节及存储字节摘要、两个本地报告来源摘要均复核。受限环境的日志请求曾 403，获准普通用户环境后归档成功，未修改 GitHub 权限或凭证配置。修复提交须自身完整矩阵，旧成功不转移。正式 36+9、$99、observations、旧 Windows 211 = 194/16/1、6/4/4 及整体 `NOT_ADMITTED` 保持原状；其余 native/durable、账号账单、真人辅助技术、长时/SLO 仍开放，无付费请求或发布。
+
+属性修复提交 `7ded47b376a028e669d2f7a3cad5aa47d5e798ab` 已进入 GitHub 工作分支。独立准确 SHA 检出的产品全量源码门也已通过：**24,944 entries / 1,304,408,083 bytes**。四份原始调用/stdout/stderr/runner 的无损归档见[产品源码验证](./product-source-7ded/manifest.json)；当前开发工作区的 junction 改动未参与该检查。这是本地源码身份验证，完整 CI 仍须分别结算。
+
+同一 `7ded` 的 Agent Team Soak run `38054653688` 三平台现已全部成功，三份原始报告各为 Node 22.12.0、一次实际 round、5 个任务、准确源码匹配：[完整回读](./ci-7ded-team/manifest.json)。单机时间分别 Linux **9.859s**、macOS **36.696s**、Windows **42.708s**，只是 PR smoke，不作为 8h/24h 或正式模型任务验收。Strict Sandbox **5/5**；[其余门快照](./ci-7ded-gates/manifest.json)中完整 CLI CI、Scheduler 与 IDE Safety 尚未结算。这些结论只绑定 `7ded`，不转移到后续文档提交。

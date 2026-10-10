@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-10T13:31:50.117Z",
+  "dualDigestArchivesVerified": 145,
+  "originalProductSourceFilesRestored": 5,
+  "withdrawnNewTestAbsent": true,
+  "nativeGuardWriteAttributeOpensSucceeded": 3,
+  "dataWriteAndDeleteOpensDenied": 8,
+  "nativeFailedRunCleanupConfirmed": [
+    "d",
+    "f"
+  ],
+  "noCompatibilityMappingExecuted": true,
+  "noGuardedMutationAttempted": true,
+  "fullNativeReviewAdmitted": false,
+  "formalSample": false
+}

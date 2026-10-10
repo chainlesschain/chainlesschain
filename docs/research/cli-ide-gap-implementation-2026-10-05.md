@@ -432,3 +432,11 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 ## 27. 2026-10-10 CI 归档换行属性修复
 
 `4928e50ef109712a36e3a39e08405b943ffd136b` 的三平台 Agent Team Soak 在执行 round 前失败，CLI CI 三个 integration shard 各有一项严格源码合同失败。两份归档 PowerShell 的目录 `-text` 未清除根目录 `*.ps1` 的 `eol=crlf`；修复只增加 `!eol`，原件字节及源码门、生产 runtime、lease/重试/期限保持。两环境独立 Git fixture 均复现旧失败并通过已提交修复；四次实际克隆验证准确源码与脚本原字节。选定源码合同 3 项通过，十份 API/日志/制品双摘要核验，见[证据](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/README.md)及[验证 20.26](./cli-ide-gap-validation-2026-10-05.md#2026-ci-归档换行属性与严格源码门)。新 SHA 须自身完整矩阵，原正式 36+9、$99、旧矩阵与 `NOT_ADMITTED` 不变，其余工程/人工验收仍开放，无付费调用或发布。
+
+## 28. 2026-10-10 junction 共享方案拒绝与 CI 回读
+
+属性修复已提交并推送为 `7ded47b376a028e669d2f7a3cad5aa47d5e798ab`：独立工作树全量源码门 **24,944 files / 1,304,408,083 bytes** 匹配，同 SHA Agent Team 三平台 **3/3**、Strict **5/5** 完成；完整 CLI CI 等门仍未结束，不转移旧成功。PR smoke 各一次 round、5 tasks，并非长时/真实 provider 任务。
+
+与 Astra 实施并审查的 junction 返回表示兼容方案共保留 a–f 六轮。真正的 FILE_READ_DATA held pin 阻止了 WRITE_DATA/GENERIC_WRITE/DELETE，但三个对象仍能成功取得 WRITE_ATTRIBUTES；公开 FSCTL_SET 合同接受此权限条件，防置换证明不足。候选映射入口及七槽 profile 已撤回，五个源恢复为准确 HEAD blob，新测试保留后移除；[119 份尝试/恢复原件](./cli/evidence/gap-2026-10-05/junction-guard-2026-10-10/README.md)全部双摘要验证。未使用属性句柄实施 guard 下的实际修改，不宣称漏洞复现。受限 D control 读取升级被中止，未重试，actor/control 原件没有独立完整采集。
+
+只证明路径坐标等价的更窄方案仍需 Global alias/root/X 绑定和不可重绑定实证，不能借当前 root identity 或一次 map 拒绝代替，更不能用于 authority fencing。junction 修复仍未完成；其余 owner-only ACL、skip、durable、正式 36+9、账单/人工/长时验收及原冻结矩阵、$99 状态保持不变，无付费调用或发布。详见[验证 20.27](./cli-ide-gap-validation-2026-10-05.md#2027-junction-共享句柄方案的真实拒绝)。

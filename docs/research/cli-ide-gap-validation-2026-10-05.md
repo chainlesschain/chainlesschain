@@ -966,3 +966,17 @@ fixture helper 107 项合同覆盖真实来源描述的字段/身份/环境/人�
 Windows Node 22.22.2 与 WSL Ubuntu Node 22.12.0 各用独立 Git fixture 复现旧拒绝，提交修复后通过生产 `verifyExactSourceTree`；每环境再实际克隆 `core.autocrlf=false/true`，准确 SHA、源码属性与原脚本工作树/blob 字节均匹配。fixture SHA 仅为局部证明。选定既有源码合同 **3 pass / 6 未选择**；结果来自工具记录，未保存原 stdout，不累计正式样本。首次误用根目录 Vitest 配置的调用已中断排除。十份压缩原件双摘要及两个本地报告来源摘要复核，见[验证清单](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/local-validation.json)。受限日志请求曾 403，获准普通用户环境归档成功，未修改 GitHub 权限或凭证配置。
 
 生产 runtime、soak lease/重试/期限和断言均未改变。新 SHA 须自身完整矩阵；正式 **36+9 / NOT_RUN**、$99、observations、旧 **211 = 194/16/1、6/4/4** 与 `NOT_ADMITTED` 不变，native/durable、官方账号账单、真人辅助技术及长时/SLO 继续开放，无付费调用或发布。
+
+属性修复已提交并推送为 `7ded47b376a028e669d2f7a3cad5aa47d5e798ab`。从该准确 SHA 的独立工作树运行产品 `--verify-source-only`，实际 exit 0、**24,944 tracked entries / 1,304,408,083 bytes** 全部匹配；原 stdout/stderr、调用与 runner 的四份无损原件见[全量源码清单](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/product-source-7ded/manifest.json)。正在开发的 junction 源码不在该独立检出中。此门验证全部产品源码与属性，不等于完整 CI 或三平台 soak 成功；新 CLI CI/Agent Team 三平台尚在执行或排队。
+
+随后同 SHA 的 Agent Team run `38054653688` 已完成 **3/3**，三份[原始制品回读](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/ci-7ded-team/manifest.json)均 `success:true`、Node 22.12.0、一次 round、5 tasks 和准确 source bytes。单机 elapsed 分别 Linux **9.859s**、macOS **36.696s**、Windows **42.708s**，不作连续长时或正式模型任务证明。Strict **5/5**，而[其他门快照](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/ci-7ded-gates/manifest.json)中的完整 CLI CI、Scheduler、IDE Safety 尚未结束；不转移给后续提交。
+
+### 20.27 Junction 共享句柄方案的真实拒绝
+
+Astra 独立确认固定 libuv 拒绝真实 mount-point 的 Global DOS substitute 后 fallback 成普通目录。本轮尝试只改变内核返回值的路径表示，但必须证明身份与防置换条件。六轮[原件](./cli/evidence/gap-2026-10-05/junction-guard-2026-10-10/manifest.json)共 **119** 份无损 gzip、双摘要核验：a 的既有综合 self-test 在新增 parser 前返回 98；b 的 parser test 编译因 unused function / `-Werror` 失败；c/d/e/f 的四项编译与独立 parser 成功；仅 d/f 真正运行 AppContainer，均在共享断言失败、尚未转换。d 未在断言前保存具体权限数组，不能补造。
+
+f 以 FILE_READ_DATA pin 各目录，实际 11 次 access-open：ancestor/target/junction 的 WRITE_DATA 与 GENERIC_WRITE 返回 32，ancestor/target DELETE 返回 32，三个 WRITE_ATTRIBUTES **均返回 0**。source DELETE 设计为共享以容纳 unlink，未探测。保留的 [MS-FSA 原件](./cli/evidence/gap-2026-10-05/junction-guard-2026-10-10/contract/ms-fsa-fsctl-set-reparse-point.html.gz)条件为 `(GrantedAccess & (FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES)) == 0` 才拒绝，故现共享方案不足以证明阻止 reparse 修改。未通过这些属性句柄在 guard 下尝试 SET，不称实际置换/漏洞复现；fixture junction 本身由正常 Node API 创建。
+
+d/f broker status 2、root exit 1；cleanup、Job 0、profile 删除、loopback absent、host map unchanged 都有记录。七槽安装但四个 reparse 计数全 0；内部 `reparseInspection.verified:true` 只核对零计数回执，不能充当成功。outside/replaced、sync/async lstat/readlink/stat、unlink/rm、worker/esbuild 子进程和 frozen review 均未执行。D control 采集曾 EPERM，升级被用户中止且未重试，只有工具记录；独立 actor/control 原文件未归档，不声称完整采集。
+
+五个尝试源按准确 HEAD 原 blob 恢复，新增测试保留后移除；恢复源、最终尝试与 diff 原字节均归档，不留下可启用的未证实映射入口。更窄的坐标等价命题仍缺实际 Global C alias/root/X 前缀绑定、相关父路径和映射不可重绑定条件的实证；一次 root FileId 匹配或 LowBox map 拒绝不足，不能上升为 authority fencing。junction 仍未修复，完整 native review 仍 `NOT_ADMITTED`；旧 **211 = 194/16/1、6/4/4**、正式 **36+9 / NOT_RUN**、$99、observations、其他 durable/账号账单/真人/长时未完成项保持不变，无付费调用或发布。

@@ -1,0 +1,1486 @@
+{
+  "schema": "chainlesschain.junction-guard-rejected-attempt/v1",
+  "recordedAt": "2026-10-10T13:27:24.670Z",
+  "productHead": "7ded47b376a028e669d2f7a3cad5aa47d5e798ab",
+  "disposition": "attempt preserved and reverted; no new compatibility profile in product",
+  "formalSample": false,
+  "admissionEligible": false,
+  "compatibilityImplemented": false,
+  "guardedMutationSetExecuted": false,
+  "fixtureJunctionCreatedThroughNodeFs": true,
+  "frozenReviewExecuted": false,
+  "nativeOutsideOrReplacedExecuted": false,
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "standaloneActorAndControlFilesArchived": false,
+  "collectionLimit": "sandbox EPERM reading D capsule control; escalation was cancelled by the user, not requested again; archive only already collected workspace reports and source",
+  "contract": {
+    "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4aeefef8-92c3-4abc-af7a-a610caf8a165",
+    "interpretation": "FILE_WRITE_ATTRIBUTES alone passes the documented granted-access predicate; an open succeeded but no guarded mutation using that handle was attempted; fixture creation used the normal Node junction API"
+  },
+  "rounds": [
+    {
+      "label": "a",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\self-test.exe",
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "selfTest": {
+        "status": 98,
+        "stdout": "{\"nullObjectAccessMode\":true,\"wrongRightsAndTypesRejected\":true,\"exactNullMapping\":true,\"eofAndFullWrite\":true,\"crtShapeNegatives\":true,\"breakawayRejected\":true,\"boundedSnapshotTypes\":true,\"sameEventTypeNotExcluded\":true,\"missingOrDifferentTypeExcluded\":true}\r\n",
+        "stderr": "Null probe type=2 basic=0 access=120089 modeStatus=0 mode=20 nameStatus=0 name=\\Device\\Null nameOkay=1 typeOkay=1\r\nNull probe type=2 basic=0 access=120196 modeStatus=0 mode=20 nameStatus=0 name=\\Device\\Null nameOkay=1 typeOkay=1\r\nprivate realpath test failed 98 (Win32 3)\r\n"
+      },
+      "nativeExecuted": false,
+      "host": null,
+      "phases": [],
+      "guardObservations": null,
+      "failed": null,
+      "finalReparse": null,
+      "compatibilityImplemented": false
+    },
+    {
+      "label": "b",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\self-test.exe",
+          "status": 1,
+          "stderr": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-adapter.cpp:846:5: error: unused function 'runSelfTest' [-Werror,-Wunused-function]\r\n  846 | int runSelfTest() {\r\n      |     ^~~~~~~~~~~\r\n1 error generated.\r\n"
+        }
+      ],
+      "selfTest": null,
+      "nativeExecuted": false,
+      "host": null,
+      "phases": [],
+      "guardObservations": null,
+      "failed": null,
+      "finalReparse": null,
+      "compatibilityImplemented": false
+    },
+    {
+      "label": "c",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\self-test.exe",
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "selfTest": {
+        "status": 0,
+        "stdout": "{\"reparseParserAndBounds\":true,\"runtimeIdentityExercised\":false}\r\n",
+        "stderr": ""
+      },
+      "nativeExecuted": false,
+      "host": null,
+      "phases": [],
+      "guardObservations": null,
+      "failed": null,
+      "finalReparse": null,
+      "compatibilityImplemented": false
+    },
+    {
+      "label": "d",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\self-test.exe",
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "selfTest": {
+        "status": 0,
+        "stdout": "{\"reparseParserAndBounds\":true,\"runtimeIdentityExercised\":false}\r\n",
+        "stderr": ""
+      },
+      "nativeExecuted": true,
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "hostMapUnchanged": true
+      },
+      "phases": [
+        "raw-before",
+        "failed",
+        "final"
+      ],
+      "guardObservations": null,
+      "failed": {
+        "message": "Expected values to be strictly equal:\n\n0 !== 32\n",
+        "code": "ERR_ASSERTION",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 32\n\n    at X:\\control\\check.cjs:26:76\n    at Object.<anonymous> (X:\\control\\check.cjs:50:3)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49",
+        "adapter": {
+          "schema": "chainlesschain/windows-node-runtime-adapter@4",
+          "experimental": true,
+          "admissionEligible": false,
+          "pid": 16764,
+          "appContainerSid": "S-1-15-2-1701003801-3536980534-1932697585-2927997500-3798611867-254526634-2168859602",
+          "capabilityCount": 0,
+          "inJob": true,
+          "state": 2,
+          "stage": "installed",
+          "installError": 0,
+          "patches": 7,
+          "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+          "originalCreateFileA": "00007FFBDF4B4E90",
+          "pipeSlot": "00007FF6BF6977B8",
+          "fileSlot": "00007FF6BF697560",
+          "pipeProtection": 2,
+          "fileProtection": 2,
+          "serverCalls": 0,
+          "clientCalls": 0,
+          "serverMapped": 0,
+          "clientMapped": 0,
+          "serverFailures": 0,
+          "clientFailures": 0,
+          "serverFirstError": 0,
+          "clientFirstError": 0,
+          "serverLastError": 0,
+          "clientLastError": 0,
+          "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+          "finalPathSlot": "00007FF6BF697820",
+          "finalPathProtection": 2,
+          "supportedPrivateRealpath": true,
+          "rootProof": {
+            "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-junction-AiyuEl",
+            "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-junction-AiyuEl",
+            "volumeSerial": "3816218020381368311",
+            "fileId": "e6866000000023000000000000000000",
+            "normalizedNtFlags": 2,
+            "handlePinned": true,
+            "ancestorAuthority": "supervisor-private-tree-guards",
+            "componentPolicy": "pinned-no-reparse-single-link-file-id"
+          },
+          "realpathCalls": 0,
+          "realpathFallbacks": 0,
+          "realpathMapped": 0,
+          "realpathRejected": 0,
+          "realpathLastError": 0,
+          "nullProof": {
+            "readAttested": true,
+            "writeAttested": true,
+            "object": "\\Device\\Null",
+            "readAccess": 1179785,
+            "writeAccess": 1180054,
+            "mode": 32
+          },
+          "nullFallbacks": 0,
+          "nullMapped": 0,
+          "nullRejected": 0,
+          "launches": 0,
+          "launched": 0,
+          "launchRejected": 0,
+          "launchError": 0,
+          "launchStage": "fresh",
+          "unsupported": [
+            "nonexact-NUL-calls",
+            "outside-private-root-realpath",
+            "uninstrumented-descendants"
+          ],
+          "reparseCompatibility": {
+            "profile": "readonly-private-junction-v1",
+            "readOnly": true,
+            "scope": "existing-plain-scratch-target",
+            "source": "kernel-mount-point-substitute",
+            "identity": "held-root-source-followed-target-file-id-nt",
+            "printNameTrusted": false,
+            "passthroughIsDenial": false,
+            "rawTag": 2684354563,
+            "calls": 0,
+            "candidates": 0,
+            "mapped": 0,
+            "untranslated": 0,
+            "slotInstalled": true,
+            "slotProtection": 2
+          }
+        }
+      },
+      "finalReparse": {
+        "profile": "readonly-private-junction-v1",
+        "readOnly": true,
+        "scope": "existing-plain-scratch-target",
+        "source": "kernel-mount-point-substitute",
+        "identity": "held-root-source-followed-target-file-id-nt",
+        "printNameTrusted": false,
+        "passthroughIsDenial": false,
+        "rawTag": 2684354563,
+        "calls": 0,
+        "candidates": 0,
+        "mapped": 0,
+        "untranslated": 0,
+        "slotInstalled": true,
+        "slotProtection": 2
+      },
+      "compatibilityImplemented": false
+    },
+    {
+      "label": "e",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\self-test.exe",
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "selfTest": {
+        "status": 0,
+        "stdout": "{\"reparseParserAndBounds\":true,\"runtimeIdentityExercised\":false}\r\n",
+        "stderr": ""
+      },
+      "nativeExecuted": false,
+      "host": null,
+      "phases": [],
+      "guardObservations": null,
+      "failed": null,
+      "finalReparse": null,
+      "compatibilityImplemented": false
+    },
+    {
+      "label": "f",
+      "compile": [
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\broker.exe",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\windows-node-private-v4.node",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\esbuild-private-shim.dll",
+          "status": 0,
+          "stderr": ""
+        },
+        {
+          "target": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\self-test.exe",
+          "status": 0,
+          "stderr": ""
+        }
+      ],
+      "selfTest": {
+        "status": 0,
+        "stdout": "{\"reparseParserAndBounds\":true,\"runtimeIdentityExercised\":false}\r\n",
+        "stderr": ""
+      },
+      "nativeExecuted": true,
+      "host": {
+        "completed": false,
+        "rootExit": 1,
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "hostMapUnchanged": true
+      },
+      "phases": [
+        "raw-before",
+        "sharing-guards",
+        "failed",
+        "final"
+      ],
+      "guardObservations": {
+        "readOnly": true,
+        "opens": [
+          {
+            "object": "ancestor",
+            "access": 2,
+            "error": 32
+          },
+          {
+            "object": "ancestor",
+            "access": 256,
+            "error": 0
+          },
+          {
+            "object": "ancestor",
+            "access": 1073741824,
+            "error": 32
+          },
+          {
+            "object": "ancestor",
+            "access": 65536,
+            "error": 32
+          },
+          {
+            "object": "target",
+            "access": 2,
+            "error": 32
+          },
+          {
+            "object": "target",
+            "access": 256,
+            "error": 0
+          },
+          {
+            "object": "target",
+            "access": 1073741824,
+            "error": 32
+          },
+          {
+            "object": "target",
+            "access": 65536,
+            "error": 32
+          },
+          {
+            "object": "junction",
+            "access": 2,
+            "error": 32
+          },
+          {
+            "object": "junction",
+            "access": 256,
+            "error": 0
+          },
+          {
+            "object": "junction",
+            "access": 1073741824,
+            "error": 32
+          }
+        ]
+      },
+      "failed": {
+        "message": "Expected values to be strictly equal:\n\n0 !== 32\n",
+        "code": "ERR_ASSERTION",
+        "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 32\n\n    at X:\\control\\check.cjs:27:77\n    at Object.<anonymous> (X:\\control\\check.cjs:50:3)\n    at Module._compile (node:internal/modules/cjs/loader:1705:14)\n    at Object..js (node:internal/modules/cjs/loader:1838:10)\n    at Module.load (node:internal/modules/cjs/loader:1441:32)\n    at Function._load (node:internal/modules/cjs/loader:1263:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49",
+        "adapter": {
+          "schema": "chainlesschain/windows-node-runtime-adapter@4",
+          "experimental": true,
+          "admissionEligible": false,
+          "pid": 25540,
+          "appContainerSid": "S-1-15-2-4277074918-1663858024-1599706759-2757956050-3887029415-3037835739-2743306287",
+          "capabilityCount": 0,
+          "inJob": true,
+          "state": 2,
+          "stage": "installed",
+          "installError": 0,
+          "patches": 7,
+          "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+          "originalCreateFileA": "00007FFBDF4B4E90",
+          "pipeSlot": "00007FF7942377B8",
+          "fileSlot": "00007FF794237560",
+          "pipeProtection": 2,
+          "fileProtection": 2,
+          "serverCalls": 0,
+          "clientCalls": 0,
+          "serverMapped": 0,
+          "clientMapped": 0,
+          "serverFailures": 0,
+          "clientFailures": 0,
+          "serverFirstError": 0,
+          "clientFirstError": 0,
+          "serverLastError": 0,
+          "clientLastError": 0,
+          "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+          "finalPathSlot": "00007FF794237820",
+          "finalPathProtection": 2,
+          "supportedPrivateRealpath": true,
+          "rootProof": {
+            "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-junction-hZdcgr",
+            "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-junction-hZdcgr",
+            "volumeSerial": "3816218020381368311",
+            "fileId": "bee96c0000000b000000000000000000",
+            "normalizedNtFlags": 2,
+            "handlePinned": true,
+            "ancestorAuthority": "supervisor-private-tree-guards",
+            "componentPolicy": "pinned-no-reparse-single-link-file-id"
+          },
+          "realpathCalls": 0,
+          "realpathFallbacks": 0,
+          "realpathMapped": 0,
+          "realpathRejected": 0,
+          "realpathLastError": 0,
+          "nullProof": {
+            "readAttested": true,
+            "writeAttested": true,
+            "object": "\\Device\\Null",
+            "readAccess": 1179785,
+            "writeAccess": 1180054,
+            "mode": 32
+          },
+          "nullFallbacks": 0,
+          "nullMapped": 0,
+          "nullRejected": 0,
+          "launches": 0,
+          "launched": 0,
+          "launchRejected": 0,
+          "launchError": 0,
+          "launchStage": "fresh",
+          "unsupported": [
+            "nonexact-NUL-calls",
+            "outside-private-root-realpath",
+            "uninstrumented-descendants"
+          ],
+          "reparseCompatibility": {
+            "profile": "readonly-private-junction-v1",
+            "readOnly": true,
+            "scope": "existing-plain-scratch-target",
+            "source": "kernel-mount-point-substitute",
+            "identity": "held-root-source-followed-target-file-id-nt",
+            "printNameTrusted": false,
+            "passthroughIsDenial": false,
+            "rawTag": 2684354563,
+            "calls": 0,
+            "candidates": 0,
+            "mapped": 0,
+            "untranslated": 0,
+            "slotInstalled": true,
+            "slotProtection": 2
+          }
+        }
+      },
+      "finalReparse": {
+        "profile": "readonly-private-junction-v1",
+        "readOnly": true,
+        "scope": "existing-plain-scratch-target",
+        "source": "kernel-mount-point-substitute",
+        "identity": "held-root-source-followed-target-file-id-nt",
+        "printNameTrusted": false,
+        "passthroughIsDenial": false,
+        "rawTag": 2684354563,
+        "calls": 0,
+        "candidates": 0,
+        "mapped": 0,
+        "untranslated": 0,
+        "slotInstalled": true,
+        "slotProtection": 2
+      },
+      "compatibilityImplemented": false
+    }
+  ],
+  "unavailable": [],
+  "files": [
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\build.json",
+      "archived": "a/build.json.gz",
+      "originalBytes": 2560,
+      "originalDigest": "sha256:422e625a8cbfcaafb059160d5cdac638a22953a8653785cf14b0ac1f503a6118",
+      "storedBytes": 433,
+      "storedDigest": "sha256:e31fa7e6f0184e71e51be571c1c8d55d69af113d4fc857ea6df49f314b10433d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\self-test.json",
+      "archived": "a/self-test.json.gz",
+      "originalBytes": 614,
+      "originalDigest": "sha256:3d5ff05a4d57465e61ea40606c92b4e418c0860329390998d277f8b4470a785a",
+      "storedBytes": 328,
+      "storedDigest": "sha256:ad39173b76b91a4aedf9653894b4c4748436f698b3f8aa074f5678223862814a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\check.cjs",
+      "archived": "a/source/check.cjs.gz",
+      "originalBytes": 3269,
+      "originalDigest": "sha256:62e7320d92e81c5464fe2ccb6eb659aec7b230d6185400fde13cfcc4d414c321",
+      "storedBytes": 1186,
+      "storedDigest": "sha256:c71919a86cbe1d7333b4511a509fd3ada20a60e22bd9f9757327fed3aa250ee2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\run.mjs",
+      "archived": "a/source/run.mjs.gz",
+      "originalBytes": 5881,
+      "originalDigest": "sha256:44789a869d1e640904a876acc13a3d036d391f46c1b23f2e656a7cd8bddb4e18",
+      "storedBytes": 2010,
+      "storedDigest": "sha256:23dfa8a29da65a847d24fb9f23c6c4ffc1ee096c7fa1b4b644db4d7a93341cd9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "a/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "a/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "a/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 66329,
+      "originalDigest": "sha256:3a0c4f6119684cb9258bda6837c2a638528f9a3cf95fb57036ac7090a2f9b903",
+      "storedBytes": 17477,
+      "storedDigest": "sha256:ef8bb337c41e4d721f18255aa6305d0169cab06ca8377d9dbe74d0a61c1d52f6"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-adapter.h",
+      "archived": "a/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "a/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "a/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-paired.h",
+      "archived": "a/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "a/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-protocol.h",
+      "archived": "a/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-a\\source\\windows-node-private-v4-result.mjs",
+      "archived": "a/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\build.json",
+      "archived": "b/build.json.gz",
+      "originalBytes": 2865,
+      "originalDigest": "sha256:501ebd9e0ec01a059ef1ca301445543d777c274ca809aa42be5dda0377a5c583",
+      "storedBytes": 542,
+      "storedDigest": "sha256:eaa6bc93c6390ed171b0e54182b48023ffb4908faf7cd35c74b77a35c23878c5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\check.cjs",
+      "archived": "b/source/check.cjs.gz",
+      "originalBytes": 3269,
+      "originalDigest": "sha256:62e7320d92e81c5464fe2ccb6eb659aec7b230d6185400fde13cfcc4d414c321",
+      "storedBytes": 1186,
+      "storedDigest": "sha256:c71919a86cbe1d7333b4511a509fd3ada20a60e22bd9f9757327fed3aa250ee2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\run.mjs",
+      "archived": "b/source/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "b/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "b/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "b/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 66541,
+      "originalDigest": "sha256:b9dd898504e76709535b1617db2b42b35f21cadf603cb9585c218a5102cc702c",
+      "storedBytes": 17542,
+      "storedDigest": "sha256:51f822c1a81dc008a8d2e39afde9fe7acf0f606307d96da87b502c0bd2d477a4"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-adapter.h",
+      "archived": "b/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "b/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "b/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-paired.h",
+      "archived": "b/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "b/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-protocol.h",
+      "archived": "b/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-b\\source\\windows-node-private-v4-result.mjs",
+      "archived": "b/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\build.json",
+      "archived": "c/build.json.gz",
+      "originalBytes": 2601,
+      "originalDigest": "sha256:51e29b44eac644d8276fca042b0ee3c8db624cb1f4cdbe98bf8e2795a4f214b3",
+      "storedBytes": 447,
+      "storedDigest": "sha256:341a6e046599411752d4c869b8e936324e0985cd571a7684bc3fd1710926d480"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\self-test.json",
+      "archived": "c/self-test.json.gz",
+      "originalBytes": 121,
+      "originalDigest": "sha256:4acb126be9b54dd53306e8c7ef14c60fca7b613c3b29f9a21c08d441b0e00044",
+      "storedBytes": 122,
+      "storedDigest": "sha256:ce41c983ecdf8e6ebb33fb75f448dde2f9d11566548f12b33a400722d09a1965"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\check.cjs",
+      "archived": "c/source/check.cjs.gz",
+      "originalBytes": 3269,
+      "originalDigest": "sha256:62e7320d92e81c5464fe2ccb6eb659aec7b230d6185400fde13cfcc4d414c321",
+      "storedBytes": 1186,
+      "storedDigest": "sha256:c71919a86cbe1d7333b4511a509fd3ada20a60e22bd9f9757327fed3aa250ee2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\run.mjs",
+      "archived": "c/source/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "c/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "c/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "c/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 66558,
+      "originalDigest": "sha256:d3310688105af1b5ea953c64ed4958b407a7dfe822a0456d50ccb4852cf80746",
+      "storedBytes": 17558,
+      "storedDigest": "sha256:2d7c3e3fc3e8744c487739e912875c39cc0fe0b7e3d1e127932150a5fbbd0685"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-adapter.h",
+      "archived": "c/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "c/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "c/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-paired.h",
+      "archived": "c/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "c/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-protocol.h",
+      "archived": "c/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\source\\windows-node-private-v4-result.mjs",
+      "archived": "c/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-c\\sources.json",
+      "archived": "c/sources.json.gz",
+      "originalBytes": 2836,
+      "originalDigest": "sha256:ac35b9319299f8b2f9018de85140ccc5a23e702f103395b3ea1f56fb1c884b96",
+      "storedBytes": 783,
+      "storedDigest": "sha256:b66614ea88bb094cff8b169a2b001880bd25213a4ae3c64d02e58eb6b041dc13"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\build.json",
+      "archived": "d/build.json.gz",
+      "originalBytes": 2601,
+      "originalDigest": "sha256:39a7e3d2612b4b5d752cc7c812892241bc25e81774e3a33bbb5f6a81a5363a37",
+      "storedBytes": 447,
+      "storedDigest": "sha256:282b1b013c5525a14efc2c273a48677d451653532d86199b99cdcb33b65a3df5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\positive\\report.json",
+      "archived": "d/positive/report.json.gz",
+      "originalBytes": 22503,
+      "originalDigest": "sha256:a10d9c37a48c5cfffa06fb39235cac93de94d95aa32efb8724d15ce8daa4b823",
+      "storedBytes": 3501,
+      "storedDigest": "sha256:d439ca38ecc84bf1527548b71be4fca1bac6965faeb13b3b32317a562383696a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\self-test.json",
+      "archived": "d/self-test.json.gz",
+      "originalBytes": 121,
+      "originalDigest": "sha256:4acb126be9b54dd53306e8c7ef14c60fca7b613c3b29f9a21c08d441b0e00044",
+      "storedBytes": 122,
+      "storedDigest": "sha256:ce41c983ecdf8e6ebb33fb75f448dde2f9d11566548f12b33a400722d09a1965"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\check.cjs",
+      "archived": "d/source/check.cjs.gz",
+      "originalBytes": 3454,
+      "originalDigest": "sha256:91a6ac9b42dd31b9d5df6a7ba102082d71d6c93217edd475b393ad08dc40a15f",
+      "storedBytes": 1253,
+      "storedDigest": "sha256:fdd85e679fccf0245bcb01d8075f8dccf2f42cebfd1d903217345d7771ca579e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\run.mjs",
+      "archived": "d/source/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "d/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "d/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "d/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 68741,
+      "originalDigest": "sha256:7d66e5b670f1e1a18ee46754c71b500895c718e43ba822c9dc5e6fcb526b33b6",
+      "storedBytes": 18052,
+      "storedDigest": "sha256:dfb981302de6a64b470f2db85e960daf575c8fba0de48aace013cc91088b628b"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-adapter.h",
+      "archived": "d/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "d/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "d/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-paired.h",
+      "archived": "d/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "d/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-protocol.h",
+      "archived": "d/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\source\\windows-node-private-v4-result.mjs",
+      "archived": "d/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-d\\sources.json",
+      "archived": "d/sources.json.gz",
+      "originalBytes": 2836,
+      "originalDigest": "sha256:3713fc75d0ef3241c3546aff5852957148b1248bf72d5bf508b5e0e79fcdc187",
+      "storedBytes": 784,
+      "storedDigest": "sha256:a2aca73a7c4479b666bef50dbf992306e5e50666b0aaaf56a90e8ee156637628"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\build.json",
+      "archived": "e/build.json.gz",
+      "originalBytes": 2601,
+      "originalDigest": "sha256:117fb26905ec01992103fbda1da6c67189de4fc83d0b4a7a3fe33db46d95e581",
+      "storedBytes": 447,
+      "storedDigest": "sha256:61108381532e3a8440a0de1db73d8abc92f038b8a4d401eba1a7353aea12a086"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\self-test.json",
+      "archived": "e/self-test.json.gz",
+      "originalBytes": 121,
+      "originalDigest": "sha256:4acb126be9b54dd53306e8c7ef14c60fca7b613c3b29f9a21c08d441b0e00044",
+      "storedBytes": 122,
+      "storedDigest": "sha256:ce41c983ecdf8e6ebb33fb75f448dde2f9d11566548f12b33a400722d09a1965"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\check.cjs",
+      "archived": "e/source/check.cjs.gz",
+      "originalBytes": 3454,
+      "originalDigest": "sha256:f96847ff44c1287898b291a84923730f278b3d356480f17e27efe2f3c1e1ecf1",
+      "storedBytes": 1254,
+      "storedDigest": "sha256:22baf1aa33750e4635232a9e676b9a0ebd3a3a74c7c67c89129f760099395e40"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\run.mjs",
+      "archived": "e/source/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "e/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "e/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "e/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 68997,
+      "originalDigest": "sha256:9e80b76ab777223c9bdfa925d6f3981eba014c79204b5961095cddcb3e4f0412",
+      "storedBytes": 18170,
+      "storedDigest": "sha256:0e0c1706b56665487b5dee521869df9d82bcec85f93ce18ef392685521e374ef"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-adapter.h",
+      "archived": "e/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "e/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "e/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-paired.h",
+      "archived": "e/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "e/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-protocol.h",
+      "archived": "e/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\source\\windows-node-private-v4-result.mjs",
+      "archived": "e/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-e\\sources.json",
+      "archived": "e/sources.json.gz",
+      "originalBytes": 2836,
+      "originalDigest": "sha256:57bbe054ea2a8442155f56cdf80acbac006fba064825453a1c16e9599fc003f5",
+      "storedBytes": 786,
+      "storedDigest": "sha256:b0dc350ca484b3d41c801bc845010691a9a1bf914ecc5d140affdf54db5417af"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\build.json",
+      "archived": "f/build.json.gz",
+      "originalBytes": 2601,
+      "originalDigest": "sha256:2f3b5a8b84138256c9c00f72de413a31671a094b71d0478087a8855a142a1b08",
+      "storedBytes": 447,
+      "storedDigest": "sha256:9c121752a2d0c78eb93070167fc3e7fa458f1f7353bf2adc35e30c77341496c0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\positive\\report.json",
+      "archived": "f/positive/report.json.gz",
+      "originalBytes": 23977,
+      "originalDigest": "sha256:d9fa4b27140f9c1e1c834bd09d81beeba44c1afe0296258c995c206c446c832a",
+      "storedBytes": 3625,
+      "storedDigest": "sha256:7deec0b72ca64f2a69d653b59aa8668f35479f383da0774d72b176fd5b665ffd"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\self-test.json",
+      "archived": "f/self-test.json.gz",
+      "originalBytes": 121,
+      "originalDigest": "sha256:4acb126be9b54dd53306e8c7ef14c60fca7b613c3b29f9a21c08d441b0e00044",
+      "storedBytes": 122,
+      "storedDigest": "sha256:ce41c983ecdf8e6ebb33fb75f448dde2f9d11566548f12b33a400722d09a1965"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\check.cjs",
+      "archived": "f/source/check.cjs.gz",
+      "originalBytes": 3455,
+      "originalDigest": "sha256:f4d06e0eaa709d58e81ef852663cc63639454462b7d55f0acbe2f5353f7c0e4a",
+      "storedBytes": 1255,
+      "storedDigest": "sha256:780d21388245864010ee90381508ba532898da82cf14bd1dc761f13abba224d3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\run.mjs",
+      "archived": "f/source/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "f/source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "f/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "f/source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 69049,
+      "originalDigest": "sha256:4e89872d02f87697609b490108f7d4ef7dfd7363f6b8360ca3a235869fe1d1ea",
+      "storedBytes": 18179,
+      "storedDigest": "sha256:d78469a750af31f3049291a8a7e2ec3094f375ab402f9322a7f0bba60e760e69"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-adapter.h",
+      "archived": "f/source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "f/source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "f/source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-paired.h",
+      "archived": "f/source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "f/source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-protocol.h",
+      "archived": "f/source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\source\\windows-node-private-v4-result.mjs",
+      "archived": "f/source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-20261010-f\\sources.json",
+      "archived": "f/sources.json.gz",
+      "originalBytes": 2836,
+      "originalDigest": "sha256:f026727e7fcc777573f27e831adb12e2e8ac4017d905d606159e9ee7719ddce5",
+      "storedBytes": 785,
+      "storedDigest": "sha256:c320ae09e5a2ca0285637be51a97690c41307dcd14a5b777d83f77faa28bc3c3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.cpp",
+      "archived": "rollback/attempt/packages/cli/scripts/diagnostics/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 69049,
+      "originalDigest": "sha256:4e89872d02f87697609b490108f7d4ef7dfd7363f6b8360ca3a235869fe1d1ea",
+      "storedBytes": 18179,
+      "storedDigest": "sha256:d78469a750af31f3049291a8a7e2ec3094f375ab402f9322a7f0bba60e760e69"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-broker.cpp",
+      "archived": "rollback/attempt/packages/cli/scripts/diagnostics/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-preload.cjs",
+      "archived": "rollback/attempt/packages/cli/scripts/diagnostics/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\scripts\\windows-node-private-v4-diagnostic.mjs",
+      "archived": "rollback/attempt/packages/cli/scripts/windows-node-private-v4-diagnostic.mjs.gz",
+      "originalBytes": 38344,
+      "originalDigest": "sha256:f8697f4b452d5b87d5dabbe68962663d8ddaccd8c7a216ad9fc57a558454ff5f",
+      "storedBytes": 9827,
+      "storedDigest": "sha256:8566d2f9b37750dfcb6f1bcdd30abf39a4e6124a2fd29744a7169c15299e21d8"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\scripts\\windows-node-private-v4-result.mjs",
+      "archived": "rollback/attempt/packages/cli/scripts/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt\\packages\\cli\\test-node\\windows-node-private-v4-reparse.node-test.mjs",
+      "archived": "rollback/attempt/packages/cli/test-node/windows-node-private-v4-reparse.node-test.mjs.gz",
+      "originalBytes": 3776,
+      "originalDigest": "sha256:aa22d3336a947f071d1d2a742e3c6e176770d1f3d00ea4a4572f4ca2ec84e61b",
+      "storedBytes": 1392,
+      "storedDigest": "sha256:95e1acbee77723fab9ff53ee2581728580524afb32b39843f1118552f4f5aa02"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\attempt.diff",
+      "archived": "rollback/attempt.diff.gz",
+      "originalBytes": 44789,
+      "originalDigest": "sha256:6f61b1eb25ae655a07d631b6dd236b775c8b1e3848ba1c193f68d220872526da",
+      "storedBytes": 12945,
+      "storedDigest": "sha256:6e050b345de24325184860c7a036c2466505aecbd62badbc5ee84f2db686cf34"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\head\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.cpp",
+      "archived": "rollback/head/packages/cli/scripts/diagnostics/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 53145,
+      "originalDigest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694",
+      "storedBytes": 13912,
+      "storedDigest": "sha256:55d65f05d3486c5edca1d0d6ebe866d96351d44c8a8c0ea6a7c267450b872201"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\head\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-broker.cpp",
+      "archived": "rollback/head/packages/cli/scripts/diagnostics/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 44840,
+      "originalDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "storedBytes": 13278,
+      "storedDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\head\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-preload.cjs",
+      "archived": "rollback/head/packages/cli/scripts/diagnostics/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 8947,
+      "originalDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "storedBytes": 3125,
+      "storedDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\head\\packages\\cli\\scripts\\windows-node-private-v4-diagnostic.mjs",
+      "archived": "rollback/head/packages/cli/scripts/windows-node-private-v4-diagnostic.mjs.gz",
+      "originalBytes": 37711,
+      "originalDigest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "storedBytes": 9728,
+      "storedDigest": "sha256:e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\head\\packages\\cli\\scripts\\windows-node-private-v4-result.mjs",
+      "archived": "rollback/head/packages/cli/scripts/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 36001,
+      "originalDigest": "sha256:db3394a7f5297830c215cf4aa4caebcfa27229556e51760a755dea9277fa2253",
+      "storedBytes": 9017,
+      "storedDigest": "sha256:828ec71b648a5209d6ec553fab30afe27cf1a6bb78290238209e7f5c292ab86e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\junction-attempt-preserved-20261010\\manifest.json",
+      "archived": "rollback/manifest.json.gz",
+      "originalBytes": 2740,
+      "originalDigest": "sha256:5cf8159e56d0b3b5e81919f3568c74a56fdd2af5355bf1eef7fffe1843560ae1",
+      "storedBytes": 826,
+      "storedDigest": "sha256:ffd2300b173d1d29d75e4f72064b468bc529c5b520dd91c5f586e7db64fe0db6"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\attempt.patch",
+      "archived": "agent-preservation/attempt.patch.gz",
+      "originalBytes": 44789,
+      "originalDigest": "sha256:6f61b1eb25ae655a07d631b6dd236b775c8b1e3848ba1c193f68d220872526da",
+      "storedBytes": 12945,
+      "storedDigest": "sha256:6e050b345de24325184860c7a036c2466505aecbd62badbc5ee84f2db686cf34"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\.work\\fsctl-set-reparse-contract.html",
+      "archived": "agent-preservation/final-source/.work/fsctl-set-reparse-contract.html.gz",
+      "originalBytes": 40980,
+      "originalDigest": "sha256:adc4c92a1cc36ef7d69daca699aad00cd4a93ac31960720cbec2a562d32d26be",
+      "storedBytes": 9872,
+      "storedDigest": "sha256:70b44de4da549851f274716fb22c2ddf769629661032b40b3513c744201e2f10"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\.work\\node-pinned-libuv-fs.c",
+      "archived": "agent-preservation/final-source/.work/node-pinned-libuv-fs.c.gz",
+      "originalBytes": 105366,
+      "originalDigest": "sha256:60c76976514f427fa0be21c1c7986c2ab1d9e2e77b9d5bcf8c7ab99ed36b0693",
+      "storedBytes": 22271,
+      "storedDigest": "sha256:7ab1f84dd9761efc705a3524927b523e4bcdf344735c17c94ca4f9555c59dc18"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\.work\\private-v4-junction-check.cjs",
+      "archived": "agent-preservation/final-source/.work/private-v4-junction-check.cjs.gz",
+      "originalBytes": 3455,
+      "originalDigest": "sha256:f4d06e0eaa709d58e81ef852663cc63639454462b7d55f0acbe2f5353f7c0e4a",
+      "storedBytes": 1255,
+      "storedDigest": "sha256:780d21388245864010ee90381508ba532898da82cf14bd1dc761f13abba224d3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\.work\\private-v4-junction-run.mjs",
+      "archived": "agent-preservation/final-source/.work/private-v4-junction-run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.cpp",
+      "archived": "agent-preservation/final-source/packages/cli/scripts/diagnostics/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 69049,
+      "originalDigest": "sha256:4e89872d02f87697609b490108f7d4ef7dfd7363f6b8360ca3a235869fe1d1ea",
+      "storedBytes": 18179,
+      "storedDigest": "sha256:d78469a750af31f3049291a8a7e2ec3094f375ab402f9322a7f0bba60e760e69"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-broker.cpp",
+      "archived": "agent-preservation/final-source/packages/cli/scripts/diagnostics/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 45409,
+      "originalDigest": "sha256:e09985a4bd90697c8ab626145c5f22611a698f4a0f19d30cfcb3616d99fda6ff",
+      "storedBytes": 13420,
+      "storedDigest": "sha256:31344530298eb9529ebd34219d7fbbf2534849c8bbaba60d9fbbdca6ee758688"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-preload.cjs",
+      "archived": "agent-preservation/final-source/packages/cli/scripts/diagnostics/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 9447,
+      "originalDigest": "sha256:f4fb439b76bbe6adcdcd3b434500801d39d0ed2959fac146a90de42609e68544",
+      "storedBytes": 3245,
+      "storedDigest": "sha256:c71833fbbba9feb993cf90c6e3669ea90b35ca3fb052726bed7f8e2deda9c4eb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\scripts\\windows-node-private-v4-diagnostic.mjs",
+      "archived": "agent-preservation/final-source/packages/cli/scripts/windows-node-private-v4-diagnostic.mjs.gz",
+      "originalBytes": 38344,
+      "originalDigest": "sha256:f8697f4b452d5b87d5dabbe68962663d8ddaccd8c7a216ad9fc57a558454ff5f",
+      "storedBytes": 9827,
+      "storedDigest": "sha256:8566d2f9b37750dfcb6f1bcdd30abf39a4e6124a2fd29744a7169c15299e21d8"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\scripts\\windows-node-private-v4-result.mjs",
+      "archived": "agent-preservation/final-source/packages/cli/scripts/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 39270,
+      "originalDigest": "sha256:49e39f8ada618f148ed57ff1b0ea4c21c622f9025c622f63535f456f5836b4c0",
+      "storedBytes": 9896,
+      "storedDigest": "sha256:e75079a62cbdcede4cbb6aadd0cb36d97968bd611af212daa5bc6f979e2102b2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\final-source\\packages\\cli\\test-node\\windows-node-private-v4-reparse.node-test.mjs",
+      "archived": "agent-preservation/final-source/packages/cli/test-node/windows-node-private-v4-reparse.node-test.mjs.gz",
+      "originalBytes": 3776,
+      "originalDigest": "sha256:aa22d3336a947f071d1d2a742e3c6e176770d1f3d00ea4a4572f4ca2ec84e61b",
+      "storedBytes": 1392,
+      "storedDigest": "sha256:95e1acbee77723fab9ff53ee2581728580524afb32b39843f1118552f4f5aa02"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\fsctl-set-reparse-contract.html",
+      "archived": "agent-preservation/fsctl-set-reparse-contract.html.gz",
+      "originalBytes": 40980,
+      "originalDigest": "sha256:adc4c92a1cc36ef7d69daca699aad00cd4a93ac31960720cbec2a562d32d26be",
+      "storedBytes": 9872,
+      "storedDigest": "sha256:70b44de4da549851f274716fb22c2ddf769629661032b40b3513c744201e2f10"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\windows-node-private-v4-diagnostic.mjs",
+      "archived": "agent-preservation/windows-node-private-v4-diagnostic.mjs.gz",
+      "originalBytes": 38344,
+      "originalDigest": "sha256:f8697f4b452d5b87d5dabbe68962663d8ddaccd8c7a216ad9fc57a558454ff5f",
+      "storedBytes": 9827,
+      "storedDigest": "sha256:8566d2f9b37750dfcb6f1bcdd30abf39a4e6124a2fd29744a7169c15299e21d8"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-final-attempt\\windows-node-private-v4-reparse.node-test.mjs",
+      "archived": "agent-preservation/windows-node-private-v4-reparse.node-test.mjs.gz",
+      "originalBytes": 3776,
+      "originalDigest": "sha256:aa22d3336a947f071d1d2a742e3c6e176770d1f3d00ea4a4572f4ca2ec84e61b",
+      "storedBytes": 1392,
+      "storedDigest": "sha256:95e1acbee77723fab9ff53ee2581728580524afb32b39843f1118552f4f5aa02"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\fsctl-set-reparse-contract.html",
+      "archived": "contract/ms-fsa-fsctl-set-reparse-point.html.gz",
+      "originalBytes": 40980,
+      "originalDigest": "sha256:adc4c92a1cc36ef7d69daca699aad00cd4a93ac31960720cbec2a562d32d26be",
+      "storedBytes": 9872,
+      "storedDigest": "sha256:70b44de4da549851f274716fb22c2ddf769629661032b40b3513c744201e2f10"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-run.mjs",
+      "archived": "latest-helper/run.mjs.gz",
+      "originalBytes": 5913,
+      "originalDigest": "sha256:07efa994e08286fb79f6ef71bd3c0d25d6b6051f14d5f0839d34137f925f15ea",
+      "storedBytes": 2024,
+      "storedDigest": "sha256:85924b6d74c7d8aa0b63c6006206a382fbe061136baf749ae5e2fecdda274529"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\private-v4-junction-check.cjs",
+      "archived": "latest-helper/check.cjs.gz",
+      "originalBytes": 3455,
+      "originalDigest": "sha256:f4d06e0eaa709d58e81ef852663cc63639454462b7d55f0acbe2f5353f7c0e4a",
+      "storedBytes": 1255,
+      "storedDigest": "sha256:780d21388245864010ee90381508ba532898da82cf14bd1dc761f13abba224d3"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "recordedAt": "2026-10-10T13:14:21.215Z",
+  "expectedSha": "7ded47b376a028e669d2f7a3cad5aa47d5e798ab",
+  "status": 0,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "trackedEntries": 24944,
+  "trackedBytes": 1304408083,
+  "sourceDigest": "317288aa70b20d608e97c933b73fc93dab243e5dbbbe471aebaedf533d39f92a",
+  "wholeProductSourceVerified": true,
+  "fullCiMatrix": false,
+  "formalSample": false,
+  "files": [
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\soak-source-product-7ded47b376\\invocation.json",
+      "file": "invocation.json.gz",
+      "originalBytes": 1857,
+      "originalDigest": "sha256:bae975b9d19014859e459b813e619a80d259fb07b9ffe30775527645cb722244",
+      "storedBytes": 807,
+      "storedDigest": "sha256:59c97924f37aee8eae38ad7cea974c80d319c329292ab662bfa0dfb563067b73"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\soak-source-product-7ded47b376\\stderr.txt",
+      "file": "stderr.txt.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\soak-source-product-7ded47b376\\stdout.txt",
+      "file": "stdout.txt.gz",
+      "originalBytes": 949,
+      "originalDigest": "sha256:f17a94d573ae50daf0e8d6b0664a62e67f111d9db9c9932133556fe866d74018",
+      "storedBytes": 474,
+      "storedDigest": "sha256:df382069650f6d87cec30f888cea4e48c22eba54fd163f673cd770fcdf361578"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\verify-soak-attrs-product-20261010.mjs",
+      "file": "runner.mjs.gz",
+      "originalBytes": 1833,
+      "originalDigest": "sha256:73a4ea399d0ee7f62345db1804399b50d350b9c35071aae51446909e6b668d08",
+      "storedBytes": 876,
+      "storedDigest": "sha256:b1422a47e6715ca192c9751a92901249793d11176bfba968a6f4fa52e2e65744"
+    }
+  ]
+}

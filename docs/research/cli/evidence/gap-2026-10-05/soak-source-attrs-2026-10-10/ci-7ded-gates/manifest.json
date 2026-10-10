@@ -1,0 +1,140 @@
+{
+  "capturedAt": "2026-10-10T13:29:52.191Z",
+  "headSha": "7ded47b376a028e669d2f7a3cad5aa47d5e798ab",
+  "gates": [
+    {
+      "id": 38054653778,
+      "name": "CLI Strict Sandbox",
+      "status": "completed",
+      "conclusion": "success",
+      "actualJobs": 5,
+      "conclusionCounts": {
+        "success": 5
+      },
+      "completeSuccess": true
+    },
+    {
+      "id": 38054653890,
+      "name": "CLI CI",
+      "status": "queued",
+      "conclusion": null,
+      "actualJobs": 65,
+      "conclusionCounts": {
+        "incomplete": 53,
+        "success": 12
+      },
+      "completeSuccess": false
+    },
+    {
+      "id": 38054653688,
+      "name": "CLI Agent Team Soak",
+      "status": "completed",
+      "conclusion": "success",
+      "actualJobs": 3,
+      "conclusionCounts": {
+        "success": 3
+      },
+      "completeSuccess": true
+    },
+    {
+      "id": 38054653755,
+      "name": "CLI Scheduler Kernel Soak",
+      "status": "in_progress",
+      "conclusion": null,
+      "actualJobs": 3,
+      "conclusionCounts": {
+        "success": 2,
+        "incomplete": 1
+      },
+      "completeSuccess": false
+    },
+    {
+      "id": 38054653763,
+      "name": "IDE Roadmap Safety Matrix",
+      "status": "in_progress",
+      "conclusion": null,
+      "actualJobs": 4,
+      "conclusionCounts": {
+        "success": 3,
+        "incomplete": 1
+      },
+      "completeSuccess": false
+    }
+  ],
+  "formalSample": false,
+  "wholeCliCiPassed": false,
+  "files": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs?head_sha=7ded47b376a028e669d2f7a3cad5aa47d5e798ab&per_page=100"
+      ],
+      "file": "runs.json.gz",
+      "originalBytes": 275954,
+      "originalDigest": "sha256:7d12f295c1159f64cb584cb24f0e349fddf1a14b892faf3617458e49b4caaa07",
+      "storedBytes": 6008,
+      "storedDigest": "sha256:370815e7cfc7db1750694a05e96c5118464c9afb364705dc793a8f59ff6d9e0b"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653778/jobs?per_page=100"
+      ],
+      "file": "jobs-38054653778.json.gz",
+      "originalBytes": 21615,
+      "originalDigest": "sha256:c928982e310cc7695b5635c5aaca3a002bc869763fbb4310fd0c7e9ebb4afddf",
+      "storedBytes": 2124,
+      "storedDigest": "sha256:d8bd3f36a61a529f730c149a6849d92ecae4b576dd4ccb094d44650627dab0e5"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653890/jobs?per_page=100"
+      ],
+      "file": "jobs-38054653890.json.gz",
+      "originalBytes": 93930,
+      "originalDigest": "sha256:ce532013aaa18f70e432a13957a227a390ed7b2fb1295427a77f1aa14745a8fe",
+      "storedBytes": 4648,
+      "storedDigest": "sha256:87eb396975b7c144799cc4987fa46c984c11fd0216f13d0833108c4ed96cdf20"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653688/jobs?per_page=100"
+      ],
+      "file": "jobs-38054653688.json.gz",
+      "originalBytes": 8201,
+      "originalDigest": "sha256:eb80376e2bcb8aa0eb0c53ddd58f85614823fdbdee8073339c18e0d516909d0d",
+      "storedBytes": 1052,
+      "storedDigest": "sha256:649fe3f8a85f612c147e1b2a3fe1a40638878637abd00b1a99c7e481181ac754"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653755/jobs?per_page=100"
+      ],
+      "file": "jobs-38054653755.json.gz",
+      "originalBytes": 8466,
+      "originalDigest": "sha256:8d180e24ef202495f9368ca0a59024eafc7476cda0392a73f578ccb4ba1accc7",
+      "storedBytes": 1094,
+      "storedDigest": "sha256:aac93761cf27da4de28f1bc84afd508667aec8448d0ffe3477fa557656f74bb2"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653763/jobs?per_page=100"
+      ],
+      "file": "jobs-38054653763.json.gz",
+      "originalBytes": 13546,
+      "originalDigest": "sha256:fd6236b78e630bca4c67afeeb8d648bd4438a95dcaccf2ec43659a5cc79e936b",
+      "storedBytes": 1632,
+      "storedDigest": "sha256:884c9f14712fe5502244a38e9b132faafd0af07861e49ee7f7bdc90fadc18f10"
+    }
+  ]
+}

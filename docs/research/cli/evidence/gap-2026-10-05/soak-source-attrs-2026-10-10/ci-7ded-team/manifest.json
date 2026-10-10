@@ -1,0 +1,151 @@
+{
+  "recordedAt": "2026-10-10T13:21:23.340Z",
+  "headSha": "7ded47b376a028e669d2f7a3cad5aa47d5e798ab",
+  "runId": 38054653688,
+  "runAttempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 114220529848,
+      "name": "distributed DAG/fault soak (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114220529943,
+      "name": "distributed DAG/fault soak (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114220529980,
+      "name": "distributed DAG/fault soak (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "reports": [
+    {
+      "artifactId": 11671430144,
+      "name": "cli-team-soak-windows-latest-1",
+      "entry": "cli-team-soak-result.json",
+      "originalBytes": 12717,
+      "originalDigest": "sha256:eb5148d9834f8760d02cdaa5a7c457784dc3555d0841651a0f85d14e5a499f84",
+      "platform": "win32",
+      "node": "v22.12.0",
+      "elapsedMs": 42708,
+      "rounds": 1,
+      "tasks": 5,
+      "sourceBytesVerified": true,
+      "success": true
+    },
+    {
+      "artifactId": 11670344673,
+      "name": "cli-team-soak-ubuntu-latest-1",
+      "entry": "cli-team-soak-result.json",
+      "originalBytes": 13087,
+      "originalDigest": "sha256:70009045da2eaf38e6d4ab14c37f7d22d704fc9e188c02e684ec5642d82c8632",
+      "platform": "linux",
+      "node": "v22.12.0",
+      "elapsedMs": 9859,
+      "rounds": 1,
+      "tasks": 5,
+      "sourceBytesVerified": true,
+      "success": true
+    },
+    {
+      "artifactId": 11669979743,
+      "name": "cli-team-soak-macos-latest-1",
+      "entry": "cli-team-soak-result.json",
+      "originalBytes": 13096,
+      "originalDigest": "sha256:5a768f12f7c7983c3721bb6dc5bcb50b514aa8398b841f1969a4a980fed4cf92",
+      "platform": "darwin",
+      "node": "v22.12.0",
+      "elapsedMs": 36696,
+      "rounds": 1,
+      "tasks": 5,
+      "sourceBytesVerified": true,
+      "success": true
+    }
+  ],
+  "smokeOnly": true,
+  "liveModelInvoked": false,
+  "formalSample": false,
+  "longSoakAccepted": false,
+  "wholeCliCiPassed": false,
+  "files": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653688"
+      ],
+      "file": "run.json.gz",
+      "originalBytes": 13766,
+      "originalDigest": "sha256:2ec1b3cfc95eca6aa434cb46a47f1aace56763cdfe5e0960779f6c4bd19858bb",
+      "storedBytes": 1664,
+      "storedDigest": "sha256:804a0d0330a8b6dd23d0cf9f58b085c0ce21cf4661c1c5a174c7f93de13a3b30"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653688/jobs?per_page=100"
+      ],
+      "file": "jobs.json.gz",
+      "originalBytes": 8201,
+      "originalDigest": "sha256:eb80376e2bcb8aa0eb0c53ddd58f85614823fdbdee8073339c18e0d516909d0d",
+      "storedBytes": 1052,
+      "storedDigest": "sha256:649fe3f8a85f612c147e1b2a3fe1a40638878637abd00b1a99c7e481181ac754"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38054653688/artifacts?per_page=100"
+      ],
+      "file": "artifacts.json.gz",
+      "originalBytes": 2293,
+      "originalDigest": "sha256:ad98855416584efdc2c0ba9e2c1a39aeb5e607e4cf8314d3cc30e6eb0c34fe2f",
+      "storedBytes": 659,
+      "storedDigest": "sha256:f47284387b2b40a4095d97d81222f7f58f4f55d27729df68541fc5e868597486"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11671430144/zip"
+      ],
+      "file": "artifact-11671430144.zip.gz",
+      "originalBytes": 2692,
+      "originalDigest": "sha256:4a3e3a62684bdc164c04f95905e4ce60b081104260b31db5b1959af096610b43",
+      "storedBytes": 2707,
+      "storedDigest": "sha256:3192384f81788cd7dd8a02854c775ce68be51b2d1cd1888fddae882a698f1eac"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11670344673/zip"
+      ],
+      "file": "artifact-11670344673.zip.gz",
+      "originalBytes": 2909,
+      "originalDigest": "sha256:c4caf8193d1a474a976030b3bf0ddb790aad1c2f4c2dc312802207aad9d8dfbe",
+      "storedBytes": 2920,
+      "storedDigest": "sha256:f8ebaf3ab70147ca5a6540e4d24812e4bfde0d737d2f0bfd392822e8a1e99913"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11669979743/zip"
+      ],
+      "file": "artifact-11669979743.zip.gz",
+      "originalBytes": 2912,
+      "originalDigest": "sha256:1fd57407fc9207156f0ff5edb13b0ff6d4216721b57f5777f48a8888485ab293",
+      "storedBytes": 2925,
+      "storedDigest": "sha256:b9b7376698e151692a6aad37e0af2e39fab7bcbf8fb19263157c9cf98a0bc3a3"
+    }
+  ]
+}
