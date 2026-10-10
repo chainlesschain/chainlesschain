@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 import { SchedulerRuntime } from "../src/lib/scheduler-kernel/runtime.js";
 import { openSchedulerStore } from "../src/lib/scheduler-kernel/store.js";
@@ -171,6 +172,7 @@ export function createSchedulerSoakWorker({
   let stopped = false;
   let reader = null;
   let store = null;
+  let executionDiagnostics = null;
 
   const emit = (event) =>
     new Promise((resolve, reject) => {
@@ -236,13 +238,28 @@ export function createSchedulerSoakWorker({
   const writeEffect = async (context, result) => {
     // Disk flushes can exceed a short soak lease on hosted Windows runners.
     // Keep the event loop available for the real runtime heartbeat during I/O.
-    await fs.promises.mkdir(normalized.effectsDir, {
-      recursive: true,
-      mode: 0o700,
-    });
+    executionDiagnostics.phase = "effect-directory";
+    const mkdirStarted = performance.now();
+    try {
+      await fs.promises.mkdir(normalized.effectsDir, {
+        recursive: true,
+        mode: 0o700,
+      });
+    } finally {
+      executionDiagnostics.mkdirDurationMs = performance.now() - mkdirStarted;
+    }
     // A delayed checkpoint/timer callback must not let a stale owner reach the
     // effect boundary merely because its abort signal has not been updated yet.
-    context.renewLease();
+    executionDiagnostics.phase = "effect-lease-check";
+    executionDiagnostics.leaseCheckAt = new Date(now()).toISOString();
+    const leaseCheckStarted = performance.now();
+    try {
+      context.renewLease();
+    } finally {
+      executionDiagnostics.leaseCheckDurationMs =
+        performance.now() - leaseCheckStarted;
+    }
+    executionDiagnostics.leaseCheckAborted = context.signal.aborted;
     if (context.signal.aborted) throw context.signal.reason;
     const effectPath = path.join(
       normalized.effectsDir,
@@ -264,9 +281,15 @@ export function createSchedulerSoakWorker({
     };
     let descriptor;
     try {
+      executionDiagnostics.phase = "effect-open";
       descriptor = await fs.promises.open(effectPath, "wx", 0o600);
+      executionDiagnostics.effectCreated = true;
+      executionDiagnostics.phase = "effect-write";
       await descriptor.writeFile(`${JSON.stringify(effect)}\n`, "utf8");
+      executionDiagnostics.phase = "effect-flush";
       await descriptor.sync();
+      executionDiagnostics.effectFlushed = true;
+      executionDiagnostics.phase = "effect-complete";
     } catch (error) {
       if (error?.code === "EEXIST") {
         const duplicate = new Error(
@@ -287,6 +310,13 @@ export function createSchedulerSoakWorker({
   const adapter = {
     kind: normalized.jobKind,
     async execute(context) {
+      executionDiagnostics = {
+        occurrence: occurrenceEvidence(context.occurrence),
+        phase: "before-execute",
+        startedAt: new Date(now()).toISOString(),
+        effectCreated: false,
+        effectFlushed: false,
+      };
       await emit({
         type: "claimed",
         occurrence: occurrenceEvidence(context.occurrence),
@@ -420,6 +450,7 @@ export function createSchedulerSoakWorker({
       let consecutiveIdlePolls = 0;
       let lastIdleEventAt = 0;
       do {
+        executionDiagnostics = null;
         const result = await runtime.runNext({
           signal: abortController.signal,
           jobKind: normalized.jobKind,
@@ -466,7 +497,11 @@ export function createSchedulerSoakWorker({
       await emit({ type: "stopped", graceful: true });
       return 0;
     } catch (error) {
-      await emit({ type: "fatal", error: safeError(error) }).catch(() => {});
+      await emit({
+        type: "fatal",
+        error: safeError(error),
+        ...(executionDiagnostics ? { execution: executionDiagnostics } : {}),
+      }).catch(() => {});
       errorOutput.write(`${error?.stack || error}\n`);
       return 1;
     } finally {
