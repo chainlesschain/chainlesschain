@@ -11,7 +11,7 @@
 | 最终基线 c                         | 52/52 assertions 通过，原始 reporter、来源和原生结算全部确认                | [清单](./baseline/manifest.json)                                                  |
 | verify-12 / argv 边界              | 串行轮 **12 = 11 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant12/manifest.json)，[并行失败](./failed12-parallel/manifest.json) |
 | verify-20 / deny 优先              | 串行轮 **5 = 4 pass / 1 行为断言拒绝**，检出及原生结算确认                  | [新结果](./mutant20/manifest.json)，[并行失败](./failed20-parallel/manifest.json) |
-| verify-29 / session-bound ACK      | 尚未执行                                                                    | 待归档                                                                            |
+| verify-29 / session-bound ACK      | 串行轮 **20 = 19 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant29/manifest.json)                                                |
 | verify-30 / 动画 fallback 像素预算 | 尚未执行                                                                    | 待归档                                                                            |
 
 控制来自现有 Linux diagnostic donor，额外生成四个文件、五条行为断言。冻结的基线源码、原 setup/config 和旧任务 specs 均不改动。新结果要求原始 reporter 包含每个冻结基线文件和完整控制断言，禁止缺失、重复、额外文件、跳过、超时，以及用应用错误或其他文件的 AssertionError 充当检出。反例执行还必须重新验证同一 driver、validator、控制源码、runtime、依赖及原生结算的成功基线。
