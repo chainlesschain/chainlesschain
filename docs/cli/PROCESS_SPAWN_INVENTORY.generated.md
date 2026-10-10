@@ -704,9 +704,9 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 50 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 64 | `const processChild=cp.fork(child,['fork'],{execPath:contract.executable,execArgv,windowsHide:true,env,stdio:['pipe','pipe','pipe','ipc']});` |
 | `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 308 | `const run = spawnSync(compiler, args, {` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 560 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),{pathToFileURL}=require('node:url');` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 602 | `const run = spawnSync(` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 327 | `const run = spawnSync(compiler, args, {` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 615 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),{pathToFileURL}=require('node:url');` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 657 | `const run = spawnSync(` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 29 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 70 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 77 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |

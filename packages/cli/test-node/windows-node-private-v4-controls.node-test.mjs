@@ -7,7 +7,7 @@ import {
 import { diagnosticCandidate } from "../scripts/verify01-review-pack-diagnostic.mjs";
 import { VERIFY01_REVIEW_SPECS } from "../scripts/verify01-review-specs.mjs";
 
-const ids = ["verify-12", "verify-20", "verify-29", "verify-30"];
+const ids = ["verify-12", "verify-19", "verify-20", "verify-29", "verify-30"];
 function reporter(controls, mutant = false) {
   return {
     testResults: controls.map((control) => ({

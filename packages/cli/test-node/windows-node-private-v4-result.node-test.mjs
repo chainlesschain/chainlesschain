@@ -1084,6 +1084,45 @@ function controlsFixture() {
   report.stdout = { text, digest: "sha256:" + identity.digest(text) };
   return result;
 }
+
+for (const [name, alter] of [
+  [
+    "implicit native fixture flag",
+    (r) =>
+      editHost(r, (host) => {
+        host.fixtureSettings = true;
+      }),
+  ],
+  [
+    "fixture flag on ordinary original scope",
+    (r) => {
+      r.mode = "original";
+      r.fixtureSettings = { profile: "readonly-review-settings-v1" };
+    },
+  ],
+  [
+    "fixture missing host and actor observations",
+    (r) => {
+      r.review.fixtureSettings = "readonly-review-settings-v1";
+    },
+  ],
+]) {
+  test(`native settlement rejects ${name}`, () => {
+    const { report, readArtifact } = reviewFixture();
+    alter(report);
+    const result = inspectPrivateV4Settlement(report, {
+      readArtifact,
+      expectedRootExit: 0,
+    });
+    assert.equal(result.nativeSettlementConfirmed, false);
+    assert.ok(result.errors.includes(immutableLockError));
+    assert.ok(
+      result.errors.some((error) =>
+        error.startsWith("review fixture settings rejected:"),
+      ),
+    );
+  });
+}
 test("additional review control fixture remains rejected only by immutable lock", () => {
   const { report, readArtifact } = controlsFixture();
   assert.deepEqual(

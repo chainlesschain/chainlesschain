@@ -9,6 +9,7 @@ import {
   inspectPrivateV4ControlResults,
 } from "./windows-node-private-v4-controls.mjs";
 import identity from "./diagnostics/windows-node-private-v4-identity.cjs";
+import { inspectPrivateV4FixtureSettings } from "./windows-node-private-v4-fixture-settings.mjs";
 import {
   verifyPrivateV4DependencyManifest,
   readPrivateV4DependencyFile,
@@ -132,6 +133,12 @@ function inspectPrivateV4(
     report.execution.signal === null &&
     report.execution.error === null, "outer execution failed or incomplete");
   const host = parse(report?.execution?.stdout, "host result");
+  const fixtureSettings = inspectPrivateV4FixtureSettings(report, {
+    host,
+    readArtifact,
+  });
+  require(fixtureSettings.verified, "review fixture settings rejected: " +
+    fixtureSettings.errors.join("; "));
   require(host.guardNodeLimit === 48000 &&
     positive(host.guardNodeCount) &&
     host.guardNodeCount <=

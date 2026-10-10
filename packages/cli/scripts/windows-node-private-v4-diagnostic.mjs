@@ -6,6 +6,7 @@ import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { capture, digest } from "./windows-rollup-gnu-forwarder.mjs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { parseArgs } from "node:util";
 import {
   inspectPrivateV4Result,
@@ -22,6 +23,10 @@ import {
   readPrivateV4DependencyFile,
   verifyPrivateV4DependencyManifest,
 } from "./windows-node-private-v4-dependencies.mjs";
+import {
+  PRIVATE_V4_SETTINGS_PROFILE,
+  PRIVATE_V4_SETTINGS_ENV,
+} from "./windows-node-private-v4-fixture-settings.mjs";
 const WINDOWS_TASK_IDS = [
   "verify-01",
   "verify-02",
@@ -58,6 +63,8 @@ export function runPrivateV4Diagnostic(options) {
   const review = options.mode.startsWith("review-");
   if (options.behaviorControls && !review)
     throw Error("Behavior controls require an explicit review mode");
+  if (options.fixtureSettings && !review)
+    throw Error("Fixture settings require an explicit review mode");
   const hasSingleTask = options.reviewTask !== undefined;
   const hasTaskGroup = options.reviewTasks !== undefined;
   if (
@@ -236,6 +243,18 @@ export function runPrivateV4Diagnostic(options) {
         selectedTests.every((test) => baseline.review?.tests?.includes(test)) &&
         (baseline.review?.behaviorControls === true) ===
           !!options.behaviorControls &&
+        (baseline.review?.fixtureSettings ?? null) ===
+          (options.fixtureSettings ? PRIVATE_V4_SETTINGS_PROFILE : null) &&
+        (!options.fixtureSettings ||
+          (baseline.fixtureSettings?.source?.digest ===
+            capture(
+              path.join(
+                scriptDirectory,
+                "windows-node-private-v4-fixture-settings.mjs",
+              ),
+            ).digest &&
+            JSON.stringify(baseline.fixtureSettings.environment) ===
+              JSON.stringify(PRIVATE_V4_SETTINGS_ENV))) &&
         behaviorControls.every((control) =>
           baseline.review?.controls?.some(
             (row) =>
@@ -498,6 +517,9 @@ export function runPrivateV4Diagnostic(options) {
       report.review = {
         taskIds: selectedSpecs.map((row) => row.taskId),
         tests: reviewTests,
+        ...(options.fixtureSettings
+          ? { fixtureSettings: PRIVATE_V4_SETTINGS_PROFILE }
+          : {}),
         ...(options.behaviorControls
           ? {
               behaviorControls: true,
@@ -513,6 +535,39 @@ export function runPrivateV4Diagnostic(options) {
         })),
         specs: report.reviewSources.specs,
         runtime: report.reviewSources.runtime,
+      };
+    }
+    let observeFixture;
+    if (options.fixtureSettings) {
+      for (const directory of ["home", "program-data"])
+        fs.mkdirSync(path.join(root, "workspace/review-fixture", directory), {
+          recursive: true,
+        });
+      const require = createRequire(import.meta.url);
+      const { observeSettingsSources } = require(
+        path.join(
+          root,
+          "workspace/tree/packages/cli/src/lib/settings-source-observation.cjs",
+        ),
+      );
+      const sources = [
+        path.join(root, "workspace/review-fixture/home/.claude/settings.json"),
+        path.join(
+          root,
+          "workspace/review-fixture/program-data/ChainlessChain/managed-settings.json",
+        ),
+      ];
+      observeFixture = () => observeSettingsSources(sources);
+      report.fixtureSettings = {
+        profile: PRIVATE_V4_SETTINGS_PROFILE,
+        environment: PRIVATE_V4_SETTINGS_ENV,
+        source: retain(
+          path.join(
+            scriptDirectory,
+            "windows-node-private-v4-fixture-settings.mjs",
+          ),
+        ),
+        before: observeFixture(),
       };
     }
 
@@ -606,6 +661,7 @@ let service,closed;const original=cp.spawn;cp.spawn=(...args)=>{record('spawn',{
         ...(options.mode === "unassigned-worker"
           ? ["--probe-unassigned-worker"]
           : []),
+        ...(options.fixtureSettings ? ["--review-fixture-settings"] : []),
       ],
       {
         encoding: "utf8",
@@ -621,6 +677,7 @@ let service,closed;const original=cp.spawn;cp.spawn=(...args)=>{record('spawn',{
       stdout: run.stdout,
       stderr: run.stderr,
     };
+    if (observeFixture) report.fixtureSettings.after = observeFixture();
     for (const file of [
       ...new Set([
         "stdout",
@@ -812,6 +869,7 @@ if (
       dependencies: { type: "string" },
       "dependencies-digest": { type: "string" },
       "behavior-controls": { type: "boolean", default: false },
+      "fixture-settings": { type: "boolean", default: false },
     },
   });
   for (const key of [
@@ -830,6 +888,7 @@ if (
     baselineReport: values["baseline-report"],
     dependenciesDigest: values["dependencies-digest"],
     behaviorControls: values["behavior-controls"],
+    fixtureSettings: values["fixture-settings"],
   });
   console.log(
     JSON.stringify({

@@ -107,6 +107,85 @@ insist(
   receiptStat.isDirectory() && !receiptStat.isSymbolicLink(),
   "fixed receipt directory required",
 );
+const fixtureProfile = process.env.CC_PRIVATE_V4_SETTINGS_FIXTURE;
+function observeFixtureSettings() {
+  if (fixtureProfile === undefined) return undefined;
+  insist(
+    fixtureProfile === "readonly-review-settings-v1",
+    "unknown settings fixture",
+  );
+  const environment = {
+    USERPROFILE: process.env.USERPROFILE,
+    HOMEDRIVE: process.env.HOMEDRIVE,
+    HOMEPATH: process.env.HOMEPATH,
+    ProgramData: process.env.ProgramData,
+    CC_MANAGED_SETTINGS: process.env.CC_MANAGED_SETTINGS,
+  };
+  const expected = {
+    USERPROFILE: "X:\\workspace\\review-fixture\\home",
+    HOMEDRIVE: "X:",
+    HOMEPATH: "\\workspace\\review-fixture\\home",
+    ProgramData: "X:\\workspace\\review-fixture\\program-data",
+    CC_MANAGED_SETTINGS:
+      "X:\\workspace\\review-fixture\\program-data\\ChainlessChain\\managed-settings.json",
+  };
+  insist(
+    JSON.stringify(environment) === JSON.stringify(expected),
+    "settings fixture environment differs",
+  );
+  const home = require("node:os").homedir();
+  const loader = require("X:/workspace/tree/packages/cli/src/lib/settings-loader.cjs");
+  const managedSettingsFile = loader.managedSettingsPath();
+  insist(
+    home === expected.USERPROFILE &&
+      managedSettingsFile === expected.CC_MANAGED_SETTINGS,
+    "settings discovery escaped fixture",
+  );
+  // This is the immutable frozen observer with real filesystem operations.
+  // An access error is never converted into an absent source.
+  const {
+    observeSettingsSources,
+  } = require("X:/workspace/tree/packages/cli/src/lib/settings-source-observation.cjs");
+  const sources = observeSettingsSources([
+    path.join(home, ".claude/settings.json"),
+    managedSettingsFile,
+  ]);
+  for (const [index, source] of sources.entries()) {
+    insist(
+      !source.exists &&
+        source.digest === null &&
+        source.settings === null &&
+        source.fileIdentity === null &&
+        source.byteLength === 0,
+      "settings fixture is not absent",
+    );
+    insist(
+      source.nearestExistingParent ===
+        (index === 0 ? home : expected.ProgramData),
+      "settings fixture parent differs",
+    );
+  }
+  const probe = path.join(home, "probe");
+  let writeDenied = null;
+  let probeDescriptor;
+  try {
+    probeDescriptor = fs.openSync(probe, "wx");
+  } catch (error) {
+    if (!["EACCES", "EPERM"].includes(error.code)) throw error;
+    writeDenied = { path: probe, code: error.code };
+  }
+  // A close failure after successful creation cannot prove a denied write.
+  if (probeDescriptor !== undefined) fs.closeSync(probeDescriptor);
+  insist(writeDenied, "settings fixture must reject AppContainer writes");
+  return {
+    profile: fixtureProfile,
+    environment,
+    home,
+    managedSettingsFile,
+    sources,
+    writeDenied,
+  };
+}
 function observe() {
   const paired = identity.inspectPrivateIdentity(
     addon.inspectPrivateIdentity(),
@@ -117,7 +196,12 @@ function observe() {
     identity.digest(identity.readPlain(manifestPath, 32768)) === manifestSha256,
     "guarded manifest changed",
   );
-  return { paired, adapter: inspectAdapter(addon.snapshot()) };
+  const fixtureSettings = observeFixtureSettings();
+  return {
+    paired,
+    adapter: inspectAdapter(addon.snapshot()),
+    ...(fixtureSettings ? { fixtureSettings } : {}),
+  };
 }
 function record(phase, observation, exitCode) {
   const receipt = {
@@ -154,6 +238,9 @@ const installation = isMainThread
   ? record("installed", {
       paired: firstIdentity,
       adapter: installed,
+      ...(fixtureProfile !== undefined
+        ? { fixtureSettings: observeFixtureSettings() }
+        : {}),
     })
   : Object.freeze({
       status: "NOT_ADMITTED",

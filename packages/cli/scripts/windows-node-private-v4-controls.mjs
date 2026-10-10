@@ -11,7 +11,13 @@ export const PRIVATE_V4_CONTROL_SOURCES = Object.freeze([
   "verify01-review-pack-diagnostic.mjs",
   "verify01-review-diagnostic-extra-controls.mjs",
 ]);
-const supported = new Set(["verify-12", "verify-20", "verify-29", "verify-30"]);
+const supported = new Set([
+  "verify-12",
+  "verify-19",
+  "verify-20",
+  "verify-29",
+  "verify-30",
+]);
 const digest = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
 
