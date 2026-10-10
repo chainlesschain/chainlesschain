@@ -1,0 +1,56 @@
+{
+  "recordedAt": "2026-10-10T13:06:23.415Z",
+  "local": [
+    {
+      "source": ".work/soak-source-attribute-windows-validation-20261010.json",
+      "file": "windows-source-validation.json",
+      "bytes": 4645,
+      "digest": "sha256:f7a04937e7c6bd21269f413da808eb7c7841cbde1c6fa953f606ceb3ba0d1d84",
+      "node": "v22.22.2",
+      "platform": "win32",
+      "reproducedOldAttributeFailure": true,
+      "fixedFixtureVerified": true,
+      "rawBytesPreservedInAutocrlfFalseAndTrueClones": true
+    },
+    {
+      "source": ".work/soak-source-attribute-linux-validation-20261010.json",
+      "file": "linux-source-validation.json",
+      "bytes": 4609,
+      "digest": "sha256:ce75d0804f5b213af441d6309a177fc110368022173d9cf262e071d1ca9b2822",
+      "node": "v22.12.0",
+      "platform": "linux",
+      "reproducedOldAttributeFailure": true,
+      "fixedFixtureVerified": true,
+      "rawBytesPreservedInAutocrlfFalseAndTrueClones": true
+    }
+  ],
+  "selectedSourceContracts": {
+    "command": "..\\..\\node_modules\\.bin\\vitest.cmd run __tests__/integration/team-distributed-soak.test.js -t 'CRLF|clean exact-SHA|clean filter' --reporter=dot",
+    "cwd": "packages/cli",
+    "passed": 3,
+    "unselected": 6,
+    "failed": 0,
+    "stdoutArchived": false,
+    "resultSource": "tool execution transcript"
+  },
+  "discardedAttempt": {
+    "cwd": "repository root",
+    "reason": "wrong Vitest configuration selected additional suites; interrupted and excluded from validation",
+    "complete": false
+  },
+  "archivesVerified": [
+    "run.json.gz",
+    "jobs.json.gz",
+    "artifacts.json.gz",
+    "run-logs.http.gz",
+    "cli-run-snapshot.json.gz",
+    "cli-jobs-snapshot.json.gz",
+    "cli-artifacts-snapshot.json.gz",
+    "cli-11670252215.zip.gz",
+    "cli-11669942295.zip.gz",
+    "cli-11669777012.zip.gz"
+  ],
+  "observationsCreated": false,
+  "admissionEligible": false,
+  "fullMatrixPassed": false
+}

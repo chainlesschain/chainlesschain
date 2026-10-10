@@ -428,3 +428,7 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 最终准确 producer 的控制基线 **18/18**，取消反例 **17 pass / 1 直接工具结果拒绝**，来源和原生结算确认。完整 12 文件的新域基线 **211 = 208/2/1**，仍因 owner-only ACL、junction 与 skip 拒绝准入。另保留睡眠期间的外层 timeout/空 reporter，原 HANDLE/Job 结算未确认；仅独立匹配并清理准确 profile 注册。临时防闲置睡眠请求在重跑结束后已释放，原期限/电源计划未改。六份原生原件共 237 文件及两环境 raw 回归/CI/系统事件已归档，不改旧矩阵或正式采集。
 
 该 profile 证明所选诊断配置域，不证明真实宿主个人或组织设置已被读取，也不建立持久权限 authority。Windows/macOS durable 后端、完整 native review、正式 36+9、独立人工、账号账单、辅助技术与长时/SLO 仍保持开放。
+
+## 27. 2026-10-10 CI 归档换行属性修复
+
+`4928e50ef109712a36e3a39e08405b943ffd136b` 的三平台 Agent Team Soak 在执行 round 前失败，CLI CI 三个 integration shard 各有一项严格源码合同失败。两份归档 PowerShell 的目录 `-text` 未清除根目录 `*.ps1` 的 `eol=crlf`；修复只增加 `!eol`，原件字节及源码门、生产 runtime、lease/重试/期限保持。两环境独立 Git fixture 均复现旧失败并通过已提交修复；四次实际克隆验证准确源码与脚本原字节。选定源码合同 3 项通过，十份 API/日志/制品双摘要核验，见[证据](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/README.md)及[验证 20.26](./cli-ide-gap-validation-2026-10-05.md#2026-ci-归档换行属性与严格源码门)。新 SHA 须自身完整矩阵，原正式 36+9、$99、旧矩阵与 `NOT_ADMITTED` 不变，其余工程/人工验收仍开放，无付费调用或发布。

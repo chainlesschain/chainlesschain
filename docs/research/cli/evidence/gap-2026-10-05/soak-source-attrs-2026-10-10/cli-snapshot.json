@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-10T13:04:49.237Z",
+  "headSha": "4928e50ef109712a36e3a39e08405b943ffd136b",
+  "runId": 38051917351,
+  "status": "queued",
+  "conclusion": null,
+  "actualJobs": 65,
+  "failed": [
+    {
+      "id": 114212594921,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)"
+    },
+    {
+      "id": 114212594960,
+      "name": "test-windows / integration (windows-latest, shard 1/8)"
+    },
+    {
+      "id": 114212595132,
+      "name": "test-macos / integration (macos-latest, shard 1/8)"
+    }
+  ],
+  "artifactCount": 10,
+  "fullMatrixPassed": false,
+  "files": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917351"
+      ],
+      "file": "cli-run-snapshot.json.gz",
+      "originalBytes": 14131,
+      "originalDigest": "sha256:7bd4e00feb6e1de8d0b39ec83298fc81179015026ff25ea7a3f60b00170c6b71",
+      "storedBytes": 1721,
+      "storedDigest": "sha256:a6e1fc91e84677c479b399c2fabd1e6799369ef7c4fda39440b344e2f6a5d181"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917351/jobs?per_page=100"
+      ],
+      "file": "cli-jobs-snapshot.json.gz",
+      "originalBytes": 146200,
+      "originalDigest": "sha256:0a159ede4d7dc20cbadc693e320368801f063a59f28221a5eeccf20fd18a7e24",
+      "storedBytes": 7548,
+      "storedDigest": "sha256:3b12917b2c7045d6548d35a32f57dd58837d420e56d0bfd4470405a8f95c0dfd"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917351/artifacts?per_page=100"
+      ],
+      "file": "cli-artifacts-snapshot.json.gz",
+      "originalBytes": 7872,
+      "originalDigest": "sha256:de8f1f6ae00f378a042bd53af8ca4a555b26fec085d8c82838d324cfd68d743c",
+      "storedBytes": 1338,
+      "storedDigest": "sha256:e1bd297c732a33d19d03776a7e04e1a81c0ee280d5315dc514185309cc24c0b1"
+    }
+  ]
+}

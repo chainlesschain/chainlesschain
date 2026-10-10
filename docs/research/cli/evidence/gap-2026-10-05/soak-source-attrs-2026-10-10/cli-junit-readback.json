@@ -1,0 +1,43 @@
+{
+  "headSha": "4928e50ef109712a36e3a39e08405b943ffd136b",
+  "runId": 38051917351,
+  "completeMatrixPassed": false,
+  "reports": [
+    {
+      "artifact": "cli-windows-latest-integration-1-results",
+      "testCases": 168,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "distributed Agent Team production soak harness > proves every tracked source byte at the exact SHA",
+          "failure": "\nAssertionError: Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute\n    at sourceVerificationError (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:560:17)\n    at verifyExactSourceTree (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:782:11)\n    at main (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2902:27)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2922:26\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\n: expected { status: 1, signal: null, …(4) } to match object { status: +0, signal: null }\n(4 matching properties omitted from actual)\n\n- Expected\n+ Received\n\n  {\n    \"signal\": null,\n-   \"status\": 0,\n+   \"status\": 1,\n  }\n\n ❯ sourceVerificationError scripts/team-distributed-soak.mjs:560:17\n ❯ verifyExactSourceTree scripts/team-distributed-soak.mjs:782:11\n ❯ main scripts/team-distributed-soak.mjs:2902:27\n ❯ scripts/team-distributed-soak.mjs:2922:26\n ❯ __tests__/integration/team-distributed-soak.test.js:678:9\n            ",
+          "sourceAttributeFailure": true
+        }
+      ]
+    },
+    {
+      "artifact": "cli-macos-latest-integration-1-results",
+      "testCases": 168,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "distributed Agent Team production soak harness > proves every tracked source byte at the exact SHA",
+          "failure": "\nAssertionError: Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute\n    at sourceVerificationError (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:560:17)\n    at verifyExactSourceTree (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:782:11)\n    at main (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2902:27)\n    at file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2922:26\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\n: expected { status: 1, signal: null, …(4) } to match object { status: +0, signal: null }\n(4 matching properties omitted from actual)\n\n- Expected\n+ Received\n\n  {\n    \"signal\": null,\n-   \"status\": 0,\n+   \"status\": 1,\n  }\n\n ❯ sourceVerificationError scripts/team-distributed-soak.mjs:560:17\n ❯ verifyExactSourceTree scripts/team-distributed-soak.mjs:782:11\n ❯ main scripts/team-distributed-soak.mjs:2902:27\n ❯ scripts/team-distributed-soak.mjs:2922:26\n ❯ __tests__/integration/team-distributed-soak.test.js:678:9\n            ",
+          "sourceAttributeFailure": true
+        }
+      ]
+    },
+    {
+      "artifact": "cli-ubuntu-latest-integration-1-results",
+      "testCases": 168,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "distributed Agent Team production soak harness > proves every tracked source byte at the exact SHA",
+          "failure": "\nAssertionError: Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute\n    at sourceVerificationError (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:560:17)\n    at verifyExactSourceTree (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:782:11)\n    at main (file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2902:27)\n    at file:///home/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/team-distributed-soak.mjs:2922:26\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\n: expected { status: 1, signal: null, …(4) } to match object { status: +0, signal: null }\n(4 matching properties omitted from actual)\n\n- Expected\n+ Received\n\n  {\n    \"signal\": null,\n-   \"status\": 0,\n+   \"status\": 1,\n  }\n\n ❯ sourceVerificationError scripts/team-distributed-soak.mjs:560:17\n ❯ verifyExactSourceTree scripts/team-distributed-soak.mjs:782:11\n ❯ main scripts/team-distributed-soak.mjs:2902:27\n ❯ scripts/team-distributed-soak.mjs:2922:26\n ❯ __tests__/integration/team-distributed-soak.test.js:678:9\n            ",
+          "sourceAttributeFailure": true
+        }
+      ]
+    }
+  ]
+}

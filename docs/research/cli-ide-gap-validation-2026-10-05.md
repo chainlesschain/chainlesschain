@@ -956,3 +956,13 @@ fixture helper 107 项合同覆盖真实来源描述的字段/身份/环境/人�
 先前准确 SHA `533e75868dc5c7613524d192a65fcb376e8d44e4` 的 CLI CI run `38039055353` 已完整 **71/71**，Strict run `38039055210` **5/5**，Scheduler 三平台加 aggregate **4/4**，IDE Safety **4/4**。[最终 API 原件](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/ci-prior-complete/manifest.json)与[较早快照](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/ci-prior/manifest.json)分别保存；它们只适用于先前提交，不转移给新工程。新提交仍须自己的准确 SHA 完整矩阵。本轮没有发布。
 
 实际宿主仍为 Windows 10 x64 / Node 22.22.2，compiler closure 非 hermetic；本配置域不证明真实宿主个人/组织策略已被读取，也不建立持久 authority。旧 **211 = 194/16/1** 与 **6/4/4**、正式 **36+9 / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99 和 observations 保持原状。只读正式采集器再次真实退出 2，原件见 `frozen-summary.json`；Windows/macOS durable 服务/journal/自身恢复/WFP、其余 native 基线失败及冻结平台冲突、官方账号账单、独立人工/辅助技术和 8h/24h/SLO 仍开放。
+
+### 20.26 CI 归档换行属性与严格源码门
+
+准确 SHA `4928e50ef109712a36e3a39e08405b943ffd136b` 的 Agent Team Soak run `38051917155` 三个 job 均在 round 前失败、结果制品为零。[原始清单](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/manifest.json)保留 `awake-script.ps1`、`cleanup-script.ps1` 的同一 `eol=crlf requires an explicit text attribute` 拒绝。目录 `-text` 未清除根目录 PowerShell 的 eol；本次只增加 `!eol`，不归一原件或放宽源码门。
+
+同 SHA 的 CLI CI run `38051917351` 在查询时仍 queued。三平台 integration shard 1/8 原始 JUnit 各含 168 个 testcase，各 1 项失败，均为准确源码合同的相同属性拒绝。[原 ZIP](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/cli-failures.json)、[XML 回读](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/cli-junit-readback.json)及[API 快照](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/cli-snapshot.json)不代表完整门通过。
+
+Windows Node 22.22.2 与 WSL Ubuntu Node 22.12.0 各用独立 Git fixture 复现旧拒绝，提交修复后通过生产 `verifyExactSourceTree`；每环境再实际克隆 `core.autocrlf=false/true`，准确 SHA、源码属性与原脚本工作树/blob 字节均匹配。fixture SHA 仅为局部证明。选定既有源码合同 **3 pass / 6 未选择**；结果来自工具记录，未保存原 stdout，不累计正式样本。首次误用根目录 Vitest 配置的调用已中断排除。十份压缩原件双摘要及两个本地报告来源摘要复核，见[验证清单](./cli/evidence/gap-2026-10-05/soak-source-attrs-2026-10-10/local-validation.json)。受限日志请求曾 403，获准普通用户环境归档成功，未修改 GitHub 权限或凭证配置。
+
+生产 runtime、soak lease/重试/期限和断言均未改变。新 SHA 须自身完整矩阵；正式 **36+9 / NOT_RUN**、$99、observations、旧 **211 = 194/16/1、6/4/4** 与 `NOT_ADMITTED` 不变，native/durable、官方账号账单、真人辅助技术及长时/SLO 继续开放，无付费调用或发布。

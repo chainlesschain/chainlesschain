@@ -1,0 +1,101 @@
+{
+  "schema": "chainlesschain.soak-source-attribute-failure/v1",
+  "capturedAt": "2026-10-10T13:02:13.217Z",
+  "headSha": "4928e50ef109712a36e3a39e08405b943ffd136b",
+  "runId": 38051917155,
+  "runAttempt": 1,
+  "workflow": "CLI Agent Team Soak",
+  "conclusion": "failure",
+  "failures": [
+    {
+      "id": 114212594084,
+      "name": "distributed DAG/fault soak (ubuntu-latest)",
+      "conclusion": "failure",
+      "logEntry": "1_distributed DAG_fault soak (ubuntu-latest).txt",
+      "logBytes": 46842,
+      "logDigest": "sha256:9bb7b55cdeaf63b91e4a2450317f19168dcdc6550789ec6109538320dbc0b6f9",
+      "sourceVerificationFailure": "2026-10-10T12:27:25.2054948Z Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute",
+      "roundExecuted": false,
+      "reportUploaded": false
+    },
+    {
+      "id": 114212594167,
+      "name": "distributed DAG/fault soak (macos-latest)",
+      "conclusion": "failure",
+      "logEntry": "2_distributed DAG_fault soak (macos-latest).txt",
+      "logBytes": 48282,
+      "logDigest": "sha256:46c177fdbdf81b807dcdf84889626eeecc63b5eb2a904641cda5619d67ccdf4e",
+      "sourceVerificationFailure": "2026-10-10T12:42:13.2413910Z Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute",
+      "roundExecuted": false,
+      "reportUploaded": false
+    },
+    {
+      "id": 114212594214,
+      "name": "distributed DAG/fault soak (windows-latest)",
+      "conclusion": "failure",
+      "logEntry": "0_distributed DAG_fault soak (windows-latest).txt",
+      "logBytes": 51701,
+      "logDigest": "sha256:b808196eec9f5176ab2b7eadac18f95f98e8803e92718744628ded9f7c0e7794",
+      "sourceVerificationFailure": "2026-10-10T12:31:58.5367019Z Error: exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute",
+      "roundExecuted": false,
+      "reportUploaded": false
+    }
+  ],
+  "artifactCount": 0,
+  "logsEncoding": "unmodified gh api --include stdout (HTTP headers plus Actions run log ZIP); per-job root entry bytes/digests retained",
+  "directJobLogApi": "受限环境下日志请求 HTTP 403；普通用户环境的 run archive API 成功，未变更 GitHub 权限或凭证配置",
+  "formalSample": false,
+  "observationsCreated": false,
+  "admissionEligible": false,
+  "files": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917155"
+      ],
+      "file": "run.json.gz",
+      "originalBytes": 13766,
+      "originalDigest": "sha256:a9217377ec45587f367d0075e38e6debc1a9d9a58272421305598141d4770fca",
+      "storedBytes": 1654,
+      "storedDigest": "sha256:da3e794dcaa5e5c2f71efbea1c5279566acb7f991e902a0832922d06d5f5a6c8"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917155/jobs?per_page=100"
+      ],
+      "file": "jobs.json.gz",
+      "originalBytes": 8201,
+      "originalDigest": "sha256:2c02dd60d0a1f901649988f7b3715c39f57e23b3999f6b9fe13be3a8c9d64f22",
+      "storedBytes": 1041,
+      "storedDigest": "sha256:a87fbd0beaa2d556527c452efec8736719634b3f381213c87ec738aeeaea15ce"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917155/artifacts?per_page=100"
+      ],
+      "file": "artifacts.json.gz",
+      "originalBytes": 32,
+      "originalDigest": "sha256:244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "storedBytes": 52,
+      "storedDigest": "sha256:a64394c1413f6f5573961df1e730c73ab6442eef5129c60c367478e4f8ec222b"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/runs/38051917155/logs",
+        "--include"
+      ],
+      "file": "run-logs.http.gz",
+      "originalBytes": 85538,
+      "originalDigest": "sha256:c1f0c82b7c4ab21f0b23ae684869a0860d296df935940abd22bab3d9a134ee72",
+      "storedBytes": 79246,
+      "storedDigest": "sha256:71be593560294a3b588989eb5329d718630544821e8395d4fe6fba9a4a5ce999"
+    }
+  ]
+}

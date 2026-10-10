@@ -1,5 +1,5 @@
 # Preserve captured bytes and their hashes across Windows/Linux checkouts.
-* -text
+* -text !eol
 # TAP originals include intentional indentation and are review artifacts.
 local-*-stdout.txt -diff
 # These two API receipts retain native Windows CRLF bytes.

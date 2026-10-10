@@ -1,0 +1,82 @@
+{
+  "capturedAt": "2026-10-10T13:05:27.745Z",
+  "headSha": "4928e50ef109712a36e3a39e08405b943ffd136b",
+  "runId": 38051917351,
+  "fullMatrixPassed": false,
+  "reports": [
+    {
+      "id": 11670252215,
+      "name": "cli-windows-latest-integration-1-results",
+      "entries": [
+        {
+          "name": "integration-1.xml",
+          "bytes": 62290,
+          "digest": "sha256:a4add3fb1bf585ae3b8fb07c65506b2e3b39b64d5dba12bb9f6d7b2580d34ec2"
+        }
+      ],
+      "reports": []
+    },
+    {
+      "id": 11669942295,
+      "name": "cli-macos-latest-integration-1-results",
+      "entries": [
+        {
+          "name": "integration-1.xml",
+          "bytes": 63994,
+          "digest": "sha256:ec7e3dbd44365dcfae54b3661cb7a01d49570bb593675012f3d7477b871ea9a4"
+        }
+      ],
+      "reports": []
+    },
+    {
+      "id": 11669777012,
+      "name": "cli-ubuntu-latest-integration-1-results",
+      "entries": [
+        {
+          "name": "integration-1.xml",
+          "bytes": 62565,
+          "digest": "sha256:8f5eabb9ab233b2af7aea432e8c82fffc8dc2006d9e5a8c74e930a999fee0a69"
+        }
+      ],
+      "reports": []
+    }
+  ],
+  "files": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11670252215/zip"
+      ],
+      "file": "cli-11670252215.zip.gz",
+      "originalBytes": 9688,
+      "originalDigest": "sha256:b411bdfb4896744d778b85f603866927ebd1275d1598f60fcd8fdf07b7be2643",
+      "storedBytes": 9701,
+      "storedDigest": "sha256:09bf34a06fce794e4bc479215ea9f0411df4be470aa3be33890f214cad89de9c"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11669942295/zip"
+      ],
+      "file": "cli-11669942295.zip.gz",
+      "originalBytes": 9866,
+      "originalDigest": "sha256:62d131f7f40e685c20779580bd2499cbd66b15b7add17a7783c569dee2a0f24e",
+      "storedBytes": 9884,
+      "storedDigest": "sha256:80d102954ce3e96feae16319e4b5aaafb3f7ea2d0a506f68cf487083a4220623"
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/chainlesschain/chainlesschain/actions/artifacts/11669777012/zip"
+      ],
+      "file": "cli-11669777012.zip.gz",
+      "originalBytes": 9838,
+      "originalDigest": "sha256:8af14dad45032f1f66548c1bc889d42bd749c53bda689012efb88ed793615660",
+      "storedBytes": 9852,
+      "storedDigest": "sha256:9ded7601baadcef6de0cb8aed9bb5df9e4879c15133f0b0d8783c96f6e20fd19"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schema": "chainlesschain.soak-archive-attribute-validation/v1",
+  "recordedAt": "2026-10-10T13:03:38.499Z",
+  "node": "v22.12.0",
+  "platform": "linux",
+  "root": "/tmp/cc-soak-attribute-Trq5w2",
+  "oldSha": "1b66ed9b3ce604931ac01b82a7178b2852e9e4ed",
+  "oldFailure": "exact-SHA controlled source verification failed: docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/awake-script.ps1: eol=crlf requires an explicit text attribute; docs/research/cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/cleanup-script.ps1: eol=crlf requires an explicit text attribute",
+  "newSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+  "source": {
+    "available": true,
+    "matches": true,
+    "expectedSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+    "headSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+    "expectedTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+    "headTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+    "objectFormat": "sha1",
+    "trackedEntries": 4,
+    "trackedBytes": 13045,
+    "sourceEntriesDigest": "f39c0690e3bfd0054732cb6b6cd05a2cb3fd300ab6260bcb86fdf40ca2d0d95d",
+    "untracked": {
+      "count": 0,
+      "sample": [],
+      "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ignoredSourceOverrides": {
+      "count": 0,
+      "sample": [],
+      "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "errors": [],
+    "attributes": {
+      "committedMatchesWorktree": true,
+      "policy": "built-in text/eol only; filter, working-tree-encoding, ident, and legacy crlf conversions rejected",
+      "crlfEntries": 0
+    }
+  },
+  "clones": [
+    {
+      "autocrlf": "false",
+      "source": {
+        "available": true,
+        "matches": true,
+        "expectedSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+        "headSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+        "expectedTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+        "headTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+        "objectFormat": "sha1",
+        "trackedEntries": 4,
+        "trackedBytes": 13045,
+        "sourceEntriesDigest": "f39c0690e3bfd0054732cb6b6cd05a2cb3fd300ab6260bcb86fdf40ca2d0d95d",
+        "untracked": {
+          "count": 0,
+          "sample": [],
+          "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ignoredSourceOverrides": {
+          "count": 0,
+          "sample": [],
+          "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "errors": [],
+        "attributes": {
+          "committedMatchesWorktree": true,
+          "policy": "built-in text/eol only; filter, working-tree-encoding, ident, and legacy crlf conversions rejected",
+          "crlfEntries": 0
+        }
+      },
+      "rawPowerShellBytesPreserved": true
+    },
+    {
+      "autocrlf": "true",
+      "source": {
+        "available": true,
+        "matches": true,
+        "expectedSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+        "headSha": "ef23737933602ec24a6e01862bc19b6ac7bb6fe1",
+        "expectedTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+        "headTreeOid": "ec1d20901d212443cb192475e0a1fa22338bf942",
+        "objectFormat": "sha1",
+        "trackedEntries": 4,
+        "trackedBytes": 13045,
+        "sourceEntriesDigest": "f39c0690e3bfd0054732cb6b6cd05a2cb3fd300ab6260bcb86fdf40ca2d0d95d",
+        "untracked": {
+          "count": 0,
+          "sample": [],
+          "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "ignoredSourceOverrides": {
+          "count": 0,
+          "sample": [],
+          "evidenceDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "errors": [],
+        "attributes": {
+          "committedMatchesWorktree": true,
+          "policy": "built-in text/eol only; filter, working-tree-encoding, ident, and legacy crlf conversions rejected",
+          "crlfEntries": 0
+        }
+      },
+      "rawPowerShellBytesPreserved": true
+    }
+  ],
+  "rawFiles": [
+    {
+      "relative": "suspend-original/awake-script.ps1",
+      "bytes": 2047,
+      "digest": "sha256:c2c64777eb99b3f6bf596aad0e62b9100feca2372b4afeafa5cae2ea9661b098"
+    },
+    {
+      "relative": "suspend-original/cleanup-script.ps1",
+      "bytes": 4143,
+      "digest": "sha256:01e23733f1704aa563e41986d7f1cd828549067eeb78c976c8bb83d1506a05da"
+    }
+  ],
+  "formalSample": false
+}
