@@ -7,3 +7,5 @@
 最终准确 SHA 须 CLI CI、CLI Strict Sandbox 三平台完整门，IDE Extensions 主宿主/浏览器/构建门与独立 ARM64 完整 aggregate。通过后推 immutable CLI tag，由 GitHub Actions OIDC 校验/复用子包、公开来源和 registry-only 安装后发布 CLI；公开 CLI 可取且配对正确后才推 IDE 标签。Open VSX 回读真实 VSIX；JetBrains 绿色上传但 pending 时仍未公开。默认渠道沿用 Open VSX/JetBrains，不新增 Microsoft Marketplace 发布。
 
 本轮 native 根坐标诊断与[正式未完成边界](../root-coordinates-2026-10-10/README.md)分开，36+9/NOT_RUN、$99、observations、旧矩阵及 durable/账号/人工/长时状态不因发行改变。
+
+首轮候选 `17e1e05420c5dc5c1afbc1ec25d47b3d836d83a8` 的常规 CI Windows 原生授权用例和 Windows loopback 失败，见[原件和修复清单](./prepublish-attempt1/manifest.json)。Strict 5/5、ARM64 10/10 只对应这个 SHA；后续提交必须重跑。桌面测试仅单例 30 秒功能预算/阶段诊断，loopback 仅持久保留固定错误类，局部 20/20、23/23；未复现原 SQLite 慢阶段，未确认 loopback 底层原因，不能写成两个生产问题已修复。

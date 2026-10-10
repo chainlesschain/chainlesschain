@@ -994,3 +994,13 @@ a 轮的 native 与 cleanup 成功，但之后 runner import 使用 Windows abso
 Astra 独立变异确认 b 轮会接受 root STATUS_PENDING、失败 IO completion、FILE_CREATED、矛盾 held metadata，以及 alias 失败附带值/成功缺值/奇数 byte length。没有 admission 升级，但 observationsVerified 结论过宽；已补拒绝合同和 native decoded length/completeness，新增 15 个负例。原 runner 只验 sources，现同时在执行前后核验三个 binary 与七份复制产物；最终 c 轮重新冻结、编译、实跑 exit 0，仍 root 相同/alias 拒绝。当前最终 verdict 和 source binding 只取 c 轮；b 的 producerInputsUnchanged 仅覆盖当时 source，不迁移其 binary 或 verifier 结论。
 
 下一配对 CLI **0.166.97**、VS Code **0.37.141**、JetBrains **0.4.159**。13 子包完整 Git subtree 与公开 SDK 来源 `da91e730d802b7c9dcdc075b222ecc257021e552` 一致，本地 pack 与实际 registry tarball 原字节一致；SDK 两端 vendor 重建无 tracked 差异，局部 CLI/VS Code/JetBrains 版本合同 **35/22/14** 通过。JetBrains 初次缺 Java 21，使用既有 JDK21 后成功。最终发布须新准确 SHA 的 CLI CI/Strict 三平台、IDE 主矩阵及独立 ARM64 全门；旧 SHA 的成功不能迁移。用户已授权门通过后 OIDC CLI → 公开可取 → IDE，当前尚未发布，Marketplace pending 不记作公开。
+
+### 20.29 CLI 0.166.97 候选 Windows 失败与诊断修复
+
+首轮准确提交 `17e1e05420c5dc5c1afbc1ec25d47b3d836d83a8`、PR #428。15:22 UTC 的[原始 API、日志和制品](./cli/evidence/gap-2026-10-05/release-0.166.97/prepublish-attempt1/manifest.json)共38份无损gzip/双摘要；Strict run38058378825 **5/5**、IDE run38058378817 **18成功/1非标签post-publish条件跳过**、ARM64 run38058378756 **10/10**通过，CLI CI run38058378994 **53成功/14未完成**（当前67个实际job），完整发布门未通过，尚未发布。后续提交不能迁移这些成功。
+
+CI Tests run38058378845 的 Windows22.x job114231464135，`Verify governed project host boundaries` **230pass/1fail**。唯一失败 `project-goal-monitoring-host.test.js:160` 后台授权case在默认5000ms期限超时，报告9437ms；`Enforce selector or fallback result`因先决失败后selector/fallback均skipped而拒绝，是连带状态，不能写成第二个功能失败或跳过成功。此期间desktop task/config/test workflow/session-core零diff、lock仅CLI版本；无阶段原件不能归因具体await、IO或锁竞争。本次只加该单例30秒功能预算和单调阶段计时，保留SQLite/后台授权/renderer拒绝全部断言，无retry，生产/全局期限不变。最终本机该文件20/20，23.51s、stderr0；该case107.56ms、start59.87ms/tick32.09ms，未复现原CI慢阶段，最终源码和调用stdout/stderr原件保留。
+
+IDE Live Provider Trajectory run38058378923 的 Windows loopback job114231408906失败，Linux/macOS成功，两个真实付费provider job明确skipped，未调用付费API。原 ZIP与GitHub digest一致，报告eventCount9/eventOrder含10标签，read_file已settled、下一model usage unknown；压缩usage已reported。原件没有底层错误类，不推定缺账单、服务端断开或错误响应。只将原已计算的allowlisted错误链name/code/status透过sanitized failure receipt持久保存；链最多3项、严格字段/枚举/HTTP范围，拒绝任意消息、stack、路径和request，历史不带该可选字段的回执仍可读取。失败、provider policy、120s轨迹期限和无重试均保持。
+
+CLI该文件生产loopback两次和全部合同本机 **23/23**，57.97s；原stdout只有工具记录，不补造原件。新增安全边界测试拒绝额外message/任意name/code/非法status/超长链，保证固定错误分类能保留而不能带入provider文本。lint/Prettier、spawn inventory与diff检查通过。此取证修复不是Windows loopback根因完成；后续准确SHA须重跑完整CLI/Strict/IDE/ARM64及相关失败门。版本保持0.166.97/0.37.141/0.4.159；原正式36+9、$99、observations、冻结反例与NOT_ADMITTED及durable/账单/人工/长时状态不变。

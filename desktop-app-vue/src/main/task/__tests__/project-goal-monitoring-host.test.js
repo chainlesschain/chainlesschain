@@ -158,20 +158,54 @@ describe("desktop goal monitoring native storage and lifecycle owner", () => {
     });
   });
   it("keeps background authorization independent from the original renderer window", async () => {
-    const g = goal();
-    await host.start(event, {
-      id: g.id,
-      expectedRevision: 1,
-      intervalMs: 60_000,
-    });
-    window.isDestroyed.mockReturnValue(true);
-    const engine = await controller.initialize();
-    await engine.tick();
-    expect(engine.status({ id: g.id }).usage.checks).toBe(1);
-    await expect(host.status(event, { id: g.id })).rejects.toThrow(
-      "GOAL_WINDOW_UNAVAILABLE",
-    );
-  });
+    const started = performance.now();
+    let phase = null;
+    let phaseStarted = started;
+    const timings = [];
+    const enterPhase = (nextPhase) => {
+      const current = performance.now();
+      if (phase !== null) {
+        const completed = { phase, elapsedMs: current - phaseStarted };
+        timings.push(completed);
+        console.info(
+          "goal background authorization phase completed",
+          completed,
+        );
+      }
+      phase = nextPhase;
+      phaseStarted = current;
+      if (phase !== null)
+        console.info("goal background authorization phase entered", phase);
+    };
+    try {
+      enterPhase("create-goal");
+      const g = goal();
+      enterPhase("start");
+      await host.start(event, {
+        id: g.id,
+        expectedRevision: 1,
+        intervalMs: 60_000,
+      });
+      enterPhase("destroy-renderer-window");
+      window.isDestroyed.mockReturnValue(true);
+      enterPhase("initialize-background-engine");
+      const engine = await controller.initialize();
+      enterPhase("explicit-tick");
+      await engine.tick();
+      enterPhase("assert-background-check");
+      expect(engine.status({ id: g.id }).usage.checks).toBe(1);
+      enterPhase("assert-renderer-denied");
+      await expect(host.status(event, { id: g.id })).rejects.toThrow(
+        "GOAL_WINDOW_UNAVAILABLE",
+      );
+    } finally {
+      enterPhase(null);
+      console.info("goal background authorization monotonic timings", {
+        elapsedMs: performance.now() - started,
+        timings,
+      });
+    }
+  }, 30_000);
   it.each(["start", "stop", "check", "status"])(
     "rejects an untrusted %s caller before opening a scheduler",
     async (method) => {

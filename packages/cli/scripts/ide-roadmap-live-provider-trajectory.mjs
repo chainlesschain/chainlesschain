@@ -885,7 +885,7 @@ function validatedTrajectoryFailureDiagnostic(value) {
     !isRecord(value) ||
     canonicalJson(
       Object.keys(value)
-        .filter((key) => key !== "invariant")
+        .filter((key) => !["invariant", "providerError"].includes(key))
         .sort(),
     ) !==
       canonicalJson(
@@ -926,7 +926,25 @@ function validatedTrajectoryFailureDiagnostic(value) {
       !SAFE_COMPACTION_REASONS.has(value.compactionReason)) ||
     (value.usageUnknownReason !== null &&
       value.usageUnknownReason !== "other" &&
-      !SAFE_USAGE_UNKNOWN_REASONS.has(value.usageUnknownReason))
+      !SAFE_USAGE_UNKNOWN_REASONS.has(value.usageUnknownReason)) ||
+    (Object.hasOwn(value, "providerError") &&
+      (!Array.isArray(value.providerError) ||
+        value.providerError.length < 1 ||
+        value.providerError.length > 3 ||
+        value.providerError.some(
+          (entry) =>
+            !isRecord(entry) ||
+            canonicalJson(Object.keys(entry).sort()) !==
+              canonicalJson(["code", "name", "status"]) ||
+            (entry.name !== "other" &&
+              !SAFE_PROVIDER_ERROR_NAMES.has(entry.name)) ||
+            (entry.code !== null &&
+              !SAFE_PROVIDER_ERROR_CODES.has(entry.code)) ||
+            (entry.status !== null &&
+              (!Number.isSafeInteger(entry.status) ||
+                entry.status < 100 ||
+                entry.status > 599)),
+        )))
   ) {
     return null;
   }
@@ -1235,6 +1253,12 @@ async function runOneTrajectory({ fixture, profile, runIndex, timeoutMs }) {
           events,
           eventOrder,
         );
+        // Retain the already allowlisted failure class across the evidence
+        // boundary. Provider messages, stacks, paths and requests are omitted.
+        if (diagnostic.length > 0)
+          failure.safeDiagnostic.providerError = diagnostic.map(
+            ({ name, code, status }) => ({ name, code, status }),
+          );
         throw failure;
       }
       let evidence;

@@ -131,6 +131,61 @@ it("retains only fixed failure categories in a failed trajectory receipt", () =>
   ).toBeUndefined();
 });
 
+it("persists an allowlisted provider failure class across the evidence boundary", () => {
+  const diagnostic = safeTrajectoryFailureDiagnostic([], []);
+  diagnostic.providerError = safeProviderFailureDiagnostic({
+    name: "TypeError",
+    message: "PRIVATE_PROVIDER_SECRET",
+    cause: {
+      name: "Error",
+      code: "ECONNRESET",
+      status: 502,
+      message: "PRIVATE_PROVIDER_SECRET",
+    },
+  }).map(({ name, code, status }) => ({ name, code, status }));
+  const receipt = createLiveProviderTrajectoryFailureEvidence({
+    mode: "loopback",
+    releaseCommit: "f".repeat(40),
+    code: "provider_trajectory_failed",
+    diagnostic,
+  });
+  expect(receipt.diagnostic.providerError).toEqual([
+    { name: "TypeError", code: null, status: null },
+    { name: "Error", code: "ECONNRESET", status: 502 },
+  ]);
+  expect(JSON.stringify(receipt)).not.toContain("PRIVATE_PROVIDER_SECRET");
+  expect(receipt.result).toBe("failed");
+});
+
+it.each([
+  [],
+  Array(4).fill({ name: "Error", code: null, status: null }),
+  [null],
+  [{ name: "PRIVATE_PROVIDER_SECRET", code: null, status: null }],
+  [{ name: "Error", code: "PRIVATE_PROVIDER_SECRET", status: null }],
+  [{ name: "Error", code: null, status: 999 }],
+  [
+    {
+      name: "Error",
+      code: null,
+      status: null,
+      message: "PRIVATE_PROVIDER_SECRET",
+    },
+  ],
+])(
+  "rejects provider diagnostic payload outside the fixed boundary: %j",
+  (providerError) => {
+    const receipt = createLiveProviderTrajectoryFailureEvidence({
+      mode: "loopback",
+      releaseCommit: "f".repeat(40),
+      code: "provider_trajectory_failed",
+      diagnostic: { ...safeTrajectoryFailureDiagnostic([], []), providerError },
+    });
+    expect(receipt).not.toHaveProperty("diagnostic");
+    expect(JSON.stringify(receipt)).not.toContain("PRIVATE_PROVIDER_SECRET");
+  },
+);
+
 it.each([
   {
     name: "stale CAS with reported provider usage",

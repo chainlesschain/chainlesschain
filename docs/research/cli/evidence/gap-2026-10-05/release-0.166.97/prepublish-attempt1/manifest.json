@@ -1,0 +1,320 @@
+{
+  "schema": "chainlesschain.release-failure-evidence/v1",
+  "sourceCommit": "17e1e05420c5dc5c1afbc1ec25d47b3d836d83a8",
+  "published": false,
+  "formalSample": false,
+  "failures": {
+    "desktop": "230/231 pass; background authorization test exceeded default 5s; selector skipped after prerequisite failure",
+    "loopback": "Windows model-usage-unknown after tool settled; original evidence lacks provider error class, root cause unconfirmed; Linux/macOS loopback passed, paid provider jobs skipped"
+  },
+  "repair": {
+    "desktop": "30s bounded functional test budget and stage diagnostics, same assertions and production limits; local20/20, original slow stage not reproduced",
+    "loopback": "retain allowlisted name/code/status error chain in sanitized failure evidence; no retry/budget/production policy changes; local23/23 from tool record only, raw stdout not captured"
+  },
+  "entries": [
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\artifacts.json",
+      "path": "ci-tests-failure\\artifacts.json.gz",
+      "bytes": 4634,
+      "sha256": "sha256:31eb9a05db895f7782f4b8ff56fac6ad37777066d0a41a7271a0be7b5fe3a7cb",
+      "archiveBytes": 863,
+      "archiveSha256": "sha256:11c843f665855124770ea5b0b977b06ed2908fb928eeb87df572cfd7de0eb69f"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\artifacts.raw.json",
+      "path": "ci-tests-failure\\artifacts.raw.json.gz",
+      "bytes": 2314,
+      "sha256": "sha256:8c1e3f2e84d141e7366502b58998ce7211a220945dd76c78a3e3a508d46c69ed",
+      "archiveBytes": 663,
+      "archiveSha256": "sha256:7d3b5679ebea1916f72b72606c1016c384edc51529178ce2415124e19883b8c6"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\audit-summary.json",
+      "path": "ci-tests-failure\\audit-summary.json.gz",
+      "bytes": 2725,
+      "sha256": "sha256:f2842c1e588c1eecb38de736a9f91d94e1e86db931ab09b53f2f8c187555baf3",
+      "archiveBytes": 1397,
+      "archiveSha256": "sha256:27f34b7ef47864145fe8e1d1c8de7aa2af1821c6c27008c381bc2a21e8dda2a6"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\job-114231464135.json",
+      "path": "ci-tests-failure\\job-114231464135.json.gz",
+      "bytes": 8022,
+      "sha256": "sha256:8cd68489f1a8dac9b07bbdd7d830a540a8421d1dffad47b10b42c03c1a66e2a6",
+      "archiveBytes": 1164,
+      "archiveSha256": "sha256:ac05860ae91593c201229dd8076173ae1876958dd5edd9dad66182713de9275a"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\job-114231464135.log",
+      "path": "ci-tests-failure\\job-114231464135.log.gz",
+      "bytes": 422062,
+      "sha256": "sha256:6d35a487bf8503577d6d44719d191b376dc3f65808760599bcd7aa0182ea0617",
+      "archiveBytes": 36720,
+      "archiveSha256": "sha256:4392adcb161e53027b400d60fd232992038cf645948139a0695b929ca6f7f1b0"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\job-114231464135.raw.json",
+      "path": "ci-tests-failure\\job-114231464135.raw.json.gz",
+      "bytes": 4008,
+      "sha256": "sha256:e5d23301e89c3960fb036b40532ad11ab2be9312422172c63a4beee6f8c9fc26",
+      "archiveBytes": 947,
+      "archiveSha256": "sha256:1c1e0289d83abef30d0da61b15acb3d5ec3b05d0a575c891146fda81814b7efb"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\job-114231464135.raw.log",
+      "path": "ci-tests-failure\\job-114231464135.raw.log.gz",
+      "bytes": 212348,
+      "sha256": "sha256:f4e5abc907f8b0a6f044a041e1a7bc793b42bbc7eea8da4750cd5ec284bd1ce8",
+      "archiveBytes": 31699,
+      "archiveSha256": "sha256:11c578aa4870768dfdcd45ae0f38db13bf6dff1dd0037cc25877c020bea559bb"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\raw-download-manifest.json",
+      "path": "ci-tests-failure\\raw-download-manifest.json.gz",
+      "bytes": 1104,
+      "sha256": "sha256:22ebf0cc2a1e2a737e3b55ad3584c86acb12226af3903fe67436bd7e0393df45",
+      "archiveBytes": 454,
+      "archiveSha256": "sha256:003733626ee921b546a16e8f97c35cbc5f8089dfcc87ee3a6fd306eeb593b189"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\run-38058378845.json",
+      "path": "ci-tests-failure\\run-38058378845.json.gz",
+      "bytes": 27512,
+      "sha256": "sha256:dd7f37627d26ad14f204163fa98a95a5204f6d4b6feb98bc1fabb14ab68682eb",
+      "archiveBytes": 2090,
+      "archiveSha256": "sha256:3eb134346b7a7ba5a2597486669f4fbbe970ae69757b8c9e8adfacabfad9fb32"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-failure\\run-38058378845.raw.json",
+      "path": "ci-tests-failure\\run-38058378845.raw.json.gz",
+      "bytes": 13753,
+      "sha256": "sha256:900a182530e4d98d6d2bcfd35ed0b1325ebaed6a1c1b4e27347a00f522ea332f",
+      "archiveBytes": 1672,
+      "archiveSha256": "sha256:7ab8332e1e9ada06e513e6ee7d0594d3be90228e360885644952027bd330764d"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\final\\invocation.json",
+      "path": "ci-tests-repair\\final\\invocation.json.gz",
+      "bytes": 531,
+      "sha256": "sha256:c586b3def1f0b27b1ce05ed20a602e765ce9e435b302d4504133ab111b2cc7ca",
+      "archiveBytes": 356,
+      "archiveSha256": "sha256:10c80748c24dc0dba41a52fd3e5fd27fe19803c52c40637db6f08bdaa1354a66"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\final\\project-goal-monitoring-host.test.js",
+      "path": "ci-tests-repair\\final\\project-goal-monitoring-host.test.js.gz",
+      "bytes": 15424,
+      "sha256": "sha256:15354d5a2a9b9975413df825017fc8ff1ee2a7f41109667dfdac623fbbe83838",
+      "archiveBytes": 4139,
+      "archiveSha256": "sha256:9cb4e968f382f8c3f3c659d1656dac404ddd8d3751e958d77946f3d04141d7b1"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\final\\result.json",
+      "path": "ci-tests-repair\\final\\result.json.gz",
+      "bytes": 78,
+      "sha256": "sha256:736605f4898e26872c6e32552b87e86e7ab2d5c00d3b1350cfc95c90e0caff84",
+      "archiveBytes": 92,
+      "archiveSha256": "sha256:2e2cb5cc10817123291cb91588b5cc880320dcb1f4d41f0f10d7ec71f576e4f0"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\final\\stderr.log",
+      "path": "ci-tests-repair\\final\\stderr.log.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\final\\stdout.log",
+      "path": "ci-tests-repair\\final\\stdout.log.gz",
+      "bytes": 9480,
+      "sha256": "sha256:fca963dfb38c5974c3baa1b5c6f6385a16c06ff3f7aa828965468ec7ee099f66",
+      "archiveBytes": 1441,
+      "archiveSha256": "sha256:9fc0d1eeca37a6ac7037e7349bbe5f072edd17cb1ecbf6d6a561cd99c0f62b4e"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\invocation.json",
+      "path": "ci-tests-repair\\invocation.json.gz",
+      "bytes": 608,
+      "sha256": "sha256:785d0ef0143683d22d56aa863f1404289caf9d717893525db06777c64b0b24b3",
+      "archiveBytes": 354,
+      "archiveSha256": "sha256:b6673e5e5377c1e952d544bbd614f4859fd2cd5e49f817832af43dbc5da055e9"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\project-goal-monitoring-host.test.js",
+      "path": "ci-tests-repair\\project-goal-monitoring-host.test.js.gz",
+      "bytes": 15393,
+      "sha256": "sha256:c9cd2cda1aa493301c1e2a7db333c432ae8bf5dccc7897c14a3f99df027cec8e",
+      "archiveBytes": 4121,
+      "archiveSha256": "sha256:45e658d7becf72ea47a9662129cd9ca7febff50c0333e9d29250e1a198b6a23f"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\result.json",
+      "path": "ci-tests-repair\\result.json.gz",
+      "bytes": 78,
+      "sha256": "sha256:3e7358d8ef976ccec495141e9424e953f4a46be357cebeaab26745f469d40da3",
+      "archiveBytes": 92,
+      "archiveSha256": "sha256:d06f1ec2ab69ccfb9c4169e5ae76d7af11df8ade826331a44e6f978b4f492f66"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\stderr.log",
+      "path": "ci-tests-repair\\stderr.log.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\ci-tests-repair\\stdout.log",
+      "path": "ci-tests-repair\\stdout.log.gz",
+      "bytes": 226,
+      "sha256": "sha256:e4b073a2369ea9b53f621299208d1626d71763631b022bc323c1eaa065fa1eb9",
+      "archiveBytes": 186,
+      "archiveSha256": "sha256:1587b0780ddbe562b4ff989a95c477399ec0efe752fce4237738ba06e23dfc44"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\artifact-readback.json",
+      "path": "trajectory-windows-failure\\artifact-readback.json.gz",
+      "bytes": 310,
+      "sha256": "sha256:be40b304124f78a189095de25ce6b89a8a6cb359a312a9b4278b41d62a1a0e44",
+      "archiveBytes": 238,
+      "archiveSha256": "sha256:ff36408eda913d20d1307617259e866c0e9f304dc795d21f1f6929f59ca9c3e0"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\artifact.json",
+      "path": "trajectory-windows-failure\\artifact.json.gz",
+      "bytes": 889,
+      "sha256": "sha256:48e640844bc01a37fe7500e0e6b163b7930213d7dd41ef8ca1b26c5d16a8fd09",
+      "archiveBytes": 468,
+      "archiveSha256": "sha256:3d845d108961b30b084cd6b31afdd4d3ceac5061bb8e1d4a77dd9764e715fff7"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\artifact.zip",
+      "path": "trajectory-windows-failure\\artifact.zip.gz",
+      "bytes": 692,
+      "sha256": "sha256:f1d75442d282cac3efd1e221763e53efba3b1d9eaaa1fd7aab2bf0ebe64392dd",
+      "archiveBytes": 655,
+      "archiveSha256": "sha256:9db5c84368ef31455f5d398fa118c5c90c9288be4b06b75cfe7ad49ac0c4eaef"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\job.json",
+      "path": "trajectory-windows-failure\\job.json.gz",
+      "bytes": 2579,
+      "sha256": "sha256:dce4dd0c1581a1721f3737ed91085285c2f002fcd3ade4b11308c285b236d554",
+      "archiveBytes": 745,
+      "archiveSha256": "sha256:a0d2e6fa6603b4c88e4f5faf550efc4f26636d2ac4720ea825fc3b7c1194281b"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\job.log",
+      "path": "trajectory-windows-failure\\job.log.gz",
+      "bytes": 45690,
+      "sha256": "sha256:e8793c2a98d2704a2a551cdd46fb7bdf3a11deb6d62e04a23794d52f56423774",
+      "archiveBytes": 11174,
+      "archiveSha256": "sha256:b8b28f6bc4bd82847fe59d5811b032c3479432ba842fcf83425d801b5a94d27f"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\live-provider-trajectory-loopback-windows.json",
+      "path": "trajectory-windows-failure\\live-provider-trajectory-loopback-windows.json.gz",
+      "bytes": 1078,
+      "sha256": "sha256:10aeb65ec2d2b15e269e12bda5d225978e3c3fac887eee98c9f3cb03a5a3e973",
+      "archiveBytes": 504,
+      "archiveSha256": "sha256:be6cacaf007e6ac73f023d06dc97bedd07b268800f346af7ec61e7a9f426a1b0"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\readback.json",
+      "path": "trajectory-windows-failure\\readback.json.gz",
+      "bytes": 20024,
+      "sha256": "sha256:c720ee5df521775f5fa2975e63f21bcdc5a77920c6feb60c1351324c0a02c123",
+      "archiveBytes": 2600,
+      "archiveSha256": "sha256:07f1ba0267346b9092d2a51378edf5853724fc653a5fdaaedce609921b1bad60"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\trajectory-windows-failure\\run.json",
+      "path": "trajectory-windows-failure\\run.json.gz",
+      "bytes": 13801,
+      "sha256": "sha256:0053aa2e4f916c9527c4da06061fecf863349abdba42c1f5da53a3a37a557430",
+      "archiveBytes": 1698,
+      "archiveSha256": "sha256:f2843d7645424d3262b97c530b010f523a3d776a0c76998d41656c9e93cacce0"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-0.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-0.json.gz",
+      "bytes": 167683,
+      "sha256": "sha256:81e0041a3fdaec9f65c0b2fc4060ababc3334f0e6a2a5e733b5c91f486557df7",
+      "archiveBytes": 9377,
+      "archiveSha256": "sha256:ccfb25335b152dfdd638678e7dc0b39c2f7a0c7da7f9485564bc25a4b745c1ad"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-1.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-1.json.gz",
+      "bytes": 21615,
+      "sha256": "sha256:6bf473acac40306f33a676fea95aa536714ec8bdb60a4d53e9eef07e09393f7f",
+      "archiveBytes": 2230,
+      "archiveSha256": "sha256:dd1200df7f83ef1a960ca41695f4a2395cee186d5a045ab63cd7f5592ba16512"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-2.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-2.json.gz",
+      "bytes": 67977,
+      "sha256": "sha256:b36f29eb8ee4af2b25bba351b76aee494f4bdfc1677c426a6669f2f455d2f461",
+      "archiveBytes": 5507,
+      "archiveSha256": "sha256:e9cd8e41000316956c1dd9528d72828813e55816238a5d214760061dd3a768ba"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-3.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-3.json.gz",
+      "bytes": 38570,
+      "sha256": "sha256:d6948f297a774cbe78c3a46dea7d4f41c2b357a7a3224fd5b93f713d1fc51988",
+      "archiveBytes": 3018,
+      "archiveSha256": "sha256:2ac28bbd7f42be668400efd25cfb8f997e27a172b306db849f786c02b672d287"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-4.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-4.json.gz",
+      "bytes": 17622,
+      "sha256": "sha256:25a3dbea5141326a9708359158c97728c356ac816b563b6a19c7e7daea1de0af",
+      "archiveBytes": 1754,
+      "archiveSha256": "sha256:ee0e214725331e533d9bf9932b29cf33aecd75e22ca930bc11ee8c25db06a4e4"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-5.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-5.json.gz",
+      "bytes": 4565,
+      "sha256": "sha256:e5f5be72b7c98fb404f92b7447f560ef220bb620d2ebd599691dadea159cec65",
+      "archiveBytes": 870,
+      "archiveSha256": "sha256:e47573032e9805e0a8829f4ba654f8de715a651397996838fe81e5e0d8d97c56"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-6.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-6.json.gz",
+      "bytes": 38706,
+      "sha256": "sha256:679b1a9d59efc697834164097e20ae1eb1613bed579dd73803d40c5b9e1e7be7",
+      "archiveBytes": 3192,
+      "archiveSha256": "sha256:435cc8756547cef964e6ad89293a8e955bfab1017a9ff39d9a6ae0400f11d048"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-jobs-7.json",
+      "path": "status/2026-10-10T15-22-34.825Z-jobs-7.json.gz",
+      "bytes": 13957,
+      "sha256": "sha256:de485c01fc1f4f29f7dd9d7cf3c5f4e396e8c58a688629f0e79edd8c9b7bcaae",
+      "archiveBytes": 1655,
+      "archiveSha256": "sha256:eaadb1a7273d3f3b66a399373862b94486d203006359f365900c3b245fe8823b"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-runs.json",
+      "path": "status/2026-10-10T15-22-34.825Z-runs.json.gz",
+      "bytes": 482882,
+      "sha256": "sha256:828f40b79d70d65d66bd5f6ce581fdc46f01667c995457ab07c9d71de77cd0db",
+      "archiveBytes": 9701,
+      "archiveSha256": "sha256:0f0926ed8cf1eb808f805edf48e0b092095bc8bc67b70f563c74826d48c01ba1"
+    },
+    {
+      "source": ".work\\release-preflight-0.166.97\\status\\2026-10-10T15-22-34.825Z-summary.json",
+      "path": "status/2026-10-10T15-22-34.825Z-summary.json.gz",
+      "bytes": 4369,
+      "sha256": "sha256:f19e861ef4e266b663ee597d8bee8b71897e2f3adaed73de8ca0237fb0c7c0ff",
+      "archiveBytes": 863,
+      "archiveSha256": "sha256:3b2a7d8a8c001661808eb90dd5e16504f5a3813c0ef142565dce5e8b28dbbc2b"
+    }
+  ]
+}

@@ -448,3 +448,9 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 最终本机实际两个 root open NTSTATUS 0、身份相同；alias open 为 `0xC0000022`，前后零 capability LowBox 观察稳定。root exit 0、Job 0、profile 删除。Windows 九文件 **544/544**，Linux floor 新合同 **50/50**，已接入三平台 CI；[65 份原件](./cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/README.md)保留 a 轮 runner 路径错误、b 轮及 Astra 复审后 c 轮准确重建。完成状态/held root/alias 解码矛盾拒绝已补齐，c 轮 source/binary/copied bytes 前后校验。根观察没有关闭 alias binding/不可重绑定/suffix 等价缺口，junction/full review 继续 NOT_ADMITTED。
 
 候选 CLI **0.166.97**、VS Code **0.37.141**、JetBrains **0.4.159**；两端推荐 CLI 同步，版本合同分别 **35/22/14**。Agent SDK **0.2.14**及全部 13 子包与其公开来源完整源码树/实际 tarball 字节一致，无需新子包版本。用户授权测试成功后发布；最终准确 SHA 必须完整 CLI CI、Strict、IDE 与 ARM64，通过后只用既有 OIDC、先 CLI 公开可取再 IDE，区分 JetBrains pending 和公开发行。当前未发布。正式 36+9、$99、observations、原冻结矩阵、durable/账单/真人/长时状态不变。见[验证 20.28](./cli-ide-gap-validation-2026-10-05.md#2028-lowbox-根坐标只读原生观察)。
+
+## 30. 2026-10-10 CLI 0.166.97 首轮 Windows 失败取证
+
+诊断与配对已提交推送为 `3fab61494e`、`17e1e05420`，PR #428 保持草稿。后者 Strict 5/5、IDE 主门 18 成功/1 条件跳过、ARM64 10/10 完成；CLI CI 当前 53 成功/14 未完成，不能发布。常规 CI Windows 的后台授权 SQLite 用例 230/231，通过项之外一项默认5秒超时；selector/fallback 因先决步骤失败跳过，后续 guard 的失败为连带。Windows loopback 原件在 read_file settled 后只记 model usage unknown，未保存底层 provider error 类别，根因未确认。
+
+仅将前者单例测试预算改为30秒，并加 performance.now 阶段日志；生产/全局期限和原断言保持。后者将已有固定 allowlist 的 name/code/status 错误链保留进失败证据，拒绝任意值/消息/额外字段，无 provider message/stack/request 留存，不改生产策略或加retry。[38 份首轮和本机修复原件](./cli/evidence/gap-2026-10-05/release-0.166.97/prepublish-attempt1/manifest.json)与局部桌面20/20、CLI23/23保留。未复现CI SQLite慢阶段，不把取证改动写成loopback根因修复；新SHA仍须自己的全部矩阵，版本不变、尚未发布，正式/native未完成状态不变。见[验证20.29](./cli-ide-gap-validation-2026-10-05.md#2029-cli-016697-候选-windows-失败与诊断修复)。
