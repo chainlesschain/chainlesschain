@@ -1,0 +1,7 @@
+# Preserve captured bytes and their hashes across Windows/Linux checkouts.
+* -text
+# TAP originals include intentional indentation and are review artifacts.
+local-*-stdout.txt -diff
+# These two API receipts retain native Windows CRLF bytes.
+awake-retry.json whitespace=cr-at-eol
+suspend-original/cleanup.json whitespace=cr-at-eol

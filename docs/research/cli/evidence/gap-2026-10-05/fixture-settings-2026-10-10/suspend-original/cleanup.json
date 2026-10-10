@@ -1,0 +1,30 @@
+{
+    "appContainerSid":  "S-1-15-2-3607293011-3894750309-2682347069-1517443381-3804853974-3517777664-2634433053",
+    "recordedAt":  "2026-10-10T11:56:50.4215025Z",
+    "profileName":  "cc.private.v4.a989f5d4-78e3-445e-8262-2f88dc21b61c",
+    "capsule":  "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-skuHBX",
+    "eventEncoding":  "Windows Event.ToXml UTF-8 API response; not raw EVTX",
+    "captures":  [
+                     {
+                         "file":  "event-84382.xml",
+                         "bytes":  1520,
+                         "digest":  "sha256:b22cf7b474d09b5d76902733a708a1032529f31c79c5043aaeed8694b45256c3"
+                     },
+                     {
+                         "file":  "event-84378.xml",
+                         "bytes":  888,
+                         "digest":  "sha256:e97b4a37b3a8b578d66e714dcec5152a0e2142deabd32a8181616945a03617d8"
+                     },
+                     {
+                         "file":  "event-84377.xml",
+                         "bytes":  723,
+                         "digest":  "sha256:0f8c880c01584581e9d4090f6b094d97036b74e31a2abfe9e50c3d177c3a506b"
+                     }
+                 ],
+    "originalJobOrProcessHandlesRecovered":  false,
+    "scope":  "Independent exact profile-registration cleanup; does not replace missing original HANDLE/Job settlement",
+    "deleteHresult":  0,
+    "profileDeleted":  true,
+    "aclAndDerivedSidMatched":  true,
+    "originalNativeSettlementConfirmed":  false
+}

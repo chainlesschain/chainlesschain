@@ -936,3 +936,23 @@ Scheduler 原子报告写入修复保留主异常对象/code及独立清理异�
 [本轮归档](./cli/evidence/gap-2026-10-05/controls-2026-10-10/README.md)逐文件保存原始字节/摘要及无损 gzip 摘要，编译二进制仍在本机，compiler closure 非 hermetic。旧 Scheduler run `38029503816` 的 `9feab8bf4dee6837f0df04ab01456a89ce760944` 三平台 smoke 回读与现有 verifier 复核成功，单机持续时间分别 Linux **17.766s**、macOS **17.920s**、Windows **19.965s**；聚合最早/最晚跨度不作为单机连续运行证明，也不确认旧失租根因。[PR #428](https://github.com/chainlesschain/chainlesschain/pull/428) 当前准确 SHA 矩阵仍排队，局部结果和旧成功不能替代。
 
 旧完整 Windows **211 = 194/16/1**、**6 检出 / 4 存活 / 4 未运行**和正式 **36+9 / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99、observations 不改写。Windows/macOS durable 后端仍待实现，完整 review 的其余失败与平台冲突、官方账号/账单、独立人工、真人辅助技术及 8h/24h/SLO 继续开放。本轮无付费模型调用或发布。
+
+### 20.25 只读设置域与审批取消的实际工具结果
+
+本轮继续从 `533e75868dc5c7613524d192a65fcb376e8d44e4` 工作，工程提交为 `147fa9653a`。新增显式 `--fixture-settings`，只选择独立 review 设置域；原 Docker 的 `HOME=/tmp/review-home` 已提供同类测试隔离。宿主预建的 home/program-data 位于现有只读、无 reparse、保留句柄的 workspace 树内，不使用可写 scratch 作为不可变来源。broker 唯一生成五个设置环境键，worker 的重复大小写键、冲突值均拒绝；实际 home、managed 路径、两个来源的真实缺失和父目录 dev/ino 由冻结 observer 观察。各 actor 的真实 open 写探针返回 EPERM；未经归一的原 errno 保留，没有把真实用户配置的访问失败改成 ENOENT。
+
+最初的完整 Windows 基线有 14 项审批用例停在真实 `C:\Users\longfa\.claude\settings.json` 的 EPERM。本轮独立域内，原冻结审批文件 **17/17** 通过；但 `pending.resolve(false)` 改成 true 后仍 **17/17**，是实际存活。旧用例只验证发出的 `approval_resolved.approved:false`，没有检查被阻塞工具实际收到的 permission promise 结果。失败原件保留为 `mutant-survived`，不能把原生进程退出或 parser 拒绝当作行为检出。
+
+共享 Linux donor 已有 `cancelling a pending approval delivers denial to the blocked tool`；Windows 支持集合此前漏掉 verify-19。现将该断言纳入显式 `--behavior-controls`，原 17 项完整保留，新的准确 producer 基线 **18/18**，来源、raw reporter、原 HANDLE/Job 结算和 profile 删除验证通过。两个早期实跑按各自保留的源码字节记录，不借给最终控制 profile；open 成功后的 close 错误也不再能充当写拒绝。
+
+最终匹配反例为 **18 = 17 pass / 1 行为拒绝**：唯一失败是直接工具结果断言，实际 `expected true to be false`；原冻结 17 项仍全部通过。成功基线兼容性、完整 baseline/control reporter 人口、准确源码/原生来源与原 HANDLE/Job/profile 结算均再次核验，`accepted:true / errors:[]` 只适用于这个显式诊断 profile。完整 12 文件的新设置域基线另行重跑，不将此单题结果描述为整体 native review 准入。
+
+完整重跑 b 加载全部 **12** 个原冻结文件，收集错误为 0，实际 **211 = 208 pass / 2 fail / 1 skip**。原 14 项设置来源失败在新诊断域内通过；剩余失败仍为 `owner-only ACL process failed [windows-acl:spawn]` 与 junction parent 被当普通目录，跳过仍被 frozen parser 拒绝。根进程真实 exit 1，原 HANDLE、来源和 Job 0/profile 删除均有记录；settlement 的四条错误均是 baseline 要求成功 root exit 0 的结果约束，不能将此完整失败结果标为准入成功。新域没有替换旧真实用户域的 **194/16/1**。
+
+首轮完整重跑 a 与系统睡眠重叠，外层实际 `SIGTERM / ETIMEDOUT`、空 host stdout、无 reporter，断言人口未知。Windows Event.ToXml 原件记录睡眠 **09:51:16.907Z → 11:50:41.591Z**；总计时包含这段停机，不是两小时连续运行/soak，也不证明准确卡点。原运行未取得 HANDLE/Job/profile 结算。随后仅将胶囊 ACL、注册名和派生 SID 完全匹配的 `cc.private.v4.a989f5d4-78e3-445e-8262-2f88dc21b61c` profile 注册清理，独立 HRESULT 0/注册项不存在，不冒充原 Job 恢复。b 使用临时 per-thread idle-sleep prevention；同一 thread 的获得/释放状态完整记录，结束已释放，原 240 秒期限、生产 runtime 和电源计划均未改。见[睡眠与独立清理](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/suspend-original/manifest.json)及[临时请求回执](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/awake-retry.json)。
+
+fixture helper 107 项合同覆盖真实来源描述的字段/身份/环境/人口/生命周期篡改与错误拒绝目标；精确 op4 终止只允许 worker 缺 exit callback，必须有原 HANDLE/sequence/CompareObject 全部证明及宿主最终观察，不补造 child exit。全部相关 Node 文件在 Windows 22.22.2 与 WSL Ubuntu 22.12.0 分别 **349/349**，零失败、零跳过；重复执行不累计为新样本。初次测试中的三条辅助断言误用 `diagnosticVerified` 而非 settlement 字段，已修正；沙箱 WSL 服务 E_ACCESSDENIED 与获准宿主执行后的成功也分别保存原字节。Prettier、定向 ESLint、spawn inventory 和 diff 检查通过。[本轮证据](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/README.md)另保留两环境原始输出和摘要。
+
+先前准确 SHA `533e75868dc5c7613524d192a65fcb376e8d44e4` 的 CLI CI run `38039055353` 已完整 **71/71**，Strict run `38039055210` **5/5**，Scheduler 三平台加 aggregate **4/4**，IDE Safety **4/4**。[最终 API 原件](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/ci-prior-complete/manifest.json)与[较早快照](./cli/evidence/gap-2026-10-05/fixture-settings-2026-10-10/ci-prior/manifest.json)分别保存；它们只适用于先前提交，不转移给新工程。新提交仍须自己的准确 SHA 完整矩阵。本轮没有发布。
+
+实际宿主仍为 Windows 10 x64 / Node 22.22.2，compiler closure 非 hermetic；本配置域不证明真实宿主个人/组织策略已被读取，也不建立持久 authority。旧 **211 = 194/16/1** 与 **6/4/4**、正式 **36+9 / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99 和 observations 保持原状。只读正式采集器再次真实退出 2，原件见 `frozen-summary.json`；Windows/macOS durable 服务/journal/自身恢复/WFP、其余 native 基线失败及冻结平台冲突、官方账号账单、独立人工/辅助技术和 8h/24h/SLO 仍开放。

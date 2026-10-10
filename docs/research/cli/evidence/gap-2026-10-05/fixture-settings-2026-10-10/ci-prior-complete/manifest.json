@@ -1,0 +1,69 @@
+{
+  "capturedAt": "2026-10-10T12:13:50.988Z",
+  "sha": "533e75868dc5c7613524d192a65fcb376e8d44e4",
+  "summaries": {
+    "cli": {
+      "runId": 38039055353,
+      "passed": 71,
+      "conclusion": "success"
+    },
+    "strict": {
+      "runId": 38039055210,
+      "passed": 5,
+      "conclusion": "success"
+    },
+    "scheduler": {
+      "runId": 38039055175,
+      "passed": 4,
+      "conclusion": "success"
+    },
+    "ide-safety": {
+      "runId": 38039055174,
+      "passed": 4,
+      "conclusion": "success"
+    }
+  },
+  "captures": [
+    {
+      "file": "cli-run.json",
+      "bytes": 14144,
+      "digest": "sha256:e40190be440eb4b81f7fb7fdf730a28e4b44eb761573b62cda0fac70aba40e51"
+    },
+    {
+      "file": "cli-jobs.json",
+      "bytes": 205113,
+      "digest": "sha256:f9b4849cac571700b58291f89a4240ea152e44e1c0a48be3d89dfd8532b2cfa3"
+    },
+    {
+      "file": "strict-run.json",
+      "bytes": 13776,
+      "digest": "sha256:70d1cacf6cf19543ecf248fc9b3a207637f26726d76fe6b2c8c6573fafa94e25"
+    },
+    {
+      "file": "strict-jobs.json",
+      "bytes": 21615,
+      "digest": "sha256:4d1c6e25428eb66f262c8010a79fcc327b7bf790bd3b087f71239af4724b8579"
+    },
+    {
+      "file": "scheduler-run.json",
+      "bytes": 13782,
+      "digest": "sha256:61f4daa969db8a2aa9dae9f42b6e5242545f683653e7ba6b120612fd9a1df52c"
+    },
+    {
+      "file": "scheduler-jobs.json",
+      "bytes": 11981,
+      "digest": "sha256:ea59677554fe1b0d06ea39585884d0c2d150c439d8660575dd8d3d59e2b63df7"
+    },
+    {
+      "file": "ide-safety-run.json",
+      "bytes": 13783,
+      "digest": "sha256:ae46c3ef02f19570d4ce8163503403a82fd771885c5005d0067b73e25cb6ae26"
+    },
+    {
+      "file": "ide-safety-jobs.json",
+      "bytes": 13957,
+      "digest": "sha256:386459fee1c38ee908e154899946907956784ab579a37788815083dc68224f30"
+    }
+  ],
+  "appliesToNewFixtureSource": false
+}

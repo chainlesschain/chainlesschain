@@ -1,0 +1,163 @@
+{
+  "verifiedAt": "2026-10-10T12:16:13.595Z",
+  "archives": [
+    {
+      "directory": "baseline",
+      "files": 37,
+      "verified": true
+    },
+    {
+      "directory": "controls-baseline",
+      "files": 42,
+      "verified": true
+    },
+    {
+      "directory": "controls-mutant",
+      "files": 44,
+      "verified": true
+    },
+    {
+      "directory": "full-baseline",
+      "files": 48,
+      "verified": true
+    },
+    {
+      "directory": "full-baseline-timeout",
+      "files": 27,
+      "verified": true
+    },
+    {
+      "directory": "mutant-survived",
+      "files": 39,
+      "verified": true
+    }
+  ],
+  "raw": [
+    {
+      "file": "ci-prior/strict-run.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior/strict-jobs.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior/all-runs.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/cli-run.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/cli-jobs.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/strict-run.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/strict-jobs.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/scheduler-run.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/scheduler-jobs.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/ide-safety-run.json",
+      "verified": true
+    },
+    {
+      "file": "ci-prior-complete/ide-safety-jobs.json",
+      "verified": true
+    },
+    {
+      "file": "frozen-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "frozen-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-final-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-final-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-unrestricted-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-unrestricted-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-linux-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-final-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-final-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-fixed-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-fixed-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-stdout.txt",
+      "verified": true
+    },
+    {
+      "file": "local-windows-stderr.txt",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/event-84382.xml",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/event-84378.xml",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/event-84377.xml",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/cleanup.json",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/cleanup-script.ps1",
+      "verified": true
+    },
+    {
+      "file": "suspend-original/awake-script.ps1",
+      "verified": true
+    }
+  ],
+  "formalSample": false,
+  "encoding": "native originals losslessly gzip encoded; original and stored hashes verified; local/CI raw bytes verified"
+}

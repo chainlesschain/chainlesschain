@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-10-10T09:09:05.895Z",
+  "sha": "533e75868dc5c7613524d192a65fcb376e8d44e4",
+  "strictRunId": 38039055210,
+  "jobsPassed": 5,
+  "captures": [
+    {
+      "file": "strict-run.json",
+      "bytes": 13776,
+      "digest": "sha256:70d1cacf6cf19543ecf248fc9b3a207637f26726d76fe6b2c8c6573fafa94e25"
+    },
+    {
+      "file": "strict-jobs.json",
+      "bytes": 21615,
+      "digest": "sha256:4d1c6e25428eb66f262c8010a79fcc327b7bf790bd3b087f71239af4724b8579"
+    },
+    {
+      "file": "all-runs.json",
+      "bytes": 276001,
+      "digest": "sha256:54dc8d45a2a193cb1a239fb387d59c6f98f14a524c03538d9d1b274ad3cca4fa"
+    }
+  ],
+  "appliesToNewFixtureSource": false
+}

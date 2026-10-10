@@ -414,3 +414,17 @@ Windows private-v4 diagnostic 新增显式 `--behavior-controls`，复用既有 
 实现已进入[草稿 PR #428](https://github.com/chainlesschain/chainlesschain/pull/428)：控制接线 `b471bfe441`、清单同步 `7ece0f7523`、Scheduler 修复 `c6bda4c485`。本轮准确 SHA CI 仍排队，旧 `9feab` 三平台 smoke 的成功按来源单独回读，不替代本轮检查。未改包版本或发布。
 
 Windows/macOS 受保护 durable authority/journal、服务恢复和网络撤销仍需工程实现；完整 native review 的其余失败及冻结平台冲突、正式 36+9、官方账号/账单、独立人工/辅助技术、8h/24h 与获批 SLO 仍未完成。旧冻结失败矩阵与 $99/observations 保留；新诊断不授予 production admission。
+
+## 26. 2026-10-10 原生 review 的只读设置域
+
+Windows evaluator 新增显式 `--fixture-settings`，限定于 `review-baseline/review-mutant`。原 Docker review 已使用独立 `HOME=/tmp/review-home`；本增量为 Windows 建立明确的诊断设置域，用户设置候选为 `X:\workspace\review-fixture\home\.claude\settings.json`，组织设置候选位于同一保护树的 `program-data` 下。两个目录由宿主预建，纳入现有递归只读 ACL、无 reparse 检查与保留句柄；可写 scratch 不承担配置来源证明。生产设置发现路径和冻结源码、specs、断言均未改写。
+
+broker 唯一生成 USERPROFILE/HOMEDRIVE/HOMEPATH/ProgramData/CC_MANAGED_SETTINGS 与 profile 标记；worker 请求按大小写归一拒绝重复键和冲突值，匹配值不再重复加入环境。preload 使用真实 `os.homedir()`、冻结 loader 的 managed 路径与冻结 observer 核验两个候选的缺失和最近存在父目录身份，并实际尝试创建 `home\probe`，仅真实 open 的 EPERM/EACCES 可作为拒绝证明。文件创建成功后的 close 错误不能充当写入拒绝。
+
+root/helper 的启动和退出回执、worker 的启动回执及正常退出回执均绑定该设置域；精确 op4 终止允许缺少 worker exit callback，但必须保留全部原 HANDLE/sequence/CompareObject 终止证明与宿主最终目录观察，不补造 child exit。宿主前后观察与各回执的 dev/ino 必须一致。独立 helper 校验原件字节、环境、源路径、人口、身份和拒绝目标，旧 profile 或不完整资料不能借用新 profile 的基线。新增 107 项 helper 合同并接入三系统 CLI CI。
+
+首轮原冻结审批基线在此域内 **17/17** 通过；同源码取消审批变异仍 **17/17** 通过，是真实存活，不能记为检出。共享 Linux donor 已有直接观察 `permissionConfirm` 返回值的控制，原 Windows 支持集合漏掉 verify-19；现已将它加入显式 `--behavior-controls`，保持原 17 项并另跑直接返回值断言。最终实跑、失败原件和来源界限见[验证 20.25](./cli-ide-gap-validation-2026-10-05.md#2025-只读设置域与审批取消的实际工具结果)。本轮不修改生产审批实现。
+
+最终准确 producer 的控制基线 **18/18**，取消反例 **17 pass / 1 直接工具结果拒绝**，来源和原生结算确认。完整 12 文件的新域基线 **211 = 208/2/1**，仍因 owner-only ACL、junction 与 skip 拒绝准入。另保留睡眠期间的外层 timeout/空 reporter，原 HANDLE/Job 结算未确认；仅独立匹配并清理准确 profile 注册。临时防闲置睡眠请求在重跑结束后已释放，原期限/电源计划未改。六份原生原件共 237 文件及两环境 raw 回归/CI/系统事件已归档，不改旧矩阵或正式采集。
+
+该 profile 证明所选诊断配置域，不证明真实宿主个人或组织设置已被读取，也不建立持久权限 authority。Windows/macOS durable 后端、完整 native review、正式 36+9、独立人工、账号账单、辅助技术与长时/SLO 仍保持开放。

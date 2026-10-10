@@ -1,0 +1,1755 @@
+TAP version 13
+# Subtest: verify-12 reuses Linux behavior control bytes without frozen baseline imports
+ok 1 - verify-12 reuses Linux behavior control bytes without frozen baseline imports
+  ---
+  duration_ms: 6.0039
+  ...
+# Subtest: verify-19 reuses Linux behavior control bytes without frozen baseline imports
+ok 2 - verify-19 reuses Linux behavior control bytes without frozen baseline imports
+  ---
+  duration_ms: 0.6876
+  ...
+# Subtest: verify-20 reuses Linux behavior control bytes without frozen baseline imports
+ok 3 - verify-20 reuses Linux behavior control bytes without frozen baseline imports
+  ---
+  duration_ms: 0.5393
+  ...
+# Subtest: verify-29 reuses Linux behavior control bytes without frozen baseline imports
+ok 4 - verify-29 reuses Linux behavior control bytes without frozen baseline imports
+  ---
+  duration_ms: 0.5418
+  ...
+# Subtest: verify-30 reuses Linux behavior control bytes without frozen baseline imports
+ok 5 - verify-30 reuses Linux behavior control bytes without frozen baseline imports
+  ---
+  duration_ms: 0.8206
+  ...
+# Subtest: control selection is deterministic and excludes tasks without supplemental coverage
+ok 6 - control selection is deterministic and excludes tasks without supplemental coverage
+  ---
+  duration_ms: 3.8169
+  ...
+# Subtest: baseline requires every generated assertion
+ok 7 - baseline requires every generated assertion
+  ---
+  duration_ms: 2.267
+  ...
+# Subtest: mutant requires every generated assertion
+ok 8 - mutant requires every generated assertion
+  ---
+  duration_ms: 1.7301
+  ...
+# Subtest: frozen baseline files must actually be present and nonempty in reporter
+ok 9 - frozen baseline files must actually be present and nonempty in reporter
+  ---
+  duration_ms: 1.7413
+  ...
+# Subtest: an unrelated baseline assertion cannot substitute for a surviving control
+ok 10 - an unrelated baseline assertion cannot substitute for a surviving control
+  ---
+  duration_ms: 1.5128
+  ...
+# Subtest: a timeout or application error alongside a genuine control failure is rejected
+ok 11 - a timeout or application error alongside a genuine control failure is rejected
+  ---
+  duration_ms: 1.0598
+  ...
+# Subtest: rejects extra unrelated file
+ok 12 - rejects extra unrelated file
+  ---
+  duration_ms: 0.9342
+  ...
+# Subtest: rejects missing file
+ok 13 - rejects missing file
+  ---
+  duration_ms: 1.6208
+  ...
+# Subtest: rejects duplicate file
+ok 14 - rejects duplicate file
+  ---
+  duration_ms: 0.803
+  ...
+# Subtest: rejects wrong directory
+ok 15 - rejects wrong directory
+  ---
+  duration_ms: 0.7962
+  ...
+# Subtest: rejects missing assertion
+ok 16 - rejects missing assertion
+  ---
+  duration_ms: 0.7564
+  ...
+# Subtest: rejects duplicate assertion
+ok 17 - rejects duplicate assertion
+  ---
+  duration_ms: 0.723
+  ...
+# Subtest: rejects unknown assertion
+ok 18 - rejects unknown assertion
+  ---
+  duration_ms: 0.8117
+  ...
+# Subtest: rejects pending assertion
+ok 19 - rejects pending assertion
+  ---
+  duration_ms: 0.8181
+  ...
+# Subtest: rejects skipped assertion
+ok 20 - rejects skipped assertion
+  ---
+  duration_ms: 0.8518
+  ...
+# Subtest: rejects failed baseline
+ok 21 - rejects failed baseline
+  ---
+  duration_ms: 0.7884
+  ...
+# Subtest: does not accept application or loader failure: Error: expected application failure
+ok 22 - does not accept application or loader failure: Error: expected application failure
+  ---
+  duration_ms: 0.4682
+  ...
+# Subtest: does not accept application or loader failure: SyntaxError: invalid source
+ok 23 - does not accept application or loader failure: SyntaxError: invalid source
+  ---
+  duration_ms: 0.5388
+  ...
+# Subtest: does not accept application or loader failure: Error: Cannot find module
+ok 24 - does not accept application or loader failure: Error: Cannot find module
+  ---
+  duration_ms: 0.3964
+  ...
+# Subtest: does not accept application or loader failure: ordinary AssertionError inside prose
+ok 25 - does not accept application or loader failure: ordinary AssertionError inside prose
+  ---
+  duration_ms: 2.5533
+  ...
+# Subtest: passing mutant and missing or truncated reporter cannot become success
+ok 26 - passing mutant and missing or truncated reporter cannot become success
+  ---
+  duration_ms: 0.8059
+  ...
+# Subtest: reads authorized package file node_modules/one/index.js
+ok 27 - reads authorized package file node_modules/one/index.js
+  ---
+  duration_ms: 27.3657
+  ...
+# Subtest: reads authorized package file node_modules/@scope/one/index.js
+ok 28 - reads authorized package file node_modules/@scope/one/index.js
+  ---
+  duration_ms: 10.0492
+  ...
+# Subtest: reads authorized package file packages/cli/node_modules/one/index.js
+ok 29 - reads authorized package file packages/cli/node_modules/one/index.js
+  ---
+  duration_ms: 25.7492
+  ...
+# Subtest: reads authorized package file packages/shared-logger/node_modules/@scope/one/index.js
+ok 30 - reads authorized package file packages/shared-logger/node_modules/@scope/one/index.js
+  ---
+  duration_ms: 16.312
+  ...
+# Subtest: reads authorized package file node_modules/one/node_modules/two/index.js
+ok 31 - reads authorized package file node_modules/one/node_modules/two/index.js
+  ---
+  duration_ms: 12.6762
+  ...
+# Subtest: empty package file is verified by its real empty SHA256
+ok 32 - empty package file is verified by its real empty SHA256
+  ---
+  duration_ms: 10.8261
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "../control/node.exe"
+ok 33 - rejects unauthorized or unsafe dependency path "../control/node.exe"
+  ---
+  duration_ms: 0.4013
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/../../control/node.exe"
+ok 34 - rejects unauthorized or unsafe dependency path "node_modules/one/../../control/node.exe"
+  ---
+  duration_ms: 0.2394
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "/node_modules/one/index.js"
+ok 35 - rejects unauthorized or unsafe dependency path "/node_modules/one/index.js"
+  ---
+  duration_ms: 0.5789
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "C:/node_modules/one/index.js"
+ok 36 - rejects unauthorized or unsafe dependency path "C:/node_modules/one/index.js"
+  ---
+  duration_ms: 0.4825
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules\\\\one\\\\index.js"
+ok 37 - rejects unauthorized or unsafe dependency path "node_modules\\\\one\\\\index.js"
+  ---
+  duration_ms: 0.2698
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules//one/index.js"
+ok 38 - rejects unauthorized or unsafe dependency path "node_modules//one/index.js"
+  ---
+  duration_ms: 17.2588
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/./index.js"
+ok 39 - rejects unauthorized or unsafe dependency path "node_modules/one/./index.js"
+  ---
+  duration_ms: 0.3819
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CON.txt"
+ok 40 - rejects unauthorized or unsafe dependency path "node_modules/one/CON.txt"
+  ---
+  duration_ms: 0.224
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/COM1"
+ok 41 - rejects unauthorized or unsafe dependency path "node_modules/one/COM1"
+  ---
+  duration_ms: 0.2145
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CONIN$"
+ok 42 - rejects unauthorized or unsafe dependency path "node_modules/one/CONIN$"
+  ---
+  duration_ms: 0.244
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CLOCK$"
+ok 43 - rejects unauthorized or unsafe dependency path "node_modules/one/CLOCK$"
+  ---
+  duration_ms: 0.2167
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/lpt².log"
+ok 44 - rejects unauthorized or unsafe dependency path "node_modules/one/lpt².log"
+  ---
+  duration_ms: 0.2077
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/trailing. "
+ok 45 - rejects unauthorized or unsafe dependency path "node_modules/one/trailing. "
+  ---
+  duration_ms: 0.1977
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/alternate:stream"
+ok 46 - rejects unauthorized or unsafe dependency path "node_modules/one/alternate:stream"
+  ---
+  duration_ms: 0.1915
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/control\\u0000.js"
+ok 47 - rejects unauthorized or unsafe dependency path "node_modules/one/control\\u0000.js"
+  ---
+  duration_ms: 0.2061
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/wild*.js"
+ok 48 - rejects unauthorized or unsafe dependency path "node_modules/one/wild*.js"
+  ---
+  duration_ms: 0.2266
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one"
+ok 49 - rejects unauthorized or unsafe dependency path "node_modules/one"
+  ---
+  duration_ms: 0.205
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/@scope/one"
+ok 50 - rejects unauthorized or unsafe dependency path "node_modules/@scope/one"
+  ---
+  duration_ms: 0.2003
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/.bin/one"
+ok 51 - rejects unauthorized or unsafe dependency path "node_modules/.bin/one"
+  ---
+  duration_ms: 0.1964
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "packages/not-authorized/node_modules/one/index.js"
+ok 52 - rejects unauthorized or unsafe dependency path "packages/not-authorized/node_modules/one/index.js"
+  ---
+  duration_ms: 0.6691
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "packages/cli/src/index.js"
+ok 53 - rejects unauthorized or unsafe dependency path "packages/cli/src/index.js"
+  ---
+  duration_ms: 0.2534
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "control/node_modules/one/index.js"
+ok 54 - rejects unauthorized or unsafe dependency path "control/node_modules/one/index.js"
+  ---
+  duration_ms: 0.3973
+  ...
+# Subtest: manifest cannot grant itself a workspace namespace
+ok 55 - manifest cannot grant itself a workspace namespace
+  ---
+  duration_ms: 0.5358
+  ...
+# Subtest: case aliases and file-directory collisions are rejected
+ok 56 - case aliases and file-directory collisions are rejected
+  ---
+  duration_ms: 1.0323
+  ...
+# Subtest: rejects invalid descriptor {"bytes":-1}
+ok 57 - rejects invalid descriptor {"bytes":-1}
+  ---
+  duration_ms: 0.4338
+  ...
+# Subtest: rejects invalid descriptor {"bytes":0.5}
+ok 58 - rejects invalid descriptor {"bytes":0.5}
+  ---
+  duration_ms: 0.2754
+  ...
+# Subtest: rejects invalid descriptor {"bytes":134217729}
+ok 59 - rejects invalid descriptor {"bytes":134217729}
+  ---
+  duration_ms: 0.3127
+  ...
+# Subtest: rejects invalid descriptor {"digest":"sha256:bad"}
+ok 60 - rejects invalid descriptor {"digest":"sha256:bad"}
+  ---
+  duration_ms: 0.3869
+  ...
+# Subtest: extra bytes cannot masquerade as a valid empty dependency
+ok 61 - extra bytes cannot masquerade as a valid empty dependency
+  ---
+  duration_ms: 14.9004
+  ...
+# Subtest: same-sized wrong content fails the pinned digest
+ok 62 - same-sized wrong content fails the pinned digest
+  ---
+  duration_ms: 31.306
+  ...
+# Subtest: hardlinked source file is rejected
+ok 63 - hardlinked source file is rejected
+  ---
+  duration_ms: 17.1614
+  ...
+# Subtest: directory substituted for package file is rejected
+ok 64 - directory substituted for package file is rejected
+  ---
+  duration_ms: 8.1916
+  ...
+# Subtest: junction or symlink package parent cannot escape artifact tree
+ok 65 - junction or symlink package parent cannot escape artifact tree
+  ---
+  duration_ms: 11.9782
+  ...
+# Subtest: aliased artifact tree is rejected
+ok 66 - aliased artifact tree is rejected
+  ---
+  duration_ms: 22.5013
+  ...
+# Subtest: concurrent content change during descriptor read is rejected
+ok 67 - concurrent content change during descriptor read is rejected
+  ---
+  duration_ms: 11.0893
+  ...
+# Subtest: parent namespace change during read is rejected
+ok 68 - parent namespace change during read is rejected
+  ---
+  duration_ms: 13.7932
+  ...
+# Subtest: fixed readonly profile accepts absent sources and large decimal identities
+ok 69 - fixed readonly profile accepts absent sources and large decimal identities
+  ---
+  duration_ms: 61.429
+  ...
+# Subtest: mutant review uses the same readonly evidence contract
+ok 70 - mutant review uses the same readonly evidence contract
+  ---
+  duration_ms: 3.4902
+  ...
+# Subtest: environment keys allow Windows case variants without duplicates
+ok 71 - environment keys allow Windows case variants without duplicates
+  ---
+  duration_ms: 3.7195
+  ...
+# Subtest: EPERM is a valid actual readonly denial
+ok 72 - EPERM is a valid actual readonly denial
+  ---
+  duration_ms: 8.2311
+  ...
+# Subtest: legacy reports accept absent fixture fields and absent or false host flag
+ok 73 - legacy reports accept absent fixture fields and absent or false host flag
+  ---
+  duration_ms: 0.5819
+  ...
+# Subtest: fully attested host termination permits only the worker exit observation to be absent
+ok 74 - fully attested host termination permits only the worker exit observation to be absent
+  ---
+  duration_ms: 3.6768
+  ...
+# Subtest: rejects original mode
+ok 75 - rejects original mode
+  ---
+  duration_ms: 3.3206
+  ...
+# Subtest: rejects missing review mode
+ok 76 - rejects missing review mode
+  ---
+  duration_ms: 3.4141
+  ...
+# Subtest: rejects unknown profile
+ok 77 - rejects unknown profile
+  ---
+  duration_ms: 5.3424
+  ...
+# Subtest: rejects missing review profile
+ok 78 - rejects missing review profile
+  ---
+  duration_ms: 3.2794
+  ...
+# Subtest: rejects missing host flag
+ok 79 - rejects missing host flag
+  ---
+  duration_ms: 3.1272
+  ...
+# Subtest: rejects false host flag
+ok 80 - rejects false host flag
+  ---
+  duration_ms: 3.162
+  ...
+# Subtest: rejects missing host fixture
+ok 81 - rejects missing host fixture
+  ---
+  duration_ms: 2.0582
+  ...
+# Subtest: rejects admitted report
+ok 82 - rejects admitted report
+  ---
+  duration_ms: 2.8834
+  ...
+# Subtest: rejects admitted host
+ok 83 - rejects admitted host
+  ---
+  duration_ms: 34.1045
+  ...
+# Subtest: rejects admissionEligible
+ok 84 - rejects admissionEligible
+  ---
+  duration_ms: 4.6683
+  ...
+# Subtest: rejects formalSample
+ok 85 - rejects formalSample
+  ---
+  duration_ms: 2.6561
+  ...
+# Subtest: rejects fullFrozenReviewCompleted
+ok 86 - rejects fullFrozenReviewCompleted
+  ---
+  duration_ms: 13.0947
+  ...
+# Subtest: rejects nonexperimental report
+ok 87 - rejects nonexperimental report
+  ---
+  duration_ms: 1.9049
+  ...
+# Subtest: rejects missing capture
+ok 88 - rejects missing capture
+  ---
+  duration_ms: 1.6018
+  ...
+# Subtest: rejects capture wrong name
+ok 89 - rejects capture wrong name
+  ---
+  duration_ms: 1.4314
+  ...
+# Subtest: rejects capture wrong size
+ok 90 - rejects capture wrong size
+  ---
+  duration_ms: 1.7966
+  ...
+# Subtest: rejects capture wrong digest
+ok 91 - rejects capture wrong digest
+  ---
+  duration_ms: 11.3697
+  ...
+# Subtest: rejects capture exceeds limit
+ok 92 - rejects capture exceeds limit
+  ---
+  duration_ms: 1.8878
+  ...
+# Subtest: rejects self-consistent changed source
+ok 93 - rejects self-consistent changed source
+  ---
+  duration_ms: 2.0441
+  ...
+# Subtest: rejects nonbuffer capture
+ok 94 - rejects nonbuffer capture
+  ---
+  duration_ms: 1.7509
+  ...
+# Subtest: rejects missing host environment
+ok 95 - rejects missing host environment
+  ---
+  duration_ms: 1.7635
+  ...
+# Subtest: rejects extra environment
+ok 96 - rejects extra environment
+  ---
+  duration_ms: 1.7704
+  ...
+# Subtest: rejects duplicate environment alias
+ok 97 - rejects duplicate environment alias
+  ---
+  duration_ms: 1.8236
+  ...
+# Subtest: rejects outside host home
+ok 98 - rejects outside host home
+  ---
+  duration_ms: 14.6738
+  ...
+# Subtest: rejects relative root
+ok 99 - rejects relative root
+  ---
+  duration_ms: 1.9032
+  ...
+# Subtest: rejects noncanonical root
+ok 100 - rejects noncanonical root
+  ---
+  duration_ms: 1.9729
+  ...
+# Subtest: rejects missing root
+ok 101 - rejects missing root
+  ---
+  duration_ms: 1.2262
+  ...
+# Subtest: rejects missing before
+ok 102 - rejects missing before
+  ---
+  duration_ms: 1.929
+  ...
+# Subtest: rejects missing after
+ok 103 - rejects missing after
+  ---
+  duration_ms: 2.0485
+  ...
+# Subtest: rejects extra source
+ok 104 - rejects extra source
+  ---
+  duration_ms: 2.2719
+  ...
+# Subtest: rejects reordered sources
+ok 105 - rejects reordered sources
+  ---
+  duration_ms: 2.0033
+  ...
+# Subtest: rejects unexpected source field
+ok 106 - rejects unexpected source field
+  ---
+  duration_ms: 1.9909
+  ...
+# Subtest: rejects wrong physical path
+ok 107 - rejects wrong physical path
+  ---
+  duration_ms: 2.6283
+  ...
+# Subtest: rejects wrong nearest parent
+ok 108 - rejects wrong nearest parent
+  ---
+  duration_ms: 3.8537
+  ...
+# Subtest: rejects wrong remaining path
+ok 109 - rejects wrong remaining path
+  ---
+  duration_ms: 1.9548
+  ...
+# Subtest: rejects source exists
+ok 110 - rejects source exists
+  ---
+  duration_ms: 2.063
+  ...
+# Subtest: rejects source byte content
+ok 111 - rejects source byte content
+  ---
+  duration_ms: 2.1048
+  ...
+# Subtest: rejects source digest content
+ok 112 - rejects source digest content
+  ---
+  duration_ms: 2.0946
+  ...
+# Subtest: rejects source file identity
+ok 113 - rejects source file identity
+  ---
+  duration_ms: 6.6394
+  ...
+# Subtest: rejects source settings content
+ok 114 - rejects source settings content
+  ---
+  duration_ms: 10.525
+  ...
+# Subtest: rejects changed host identity
+ok 115 - rejects changed host identity
+  ---
+  duration_ms: 2.1623
+  ...
+# Subtest: rejects aliased fixture parent
+ok 116 - rejects aliased fixture parent
+  ---
+  duration_ms: 2.392
+  ...
+# Subtest: rejects noncanonical identity "0"
+ok 117 - rejects noncanonical identity "0"
+  ---
+  duration_ms: 2.0937
+  ...
+# Subtest: rejects noncanonical identity "01"
+ok 118 - rejects noncanonical identity "01"
+  ---
+  duration_ms: 3.2259
+  ...
+# Subtest: rejects noncanonical identity "-1"
+ok 119 - rejects noncanonical identity "-1"
+  ---
+  duration_ms: 2.2802
+  ...
+# Subtest: rejects noncanonical identity "1.1"
+ok 120 - rejects noncanonical identity "1.1"
+  ---
+  duration_ms: 2.4348
+  ...
+# Subtest: rejects noncanonical identity "1e9"
+ok 121 - rejects noncanonical identity "1e9"
+  ---
+  duration_ms: 1.4933
+  ...
+# Subtest: rejects noncanonical identity 42
+ok 122 - rejects noncanonical identity 42
+  ---
+  duration_ms: 1.4875
+  ...
+# Subtest: rejects noncanonical identity null
+ok 123 - rejects noncanonical identity null
+  ---
+  duration_ms: 3.2255
+  ...
+# Subtest: rejects missing ledger
+ok 124 - rejects missing ledger
+  ---
+  duration_ms: 1.8869
+  ...
+# Subtest: rejects null actor
+ok 125 - rejects null actor
+  ---
+  duration_ms: 1.7798
+  ...
+# Subtest: rejects duplicate actor
+ok 126 - rejects duplicate actor
+  ---
+  duration_ms: 2.3883
+  ...
+# Subtest: rejects unregistered worker
+ok 127 - rejects unregistered worker
+  ---
+  duration_ms: 2.2002
+  ...
+# Subtest: rejects missing root actor
+ok 128 - rejects missing root actor
+  ---
+  duration_ms: 10.7203
+  ...
+# Subtest: rejects missing receipts
+ok 129 - rejects missing receipts
+  ---
+  duration_ms: 1.3919
+  ...
+# Subtest: rejects missing installed receipt
+ok 130 - rejects missing installed receipt
+  ---
+  duration_ms: 1.8401
+  ...
+# Subtest: rejects missing root exit
+ok 131 - rejects missing root exit
+  ---
+  duration_ms: 2.348
+  ...
+# Subtest: rejects missing worker exit
+ok 132 - rejects missing worker exit
+  ---
+  duration_ms: 2.6787
+  ...
+# Subtest: rejects missing helper exit
+ok 133 - rejects missing helper exit
+  ---
+  duration_ms: 3.1832
+  ...
+# Subtest: rejects duplicate receipt
+ok 134 - rejects duplicate receipt
+  ---
+  duration_ms: 1.9318
+  ...
+# Subtest: rejects duplicate receipt phase
+ok 135 - rejects duplicate receipt phase
+  ---
+  duration_ms: 2.0328
+  ...
+# Subtest: rejects unowned receipt
+ok 136 - rejects unowned receipt
+  ---
+  duration_ms: 1.6563
+  ...
+# Subtest: rejects wrong receipt role
+ok 137 - rejects wrong receipt role
+  ---
+  duration_ms: 1.6174
+  ...
+# Subtest: rejects wrong receipt actor PID
+ok 138 - rejects wrong receipt actor PID
+  ---
+  duration_ms: 1.5168
+  ...
+# Subtest: rejects wrong receipt registration
+ok 139 - rejects wrong receipt registration
+  ---
+  duration_ms: 5.2981
+  ...
+# Subtest: rejects wrong receipt parent
+ok 140 - rejects wrong receipt parent
+  ---
+  duration_ms: 2.9133
+  ...
+# Subtest: rejects admitted receipt
+ok 141 - rejects admitted receipt
+  ---
+  duration_ms: 10.8471
+  ...
+# Subtest: rejects trusted receipt
+ok 142 - rejects trusted receipt
+  ---
+  duration_ms: 2.7536
+  ...
+# Subtest: rejects eligible receipt
+ok 143 - rejects eligible receipt
+  ---
+  duration_ms: 2.2497
+  ...
+# Subtest: rejects missing child fixture
+ok 144 - rejects missing child fixture
+  ---
+  duration_ms: 15.2782
+  ...
+# Subtest: rejects wrong child profile
+ok 145 - rejects wrong child profile
+  ---
+  duration_ms: 23.9277
+  ...
+# Subtest: rejects outside child home
+ok 146 - rejects outside child home
+  ---
+  duration_ms: 2.6557
+  ...
+# Subtest: rejects outside managed settings
+ok 147 - rejects outside managed settings
+  ---
+  duration_ms: 1.9585
+  ...
+# Subtest: rejects outside child environment
+ok 148 - rejects outside child environment
+  ---
+  duration_ms: 2.2648
+  ...
+# Subtest: rejects duplicate child environment alias
+ok 149 - rejects duplicate child environment alias
+  ---
+  duration_ms: 1.9883
+  ...
+# Subtest: rejects child sources absent
+ok 150 - rejects child sources absent
+  ---
+  duration_ms: 2.4484
+  ...
+# Subtest: rejects child physical path alias
+ok 151 - rejects child physical path alias
+  ---
+  duration_ms: 1.712
+  ...
+# Subtest: rejects child parent changed
+ok 152 - rejects child parent changed
+  ---
+  duration_ms: 1.9062
+  ...
+# Subtest: rejects child source exists
+ok 153 - rejects child source exists
+  ---
+  duration_ms: 2.4487
+  ...
+# Subtest: rejects write denial absent
+ok 154 - rejects write denial absent
+  ---
+  duration_ms: 3.5816
+  ...
+# Subtest: rejects wrong denial target
+ok 155 - rejects wrong denial target
+  ---
+  duration_ms: 1.6667
+  ...
+# Subtest: rejects ENOENT is not write denial
+ok 156 - rejects ENOENT is not write denial
+  ---
+  duration_ms: 1.7527
+  ...
+# Subtest: rejects fake denial extra fields
+ok 157 - rejects fake denial extra fields
+  ---
+  duration_ms: 2.4063
+  ...
+# Subtest: missing worker exit requires exact termination kind
+ok 158 - missing worker exit requires exact termination kind
+  ---
+  duration_ms: 2.6232
+  ...
+# Subtest: missing worker exit requires exact termination exit
+ok 159 - missing worker exit requires exact termination exit
+  ---
+  duration_ms: 3.4927
+  ...
+# Subtest: missing worker exit requires exact termination terminationRequested
+ok 160 - missing worker exit requires exact termination terminationRequested
+  ---
+  duration_ms: 2.7094
+  ...
+# Subtest: missing worker exit requires exact termination terminationExitCode
+ok 161 - missing worker exit requires exact termination terminationExitCode
+  ---
+  duration_ms: 1.6923
+  ...
+# Subtest: missing worker exit requires exact termination preTerminationWait
+ok 162 - missing worker exit requires exact termination preTerminationWait
+  ---
+  duration_ms: 1.6553
+  ...
+# Subtest: missing worker exit requires exact termination preTerminationExit
+ok 163 - missing worker exit requires exact termination preTerminationExit
+  ---
+  duration_ms: 2.4352
+  ...
+# Subtest: missing worker exit requires exact termination terminationCallSucceeded
+ok 164 - missing worker exit requires exact termination terminationCallSucceeded
+  ---
+  duration_ms: 1.9389
+  ...
+# Subtest: missing worker exit requires exact termination terminationCallError
+ok 165 - missing worker exit requires exact termination terminationCallError
+  ---
+  duration_ms: 1.9038
+  ...
+# Subtest: missing worker exit requires exact termination terminationWait
+ok 166 - missing worker exit requires exact termination terminationWait
+  ---
+  duration_ms: 1.6044
+  ...
+# Subtest: missing worker exit requires exact termination actualExit
+ok 167 - missing worker exit requires exact termination actualExit
+  ---
+  duration_ms: 1.7602
+  ...
+# Subtest: missing worker exit requires exact termination terminationRequesterRegistrationId
+ok 168 - missing worker exit requires exact termination terminationRequesterRegistrationId
+  ---
+  duration_ms: 2.4262
+  ...
+# Subtest: missing worker exit requires exact termination creationSequence
+ok 169 - missing worker exit requires exact termination creationSequence
+  ---
+  duration_ms: 4.9881
+  ...
+# Subtest: missing worker exit requires exact termination terminationChildSequence
+ok 170 - missing worker exit requires exact termination terminationChildSequence
+  ---
+  duration_ms: 2.1617
+  ...
+# Subtest: missing worker exit requires exact termination callerHandleObjectCompared
+ok 171 - missing worker exit requires exact termination callerHandleObjectCompared
+  ---
+  duration_ms: 2.0362
+  ...
+# Subtest: attested terminated worker still needs unchanged final host source observation
+ok 172 - attested terminated worker still needs unchanged final host source observation
+  ---
+  duration_ms: 2.8965
+  ...
+# Subtest: attested terminated worker still needs an installed receipt
+ok 173 - attested terminated worker still needs an installed receipt
+  ---
+  duration_ms: 2.1655
+  ...
+# Subtest: removing top-level fixture markers cannot hide child evidence
+ok 174 - removing top-level fixture markers cannot hide child evidence
+  ---
+  duration_ms: 1.2275
+  ...
+# Subtest: legacy invalid host flag fails closed
+ok 175 - legacy invalid host flag fails closed
+  ---
+  duration_ms: 0.2901
+  ...
+# Subtest: GLOBALROOT-backed physical identity and logical X refer to the same held object
+ok 176 - GLOBALROOT-backed physical identity and logical X refer to the same held object
+  ---
+  duration_ms: 6.3105
+  ...
+# Subtest: physical inherited file handles do not claim that C paths can be opened in the child
+ok 177 - physical inherited file handles do not claim that C paths can be opened in the child
+  ---
+  duration_ms: 1.0011
+  ...
+# Subtest: rejects different root FileID
+ok 178 - rejects different root FileID
+  ---
+  duration_ms: 1.4723
+  ...
+# Subtest: rejects same FileID on different volume
+ok 179 - rejects same FileID on different volume
+  ---
+  duration_ms: 0.7315
+  ...
+# Subtest: rejects different NT root with equal IDs
+ok 180 - rejects different NT root with equal IDs
+  ---
+  duration_ms: 1.1146
+  ...
+# Subtest: rejects root pair not held together
+ok 181 - rejects root pair not held together
+  ---
+  duration_ms: 0.834
+  ...
+# Subtest: rejects unguarded ancestors
+ok 182 - rejects unguarded ancestors
+  ---
+  duration_ms: 2.5574
+  ...
+# Subtest: rejects logical root uses drive-relative X
+ok 183 - rejects logical root uses drive-relative X
+  ---
+  duration_ms: 0.7481
+  ...
+# Subtest: rejects physical side pretends to open DOS C
+ok 184 - rejects physical side pretends to open DOS C
+  ---
+  duration_ms: 1.9409
+  ...
+# Subtest: rejects logical root is only a claimed alias
+ok 185 - rejects logical root is only a claimed alias
+  ---
+  duration_ms: 2.1103
+  ...
+# Subtest: rejects root is a reparse point
+ok 186 - rejects root is a reparse point
+  ---
+  duration_ms: 0.9319
+  ...
+# Subtest: rejects runtime has additional hard links
+ok 187 - rejects runtime has additional hard links
+  ---
+  duration_ms: 0.5979
+  ...
+# Subtest: rejects runtime is outside guarded root
+ok 188 - rejects runtime is outside guarded root
+  ---
+  duration_ms: 0.5922
+  ...
+# Subtest: rejects runtime bytes changed
+ok 189 - rejects runtime bytes changed
+  ---
+  duration_ms: 0.5973
+  ...
+# Subtest: rejects runtime length changed
+ok 190 - rejects runtime length changed
+  ---
+  duration_ms: 0.6728
+  ...
+# Subtest: rejects runtime alias targets another file
+ok 191 - rejects runtime alias targets another file
+  ---
+  duration_ms: 11.3973
+  ...
+# Subtest: rejects ABI changed
+ok 192 - rejects ABI changed
+  ---
+  duration_ms: 0.5904
+  ...
+# Subtest: rejects runtime version changed
+ok 193 - rejects runtime version changed
+  ---
+  duration_ms: 0.9425
+  ...
+# Subtest: rejects different AppContainer
+ok 194 - rejects different AppContainer
+  ---
+  duration_ms: 2.1205
+  ...
+# Subtest: rejects network capability added
+ok 195 - rejects network capability added
+  ---
+  duration_ms: 0.7886
+  ...
+# Subtest: rejects no Job membership
+ok 196 - rejects no Job membership
+  ---
+  duration_ms: 0.714
+  ...
+# Subtest: rejects another broker session
+ok 197 - rejects another broker session
+  ---
+  duration_ms: 0.8046
+  ...
+# Subtest: rejects replayed generation
+ok 198 - rejects replayed generation
+  ---
+  duration_ms: 0.9347
+  ...
+# Subtest: rejects fork role not wired
+ok 199 - rejects fork role not wired
+  ---
+  duration_ms: 0.7272
+  ...
+# Subtest: rejects admitted status
+ok 200 - rejects admitted status
+  ---
+  duration_ms: 1.1775
+  ...
+# Subtest: rejects zero object ID
+ok 201 - rejects zero object ID
+  ---
+  duration_ms: 0.6943
+  ...
+# Subtest: rejects out of range volume
+ok 202 - rejects out of range volume
+  ---
+  duration_ms: 0.7003
+  ...
+# Subtest: rejects manifest full review inferred
+ok 203 - rejects manifest full review inferred
+  ---
+  duration_ms: 0.7796
+  ...
+# Subtest: rejects manifest sandbox-generated authority flag
+ok 204 - rejects manifest sandbox-generated authority flag
+  ---
+  duration_ms: 0.5543
+  ...
+# Subtest: rejects manifest unlisted preload file
+ok 205 - rejects manifest unlisted preload file
+  ---
+  duration_ms: 0.7278
+  ...
+# Subtest: rejects manifest root with traversal
+ok 206 - rejects manifest root with traversal
+  ---
+  duration_ms: 0.5814
+  ...
+# Subtest: rejects manifest root with UNC alias
+ok 207 - rejects manifest root with UNC alias
+  ---
+  duration_ms: 1.4665
+  ...
+# Subtest: rejects manifest runtime digest chosen by caller
+ok 208 - rejects manifest runtime digest chosen by caller
+  ---
+  duration_ms: 0.5477
+  ...
+# Subtest: rejects manifest fork role in manifest
+ok 209 - rejects manifest fork role in manifest
+  ---
+  duration_ms: 0.3836
+  ...
+# Subtest: rejects manifest relative X root in manifest
+ok 210 - rejects manifest relative X root in manifest
+  ---
+  duration_ms: 0.4028
+  ...
+# Subtest: only both exact executable spellings and the fixed runtime ABI are accepted
+ok 211 - only both exact executable spellings and the fixed runtime ABI are accepted
+  ---
+  duration_ms: 20.9633
+  ...
+# Subtest: bounded reads reject hard links and oversize files, and return actual bytes
+ok 212 - bounded reads reject hard links and oversize files, and return actual bytes
+  ---
+  duration_ms: 15.0694
+  ...
+# Subtest: malformed or oversized native JSON cannot supply identity
+ok 213 - malformed or oversized native JSON cannot supply identity
+  ---
+  duration_ms: 1.0347
+  ...
+# Subtest: root and worker retain distinct native registrations under one session
+ok 214 - root and worker retain distinct native registrations under one session
+  ---
+  duration_ms: 2.0631
+  ...
+# Subtest: rejects registered native another registration
+ok 215 - rejects registered native another registration
+  ---
+  duration_ms: 0.7625
+  ...
+# Subtest: rejects registered native another creation PID
+ok 216 - rejects registered native another creation PID
+  ---
+  duration_ms: 0.6455
+  ...
+# Subtest: rejects registered native root parent registration
+ok 217 - rejects registered native root parent registration
+  ---
+  duration_ms: 0.6457
+  ...
+# Subtest: rejects registered native worker called root
+ok 218 - rejects registered native worker called root
+  ---
+  duration_ms: 0.6297
+  ...
+# Subtest: rejects registered native actor called root
+ok 219 - rejects registered native actor called root
+  ---
+  duration_ms: 0.6845
+  ...
+# Subtest: rejects registered native environment-only authority
+ok 220 - rejects registered native environment-only authority
+  ---
+  duration_ms: 0.5843
+  ...
+# Subtest: rejects registered native missing broker response
+ok 221 - rejects registered native missing broker response
+  ---
+  duration_ms: 0.9128
+  ...
+# Subtest: rejects registered native missing actor
+ok 222 - rejects registered native missing actor
+  ---
+  duration_ms: 0.7469
+  ...
+# Subtest: rejects registered native extra actor authority
+ok 223 - rejects registered native extra actor authority
+  ---
+  duration_ms: 0.7844
+  ...
+# Subtest: rejects registered manifest root without actor
+ok 224 - rejects registered manifest root without actor
+  ---
+  duration_ms: 0.6482
+  ...
+# Subtest: rejects registered manifest worker without parent
+ok 225 - rejects registered manifest worker without parent
+  ---
+  duration_ms: 0.6255
+  ...
+# Subtest: rejects registered manifest self parent
+ok 226 - rejects registered manifest self parent
+  ---
+  duration_ms: 0.5954
+  ...
+# Subtest: rejects registered manifest zero PID
+ok 227 - rejects registered manifest zero PID
+  ---
+  duration_ms: 1.239
+  ...
+# Subtest: rejects registered manifest oversize PID
+ok 228 - rejects registered manifest oversize PID
+  ---
+  duration_ms: 0.5311
+  ...
+# Subtest: rejects registered manifest string PID
+ok 229 - rejects registered manifest string PID
+  ---
+  duration_ms: 0.4364
+  ...
+# Subtest: rejects registered manifest role mismatch
+ok 230 - rejects registered manifest role mismatch
+  ---
+  duration_ms: 0.464
+  ...
+# Subtest: rejects registered manifest legacy worker role
+ok 231 - rejects registered manifest legacy worker role
+  ---
+  duration_ms: 0.4344
+  ...
+# Subtest: rejects registered manifest legacy actor extension
+ok 232 - rejects registered manifest legacy actor extension
+  ---
+  duration_ms: 0.6448
+  ...
+# Subtest: legacy root proof cannot import worker actor authority
+ok 233 - legacy root proof cannot import worker actor authority
+  ---
+  duration_ms: 0.5275
+  ...
+# Subtest: manifest selection binds an exact worker filename to its registration
+ok 234 - manifest selection binds an exact worker filename to its registration
+  ---
+  duration_ms: 1.4673
+  ...
+# Subtest: actual process PID must equal host registered creation PID
+ok 235 - actual process PID must equal host registered creation PID
+  ---
+  duration_ms: 0.8242
+  ...
+# Subtest: fixed report helper has a separate role and manifest namespace
+ok 236 - fixed report helper has a separate role and manifest namespace
+  ---
+  duration_ms: 1.7205
+  ...
+# Subtest: actor roles cannot expand to arbitrary helpers
+ok 237 - actor roles cannot expand to arbitrary helpers
+  ---
+  duration_ms: 0.9386
+  ...
+# Subtest: otherwise complete synthetic diagnostic cannot satisfy the immutable frozen lock
+ok 238 - otherwise complete synthetic diagnostic cannot satisfy the immutable frozen lock
+  ---
+  duration_ms: 42.8061
+  ...
+# Subtest: rejects failed outer execution
+ok 239 - rejects failed outer execution
+  ---
+  duration_ms: 16.3457
+  ...
+# Subtest: rejects outer error with successful native payload
+ok 240 - rejects outer error with successful native payload
+  ---
+  duration_ms: 10.7647
+  ...
+# Subtest: rejects timed out process
+ok 241 - rejects timed out process
+  ---
+  duration_ms: 6.9411
+  ...
+# Subtest: rejects full review escalation
+ok 242 - rejects full review escalation
+  ---
+  duration_ms: 12.4417
+  ...
+# Subtest: rejects helper substituted for actual fork
+ok 243 - rejects helper substituted for actual fork
+  ---
+  duration_ms: 4.0616
+  ...
+# Subtest: rejects worker was never assigned
+ok 244 - rejects worker was never assigned
+  ---
+  duration_ms: 4.5418
+  ...
+# Subtest: rejects retained handle missing
+ok 245 - rejects retained handle missing
+  ---
+  duration_ms: 6.6631
+  ...
+# Subtest: rejects wait timeout
+ok 246 - rejects wait timeout
+  ---
+  duration_ms: 9.504
+  ...
+# Subtest: rejects worker still active
+ok 247 - rejects worker still active
+  ---
+  duration_ms: 21.898
+  ...
+# Subtest: rejects unproven worker exit 143
+ok 248 - rejects unproven worker exit 143
+  ---
+  duration_ms: 6.531
+  ...
+# Subtest: rejects wrong worker command
+ok 249 - rejects wrong worker command
+  ---
+  duration_ms: 5.0014
+  ...
+# Subtest: rejects worker without IPC descriptor
+ok 250 - rejects worker without IPC descriptor
+  ---
+  duration_ms: 6.1628
+  ...
+# Subtest: rejects duplicate PID
+ok 251 - rejects duplicate PID
+  ---
+  duration_ms: 6.7164
+  ...
+# Subtest: rejects unknown caller registration
+ok 252 - rejects unknown caller registration
+  ---
+  duration_ms: 8.826
+  ...
+# Subtest: rejects Job still populated
+ok 253 - rejects Job still populated
+  ---
+  duration_ms: 7.3561
+  ...
+# Subtest: rejects missing worker exit receipt
+ok 254 - rejects missing worker exit receipt
+  ---
+  duration_ms: 5.7814
+  ...
+# Subtest: rejects worker receipt claims root
+ok 255 - rejects worker receipt claims root
+  ---
+  duration_ms: 5.2091
+  ...
+# Subtest: rejects manifest registration mismatch
+ok 256 - rejects manifest registration mismatch
+  ---
+  duration_ms: 4.6335
+  ...
+# Subtest: rejects paired native FileID changed
+ok 257 - rejects paired native FileID changed
+  ---
+  duration_ms: 7.5338
+  ...
+# Subtest: rejects missing manifest
+ok 258 - rejects missing manifest
+  ---
+  duration_ms: 8.3985
+  ...
+# Subtest: rejects journal forged digest
+ok 259 - rejects journal forged digest
+  ---
+  duration_ms: 5.8418
+  ...
+# Subtest: rejects missing compiler result
+ok 260 - rejects missing compiler result
+  ---
+  duration_ms: 4.0754
+  ...
+# Subtest: rejects source capture altered
+ok 261 - rejects source capture altered
+  ---
+  duration_ms: 4.5324
+  ...
+# Subtest: rejects artifact binding altered
+ok 262 - rejects artifact binding altered
+  ---
+  duration_ms: 4.4612
+  ...
+# Subtest: retained files are read again instead of trusting captured digests
+ok 263 - retained files are read again instead of trusting captured digests
+  ---
+  duration_ms: 4.4578
+  ...
+# Subtest: staged post-run test digest must equal the retained frozen input
+ok 264 - staged post-run test digest must equal the retained frozen input
+  ---
+  duration_ms: 8.1839
+  ...
+# Subtest: archived inputs remain verifiable when the protected staging tree is unreadable
+ok 265 - archived inputs remain verifiable when the protected staging tree is unreadable
+  ---
+  duration_ms: 6.7117
+  ...
+# Subtest: a missing before snapshot cannot be replaced by only an after hash
+ok 266 - a missing before snapshot cannot be replaced by only an after hash
+  ---
+  duration_ms: 4.8672
+  ...
+# Subtest: malformed or absent reports are rejected without success
+ok 267 - malformed or absent reports are rejected without success
+  ---
+  duration_ms: 3.1297
+  ...
+# Subtest: malformed ledger and non-text manifest payloads cannot bypass rejection
+ok 268 - malformed ledger and non-text manifest payloads cannot bypass rejection
+  ---
+  duration_ms: 4.3632
+  ...
+# Subtest: rejects missing real service even after evidence text is rehashed
+ok 269 - rejects missing real service even after evidence text is rehashed
+  ---
+  duration_ms: 5.819
+  ...
+# Subtest: rejects different service command even after evidence text is rehashed
+ok 270 - rejects different service command even after evidence text is rehashed
+  ---
+  duration_ms: 6.9494
+  ...
+# Subtest: rejects invalid TypeScript accepted even after evidence text is rehashed
+ok 271 - rejects invalid TypeScript accepted even after evidence text is rehashed
+  ---
+  duration_ms: 6.0045
+  ...
+# Subtest: rejects bundled configuration changed even after evidence text is rehashed
+ok 272 - rejects bundled configuration changed even after evidence text is rehashed
+  ---
+  duration_ms: 5.7886
+  ...
+# Subtest: rejects borrowed shim PID even after evidence text is rehashed
+ok 273 - rejects borrowed shim PID even after evidence text is rehashed
+  ---
+  duration_ms: 5.6972
+  ...
+# Subtest: rejects shim trace overflow even after evidence text is rehashed
+ok 274 - rejects shim trace overflow even after evidence text is rehashed
+  ---
+  duration_ms: 4.8882
+  ...
+# Subtest: rejects namespace check failed even after evidence text is rehashed
+ok 275 - rejects namespace check failed even after evidence text is rehashed
+  ---
+  duration_ms: 5.9055
+  ...
+# Subtest: rejects shim root FileID differs even after evidence text is rehashed
+ok 276 - rejects shim root FileID differs even after evidence text is rehashed
+  ---
+  duration_ms: 7.3734
+  ...
+# Subtest: rejects missing shim exit even after evidence text is rehashed
+ok 277 - rejects missing shim exit even after evidence text is rehashed
+  ---
+  duration_ms: 5.9633
+  ...
+# Subtest: rejects missing validator snapshot even after evidence text is rehashed
+ok 278 - rejects missing validator snapshot even after evidence text is rehashed
+  ---
+  duration_ms: 4.0364
+  ...
+# Subtest: rejects post-run binary differs even after evidence text is rehashed
+ok 279 - rejects post-run binary differs even after evidence text is rehashed
+  ---
+  duration_ms: 5.412
+  ...
+# Subtest: rejects wrong experiment mode even after evidence text is rehashed
+ok 280 - rejects wrong experiment mode even after evidence text is rehashed
+  ---
+  duration_ms: 5.4754
+  ...
+# Subtest: config pre/post self-consistency cannot replace binding to the frozen closure
+ok 281 - config pre/post self-consistency cannot replace binding to the frozen closure
+  ---
+  duration_ms: 8.8219
+  ...
+# Subtest: rewriting config and its closure together still cannot replace the immutable closure digest
+ok 282 - rewriting config and its closure together still cannot replace the immutable closure digest
+  ---
+  duration_ms: 5.3637
+  ...
+# Subtest: host original-handle termination replaces only the killed worker exit event
+ok 283 - host original-handle termination replaces only the killed worker exit event
+  ---
+  duration_ms: 5.5963
+  ...
+# Subtest: rejects host termination already signaled before kill
+ok 284 - rejects host termination already signaled before kill
+  ---
+  duration_ms: 5.1752
+  ...
+# Subtest: rejects host termination already exited before kill
+ok 285 - rejects host termination already exited before kill
+  ---
+  duration_ms: 5.2477
+  ...
+# Subtest: rejects host termination unobserved pre-wait
+ok 286 - rejects host termination unobserved pre-wait
+  ---
+  duration_ms: 5.9943
+  ...
+# Subtest: rejects host termination termination call failed
+ok 287 - rejects host termination termination call failed
+  ---
+  duration_ms: 5.086
+  ...
+# Subtest: rejects host termination contradictory termination error
+ok 288 - rejects host termination contradictory termination error
+  ---
+  duration_ms: 3.5456
+  ...
+# Subtest: rejects host termination missing termination error
+ok 289 - rejects host termination missing termination error
+  ---
+  duration_ms: 4.0272
+  ...
+# Subtest: rejects host termination untyped termination error
+ok 290 - rejects host termination untyped termination error
+  ---
+  duration_ms: 3.815
+  ...
+# Subtest: rejects host termination post-termination timeout
+ok 291 - rejects host termination post-termination timeout
+  ---
+  duration_ms: 6.287
+  ...
+# Subtest: rejects host termination post-termination still active
+ok 292 - rejects host termination post-termination still active
+  ---
+  duration_ms: 3.7879
+  ...
+# Subtest: rejects host termination unrequested kill
+ok 293 - rejects host termination unrequested kill
+  ---
+  duration_ms: 6.5406
+  ...
+# Subtest: rejects host termination unbound request sequence
+ok 294 - rejects host termination unbound request sequence
+  ---
+  duration_ms: 4.4377
+  ...
+# Subtest: rejects host termination unknown birth sequence
+ok 295 - rejects host termination unknown birth sequence
+  ---
+  duration_ms: 4.6303
+  ...
+# Subtest: rejects host termination different caller
+ok 296 - rejects host termination different caller
+  ---
+  duration_ms: 4.7504
+  ...
+# Subtest: rejects host termination handle value without object comparison
+ok 297 - rejects host termination handle value without object comparison
+  ---
+  duration_ms: 12.2534
+  ...
+# Subtest: rejects host termination wrong requested exit
+ok 298 - rejects host termination wrong requested exit
+  ---
+  duration_ms: 3.0444
+  ...
+# Subtest: rejects host termination different actual exit
+ok 299 - rejects host termination different actual exit
+  ---
+  duration_ms: 4.6664
+  ...
+# Subtest: a host termination attestation cannot excuse root failure
+ok 300 - a host termination attestation cannot excuse root failure
+  ---
+  duration_ms: 2.4009
+  ...
+# Subtest: native settlement rejects implicit native fixture flag
+ok 301 - native settlement rejects implicit native fixture flag
+  ---
+  duration_ms: 8.0787
+  ...
+# Subtest: native settlement rejects fixture flag on ordinary original scope
+ok 302 - native settlement rejects fixture flag on ordinary original scope
+  ---
+  duration_ms: 4.97
+  ...
+# Subtest: native settlement rejects fixture missing host and actor observations
+ok 303 - native settlement rejects fixture missing host and actor observations
+  ---
+  duration_ms: 3.8726
+  ...
+# Subtest: additional review control fixture remains rejected only by immutable lock
+ok 304 - additional review control fixture remains rejected only by immutable lock
+  ---
+  duration_ms: 15.5148
+  ...
+# Subtest: review controls reject missing source
+ok 305 - review controls reject missing source
+  ---
+  duration_ms: 10.6121
+  ...
+# Subtest: review controls reject omitted control
+ok 306 - review controls reject omitted control
+  ---
+  duration_ms: 10.2031
+  ...
+# Subtest: review controls reject substituted control bytes
+ok 307 - review controls reject substituted control bytes
+  ---
+  duration_ms: 18.8043
+  ...
+# Subtest: review controls reject changed staged control
+ok 308 - review controls reject changed staged control
+  ---
+  duration_ms: 12.3877
+  ...
+# Subtest: review controls reject control outside capsule
+ok 309 - review controls reject control outside capsule
+  ---
+  duration_ms: 35.7029
+  ...
+# Subtest: review controls reject missing frozen baseline
+ok 310 - review controls reject missing frozen baseline
+  ---
+  duration_ms: 9.9374
+  ...
+# Subtest: review controls reject missing reporter
+ok 311 - review controls reject missing reporter
+  ---
+  duration_ms: 9.1879
+  ...
+# Subtest: review controls reject changed reporter
+ok 312 - review controls reject changed reporter
+  ---
+  duration_ms: 15.2034
+  ...
+# Subtest: review controls reject implicit profile
+ok 313 - review controls reject implicit profile
+  ---
+  duration_ms: 8.0015
+  ...
+# Subtest: review baseline settlement remains separate from immutable admission
+ok 314 - review baseline settlement remains separate from immutable admission
+  ---
+  duration_ms: 10.2908
+  ...
+# Subtest: review mutant settlement remains separate from immutable admission
+ok 315 - review mutant settlement remains separate from immutable admission
+  ---
+  duration_ms: 6.9953
+  ...
+# Subtest: review settlement rejects parser approval cannot waive active Job
+ok 316 - review settlement rejects parser approval cannot waive active Job
+  ---
+  duration_ms: 7.245
+  ...
+# Subtest: review settlement rejects baseline unexpected root failure
+ok 317 - review settlement rejects baseline unexpected root failure
+  ---
+  duration_ms: 6.7427
+  ...
+# Subtest: review settlement rejects mutant root timeout
+ok 318 - review settlement rejects mutant root timeout
+  ---
+  duration_ms: 4.4796
+  ...
+# Subtest: review settlement rejects mutant worker failure without attribution
+ok 319 - review settlement rejects mutant worker failure without attribution
+  ---
+  duration_ms: 6.9623
+  ...
+# Subtest: review settlement rejects missing actor exit receipt
+ok 320 - review settlement rejects missing actor exit receipt
+  ---
+  duration_ms: 4.8542
+  ...
+# Subtest: review settlement rejects missing full staged source
+ok 321 - review settlement rejects missing full staged source
+  ---
+  duration_ms: 6.3022
+  ...
+# Subtest: review settlement rejects duplicate support source
+ok 322 - review settlement rejects duplicate support source
+  ---
+  duration_ms: 5.3379
+  ...
+# Subtest: review settlement rejects unretained mutation source
+ok 323 - review settlement rejects unretained mutation source
+  ---
+  duration_ms: 5.718
+  ...
+# Subtest: review settlement rejects different mutation task
+ok 324 - review settlement rejects different mutation task
+  ---
+  duration_ms: 7.6479
+  ...
+# Subtest: review settlement rejects unchanged mutation bytes
+ok 325 - review settlement rejects unchanged mutation bytes
+  ---
+  duration_ms: 4.9026
+  ...
+# Subtest: review settlement requires explicit expected root exit
+ok 326 - review settlement requires explicit expected root exit
+  ---
+  duration_ms: 3.9187
+  ...
+# Subtest: review settlement permits no esbuild service when no service was created
+ok 327 - review settlement permits no esbuild service when no service was created
+  ---
+  duration_ms: 4.1554
+  ...
+# Subtest: explicit callback intent with exact host termination
+ok 328 - explicit callback intent with exact host termination
+  ---
+  duration_ms: 2.5379
+  ...
+# Subtest: callback intent missing disposition
+ok 329 - callback intent missing disposition
+  ---
+  duration_ms: 2.8556
+  ...
+# Subtest: callback intent concealing callback failure
+ok 330 - callback intent concealing callback failure
+  ---
+  duration_ms: 5.5596
+  ...
+# Subtest: callback intent without original handle comparison
+ok 331 - callback intent without original handle comparison
+  ---
+  duration_ms: 3.849
+  ...
+# Subtest: duplicate callback intent
+ok 332 - duplicate callback intent
+  ---
+  duration_ms: 5.1344
+  ...
+# Subtest: already exited worker remains ordinary zero exit with callback receipt
+ok 333 - already exited worker remains ordinary zero exit with callback receipt
+  ---
+  duration_ms: 4.3234
+  ...
+# Subtest: already exited worker with nonzero actual exit has no host termination exemption
+ok 334 - already exited worker with nonzero actual exit has no host termination exemption
+  ---
+  duration_ms: 6.3941
+  ...
+# Subtest: review dependency custody accepts retained zero-byte and nested workspace files
+ok 335 - review dependency custody accepts retained zero-byte and nested workspace files
+  ---
+  duration_ms: 30.3811
+  ...
+# Subtest: review dependency custody rejects missing helper snapshot
+ok 336 - review dependency custody rejects missing helper snapshot
+  ---
+  duration_ms: 21.099
+  ...
+# Subtest: review dependency custody rejects missing staged file
+ok 337 - review dependency custody rejects missing staged file
+  ---
+  duration_ms: 18.0068
+  ...
+# Subtest: review dependency custody rejects duplicate staged path
+ok 338 - review dependency custody rejects duplicate staged path
+  ---
+  duration_ms: 21.8989
+  ...
+# Subtest: review dependency custody rejects wrong staged after digest
+ok 339 - review dependency custody rejects wrong staged after digest
+  ---
+  duration_ms: 19.2511
+  ...
+# Subtest: review dependency custody rejects extra staged bytes for empty file
+ok 340 - review dependency custody rejects extra staged bytes for empty file
+  ---
+  duration_ms: 29.5711
+  ...
+# Subtest: review dependency custody rejects source path outside retained tree
+ok 341 - review dependency custody rejects source path outside retained tree
+  ---
+  duration_ms: 20.2956
+  ...
+# Subtest: review dependency custody rejects staged target outside capsule workspace
+ok 342 - review dependency custody rejects staged target outside capsule workspace
+  ---
+  duration_ms: 24.183
+  ...
+# Subtest: review dependency custody rejects retained empty file gained bytes
+ok 343 - review dependency custody rejects retained empty file gained bytes
+  ---
+  duration_ms: 20.4367
+  ...
+# Subtest: review dependency custody rejects retained manifest removed
+ok 344 - review dependency custody rejects retained manifest removed
+  ---
+  duration_ms: 16.3672
+  ...
+# Subtest: rejects missing native guard count
+ok 345 - rejects missing native guard count
+  ---
+  duration_ms: 9.9854
+  ...
+# Subtest: rejects empty native guard count
+ok 346 - rejects empty native guard count
+  ---
+  duration_ms: 3.4479
+  ...
+# Subtest: rejects overflow native guard count
+ok 347 - rejects overflow native guard count
+  ---
+  duration_ms: 3.4933
+  ...
+# Subtest: rejects fractional native guard count
+ok 348 - rejects fractional native guard count
+  ---
+  duration_ms: 3.5615
+  ...
+# Subtest: rejects caller-selected guard limit
+ok 349 - rejects caller-selected guard limit
+  ---
+  duration_ms: 3.7184
+  ...
+1..349
+# tests 349
+# suites 0
+# pass 349
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2075.6303

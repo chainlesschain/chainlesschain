@@ -1,0 +1,109 @@
+{
+  "startedAt": "2026-10-10T09:29:51.273Z",
+  "finishedAt": "2026-10-10T09:29:53.899Z",
+  "host": "Windows 10 x64",
+  "runtime": "v22.22.2",
+  "command": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "packages/cli/test-node/windows-node-private-v4-result.node-test.mjs",
+    "packages/cli/test-node/windows-node-private-v4-controls.node-test.mjs",
+    "packages/cli/test-node/windows-node-private-v4-identity.node-test.mjs",
+    "packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs",
+    "packages/cli/test-node/windows-node-private-v4-fixture-settings.node-test.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "summary": {
+    "tests": 349,
+    "pass": 349,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "todo": 0
+  },
+  "captured": {
+    "stdout": {
+      "file": "local-windows-final-stdout.txt",
+      "bytes": 57519,
+      "digest": "sha256:57356c184b3adf282cd086abd489fe47c0496e406e62217c93d8f7ecd1e876db"
+    },
+    "stderr": {
+      "file": "local-windows-final-stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sources": [
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-diagnostic.mjs",
+      "bytes": 37711,
+      "digest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-result.mjs",
+      "bytes": 36001,
+      "digest": "sha256:db3394a7f5297830c215cf4aa4caebcfa27229556e51760a755dea9277fa2253"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-fixture-settings.mjs",
+      "bytes": 11971,
+      "digest": "sha256:fb7bf15c562c07d725b8e05b5e3682f5af2d5c370340d7f4b658dbbffbb31b76"
+    },
+    {
+      "file": "packages/cli/scripts/windows-node-private-v4-controls.mjs",
+      "bytes": 6021,
+      "digest": "sha256:deaa3761d2fa72c5f8490796a85a256660f1d9808d35add9f818de9b4bc4e1d2"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-pack-diagnostic.mjs",
+      "bytes": 25408,
+      "digest": "sha256:b2a0596088be934c9ed7700c92f3ab475b5b938514b5188d48218d480489afa3"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-diagnostic-extra-controls.mjs",
+      "bytes": 13693,
+      "digest": "sha256:30b77589681169a7b6dc03187949f0699eb594eda156ae6b1cf6a7e7b6038866"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-private-v4-preload.cjs",
+      "bytes": 8947,
+      "digest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566"
+    },
+    {
+      "file": "packages/cli/scripts/diagnostics/windows-node-private-v4-broker.cpp",
+      "bytes": 44840,
+      "digest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-result.node-test.mjs",
+      "bytes": 42891,
+      "digest": "sha256:e5fdf86c99f1719c939e5288043d7a4a524b31008734aba4f3e6b2f9e4334030"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-controls.node-test.mjs",
+      "bytes": 6909,
+      "digest": "sha256:e58a3758b596486be52184926103b3e5d82a4340f41f1174238eb1a519ff76c0"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-identity.node-test.mjs",
+      "bytes": 14941,
+      "digest": "sha256:d63e1777ae3db4eb1addf65b211ea0e2ffc43f84b16313d4af54e1fc4598fc57"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs",
+      "bytes": 7143,
+      "digest": "sha256:e058efb70e9abf73250d061ed513abb446d4198c2a987cc73805729a0ab791f4"
+    },
+    {
+      "file": "packages/cli/test-node/windows-node-private-v4-fixture-settings.node-test.mjs",
+      "bytes": 17490,
+      "digest": "sha256:ba7e7019714789d816735c85051bd02e8eec6034d6c5721131838d165bee40b5"
+    }
+  ],
+  "sourceBytesUnchanged": true,
+  "formalSample": false,
+  "providerInvoked": false,
+  "observationsCreated": false
+}

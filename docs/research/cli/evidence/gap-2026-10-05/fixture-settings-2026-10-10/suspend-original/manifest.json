@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-10-10T12:08:09.987Z",
+  "scope": "Original timeout during independently recorded machine suspension; exact profile registration cleaned, original HANDLE/Job settlement remains unconfirmed",
+  "captures": [
+    {
+      "file": "event-84382.xml",
+      "bytes": 1520,
+      "digest": "sha256:b22cf7b474d09b5d76902733a708a1032529f31c79c5043aaeed8694b45256c3"
+    },
+    {
+      "file": "event-84378.xml",
+      "bytes": 888,
+      "digest": "sha256:e97b4a37b3a8b578d66e714dcec5152a0e2142deabd32a8181616945a03617d8"
+    },
+    {
+      "file": "event-84377.xml",
+      "bytes": 723,
+      "digest": "sha256:0f8c880c01584581e9d4090f6b094d97036b74e31a2abfe9e50c3d177c3a506b"
+    },
+    {
+      "file": "cleanup.json",
+      "bytes": 1533,
+      "digest": "sha256:7bcb08f4c721dd81f5b0568c442f53c103a3df6f544c4081abb93fd6404a824f"
+    },
+    {
+      "file": "cleanup-script.ps1",
+      "bytes": 4143,
+      "digest": "sha256:01e23733f1704aa563e41986d7f1cd828549067eeb78c976c8bb83d1506a05da"
+    },
+    {
+      "file": "awake-script.ps1",
+      "bytes": 2047,
+      "digest": "sha256:c2c64777eb99b3f6bf596aad0e62b9100feca2372b4afeafa5cae2ea9661b098"
+    }
+  ]
+}

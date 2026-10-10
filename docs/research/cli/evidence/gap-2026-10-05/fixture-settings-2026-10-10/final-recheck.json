@@ -1,0 +1,58 @@
+{
+  "recordedAt": "2026-10-10T12:21:39.742Z",
+  "verified": [
+    {
+      "directory": ".work/gap-controls-native-fixture-controls-baseline-20261010-a",
+      "result": {
+        "schema": "chainlesschain.windows-private-v4-settlement/v1",
+        "status": "NOT_ADMITTED",
+        "admissionEligible": false,
+        "fullFrozenReviewCompleted": false,
+        "experimentKind": "external-locked-review-baseline",
+        "nativeSettlementConfirmed": true,
+        "expectedRootExit": 0,
+        "errors": []
+      },
+      "jobActiveProcesses": 0,
+      "profileDeleted": true
+    },
+    {
+      "directory": ".work/gap-controls-native-fixture-controls-mutant-verify-19-20261010-a",
+      "result": {
+        "schema": "chainlesschain.windows-private-v4-settlement/v1",
+        "status": "NOT_ADMITTED",
+        "admissionEligible": false,
+        "fullFrozenReviewCompleted": false,
+        "experimentKind": "external-locked-review-mutant",
+        "nativeSettlementConfirmed": true,
+        "expectedRootExit": 1,
+        "errors": []
+      },
+      "jobActiveProcesses": 0,
+      "profileDeleted": true
+    },
+    {
+      "directory": ".work/gap-controls-native-fixture-full-baseline-20261010-b",
+      "result": {
+        "schema": "chainlesschain.windows-private-v4-settlement/v1",
+        "status": "NOT_ADMITTED",
+        "admissionEligible": false,
+        "fullFrozenReviewCompleted": false,
+        "experimentKind": "external-locked-review-baseline",
+        "nativeSettlementConfirmed": false,
+        "expectedRootExit": 0,
+        "errors": [
+          "outer execution failed or incomplete",
+          "host experiment incomplete",
+          "root creation evidence differs",
+          "creation 17872 did not settle successfully"
+        ]
+      },
+      "jobActiveProcesses": 0,
+      "profileDeleted": true
+    }
+  ],
+  "temporaryIdleRequestSourceAndReleaseVerified": true,
+  "fullNativeReviewAdmitted": false,
+  "formalSample": false
+}

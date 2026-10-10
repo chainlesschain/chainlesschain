@@ -1,0 +1,14 @@
+{
+    "scriptDigest":  "sha256:c2c64777eb99b3f6bf596aad0e62b9100feca2372b4afeafa5cae2ea9661b098",
+    "scope":  "Temporary per-thread idle-sleep prevention for local verification; no deadline, production runtime or persistent power-plan change",
+    "finishedAt":  "2026-10-10T12:14:20.2132604Z",
+    "startedAt":  "2026-10-10T12:06:53.4267336Z",
+    "releasePreviousState":  2147483649,
+    "acquiredPreviousState":  2147483648,
+    "finalThreadId":  19208,
+    "nativeExit":  2,
+    "releaseFlags":  2147483648,
+    "nativeInvocation":  "fixture-baseline fixture-full-baseline-20261010-b all",
+    "acquisitionFlags":  2147483649,
+    "threadId":  19208
+}
