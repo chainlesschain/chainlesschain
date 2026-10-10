@@ -1,5 +1,7 @@
 # CLI 0.166.96 配对发布候选
 
+> **2026-10-10 首轮完整矩阵失败**：准确候选 `3900e9bd7f4d610b74b4d1639cf62b39dd9004ed` 的 CLI CI 为 **66 success / 2 failure / 1 skip**（69 个实际 job，SDK 尚未运行），Strict **5/5**；IDE Extensions 为 **15 success / 1 failure / 3 skip**，ARM64 为 **8 success / 2 failure**。完整门未通过，四个候选版本均未发布。 当前修复仅涉及功能测试驱动：CLI 单个 600 事件完整集合用例使用 180 秒有界功能预算并保留全部断言；ARM64 Enter 后改从稳定 frame/rootpane 读取每次调用的独立标量收据；Remote SSH 仅在明确匿名 Docker Hub 限流时回退到相同固定 digest 镜像，并校验实际 RepoDigests、保存两次完整输出。局部 CLI **7/7**、Rhino/Swing **14/14**、Remote SSH **17/17** 通过，不能替代新准确提交的真实宿主与完整三平台门。 见[完整失败原件](./prepublish-attempt1/index.json)及[修复合同](./repair-attempt1/index.json)。版本仍为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。新提交须重新完成自身全部矩阵，再按子包 → CLI → IDE → 合并顺序发行；保留原 `.95` 标签，不移动标签，不改为本地或 token 发布。
+
 新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。
 
 CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取得 CLI CI **71/71**、Strict **5/5**、IDE **18 成功 / 1 条件跳过**及 ARM64 **10/10**。但 OIDC 发布 run `37985598206` 在 Agent SDK `0.2.13` 的整个源码树复用检查失败，CLI 发布步骤明确跳过；它没有成为新公开 CLI。SDK 的签名来源校验通过，实际改变的是测试诊断文件，公开 tarball 字节一致的预检不足以证明整个 Git 子树未变。

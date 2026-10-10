@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-10-10T01:03:12.186Z",
+  "sourceSha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+  "isolatedClassSha256": "5d231ba72b9269437725c17e2a32c1f59c752e19697bb32dd8262789b450893b",
+  "sourceCopiedBytesEqual": true,
+  "activationSha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c",
+  "receiptSha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329",
+  "cleanupSha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c",
+  "rhinoSha256": "2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63",
+  "compile": "Actual current IdeUiSmokeTest.java compiled with JDK21 using cached uiTest runtime dependencies; exported via reflection from isolated class"
+}

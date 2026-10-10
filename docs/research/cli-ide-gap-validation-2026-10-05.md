@@ -849,3 +849,21 @@ CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取
 [失败原件](./cli/evidence/gap-2026-10-05/release-0.166.95/npm-publish-failure/manifest.json)保留原 workflow、job、日志及逐文件摘要；[3caf 已验证源码原件](./cli/evidence/gap-2026-10-05/release-0.166.95/validated-source-3caf/manifest.json)保存该提交成功门、真实 Windows IDE 选集与 SDK 终态。这些门不能转移到新候选。Workspace 同 SHA attempt 2 成功；Secret advisory 首次扫描超时且未完成，仍不声明 clean。x64 canonical restart 缺事件 trace、capture-status.complete=false 的事实和原日志保持；旧 8e5 审批失败根因仍未知。
 
 正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。
+
+### 20.21 CLI 0.166.96 首轮失败与独立收据修复
+
+准确候选 `3900e9bd7f4d610b74b4d1639cf62b39dd9004ed` 的 CLI CI 为 **66 success / 2 failure / 1 skip**（69 个实际 job，SDK 尚未运行），Strict **5/5**；IDE Extensions 为 **15 success / 1 failure / 3 skip**，ARM64 为 **8 success / 2 failure**。完整门未通过，四个候选版本均未发布。
+
+CLI CI run `37987544644` 的 Windows unit shard 11 job `114013174530` 在完整只读事件集合用例超出原全局 90000ms，实际 91619ms，分片 2675 pass / 1 fail / 1 skip；verify-cli 因此跳过，SDK 没有执行。只给该功能用例显式 180000ms，仍验证 600 个事件、顺序、>2MiB、全部冻结/篡改拒绝及最终 journal head；全局预算和生产限制不变，无 retry。七阶段诊断的本地完整文件 7/7，实际集合 3,445,514 bytes；未重现原 CI 超时，不能据本地较快结果确认慢 I/O 根因。
+
+ARM64 run `37987544323` 的 Windows job `114013173246` 中真实 Enter 已完成正确 callback，匹配 preview 与 Confirm visible/enabled；失败来自随后对已销毁 popup fixture 的 callJs。每次 UUID 收据绑定 token/owner/target/label/prefix，java.util.Properties 只保存标量，后续从稳定 IDE frame/rootpane 读取，finally 清理并保留 primary/suppressed 异常。原真实 Enter、45 秒、下一菜单及 preview/Confirm 断言保持。JDK21 compileUiTestJava 通过；实际导出脚本 Rhino/Swing 14/14，含错误绑定拒绝、同 owner 双 token 隔离和 removed list GC 后读取；两种编译导出的脚本逐字节一致。尚无新 head 的真实宿主结果，旧 8e5 审批故障根因仍未知。
+
+IDE run `37987544322` 的 Remote SSH job `114022086463` 首次 docker pull 明确匿名 Docker Hub 限流，未创建容器、启动 SSH 或 IDE journey。仅此错误允许一次 mirror.gcr.io/library/ubuntu 回退，digest 仍为 `019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467`；镜像 manifest GET 200，424 原字节摘要与原 pin 一致。普通网络/auth/其他 quota/signal/不同 image 或 digest 不回退；mirror 失败保留两次失败，inspect/run 不执行。inspect 校验真实 usedRef 的 Id/RepoDigests 后才 run；旧 canonical identity 字段保留，实际源另记，完整两次输出进入原字节 collector。定向 17/17 通过，尚未跑真实 Docker/SSH journey。
+
+CI Tests run `37987544143` 的 global install job `114013172321` 报 AWS tarball E404，Windows unit job `114013172634` 报 ETARGET，均在安装阶段、业务测试未执行。缺失 @aws-sdk/credential-provider-http@3.972.75 后续官方 metadata/tarball GET 200、SRI 匹配，新旧链共六包下载摘要通过；不能确认 global install 边缘失败机制。没有修改 tracked AWS 依赖，不据单个 S3 pin 声称固定全部传递依赖；新 head 的矩阵重新实际安装。
+
+[首轮完整失败归档](./cli/evidence/gap-2026-10-05/release-0.166.96/prepublish-attempt1/index.json)保留 148 原件、4 清单、9,790,022 原件字节、十个门与五个失败日志。CLI/Strict/IDE/ARM64 的历史结果没有转移给新提交；[修复验证](./cli/evidence/gap-2026-10-05/release-0.166.96/repair-attempt1/index.json)按独立来源绑定当前源码，合同结果不累计为正式任务分母。
+
+版本仍为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。新提交须重新完成自身全部矩阵，再按子包 → CLI → IDE → 合并顺序发行；保留原 `.95` 标签，不移动标签，不改为本地或 token 发布。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**以及完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 仍开放，本轮无新增付费 provider 调用。

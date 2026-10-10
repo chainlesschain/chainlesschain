@@ -1,0 +1,972 @@
+{
+  "verifiedAt": "2026-10-10T01:03:56.662Z",
+  "allPassed": true,
+  "checks": [
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/run.json",
+      "receipt": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/readback.json",
+      "bytes": 14120,
+      "sha256": "23fccd5cf5d69396824e5fd8ac42764809a5b30dfcf62772e3cd6b3a86f76ebd",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/readback.json",
+      "bytes": 182504,
+      "sha256": "554fac66287a68fefbec28cebf28c018b9bfbcc4f88b923724efabcb8bee6b64",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/readback.json",
+      "bytes": 6299,
+      "sha256": "778691761d4344c422ec07381f5d2fa3cf7342d33130df2270fda97d6dfadc07",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/run.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/readback.json",
+      "bytes": 13744,
+      "sha256": "b6f2dfb41831e75dca7489b83b8cbb55c24c01cf162f061d30ce51b7d0ff6413",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/readback.json",
+      "bytes": 62572,
+      "sha256": "81d1cdaef423c8cc25cbd80fd913be8fe60328fbb9002bd7134d0c193c184c09",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/readback.json",
+      "bytes": 16260,
+      "sha256": "f4b61e199296d9467db78f0eaa35692ce7552d8f2302de809d016eaca996d968",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/run.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/readback.json",
+      "bytes": 13760,
+      "sha256": "b1303f6036cfe24e5c93eab2d62ab0ac63c0827208ebf7287fe87ed4afb9a3d6",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/readback.json",
+      "bytes": 38177,
+      "sha256": "3b5c51445a019079736c571dec3b756e9ccc9fb3191cd564b689f1594e075139",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/readback.json",
+      "bytes": 7256,
+      "sha256": "8438a2950899bd8156593d2875f194c6d463c8681274457953c0781cfca3c019",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/run.json",
+      "receipt": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/readback.json",
+      "bytes": 13728,
+      "sha256": "d78db90f5e8828664327a20c89125f6989ccb1cd551dea800d99a06f909cf670",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/readback.json",
+      "bytes": 38636,
+      "sha256": "1d93a0f1c10d93f5c6f1ef81542cb351c8d392c26b8b517e6fb3031e8d9b6f2b",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/readback.json",
+      "bytes": 2299,
+      "sha256": "2e0602e7dd6d13ddb308c34c22cd9a7cee1c17e4ad77696c48dd831094551e1a",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/strict-c3900e9b-final/readback.json",
+      "bytes": 13752,
+      "sha256": "111e4cf8236c61e269946a710383c7707d1f647e65618a9ced4b37f06b847faf",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/strict-c3900e9b-final/readback.json",
+      "bytes": 21590,
+      "sha256": "5fa4b7ac9ae06e3f84c0309c84284bf7dd248c52bb5e79086b9fe43fe56ce770",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/strict-c3900e9b-final/readback.json",
+      "bytes": 4557,
+      "sha256": "86fa494860101d885d68722e8da29f8e22fd15f14cd1485344fc63341261dfb6",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/quality-c3900e9b-final/readback.json",
+      "bytes": 13751,
+      "sha256": "66fed15767cdf37c55983872b7893a53d7b3c814acff77b31afaf9d7cd4184fd",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/quality-c3900e9b-final/readback.json",
+      "bytes": 17577,
+      "sha256": "50f4e9333122be7787223909535ba09b8595d444b5cc55afe8e33ceb4f686c44",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/quality-c3900e9b-final/readback.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/readback.json",
+      "bytes": 13754,
+      "sha256": "bf1034ab8113601bfc383d4666a2be5c1699c886e7120e0f22e842131f2f5a35",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/readback.json",
+      "bytes": 3377,
+      "sha256": "ea0a663e3ae459aa201658bb149d8e600e146826b8b4cd463feee513158b4ecf",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/readback.json",
+      "bytes": 813,
+      "sha256": "94c7c22bec6ff4ca2a3593c90b6e39f040c585f83c75cc3a6740b66e65405c92",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/readback.json",
+      "bytes": 13732,
+      "sha256": "4558463b80aa08863505881df0b854cf1c971afed3d9f7c30752376b5749c761",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/readback.json",
+      "bytes": 4923,
+      "sha256": "9e74dc62102587d5916cb45e282c63ba4ec79dc3e499f57109132eb4515ec03a",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/readback.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/readback.json",
+      "bytes": 13773,
+      "sha256": "bf33294bb9c433996a58ce44bd6fe0f44dc86c1b8252d69184b1bdb3b771d182",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/readback.json",
+      "bytes": 11175,
+      "sha256": "e2cceb4ed6c59c61b84ae3d4e90a4e72b924413857912b90b72a26e64be36fd4",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/readback.json",
+      "bytes": 1524,
+      "sha256": "3b279e7e3443f49d3de4050428ceab67560cf991f2c4ad5676a43d5b4064a871",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/run.json",
+      "receipt": ".work/release-preflight-0.166.96/safety-c3900e9b-final/readback.json",
+      "bytes": 13759,
+      "sha256": "07a242305efadec0a174db743e52bc03536d1cf6da36dd7aa3301f860d7f47f4",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/jobs-1.json",
+      "receipt": ".work/release-preflight-0.166.96/safety-c3900e9b-final/readback.json",
+      "bytes": 13937,
+      "sha256": "f6dd6fb2dd269505b5c8e1c77586c97238641231f1a05ce1e4502ebc571bbb86",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/artifacts-1.json",
+      "receipt": ".work/release-preflight-0.166.96/safety-c3900e9b-final/readback.json",
+      "bytes": 3191,
+      "sha256": "3ac52ce4e049616bdd41e7669e0a95d10a796e2cdf4e7c0941ad36e8c7f5affe",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/job.log",
+      "receipt": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/readback.json",
+      "bytes": 98834,
+      "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/job.log",
+      "receipt": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/readback.json",
+      "bytes": 36463,
+      "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/job.log",
+      "receipt": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/readback.json",
+      "bytes": 235938,
+      "sha256": "cad309c2c3ad7847d6b776f504f625b9f7dd8a106d89e2cf8b7216e2e8392d43",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/job.log",
+      "receipt": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/readback.json",
+      "bytes": 198926,
+      "sha256": "ec5f83dce817428b48238a88e7f3caf689a72bd6448ac5f9004824c5f517219a",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/job.log",
+      "receipt": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/readback.json",
+      "bytes": 130471,
+      "sha256": "a5deee50220f6838b0228e3895be83f1d07ba9b7b9d5fe51985a7efb1c23a1bd",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/snapshot-2026-10-10T00-42-38.467Z.json",
+      "receipt": ".work/cli-sdk-3900e9bd-20261010/terminal-readback.json",
+      "bytes": 275313,
+      "sha256": "21cc3dd056e0d01661a47b8b9a5ee3bf84133fa52ef560e1a637ab361f5c7630",
+      "verified": true
+    },
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-source.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/tested-source.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18753,
+      "sha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 2895,
+      "sha256": "be112a945657905035e7eb1703d3c97125e5787b852e87eac63707559d5d0068",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 3335,
+      "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/annotations.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 837,
+      "sha256": "4b5a4ad3cf45cfea3c843186636950cace33ff39460e2256c8c459a7cf7abbc0",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 98834,
+      "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/original-test.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 16245,
+      "sha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1149.0.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3796,
+      "sha256": "c7f2710c1f5b884314a71dea97e86b264bb7b15ae301a6a9f0a96c223ed088d6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1149.0.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 412093,
+      "sha256": "33899af2bdc54e64b68bf12b27c6e8d847ba06c12bd4ee353b3f06a9f3b452f8",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.85.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3285,
+      "sha256": "f04434d2893760a7cd2178b19c468c66d5a47eaa01c86687412ae0e9f1e20245",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.85.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 9824,
+      "sha256": "d1f4c1fc8328be40caac0bc637d711e7b8c1cba0179c3ce1016c08d8ed243371",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.75.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3260,
+      "sha256": "e08e2e55a6983149c4d2aaa8e74e52d344fb403dcf722776fa421ca22ab0a108",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.75.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 5167,
+      "sha256": "ccd1b488642d8e979a4bef67a6aaffdfe7e089fe4cc71207a8aa918ee4bb98bd",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1094.0.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3637,
+      "sha256": "60b1682395a81a4a405caa14a618a2a4c229e8825c497ac632faddfc562d4fe4",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1094.0.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 409064,
+      "sha256": "c7e56a250968fdcb96aa37f7cba1da37cbb0ad413866eeaa7633b740b1e35899",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.71.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3113,
+      "sha256": "5d9c871fb75be4a7f74a163f32ce4e5aa53cb3c9833b4c15606481ef35666419",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.71.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 9809,
+      "sha256": "df42383d61f7f253c59e78c8b9fd17b22bbb4e84ba22c1fd485961b33206db22",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.62.json",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "bytes": 3090,
+      "sha256": "dd7155a57ffd382d5008bb2d71c6fc04283fe3ddd2fd3fc3eb3496ccfb0f1f1f",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.62.tgz",
+      "receipt": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json (payload verified but excluded)",
+      "bytes": 5167,
+      "sha256": "e1a3ec28ae785e7e1973f4e8ef10f08c428aa557d398c3a5e11f5fcbbbf12227",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/artifact.zip",
+      "receipt": ".work/astra-3900-fail/arm/download-verification.json",
+      "bytes": 1878098,
+      "sha256": "7644c24f5008a4cc1dec2125fe9b53be8eb4f430e9205f46a4a597742069249f",
+      "verified": true
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/job.log",
+      "receipt": ".work/astra-3900-fail/arm/download-verification.json",
+      "bytes": 235938,
+      "sha256": "cad309c2c3ad7847d6b776f504f625b9f7dd8a106d89e2cf8b7216e2e8392d43",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/001-fake-cli-bin_cc",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/002-fake-cli-bin_cc.cmd",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/003-fake-cli-bin_chainlesschain",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/005-fake-cli-bin_clc",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/006-fake-cli-bin_clc.cmd",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/007-fake-cli-bin_clchain",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/008-fake-cli-bin_clchain.cmd",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 15302,
+      "sha256": "031c89bed0fc7d0715230a6bba3c06fa55e491d3d1c795d8d9f7ef661f240e11",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 47,
+      "sha256": "515d1f6332114957573baf465847d11a05878ec72381a3ca332a7113762efba6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_20849df7fe9164e6fc1931d1f4236a7b7da85fef494d65ef46d76eda5e13b794.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "84cf529a5f036011bf86755ae8e0c85db5c556b444cdc391f3be577c121b0560",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_4a5cf1af8317666f8ca30bcc717e1ec6fa31d88d34fb0360c79db1f24d750cf7.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "24a4650e9dc11ee350e086c76a631ff388cd711d3da54dee281d39a6109742c1",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_563519c32b9705cd7ae2fd57279d87a2da7ed4a38dbe4373713cd6c84d50f57e.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "f394d4aed53d103667c9132328fc17d99683ecd2b589c266b5f675f938b698a7",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_a34f2e0a0660383951bfcff6d095b6b6fee5a203000ae1230c0c91a61db40688.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "5c1d95825c129a663d9dca9ecc13ef1c7bf27d1aef132408539658b48dc9eeaf",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_a9463e965abcb275397e8b4abd6859b996b6637c18a3cc978ddbe9be2dc31cd5.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "fba33252452e81fdeaf31fdd7fb7b2f11c8e6804ffbea4582334574a4c0fa9bf",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_d7aacb753a1bf4655e77475fd2253664b56c99ce13efe33fd0b759ea20af5403.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 260,
+      "sha256": "3b64f4d8093f4422aa554aa839ecef3a86db6797f0f288276808ebeea485872b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/017-host-capture-initial_capture-status.json",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 886,
+      "sha256": "6950e8ebdeb4399875c3c6be3d7d687e3de3a00df622e938e0d769776082010a",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/018-host-capture-initial_host-events.jsonl",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 21127,
+      "sha256": "c81c857625fedac7a11203ef3de3abd3a1c63f1f924773da60c4bb450e7ff022",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/019-host-capture-initial_host-events.jsonl.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 21127,
+      "sha256": "c81c857625fedac7a11203ef3de3abd3a1c63f1f924773da60c4bb450e7ff022",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/020-host-capture-initial_idea-001.log.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 46171,
+      "sha256": "ae83a3f105becd7a483c8b83efd1a337314f5e3ec8afbd8945329120dd5a2938",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_idea-002.log.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 171480,
+      "sha256": "ba601462e62ed95357f6deee9270bcc83a34112138bf003250f7a6910a5a2ce8",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/022-prepare.stderr.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 1005,
+      "sha256": "55b99b8f596fca764dac0844af35289ddfb9fa0a5337edd55e8d41db0745130e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/023-prepare.stdout.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 21698,
+      "sha256": "ab21806a09f236248a44591b5b8248f097868027cf208de6695e1905b3e0861d",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/024-sandbox-ide-initial.stderr.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 5913,
+      "sha256": "c827b902260511809bcf5832e7ef617c1485776ac544ab4a7b243cf536380792",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/025-sandbox-ide-initial.stdout.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 1927,
+      "sha256": "11084e25e1c64504712d213a49b4e5f8b19d31d6f5e3cc8b008f4f7bf6c868ce",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/026-ui-smoke-initial.stderr.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 14896,
+      "sha256": "fc9f7939f75f7a28fa0cda3153453a38bfd23b66190fc15f0e3a43d797eae80b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/027-ui-smoke-initial.stdout.log",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 20923,
+      "sha256": "8193e17db4fb85f08944cb9a3aa7789f67716b0e937493a020981679bcd5954b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/028-binary_output.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 925,
+      "sha256": "6753dfb1d9cb89d01d9a950ae904117cff22519a88f620c5f8007a3bf18c28d0",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/029-binary_output.bin.idx",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 71,
+      "sha256": "3782c3b53602e43cd2d249e614fbb66501f343959bbed09f4b3e756233848325",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/030-binary_results.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 7803,
+      "sha256": "35d6cc4cd82b880da54720c4d96d7bc51c23a266ea05d47e1448bf66d798951e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/031-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 7961,
+      "sha256": "904aadad8d4a21de2e4d13b18f98f5d3b93fb364c6fe602dbfbce59fbd9daf8f",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/032-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 654,
+      "sha256": "95d29eb0f602788ebb049e6098739435c7a8b2a50d690c9fe3e96d31b05aee1f",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/033-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 1227,
+      "sha256": "afcc9c327f50e332d239fff1904d857e76a4790482407a8f3c285ad71f867197",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/034-chat-control-journey-1791578761215.png",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 269337,
+      "sha256": "13faa817453f4ca581636843f546ebe98e512601de140abfc0172a14185a8562",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/035-chat-control-journey-1791578761215.swing.json.bin",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 155351,
+      "sha256": "fba3edffc425a947d94f35b502243fcdb76982a41b9a11d0c5d9b5fdc89ce6f0",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "receipt": ".work/astra-3900-fail/arm/verification.json",
+      "bytes": 1519654,
+      "sha256": "13a3c9fe65e1f5f69fd08dcbd8d1519267dd5658af92113d775c97d8a7cfd659",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/metadata.json",
+      "receipt": ".work/astra-ssh3900/download-verification.json",
+      "bytes": 760,
+      "sha256": "dad10d97713baa68927863606dd0bff7cb5981fd6e0172eacd3399b9211812df",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/job.json",
+      "receipt": ".work/astra-ssh3900/download-verification.json",
+      "bytes": 3651,
+      "sha256": "7a881e5ada43dcc557bb5132c97f5dd1b1747cc50b8a2942dd97778671d90753",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/job.log",
+      "receipt": ".work/astra-ssh3900/download-verification.json",
+      "bytes": 36463,
+      "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/artifact.zip",
+      "receipt": ".work/astra-ssh3900/download-verification.json",
+      "bytes": 2177871,
+      "sha256": "ebcce7540d69768e1b2e4fb085303df67aa356ac243bfef36c742342d3358292",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/diagnostics/001-redacted-diagnostics.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 6503,
+      "sha256": "16944b4a3fc2f93bf5a890f9aa568518013526bc75d3f89ad7410a27415a5cbc",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 736432,
+      "sha256": "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 744451,
+      "sha256": "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/001-exact-commit.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 123,
+      "sha256": "db67485d9e4082e520b84d9015561a966e2e203f1bc7aafdc217469428a2b8e4",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/002-host-environment.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 1455,
+      "sha256": "843a76746195e1b49c7689da023dfc737d8363dd60e0ce0163652425aec1a8d6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/003-remote-environment.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 189,
+      "sha256": "99a21b15ba02b424cc30d48516300376cfbac15f49a346d4dc5fbab543e8c9db",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/005-artifact-digests.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 675,
+      "sha256": "2157df32aee08c5f9072aaae704e22cf56e1027316dfa80cc4c6bd293c64080e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 714971,
+      "sha256": "3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 714,
+      "sha256": "66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/008-outcome-observations.json",
+      "receipt": ".work/astra-ssh3900/extraction-verification.json",
+      "bytes": 305,
+      "sha256": "6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/001-exact-commit.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 123,
+      "sha256": "db67485d9e4082e520b84d9015561a966e2e203f1bc7aafdc217469428a2b8e4",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/002-host-environment.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 1455,
+      "sha256": "843a76746195e1b49c7689da023dfc737d8363dd60e0ce0163652425aec1a8d6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/003-remote-environment.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 189,
+      "sha256": "99a21b15ba02b424cc30d48516300376cfbac15f49a346d4dc5fbab543e8c9db",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/005-artifact-digests.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 675,
+      "sha256": "2157df32aee08c5f9072aaae704e22cf56e1027316dfa80cc4c6bd293c64080e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 714971,
+      "sha256": "3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 714,
+      "sha256": "66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/008-outcome-observations.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 305,
+      "sha256": "6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/diagnostics/001-redacted-diagnostics.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 736432,
+      "sha256": "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 744451,
+      "sha256": "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/001-exact-commit.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 123,
+      "sha256": "db67485d9e4082e520b84d9015561a966e2e203f1bc7aafdc217469428a2b8e4",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/002-host-environment.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 1455,
+      "sha256": "843a76746195e1b49c7689da023dfc737d8363dd60e0ce0163652425aec1a8d6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/003-remote-environment.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 189,
+      "sha256": "99a21b15ba02b424cc30d48516300376cfbac15f49a346d4dc5fbab543e8c9db",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/005-artifact-digests.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 675,
+      "sha256": "2157df32aee08c5f9072aaae704e22cf56e1027316dfa80cc4c6bd293c64080e",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 714971,
+      "sha256": "3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 714,
+      "sha256": "66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/008-outcome-observations.json",
+      "receipt": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "bytes": 305,
+      "sha256": "6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/mirror-manifest.raw",
+      "receipt": ".work/astra-ssh3900/mirror-readback.json",
+      "bytes": 424,
+      "sha256": "019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+      "verified": true
+    }
+  ]
+}

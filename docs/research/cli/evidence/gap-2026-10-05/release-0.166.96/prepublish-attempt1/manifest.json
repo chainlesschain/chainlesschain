@@ -1,0 +1,1058 @@
+{
+  "schema": "chainlesschain.byte-preserved-evidence-manifest/v1",
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "destination": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/prepublish-attempt1",
+  "hashAlgorithm": "SHA-256",
+  "files": [
+    {
+      "source": ".work/astra-3900-fail/arm/artifact.zip",
+      "target": "arm/artifact.zip",
+      "kind": "original-arm-artifact-or-diagnostic",
+      "bytes": 1878098,
+      "sha256": "7644c24f5008a4cc1dec2125fe9b53be8eb4f430e9205f46a4a597742069249f"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/diagnosis.json",
+      "target": "arm/diagnosis.json",
+      "kind": "original-arm-artifact-or-diagnostic",
+      "bytes": 11992,
+      "sha256": "854276b8c3e9eca80748c21d8eae309e46783c974438c135e2e3407bd3273261"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/download-verification.json",
+      "target": "arm/download-verification.json",
+      "kind": "original-arm-artifact-or-diagnostic",
+      "bytes": 500,
+      "sha256": "99004e853b29d0f28483f61e9f6440106e97ef81b14df28815fe932223807652"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/metadata.json",
+      "target": "arm/metadata.json",
+      "kind": "original-arm-artifact-or-diagnostic",
+      "bytes": 812,
+      "sha256": "f352435c0bf1f78e657290bdd4ffd2485314f193c04e060b8e50852b93eedce1"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/001-fake-cli-bin_cc",
+      "target": "arm/raw/diagnostics/001-fake-cli-bin_cc",
+      "kind": "original-arm-selected-file",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/002-fake-cli-bin_cc.cmd",
+      "target": "arm/raw/diagnostics/002-fake-cli-bin_cc.cmd",
+      "kind": "original-arm-selected-file",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/003-fake-cli-bin_chainlesschain",
+      "target": "arm/raw/diagnostics/003-fake-cli-bin_chainlesschain",
+      "kind": "original-arm-selected-file",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "target": "arm/raw/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "kind": "original-arm-selected-file",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/005-fake-cli-bin_clc",
+      "target": "arm/raw/diagnostics/005-fake-cli-bin_clc",
+      "kind": "original-arm-selected-file",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/006-fake-cli-bin_clc.cmd",
+      "target": "arm/raw/diagnostics/006-fake-cli-bin_clc.cmd",
+      "kind": "original-arm-selected-file",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/007-fake-cli-bin_clchain",
+      "target": "arm/raw/diagnostics/007-fake-cli-bin_clchain",
+      "kind": "original-arm-selected-file",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/008-fake-cli-bin_clchain.cmd",
+      "target": "arm/raw/diagnostics/008-fake-cli-bin_clchain.cmd",
+      "kind": "original-arm-selected-file",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "target": "arm/raw/diagnostics/009-fake-cli-protocol.jsonl",
+      "kind": "original-arm-selected-file",
+      "bytes": 15302,
+      "sha256": "031c89bed0fc7d0715230a6bba3c06fa55e491d3d1c795d8d9f7ef661f240e11"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "target": "arm/raw/diagnostics/010-fake-cli-state.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 47,
+      "sha256": "515d1f6332114957573baf465847d11a05878ec72381a3ca332a7113762efba6"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_20849df7fe9164e6fc1931d1f4236a7b7da85fef494d65ef46d76eda5e13b794.json",
+      "target": "arm/raw/diagnostics/011-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "84cf529a5f036011bf86755ae8e0c85db5c556b444cdc391f3be577c121b0560"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_4a5cf1af8317666f8ca30bcc717e1ec6fa31d88d34fb0360c79db1f24d750cf7.json",
+      "target": "arm/raw/diagnostics/012-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "24a4650e9dc11ee350e086c76a631ff388cd711d3da54dee281d39a6109742c1"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_563519c32b9705cd7ae2fd57279d87a2da7ed4a38dbe4373713cd6c84d50f57e.json",
+      "target": "arm/raw/diagnostics/013-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "f394d4aed53d103667c9132328fc17d99683ecd2b589c266b5f675f938b698a7"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_a34f2e0a0660383951bfcff6d095b6b6fee5a203000ae1230c0c91a61db40688.json",
+      "target": "arm/raw/diagnostics/014-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "5c1d95825c129a663d9dca9ecc13ef1c7bf27d1aef132408539658b48dc9eeaf"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_a9463e965abcb275397e8b4abd6859b996b6637c18a3cc978ddbe9be2dc31cd5.json",
+      "target": "arm/raw/diagnostics/015-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "fba33252452e81fdeaf31fdd7fb7b2f11c8e6804ffbea4582334574a4c0fa9bf"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_d7aacb753a1bf4655e77475fd2253664b56c99ce13efe33fd0b759ea20af5403.json",
+      "target": "arm/raw/diagnostics/016-receipt.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 260,
+      "sha256": "3b64f4d8093f4422aa554aa839ecef3a86db6797f0f288276808ebeea485872b"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/017-host-capture-initial_capture-status.json",
+      "target": "arm/raw/diagnostics/017-host-capture-initial_capture-status.json",
+      "kind": "original-arm-selected-file",
+      "bytes": 886,
+      "sha256": "6950e8ebdeb4399875c3c6be3d7d687e3de3a00df622e938e0d769776082010a"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/018-host-capture-initial_host-events.jsonl",
+      "target": "arm/raw/diagnostics/018-host-capture-initial_host-events.jsonl",
+      "kind": "original-arm-selected-file",
+      "bytes": 21127,
+      "sha256": "c81c857625fedac7a11203ef3de3abd3a1c63f1f924773da60c4bb450e7ff022"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/019-host-capture-initial_host-events.jsonl.bin",
+      "target": "arm/raw/diagnostics/019-host-capture-initial_host-events.jsonl.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 21127,
+      "sha256": "c81c857625fedac7a11203ef3de3abd3a1c63f1f924773da60c4bb450e7ff022"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/020-host-capture-initial_idea-001.log.bin",
+      "target": "arm/raw/diagnostics/020-host-capture-initial_idea-001.log.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 46171,
+      "sha256": "ae83a3f105becd7a483c8b83efd1a337314f5e3ec8afbd8945329120dd5a2938"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_idea-002.log.bin",
+      "target": "arm/raw/diagnostics/021-host-capture-initial_idea-002.log.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 171480,
+      "sha256": "ba601462e62ed95357f6deee9270bcc83a34112138bf003250f7a6910a5a2ce8"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/022-prepare.stderr.log",
+      "target": "arm/raw/diagnostics/022-prepare.stderr.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 1005,
+      "sha256": "55b99b8f596fca764dac0844af35289ddfb9fa0a5337edd55e8d41db0745130e"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/023-prepare.stdout.log",
+      "target": "arm/raw/diagnostics/023-prepare.stdout.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 21698,
+      "sha256": "ab21806a09f236248a44591b5b8248f097868027cf208de6695e1905b3e0861d"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/024-sandbox-ide-initial.stderr.log",
+      "target": "arm/raw/diagnostics/024-sandbox-ide-initial.stderr.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 5913,
+      "sha256": "c827b902260511809bcf5832e7ef617c1485776ac544ab4a7b243cf536380792"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/025-sandbox-ide-initial.stdout.log",
+      "target": "arm/raw/diagnostics/025-sandbox-ide-initial.stdout.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 1927,
+      "sha256": "11084e25e1c64504712d213a49b4e5f8b19d31d6f5e3cc8b008f4f7bf6c868ce"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/026-ui-smoke-initial.stderr.log",
+      "target": "arm/raw/diagnostics/026-ui-smoke-initial.stderr.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 14896,
+      "sha256": "fc9f7939f75f7a28fa0cda3153453a38bfd23b66190fc15f0e3a43d797eae80b"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/027-ui-smoke-initial.stdout.log",
+      "target": "arm/raw/diagnostics/027-ui-smoke-initial.stdout.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 20923,
+      "sha256": "8193e17db4fb85f08944cb9a3aa7789f67716b0e937493a020981679bcd5954b"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/028-binary_output.bin",
+      "target": "arm/raw/diagnostics/028-binary_output.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 925,
+      "sha256": "6753dfb1d9cb89d01d9a950ae904117cff22519a88f620c5f8007a3bf18c28d0"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/029-binary_output.bin.idx",
+      "target": "arm/raw/diagnostics/029-binary_output.bin.idx",
+      "kind": "original-arm-selected-file",
+      "bytes": 71,
+      "sha256": "3782c3b53602e43cd2d249e614fbb66501f343959bbed09f4b3e756233848325"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/030-binary_results.bin",
+      "target": "arm/raw/diagnostics/030-binary_results.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 7803,
+      "sha256": "35d6cc4cd82b880da54720c4d96d7bc51c23a266ea05d47e1448bf66d798951e"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/031-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "target": "arm/raw/diagnostics/031-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "kind": "original-arm-selected-file",
+      "bytes": 7961,
+      "sha256": "904aadad8d4a21de2e4d13b18f98f5d3b93fb364c6fe602dbfbce59fbd9daf8f"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/032-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "target": "arm/raw/diagnostics/032-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "kind": "original-arm-selected-file",
+      "bytes": 654,
+      "sha256": "95d29eb0f602788ebb049e6098739435c7a8b2a50d690c9fe3e96d31b05aee1f"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/033-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "target": "arm/raw/diagnostics/033-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "kind": "original-arm-selected-file",
+      "bytes": 1227,
+      "sha256": "afcc9c327f50e332d239fff1904d857e76a4790482407a8f3c285ad71f867197"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/034-chat-control-journey-1791578761215.png",
+      "target": "arm/raw/diagnostics/034-chat-control-journey-1791578761215.png",
+      "kind": "original-arm-selected-file",
+      "bytes": 269337,
+      "sha256": "13faa817453f4ca581636843f546ebe98e512601de140abfc0172a14185a8562"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/diagnostics/035-chat-control-journey-1791578761215.swing.json.bin",
+      "target": "arm/raw/diagnostics/035-chat-control-journey-1791578761215.swing.json.bin",
+      "kind": "original-arm-selected-file",
+      "bytes": 155351,
+      "sha256": "fba3edffc425a947d94f35b502243fcdb76982a41b9a11d0c5d9b5fdc89ce6f0"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "target": "arm/raw/journey-evidence.json",
+      "kind": "original-journey-manifest",
+      "bytes": 12468,
+      "sha256": "c8f9a8d31001f7d6b7d35d7a4a85d83cb55fd4857037a537063d73ad3399b571"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/extracted/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "target": "arm/raw/runner-gui-guard.log",
+      "kind": "original-arm-selected-file",
+      "bytes": 881,
+      "sha256": "622b02d2c7287888c95406a394b9d2c9bf5c6670e7fd2f0d056ec98308e4dc2d"
+    },
+    {
+      "source": ".work/astra-3900-fail/arm/verification.json",
+      "target": "arm/verification.json",
+      "kind": "original-arm-artifact-or-diagnostic",
+      "bytes": 9303,
+      "sha256": "7b35df66694f0024dfb38bf7d74a2742634b6a93abc2b66de4db4b1df3b36f6f"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1094.0.json",
+      "target": "aws/client-s3-3.1094.0.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3637,
+      "sha256": "60b1682395a81a4a405caa14a618a2a4c229e8825c497ac632faddfc562d4fe4"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/client-s3-3.1149.0.json",
+      "target": "aws/client-s3-3.1149.0.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3796,
+      "sha256": "c7f2710c1f5b884314a71dea97e86b264bb7b15ae301a6a9f0a96c223ed088d6"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.62.json",
+      "target": "aws/credential-provider-http-3.972.62.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3090,
+      "sha256": "dd7155a57ffd382d5008bb2d71c6fc04283fe3ddd2fd3fc3eb3496ccfb0f1f1f"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-http-3.972.75.json",
+      "target": "aws/credential-provider-http-3.972.75.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3260,
+      "sha256": "e08e2e55a6983149c4d2aaa8e74e52d344fb403dcf722776fa421ca22ab0a108"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.71.json",
+      "target": "aws/credential-provider-node-3.972.71.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3113,
+      "sha256": "5d9c871fb75be4a7f74a163f32ce4e5aa53cb3c9833b4c15606481ef35666419"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/credential-provider-node-3.972.85.json",
+      "target": "aws/credential-provider-node-3.972.85.json",
+      "kind": "later-registry-get-metadata",
+      "bytes": 3285,
+      "sha256": "f04434d2893760a7cd2178b19c468c66d5a47eaa01c86687412ae0e9f1e20245"
+    },
+    {
+      "source": ".work/astra-aws-registry-3900/2026-10-10T00-46-02.114Z/readback.json",
+      "target": "aws/readback.json",
+      "kind": "later-registry-get-readback",
+      "bytes": 7492,
+      "sha256": "a6066c8d3accd16cceffcca88ba58127ef9cbe2194b22842a9e5db44075e543d"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/annotations.json",
+      "target": "cli/job-114013174530/annotations.json",
+      "kind": "original-failed-job",
+      "bytes": 837,
+      "sha256": "4b5a4ad3cf45cfea3c843186636950cace33ff39460e2256c8c459a7cf7abbc0"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.json",
+      "target": "cli/job-114013174530/job.json",
+      "kind": "original-failed-job",
+      "bytes": 3335,
+      "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.log",
+      "target": "cli/job-114013174530/job.log",
+      "kind": "original-failed-job",
+      "bytes": 98834,
+      "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114051623102/annotations.json",
+      "target": "cli/job-114051623102/annotations.json",
+      "kind": "original-failed-job",
+      "bytes": 1080,
+      "sha256": "dc27bd6402837554d419522df49023f1268697f758e1fc06a474a44a88c2c174"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114051623102/job.json",
+      "target": "cli/job-114051623102/job.json",
+      "kind": "original-failed-job",
+      "bytes": 3190,
+      "sha256": "520928bbc52a06a1022e72db8443a8f22870157b8927f5ab25251ee5ddd488f1"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114051623102/job.log",
+      "target": "cli/job-114051623102/job.log",
+      "kind": "original-failed-job",
+      "bytes": 3994,
+      "sha256": "1c38281036222a0e15644c827b51e67960d4702fb8a3e0638fea7661504d16ac"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/snapshot-2026-10-10T00-42-38.467Z.json",
+      "target": "cli/snapshot.json",
+      "kind": "original-bound-snapshot",
+      "bytes": 275313,
+      "sha256": "21cc3dd056e0d01661a47b8b9a5ee3bf84133fa52ef560e1a637ab361f5c7630"
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/terminal-readback.json",
+      "target": "cli/terminal-readback.json",
+      "kind": "original-terminal-readback",
+      "bytes": 11822,
+      "sha256": "976b8629bbde0d3db3f686003289ef3b7b2583bb41fa8d1a7d2bb8906060bcda"
+    },
+    {
+      "source": null,
+      "target": "index.json",
+      "kind": "generated-archive-metadata",
+      "bytes": 6578,
+      "sha256": "4918d318a4253d026721bec78edbf7f0d5a592a7fedde6d4169df2bb72f88a43"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/job.json",
+      "target": "jobs/arm-windows/job.json",
+      "kind": "original-job-readback",
+      "bytes": 5745,
+      "sha256": "3116b14bfa7fb61a200d409aaa8b74f804c0713ffd2b136b111769d6f1892954"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/job.log",
+      "target": "jobs/arm-windows/job.log",
+      "kind": "original-job-readback",
+      "bytes": 235938,
+      "sha256": "cad309c2c3ad7847d6b776f504f625b9f7dd8a106d89e2cf8b7216e2e8392d43"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/readback.json",
+      "target": "jobs/arm-windows/readback.json",
+      "kind": "original-job-readback",
+      "bytes": 338,
+      "sha256": "4194ffe3657832de2f015c3b45cb7825c44010540b884c2ccb514ee239f63afe"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm-windows-c3900e9b-attempt1/run.json",
+      "target": "jobs/arm-windows/run.json",
+      "kind": "original-job-readback",
+      "bytes": 15306,
+      "sha256": "df09bd44c19745da70edcbb86e55abb4900905397d946dd9b777ce96d0598b28"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/job.json",
+      "target": "jobs/ci-install/job.json",
+      "kind": "original-job-readback",
+      "bytes": 3834,
+      "sha256": "ab0087d532f21fa796782767940f0a3008b28cf758038e4301bf69d1b52162e6"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/job.log",
+      "target": "jobs/ci-install/job.log",
+      "kind": "original-job-readback",
+      "bytes": 198926,
+      "sha256": "ec5f83dce817428b48238a88e7f3caf689a72bd6448ac5f9004824c5f517219a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/readback.json",
+      "target": "jobs/ci-install/readback.json",
+      "kind": "original-job-readback",
+      "bytes": 341,
+      "sha256": "b2960f12e03d7b6865f7613c510889d7b98f0b2eb4fb6a36e340a834865cae40"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-global-install-c3900e9b-attempt1/run.json",
+      "target": "jobs/ci-install/run.json",
+      "kind": "original-job-readback",
+      "bytes": 15274,
+      "sha256": "59a288720475779dcae0580a6e5e8128905252505080c80fbd7a14a9cf2194e6"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/job.json",
+      "target": "jobs/ci-unit/job.json",
+      "kind": "original-job-readback",
+      "bytes": 5152,
+      "sha256": "58e01e6c535f83ac058501ef697d963916fdcc30d63204aeb7321ad27791d5e2"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/job.log",
+      "target": "jobs/ci-unit/job.log",
+      "kind": "original-job-readback",
+      "bytes": 130471,
+      "sha256": "a5deee50220f6838b0228e3895be83f1d07ba9b7b9d5fe51985a7efb1c23a1bd"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/readback.json",
+      "target": "jobs/ci-unit/readback.json",
+      "kind": "original-job-readback",
+      "bytes": 334,
+      "sha256": "d722a165e2ac2f1f0bc0e331628ab3f8e6333d838820996c3f54eb311d499e4a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-windows-unit-c3900e9b-attempt1/run.json",
+      "target": "jobs/ci-unit/run.json",
+      "kind": "original-job-readback",
+      "bytes": 15274,
+      "sha256": "59a288720475779dcae0580a6e5e8128905252505080c80fbd7a14a9cf2194e6"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/job.json",
+      "target": "jobs/cli-unit11/job.json",
+      "kind": "original-job-readback",
+      "bytes": 3335,
+      "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/job.log",
+      "target": "jobs/cli-unit11/job.log",
+      "kind": "original-job-readback",
+      "bytes": 98834,
+      "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/readback.json",
+      "target": "jobs/cli-unit11/readback.json",
+      "kind": "original-job-readback",
+      "bytes": 349,
+      "sha256": "1a9a7ae35e8329422409fda390927aa3e2720ad94fbb098f256229cb31b2b309"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-windows-unit11-c3900e9b-attempt1/run.json",
+      "target": "jobs/cli-unit11/run.json",
+      "kind": "original-job-readback",
+      "bytes": 15737,
+      "sha256": "0481a67f5d6bcb7082cabbb7460f171f9144042481c1f33ebe6d14f372569a71"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/job.json",
+      "target": "jobs/remote-ssh/job.json",
+      "kind": "original-job-readback",
+      "bytes": 4568,
+      "sha256": "402af6d1f6fdb5b2c809b1998c2de96e8812cf2fcbd9bf33531aea83c903c0bb"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/job.log",
+      "target": "jobs/remote-ssh/job.log",
+      "kind": "original-job-readback",
+      "bytes": 36463,
+      "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/readback.json",
+      "target": "jobs/remote-ssh/readback.json",
+      "kind": "original-job-readback",
+      "bytes": 350,
+      "sha256": "1b3d440004a7303f7c61fbbf545af10446359616751e7dc6c5d87f60322d0cc0"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-remote-ssh-c3900e9b-attempt1/run.json",
+      "target": "jobs/remote-ssh/run.json",
+      "kind": "original-job-readback",
+      "bytes": 15290,
+      "sha256": "cd67345cb6962d234f7f5c09800d6a8a417f17b721e759f3d401b6c713f93658"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/original-test.js",
+      "target": "local-eval/attempt-1/original-test.js",
+      "kind": "local-proposed-repair-test",
+      "bytes": 16245,
+      "sha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "target": "local-eval/attempt-1/phases.log",
+      "kind": "local-proposed-repair-test",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "target": "local-eval/attempt-1/readback.json",
+      "kind": "local-proposed-repair-test",
+      "bytes": 2895,
+      "sha256": "be112a945657905035e7eb1703d3c97125e5787b852e87eac63707559d5d0068"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "target": "local-eval/attempt-1/stderr.log",
+      "kind": "local-proposed-repair-test",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "target": "local-eval/attempt-1/stdout.log",
+      "kind": "local-proposed-repair-test",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/tested-source.js",
+      "target": "local-eval/attempt-1/tested-source.js",
+      "kind": "local-proposed-repair-test",
+      "bytes": 18753,
+      "sha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "target": "local-eval/attempt-1/vitest-report.json",
+      "kind": "local-proposed-repair-test",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "target": "local-eval/final-readback.json",
+      "kind": "local-proposed-repair-test",
+      "bytes": 4476,
+      "sha256": "182dd45fbd850e46e5b69abb54830d6a9f3384ba78ed5fb954d2910e6d7b703e"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-source.js",
+      "target": "local-eval/final-source.js",
+      "kind": "local-proposed-repair-test",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/finalize.mjs",
+      "target": "local-eval/finalize.mjs",
+      "kind": "local-proposed-repair-test",
+      "bytes": 3404,
+      "sha256": "c5ae2c4a5da077ab61189500ff796291e30dad08d2ce8e5ebf6d28ba34e79813"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/run.mjs",
+      "target": "local-eval/run.mjs",
+      "kind": "local-proposed-repair-test",
+      "bytes": 3209,
+      "sha256": "66ae90356ec4c99909e5d9d28a4b771aa089372306a69c6e120f9e7a4472f2f1"
+    },
+    {
+      "source": ".work/astra-ssh3900/artifact.zip",
+      "target": "remote/artifact.zip",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 2177871,
+      "sha256": "ebcce7540d69768e1b2e4fb085303df67aa356ac243bfef36c742342d3358292"
+    },
+    {
+      "source": ".work/astra-ssh3900/download-verification.json",
+      "target": "remote/download-verification.json",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 1004,
+      "sha256": "a4d7153e732dff456d3ca4849c24f08ec7758f03ab94d15c66ae096ab13fe6a6"
+    },
+    {
+      "source": ".work/astra-ssh3900/extraction-verification.json",
+      "target": "remote/extraction-verification.json",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 2639,
+      "sha256": "3d411315a3012f994bbae9e41297a4367296e92eaed35d2ec34874617413a7a1"
+    },
+    {
+      "source": ".work/astra-ssh3900/job.json",
+      "target": "remote/job.json",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 3651,
+      "sha256": "7a881e5ada43dcc557bb5132c97f5dd1b1747cc50b8a2942dd97778671d90753"
+    },
+    {
+      "source": ".work/astra-ssh3900/job.log",
+      "target": "remote/job.log",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 36463,
+      "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5"
+    },
+    {
+      "source": ".work/astra-ssh3900/metadata.json",
+      "target": "remote/metadata.json",
+      "kind": "original-remote-artifact-or-readback",
+      "bytes": 760,
+      "sha256": "dad10d97713baa68927863606dd0bff7cb5981fd6e0172eacd3399b9211812df"
+    },
+    {
+      "source": ".work/astra-ssh3900/mirror-manifest.raw",
+      "target": "remote/mirror/mirror-manifest.raw",
+      "kind": "later-external-mirror-get",
+      "bytes": 424,
+      "sha256": "019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+    },
+    {
+      "source": ".work/astra-ssh3900/mirror-readback.json",
+      "target": "remote/mirror/mirror-readback.json",
+      "kind": "later-external-mirror-get",
+      "bytes": 496,
+      "sha256": "21daad2241eea582a4f2ea160f0a21142e644b7df3b15b252696083b09143e6a"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/diagnostics/001-redacted-diagnostics.json",
+      "target": "remote/raw/diagnostics/001-redacted-diagnostics.json",
+      "kind": "original-remote-extraction",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/journey-evidence.json",
+      "target": "remote/raw/journey-evidence.json",
+      "kind": "original-remote-extraction",
+      "bytes": 6503,
+      "sha256": "16944b4a3fc2f93bf5a890f9aa568518013526bc75d3f89ad7410a27415a5cbc"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "target": "remote/raw/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "kind": "original-remote-extraction",
+      "bytes": 736432,
+      "sha256": "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "target": "remote/raw/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "kind": "original-remote-extraction",
+      "bytes": 744451,
+      "sha256": "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/001-exact-commit.json",
+      "target": "remote/raw/roadmap-artifacts/001-exact-commit.json",
+      "kind": "original-remote-extraction",
+      "bytes": 123,
+      "sha256": "db67485d9e4082e520b84d9015561a966e2e203f1bc7aafdc217469428a2b8e4"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/002-host-environment.json",
+      "target": "remote/raw/roadmap-artifacts/002-host-environment.json",
+      "kind": "original-remote-extraction",
+      "bytes": 1455,
+      "sha256": "843a76746195e1b49c7689da023dfc737d8363dd60e0ce0163652425aec1a8d6"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/003-remote-environment.json",
+      "target": "remote/raw/roadmap-artifacts/003-remote-environment.json",
+      "kind": "original-remote-extraction",
+      "bytes": 189,
+      "sha256": "99a21b15ba02b424cc30d48516300376cfbac15f49a346d4dc5fbab543e8c9db"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "target": "remote/raw/roadmap-artifacts/004-redacted-diagnostics.json",
+      "kind": "original-remote-extraction",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/005-artifact-digests.json",
+      "target": "remote/raw/roadmap-artifacts/005-artifact-digests.json",
+      "kind": "original-remote-extraction",
+      "bytes": 675,
+      "sha256": "2157df32aee08c5f9072aaae704e22cf56e1027316dfa80cc4c6bd293c64080e"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "target": "remote/raw/roadmap-artifacts/006-candidate-vsix.vsix",
+      "kind": "original-remote-extraction",
+      "bytes": 714971,
+      "sha256": "3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "target": "remote/raw/roadmap-artifacts/007-candidate-manifest.json",
+      "kind": "original-remote-extraction",
+      "bytes": 714,
+      "sha256": "66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b"
+    },
+    {
+      "source": ".work/astra-ssh3900/raw/journey/roadmap-artifacts/008-outcome-observations.json",
+      "target": "remote/raw/roadmap-artifacts/008-outcome-observations.json",
+      "kind": "original-remote-extraction",
+      "bytes": 305,
+      "sha256": "6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6"
+    },
+    {
+      "source": null,
+      "target": "source-verification.json",
+      "kind": "generated-archive-metadata",
+      "bytes": 45053,
+      "sha256": "6aa9546750f23ad396cf50b0f3a1ea26945a3e7851333e94871253126bdeed11"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/artifacts-1.json",
+      "target": "workflows/arm/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 7256,
+      "sha256": "8438a2950899bd8156593d2875f194c6d463c8681274457953c0781cfca3c019"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/jobs-1.json",
+      "target": "workflows/arm/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 38177,
+      "sha256": "3b5c51445a019079736c571dec3b756e9ccc9fb3191cd564b689f1594e075139"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/readback.json",
+      "target": "workflows/arm/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 80059,
+      "sha256": "36d39e72453fc5f3566a66199e7ed6fcfa6ad52fba92c998f2881216842bceca"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-arm64-c3900e9b-attempt1/run.json",
+      "target": "workflows/arm/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13760,
+      "sha256": "b1303f6036cfe24e5c93eab2d62ab0ac63c0827208ebf7287fe87ed4afb9a3d6"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/artifacts-1.json",
+      "target": "workflows/ci-tests/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 2299,
+      "sha256": "2e0602e7dd6d13ddb308c34c22cd9a7cee1c17e4ad77696c48dd831094551e1a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/jobs-1.json",
+      "target": "workflows/ci-tests/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 38636,
+      "sha256": "1d93a0f1c10d93f5c6f1ef81542cb351c8d392c26b8b517e6fb3031e8d9b6f2b"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/readback.json",
+      "target": "workflows/ci-tests/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 74422,
+      "sha256": "37882ecbf2ae0e0f4f6179a8254ae3dec41b6c7ca729eb41a4f50a4bc8cfe614"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ci-tests-c3900e9b-attempt1/run.json",
+      "target": "workflows/ci-tests/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13728,
+      "sha256": "d78db90f5e8828664327a20c89125f6989ccb1cd551dea800d99a06f909cf670"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/artifacts-1.json",
+      "target": "workflows/cli/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 6299,
+      "sha256": "778691761d4344c422ec07381f5d2fa3cf7342d33130df2270fda97d6dfadc07"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/jobs-1.json",
+      "target": "workflows/cli/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 182504,
+      "sha256": "554fac66287a68fefbec28cebf28c018b9bfbcc4f88b923724efabcb8bee6b64"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/readback.json",
+      "target": "workflows/cli/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 283480,
+      "sha256": "c05bc85f3fd54da65639c7765a0e7580ecbbc6ff0bf23de18d9fa7a743af263f"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/cli-ci-c3900e9b-attempt1/run.json",
+      "target": "workflows/cli/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 14120,
+      "sha256": "23fccd5cf5d69396824e5fd8ac42764809a5b30dfcf62772e3cd6b3a86f76ebd"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/full-tests/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 1524,
+      "sha256": "3b279e7e3443f49d3de4050428ceab67560cf991f2c4ad5676a43d5b4064a871"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/jobs-1.json",
+      "target": "workflows/full-tests/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 11175,
+      "sha256": "e2cceb4ed6c59c61b84ae3d4e90a4e72b924413857912b90b72a26e64be36fd4"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/readback.json",
+      "target": "workflows/full-tests/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 34179,
+      "sha256": "1b474208bdda38589465b0041ff76b10cbcb2773206307e3434dd9f0a1adde46"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/full-tests-c3900e9b-final/run.json",
+      "target": "workflows/full-tests/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13773,
+      "sha256": "bf33294bb9c433996a58ce44bd6fe0f44dc86c1b8252d69184b1bdb3b771d182"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/artifacts-1.json",
+      "target": "workflows/ide/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 16260,
+      "sha256": "f4b61e199296d9467db78f0eaa35692ce7552d8f2302de809d016eaca996d968"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/jobs-1.json",
+      "target": "workflows/ide/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 62572,
+      "sha256": "81d1cdaef423c8cc25cbd80fd913be8fe60328fbb9002bd7134d0c193c184c09"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/readback.json",
+      "target": "workflows/ide/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 125160,
+      "sha256": "ee44aedbedb89df3bd51d35f2d52864fa4077d8948c34ed3e7e33dfe4d1408e5"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/ide-c3900e9b-attempt1/run.json",
+      "target": "workflows/ide/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13744,
+      "sha256": "b6f2dfb41831e75dca7489b83b8cbb55c24c01cf162f061d30ce51b7d0ff6413"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/model-catalog/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 813,
+      "sha256": "94c7c22bec6ff4ca2a3593c90b6e39f040c585f83c75cc3a6740b66e65405c92"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/jobs-1.json",
+      "target": "workflows/model-catalog/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 3377,
+      "sha256": "ea0a663e3ae459aa201658bb149d8e600e146826b8b4cd463feee513158b4ecf"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/readback.json",
+      "target": "workflows/model-catalog/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 22142,
+      "sha256": "028e0d08337b7b2e1de26a55182c70eeeb78cad7188afa227d1f2774b3c8cddd"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/model-catalog-c3900e9b-final/run.json",
+      "target": "workflows/model-catalog/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13754,
+      "sha256": "bf1034ab8113601bfc383d4666a2be5c1699c886e7120e0f22e842131f2f5a35"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/pr-tests/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/jobs-1.json",
+      "target": "workflows/pr-tests/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 4923,
+      "sha256": "9e74dc62102587d5916cb45e282c63ba4ec79dc3e499f57109132eb4515ec03a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/readback.json",
+      "target": "workflows/pr-tests/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 23475,
+      "sha256": "dadef6022fe0ecf278a4293f98b48fb73f5291194c40ac337ef2091fef80eb63"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/pr-tests-c3900e9b-final/run.json",
+      "target": "workflows/pr-tests/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13732,
+      "sha256": "4558463b80aa08863505881df0b854cf1c971afed3d9f7c30752376b5749c761"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/quality/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/jobs-1.json",
+      "target": "workflows/quality/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 17577,
+      "sha256": "50f4e9333122be7787223909535ba09b8595d444b5cc55afe8e33ceb4f686c44"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/readback.json",
+      "target": "workflows/quality/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 40894,
+      "sha256": "97857fbbfcfdc280ca547e92b2f7dfe3a1888c6826301d223aac43560d23e649"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/quality-c3900e9b-final/run.json",
+      "target": "workflows/quality/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13751,
+      "sha256": "66fed15767cdf37c55983872b7893a53d7b3c814acff77b31afaf9d7cd4184fd"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/safety/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 3191,
+      "sha256": "3ac52ce4e049616bdd41e7669e0a95d10a796e2cdf4e7c0941ad36e8c7f5affe"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/jobs-1.json",
+      "target": "workflows/safety/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13937,
+      "sha256": "f6dd6fb2dd269505b5c8e1c77586c97238641231f1a05ce1e4502ebc571bbb86"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/readback.json",
+      "target": "workflows/safety/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 40097,
+      "sha256": "977305151a73be5ac35e82c55df86e0ad6faf14c43113f8327bc040185b8923e"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/safety-c3900e9b-final/run.json",
+      "target": "workflows/safety/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13759,
+      "sha256": "07a242305efadec0a174db743e52bc03536d1cf6da36dd7aa3301f860d7f47f4"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/artifacts-1.json",
+      "target": "workflows/strict/artifacts-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 4557,
+      "sha256": "86fa494860101d885d68722e8da29f8e22fd15f14cd1485344fc63341261dfb6"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/jobs-1.json",
+      "target": "workflows/strict/jobs-1.json",
+      "kind": "original-workflow-readback",
+      "bytes": 21590,
+      "sha256": "5fa4b7ac9ae06e3f84c0309c84284bf7dd248c52bb5e79086b9fe43fe56ce770"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/readback.json",
+      "target": "workflows/strict/readback.json",
+      "kind": "original-workflow-readback",
+      "bytes": 53072,
+      "sha256": "37e9f535ff29bae2c45c1bb99f956a6741e9056e65895e026048927477c48bed"
+    },
+    {
+      "source": ".work/release-preflight-0.166.96/strict-c3900e9b-final/run.json",
+      "target": "workflows/strict/run.json",
+      "kind": "original-workflow-readback",
+      "bytes": 13752,
+      "sha256": "111e4cf8236c61e269946a710383c7707d1f647e65618a9ced4b37f06b847faf"
+    }
+  ]
+}

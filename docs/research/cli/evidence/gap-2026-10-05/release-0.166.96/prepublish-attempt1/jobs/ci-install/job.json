@@ -1,0 +1,124 @@
+{
+  "id": 114013172321,
+  "run_id": 37987544143,
+  "workflow_name": "CI Tests",
+  "head_branch": "feature/cli-ide-gap-completion-20261009",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37987544143",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAai7byYQ",
+  "head_sha": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/114013172321",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37987544143/job/114013172321",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-09T20:31:15Z",
+  "started_at": "2026-10-09T21:05:55Z",
+  "completed_at": "2026-10-09T21:06:37Z",
+  "name": "CLI Global Install Smoke (ubuntu-latest)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T21:05:56Z",
+      "completed_at": "2026-10-09T21:05:56Z"
+    },
+    {
+      "name": "Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-09T21:05:56Z",
+      "completed_at": "2026-10-09T21:06:11Z"
+    },
+    {
+      "name": "Verify exact installed CLI source commit",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-09T21:06:11Z",
+      "completed_at": "2026-10-09T21:06:11Z"
+    },
+    {
+      "name": "Setup Node.js",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-09T21:06:11Z",
+      "completed_at": "2026-10-09T21:06:12Z"
+    },
+    {
+      "name": "Verify installed runtime identity guard contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-09T21:06:12Z",
+      "completed_at": "2026-10-09T21:06:12Z"
+    },
+    {
+      "name": "Pack CLI and exact internal dependency candidates",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-09T21:06:12Z",
+      "completed_at": "2026-10-09T21:06:16Z"
+    },
+    {
+      "name": "Global install from tarball (exercises postinstall)",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 7,
+      "started_at": "2026-10-09T21:06:16Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    },
+    {
+      "name": "Verify CLI executable",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8,
+      "started_at": "2026-10-09T21:06:35Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    },
+    {
+      "name": "Verify installed evolution runtime and PR recovery smoke",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9,
+      "started_at": "2026-10-09T21:06:35Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    },
+    {
+      "name": "Post Setup Node.js",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 17,
+      "started_at": "2026-10-09T21:06:35Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    },
+    {
+      "name": "Post Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18,
+      "started_at": "2026-10-09T21:06:35Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-10-09T21:06:35Z",
+      "completed_at": "2026-10-09T21:06:35Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/114013172321",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000388088,
+  "runner_name": "GitHub Actions 1000388088",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

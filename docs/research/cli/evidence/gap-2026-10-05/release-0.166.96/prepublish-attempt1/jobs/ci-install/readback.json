@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-10T00:43:25.639Z",
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544143,
+  "jobId": 114013172321,
+  "jobName": "CLI Global Install Smoke (ubuntu-latest)",
+  "conclusion": "failure",
+  "bytes": 198926,
+  "sha256": "ec5f83dce817428b48238a88e7f3caf689a72bd6448ac5f9004824c5f517219a"
+}

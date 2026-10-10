@@ -1,0 +1,105 @@
+{
+  "schema": "chainlesschain.local-repair-evidence-archive/v1",
+  "createdAt": "2026-10-10T01:10:08.589Z",
+  "status": "LOCAL_CHECKS_PASSED_EXACT_HEAD_MATRIX_PENDING",
+  "failedCandidateCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "currentRepairCommit": null,
+  "currentRepairCommitNote": "Source-file SHA256 bindings below identify the tested repair bytes. This archive does not claim an assigned repair commit or a passed exact-head workflow matrix.",
+  "releaseGate": "VALIDATION_PENDING",
+  "publication": "NOT_PUBLISHED",
+  "sdkTests": "NOT_RUN",
+  "formalSamples": "NOT_RUN",
+  "nativeAdmission": "NOT_ADMITTED",
+  "newProviderCalls": 0,
+  "currentSourceBindings": [
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "archive": "sources/cli-evolution-test.js",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "archive": "sources/IdeUiSmokeTest.java",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+      "archive": "sources/remote-run.cjs",
+      "bytes": 40728,
+      "sha256": "5d740efe22b76242af80c9e08276336c9cc33ccd00f2c5faabfe9bdc22a5d191",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container.test.cjs",
+      "archive": "sources/remote-test.cjs",
+      "bytes": 22414,
+      "sha256": "a39dd3e47980cdcb888344615550f7aa10e9285a9b33fd9b289d87310dec15b0",
+      "matchesTestReceipt": true
+    }
+  ],
+  "localResults": {
+    "cli": {
+      "status": "LOCAL_FUNCTIONAL_TESTS_PASSED",
+      "passed": 7,
+      "failed": 0,
+      "evidence": "cli/final-readback.json",
+      "fixture": {
+        "eventCount": 600,
+        "sequence": 600,
+        "serializedBytes": 3445514
+      },
+      "functionalCaseBudgetMs": 180000,
+      "globalTestTimeoutMs": 90000,
+      "phaseDurationMs": 42121,
+      "limitations": [
+        "The original unmodified source was not rerun locally. The modified full fixture completed below 90 seconds locally; this does not reproduce or establish the cause of the hosted CI timeout.",
+        "Local timings are phase diagnostics, not a production SLO or a substitute for the next exact-SHA GitHub matrix."
+      ]
+    },
+    "arm": {
+      "status": "LOCAL_CONTRACT_PASSED",
+      "passed": 14,
+      "evidence": "arm/report.json",
+      "sourceAndGradleBinding": "arm/gradle-script-binding.json",
+      "engine": "Rhino 1.7.15; real Swing EDT; headless",
+      "adaptations": [
+        "ApplicationManager scheduler replaced with controlled EDT queue",
+        "Only popup owner Window lookup replaced with real injected JRootPane; receipt and cleanup scripts unmodified",
+        "Popup visibility tied to real parent attachment; Enter physically removes component and calls removeNotify; disposed Robot fixture lookup simulated"
+      ],
+      "limitations": [
+        "No GUI/IDE launched; real 3900 host artifact supplies failure evidence",
+        "This contract does not replace next-menu/preview/confirmation assertions or exact-head CI"
+      ]
+    },
+    "remote": {
+      "status": "LOCAL_COMMAND_CONTRACT_PASSED",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "evidence": "remote/receipt.json",
+      "scope": "Local command contract tests only; no Docker pull, container creation, SSH connection, real IDE or remote journey executed"
+    }
+  },
+  "requiredNextValidation": "Run the required complete Linux, Windows and macOS GitHub Actions gates on the new exact release commit, including CLI CI, CLI Strict Sandbox and actual IDE journeys. Local results do not replace these gates or transfer the six successful gates from the failed 3900 candidate.",
+  "preservation": {
+    "originalBytesPreserved": true,
+    "priorPrepublishArchiveUnmodified": true,
+    "sourceMappings": "manifest.json",
+    "verification": "source-verification.json",
+    "readback": "archive-readback.json",
+    "excluded": "Compiled .class payloads and dependency JARs; relevant available receipt hashes verified against the source files before copying.",
+    "hashCoverage": "manifest.json covers copied originals/source snapshots plus generated index and source-verification; archive-readback.json binds manifest.json. No circular self-hash."
+  },
+  "stats": {
+    "copiedFileCount": 43,
+    "copiedBytes": 352244,
+    "sourceReceiptChecks": 33,
+    "maxRepositoryRelativePathLength": 110,
+    "caseInsensitiveCollisions": 0
+  }
+}

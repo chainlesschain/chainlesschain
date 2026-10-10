@@ -1,0 +1,18 @@
+{
+  "verifiedAt": "2026-10-10T01:10:08.607Z",
+  "status": "LOCAL_CHECKS_PASSED_EXACT_HEAD_MATRIX_PENDING",
+  "archiveIntegrity": "VERIFIED",
+  "originalsUnchanged": true,
+  "allManifestEntriesVerified": true,
+  "manifest": {
+    "file": "manifest.json",
+    "bytes": 12932,
+    "sha256": "f2946d4faded5cbd0bb425d971990937418755a98acc762a02b3366f58766c6f"
+  },
+  "copiedFileCount": 43,
+  "copiedBytes": 352244,
+  "sourceReceiptChecks": 33,
+  "maxRepositoryRelativePathLength": 110,
+  "caseInsensitiveCollisions": 0,
+  "totalArchiveFileCount": 47
+}

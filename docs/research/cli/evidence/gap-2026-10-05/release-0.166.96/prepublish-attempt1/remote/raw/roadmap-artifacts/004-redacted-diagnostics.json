@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.ide-redacted-diagnostics.v1",
+  "records": [
+    {
+      "command": "docker",
+      "args": [
+        "pull",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+      ],
+      "status": 1,
+      "signal": null,
+      "stdout": "",
+      "stderr": "Error response from daemon: toomanyrequests: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit\n"
+    }
+  ],
+  "journeyFailureDigest": "sha256:ef185e0e58e1938134d2c6658bc11741559bf9e39b1b689d2a17e100850203ee"
+}

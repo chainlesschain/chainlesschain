@@ -1,0 +1,189 @@
+{
+  "schema": "chainlesschain.prepublish-evidence-archive/v1",
+  "createdAt": "2026-10-10T01:03:56.663Z",
+  "status": "VALIDATION_FAILED",
+  "candidateCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "versions": {
+    "sdk": {
+      "version": "0.2.14",
+      "published": false
+    },
+    "cli": {
+      "version": "0.166.96",
+      "published": false
+    },
+    "vscode": {
+      "version": "0.37.140",
+      "published": false
+    },
+    "jetbrains": {
+      "version": "0.4.158",
+      "published": false
+    }
+  },
+  "workflows": [
+    {
+      "name": "CLI CI",
+      "runId": 37987544644,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "failure",
+      "actualJobCount": 69,
+      "counts": {
+        "success": 66,
+        "failure": 2,
+        "skipped": 1
+      },
+      "evidence": "workflows/cli/readback.json"
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 37987544322,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "failure",
+      "actualJobCount": 19,
+      "counts": {
+        "success": 15,
+        "failure": 1,
+        "skipped": 3
+      },
+      "evidence": "workflows/ide/readback.json"
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 37987544323,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "failure",
+      "actualJobCount": 10,
+      "counts": {
+        "success": 8,
+        "failure": 2
+      },
+      "evidence": "workflows/arm/readback.json"
+    },
+    {
+      "name": "CI Tests",
+      "runId": 37987544143,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "failure",
+      "actualJobCount": 14,
+      "counts": {
+        "success": 11,
+        "failure": 2,
+        "skipped": 1
+      },
+      "evidence": "workflows/ci-tests/readback.json"
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 37987544128,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 5,
+      "counts": {
+        "success": 5
+      },
+      "evidence": "workflows/strict/readback.json"
+    },
+    {
+      "name": "Code Quality & Security",
+      "runId": 37987544273,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 9,
+      "counts": {
+        "success": 7,
+        "skipped": 2
+      },
+      "evidence": "workflows/quality/readback.json"
+    },
+    {
+      "name": "Model Catalog Review",
+      "runId": 37987544176,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 1,
+      "counts": {
+        "success": 1
+      },
+      "evidence": "workflows/model-catalog/readback.json"
+    },
+    {
+      "name": "PR Tests",
+      "runId": 37987544124,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 2,
+      "counts": {
+        "success": 2
+      },
+      "evidence": "workflows/pr-tests/readback.json"
+    },
+    {
+      "name": "Full Test Automation with Diagnostics",
+      "runId": 37987544241,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 4,
+      "counts": {
+        "success": 3,
+        "skipped": 1
+      },
+      "evidence": "workflows/full-tests/readback.json"
+    },
+    {
+      "name": "IDE Roadmap Safety Matrix",
+      "runId": 37987544184,
+      "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+      "conclusion": "success",
+      "actualJobCount": 4,
+      "counts": {
+        "success": 4
+      },
+      "evidence": "workflows/safety/readback.json"
+    }
+  ],
+  "sdkTests": "NOT_RUN",
+  "formalSamples": "NOT_RUN",
+  "nativeAdmission": "NOT_ADMITTED",
+  "newProviderCalls": 0,
+  "evidence": {
+    "manifest": "manifest.json",
+    "verification": "source-verification.json",
+    "readback": "archive-readback.json",
+    "cliTerminal": "cli/terminal-readback.json",
+    "localRepair": "local-eval/final-readback.json",
+    "aws": "aws/readback.json",
+    "arm": "arm/diagnosis.json",
+    "remote": "remote/extraction-verification.json",
+    "mirror": "remote/mirror/mirror-readback.json"
+  },
+  "findings": [
+    "CLI has 69 actual jobs: 66 success, 2 failure, 1 skipped. The skipped verify-cli job left SDK tests NOT_RUN; the historical expectedJobCount 71 is not an actual count.",
+    "Windows unit shard 11 exceeded the 90000 ms test budget (observed 91619 ms); installation and checkout succeeded. The dependent PM aggregate failed on the incomplete matrix.",
+    "The local proposed repair preserves the complete 600-event fixture and passed all seven tests. It was not a local rerun of the unmodified source and does not establish the hosted timeout cause or a production SLO.",
+    "ARM evidence proves Restore code dispatch and rendered preview followed by an expired-list receipt failure before action completion. It does not prove a complete journey or resolve the earlier 8e5 failure cause.",
+    "Remote SSH stopped at the Docker Hub anonymous pull quota; the actual SSH journey never began.",
+    "AWS GET recovery and mirror GET readback are later external-source observations. Neither is installation proof or a successful CI journey.",
+    "The six successful workflow conclusions apply only to this exact candidate commit and cannot transfer to the next head."
+  ],
+  "preservation": {
+    "originalsBytePreserved": true,
+    "originalJourneyManifestsUnmodified": true,
+    "sourcePathsMappedIn": "manifest.json",
+    "armSelection": "All 35 diagnostics plus original journey manifest and runner guard log. Receipt filenames shortened; resolve original references through manifest.json. The full artifact ZIP retains the original layout and plugin payload.",
+    "remoteSelection": "All 12 extracted files preserve their relative layout under remote/raw; original journey manifest references remain valid.",
+    "excluded": [
+      "AWS .tgz payloads (source bytes verified; receipt preserved)",
+      "Earlier pending CLI snapshots",
+      "Subsequent ARM and Remote repair evidence"
+    ],
+    "hashCoverage": "manifest.json hashes every copied original and generated index/source-verification. archive-readback.json hashes manifest.json; it cannot include its own hash."
+  },
+  "stats": {
+    "copiedFileCount": 148,
+    "copiedBytes": 9790022,
+    "receiptChecks": 138,
+    "maxRepositoryRelativePathLength": 167,
+    "caseInsensitiveCollisions": 0
+  }
+}

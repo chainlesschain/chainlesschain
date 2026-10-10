@@ -1,0 +1,73 @@
+{
+  "at": "2026-10-10T00:58:19.228Z",
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": "37987544322",
+  "runAttempt": "1",
+  "artifactFiles": 12,
+  "verifiedManifestReferences": 19,
+  "result": "failed",
+  "remoteTransportExercised": false,
+  "reason": "Docker Hub unauthenticated pull rate limit before container creation",
+  "inventory": [
+    {
+      "path": "raw/journey/diagnostics/001-redacted-diagnostics.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80"
+    },
+    {
+      "path": "raw/journey/journey-evidence.json",
+      "bytes": 6503,
+      "sha256": "16944b4a3fc2f93bf5a890f9aa568518013526bc75d3f89ad7410a27415a5cbc"
+    },
+    {
+      "path": "raw/journey/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "bytes": 736432,
+      "sha256": "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e"
+    },
+    {
+      "path": "raw/journey/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "bytes": 744451,
+      "sha256": "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/001-exact-commit.json",
+      "bytes": 123,
+      "sha256": "db67485d9e4082e520b84d9015561a966e2e203f1bc7aafdc217469428a2b8e4"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/002-host-environment.json",
+      "bytes": 1455,
+      "sha256": "843a76746195e1b49c7689da023dfc737d8363dd60e0ce0163652425aec1a8d6"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/003-remote-environment.json",
+      "bytes": 189,
+      "sha256": "99a21b15ba02b424cc30d48516300376cfbac15f49a346d4dc5fbab543e8c9db"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "bytes": 575,
+      "sha256": "14b7ae0199972bd0ea66b903658790245ab8abd55ec7ed6d0311048826f02a80"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/005-artifact-digests.json",
+      "bytes": 675,
+      "sha256": "2157df32aee08c5f9072aaae704e22cf56e1027316dfa80cc4c6bd293c64080e"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "bytes": 714971,
+      "sha256": "3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "bytes": 714,
+      "sha256": "66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b"
+    },
+    {
+      "path": "raw/journey/roadmap-artifacts/008-outcome-observations.json",
+      "bytes": 305,
+      "sha256": "6996ef95bcecead12a7b928c99572ea82d61ab396b7520491c29338e3da7c3a6"
+    }
+  ]
+}

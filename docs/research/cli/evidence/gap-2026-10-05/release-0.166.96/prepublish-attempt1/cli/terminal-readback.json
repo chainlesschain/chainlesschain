@@ -1,0 +1,438 @@
+{
+  "capturedAt": "2026-10-10T00:42:38.467Z",
+  "headSha": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544644,
+  "event": "pull_request",
+  "branch": "feature/cli-ide-gap-completion-20261009",
+  "status": "completed",
+  "conclusion": "failure",
+  "expectedJobCount": 71,
+  "actualJobCount": 69,
+  "counts": {
+    "success": 66,
+    "failure": 2,
+    "skipped": 1
+  },
+  "full71Passed": false,
+  "evidence": {
+    "file": "snapshot-2026-10-10T00-42-38.467Z.json",
+    "bytes": 275313,
+    "sha256": "21cc3dd056e0d01661a47b8b9a5ee3bf84133fa52ef560e1a637ab361f5c7630"
+  },
+  "jobs": [
+    {
+      "id": 114013174049,
+      "name": "PDH native release tests (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174277,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174327,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174339,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174345,
+      "name": "PDH native release tests (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174346,
+      "name": "test-macos / integration (macos-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174347,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174350,
+      "name": "test-windows / integration (windows-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174352,
+      "name": "test-windows / e2e (windows-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174360,
+      "name": "test-windows / integration (windows-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174384,
+      "name": "test-windows / unit (windows-latest, shard 10/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174406,
+      "name": "PDH native release tests (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174412,
+      "name": "test-windows / unit (windows-latest, shard 8/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174414,
+      "name": "test-windows / unit (windows-latest, shard 4/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174420,
+      "name": "test-macos / integration (macos-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174425,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174447,
+      "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174455,
+      "name": "test-macos / integration (macos-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174470,
+      "name": "test-windows / unit (windows-latest, shard 2/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174479,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174481,
+      "name": "test-windows / unit (windows-latest, shard 12/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174512,
+      "name": "test-macos / integration (macos-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174513,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174515,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174530,
+      "name": "test-windows / unit (windows-latest, shard 11/16)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 114013174536,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174558,
+      "name": "test-windows / unit (windows-latest, shard 5/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174561,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174563,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174568,
+      "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174575,
+      "name": "test-macos / integration (macos-latest, shard 8/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174577,
+      "name": "test-macos / integration (macos-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174579,
+      "name": "test-windows / unit (windows-latest, shard 1/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174597,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174614,
+      "name": "test-macos / e2e (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174615,
+      "name": "test-windows / unit (windows-latest, shard 3/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174617,
+      "name": "test-windows / unit (windows-latest, shard 6/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174620,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174628,
+      "name": "test-windows / e2e (windows-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174650,
+      "name": "test-windows / unit (windows-latest, shard 7/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174670,
+      "name": "test-macos / unit (macos-latest, shard 4/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174687,
+      "name": "test-windows / e2e (windows-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174688,
+      "name": "test-windows / integration (windows-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174690,
+      "name": "test-macos / e2e (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174692,
+      "name": "test-windows / integration (windows-latest, shard 2/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174710,
+      "name": "test-macos / e2e (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174711,
+      "name": "test-macos / e2e (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174714,
+      "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174718,
+      "name": "test-windows / integration (windows-latest, shard 6/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174720,
+      "name": "test-windows / unit (windows-latest, shard 13/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174747,
+      "name": "test-windows / unit (windows-latest, shard 9/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174759,
+      "name": "test-macos / unit (macos-latest, shard 2/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174765,
+      "name": "test-windows / unit (windows-latest, shard 14/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174767,
+      "name": "test-windows / e2e (windows-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174779,
+      "name": "test-windows / integration (windows-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174787,
+      "name": "test-windows / integration (windows-latest, shard 4/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174805,
+      "name": "test-macos / unit (macos-latest, shard 3/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174832,
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174841,
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174855,
+      "name": "test-windows / integration (windows-latest, shard 3/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174911,
+      "name": "test-macos / unit (macos-latest, shard 1/4)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013174946,
+      "name": "test-macos / integration (macos-latest, shard 1/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013175228,
+      "name": "test-macos / integration (macos-latest, shard 5/8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013176489,
+      "name": "test-windows / unit (windows-latest, shard 15/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114013176634,
+      "name": "test-windows / unit (windows-latest, shard 16/16)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114036236006,
+      "name": "dry-run-publish",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114036236028,
+      "name": "pack-linux-dryrun",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114051623102,
+      "name": "Test-only PM exploration recovery three-OS aggregate",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 114051624092,
+      "name": "verify-cli",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ]
+}

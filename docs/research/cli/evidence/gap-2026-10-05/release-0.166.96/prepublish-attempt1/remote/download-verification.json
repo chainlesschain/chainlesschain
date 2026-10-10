@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-10-10T00:57:14.250Z",
+  "sha": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544322,
+  "jobId": 114022086463,
+  "artifactId": 11644879263,
+  "verified": true,
+  "records": [
+    {
+      "name": "metadata.json",
+      "bytes": 760,
+      "sha256": "dad10d97713baa68927863606dd0bff7cb5981fd6e0172eacd3399b9211812df",
+      "endpoint": "actions/artifacts/11644879263"
+    },
+    {
+      "name": "job.json",
+      "bytes": 3651,
+      "sha256": "7a881e5ada43dcc557bb5132c97f5dd1b1747cc50b8a2942dd97778671d90753",
+      "endpoint": "actions/jobs/114022086463"
+    },
+    {
+      "name": "job.log",
+      "bytes": 36463,
+      "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5",
+      "endpoint": "actions/jobs/114022086463/logs"
+    },
+    {
+      "name": "artifact.zip",
+      "bytes": 2177871,
+      "sha256": "ebcce7540d69768e1b2e4fb085303df67aa356ac243bfef36c742342d3358292",
+      "endpoint": "actions/artifacts/11644879263/zip"
+    }
+  ]
+}

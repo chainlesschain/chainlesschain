@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-10T00:43:25.402Z",
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544322,
+  "jobId": 114022086463,
+  "jobName": "VS Code Remote-SSH container (scoped trusted cell)",
+  "conclusion": "failure",
+  "bytes": 36463,
+  "sha256": "31dd7bfa2ae9f1bd8476e31ecdfa9f2ebc6b4a9b0a0972adf00de934ea264ea5"
+}

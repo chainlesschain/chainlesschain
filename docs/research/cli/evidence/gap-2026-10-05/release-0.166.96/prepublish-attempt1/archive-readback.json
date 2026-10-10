@@ -1,0 +1,19 @@
+{
+  "verifiedAt": "2026-10-10T01:03:56.786Z",
+  "status": "VALIDATION_FAILED",
+  "archiveIntegrity": "VERIFIED",
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "originalsUnchanged": true,
+  "allManifestEntriesVerified": true,
+  "manifest": {
+    "file": "manifest.json",
+    "bytes": 47797,
+    "sha256": "ed562d20eb9fdfdce50cb280dd53468633ad5275b824a0483ca0b9bf9555dad2"
+  },
+  "copiedFileCount": 148,
+  "copiedBytes": 9790022,
+  "receiptChecks": 138,
+  "maxRepositoryRelativePathLength": 167,
+  "caseInsensitiveCollisions": 0,
+  "totalArchiveFileCount": 152
+}

@@ -1,0 +1,332 @@
+{
+  "sourceCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544323,
+  "jobId": 114013173246,
+  "artifactId": 11644775438,
+  "integrityReceipt": "verification.json",
+  "finding": "Post-dispatch Remote Robot polling of the disposed popup fixture fails before Rhino script execution. The production Restore code action has already transitioned to the expected preview.",
+  "primaryFailure": {
+    "test": "IdeUiSmokeTest.chainlessChainChatAndControlJourney",
+    "location": "IdeUiSmokeTest.java:1039",
+    "operation": "list.callJs polling cc.uiTest.popupEnter after runJs activation",
+    "exception": "IdeaSideException: the component is not available",
+    "origin": "ComponentContext.getComponent(RobotContext.kt:26)"
+  },
+  "hostLog": {
+    "artifactPath": "diagnostics/021-host-capture-initial_idea-002.log.bin",
+    "lines": [
+      {
+        "line": 848,
+        "text": "2026-10-09 13:46:00,909 [  75899]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 849,
+        "text": "2026-10-09 13:46:00,912 [  75902]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 850,
+        "text": "2026-10-09 13:46:00,918 [  75908]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 851,
+        "text": "2026-10-09 13:46:00,946 [  75936]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 852,
+        "text": "2026-10-09 13:46:01,121 [  76111]   INFO - STDOUT - [ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 853,
+        "text": "2026-10-09 13:46:01,124 [  76114]   INFO - STDOUT - [ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 854,
+        "text": "2026-10-09 13:46:01,124 [  76114]   INFO - STDOUT - [ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 855,
+        "text": "2026-10-09 13:46:01,132 [  76122]   INFO - STDOUT - [ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+      },
+      {
+        "line": 856,
+        "text": "2026-10-09 13:46:01,174 [  76164]   INFO - STDERR - java.lang.IllegalStateException: the component is not available"
+      }
+    ]
+  },
+  "swingSnapshot": {
+    "artifactPath": "diagnostics/035-chat-control-journey-1791578761215.swing.json.bin",
+    "capturedAtMillis": "1791578761962",
+    "truncated": false,
+    "errors": [],
+    "conversations": [
+      {
+        "sendInFlight": "false",
+        "disposed": "false",
+        "turnActive": "false",
+        "sessionGeneration": "java.lang.Object@441ed502",
+        "sessionId": "panel-1791578739348-a37f7f",
+        "sessionPresent": true,
+        "pendingTurns": false,
+        "approvalCardCount": 0,
+        "approvalIds": [],
+        "settlementCount": 0,
+        "settlementStates": []
+      }
+    ],
+    "matchingNodes": [
+      {
+        "className": "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog",
+        "visible": true,
+        "showing": true,
+        "enabled": true,
+        "valid": false,
+        "bounds": {
+          "x": 152,
+          "y": 83,
+          "width": 720,
+          "height": 554
+        },
+        "preferred": {
+          "width": 720,
+          "height": 554
+        },
+        "accessibleName": "Checkpoint timeline preview",
+        "layout": "java.awt.BorderLayout",
+        "ancestry": [
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog"
+        ]
+      },
+      {
+        "className": "javax.swing.JLabel",
+        "visible": true,
+        "showing": true,
+        "enabled": true,
+        "valid": true,
+        "bounds": {
+          "x": 40,
+          "y": 2,
+          "width": 632,
+          "height": 27
+        },
+        "preferred": {
+          "width": 178,
+          "height": 27
+        },
+        "accessibleName": "Checkpoint timeline preview",
+        "validateRoot": false,
+        "visibleRect": {
+          "x": 0,
+          "y": 0,
+          "width": 632,
+          "height": 27
+        },
+        "layout": null,
+        "ancestry": [
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane$1",
+          "com.intellij.openapi.wm.impl.customFrameDecorations.header.CustomFrameDialogContent",
+          "com.intellij.openapi.wm.impl.customFrameDecorations.header.DialogHeader",
+          "javax.swing.JLabel"
+        ]
+      },
+      {
+        "className": "javax.swing.JLabel",
+        "visible": true,
+        "showing": true,
+        "enabled": true,
+        "valid": true,
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 680,
+          "height": 34
+        },
+        "preferred": {
+          "width": 373,
+          "height": 34
+        },
+        "accessibleName": "Restore code The CLI will re-check the projection revision before writing.",
+        "validateRoot": false,
+        "visibleRect": {
+          "x": 0,
+          "y": 0,
+          "width": 680,
+          "height": 34
+        },
+        "layout": null,
+        "ancestry": [
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane$1",
+          "com.intellij.openapi.wm.impl.customFrameDecorations.header.CustomFrameDialogContent",
+          "javax.swing.JPanel",
+          "javax.swing.JPanel",
+          "javax.swing.JPanel",
+          "javax.swing.JLabel"
+        ]
+      },
+      {
+        "className": "javax.swing.JButton",
+        "visible": true,
+        "showing": true,
+        "enabled": true,
+        "valid": true,
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 125,
+          "height": 30
+        },
+        "preferred": {
+          "width": 125,
+          "height": 30
+        },
+        "accessibleName": "Confirm action",
+        "buttonText": "Confirm action",
+        "validateRoot": false,
+        "visibleRect": {
+          "x": 0,
+          "y": 0,
+          "width": 125,
+          "height": 30
+        },
+        "layout": null,
+        "ancestry": [
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane",
+          "com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog$DialogRootPane$1",
+          "com.intellij.openapi.wm.impl.customFrameDecorations.header.CustomFrameDialogContent",
+          "javax.swing.JPanel",
+          "javax.swing.JPanel",
+          "com.intellij.openapi.ui.DialogWrapper$SouthPanel",
+          "com.intellij.ui.components.panels.NonOpaquePanel",
+          "com.intellij.ui.components.panels.NonOpaquePanel",
+          "javax.swing.JButton"
+        ]
+      }
+    ]
+  },
+  "hostEvents": {
+    "artifactPath": "diagnostics/019-host-capture-initial_host-events.jsonl.bin",
+    "records": 108,
+    "failedStages": [],
+    "approvalEvents": [
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.839855900Z",
+        "stage": "RECEIVED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "type": "approval_request",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.840852300Z",
+        "stage": "MAPPED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.841853Z",
+        "stage": "EDT_ENTERED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.842852Z",
+        "stage": "CARD_ENTERED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.844855Z",
+        "stage": "SCHEDULED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.851856800Z",
+        "stage": "CARD_ADDED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:53.852856200Z",
+        "stage": "RENDER_RETURNED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:56.350447900Z",
+        "stage": "RECEIVED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "type": "approval_resolved",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:56.351449900Z",
+        "stage": "MAPPED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval_done",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:56.353450400Z",
+        "stage": "SCHEDULED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval_done",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:56.353450400Z",
+        "stage": "EDT_ENTERED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval_done",
+        "id": "fixture-approval-4"
+      },
+      {
+        "schema": "chainlesschain.ui-event-diagnostic/v1",
+        "at": "2026-10-09T20:45:56.357446500Z",
+        "stage": "RENDER_RETURNED",
+        "generation": "59aff33f",
+        "session": "panel-1791578739348-a37f7f",
+        "kind": "approval_done",
+        "id": "fixture-approval-4"
+      }
+    ]
+  },
+  "limits": [
+    "This is the 3900 ARM64 Windows failure, not proof of the earlier 8e5 Windows x64 failure root cause.",
+    "Fixture protocol stdout is not used as proof of host rendering.",
+    "Preview exists at failure capture, but confirm/action completion was not reached because the test aborted during popup polling."
+  ],
+  "proposedFix": "Preserve per-activation state on a stable receiver and poll it without resolving the disposed popup fixture. Keep dispatch result checks, next-stage preview assertions and existing timeout; no retry or production behavior changes.",
+  "sourceEditsPerformed": false
+}

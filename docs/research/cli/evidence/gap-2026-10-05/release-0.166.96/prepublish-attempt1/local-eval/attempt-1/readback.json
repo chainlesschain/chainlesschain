@@ -1,0 +1,80 @@
+{
+  "startedAt": "2026-10-10T00:46:04.246Z",
+  "completedAt": "2026-10-10T00:47:24.367Z",
+  "node": "v22.22.2",
+  "platform": "win32",
+  "osRelease": "10.0.19045",
+  "arch": "x64",
+  "command": [
+    "C:\\nvm4w\\nodejs\\node.exe",
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/evolution-eval-readonly-audit.test.js",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=C:\\code\\chainlesschain\\.work\\eval-readonly-functional-budget-20261010\\attempt-1\\vitest-report.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+  "result": {
+    "code": 0,
+    "signal": null
+  },
+  "source": {
+    "file": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+    "originalCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+    "originalSha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1",
+    "testedSha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce",
+    "afterSha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce"
+  },
+  "originalFailure": {
+    "kind": "GitHub Windows unit shard 11: test exceeded global 90000ms budget",
+    "runId": 37987544644,
+    "jobId": 114013174530,
+    "observedCaseDurationMs": 91619,
+    "files": [
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.json",
+        "bytes": 3335,
+        "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596"
+      },
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/annotations.json",
+        "bytes": 837,
+        "sha256": "4b5a4ad3cf45cfea3c843186636950cace33ff39460e2256c8c459a7cf7abbc0"
+      },
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.log",
+        "bytes": 98834,
+        "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597"
+      }
+    ]
+  },
+  "scope": "Local original seven-test suite with only the proposed per-case budget and phase diagnostics. Local timing does not reproduce or establish the cause of the original hosted CI timeout.",
+  "captures": [
+    {
+      "file": "original-test.js",
+      "bytes": 16245,
+      "sha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1"
+    },
+    {
+      "file": "phases.log",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c"
+    },
+    {
+      "file": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "stdout.log",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96"
+    },
+    {
+      "file": "vitest-report.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167"
+    }
+  ]
+}
