@@ -1,5 +1,7 @@
 # CLI / IDE 差距续做：Actions 修复与身份诊断
 
+> **2026-10-10 增量：四版本已发行，诊断工程待新 SHA 验证**：Agent SDK `0.2.14`、CLI `0.166.96`、Open VSX `0.37.140` 和 JetBrains `0.4.158` 已发行；JetBrains Marketplace update `1190815` 现已 approved、公开列出并可下载。[PR #425](https://github.com/chainlesschain/chainlesschain/pull/425) 已合并为 `2650447476d6358254368b73ddc52b5319982608`，发行标签仍绑定 `da91e730d802b7c9dcdc075b222ecc257021e552`。原 `73f5` Scheduler Windows 失租及 x64 restart trace 缺失的根因仍未知，本轮仅补 CI/helper 诊断，未升版或新发布；局部复验已通过，新准确 SHA 矩阵待完成。详见 20.23；以下各节保留历史时点，冻结正式验收与开放项不变。
+
 本记录补充两份 2026-10-05 审计的实施结果，保留原审计和历史发布的各自源码时点。本轮直接修改 `main`；本机 Docker 不可用，实际容器验收交由 GitHub Actions 执行。
 
 ## 1. Docker review pack 权限修复
@@ -895,3 +897,19 @@ Windows unit 11/16 的完整集合用例通过，日志记 56,098ms；只读审�
 发行标签均绑定 `da91e730d802b7c9dcdc075b222ecc257021e552`，没有移动旧 `.95` 标签或发行未测 merge SHA。发布在合并之前完成；后续文档归档提交需自身六项主分支 required contexts 成功，再用 expected-head guard 合并 PR #425，不使用 admin 绕过。
 
 正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 继续开放；本轮无新增付费 provider 调用。
+
+### 20.23 四版本公开发行后的诊断增量
+
+JetBrains `0.4.158` 的 Marketplace update `1190815` 已 approved、listed、非 hidden，公开下载已回读；与已发行的 Agent SDK `0.2.14`、CLI `0.166.96`、Open VSX `0.37.140` 一起构成本轮四个已发行版本。[Marketplace 原件清单](./cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/marketplace/manifest.json)同时保留此前 pending 与后续 approved 回执。公开 ZIP 与候选 ZIP 容器字节不同，但全部 entry 字节一致，不能表述为整个 ZIP 摘要一致。PR #425 的文档 head `73f5a3550d87db724f0c539223e671fd3ea6d1e1` 六项必需检查全部成功后，已合并为 `2650447476d6358254368b73ddc52b5319982608`；发行标签仍绑定原发行源码 `da91e730d802b7c9dcdc075b222ecc257021e552`。
+
+同一 `73f5` 的 [Scheduler run 38023140779](https://github.com/chainlesschain/chainlesschain/actions/runs/38023140779) 并非全绿：Linux/macOS 成功，Windows job `114128248692` 及 aggregate 失败。[原件清单](./cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/scheduler-original/manifest.json)保留三平台原 artifact 与来源、摘要验证。Windows 第二轮 before-execute replacement 在 `writeEffect` 的 `renewLease()` 失租，发生在 effect 文件 open 之前；原 smoke lease 为 1000ms。现有记录不能区分调度、锁等待或生产缺陷，原根因仍未知；失败 replacement 已退出并移出 active 集合，旧报告只记录两个 steady worker，遗漏该 replacement 的结构化事件及 occurrence/renewal 历史。不能把未完成报告的默认 invariant=false 当作每条不变量均已失败。
+
+当前 Scheduler helper 保留最多 24 个退出 worker 快照，每个最多 40 个末尾事件和 64 KiB stderr 尾部，并记录省略数量；退出快照与活进程清理集合分开。诊断补查关联 occurrence、续租历史和 effect 文件状态/摘要，各项读取独立失败，effect 读取异常不再吞掉可读的数据库历史；recorder 异常单独保留，不阻断等待者拒绝、`done` 完成或原始退出错误传播。worker 的 fatal 增加 occurrence、effect phase、阶段 timing 及 created/flushed 标志；这些是被动观察，不新增续租或重试、不改变 fencing、异步 IO 边界、原 1000ms smoke lease、期限或生产 runtime/store。phase 表示已到达的 effect 阶段，不能单独证明之后的 close/checkpoint/settlement 根因。
+
+JetBrains journey collector 新增 `failureDetails`，按阶段保留错误 stage/type/code/syscall 等有限元数据，不输出 payload 或异常 message。旧 canonical restart 的 `event-trace-or-capture-root-unavailable` 根因仍未知；绿色功能 journey 不等于 `capture-status.complete=true`，已有缺失原件与不完整标志继续保留。此次改动只涉及未进入发行 payload 的 CI/helper 脚本及相应回归、文档和证据，没有改生产代码、45 秒 UI 期限、升版、移动发行标签或再次发布。
+
+当前局部验证：workflow/campaign 三文件 15/15、JetBrains collector 22/22 已通过；Scheduler unit/worker/coordinator 三文件首次 54 项为 53 通过、1 项新增测试断言失败，原因是 `toEqual` 未计入 `safeError` 保留的 stack，真实 child 的 `done` 与原 exit 传播已成功。改为匹配必要字段的 `toMatchObject` 后，定向 worker 文件 10/10 通过；其余 unit 43/43 与真实协调器 1/1 已通过且源码未再修改。这些结果不累计为正式任务；首轮断言失败不是生产故障，也不是原 Windows 失租根因。当前诊断工程仍须新准确 SHA 的相关三平台矩阵及真实宿主验证，旧 `da91` 发行门、`73f5` 必需检查和局部合同不能替代新源码验证。
+
+[本地验证与发布范围回执](./cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/local/validation.json)绑定六个源码文件摘要。`npm pack --dry-run --ignore-scripts` 的 1,523 个文件与相对发行源码的改动没有交集；IDE runtime/build/version 源码也未改变。这是发布范围检查，未独立重建或宣称公开产物字节相同。定向 ESLint 返回一个既有 `no-unsafe-finally` 错误；对发行源码使用同一配置读取，规则及消息一致（旧行 483、当前行 486），其余五文件无发现，不能称完整 lint 全绿。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 继续 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 的 `NOT_ADMITTED` 不变。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方 usage/账单、独立人工/辅助技术及 8h/24h/SLO 仍开放。无付费 provider 调用，不能将本轮诊断增量或四版本发行表述为两份差距报告全部任务完成。

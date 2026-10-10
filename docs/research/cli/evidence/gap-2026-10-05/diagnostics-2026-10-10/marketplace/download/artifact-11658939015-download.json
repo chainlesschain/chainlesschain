@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021102825,
+  "artifactId": 11658939015,
+  "status": "COMPLETE_SIZE_AND_DIGEST_VERIFIED",
+  "receivedBytes": 1420,
+  "digest": "sha256:a528447480b86fde0fcbd7258246ab136c4602de03eb76ca12012d9b73477c0b",
+  "expectedBytes": 1420,
+  "expectedDigest": "sha256:a528447480b86fde0fcbd7258246ab136c4602de03eb76ca12012d9b73477c0b",
+  "elapsedMs": 1936,
+  "destination": ".work/release-readback-0.166.96/jetbrains-38021102825/ide-cli-prerequisite-jetbrains-1.zip"
+}

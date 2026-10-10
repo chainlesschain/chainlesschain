@@ -1,0 +1,626 @@
+{
+  "schema": "chainlesschain.scheduler-kernel-soak.v1",
+  "status": "passed",
+  "releaseCommit": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "headSha": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "expectedSha": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "exactShaVerified": true,
+  "seed": 1592598566,
+  "campaign": "p2-4-scheduler-long-soak-775d5667bc7b",
+  "startedAt": "2026-10-10T04:14:45.748Z",
+  "completedAt": "2026-10-10T04:15:06.801Z",
+  "source": {
+    "clean": true,
+    "changeCount": 0,
+    "finalClean": true,
+    "finalChangeCount": 0
+  },
+  "runner": {
+    "operatingSystem": "macos",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v22.12.0",
+    "pid": 24838
+  },
+  "execution": {
+    "provider": "github-actions",
+    "repository": "chainlesschain/chainlesschain",
+    "workflow": "CLI Scheduler Kernel Soak",
+    "eventName": "pull_request",
+    "runId": "38023140779",
+    "runAttempt": 1,
+    "controlPlaneSha": "e028f074f6122cfb0945b9a9e3a2942586703b29",
+    "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/38023140779/attempts/1"
+  },
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 15,
+    "rounds": 2,
+    "steadyOccurrencesPerRound": 4,
+    "steadyStateOccurrences": 8,
+    "leaseMs": 1000,
+    "pollMs": 10,
+    "checkpointIntervalSeconds": 2,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8,
+    "executionDelayMs": 25,
+    "heartbeatDelayMs": 1500
+  },
+  "continuousDurationSeconds": 18.251892792,
+  "temporal": {
+    "passed": true,
+    "timeZone": "America/New_York",
+    "springForward": {
+      "from": "2026-03-08T06:59:00.000Z",
+      "expected": "2026-03-09T06:30:00.000Z",
+      "agenda": "2026-03-09T06:30:00.000Z",
+      "cowork": "2026-03-09T06:30:00.000Z"
+    },
+    "fallBack": {
+      "first": "2026-11-01T05:30:00.000Z",
+      "second": "2026-11-01T06:30:00.000Z",
+      "coworkFirst": "2026-11-01T05:30:00.000Z",
+      "coworkSecond": "2026-11-01T06:30:00.000Z",
+      "distinctFireKeys": true
+    },
+    "backlog": {
+      "first": "2026-01-01T00:00:00.000Z",
+      "through": "2026-08-12T12:34:56.789Z",
+      "latest": "2026-08-12T12:34:56.000Z",
+      "expected": "2026-08-12T12:34:56.000Z"
+    }
+  },
+  "heartbeat": {
+    "occurrenceId": "occ_5fecbdbea48b90c2a5f2a1e5ef0a8f59dfb8de8f0f3b4d8e459cbcd73935aad6",
+    "initialLeaseExpiresAt": 1791605689493,
+    "renewedLeaseExpiresAt": 1791605689829,
+    "protectedLeaseExpiresAt": 1791605690498,
+    "renewalEvents": 6,
+    "contenderClaimed": false,
+    "finalStatus": "succeeded",
+    "effect": {
+      "owner": "heartbeat-winner-1592598566",
+      "fence": 1,
+      "sha256": "7c45711b47b6e879063bbc4c29d6742dc6df6cab2711764d1b134ed7182538b0"
+    },
+    "winnerRetirement": {
+      "pid": 25002,
+      "retired": true,
+      "retirementMs": 0,
+      "code": 0,
+      "signal": null
+    },
+    "contenderRetirement": {
+      "pid": 25005,
+      "retired": true,
+      "retirementMs": 0
+    },
+    "passed": true
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "steady": {
+        "occurrenceIds": [
+          "occ_602db53296e277b0da8943808b7a0ace2bf97b5e1f6be2c0f26b6865991470b2",
+          "occ_bb1100b90e0ef109604b5d55b63ea256631723caca7d1502cc748511d463f438",
+          "occ_a46d081c0b7caa2a03678e82790718aec0e1b7d19553dfa220dd6ac693e5c0e7",
+          "occ_7aed646408aacb103d7ab122d5108510fbbcf16b5f586cc305780e4dfeefb73e"
+        ],
+        "contentionClaims": [
+          {
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "occurrence": {
+              "id": "occ_bb1100b90e0ef109604b5d55b63ea256631723caca7d1502cc748511d463f438",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605691090
+            }
+          },
+          {
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "occurrence": {
+              "id": "occ_602db53296e277b0da8943808b7a0ace2bf97b5e1f6be2c0f26b6865991470b2",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605691079
+            }
+          }
+        ],
+        "statuses": [
+          "succeeded",
+          "succeeded",
+          "succeeded",
+          "succeeded"
+        ],
+        "effectOwners": [
+          "steady-1592598566-2",
+          "steady-1592598566-1",
+          "steady-1592598566-2",
+          "steady-1592598566-1"
+        ]
+      },
+      "beforeExecute": {
+        "occurrenceId": "occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2",
+        "firstClaim": {
+          "id": "occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "before-crashed-1592598566-0",
+          "leaseExpiresAt": 1791605691476
+        },
+        "replacementClaim": {
+          "id": "occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 2,
+          "fence": 2,
+          "leaseOwner": "before-replacement-1592598566-0",
+          "leaseExpiresAt": 1791605692697
+        },
+        "noEffectBeforeKill": true,
+        "hardKill": {
+          "pid": 25008,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [],
+            "source": "pgrep"
+          },
+          "descendantKillRequests": [],
+          "rootRetired": true,
+          "rootRetirementMs": 58,
+          "durationMs": 57.525791999999456,
+          "descendantRetirements": [],
+          "passed": true
+        },
+        "staleSettlement": {
+          "rejected": true,
+          "error": {
+            "name": "SchedulerKernelError",
+            "code": "SCHEDULER_LEASE_LOST",
+            "message": "Occurrence lease is absent, expired, or owned by another fence: occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2",
+            "stack": "SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2\n    at leaseLost (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2266:10)\n    at /Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:5118:15\n    at Function.<anonymous> (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (/Users/runner/work/chainlesschain/chainlesschain/node_modules/better-sqlite3/lib/methods/transaction.js:65:24)\n    at SchedulerStore._write (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2390:28)\n    at SchedulerStore.settle (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:5106:17)\n    at runBeforeExecuteCrashScenario (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1797:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async runSchedulerKernelSoak (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)\n    at async main (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)"
+          }
+        },
+        "finalStatus": "succeeded",
+        "effectCount": 1,
+        "effect": {
+          "kind": "scheduler-soak-local-effect",
+          "occurrenceId": "occ_9b1b77a2b7a12f2e814d983e4b82a1b3c41dd76fa1ef27235592c78eabc386f2",
+          "jobId": "scheduler-soak-crash",
+          "jobRevision": 1,
+          "attempt": 2,
+          "fence": 2,
+          "owner": "before-replacement-1592598566-0",
+          "workerId": "before-replacement-1592598566-0",
+          "pid": 25035,
+          "resultDigest": "315672cc89410873136c4017ecaa392388975a1f966d66a61804b93d33de9ebb"
+        },
+        "replacementRetirement": {
+          "pid": 25035,
+          "retired": true,
+          "retirementMs": 0,
+          "code": 0,
+          "signal": null
+        },
+        "passed": true
+      },
+      "afterExecute": {
+        "occurrenceId": "occ_490d8001de698675ca1f14af178b8fa43a74bbddefc21a3aabff76b064b367ac",
+        "claim": {
+          "id": "occ_490d8001de698675ca1f14af178b8fa43a74bbddefc21a3aabff76b064b367ac",
+          "jobId": "scheduler-soak-outcome",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "after-crashed-1592598566-0",
+          "leaseExpiresAt": 1791605692988
+        },
+        "hardKill": {
+          "pid": 25037,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [],
+            "source": "pgrep"
+          },
+          "descendantKillRequests": [],
+          "rootRetired": true,
+          "rootRetirementMs": 23,
+          "durationMs": 22.61749999999938,
+          "descendantRetirements": [],
+          "passed": true
+        },
+        "effect": {
+          "owner": "after-crashed-1592598566-0",
+          "fence": 1,
+          "countBefore": 1,
+          "countAfter": 1,
+          "hashBefore": "3b7d5f1eedd3383635a5b0ebe7ac63a66a6e6dc99a58f59f0df30645bcea769a",
+          "hashAfter": "3b7d5f1eedd3383635a5b0ebe7ac63a66a6e6dc99a58f59f0df30645bcea769a"
+        },
+        "observerClaimed": false,
+        "finalStatus": "dead_letter",
+        "lastError": {
+          "code": "lease_expired",
+          "message": "Execution lease expired after the final allowed attempt"
+        },
+        "observerRetirement": {
+          "pid": 25064,
+          "retired": true,
+          "retirementMs": 0
+        },
+        "passed": true
+      }
+    },
+    {
+      "round": 2,
+      "steady": {
+        "occurrenceIds": [
+          "occ_6cf9b87171d7f8e42f7525cce294e1f4f974dfb07c94b89447e6ee858afe9b20",
+          "occ_d76a3c064b6efe7377369d0c6a04814668cca5b2f2fb58f986d681814ae5519a",
+          "occ_a1e56e4602aff9e15729e048741d4bddfbab3b97d7bf0ae58f2eaf25bbbb70fb",
+          "occ_3300aa0bf24cc9e5aacd4eb47021343fd0ca6fc6dc8c5fe1917fcb1b98776f65"
+        ],
+        "contentionClaims": [
+          {
+            "workerId": "steady-1",
+            "owner": "steady-1592598566-1",
+            "occurrence": {
+              "id": "occ_a1e56e4602aff9e15729e048741d4bddfbab3b97d7bf0ae58f2eaf25bbbb70fb",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-1",
+              "leaseExpiresAt": 1791605704361
+            }
+          },
+          {
+            "workerId": "steady-2",
+            "owner": "steady-1592598566-2",
+            "occurrence": {
+              "id": "occ_6cf9b87171d7f8e42f7525cce294e1f4f974dfb07c94b89447e6ee858afe9b20",
+              "jobId": "scheduler-soak-steady",
+              "status": "running",
+              "attempt": 1,
+              "fence": 1,
+              "leaseOwner": "steady-1592598566-2",
+              "leaseExpiresAt": 1791605704358
+            }
+          }
+        ],
+        "statuses": [
+          "succeeded",
+          "succeeded",
+          "succeeded",
+          "succeeded"
+        ],
+        "effectOwners": [
+          "steady-1592598566-2",
+          "steady-1592598566-2",
+          "steady-1592598566-1",
+          "steady-1592598566-1"
+        ]
+      },
+      "beforeExecute": {
+        "occurrenceId": "occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475",
+        "firstClaim": {
+          "id": "occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "before-crashed-1592598566-1",
+          "leaseExpiresAt": 1791605704628
+        },
+        "replacementClaim": {
+          "id": "occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475",
+          "jobId": "scheduler-soak-crash",
+          "status": "running",
+          "attempt": 2,
+          "fence": 2,
+          "leaseOwner": "before-replacement-1592598566-1",
+          "leaseExpiresAt": 1791605705834
+        },
+        "noEffectBeforeKill": true,
+        "hardKill": {
+          "pid": 25746,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [],
+            "source": "pgrep"
+          },
+          "descendantKillRequests": [],
+          "rootRetired": true,
+          "rootRetirementMs": 40,
+          "durationMs": 40.37837500000023,
+          "descendantRetirements": [],
+          "passed": true
+        },
+        "staleSettlement": {
+          "rejected": true,
+          "error": {
+            "name": "SchedulerKernelError",
+            "code": "SCHEDULER_LEASE_LOST",
+            "message": "Occurrence lease is absent, expired, or owned by another fence: occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475",
+            "stack": "SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475\n    at leaseLost (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2266:10)\n    at /Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:5118:15\n    at Function.<anonymous> (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (/Users/runner/work/chainlesschain/chainlesschain/node_modules/better-sqlite3/lib/methods/transaction.js:65:24)\n    at SchedulerStore._write (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:2390:28)\n    at SchedulerStore.settle (/Users/runner/work/chainlesschain/chainlesschain/packages/session-core/lib/scheduler-store.js:5106:17)\n    at runBeforeExecuteCrashScenario (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1797:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async runSchedulerKernelSoak (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)\n    at async main (file:///Users/runner/work/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)"
+          }
+        },
+        "finalStatus": "succeeded",
+        "effectCount": 1,
+        "effect": {
+          "kind": "scheduler-soak-local-effect",
+          "occurrenceId": "occ_3c9c73af027f2adfe7bb876998637efb7346b1688bb9fcd3050f6429a6314475",
+          "jobId": "scheduler-soak-crash",
+          "jobRevision": 1,
+          "attempt": 2,
+          "fence": 2,
+          "owner": "before-replacement-1592598566-1",
+          "workerId": "before-replacement-1592598566-1",
+          "pid": 25845,
+          "resultDigest": "a285a7435da5f283fcc7d7bca53331bcefc92fd52c682b54d52a948257fc2440"
+        },
+        "replacementRetirement": {
+          "pid": 25845,
+          "retired": true,
+          "retirementMs": 0,
+          "code": 0,
+          "signal": null
+        },
+        "passed": true
+      },
+      "afterExecute": {
+        "occurrenceId": "occ_22248edce59ec8ced816e0f9230662d986f0e52491f2d7141c74151c8c09602f",
+        "claim": {
+          "id": "occ_22248edce59ec8ced816e0f9230662d986f0e52491f2d7141c74151c8c09602f",
+          "jobId": "scheduler-soak-outcome",
+          "status": "running",
+          "attempt": 1,
+          "fence": 1,
+          "leaseOwner": "after-crashed-1592598566-1",
+          "leaseExpiresAt": 1791605706069
+        },
+        "hardKill": {
+          "pid": 25862,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "descendants": {
+            "available": true,
+            "pids": [],
+            "source": "pgrep"
+          },
+          "descendantKillRequests": [],
+          "rootRetired": true,
+          "rootRetirementMs": 43,
+          "durationMs": 42.856292000000394,
+          "descendantRetirements": [],
+          "passed": true
+        },
+        "effect": {
+          "owner": "after-crashed-1592598566-1",
+          "fence": 1,
+          "countBefore": 1,
+          "countAfter": 1,
+          "hashBefore": "19b8186cc2694776af84fac03b5fd52463d782ef2a73a08c14262363b4ff238a",
+          "hashAfter": "19b8186cc2694776af84fac03b5fd52463d782ef2a73a08c14262363b4ff238a"
+        },
+        "observerClaimed": false,
+        "finalStatus": "dead_letter",
+        "lastError": {
+          "code": "lease_expired",
+          "message": "Execution lease expired after the final allowed attempt"
+        },
+        "observerRetirement": {
+          "pid": 25990,
+          "retired": true,
+          "retirementMs": 0
+        },
+        "passed": true
+      }
+    }
+  ],
+  "invariants": {
+    "twoWorkerContention": true,
+    "beforeExecuteHigherFence": true,
+    "staleSettlementRejected": true,
+    "afterExecuteDeadLettered": true,
+    "afterExecuteNoReplay": true,
+    "heartbeatRenewed": true,
+    "dstSemantics": true,
+    "backlogDrained": true,
+    "databaseQuickCheck": true,
+    "allProcessesRetired": true
+  },
+  "metrics": {
+    "passed": true,
+    "workerProcessesSpawned": 2,
+    "productiveWorkers": 2,
+    "rssGrowthMb": 37.203125,
+    "resourceGrowth": 0,
+    "targets": [
+      {
+        "label": "coordinator",
+        "pid": 24838,
+        "sampleCount": 4,
+        "rss": {
+          "beforeBytes": 71434240,
+          "afterBytes": 77758464,
+          "maximumBytes": 79872000,
+          "peakGrowthBytes": 8437760,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 79872000,
+            "tailSamples": 3,
+            "tailSlopePerSample": -1056768,
+            "projectedTailGrowth": 0
+          }
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 32,
+          "after": 32,
+          "maximum": 32,
+          "peakGrowth": 0,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 32,
+            "tailSamples": 3,
+            "tailSlopePerSample": 0,
+            "projectedTailGrowth": 0
+          }
+        },
+        "passed": true
+      },
+      {
+        "label": "steady-1",
+        "pid": 24867,
+        "sampleCount": 4,
+        "rss": {
+          "beforeBytes": 76185600,
+          "afterBytes": 115195904,
+          "maximumBytes": 115195904,
+          "peakGrowthBytes": 39010304,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 115195904,
+            "tailSamples": 3,
+            "tailSlopePerSample": 9248768,
+            "projectedTailGrowth": 18497536
+          }
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 20,
+          "after": 20,
+          "maximum": 20,
+          "peakGrowth": 0,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 20,
+            "tailSamples": 3,
+            "tailSlopePerSample": 0,
+            "projectedTailGrowth": 0
+          }
+        },
+        "passed": true
+      },
+      {
+        "label": "steady-2",
+        "pid": 24868,
+        "sampleCount": 4,
+        "rss": {
+          "beforeBytes": 75792384,
+          "afterBytes": 103366656,
+          "maximumBytes": 103366656,
+          "peakGrowthBytes": 27574272,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 103366656,
+            "tailSamples": 3,
+            "tailSlopePerSample": 3481600,
+            "projectedTailGrowth": 6963200
+          }
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 20,
+          "after": 20,
+          "maximum": 20,
+          "peakGrowth": 0,
+          "trend": {
+            "available": true,
+            "samples": 4,
+            "maximum": 20,
+            "tailSamples": 3,
+            "tailSlopePerSample": 0,
+            "projectedTailGrowth": 0
+          }
+        },
+        "passed": true
+      }
+    ],
+    "sampleCount": 4,
+    "rounds": 2,
+    "steadyStateOccurrences": 8
+  },
+  "totals": {
+    "rounds": 2,
+    "steadyOccurrences": 8,
+    "hardKills": 4,
+    "effects": 13
+  },
+  "database": {
+    "applicationId": 1128485707,
+    "schemaVersion": 6,
+    "migration": {
+      "version": 6,
+      "name": "scheduler-kernel-runtime-control-v6",
+      "checksum": "a5e9518523bdc0d3d451bdd0c2cbd8287cad85931834505a72ad46b29b081810",
+      "appliedAt": 1791605687976
+    },
+    "quickCheck": "ok",
+    "statusCounts": {
+      "dead_letter": 2,
+      "succeeded": 11
+    },
+    "totalOccurrences": 13
+  },
+  "cleanup": {
+    "passed": true,
+    "deadlineMs": 10000,
+    "durationMs": 6.2572499999987485,
+    "processes": [
+      {
+        "pid": 24867,
+        "retired": true,
+        "durationMs": 5.101583000003302,
+        "code": 0,
+        "signal": null,
+        "graceful": true,
+        "error": null,
+        "descendants": null,
+        "descendantKillRequests": [],
+        "descendantRetirements": []
+      },
+      {
+        "pid": 24868,
+        "retired": true,
+        "durationMs": 6.04870899999878,
+        "code": 0,
+        "signal": null,
+        "graceful": true,
+        "error": null,
+        "descendants": null,
+        "descendantKillRequests": [],
+        "descendantRetirements": []
+      }
+    ]
+  },
+  "checkpoints": {
+    "writeCount": 12,
+    "lastWrittenAt": "2026-10-10T04:15:06.801Z"
+  },
+  "violations": []
+}

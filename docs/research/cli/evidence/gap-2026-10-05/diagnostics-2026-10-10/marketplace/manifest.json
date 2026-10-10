@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.marketplace-incremental-original-selection/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "workflowRunId": 38021102825,
+  "pluginVersion": "0.4.158",
+  "originalFiles": 19,
+  "derivedFiles": 1,
+  "selectedBytes": 4774477,
+  "isOriginalExtractionTree": false,
+  "scope": "Byte-exact originals, short-path selection with original source and artifact-entry mapping; includes approved public ZIP, source plugin ZIP, GitHub artifact ZIPs and original pending observation.",
+  "files": [
+    {
+      "source": ".work/release-readback-0.166.96/marketplace-followups/2026-10-10T04-50-34.079Z/chainlesschain-ide-bridge-public.zip",
+      "target": "approved/chainlesschain-ide-bridge-public.zip",
+      "bytes": 1525786,
+      "sha256": "60a2b0432a6995c82a6e9cd6970b410095b61cb2958026d536809165fa831a03",
+      "observedState": "ready"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/marketplace-followups/2026-10-10T04-50-34.079Z/jetbrains-marketplace-readback.json",
+      "target": "approved/jetbrains-marketplace-readback.json",
+      "bytes": 5998,
+      "sha256": "b808948ea3d6acd286466d30fdb4c72adc61aec8bdd8d53ab894e2e601377682",
+      "observedState": "ready"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/marketplace-followups/2026-10-10T04-50-34.079Z/jetbrains-updates.json",
+      "target": "approved/jetbrains-updates.json",
+      "bytes": 80946,
+      "sha256": "0404f0855d2acbcd6c6bfac8dd84b3c7695974bb0e48839b9a5d6bd50c27186e",
+      "observedState": "ready"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/marketplace-followups/2026-10-10T04-50-34.079Z/marketplace-verifier-stderr.txt",
+      "target": "approved/marketplace-verifier-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observedState": "ready"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/jetbrains-marketplace-readback.json",
+      "target": "pending/jetbrains-marketplace-readback.json",
+      "bytes": 892,
+      "sha256": "8dc497c7fa6de49a27924331cd51266957219ff7fa5f0dfc32d27aa27c387e3e",
+      "observedState": "pending",
+      "preservedHistoricalObservation": true
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/jetbrains-updates.json",
+      "target": "pending/jetbrains-updates.json",
+      "bytes": 81520,
+      "sha256": "63829d827d23358e5e754deef8b895f6e921aba6d5cfc6f6c6bcf5edf9b9ed0a",
+      "observedState": "pending",
+      "preservedHistoricalObservation": true
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/marketplace-verifier-stderr.txt",
+      "target": "pending/marketplace-verifier-stderr.txt",
+      "bytes": 176,
+      "sha256": "9659fb15da39e7542291291c63742c2821db1d12c4ef3ba7279fedb943d2be88",
+      "observedState": "pending",
+      "preservedHistoricalObservation": true
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/artifact-readback.json",
+      "target": "source/artifact-readback.json",
+      "bytes": 1078,
+      "sha256": "bfa1360fd7f2daf501f05dda18180b5a5bcc37ea0b82eb3b5cb60e24b7169aeb"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/ide-cli-prerequisite-jetbrains-1.zip",
+      "target": "source/cli-prerequisite-github.zip",
+      "bytes": 1420,
+      "sha256": "a528447480b86fde0fcbd7258246ab136c4602de03eb76ca12012d9b73477c0b",
+      "artifactId": 11658939015,
+      "originalArtifactName": "ide-cli-prerequisite-jetbrains-1"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/ide-cli-prerequisite-jetbrains-1/receipt.json",
+      "target": "source/cli-prerequisite.json",
+      "bytes": 3505,
+      "sha256": "b6abf7d3a8f5489511e210c073c498fcbf6e2d5280b817389c4615521bcf76ee",
+      "artifactId": 11658939015,
+      "originalArtifactEntry": "receipt.json"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/chainlesschain-ide-jetbrains-1.zip",
+      "target": "source/candidate-github.zip",
+      "bytes": 1520335,
+      "sha256": "5c67c74b9f5f3e731debb817f45caa0b994d0c9da6710386ca591c1a2f247da2",
+      "artifactId": 11658539265,
+      "originalArtifactName": "chainlesschain-ide-jetbrains-1"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/chainlesschain-ide-jetbrains-1/chainlesschain-ide-bridge-0.4.158.zip",
+      "target": "source/candidate-plugin.zip",
+      "bytes": 1520126,
+      "sha256": "5f0da7e8d5c29d0746338cc0a04adb95d9105c9ecea86f5dab2c3fc401b84aeb",
+      "artifactId": 11658539265,
+      "originalArtifactEntry": "chainlesschain-ide-bridge-0.4.158.zip"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/api-captures.json",
+      "target": "download/api-captures.json",
+      "bytes": 1129,
+      "sha256": "47b6cac3033aec64fdadc4d3a01af818f04f69fca53c9f93b88c90550e730a80"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658539265-download.json",
+      "target": "download/artifact-11658539265-download.json",
+      "bytes": 535,
+      "sha256": "b0195d8dde5519000b0120e725425f49ef0f6c6085e7297ca75bd8569e2d35a0"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658539265-metadata.json",
+      "target": "download/artifact-11658539265-metadata.json",
+      "bytes": 735,
+      "sha256": "21e3d57e369bbb322466c798823e47d85ac2e478a3cce7bccb40de749c3f4969"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658939015-download.json",
+      "target": "download/artifact-11658939015-download.json",
+      "bytes": 531,
+      "sha256": "f477901861403dc5705d43c5c5c503c41c9721d94c24f24376d2fc5e4a33d3c1"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifact-11658939015-metadata.json",
+      "target": "download/artifact-11658939015-metadata.json",
+      "bytes": 734,
+      "sha256": "af463fdb5aec255cdb2838f078d654b2c00cf0c60a25c11b12fc6e87f3d75e14"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/artifacts-1.json",
+      "target": "download/artifacts-1.json",
+      "bytes": 13684,
+      "sha256": "3b563f26f386caaa5ad776efcbf6489288ff184de030bb10aef58dddf78b2380"
+    },
+    {
+      "source": ".work/release-readback-0.166.96/jetbrains-38021102825/download-attempts/2026-10-10T04-08-05.594Z/run.json",
+      "target": "download/run.json",
+      "bytes": 13193,
+      "sha256": "8ea9f3bc7795d4f7e87fa8bf735d699c36356f4a07be9f6e13b4687405f1704e"
+    },
+    {
+      "source": null,
+      "target": "comparison.json",
+      "bytes": 2154,
+      "sha256": "c22995e6f57caf4f145be096e5e7f101e2bcd381800452ee090db32ce98d3035",
+      "generated": true,
+      "derivation": "Independent local ZIP entry-byte and archived metadata verification"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "chainlesschain.marketplace-incremental-archive-verification/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "workflowRunId": 38021102825,
+  "pluginVersion": "0.4.158",
+  "pairedCliVersion": "0.166.96",
+  "historicalObservation": {
+    "observedAt": "2026-10-10T04:08:47.086Z",
+    "status": "pending",
+    "originalReceipt": "pending/jetbrains-marketplace-readback.json"
+  },
+  "approvedObservation": {
+    "observedAt": "2026-10-10T04:50:36.494Z",
+    "status": "ready",
+    "updateId": 1190815,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "originalReceipt": "approved/jetbrains-marketplace-readback.json"
+  },
+  "candidatePlugin": {
+    "path": "source/candidate-plugin.zip",
+    "bytes": 1520126,
+    "sha256": "5f0da7e8d5c29d0746338cc0a04adb95d9105c9ecea86f5dab2c3fc401b84aeb"
+  },
+  "publicPlugin": {
+    "path": "approved/chainlesschain-ide-bridge-public.zip",
+    "bytes": 1525786,
+    "sha256": "60a2b0432a6995c82a6e9cd6970b410095b61cb2958026d536809165fa831a03"
+  },
+  "archiveExactMatch": false,
+  "allEntryBytesMatch": true,
+  "entries": [
+    {
+      "name": "chainlesschain-ide-bridge/",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "chainlesschain-ide-bridge/lib/",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.158.jar",
+      "bytes": 1613879,
+      "sha256": "5dfe0bf6f788970fdb03088cc9e7ba8ee2d687b3843eb94f0915af53559ca369"
+    },
+    {
+      "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.158-searchableOptions.jar",
+      "bytes": 1263,
+      "sha256": "2f08f370b3da6a077bbcf7ffdd70be5cdbb68e907cc257d2a4c55ffd4ec61e23"
+    }
+  ],
+  "scope": "Read-only local reverification of archived observations and complete binary payloads; no fresh network request. Earlier pending observation is retained unchanged. Public availability does not close native/durable/long-duration acceptance or amend the independent scheduler failure."
+}

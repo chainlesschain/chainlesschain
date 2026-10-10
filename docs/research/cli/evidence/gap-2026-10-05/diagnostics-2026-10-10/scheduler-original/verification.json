@@ -1,0 +1,121 @@
+{
+  "sourceCommit": "73f5a3550d87db724f0c539223e671fd3ea6d1e1",
+  "runId": 38023140779,
+  "runAttempt": 1,
+  "workflowConclusion": "failure",
+  "jobs": [
+    {
+      "id": 114128248589,
+      "name": "scheduler kill/restart/contention soak (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114128248692,
+      "name": "scheduler kill/restart/contention soak (windows-latest)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 114128249001,
+      "name": "scheduler kill/restart/contention soak (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114129530282,
+      "name": "Scheduler kernel soak aggregate",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "artifactVerification": [
+    {
+      "id": 11659715423,
+      "name": "cli-scheduler-soak-macOS-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 4377,
+      "sha256": "4145c3711c784ab4e615e2b18ed2ad9fc34559ecc0b3b2a9bf6bcf726307cd07",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-macOS.json",
+          "bytes": 22194,
+          "sha256": "db02e0e92122d531179befd7c1504e6e28d65264a0fdd6738aad070c64a00a62",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": 11659185666,
+      "name": "cli-scheduler-soak-Linux-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 4364,
+      "sha256": "eca450079b89eeb8d61dc76d58d907c6d1ed4934739ab75623028397cbd93656",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-Linux.json",
+          "bytes": 22160,
+          "sha256": "fd1cf847da64f7da3886d314b6cd2a660539ebf8b1d9192c46a09e967c86c295",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": 11659065802,
+      "name": "cli-scheduler-soak-Windows-73f5a3550d87db724f0c539223e671fd3ea6d1e1-1",
+      "bytes": 6771,
+      "sha256": "24a84a4f5e9a7c052628973deca49a91efed74e6be7ae0fd354eb8b2208d72b5",
+      "zipOfficialSizeAndDigestVerified": true,
+      "payloadDownloaded": true,
+      "payloadEntryBytesVerified": true,
+      "entries": [
+        {
+          "originalEntry": "scheduler-kernel-soak-Windows.json",
+          "bytes": 63328,
+          "sha256": "b146843138b9c5e9a9315550c3d63533a52bdce25400b76cbcfad8299e895b80",
+          "status": "failed"
+        }
+      ]
+    }
+  ],
+  "acquisitionScope": "Read-only gh api through an already-approved Node inline controller; no workflow rerun, no mutation. All three original ZIPs were downloaded and matched official size/digest; no metadata-only substitution.",
+  "rootWindowsOriginalByteIdentical": true,
+  "failure": {
+    "failedStep": "Run scheduler kernel soak",
+    "completedRounds": 1,
+    "mode": "smoke",
+    "leaseMs": 1000,
+    "violation": {
+      "name": "Error",
+      "code": "SCHEDULER_SOAK_WORKER_FAILED",
+      "message": "before-execute replacement failed: code=1 signal=none SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_f0c7c0124f1e3f19bdbc2866097d17cb2c8202aef7e3ede18918ed3d5256236f\n    at leaseLost (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2266:10)\n    at D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5048:39\n    at Function.<anonymous> (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (D:\\a\\chainlesschain\\chainlesschain\\node_modules\\better-sqlite3\\lib\\methods\\transaction.js:65:24)\n    at SchedulerStore._write (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2390:28)\n    at SchedulerStore.renew (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5022:17)\n    at Object.renew [as renewLease] (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:552:20)\n    at writeEffect (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:245:13)\n    at async Object.execute (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:327:22)\n    at async SchedulerRuntime._executeClaim (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:672:18)\n",
+      "stack": "Error: before-execute replacement failed: code=1 signal=none SchedulerKernelError: Occurrence lease is absent, expired, or owned by another fence: occ_f0c7c0124f1e3f19bdbc2866097d17cb2c8202aef7e3ede18918ed3d5256236f\n    at leaseLost (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2266:10)\n    at D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5048:39\n    at Function.<anonymous> (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2375:24)\n    at Function.sqliteTransaction (D:\\a\\chainlesschain\\chainlesschain\\node_modules\\better-sqlite3\\lib\\methods\\transaction.js:65:24)\n    at SchedulerStore._write (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:2390:28)\n    at SchedulerStore.renew (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-store.js:5022:17)\n    at Object.renew [as renewLease] (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:552:20)\n    at writeEffect (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:245:13)\n    at async Object.execute (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak-worker.mjs:327:22)\n    at async SchedulerRuntime._executeClaim (D:\\a\\chainlesschain\\chainlesschain\\packages\\session-core\\lib\\scheduler-runtime.js:672:18)\n\n    at assertInvariant (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:891:17)\n    at requireWorkerSuccess (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1100:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async retireSuccessfulWorker (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1543:18)\n    at async runBeforeExecuteCrashScenario (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:1816:33)\n    at async runSchedulerKernelSoak (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2283:29)\n    at async main (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2666:20)\n    at async file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/scheduler-kernel-soak.mjs:2684:20"
+    },
+    "capturedFailureWorkerIds": [
+      "steady-1",
+      "steady-2"
+    ],
+    "missingEvidence": [
+      "Failed round-2 replacement worker event timeline and stderr as a structured worker record",
+      "Failed replacement occurrence state and renewal history"
+    ],
+    "conclusion": "Replacement failed at renew invoked from writeEffect before opening its effect file. Current evidence does not establish why its lease was lost or distinguish a production defect from scheduling/lock latency. Default global invariant false values do not prove every individual invariant failed."
+  },
+  "aggregate": {
+    "primaryFailure": "At least one scheduler soak platform failed or did not finish",
+    "consequentUploadFailure": "No aggregate JSON was produced; upload found no files",
+    "aggregateArtifactExists": false
+  },
+  "historical": {
+    "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+    "runId": 38012166326,
+    "conclusion": "success",
+    "runAttempt": 1,
+    "historicalSuccessDoesNotTransfer": true,
+    "workflowAndInspectedSourceByteIdentical": true
+  }
+}

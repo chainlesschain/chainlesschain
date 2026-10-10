@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   existsSync,
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -324,6 +325,10 @@ describe("scheduler kernel soak coordinator", () => {
     });
     expect(first.workers[0].events).toHaveLength(40);
     expect(first.workers[0].events.at(-1).occurrence.fence).toBe(2);
+    first.workers[0].events.at(-1).occurrence.fence = 77;
+    expect(recorder.snapshot().workers[0].events.at(-1).occurrence.fence).toBe(
+      2,
+    );
     expect(Buffer.byteLength(first.workers[0].stderr)).toBeLessThanOrEqual(
       64 * 1024,
     );
@@ -381,11 +386,61 @@ describe("scheduler kernel soak coordinator", () => {
     expect(records[0]).toMatchObject({
       occurrenceId: "occ-broken",
       error: { code: "SQLITE_BUSY" },
+      occurrenceError: { code: "SQLITE_BUSY" },
+      history: [{ type: "occurrence_renewed", occurredAt: 122 }],
     });
     expect(records[1]).toMatchObject({
       occurrenceId: "occ-replacement",
       occurrence: { attempt: 2, fence: 2 },
       history: [{ type: "occurrence_renewed", occurredAt: 122 }],
+    });
+  });
+
+  it("retains database evidence when the effect cannot be read", () => {
+    withEvidenceDirectory((directory) => {
+      mkdirSync(join(directory, "occ-target.json"));
+      const records = collectSchedulerSoakOccurrenceDiagnostics(
+        {
+          getOccurrence: (id) => ({ id, fence: 2 }),
+          history: () => [{ type: "occurrence_claimed", ownerId: "owner" }],
+        },
+        [{ events: [{ occurrence: { id: "occ-target" } }] }],
+        directory,
+      );
+      expect(records[0]).toMatchObject({
+        occurrence: { id: "occ-target", fence: 2 },
+        history: [{ type: "occurrence_claimed", ownerId: "owner" }],
+        effect: { exists: true, readError: { code: "EISDIR" } },
+      });
+      expect(records[0].error).toBeUndefined();
+    });
+  });
+
+  it("retains occurrence and effect evidence when history cannot be queried", () => {
+    withEvidenceDirectory((directory) => {
+      writeFileSync(join(directory, "occ-target.json"), "effect");
+      const records = collectSchedulerSoakOccurrenceDiagnostics(
+        {
+          getOccurrence: (id) => ({ id, fence: 2 }),
+          history: () => {
+            throw Object.assign(new Error("history unavailable"), {
+              code: "SQLITE_BUSY",
+            });
+          },
+        },
+        [{ events: [{ occurrence: { id: "occ-target" } }] }],
+        directory,
+      );
+      expect(records[0]).toMatchObject({
+        occurrence: { id: "occ-target", fence: 2 },
+        history: null,
+        historyError: { code: "SQLITE_BUSY" },
+        effect: {
+          exists: true,
+          bytes: 6,
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        },
+      });
     });
   });
 
