@@ -454,3 +454,9 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 诊断与配对已提交推送为 `3fab61494e`、`17e1e05420`，PR #428 保持草稿。后者 Strict 5/5、IDE 主门 18 成功/1 条件跳过、ARM64 10/10 完成；CLI CI 当前 53 成功/14 未完成，不能发布。常规 CI Windows 的后台授权 SQLite 用例 230/231，通过项之外一项默认5秒超时；selector/fallback 因先决步骤失败跳过，后续 guard 的失败为连带。Windows loopback 原件在 read_file settled 后只记 model usage unknown，未保存底层 provider error 类别，根因未确认。
 
 仅将前者单例测试预算改为30秒，并加 performance.now 阶段日志；生产/全局期限和原断言保持。后者将已有固定 allowlist 的 name/code/status 错误链保留进失败证据，拒绝任意值/消息/额外字段，无 provider message/stack/request 留存，不改生产策略或加retry。[38 份首轮和本机修复原件](./cli/evidence/gap-2026-10-05/release-0.166.97/prepublish-attempt1/manifest.json)与局部桌面20/20、CLI23/23保留。未复现CI SQLite慢阶段，不把取证改动写成loopback根因修复；新SHA仍须自己的全部矩阵，版本不变、尚未发布，正式/native未完成状态不变。见[验证20.29](./cli-ide-gap-validation-2026-10-05.md#2029-cli-016697-候选-windows-失败与诊断修复)。
+
+## 31. 2026-10-11 CLI 0.166.97 发行与准确来源回读
+
+源码 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5` 已完成自身CLI/Strict/IDE/ARM64与相关失败门，按既有OIDC发布CLI `0.166.97`，再独立核验公共tarball、准确provenance、13个子包和registry安装来源。SDK `0.2.14` 与所有子包复用的整个Git subtree及公共字节一致，没有新子包发布。CLI 公开回读后才推送两端 IDE 的不可变标签；Open VSX `0.37.141`（run `38095423362`）与 JetBrains `0.4.159`（run `38095423253`）发布矩阵正在运行，尚未确认市场上传或公开安装。
+
+[CI归档](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/ci/manifest.json)、[CLI回读](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/public/npm/readback.json)及[发行索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/manifest.json)保存原始字节与绑定摘要；详细门及局部限制见[验证20.30](./cli-ide-gap-validation-2026-10-05.md#2030-2026-10-11-cli-016697-最终门与公开发行回读)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 NOT_RUN/INSUFFICIENT_EVIDENCE；旧 Windows 211=194/16/1、mutants 6/4/4 以及新 fixture 211=208/2/1 均未改写，完整 native review 继续 NOT_ADMITTED。Windows/macOS durable、受保护 journal、服务自身恢复/WFP、正式目标宿主、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放。本轮无付费 provider 调用，草稿 PR #428 未合并。

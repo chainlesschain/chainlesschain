@@ -1004,3 +1004,26 @@ CI Tests run38058378845 的 Windows22.x job114231464135，`Verify governed proje
 IDE Live Provider Trajectory run38058378923 的 Windows loopback job114231408906失败，Linux/macOS成功，两个真实付费provider job明确skipped，未调用付费API。原 ZIP与GitHub digest一致，报告eventCount9/eventOrder含10标签，read_file已settled、下一model usage unknown；压缩usage已reported。原件没有底层错误类，不推定缺账单、服务端断开或错误响应。只将原已计算的allowlisted错误链name/code/status透过sanitized failure receipt持久保存；链最多3项、严格字段/枚举/HTTP范围，拒绝任意消息、stack、路径和request，历史不带该可选字段的回执仍可读取。失败、provider policy、120s轨迹期限和无重试均保持。
 
 CLI该文件生产loopback两次和全部合同本机 **23/23**，57.97s；原stdout只有工具记录，不补造原件。新增安全边界测试拒绝额外message/任意name/code/非法status/超长链，保证固定错误分类能保留而不能带入provider文本。lint/Prettier、spawn inventory与diff检查通过。此取证修复不是Windows loopback根因完成；后续准确SHA须重跑完整CLI/Strict/IDE/ARM64及相关失败门。版本保持0.166.97/0.37.141/0.4.159；原正式36+9、$99、observations、冻结反例与NOT_ADMITTED及durable/账单/人工/长时状态不变。
+
+### 20.30 2026-10-11 CLI 0.166.97 最终门与公开发行回读
+
+发行源码固定为 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5`，三个发布标签都指向该提交。后续文档提交不继承这个提交的 CI，原 `17e1e05420` 失败与修复记录保留。
+
+| 准确提交的发布/相关门     | run         | 最终结果                                        |
+| ------------------------- | ----------- | ----------------------------------------------- |
+| CLI CI                    | 38063505050 | 71/71 success；所有 job head_sha/attempt 1 匹配 |
+| CLI Strict Sandbox        | 38063504747 | 5/5 success，三系统覆盖                         |
+| IDE Extensions            | 38063504784 | 18 success / 1 非标签 post-publish 条件 skip    |
+| IDE ARM64 Host Validation | 38063504697 | 10/10 success；独立门未由发布 workflow 自动依赖 |
+| CI Tests                  | 38063504676 | 13 success / 1 Full Test Suite 条件 skip        |
+| Loopback trajectory       | 38063504706 | 4 success / 2 paid-provider skip；无付费调用    |
+
+[CI 原件索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/ci/manifest.json)保留59份gzip及双摘要，独立回读全部通过。SDK准确范围为三个 `verify-cli` job 各自的 `Test Agent SDK release payload source` 步骤通过，没有独立SDK aggregate。PM exploration recovery三平台与汇总四ZIP（4,587 bytes）摘要和内部引用匹配，按原verifiedAt重算汇总完全一致；各31process、falseSuccessReceipts=0，仍 testAuthority/syntheticFaultInjection、qualifiesForProduction=false，不冒充实际掉电或生产authority。Strict/ARM64/IDE只下载所需小型汇总原件，没有重放全部视频和宿主原件；Remote SSH仍advisory/selected-cases、releaseReady=null。
+
+Windows后台授权host **231/231**、controls **201/201**；selector因 `UNMAPPED_CHANGED_FILES` fail-closed转入完整fallback，**30,500 pass / 473 skip**（1,565 files pass / 9 skip），enforce成功。原超时case此次阶段约621.01ms、Vitest742ms，fallback复跑682ms，未复现原慢阶段；不确认根因已修复。Loopback三平台各100、共300唯一run，四ZIP/内部摘要全匹配，但 manifestMatrixEligible=false、manifestCoverageComplete=false、structural-envelope-only，不能计入正式36+9。
+
+OIDC run **38094605922** / attempt1成功。独立[公开CLI回读](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/public/npm/readback.json)确认14个archive（CLI+13子包）公共字节/SRI/SHA1、CLI不可变tarball/准确commit/ref/run provenance、三个重要子包的旧签名来源与当前源码tree匹配，独立registry install的13子包全部精确版本/resolved/integrity一致，并验证CLI十个直接子包来源。SDK签名来源commit仍 `da91e730d802b7c9dcdc075b222ecc257021e552`，当前与其完整tree一致，不能要求SDK gitHead冒称本次22ef。签名验证依据成功OIDC workflow的digest-bound `npm audit signatures --include-attestations` 收据，没有另做本机验签；独立install使用ignore-scripts，只验证来源，不声称native功能。
+
+CLI 公开回读后才推送两端 IDE 的不可变标签；Open VSX `0.37.141`（run `38095423362`）与 JetBrains `0.4.159`（run `38095423253`）发布矩阵正在运行，尚未确认市场上传或公开安装。 默认渠道仍Open VSX/JetBrains，未新增Microsoft Marketplace backfill；公开市场的实际状态以[发行索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/manifest.json)及各市场回读为准。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 保持 NOT_RUN/INSUFFICIENT_EVIDENCE；旧 Windows 211=194/16/1、mutants 6/4/4 以及新 fixture 211=208/2/1 均未改写，完整 native review 继续 NOT_ADMITTED。Windows/macOS durable、受保护 journal、服务自身恢复/WFP、正式目标宿主、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放。本轮无付费 provider 调用，草稿 PR #428 未合并。

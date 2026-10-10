@@ -1,0 +1,465 @@
+{
+  "schema": "chainlesschain.release-public-evidence/v1",
+  "capturedAt": "2026-10-10T23:32:51.987Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "kind": "npm",
+  "status": "VERIFIED",
+  "version": "0.166.97",
+  "source": ".work/release-readback-0.166.97/verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "report": "readback.json",
+  "reportSha256": "sha256:5d10466322ea61cc520abbcf5095fe1102d7376309efd992463a56fbf81db1a0",
+  "entries": [
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\artifact-readback.json",
+      "sourceRelativePath": "artifact-readback.json",
+      "bytes": 5216,
+      "sha256": "sha256:06a3ff6aba4fae4130d6a52ec9ac82635c982002c36ce875c09c54d5a3193073",
+      "path": "e001.gz",
+      "archiveBytes": 1369,
+      "archiveSha256": "sha256:8f21678be58bf2747702ae421a76275570375e95e2a72cc6023e0a7e5a735a66"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\artifacts.raw.json",
+      "sourceRelativePath": "artifacts.raw.json",
+      "bytes": 5350,
+      "sha256": "sha256:18a4cb83e9bf38b8f4a99f224ef60108dcf5241f2de90f4977b0f6498925f4d3",
+      "path": "e002.gz",
+      "archiveBytes": 994,
+      "archiveSha256": "sha256:0be7316d7bf26058f853b9c848ee4a2ed1948d49b95ec99b4474bc2f7d28c992"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\baseline-summary.json",
+      "sourceRelativePath": "baseline-summary.json",
+      "bytes": 10732,
+      "sha256": "sha256:10f01ce527ba0ee94a8c6f9097fe35435ea2b784e4c0095e4935be56b9bbaa1f",
+      "path": "e003.gz",
+      "archiveBytes": 3036,
+      "archiveSha256": "sha256:96bd5e090b0f1e17bd90cd8909bcf1c096f54bcbf86bb142abf1b1bf7b129976"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-release.json",
+      "sourceRelativePath": "chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/chainlesschain-release.json",
+      "bytes": 2606,
+      "sha256": "sha256:ea073c65e0b7b6c744d6ef95e032cde0be139eb71cff896675b9c536236b3ff1",
+      "path": "e004.gz",
+      "archiveBytes": 1010,
+      "archiveSha256": "sha256:f5cd588fdd18c5b0547c17d215a10b79000a7fae1d575c0f4268b462149ac4ca"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-sbom.cdx.json",
+      "sourceRelativePath": "chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/chainlesschain-sbom.cdx.json",
+      "bytes": 656817,
+      "sha256": "sha256:6c85043300b5e5c401d07933fa9f01199373d8980ccbf63c582f52f9df643bb5",
+      "path": "e005.gz",
+      "archiveBytes": 80671,
+      "archiveSha256": "sha256:e7f503a2f99a4d1630275912767ee5dccfa2122e0be4da6407d737dfda30d3b8"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\agent-protocol-npm-provenance.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/agent-protocol-npm-provenance.json",
+      "bytes": 1207,
+      "sha256": "sha256:6a5dd5da889c482b421bbababc2a8d7fa40ca285b0ef7258deac1c7c25d52964",
+      "path": "e006.gz",
+      "archiveBytes": 590,
+      "archiveSha256": "sha256:463c7ace2eb7ca6f95ec4332cb01bd79ca7edad0e5157a2cf7113e37ec0bdf6c"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\agent-sdk-npm-provenance.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/agent-sdk-npm-provenance.json",
+      "bytes": 1197,
+      "sha256": "sha256:a6f897d3fead01d39f59ed549f3073aead8c395d6678da6f467d0becd2bba645",
+      "path": "e007.gz",
+      "archiveBytes": 587,
+      "archiveSha256": "sha256:9a36f0deb064525f099fb34ce68678a56c465b52ccdfcdac9addfcde7744427d"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-provenance.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/chainlesschain-npm-provenance.json",
+      "bytes": 831,
+      "sha256": "sha256:7fb44a31721982d6424f7543dd555fac67f38d80e5f75c97a762000e640f1331",
+      "path": "e008.gz",
+      "archiveBytes": 469,
+      "archiveSha256": "sha256:02a0cd2d3a967dfc621e89287100a1bafb6b030b19491baba3643fbe0b16ea28"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-release.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/chainlesschain-release.json",
+      "bytes": 2606,
+      "sha256": "sha256:ea073c65e0b7b6c744d6ef95e032cde0be139eb71cff896675b9c536236b3ff1",
+      "path": "e009.gz",
+      "archiveBytes": 1010,
+      "archiveSha256": "sha256:f5cd588fdd18c5b0547c17d215a10b79000a7fae1d575c0f4268b462149ac4ca"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\cli-public-child-install.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/cli-public-child-install.json",
+      "bytes": 3282,
+      "sha256": "sha256:6708fb382839b7cb4aab8fcc9ae86d35f8f2d9512d6f66bec03e8edbefcde286",
+      "path": "e010.gz",
+      "archiveBytes": 1192,
+      "archiveSha256": "sha256:0b0603ac2c126e6a9c5f7f3b66d4f5922a585369aa54b4b367e1feb34a54c158"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\context-memory-kernel-npm-provenance.json",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/context-memory-kernel-npm-provenance.json",
+      "bytes": 1220,
+      "sha256": "sha256:9778d279efa86acbb09d7f25f2a722a5dd04805b85b1178283007cea8bb28f3a",
+      "path": "e011.gz",
+      "archiveBytes": 594,
+      "archiveSha256": "sha256:35798b8fe7babeec2faba2c40d08109b408c0a101dd432498692fdec6434a0f8"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\cli-release-gate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\cli-release-gate.json",
+      "sourceRelativePath": "cli-release-gate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/cli-release-gate.json",
+      "bytes": 923,
+      "sha256": "sha256:7b62a93844eb06cac2b0d529a4cd060baf8089f321580209f2dba9438761a71e",
+      "path": "e012.gz",
+      "archiveBytes": 341,
+      "archiveSha256": "sha256:667bfeac07b80b6f0d620d22d5eb060bad52cb11369f5782e210add7fe9c653f"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\install-invocation.json",
+      "sourceRelativePath": "install-invocation.json",
+      "bytes": 1058,
+      "sha256": "sha256:6a3f15a92f831afb3b8d3cac787d56b529cec5ef85bf7ef96e856d5c146f87c4",
+      "path": "e013.gz",
+      "archiveBytes": 480,
+      "archiveSha256": "sha256:178a5a0c2f3a6cc36ef5b6bd68c24a825875c618002ae50fa7f2d34af939a8b4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\install.stderr",
+      "sourceRelativePath": "install.stderr",
+      "bytes": 243,
+      "sha256": "sha256:9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b",
+      "path": "e014.gz",
+      "archiveBytes": 188,
+      "archiveSha256": "sha256:8fd892a6b6c79787f5330cb4c305ceb36efd4b927a5011f7bdb42dfaf5eba8e9"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\install.stdout",
+      "sourceRelativePath": "install.stdout",
+      "bytes": 27,
+      "sha256": "sha256:762d5b4b3157276160aba70ca1866c5d552be60763891fd21e25cc79a79b4a67",
+      "path": "e015.gz",
+      "archiveBytes": 47,
+      "archiveSha256": "sha256:48e4e060cac7e922d6390171807fbed5fb4e5a5966df64050dbcf68c3c156c6a"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\invocation.json",
+      "sourceRelativePath": "invocation.json",
+      "bytes": 236,
+      "sha256": "sha256:54ad960a446ae039bd0ee289b848a2f359838d053314afa155f52786fab89878",
+      "path": "e016.gz",
+      "archiveBytes": 194,
+      "archiveSha256": "sha256:f285d5c05ef3b631c8dbd21c85398938d728f80699fe21bd58977d7adaefb10e"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-0.166.97.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-0.166.97.metadata.json",
+      "bytes": 7671,
+      "sha256": "sha256:e7d81b6a98a73047db4d52048a19276eb87ccf47109429fd61443d4d4d2e10af",
+      "path": "e017.gz",
+      "archiveBytes": 2763,
+      "archiveSha256": "sha256:37e0d494190154467b2c061cd866a2298f3454040aa54fbdb9f59917accf6adc"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-agent-protocol-0.1.12.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-agent-protocol-0.1.12.metadata.json",
+      "bytes": 2703,
+      "sha256": "sha256:23a0edd0e8ed005ea1fd81c6370fa305bafacb6cb684bcca2b03ddd012ee6663",
+      "path": "e018.gz",
+      "archiveBytes": 1367,
+      "archiveSha256": "sha256:6a5782697293651429aec07008b00769ba5fc6c0a14fa00f94a92d7d6afd3549"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-agent-sdk-0.2.14.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-agent-sdk-0.2.14.metadata.json",
+      "bytes": 2859,
+      "sha256": "sha256:a3e5ff72ded6620883fcdffbf04b08bd84f56d55f590a393c145557339f5d3a4",
+      "path": "e019.gz",
+      "archiveBytes": 1425,
+      "archiveSha256": "sha256:4e476b2a25d9cee0dec51f8348a9e8c31fff0d139daafa91e7403a8212a4d806"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-context-memory-kernel-0.1.8.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-context-memory-kernel-0.1.8.metadata.json",
+      "bytes": 2851,
+      "sha256": "sha256:3b35dc0543890adbe4c57bfd7142e982b44ad1e2f66ce0e2fd15321ed9ca7615",
+      "path": "e020.gz",
+      "archiveBytes": 1379,
+      "archiveSha256": "sha256:0e41608f7b23943e2a0eece7285a0403eca8ecbad0eb951f28868c362778146e"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-config-0.1.2.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-config-0.1.2.metadata.json",
+      "bytes": 1938,
+      "sha256": "sha256:5ff195df40061e5b02a1198492e2ff88315150e36a8d91b403e1e9b9faeb91a6",
+      "path": "e021.gz",
+      "archiveBytes": 1020,
+      "archiveSha256": "sha256:6c696f28ad69c6d27fc557d75b5591357d6b0319b44c9fc3c71b96ba7e2f7a96"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-db-0.1.5.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-db-0.1.5.metadata.json",
+      "bytes": 2586,
+      "sha256": "sha256:4d92c5647be7c38a0a46f08e560a0d37aa92d49b09283dad9aa689c4bb018f34",
+      "path": "e022.gz",
+      "archiveBytes": 1237,
+      "archiveSha256": "sha256:e1a062a7e2c8b9752a738a390a53775e70588f2b2ed43deaa33d6230d2ba4609"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-env-0.1.2.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-env-0.1.2.metadata.json",
+      "bytes": 1878,
+      "sha256": "sha256:aacf0377a6ea0d3a6d05b6f1a745488d3f09cc2ee9b758f5dfde472aa8f9e5fa",
+      "path": "e023.gz",
+      "archiveBytes": 1020,
+      "archiveSha256": "sha256:30e920c227b7cccb1f26a3c9f2b2a0a05f904b39c275a8a0126ac9e6ed456403"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-infra-0.1.1.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-infra-0.1.1.metadata.json",
+      "bytes": 1979,
+      "sha256": "sha256:a89a99a98979c0ac38803c8e0ca458826a61d017924c13df7cb68b00a3e9c964",
+      "path": "e024.gz",
+      "archiveBytes": 1043,
+      "archiveSha256": "sha256:42ed324e4040de6e14c15aeddebef509cb18ee94ea5e2020577d4fed3146dee5"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-mtc-0.2.3.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-mtc-0.2.3.metadata.json",
+      "bytes": 2815,
+      "sha256": "sha256:03a810e219c23885bbd0b0c42ec9e4dc2c3011192dd5c3aa728c23a1c8b03f61",
+      "path": "e025.gz",
+      "archiveBytes": 1374,
+      "archiveSha256": "sha256:c7f7b491f4a1c38db25e4ed5a37166f1858314b5ab8e5d43229c1fc8ad439530"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-multisig-0.1.4.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-multisig-0.1.4.metadata.json",
+      "bytes": 2125,
+      "sha256": "sha256:f0f7de21640db8b934facf7ab9a9dd7214e383fb6d73063359e6078d5bc05cae",
+      "path": "e026.gz",
+      "archiveBytes": 1130,
+      "archiveSha256": "sha256:b2abe218a2afde94d878b3980b0288e27696489b003cfccf0587c6282b36f0f2"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-settlement-0.1.2.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-core-settlement-0.1.2.metadata.json",
+      "bytes": 2153,
+      "sha256": "sha256:169b36c4d5b5ddbb3fd9de85479b1e781ec5cdf10cfc3ed8f8f99544e93dd39e",
+      "path": "e027.gz",
+      "archiveBytes": 1214,
+      "archiveSha256": "sha256:261b322339f0771a54a9fb9d65ac5042e3a103a22796c64f2a2fda4ff406e9bd"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-personal-data-hub-0.4.64.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-personal-data-hub-0.4.64.metadata.json",
+      "bytes": 7349,
+      "sha256": "sha256:ae7da299a445a318f357df0e648e66284003ab97fe163ef29faba20645e00c0c",
+      "path": "e028.gz",
+      "archiveBytes": 2282,
+      "archiveSha256": "sha256:0d014cac349398acb2e863437759e59b35153158cfcfb9f196ee51b24c742d1e"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-session-core-0.3.18.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-session-core-0.3.18.metadata.json",
+      "bytes": 6217,
+      "sha256": "sha256:b7cf3a23c27ac8656c7f0d8004dbdb23dd974003ffaee8ec2813ad07370d4862",
+      "path": "e029.gz",
+      "archiveBytes": 2066,
+      "archiveSha256": "sha256:a0a01bf8a77b0ec08d4dfff7ffd9c3424007c0fb3f3f071706a47c9443176e0a"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-shared-logger-0.1.1.metadata.json",
+      "sourceRelativePath": "public/chainlesschain-shared-logger-0.1.1.metadata.json",
+      "bytes": 1931,
+      "sha256": "sha256:289504258ea0cefed545808ef4e831a182f30f5196f8d8854730c6c6f9bc64ea",
+      "path": "e030.gz",
+      "archiveBytes": 1025,
+      "archiveSha256": "sha256:19b85f36cedeac15ba83a8155f27bb4fc38b73989c9f0309d53ff4bd19a87558"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public-authority-readback.json",
+      "sourceRelativePath": "public-authority-readback.json",
+      "bytes": 22889,
+      "sha256": "sha256:5d10466322ea61cc520abbcf5095fe1102d7376309efd992463a56fbf81db1a0",
+      "path": "e031.gz",
+      "archiveBytes": 5167,
+      "archiveSha256": "sha256:2009383b7f9fd02ec78c571e2b05491e731057b4fcd40477c577cf8a1a8de069"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public-install\\.npmrc",
+      "sourceRelativePath": "public-install/.npmrc",
+      "bytes": 124,
+      "sha256": "sha256:938dcb23440606a25aca8332798229666fb36e47eeb285f5c58eaa53f5ba8955",
+      "path": "e032.gz",
+      "archiveBytes": 99,
+      "archiveSha256": "sha256:f5ca08da5e5fd0633ff3aa05f0819294c1d1e02fc8a121b98ec7567396ce371f"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public-install\\package-lock.json",
+      "sourceRelativePath": "public-install/package-lock.json",
+      "bytes": 211474,
+      "sha256": "sha256:0124ebeb9d9b7a2b8c5b085358b12d70af475229e252854babb6fe778724cd7c",
+      "path": "e033.gz",
+      "archiveBytes": 43506,
+      "archiveSha256": "sha256:c29ce6a33fc0569c3a7a78cd7da3f95fa9fbd35952eba696cbd767e7337614d4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public-install\\package.json",
+      "sourceRelativePath": "public-install/package.json",
+      "bytes": 751,
+      "sha256": "sha256:90f086968dc172f11672799d81f3c590de0254e8eb2a4c354d38c3d974dadecd",
+      "path": "e034.gz",
+      "archiveBytes": 289,
+      "archiveSha256": "sha256:c06d819dd9653dc1fae5e8aca5f59183b8f7fc60bb5a390741e032eefd9b6b86"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\run.raw.json",
+      "sourceRelativePath": "run.raw.json",
+      "bytes": 13409,
+      "sha256": "sha256:5aef04e06593a6fee55dd800dc1c0731661bfdc56ffd142f9b8ae054c8f9b1b8",
+      "path": "e035.gz",
+      "archiveBytes": 1579,
+      "archiveSha256": "sha256:7e48b78265eb06f5192b819fb1d2ac15ac881771b551c4141dfcfc4c614e7915"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\readback-public-release.mjs",
+      "sourceRelativePath": "readback-helper.mjs",
+      "bytes": 18123,
+      "sha256": "sha256:0ccabbe0f61caff1caeb271c49540a3470e179fef9ce427ea2259b550410dcea",
+      "path": "e036.gz",
+      "archiveBytes": 5545,
+      "archiveSha256": "sha256:e5bcd0afc993a57cc17d61cb320eb690696f1e9eedc1e5d93441ff878424108d"
+    }
+  ],
+  "omittedBinaryBindings": [
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-0.166.97.tgz",
+      "sourceRelativePath": "chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/chainlesschain-0.166.97.tgz",
+      "bytes": 9354727,
+      "sha256": "sha256:ae9316707ab8eed4939b28542c4b26c8b57fc3f1d27f73cff9cc61c33bf78983"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "sourceRelativePath": "chainlesschain-npm-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "bytes": 9436803,
+      "sha256": "sha256:6dc73b72ff522333caf67d927fbbfcbb95026dafbbcdd9f60b3689a7644201ca"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\children\\chainlesschain-core-db-0.1.5.tgz",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/children/chainlesschain-core-db-0.1.5.tgz",
+      "bytes": 10302,
+      "sha256": "sha256:0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\children\\chainlesschain-session-core-0.3.18.tgz",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5/children/chainlesschain-session-core-0.3.18.tgz",
+      "bytes": 285649,
+      "sha256": "sha256:6189574f7bd8170ef355d7ec95db6c403b557d11364ccf566bdb39fbada2fc23"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "sourceRelativePath": "chainlesschain-npm-readback-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "bytes": 301675,
+      "sha256": "sha256:e008ec88250ce94b7ec67ab855ee1e28b2d5cdb6daf0e1e4d81f24ec51adc098"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\cli-release-gate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "sourceRelativePath": "cli-release-gate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5.zip",
+      "bytes": 479,
+      "sha256": "sha256:764c18b21178d4ab20a822f2d87727c17b97f76985b53053bbd551fbb5bed140"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-0.166.97.tgz",
+      "sourceRelativePath": "public/chainlesschain-0.166.97.tgz",
+      "bytes": 9354727,
+      "sha256": "sha256:ae9316707ab8eed4939b28542c4b26c8b57fc3f1d27f73cff9cc61c33bf78983"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-agent-protocol-0.1.12.tgz",
+      "sourceRelativePath": "public/chainlesschain-agent-protocol-0.1.12.tgz",
+      "bytes": 43144,
+      "sha256": "sha256:4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-agent-sdk-0.2.14.tgz",
+      "sourceRelativePath": "public/chainlesschain-agent-sdk-0.2.14.tgz",
+      "bytes": 88710,
+      "sha256": "sha256:5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-context-memory-kernel-0.1.8.tgz",
+      "sourceRelativePath": "public/chainlesschain-context-memory-kernel-0.1.8.tgz",
+      "bytes": 50055,
+      "sha256": "sha256:f7e9f6a96d12fd0c14ccbbc056a4da419eab566cd31ce5ffea4a8212eed59de4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-config-0.1.2.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-config-0.1.2.tgz",
+      "bytes": 3991,
+      "sha256": "sha256:922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-db-0.1.5.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-db-0.1.5.tgz",
+      "bytes": 10302,
+      "sha256": "sha256:0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-env-0.1.2.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-env-0.1.2.tgz",
+      "bytes": 2600,
+      "sha256": "sha256:5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-infra-0.1.1.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-infra-0.1.1.tgz",
+      "bytes": 3482,
+      "sha256": "sha256:09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-mtc-0.2.3.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-mtc-0.2.3.tgz",
+      "bytes": 38297,
+      "sha256": "sha256:6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-multisig-0.1.4.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-multisig-0.1.4.tgz",
+      "bytes": 13952,
+      "sha256": "sha256:605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-core-settlement-0.1.2.tgz",
+      "sourceRelativePath": "public/chainlesschain-core-settlement-0.1.2.tgz",
+      "bytes": 9031,
+      "sha256": "sha256:cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-personal-data-hub-0.4.64.tgz",
+      "sourceRelativePath": "public/chainlesschain-personal-data-hub-0.4.64.tgz",
+      "bytes": 890625,
+      "sha256": "sha256:309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-session-core-0.3.18.tgz",
+      "sourceRelativePath": "public/chainlesschain-session-core-0.3.18.tgz",
+      "bytes": 285649,
+      "sha256": "sha256:6189574f7bd8170ef355d7ec95db6c403b557d11364ccf566bdb39fbada2fc23"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\verified-38094605922-22ef588c1bb8f71c45feaa115df1d75d5ca505c5\\public\\chainlesschain-shared-logger-0.1.1.tgz",
+      "sourceRelativePath": "public/chainlesschain-shared-logger-0.1.1.tgz",
+      "bytes": 4058,
+      "sha256": "sha256:e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd"
+    }
+  ],
+  "boundaries": [
+    "Captured JSON, receipts, source/lock metadata and command outputs preserved as lossless gzip with two digests.",
+    "Downloaded binary archives remain in the local readback directory; this archive binds their hashes and remote artifact receipts but does not embed those large files.",
+    "Public install used ignore-scripts; no native functionality or formal 36+9 admission is claimed.",
+    "JetBrains pending remains upload-only until approved, listed and publicly downloadable."
+  ]
+}

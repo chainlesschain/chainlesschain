@@ -1,0 +1,97 @@
+{
+  "schema": "chainlesschain.paired-release-evidence/v1",
+  "capturedAt": "2026-10-10T23:34:49.598Z",
+  "status": "IDE_TAG_WORKFLOWS_IN_PROGRESS",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "versions": {
+    "cli": "0.166.97",
+    "vscode": "0.37.141",
+    "jetbrains": "0.4.159",
+    "agentSdk": "0.2.14"
+  },
+  "cli": "published-and-verified",
+  "agentSdk": "trusted-reuse-unchanged-source-tree",
+  "openVsx": "tag-workflow-running",
+  "jetbrains": "tag-workflow-running",
+  "npmRunId": "38094605922",
+  "ideRunIds": {
+    "vscode": 38095423362,
+    "jetbrains": 38095423253
+  },
+  "immutableTags": {
+    "cli": "v-npm-0-166-97",
+    "vscode": "ide-vscode-v0.37.141",
+    "jetbrains": "ide-jetbrains-v0.4.159"
+  },
+  "gates": {
+    "cliCi": {
+      "runId": 38063505050,
+      "successJobs": 71,
+      "skippedJobs": 0
+    },
+    "ciTests": {
+      "runId": 38063504676,
+      "successJobs": 13,
+      "skippedJobs": 1,
+      "skippedName": "Full Test Suite"
+    },
+    "strict": {
+      "runId": 38063504747,
+      "successJobs": 5,
+      "skippedJobs": 0
+    },
+    "arm64": {
+      "runId": 38063504697,
+      "successJobs": 10,
+      "skippedJobs": 0
+    },
+    "ide": {
+      "runId": 38063504784,
+      "successJobs": 18,
+      "skippedJobs": 1,
+      "skippedName": "JetBrains Marketplace (post-publish verification)",
+      "skipReason": "pull_request event; post-publish job requires push of ide-jetbrains-v tag"
+    },
+    "loopback": {
+      "runId": 38063504706,
+      "successJobs": 4,
+      "skippedPaidJobs": 2
+    }
+  },
+  "publicChildCount": 13,
+  "publicArchiveCount": 14,
+  "publicInstallLifecycleScripts": "disabled",
+  "signatureVerificationSource": "Successful OIDC publish workflow and digest-bound artifact receipts from npm audit signatures --include-attestations; no new local signature audit performed.",
+  "formalSample": false,
+  "admissionEligible": false,
+  "paidProviderCalls": 0,
+  "boundaries": [
+    "Release gates belong only to immutable source commit 22ef588; later documentation commits must earn their own checks.",
+    "SDK source steps are embedded in three verify-cli jobs; no separate SDK aggregate or new SDK release is claimed.",
+    "Formal 36 tasks + 9 firstRuns, $99 budget, observations and the original frozen counterexamples remain unchanged.",
+    "Windows/macOS durable authority, protected journal, recovery/WFP, target-host admission, official billing, independent human/accessibility and 8h/24h/SLO acceptance remain open.",
+    "PR #428 remains draft; no merge is performed."
+  ],
+  "files": [
+    {
+      "path": "ci/manifest.json",
+      "bytes": 34963,
+      "sha256": "sha256:85112d1740d3badb0064e1a74fb1c2d1fdbcd17bf02790e64bd4a3b0a09011a1"
+    },
+    {
+      "path": "ci/archive-validation.json",
+      "bytes": 883,
+      "sha256": "sha256:4236f1260b5eaa9e01ce258f8e2bf580fc9af8540a3593129d3056e207d4e7d2"
+    },
+    {
+      "path": "public/npm/manifest.json",
+      "bytes": 29187,
+      "sha256": "sha256:38318afae0412d12756044c73f1c970932a25102c6684b55b77ab62b3d9d145f"
+    },
+    {
+      "path": "public/npm/readback.json",
+      "bytes": 22889,
+      "sha256": "sha256:5d10466322ea61cc520abbcf5095fe1102d7376309efd992463a56fbf81db1a0"
+    }
+  ]
+}

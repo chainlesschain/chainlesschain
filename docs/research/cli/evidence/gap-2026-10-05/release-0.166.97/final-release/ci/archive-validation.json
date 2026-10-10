@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.release-ci-archive-validation/v1",
+  "verifiedAt": "2026-10-10T23:25:51.855Z",
+  "status": "passed",
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "latestRunAttempt": 1,
+  "manifestSha256": "sha256:85112d1740d3badb0064e1a74fb1c2d1fdbcd17bf02790e64bd4a3b0a09011a1",
+  "gzipPayloadsVerified": 59,
+  "originalSourceBytesEqual": true,
+  "compressedAndUncompressedSha256Verified": true,
+  "rawApiRecordsVerified": 19,
+  "githubZipContainersVerified": 12,
+  "extractedArtifactFilesVerified": 12,
+  "sdkScope": "Three successful Agent SDK source/payload steps in verify-cli jobs; no SDK-specific aggregate and no new SDK publication claim.",
+  "pmArtifactNamingPreserved": true,
+  "nonAdmissionLimitsPreserved": true,
+  "formal36Plus9": false,
+  "qualifiesForProduction": false,
+  "unexpectedFiles": [],
+  "excludedByteIdenticalCopies": 3
+}

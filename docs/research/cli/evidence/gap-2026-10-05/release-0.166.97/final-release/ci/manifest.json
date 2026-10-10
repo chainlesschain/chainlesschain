@@ -1,0 +1,727 @@
+{
+  "schema": "chainlesschain.release-ci-archive/v1",
+  "createdAt": "2026-10-10T23:25:20.946Z",
+  "status": "CI_VERIFIED_NOT_PUBLICATION",
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "latestRunAttempt": 1,
+  "admissionEligible": false,
+  "formalSample": false,
+  "scope": "Final exact-commit CI records, limited downloaded summary artifacts, and independent readbacks. This index does not assert npm or IDE publication.",
+  "gates": {
+    "cliCi": {
+      "runId": 38063505050,
+      "successJobs": 71,
+      "skippedJobs": 0
+    },
+    "ciTests": {
+      "runId": 38063504676,
+      "successJobs": 13,
+      "skippedJobs": 1,
+      "skippedName": "Full Test Suite"
+    },
+    "strict": {
+      "runId": 38063504747,
+      "successJobs": 5,
+      "skippedJobs": 0
+    },
+    "arm64": {
+      "runId": 38063504697,
+      "successJobs": 10,
+      "skippedJobs": 0
+    },
+    "ide": {
+      "runId": 38063504784,
+      "successJobs": 18,
+      "skippedJobs": 1,
+      "skippedName": "JetBrains Marketplace (post-publish verification)",
+      "skipReason": "pull_request event; post-publish job requires push of ide-jetbrains-v tag"
+    },
+    "loopback": {
+      "runId": 38063504706,
+      "successJobs": 4,
+      "skippedPaidJobs": 2
+    }
+  },
+  "sdkSourceTests": {
+    "step": "Test Agent SDK release payload source",
+    "jobs": [
+      "verify-cli (windows-latest)",
+      "verify-cli (macos-latest)",
+      "verify-cli (ubuntu-latest)"
+    ],
+    "conclusion": "success",
+    "sdkSpecificAggregatePresent": false,
+    "newSdkPublicationClaim": false
+  },
+  "pmRecovery": {
+    "artifactCount": 4,
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ],
+    "processCountPerPlatform": 31,
+    "falseSuccessReceipts": 0,
+    "testAuthority": true,
+    "productionAuthority": false,
+    "syntheticFaultInjection": true,
+    "physicalPowerLossVerified": false,
+    "realDiskFullVerified": false,
+    "realReadOnlyFilesystemVerified": false,
+    "realRemoteAuthorityVerified": false,
+    "qualifiesForProduction": false
+  },
+  "loopback": {
+    "runsPerPlatform": 100,
+    "uniqueRuns": 300,
+    "mode": "loopback",
+    "manifestMatrixEligible": false,
+    "manifestCoverageComplete": false,
+    "provenanceClaim": "structural-envelope-only",
+    "formal36Plus9": false
+  },
+  "remoteSshAggregate": {
+    "verificationMode": "advisory",
+    "scope": "selected-cases",
+    "releaseReady": null
+  },
+  "boundaries": [
+    "No large host screenshots/videos, binaries or subreaper packages were downloaded for this archive.",
+    "Windows host/controls/fallback passed; the preceding timeout was not reproduced and its original slow phase remains unknown.",
+    "SDK source tests are three verify-cli steps, while the four recovery artifacts concern PM exploration.",
+    "PM synthetic fault evidence and loopback engineering evidence do not establish production authority or formal 36+9 evaluation coverage.",
+    "Remote SSH summary is advisory selected-case evidence.",
+    "No public npm package, IDE marketplace listing or release tag state is asserted by this CI-only archive."
+  ],
+  "groups": [
+    {
+      "key": "cli",
+      "sourceDirectory": ".work/release-preflight-0.166.97/final-cli-ci-22ef",
+      "summarySource": "final-cli-ci-22ef/verification-summary.json"
+    },
+    {
+      "key": "tests",
+      "sourceDirectory": ".work/release-preflight-0.166.97/final-ci-tests-22ef",
+      "summarySource": "final-ci-tests-22ef/verification-summary.json"
+    },
+    {
+      "key": "loop",
+      "sourceDirectory": ".work/release-preflight-0.166.97/final-loopback-22ef",
+      "summarySource": "final-loopback-22ef/verification-summary.json"
+    },
+    {
+      "key": "gates",
+      "sourceDirectory": ".work/release-preflight-0.166.97/final-release-gates-22ef",
+      "summarySource": "final-release-gates-22ef/verification-summary.json"
+    }
+  ],
+  "excluded": [
+    {
+      "source": "final-cli-ci-22ef/pm-verification-inputs/pm-exploration-recovery-Linux.json",
+      "reason": "Byte-identical local verification copy; original artifact JSON is included."
+    },
+    {
+      "source": "final-cli-ci-22ef/pm-verification-inputs/pm-exploration-recovery-Windows.json",
+      "reason": "Byte-identical local verification copy; original artifact JSON is included."
+    },
+    {
+      "source": "final-cli-ci-22ef/pm-verification-inputs/pm-exploration-recovery-macOS.json",
+      "reason": "Byte-identical local verification copy; original artifact JSON is included."
+    }
+  ],
+  "entryCount": 59,
+  "totalOriginalBytes": 5564813,
+  "totalArchiveBytes": 272522,
+  "entries": [
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifact-11676339335.zip",
+      "sourceRelative": "final-cli-ci-22ef/artifact-11676339335.zip",
+      "archive": "cli-001.zip.gz",
+      "bytes": 1242,
+      "sha256": "sha256:5291805f69873b481447f16bcb4819794c8917bdae4e202bcd3471ee2234366e",
+      "archiveBytes": 1246,
+      "archiveSha256": "sha256:49bb9121910d76e209f27822885351250b295331e65920aec37c5f7bbb424848"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifact-11676483794.zip",
+      "sourceRelative": "final-cli-ci-22ef/artifact-11676483794.zip",
+      "archive": "cli-002.zip.gz",
+      "bytes": 1223,
+      "sha256": "sha256:ae6957300f36751381483f61c5575ea8decc7fd18ee950346c1fe4bbf8ce710d",
+      "archiveBytes": 1228,
+      "archiveSha256": "sha256:8e38c68efc37aaf7db35d82fccb89920c35c894a96d7708b3f9de3c171f5af4e"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifact-11676667266.zip",
+      "sourceRelative": "final-cli-ci-22ef/artifact-11676667266.zip",
+      "archive": "cli-003.zip.gz",
+      "bytes": 1226,
+      "sha256": "sha256:37a17932f8184af12014ddb69d6de96c9efa8500c8fc7aa758c4c1cb95efd6ae",
+      "archiveBytes": 1232,
+      "archiveSha256": "sha256:f6854f1c82e03d96a3979a4571944019e786bd1abf2ae320d3dfc3fe0c6b2482"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifact-11676737865.zip",
+      "sourceRelative": "final-cli-ci-22ef/artifact-11676737865.zip",
+      "archive": "cli-004.zip.gz",
+      "bytes": 896,
+      "sha256": "sha256:64075008877d5d2979f76121228733630d1e1306fe80224b9fb03bdac4095b37",
+      "archiveBytes": 879,
+      "archiveSha256": "sha256:7e6bf5b83e0df68c8b03803c018c9276ccd9f56803f4d2d6da28b5944c7a2b18"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifact-readback.json",
+      "sourceRelative": "final-cli-ci-22ef/artifact-readback.json",
+      "archive": "cli-005.json.gz",
+      "bytes": 2088,
+      "sha256": "sha256:b071cd984c64c8b6d68e0cb02dfdce700f1d5de6de36c5c800b8aca8bf29c12c",
+      "archiveBytes": 699,
+      "archiveSha256": "sha256:e9085078fa2ee5eb0e17de5e09d2729566c27c245ae48ff661589e09130b3274"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/artifacts.raw.json",
+      "sourceRelative": "final-cli-ci-22ef/artifacts.raw.json",
+      "archive": "cli-006.json.gz",
+      "bytes": 18462,
+      "sha256": "sha256:ca087674978881a35af1aa4f1412ad796bf0e234e12710ddcea335c315dcc92b",
+      "archiveBytes": 2458,
+      "archiveSha256": "sha256:05fe855a8490f1c40d00127e9481a7be6c4230a2f2527013d4d90ee6f7dbe97a"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/cli-ci-workflow-at-22ef.yml",
+      "sourceRelative": "final-cli-ci-22ef/cli-ci-workflow-at-22ef.yml",
+      "archive": "cli-007.yml.gz",
+      "bytes": 22840,
+      "sha256": "sha256:09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "archiveBytes": 4512,
+      "archiveSha256": "sha256:a3c5b48fe7c3cfdeecc8a16197d9bf29c20ea406751dd31780c8c00fab557566"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/download-manifest.json",
+      "sourceRelative": "final-cli-ci-22ef/download-manifest.json",
+      "archive": "cli-008.json.gz",
+      "bytes": 815,
+      "sha256": "sha256:25bbbbdc7a13002672eb9a0d757330c2f17539839a6c34de3bc8948f5413b656",
+      "archiveBytes": 413,
+      "archiveSha256": "sha256:aa39760a9392a8052dc38b75b83034e3d6ca8beba2d72d1c059fbe54884ab11d"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/jobs-1.raw.json",
+      "sourceRelative": "final-cli-ci-22ef/jobs-1.raw.json",
+      "archive": "cli-009.json.gz",
+      "bytes": 205113,
+      "sha256": "sha256:2c4a5c6e08412d6cd11d197bfd299a1d4762c9e67cfb0838b5dffee51c9a80a5",
+      "archiveBytes": 11652,
+      "archiveSha256": "sha256:cd6262832ed90f54dcb16de743510310a84c34dc1fd441b3e39dbd58062e754c"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/pm-exploration-recovery-macos-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-macOS.json",
+      "sourceRelative": "final-cli-ci-22ef/pm-exploration-recovery-macos-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-macOS.json",
+      "archive": "cli-010.json.gz",
+      "bytes": 3856,
+      "sha256": "sha256:b41dfbe63f281f4edf7fdc76e0164ea9b2557371bf8f45fb0f037fd0d75e1113",
+      "archiveBytes": 1059,
+      "archiveSha256": "sha256:e4407ea6fe1e5d0c1d5ce11245a63f9163158221bcee735accb835145122737e"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/pm-exploration-recovery-test-only-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-aggregate.json",
+      "sourceRelative": "final-cli-ci-22ef/pm-exploration-recovery-test-only-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-aggregate.json",
+      "archive": "cli-011.json.gz",
+      "bytes": 1745,
+      "sha256": "sha256:6acc6a889ff9f5aed8c4d6f002d4c5180ba1e633a72b8b310086f0f692114e4a",
+      "archiveBytes": 724,
+      "archiveSha256": "sha256:81cd35663301f38b01ef870decd0d94c18415154a9a8d36232c88efbf7036706"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/pm-exploration-recovery-ubuntu-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-Linux.json",
+      "sourceRelative": "final-cli-ci-22ef/pm-exploration-recovery-ubuntu-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-Linux.json",
+      "archive": "cli-012.json.gz",
+      "bytes": 3853,
+      "sha256": "sha256:2e0c45dc272331b0505948b7bdcd4ea4681d9e17460463b4fd2bce7d903f1adb",
+      "archiveBytes": 1053,
+      "archiveSha256": "sha256:cdb9d14003cc4f735d7ca90d547f4192d963e9fa6e8c26361761d680a86cbed4"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/pm-exploration-recovery-windows-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-Windows.json",
+      "sourceRelative": "final-cli-ci-22ef/pm-exploration-recovery-windows-latest-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/pm-exploration-recovery-Windows.json",
+      "archive": "cli-013.json.gz",
+      "bytes": 3852,
+      "sha256": "sha256:3bcbac3c7b8843becad7c993e55c948e671cac9eb6c2340ea5030d35dc0a0451",
+      "archiveBytes": 1072,
+      "archiveSha256": "sha256:d133c6f1364b02ce14590f5b5f811076efb0d25fd32dcb50276522e3afff95ae"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/run.raw.json",
+      "sourceRelative": "final-cli-ci-22ef/run.raw.json",
+      "archive": "cli-014.json.gz",
+      "bytes": 14145,
+      "sha256": "sha256:8252713c7c19256c29c5d29170693d64ee5f7c3001f54ef53482299c0864c899",
+      "archiveBytes": 1743,
+      "archiveSha256": "sha256:0ba50a2bdfa2c998969da61dc5001b882444ef050b9bc9c71fe6d00772b5c569"
+    },
+    {
+      "group": "cli",
+      "source": ".work/release-preflight-0.166.97/final-cli-ci-22ef/verification-summary.json",
+      "sourceRelative": "final-cli-ci-22ef/verification-summary.json",
+      "archive": "cli-015.json.gz",
+      "bytes": 22130,
+      "sha256": "sha256:c1b4454410f52602b5e1ef6d418165e0226be82ca180a08205c661f9324fddbe",
+      "archiveBytes": 2279,
+      "archiveSha256": "sha256:51cd5f88d12a3d4d1b82584b5b55884b4bb8705ea044899d2135f15625a497f7"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/artifacts.raw.json",
+      "sourceRelative": "final-ci-tests-22ef/artifacts.raw.json",
+      "archive": "tests-001.json.gz",
+      "bytes": 2314,
+      "sha256": "sha256:50155d85f4bbbb7c4560eb480f38e1ed229f41f8bc72cf5e0dce15dd676e7f98",
+      "archiveBytes": 672,
+      "archiveSha256": "sha256:c10ccc8e18b7db44c2a49d304d6a97b74e77b522cada24632d81741e708f5b45"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/download-manifest.json",
+      "sourceRelative": "final-ci-tests-22ef/download-manifest.json",
+      "archive": "tests-002.json.gz",
+      "bytes": 1012,
+      "sha256": "sha256:b0134cec84e4e0022a819d38bce93c970ad2657c848f80cf02a83deb11ccaf1a",
+      "archiveBytes": 477,
+      "archiveSha256": "sha256:cafc5984e3c9e9c64b8fa52e324db8a0028eb3f6b19a603a85f9af8911e7bab4"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/job-114246360582.raw.log",
+      "sourceRelative": "final-ci-tests-22ef/job-114246360582.raw.log",
+      "archive": "tests-003.log.gz",
+      "bytes": 712674,
+      "sha256": "sha256:6fbcfe8a2e4fb69fa85a8fabe8219e0befa23ac6250056578af672199dd81cea",
+      "archiveBytes": 100192,
+      "archiveSha256": "sha256:ba7c8188ae4bf985864ecb1305fe3ea9eec249c01d8c7f5fc4c694286216186a"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/jobs-1.raw.json",
+      "sourceRelative": "final-ci-tests-22ef/jobs-1.raw.json",
+      "archive": "tests-004.json.gz",
+      "bytes": 38706,
+      "sha256": "sha256:8a77214d1ca6d8529853dc702e1e135e39a3914d4948e977d1e43f4181404167",
+      "archiveBytes": 3113,
+      "archiveSha256": "sha256:3ded160e1e15fa089ddaf694fd4050d8d419a0e80e042d1a794dbc9dfcf740a4"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/run.raw.json",
+      "sourceRelative": "final-ci-tests-22ef/run.raw.json",
+      "archive": "tests-005.json.gz",
+      "bytes": 13753,
+      "sha256": "sha256:d21b199ff89f06948cd4e0d577023f8001b5d6ff83d8acd46d2244ef19e1db67",
+      "archiveBytes": 1661,
+      "archiveSha256": "sha256:606c60495c21aaa8c4d6f4029bbe5b71fc67d35ec3eca74265415b2ad26d500a"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/timing-and-results-excerpt.txt",
+      "sourceRelative": "final-ci-tests-22ef/timing-and-results-excerpt.txt",
+      "archive": "tests-006.txt.gz",
+      "bytes": 1326,
+      "sha256": "sha256:b2156963baac0f43822ab7e651940c6922ea9a2660cc3b8f9972177e0c54a24c",
+      "archiveBytes": 567,
+      "archiveSha256": "sha256:4afe892add21eb30d94a7fc5666707fb69eef74e61e805765ff90b9fb0c6f31c"
+    },
+    {
+      "group": "tests",
+      "source": ".work/release-preflight-0.166.97/final-ci-tests-22ef/verification-summary.json",
+      "sourceRelative": "final-ci-tests-22ef/verification-summary.json",
+      "archive": "tests-007.json.gz",
+      "bytes": 2791,
+      "sha256": "sha256:77af67c637e7a8c089b75a90aa436771f5735130b253dd92baccbc48bf7e7fa1",
+      "archiveBytes": 1066,
+      "archiveSha256": "sha256:2224da4bdc5d3c3f6abb6d5ea2ae58a33530a93e3dccb17231efee17a5d7e598"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifact-11674009474.zip",
+      "sourceRelative": "final-loopback-22ef/artifact-11674009474.zip",
+      "archive": "loop-001.zip.gz",
+      "bytes": 21285,
+      "sha256": "sha256:80e2699cc63bd5f4155c4c64fbd3416b9b17a48e1b347132594d4af80952300c",
+      "archiveBytes": 8405,
+      "archiveSha256": "sha256:3be1c14bc50f0cfe1e88392ad0c78b2d7521a0a2dfb43c099066f84c1e09dac2"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifact-11674183074.zip",
+      "sourceRelative": "final-loopback-22ef/artifact-11674183074.zip",
+      "archive": "loop-002.zip.gz",
+      "bytes": 21393,
+      "sha256": "sha256:b41681f994bc00790c2ef7bcd01f105669f240ccf6f484984fcfb04f14fa9683",
+      "archiveBytes": 8448,
+      "archiveSha256": "sha256:7dee1f32eb2a5ea8341ca8d737335afc6d4213f378ac0e9fd4fcea452eb723b8"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifact-11674368468.zip",
+      "sourceRelative": "final-loopback-22ef/artifact-11674368468.zip",
+      "archive": "loop-003.zip.gz",
+      "bytes": 645,
+      "sha256": "sha256:cade676122af57d866f9b4c48db19384002adf116d15d8b4509a6596fb236439",
+      "archiveBytes": 605,
+      "archiveSha256": "sha256:bb95e2739e5eae5d0546a3b455c31e6f7488f8d8adf9719111b40a132e7ec20a"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifact-11674682165.zip",
+      "sourceRelative": "final-loopback-22ef/artifact-11674682165.zip",
+      "archive": "loop-004.zip.gz",
+      "bytes": 21285,
+      "sha256": "sha256:c688aa8892068596368e9c308b1b037f39d57ab13eecb1bd9806d80837c446fe",
+      "archiveBytes": 8385,
+      "archiveSha256": "sha256:4b4eefe2597cf01b6dcf06c76ed927f55c37f88d2eab5f59c45449accce5e624"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifact-readback.json",
+      "sourceRelative": "final-loopback-22ef/artifact-readback.json",
+      "archive": "loop-005.json.gz",
+      "bytes": 2219,
+      "sha256": "sha256:e1386e9bf02f8afe88cf0f17bd7741f54796a1fd3b8a9af7dc0ca3ac0b9c788e",
+      "archiveBytes": 747,
+      "archiveSha256": "sha256:246e8bf91908a05e6dfd0183cadc159357bd8621ee33c2faecc3b599bbadf6c5"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/artifacts.raw.json",
+      "sourceRelative": "final-loopback-22ef/artifacts.raw.json",
+      "archive": "loop-006.json.gz",
+      "bytes": 3267,
+      "sha256": "sha256:910d95aedfef1dc5b6e46864ed0b81beb559ebdfef78aef383d0625395ea5f18",
+      "archiveBytes": 777,
+      "archiveSha256": "sha256:cbd347db36f13cd93c2e1041c0accbe2a1da312a9ca6301bc9122fa6eea7cf07"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/download-manifest.json",
+      "sourceRelative": "final-loopback-22ef/download-manifest.json",
+      "archive": "loop-007.json.gz",
+      "bytes": 799,
+      "sha256": "sha256:66a74d5e1053a19a9826c3d756ed18f0d9a487a42f3b6bff43839e01205668c7",
+      "archiveBytes": 404,
+      "archiveSha256": "sha256:cd169ff9e35d6e261e4e57e7d52db2a19985e15a0c66052a40b0c9faca4433b8"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/jobs-1.raw.json",
+      "sourceRelative": "final-loopback-22ef/jobs-1.raw.json",
+      "archive": "loop-008.json.gz",
+      "bytes": 12670,
+      "sha256": "sha256:d99d536600beb63b1297d3d984114e76ac2cb3bb9d78674e7f2f35d80dab08a2",
+      "archiveBytes": 1445,
+      "archiveSha256": "sha256:271f2fefe6d247cb15f550be357c7af0acb1275fe341d6388cd50c0c9c95a246"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/live-provider-trajectory-loopback-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-aggregate.json",
+      "sourceRelative": "final-loopback-22ef/live-provider-trajectory-loopback-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-aggregate.json",
+      "archive": "loop-009.json.gz",
+      "bytes": 761,
+      "sha256": "sha256:f34e0b1cd9f51f35836c0bd3feac2cb3536669f9013c30e6340ae613be3e6e19",
+      "archiveBytes": 453,
+      "archiveSha256": "sha256:e7d6a06598a4e4e1829789eb3974435cb28551f94412bba2539ec85e09f11524"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/live-provider-trajectory-loopback-linux-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-linux.json",
+      "sourceRelative": "final-loopback-22ef/live-provider-trajectory-loopback-linux-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-linux.json",
+      "archive": "loop-010.json.gz",
+      "bytes": 1345953,
+      "sha256": "sha256:2d1da1ef3066c75364555f309d291d7e4f302ef0aa36fb30b7c6232f5940e4f0",
+      "archiveBytes": 16466,
+      "archiveSha256": "sha256:cb683647d410a6e8f835fca0cfd0d73402a622386935d8f711fb7f1960710738"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/live-provider-trajectory-loopback-macos-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-macos.json",
+      "sourceRelative": "final-loopback-22ef/live-provider-trajectory-loopback-macos-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-macos.json",
+      "archive": "loop-011.json.gz",
+      "bytes": 1345955,
+      "sha256": "sha256:8b88c2cdf0b7bd7f18d9e7ea60980278703ac0591ceb5d767b889bef64f6b5ab",
+      "archiveBytes": 16478,
+      "archiveSha256": "sha256:68b7e32ee720a19c8500cfe7e08670c4ecfb20e2770e58202b2e2a66606ecbe7"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/live-provider-trajectory-loopback-windows-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-windows.json",
+      "sourceRelative": "final-loopback-22ef/live-provider-trajectory-loopback-windows-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/live-provider-trajectory-loopback-windows.json",
+      "archive": "loop-012.json.gz",
+      "bytes": 1346355,
+      "sha256": "sha256:536aadaedf835bdbfd87e1fca9b2ba9ff9d16dd9658358dfd84195af05bf37f6",
+      "archiveBytes": 16539,
+      "archiveSha256": "sha256:ee99b0ffe56dbf59f2ca242ada5481c34862b377aa3665555cd289569c536668"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/run.raw.json",
+      "sourceRelative": "final-loopback-22ef/run.raw.json",
+      "archive": "loop-013.json.gz",
+      "bytes": 13801,
+      "sha256": "sha256:354a6c6f2edf852f22f730d0db2a52b6b27662248d0558b44d2e4545b67025e3",
+      "archiveBytes": 1685,
+      "archiveSha256": "sha256:044fbc6fba935f27bb9e8d188f98e881656d7e79195e6d8576c0075d33552fb2"
+    },
+    {
+      "group": "loop",
+      "source": ".work/release-preflight-0.166.97/final-loopback-22ef/verification-summary.json",
+      "sourceRelative": "final-loopback-22ef/verification-summary.json",
+      "archive": "loop-014.json.gz",
+      "bytes": 4831,
+      "sha256": "sha256:f132e76b16c93f00088a3e7bbb736007d74a6b7de077a86ced176aa371168f86",
+      "archiveBytes": 1121,
+      "archiveSha256": "sha256:05e176aaaf6684be9dffdbd0c6cc121a597a62ea6f3872facfe6b34b08c6eb86"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/arm64-artifacts.raw.json",
+      "sourceRelative": "final-release-gates-22ef/arm64-artifacts.raw.json",
+      "archive": "gates-001.json.gz",
+      "bytes": 8100,
+      "sha256": "sha256:3167bb9b2f068b9a4e937834343e501842d844d6bb4fb3e83a7d462f407457f0",
+      "archiveBytes": 1307,
+      "archiveSha256": "sha256:af16bdba4fdd3fe7ed43a1d290a861c15b8f7a299e652072a931fb10a9108551"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/arm64-jobs-1.raw.json",
+      "sourceRelative": "final-release-gates-22ef/arm64-jobs-1.raw.json",
+      "archive": "gates-002.json.gz",
+      "bytes": 38570,
+      "sha256": "sha256:56fdff87c2d19fe428330aec393e8dddf6323618ab2540e81ec6fb0c9cd43f4b",
+      "archiveBytes": 2947,
+      "archiveSha256": "sha256:2c5b69de09f86d7046b94ffec7d8c1edc4e96a36974c64a477a56a807dc85a62"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/arm64-run.raw.json",
+      "sourceRelative": "final-release-gates-22ef/arm64-run.raw.json",
+      "archive": "gates-003.json.gz",
+      "bytes": 13785,
+      "sha256": "sha256:87d575ef1a870a2f4640df216743e9e5f37473aecf465fa3e7c543cfaa9e5988",
+      "archiveBytes": 1678,
+      "archiveSha256": "sha256:496429b60c742411e7f9735b17e812f8aded8c1428abce480aa8d4b38944ae48"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/arm64-workflow-at-22ef.yml",
+      "sourceRelative": "final-release-gates-22ef/arm64-workflow-at-22ef.yml",
+      "archive": "gates-004.yml.gz",
+      "bytes": 22894,
+      "sha256": "sha256:d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "archiveBytes": 5746,
+      "archiveSha256": "sha256:b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/artifact-11674091853.zip",
+      "sourceRelative": "final-release-gates-22ef/artifact-11674091853.zip",
+      "archive": "gates-005.zip.gz",
+      "bytes": 404,
+      "sha256": "sha256:db1da6c2576d84b0f39b070f7610e3d6405f69ca7a6d5475bbfe4c3b324732b2",
+      "archiveBytes": 361,
+      "archiveSha256": "sha256:68f8eb39dd7d0e52a19f9f39f11e596d85373487850052396dc9e860fb126bd8"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/artifact-11674593571.zip",
+      "sourceRelative": "final-release-gates-22ef/artifact-11674593571.zip",
+      "archive": "gates-006.zip.gz",
+      "bytes": 1762,
+      "sha256": "sha256:d62560e860f20ba63c0a1678f41ec9ffc317494c51ab25a4f8436aa095f3f410",
+      "archiveBytes": 1773,
+      "archiveSha256": "sha256:b67c51d366721e9b7055148a11713ce23b50b1a56cebee46a5b5ecb2fe4d0f57"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/artifact-11675124747.zip",
+      "sourceRelative": "final-release-gates-22ef/artifact-11675124747.zip",
+      "archive": "gates-007.zip.gz",
+      "bytes": 1066,
+      "sha256": "sha256:532912904f16e8fb75e88889a47972125584de77cf5cea9d65ddb323ba3e8588",
+      "archiveBytes": 1064,
+      "archiveSha256": "sha256:4365eb862342382058a21adfe03aab3a5b177bf95e98184bf9ccafe0f6e877a5"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/artifact-11675263628.zip",
+      "sourceRelative": "final-release-gates-22ef/artifact-11675263628.zip",
+      "archive": "gates-008.zip.gz",
+      "bytes": 542,
+      "sha256": "sha256:3ac035cae4e322d87daca7c2b06b33db320391f7303d118ad6554307dccaa1e8",
+      "archiveBytes": 515,
+      "archiveSha256": "sha256:d914c7cd05f56bc76a39b4e9b37b634f352dc897d3085e2e605ed9d74648589b"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/artifact-readback.json",
+      "sourceRelative": "final-release-gates-22ef/artifact-readback.json",
+      "archive": "gates-009.json.gz",
+      "bytes": 2128,
+      "sha256": "sha256:1fda67db07066bd556a88fc95b58ebd9343a448eb5ea201e517235bd0f618043",
+      "archiveBytes": 787,
+      "archiveSha256": "sha256:19b3e60804686834b2502e2916e5d33657843e24fdb728c553ae67210a7fbb7a"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/browser-evidence-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/browser-evidence-aggregate.json",
+      "sourceRelative": "final-release-gates-22ef/browser-evidence-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/browser-evidence-aggregate.json",
+      "archive": "gates-010.json.gz",
+      "bytes": 1950,
+      "sha256": "sha256:5cf2aac9efb948ed47e7d9b087e9f1dc23564f2390767409663303cb996a5097",
+      "archiveBytes": 908,
+      "archiveSha256": "sha256:16c6687352ff3806f62c5c17d3fdc4f06363583361ccf7f4b02820ab79f72446"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/download-manifest.json",
+      "sourceRelative": "final-release-gates-22ef/download-manifest.json",
+      "archive": "gates-011.json.gz",
+      "bytes": 2127,
+      "sha256": "sha256:c6e0b0aefdbc4a430d4cfdccb73ce6ee1126d85fdca5ff8cf0459d89e99a9537",
+      "archiveBytes": 703,
+      "archiveSha256": "sha256:f200a229019d83b4938b3f11fb0b751337945e68791d7550ffcaebbcd371c472"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/ide-arm64-validation-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/ide-arm64-validation-aggregate.json",
+      "sourceRelative": "final-release-gates-22ef/ide-arm64-validation-aggregate-22ef588c1bb8f71c45feaa115df1d75d5ca505c5-1/ide-arm64-validation-aggregate.json",
+      "archive": "gates-012.json.gz",
+      "bytes": 5140,
+      "sha256": "sha256:025d7b8a053d8ceb6b122dcdd418e6a666d7270d1780abc11eaf5854ab09bf67",
+      "archiveBytes": 1591,
+      "archiveSha256": "sha256:03022c11413f2b54f9201d5cad6b7c9173e3c10f87da6fdfd55debe7a04fd254"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/ide-artifacts.raw.json",
+      "sourceRelative": "final-release-gates-22ef/ide-artifacts.raw.json",
+      "archive": "gates-013.json.gz",
+      "bytes": 17884,
+      "sha256": "sha256:16391b7698cd08f2ff828b26fe661790c8c9037710b160cac6a42355a296897c",
+      "archiveBytes": 2431,
+      "archiveSha256": "sha256:372767385a6170c24972caee2abf901f7e47554851df71109c2cc3050c3820d5"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/ide-jobs-1.raw.json",
+      "sourceRelative": "final-release-gates-22ef/ide-jobs-1.raw.json",
+      "archive": "gates-014.json.gz",
+      "bytes": 67977,
+      "sha256": "sha256:aacc7526c6e9970b9c0a683224edc11a7401326f6c094bdc574395143749c810",
+      "archiveBytes": 5315,
+      "archiveSha256": "sha256:7e920b3af5bd0b884051b7265d4aa9b95e745a94332a4e98b44528b4a7349db0"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/ide-run.raw.json",
+      "sourceRelative": "final-release-gates-22ef/ide-run.raw.json",
+      "archive": "gates-015.json.gz",
+      "bytes": 13769,
+      "sha256": "sha256:b8dfd0f2f39a04aca77a6ff71533890b2067ec85eca8390c7ce120f1a92e2ad1",
+      "archiveBytes": 1663,
+      "archiveSha256": "sha256:5b88a3c3b11d3bedd56db07846f93613833ef410cddfa944eea3bebf53aca72e"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/ide-workflow-at-22ef.yml",
+      "sourceRelative": "final-release-gates-22ef/ide-workflow-at-22ef.yml",
+      "archive": "gates-016.yml.gz",
+      "bytes": 50808,
+      "sha256": "sha256:c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "archiveBytes": 8742,
+      "archiveSha256": "sha256:ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/macos-latest-sandbox-capability/macos-latest-sandbox-capability.json",
+      "sourceRelative": "final-release-gates-22ef/macos-latest-sandbox-capability/macos-latest-sandbox-capability.json",
+      "archive": "gates-017.json.gz",
+      "bytes": 340,
+      "sha256": "sha256:15963df28cd090e190f505eb6acf4273888116cdfe80b93acbc9dc37a54cba47",
+      "archiveBytes": 236,
+      "archiveSha256": "sha256:b6abf412c780164ae8ef02cd8dc6ad7ec8672471e85c623072c3a135d1f8c8d3"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/strict-artifacts.raw.json",
+      "sourceRelative": "final-release-gates-22ef/strict-artifacts.raw.json",
+      "archive": "gates-018.json.gz",
+      "bytes": 4587,
+      "sha256": "sha256:cb67762deb4a9d88f864e317d345a038ffb8f10caa58941a195317fdedcff0b7",
+      "archiveBytes": 987,
+      "archiveSha256": "sha256:ddeeeedb926d92ecef9d5f019910893f3902694455e5c67a92daa32098d28799"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/strict-jobs-1.raw.json",
+      "sourceRelative": "final-release-gates-22ef/strict-jobs-1.raw.json",
+      "archive": "gates-019.json.gz",
+      "bytes": 21615,
+      "sha256": "sha256:8577099d261c64eb65536834da90a2b3f9a040561664ab8028f19662de5b6e77",
+      "archiveBytes": 2115,
+      "archiveSha256": "sha256:60780cfc7c4ec0ea764218b188e2c18c422168e6e50d0370ce213a994751bda4"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/strict-run.raw.json",
+      "sourceRelative": "final-release-gates-22ef/strict-run.raw.json",
+      "archive": "gates-020.json.gz",
+      "bytes": 13777,
+      "sha256": "sha256:1778a99b23668b569593bc2ce3e1dc6910a24b0f37f928cdb64dd97932b568a9",
+      "archiveBytes": 1674,
+      "archiveSha256": "sha256:db93c25a3a44ad331adc8a04be793d0971d9baf95c00df066bc53d933489bdbf"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/strict-workflow-at-22ef.yml",
+      "sourceRelative": "final-release-gates-22ef/strict-workflow-at-22ef.yml",
+      "archive": "gates-021.yml.gz",
+      "bytes": 45806,
+      "sha256": "sha256:9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "archiveBytes": 5631,
+      "archiveSha256": "sha256:fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/verification-summary.json",
+      "sourceRelative": "final-release-gates-22ef/verification-summary.json",
+      "archive": "gates-022.json.gz",
+      "bytes": 11863,
+      "sha256": "sha256:2995a93824250881d9e8046880a3b422084f6ad2ab4cf39c80213f3752fbc9e9",
+      "archiveBytes": 2003,
+      "archiveSha256": "sha256:00fdb5d32cef7d97a1748e47cd53d978f0d4d23ccd471a229120e8b091cc4cd9"
+    },
+    {
+      "group": "gates",
+      "source": ".work/release-preflight-0.166.97/final-release-gates-22ef/vscode-remote-ssh-container-aggregate-1/cc-remote-ssh-aggregate.json",
+      "sourceRelative": "final-release-gates-22ef/vscode-remote-ssh-container-aggregate-1/cc-remote-ssh-aggregate.json",
+      "archive": "gates-023.json.gz",
+      "bytes": 638,
+      "sha256": "sha256:5ff20d27f1282ab39bccfe0be94a16cb9620e2b8c1182cd1e0c7e63a60880a30",
+      "archiveBytes": 390,
+      "archiveSha256": "sha256:82fbda9dc01bf08ca595729c0942dba5bfd1b8131096d45b2a06db6ec6f741c7"
+    }
+  ]
+}
