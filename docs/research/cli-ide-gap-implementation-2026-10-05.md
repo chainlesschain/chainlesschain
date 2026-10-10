@@ -407,7 +407,7 @@ JetBrains `0.4.158` 已由 pending 转为公开 approved（update `1190815`）�
 
 Windows private-v4 diagnostic 新增显式 `--behavior-controls`，复用既有 Linux donor 的 argv、deny 优先、跨会话 ACK 和动画 fallback 像素预算控制。四个生成文件、五条断言与原冻结基线一起运行，原 specs、source closure、setup/config 及 observations 不变。新 verifier 核对生成字节、留存来源和前后摘要，要求 raw reporter 包含准确的基线/控制文件集合及完整控制断言；拒绝漏跑、重复/额外文件、跳过、超时、应用错误和无关 AssertionError。mutant 还须绑定同 driver、validator、控制源码、runtime、依赖及原生结算的成功基线，不能复用旧 159 项报告。
 
-最终本地基线 c **52/52**、原 HANDLE/Job 清理及 profile 删除确认。中间 a 的 52 项通过但控制来源在运行期间更新，整体正确拒绝；沙箱内 b 在 `host-token` 前置检查退出，具体拒绝字段未单独记录。两项并行 mutants 在 `broker-termination-policy / error 13`、Vitest 断言前退出，空 reporter 不计检出，失败原件及 Job 0/profile 删除保留；串行复核正在进行。见[本轮证据](./cli/evidence/gap-2026-10-05/controls-2026-10-10/README.md)。
+最终本地基线 c **52/52**、原 HANDLE/Job 清理及 profile 删除确认。中间 a 的 52 项通过但控制来源在运行期间更新，整体正确拒绝；沙箱内 b 在 `host-token` 前置检查退出，具体拒绝字段未单独记录。两项并行 mutants 在 `broker-termination-policy / error 13`、Vitest 断言前退出，空 reporter 不计检出，失败原件及 Job 0/profile 删除保留。最终四个新胶囊的串行反例均检出：argv **11 pass / 1 行为拒绝**、deny **4/1**、跨会话 ACK **19/1**、动画 fallback **14/1**；同一成功基线、producer 来源、raw reporter 和原生结算全部确认。新结果限定为显式控制 profile，不改写旧冻结四个存活反例。见[新矩阵](./cli/evidence/gap-2026-10-05/controls-2026-10-10/matrix.json)与[本轮证据](./cli/evidence/gap-2026-10-05/controls-2026-10-10/README.md)。
 
 另修复旧 Scheduler helper 的 `no-unsafe-finally`：报告写入/fsync/rename 的原始异常不再被 close/unlink 清理异常覆盖，各清理动作独立执行并保留 secondary errors；成功 replace 后的清理失败仍报错。新增六项有意义故障回归，Windows **48 pass / 1 POSIX skip**、WSL Node 22.12.0 **49/49**，定向 lint/格式通过；修复后真实 worker/coordinator **11/11** 再次通过。lease、fencing、重试和生产 runtime 未改变。
 

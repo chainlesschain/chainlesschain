@@ -12,9 +12,11 @@
 | verify-12 / argv 边界              | 串行轮 **12 = 11 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant12/manifest.json)，[并行失败](./failed12-parallel/manifest.json) |
 | verify-20 / deny 优先              | 串行轮 **5 = 4 pass / 1 行为断言拒绝**，检出及原生结算确认                  | [新结果](./mutant20/manifest.json)，[并行失败](./failed20-parallel/manifest.json) |
 | verify-29 / session-bound ACK      | 串行轮 **20 = 19 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant29/manifest.json)                                                |
-| verify-30 / 动画 fallback 像素预算 | 尚未执行                                                                    | 待归档                                                                            |
+| verify-30 / 动画 fallback 像素预算 | 串行轮 **15 = 14 pass / 1 行为断言拒绝**，检出及原生结算确认                | [新结果](./mutant30/manifest.json)                                                |
 
 控制来自现有 Linux diagnostic donor，额外生成四个文件、五条行为断言。冻结的基线源码、原 setup/config 和旧任务 specs 均不改动。新结果要求原始 reporter 包含每个冻结基线文件和完整控制断言，禁止缺失、重复、额外文件、跳过、超时，以及用应用错误或其他文件的 AssertionError 充当检出。反例执行还必须重新验证同一 driver、validator、控制源码、runtime、依赖及原生结算的成功基线。
+
+最终[新矩阵](./matrix.json)为 **52/52 基线、4/4 串行反例检出**；各报告的来源绑定与留存 baseline 原字节分别复核。各题采用新胶囊，Job 0/profile 删除和原 HANDLE 结算均确认。各反例复用原基线文件，报告中的重复测试不累计为额外正式任务样本。[归档校验](./archive-validation.json)确认十个目录的 **440** 份文件压缩前后长度与 SHA-256 全部一致。
 
 最终基线 c 采用普通用户的非受限、非 elevated 监督器，root/service 同 SID 与 Job、零 capability、原 HANDLE 退出、Job 0、profile 删除均成立；guard 实际 **36,262**，固定上限 **48,000** 未放宽。b 的原始报告只保留合并的 `host-token` 阶段，没有细分前置检查的具体拒绝字段，因此不把某一个 token 分支写成已确认根因。
 

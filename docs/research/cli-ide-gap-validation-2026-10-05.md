@@ -920,7 +920,16 @@ JetBrains journey collector 新增 `failureDetails`，按阶段保留错误 stag
 
 最终基线 c 在本机 Windows 10 x64 / 固定 Node 22.22.2 实际 **52/52**；普通用户监督器、同 SID/Job、零 capabilities、原 HANDLE 结算、Job 0、profile 删除均成立，guard **36,262 / 48,000**，未放宽上限。原源/配置/依赖及完整原始 reporter 验证通过，仍 `NOT_ADMITTED`，不冒充 Windows 11 24H2 / Node 22.12.0 正式宿主。中间 a 的 52 项通过与运行期间源码更新后的来源拒绝同时保留；b 在沙箱内 `host-token` 前置检查失败，未启动原生 root，原报告未细分具体拒绝条件。
 
-最初 verify-12/20 并行原生尝试在 Vitest import 阶段退出：`broker-termination-policy / error 13`，root/service/helper exit 125，JSON reporter 为空，两次 Job 0/profile 删除确认。12 helper 已注册并有 installed receipt，20 尚无注册完成记录；不能把二者统一说成 helper 未开始启动。固定 Rollup report-header spawnSync 的 3000ms 与此路径可能有关，但拒绝请求/精确 predicate/时间尚无证据，不确认并行资源竞争或某一具体 policy 分支为根因。原失败 gzip 逐字节保存，串行复核正在进行，原权限与期限保持。
+最初 verify-12/20 并行原生尝试在 Vitest import 阶段退出：`broker-termination-policy / error 13`，root/service/helper exit 125，JSON reporter 为空，两次 Job 0/profile 删除确认。12 helper 已注册并有 installed receipt，20 尚无注册完成记录；不能把二者统一说成 helper 未开始启动。固定 Rollup report-header spawnSync 的 3000ms 与此路径可能有关，但拒绝请求/精确 predicate/时间尚无证据，不确认并行资源竞争或某一具体 policy 分支为根因。原失败 gzip 逐字节保存；原权限与期限保持，最终串行结果单列如下，成功也不将该猜测升级为已确认根因。
+
+| 任务/反例                                    | 原始 reporter         | 结果                                                           | 原件                                                                             |
+| -------------------------------------------- | --------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| verify-12 / flatten-spaces-and-empty-argv    | 12 = 11 pass / 1 fail | 新控制文件中的真实 AssertionError 检出；来源/基线/原生结算通过 | [清单](./cli/evidence/gap-2026-10-05/controls-2026-10-10/mutant12/manifest.json) |
+| verify-20 / approval-overrides-policy-deny   | 5 = 4 pass / 1 fail   | 同上                                                           | [清单](./cli/evidence/gap-2026-10-05/controls-2026-10-10/mutant20/manifest.json) |
+| verify-29 / ack-from-other-session-accepted  | 20 = 19 pass / 1 fail | 同上                                                           | [清单](./cli/evidence/gap-2026-10-05/controls-2026-10-10/mutant29/manifest.json) |
+| verify-30 / ignore-animation-fallback-pixels | 15 = 14 pass / 1 fail | 同上；另一个边界控制通过                                       | [清单](./cli/evidence/gap-2026-10-05/controls-2026-10-10/mutant30/manifest.json) |
+
+[新矩阵](./cli/evidence/gap-2026-10-05/controls-2026-10-10/matrix.json)回读四份原始结果，核对 producer/runtime/compiler/准备/依赖来源与最终基线全部相同，留存的 baseline report 与 c 原始字节/摘要一致。每题使用新胶囊，root exit 1 是预期行为拒绝，原 HANDLE、Job 0、profile 删除分别确认；没有把异常退出码单独当作检出。新四项控制的实跑关闭本次诊断接线子项，整体正式准入仍开放。
 
 Scheduler 原子报告写入修复保留主异常对象/code及独立清理异常：文件 close、目录 close、unlink 均独立尝试；正常 replace 后清理失败仍抛出异常。六条新增回归在 Windows **48 pass / 1 POSIX skip**、WSL Ubuntu Node 22.12.0 **49/49**，修复后真实 worker/coordinator **11/11**；`no-unsafe-finally` 已消除。先前本地缺失 CLI 嵌套 Ajv 8 的导入失败保留，按原 lockfile 恢复依赖后成功，不能写成 Scheduler 生产故障。
 

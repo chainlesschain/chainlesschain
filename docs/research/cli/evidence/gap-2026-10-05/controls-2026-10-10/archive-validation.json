@@ -1,0 +1,57 @@
+{
+  "verifiedAt": "2026-10-10T08:44:38.000Z",
+  "encoding": "lossless gzip",
+  "formalSample": false,
+  "archives": [
+    {
+      "archive": "baseline",
+      "files": 50,
+      "verified": true
+    },
+    {
+      "archive": "failed12-parallel",
+      "files": 41,
+      "verified": true
+    },
+    {
+      "archive": "failed20-parallel",
+      "files": 41,
+      "verified": true
+    },
+    {
+      "archive": "intermediate-a",
+      "files": 49,
+      "verified": true
+    },
+    {
+      "archive": "mutant12",
+      "files": 43,
+      "verified": true
+    },
+    {
+      "archive": "mutant20",
+      "files": 43,
+      "verified": true
+    },
+    {
+      "archive": "mutant29",
+      "files": 43,
+      "verified": true
+    },
+    {
+      "archive": "mutant30",
+      "files": 43,
+      "verified": true
+    },
+    {
+      "archive": "readbacks",
+      "files": 54,
+      "verified": true
+    },
+    {
+      "archive": "restricted-token-b",
+      "files": 33,
+      "verified": true
+    }
+  ]
+}
