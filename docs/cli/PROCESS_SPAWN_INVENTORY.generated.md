@@ -565,11 +565,11 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/run-parent-diagnostic.mjs` | 67 | `const child = spawn(process.execPath, args, {` |
 | `packages/cli/scripts/run-vitest-with-worker-retry.mjs` | 3 | `import { spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 357 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 360 | `const changes = execFileSync(` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 948 | `const child = spawn(process.execPath, argumentsList, {` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1206 | `// child_process "close" is authoritative for the spawned process. A` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1252 | `const output = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 360 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 363 | `const changes = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1084 | `const child = spawn(process.execPath, argumentsList, {` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1359 | `// child_process "close" is authoritative for the spawned process. A` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1405 | `const output = execFileSync(` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 125 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 133 | `return execFileSync(` |
@@ -704,9 +704,9 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 50 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 64 | `const processChild=cp.fork(child,['fork'],{execPath:contract.executable,execArgv,windowsHide:true,env,stdio:['pipe','pipe','pipe','ipc']});` |
 | `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 268 | `const run = spawnSync(compiler, args, {` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 502 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),{pathToFileURL}=require('node:url');` |
-| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 544 | `const run = spawnSync(` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 308 | `const run = spawnSync(compiler, args, {` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 560 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),{pathToFileURL}=require('node:url');` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 602 | `const run = spawnSync(` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 29 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 70 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 77 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
