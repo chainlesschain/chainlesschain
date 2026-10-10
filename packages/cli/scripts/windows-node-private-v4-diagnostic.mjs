@@ -15,6 +15,10 @@ import { inspectNativeCapsuleSource } from "./verify01-native-capsule.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { parseReviewTests } from "./verify01-review-runtime.mjs";
 import {
+  PRIVATE_V4_CONTROL_SOURCES,
+  privateV4BehaviorControls,
+} from "./windows-node-private-v4-controls.mjs";
+import {
   readPrivateV4DependencyFile,
   verifyPrivateV4DependencyManifest,
 } from "./windows-node-private-v4-dependencies.mjs";
@@ -52,6 +56,8 @@ export function runPrivateV4Diagnostic(options) {
   )
     throw Error("unsupported diagnostic mode");
   const review = options.mode.startsWith("review-");
+  if (options.behaviorControls && !review)
+    throw Error("Behavior controls require an explicit review mode");
   const hasSingleTask = options.reviewTask !== undefined;
   const hasTaskGroup = options.reviewTasks !== undefined;
   if (
@@ -78,6 +84,15 @@ export function runPrivateV4Diagnostic(options) {
   const selectedTests = [
     ...new Set(selectedSpecs.flatMap((spec) => spec.baselineTests)),
   ].sort();
+  const behaviorControls = options.behaviorControls
+    ? privateV4BehaviorControls(selectedSpecs.map((spec) => spec.taskId))
+    : [];
+  if (options.behaviorControls && !behaviorControls.length)
+    throw Error("Selected tasks have no additional behavior controls");
+  const reviewTests = [
+    ...selectedTests,
+    ...behaviorControls.map((row) => row.relativePath),
+  ];
   if (
     options.mode === "review-mutant" &&
     (!options.reviewTask || !options.mutant || !options.baselineReport)
@@ -161,6 +176,13 @@ export function runPrivateV4Diagnostic(options) {
           },
         }
       : {}),
+    ...(options.behaviorControls
+      ? {
+          controlSources: PRIVATE_V4_CONTROL_SOURCES.map((name) =>
+            retain(path.join(scriptDirectory, name)),
+          ),
+        }
+      : {}),
   };
   let dependencyContext;
   function readDependency(root, row, workspaceRoots) {
@@ -212,6 +234,24 @@ export function runPrivateV4Diagnostic(options) {
         baseline.mode === "review-baseline" &&
         !baseline.mutation &&
         selectedTests.every((test) => baseline.review?.tests?.includes(test)) &&
+        (baseline.review?.behaviorControls === true) ===
+          !!options.behaviorControls &&
+        behaviorControls.every((control) =>
+          baseline.review?.controls?.some(
+            (row) =>
+              row.taskId === control.taskId &&
+              row.relativePath === control.relativePath &&
+              row.capture?.digest === control.digest,
+          ),
+        ) &&
+        (report.controlSources ?? []).every((source) =>
+          baseline.controlSources?.some(
+            (row) =>
+              path.basename(row.path) === path.basename(source.path) &&
+              row.digest === source.digest &&
+              row.bytes === source.bytes,
+          ),
+        ) &&
         sourcesMatch &&
         baseline.driver?.digest === report.driver.digest &&
         baseline.validatorSource?.digest === report.validatorSource.digest &&
@@ -418,10 +458,21 @@ export function runPrivateV4Diagnostic(options) {
         ["setup", "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js"],
         ["setup", "packages/cli/test/setup/agent-evolution-test-boundary.js"],
       ];
+      const controlCaptures = behaviorControls.map((control) => {
+        const target = path.join(root, "workspace/tree", control.relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, control.text, { flag: "wx" });
+        return {
+          taskId: control.taskId,
+          relativePath: control.relativePath,
+          capture: retain(target, "inputs"),
+          before: capture(target),
+        };
+      });
       const reviewOptions = {
         test: {
           root: "X:/workspace/tree",
-          include: selectedTests,
+          include: reviewTests,
           globals: true,
           pool: "forks",
           maxWorkers: 1,
@@ -446,7 +497,14 @@ export function runPrivateV4Diagnostic(options) {
       );
       report.review = {
         taskIds: selectedSpecs.map((row) => row.taskId),
-        tests: selectedTests,
+        tests: reviewTests,
+        ...(options.behaviorControls
+          ? {
+              behaviorControls: true,
+              frozenTests: selectedTests,
+              controls: controlCaptures,
+            }
+          : {}),
         config: retain(reviewConfig, "inputs"),
         support: support.map((row) => ({
           kind: row[0],
@@ -602,6 +660,8 @@ let service,closed;const original=cp.spawn;cp.spawn=(...args)=>{record('spawn',{
     report.stagedInputs.config.after = capture(configPath);
     report.stagedInputs.test.after = capture(testPath);
     report.outputsAfter = report.outputs.map((row) => capture(row.path));
+    for (const control of report.review?.controls ?? [])
+      control.after = capture(control.before.path);
     if (dependencyContext)
       for (const row of report.dependencyFiles)
         row.after = readDependency(
@@ -751,6 +811,7 @@ if (
       mutant: { type: "string" },
       dependencies: { type: "string" },
       "dependencies-digest": { type: "string" },
+      "behavior-controls": { type: "boolean", default: false },
     },
   });
   for (const key of [
@@ -768,6 +829,7 @@ if (
     reviewTasks: values["review-tasks"]?.split(","),
     baselineReport: values["baseline-report"],
     dependenciesDigest: values["dependencies-digest"],
+    behaviorControls: values["behavior-controls"],
   });
   console.log(
     JSON.stringify({

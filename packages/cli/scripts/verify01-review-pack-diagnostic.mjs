@@ -47,7 +47,7 @@ export function selectDiagnosticTasks(tasks, shard) {
   return tasks.filter((_, ordinal) => ordinal % count === index - 1);
 }
 
-function diagnosticBehaviorControl(taskId, modulePath) {
+export function diagnosticBehaviorControl(taskId, modulePath) {
   const source = (file) => JSON.stringify(modulePath(file));
   switch (taskId) {
     case "verify-04":

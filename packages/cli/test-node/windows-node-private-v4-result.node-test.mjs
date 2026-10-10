@@ -3,6 +3,11 @@ import test from "node:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  PRIVATE_V4_CONTROL_SOURCES,
+  privateV4BehaviorControls,
+} from "../scripts/windows-node-private-v4-controls.mjs";
 import identity from "../scripts/diagnostics/windows-node-private-v4-identity.cjs";
 import {
   inspectPrivateV4Result,
@@ -1007,6 +1012,147 @@ function reviewFixture(mutant = false) {
   }
   return result;
 }
+function controlsFixture() {
+  const result = reviewFixture();
+  const { report, files } = result;
+  const capture = (name, text) => {
+    const bytes = Buffer.from(text);
+    files.set(name, bytes);
+    return {
+      path: name,
+      bytes: bytes.length,
+      digest: "sha256:" + identity.digest(bytes),
+    };
+  };
+  const [control] = privateV4BehaviorControls(["verify-12"]);
+  report.controlSources = PRIVATE_V4_CONTROL_SOURCES.map((name) =>
+    capture(
+      "C:\\review\\" + name,
+      fs.readFileSync(
+        fileURLToPath(new URL("../scripts/" + name, import.meta.url)),
+      ),
+    ),
+  );
+  const staged = {
+    path: path.win32.join(report.root, "workspace/tree", control.relativePath),
+    bytes: control.bytes,
+    digest: control.digest,
+  };
+  const frozenTests = [
+    "packages/cli/__tests__/unit/background-command-argv.test.js",
+  ];
+  Object.assign(report.review, {
+    behaviorControls: true,
+    taskIds: [control.taskId],
+    frozenTests,
+    tests: [...frozenTests, control.relativePath],
+    controls: [
+      {
+        taskId: control.taskId,
+        relativePath: control.relativePath,
+        capture: capture("C:\\review\\verify-12.test.js", control.text),
+        before: staged,
+        after: { ...staged },
+      },
+    ],
+  });
+  const config = JSON.parse(
+    files.get(report.review.config.path).toString().slice(15, -2),
+  );
+  config.test.include = report.review.tests;
+  report.review.config = capture(
+    report.review.config.path,
+    "export default " + JSON.stringify(config) + ";\n",
+  );
+  const text = JSON.stringify({
+    testResults: [
+      ...frozenTests.map((file) => ({
+        name: "X:/workspace/tree/" + file,
+        assertionResults: [
+          { fullName: "frozen baseline assertion", status: "passed" },
+        ],
+      })),
+      {
+        name: "X:/workspace/tree/" + control.relativePath,
+        assertionResults: control.names.map((fullName) => ({
+          fullName,
+          status: "passed",
+        })),
+      },
+    ],
+  });
+  report.stdout = { text, digest: "sha256:" + identity.digest(text) };
+  return result;
+}
+test("additional review control fixture remains rejected only by immutable lock", () => {
+  const { report, readArtifact } = controlsFixture();
+  assert.deepEqual(
+    inspectPrivateV4Settlement(report, { readArtifact, expectedRootExit: 0 })
+      .errors,
+    [immutableLockError],
+  );
+});
+for (const [name, change] of [
+  ["missing source", (r) => r.controlSources.pop()],
+  [
+    "omitted control",
+    (r) => {
+      r.review.controls = [];
+    },
+  ],
+  [
+    "substituted control bytes",
+    (r) => {
+      r.review.controls[0].capture = r.review.runtime;
+    },
+  ],
+  [
+    "changed staged control",
+    (r) => {
+      r.review.controls[0].after.digest = "sha256:" + "0".repeat(64);
+    },
+  ],
+  [
+    "control outside capsule",
+    (r) => {
+      r.review.controls[0].before.path = "C:\\elsewhere.js";
+    },
+  ],
+  [
+    "missing frozen baseline",
+    (r) => {
+      r.review.frozenTests = [];
+    },
+  ],
+  [
+    "missing reporter",
+    (r) => {
+      delete r.stdout;
+    },
+  ],
+  [
+    "changed reporter",
+    (r) => {
+      r.stdout.text = "{}";
+    },
+  ],
+  [
+    "implicit profile",
+    (r) => {
+      delete r.review.behaviorControls;
+    },
+  ],
+])
+  test(`review controls reject ${name}`, () => {
+    const { report, readArtifact } = controlsFixture();
+    change(report);
+    const inspected = inspectPrivateV4Settlement(report, {
+      readArtifact,
+      expectedRootExit: 0,
+    });
+    assert.equal(inspected.nativeSettlementConfirmed, false);
+    assert.ok(inspected.errors.some((error) => error !== immutableLockError));
+  });
 for (const mutant of [false, true])
   test(`review ${mutant ? "mutant" : "baseline"} settlement remains separate from immutable admission`, () => {
     const { report, readArtifact } = reviewFixture(mutant);
