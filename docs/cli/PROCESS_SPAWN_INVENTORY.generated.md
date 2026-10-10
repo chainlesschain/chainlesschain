@@ -567,9 +567,9 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 360 | `const headSha = execFileSync("git", ["rev-parse", "HEAD"], options)` |
 | `packages/cli/scripts/scheduler-kernel-soak.mjs` | 363 | `const changes = execFileSync(` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1084 | `const child = spawn(process.execPath, argumentsList, {` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1359 | `// child_process "close" is authoritative for the spawned process. A` |
-| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1405 | `const output = execFileSync(` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1126 | `const child = spawn(process.execPath, argumentsList, {` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1401 | `// child_process "close" is authoritative for the spawned process. A` |
+| `packages/cli/scripts/scheduler-kernel-soak.mjs` | 1447 | `const output = execFileSync(` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 125 | `execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/scheduler-reliability-soak.mjs` | 133 | `return execFileSync(` |

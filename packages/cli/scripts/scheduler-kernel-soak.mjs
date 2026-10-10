@@ -458,6 +458,9 @@ function atomicWriteJson(filePath, value) {
     `.${path.basename(target)}.${process.pid}.${randomUUID()}.tmp`,
   );
   let descriptor;
+  let directoryDescriptor;
+  let writeFailed = false;
+  let writeError;
   try {
     descriptor = fs.openSync(temporary, "wx", 0o600);
     writeAll(
@@ -469,23 +472,62 @@ function atomicWriteJson(filePath, value) {
     descriptor = undefined;
     fs.renameSync(temporary, target);
     if (process.platform !== "win32") {
-      let directoryDescriptor;
-      try {
-        directoryDescriptor = fs.openSync(directory, "r");
-        fs.fsyncSync(directoryDescriptor);
-      } finally {
-        if (directoryDescriptor !== undefined)
-          fs.closeSync(directoryDescriptor);
-      }
+      directoryDescriptor = fs.openSync(directory, "r");
+      fs.fsyncSync(directoryDescriptor);
     }
-  } finally {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
+  } catch (error) {
+    writeFailed = true;
+    writeError = error;
+  }
+  const cleanupErrors = [];
+  // A close failure must not prevent the other handle or temporary file from
+  // being cleaned up, and cleanup must not replace the original write error.
+  for (const [operation, held] of [
+    ["close-file", descriptor],
+    ["close-directory", directoryDescriptor],
+  ]) {
+    if (held === undefined) continue;
     try {
-      fs.unlinkSync(temporary);
+      fs.closeSync(held);
     } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
+      cleanupErrors.push({ operation, error });
     }
   }
+  try {
+    fs.unlinkSync(temporary);
+  } catch (error) {
+    if (error?.code !== "ENOENT")
+      cleanupErrors.push({ operation: "unlink-temporary", error });
+  }
+  if (writeFailed) {
+    if (cleanupErrors.length) {
+      try {
+        Object.defineProperty(writeError, "cleanupErrors", {
+          value: cleanupErrors,
+          enumerable: true,
+          configurable: true,
+        });
+      } catch {
+        // Frozen errors and non-object throws still retain their exact identity
+        // as cause; all secondary errors remain available without masking it.
+        throw new AggregateError(
+          [writeError, ...cleanupErrors.map((entry) => entry.error)],
+          "Scheduler soak evidence write failed and cleanup also failed",
+          { cause: writeError },
+        );
+      }
+    }
+    throw writeError;
+  }
+  if (cleanupErrors.length)
+    throw Object.assign(
+      new AggregateError(
+        cleanupErrors.map((entry) => entry.error),
+        "Scheduler soak evidence cleanup failed",
+        { cause: cleanupErrors[0].error },
+      ),
+      { cleanupErrors },
+    );
 }
 
 function readJson(filePath) {

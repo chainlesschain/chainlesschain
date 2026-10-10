@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
 import {
   existsSync,
   mkdtempSync,
@@ -577,6 +578,230 @@ describe("scheduler kernel soak coordinator", () => {
       expect(JSON.parse(readFileSync(output, "utf8"))).toEqual(aggregate);
     });
   });
+
+  it.each(["writeSync", "fsyncSync", "renameSync"])(
+    "preserves the original %s error and independently attempts cleanup",
+    (operation) => {
+      withEvidenceDirectory((directory) => {
+        writeEvidenceSet(directory);
+        const output = join(directory, "aggregate-output.json");
+        const primary = Object.assign(new Error("original " + operation), {
+          code: "EIO",
+        });
+        const closeError = new Error("cleanup close failed");
+        const unlinkError = Object.assign(new Error("cleanup unlink failed"), {
+          code: "EACCES",
+        });
+        const originals = Object.fromEntries(
+          ["openSync", "closeSync", "unlinkSync", operation].map((name) => [
+            name,
+            fs[name],
+          ]),
+        );
+        const spies = [];
+        const attempted = [];
+        let descriptor;
+        let temporary;
+        try {
+          spies.push(
+            vi.spyOn(fs, "openSync").mockImplementation((file, ...args) => {
+              const fd = originals.openSync(file, ...args);
+              if (String(file).endsWith(".tmp")) {
+                descriptor = fd;
+                temporary = file;
+              }
+              return fd;
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, operation).mockImplementation((...args) => {
+              if (
+                (operation === "renameSync" && args[0] === temporary) ||
+                (operation !== "renameSync" && args[0] === descriptor)
+              )
+                throw primary;
+              return originals[operation](...args);
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, "closeSync").mockImplementation((fd) => {
+              const result = originals.closeSync(fd);
+              if (fd === descriptor && operation !== "renameSync") {
+                attempted.push("close-file");
+                throw closeError;
+              }
+              return result;
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, "unlinkSync").mockImplementation((file) => {
+              if (file === temporary) {
+                attempted.push("unlink-temporary");
+                throw unlinkError;
+              }
+              return originals.unlinkSync(file);
+            }),
+          );
+          let observed;
+          try {
+            verifySchedulerSoakEvidenceSet(
+              verifyOptions(directory, { output }),
+            );
+          } catch (error) {
+            observed = error;
+          }
+          expect(observed).toBe(primary);
+          expect(observed.code).toBe("EIO");
+          expect(observed.cleanupErrors).toEqual(
+            operation === "renameSync"
+              ? [{ operation: "unlink-temporary", error: unlinkError }]
+              : [
+                  { operation: "close-file", error: closeError },
+                  { operation: "unlink-temporary", error: unlinkError },
+                ],
+          );
+          expect(attempted).toEqual(
+            operation === "renameSync"
+              ? ["unlink-temporary"]
+              : ["close-file", "unlink-temporary"],
+          );
+          expect(existsSync(output)).toBe(false);
+        } finally {
+          for (const spy of spies.reverse()) spy.mockRestore();
+        }
+      });
+    },
+  );
+
+  it("fails after a successful replace when temporary cleanup fails", () => {
+    withEvidenceDirectory((directory) => {
+      writeEvidenceSet(directory);
+      const output = join(directory, "aggregate-output.json");
+      const cleanupError = Object.assign(new Error("unlink denied"), {
+        code: "EACCES",
+      });
+      const original = fs.unlinkSync;
+      const spy = vi.spyOn(fs, "unlinkSync").mockImplementation((file) => {
+        if (String(file).endsWith(".tmp")) throw cleanupError;
+        return original(file);
+      });
+      try {
+        let observed;
+        try {
+          verifySchedulerSoakEvidenceSet(verifyOptions(directory, { output }));
+        } catch (error) {
+          observed = error;
+        }
+        expect(observed).toBeInstanceOf(AggregateError);
+        expect(observed.cause).toBe(cleanupError);
+        expect(observed.errors).toEqual([cleanupError]);
+        expect(observed.cleanupErrors).toEqual([
+          { operation: "unlink-temporary", error: cleanupError },
+        ]);
+        expect(JSON.parse(readFileSync(output, "utf8")).result).toBe("passed");
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
+
+  it("retains an immutable primary error as cause when cleanup also fails", () => {
+    withEvidenceDirectory((directory) => {
+      writeEvidenceSet(directory);
+      const primary = Object.freeze(new Error("immutable write error"));
+      const cleanupError = Object.assign(new Error("unlink denied"), {
+        code: "EACCES",
+      });
+      const writeSpy = vi.spyOn(fs, "writeSync").mockImplementation(() => {
+        throw primary;
+      });
+      const unlinkSpy = vi.spyOn(fs, "unlinkSync").mockImplementation(() => {
+        throw cleanupError;
+      });
+      try {
+        let observed;
+        try {
+          verifySchedulerSoakEvidenceSet(
+            verifyOptions(directory, {
+              output: join(directory, "output.json"),
+            }),
+          );
+        } catch (error) {
+          observed = error;
+        }
+        expect(observed).toBeInstanceOf(AggregateError);
+        expect(observed.cause).toBe(primary);
+        expect(observed.errors).toEqual([primary, cleanupError]);
+      } finally {
+        unlinkSpy.mockRestore();
+        writeSpy.mockRestore();
+      }
+    });
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "retains directory fsync failure when directory close also fails",
+    () => {
+      withEvidenceDirectory((directory) => {
+        writeEvidenceSet(directory);
+        const output = join(directory, "aggregate-output.json");
+        const primary = new Error("directory fsync failed");
+        const cleanupError = new Error("directory close failed");
+        const originals = {
+          open: fs.openSync,
+          fsync: fs.fsyncSync,
+          close: fs.closeSync,
+          unlink: fs.unlinkSync,
+        };
+        const spies = [];
+        let directoryDescriptor;
+        let unlinkAttempted = false;
+        try {
+          spies.push(
+            vi.spyOn(fs, "openSync").mockImplementation((file, ...args) => {
+              const fd = originals.open(file, ...args);
+              if (file === directory) directoryDescriptor = fd;
+              return fd;
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+              if (fd === directoryDescriptor) throw primary;
+              return originals.fsync(fd);
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, "closeSync").mockImplementation((fd) => {
+              const result = originals.close(fd);
+              if (fd === directoryDescriptor) throw cleanupError;
+              return result;
+            }),
+          );
+          spies.push(
+            vi.spyOn(fs, "unlinkSync").mockImplementation((file) => {
+              if (String(file).endsWith(".tmp")) unlinkAttempted = true;
+              return originals.unlink(file);
+            }),
+          );
+          let observed;
+          try {
+            verifySchedulerSoakEvidenceSet(
+              verifyOptions(directory, { output }),
+            );
+          } catch (error) {
+            observed = error;
+          }
+          expect(observed).toBe(primary);
+          expect(observed.cleanupErrors).toEqual([
+            { operation: "close-directory", error: cleanupError },
+          ]);
+          expect(unlinkAttempted).toBe(true);
+        } finally {
+          for (const spy of spies.reverse()) spy.mockRestore();
+        }
+      });
+    },
+  );
 
   it("rejects a missing or duplicate platform", () => {
     withEvidenceDirectory((directory) => {
