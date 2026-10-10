@@ -127,3 +127,9 @@ docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/README.md -linguist-g
 # Preserve original failure and Marketplace follow-up receipts byte for byte.
 docs/research/cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/README.md -linguist-generated
+
+# Read-only root coordinates and paired-release evidence retain exact bytes.
+docs/research/cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/README.md -linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.97/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.97/README.md -linguist-generated

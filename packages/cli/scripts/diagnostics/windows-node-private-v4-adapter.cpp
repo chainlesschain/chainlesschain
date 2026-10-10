@@ -5,6 +5,7 @@
 #define _WIN32_WINNT 0x0A00
 #endif
 #include <windows.h>
+#include <winternl.h>
 #include <winioctl.h>
 #include <sddl.h>
 #include <bcrypt.h>
@@ -704,6 +705,155 @@ int runSelfTest() {
 }
 #endif
 napi_value snapshotCallback(napi_env env, napi_callback_info) { return snapshot(env); }
+// Observe fixed root coordinates using this LowBox thread. Nothing here sets a
+// DeviceMap, changes an ACL, rewrites a reparse buffer, or proves future binding.
+std::string coordinateFile(HANDLE handle) {
+  FILE_ID_INFO identity = {}; BY_HANDLE_FILE_INFORMATION basic = {};
+  WCHAR canonical[kPathChars] = {};
+  if (!GetFileInformationByHandleEx(handle, FileIdInfo, &identity, sizeof(identity)) ||
+      !GetFileInformationByHandle(handle, &basic) || !normalizedNt(handle, canonical)) {
+    return "{\"observed\":false,\"error\":" + std::to_string(GetLastError()) + "}";
+  }
+  char id[33] = {};
+  for (unsigned i = 0; i < 16; ++i) snprintf(id + i * 2, 3, "%02x", identity.FileId.Identifier[i]);
+  return "{\"observed\":true,\"error\":0,\"volumeSerial\":\"" + std::to_string(identity.VolumeSerialNumber) +
+      "\",\"fileId\":\"" + id + "\",\"ntPath\":\"" + privateJson(canonical) +
+      "\",\"directory\":" + ((basic.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? "true" : "false") +
+      ",\"reparse\":" + ((basic.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) ? "true" : "false") +
+      ",\"links\":" + std::to_string(basic.nNumberOfLinks) + "}";
+}
+struct CoordinateContextObservation { std::string json; bool expectedToken; };
+CoordinateContextObservation coordinateContext() {
+  HANDLE token = nullptr; const BOOL threadOpened = OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, TRUE, &token);
+  const DWORD threadError = threadOpened ? 0 : GetLastError();
+  const bool noImpersonation = !threadOpened && threadError == ERROR_NO_TOKEN;
+  bool opened = threadOpened != FALSE;
+  if (noImpersonation) opened = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token) != FALSE;
+  const DWORD openError = opened ? 0 : GetLastError();
+  bool known = false; DWORD used = 0, isContainer = 0; TOKEN_TYPE tokenType = TokenPrimary;
+  alignas(void*) BYTE owner[1024] = {}, container[1024] = {}, capabilities[4096] = {};
+  std::string ownerSid, containerSid; DWORD capabilityCount = 0;
+  if (opened && GetTokenInformation(token, TokenUser, owner, sizeof(owner), &used) &&
+      GetTokenInformation(token, TokenIsAppContainer, &isContainer, sizeof(isContainer), &used) &&
+      GetTokenInformation(token, TokenType, &tokenType, sizeof(tokenType), &used) &&
+      GetTokenInformation(token, TokenAppContainerSid, container, sizeof(container), &used) &&
+      GetTokenInformation(token, TokenCapabilities, capabilities, sizeof(capabilities), &used)) {
+    LPWSTR userText = nullptr, appText = nullptr;
+    PSID appSid = reinterpret_cast<TOKEN_APPCONTAINER_INFORMATION*>(container)->TokenAppContainer;
+    if (appSid && ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(owner)->User.Sid, &userText) &&
+        ConvertSidToStringSidW(appSid, &appText)) {
+      ownerSid = privateJson(userText); containerSid = privateJson(appText);
+      capabilityCount = reinterpret_cast<TOKEN_GROUPS*>(capabilities)->GroupCount;
+      known = !ownerSid.empty() && !containerSid.empty();
+    }
+    if (userText) LocalFree(userText); if (appText) LocalFree(appText);
+  }
+  const DWORD observationError = known ? 0 : opened ? GetLastError() : openError;
+  if (token) CloseHandle(token);
+  std::string json = "{\"threadId\":" + std::to_string(GetCurrentThreadId()) + ",\"pid\":" + std::to_string(GetCurrentProcessId()) +
+      ",\"threadTokenOpened\":" + (threadOpened ? "true" : "false") + ",\"threadTokenError\":" + std::to_string(threadError) +
+      ",\"noImpersonationObserved\":" + (noImpersonation ? "true" : "false") +
+      ",\"effectiveTokenKnown\":" + (known ? "true" : "false") + ",\"error\":" + std::to_string(observationError) +
+      ",\"tokenType\":" + std::to_string(tokenType) + ",\"appContainer\":" + (isContainer ? "true" : "false") +
+      ",\"userSid\":\"" + ownerSid + "\",\"appContainerSid\":\"" + containerSid +
+      "\",\"capabilityCount\":" + std::to_string(capabilityCount) + "}";
+  return {json, known && noImpersonation && isContainer == 1 && tokenType == TokenPrimary &&
+      capabilityCount == 0 && containerSid == targetSid};
+}
+napi_value rootCoordinateCallback(napi_env env, napi_callback_info info) {
+  napi_value argument[1]; size_t count = 1;
+  if (state != 2 || api.napi_get_cb_info(env, info, &count, argument, nullptr, nullptr) != napi_ok || count != 0) {
+    api.napi_throw_error(env, "ROOT_COORDINATE_ARGUMENT", "Installed adapter and no arguments required"); return nullptr;
+  }
+  using OpenFileFn = NTSTATUS(NTAPI*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PIO_STATUS_BLOCK,
+      PLARGE_INTEGER, ULONG, ULONG, ULONG, ULONG, PVOID, ULONG);
+  using OpenLinkFn = NTSTATUS(NTAPI*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES);
+  using QueryLinkFn = NTSTATUS(NTAPI*)(HANDLE, PUNICODE_STRING, PULONG);
+  auto native = GetModuleHandleW(L"ntdll.dll");
+  auto openFile = reinterpret_cast<OpenFileFn>(GetProcAddress(native, "NtCreateFile"));
+  auto openLink = reinterpret_cast<OpenLinkFn>(GetProcAddress(native, "NtOpenSymbolicLinkObject"));
+  auto queryLink = reinterpret_cast<QueryLinkFn>(GetProcAddress(native, "NtQuerySymbolicLinkObject"));
+  auto queryObject = reinterpret_cast<QueryObjectFn>(GetProcAddress(native, "NtQueryObject"));
+  if (!openFile || !openLink || !queryLink || !queryObject) {
+    api.napi_throw_error(env, "ROOT_COORDINATE_API", "Required native query API missing"); return nullptr;
+  }
+  const auto before = coordinateContext(); const auto inherited = coordinateFile(rootHandle);
+  WalkHandles retained;
+  std::string roots = "["; bool equal = sameId(rootHandle, rootId) && sameId(logicalRootHandle, rootId);
+  const std::wstring names[] = {std::wstring(L"\\??\\Global\\") + rootDos, L"\\??\\X:\\"};
+  for (unsigned index = 0; index < 2; ++index) {
+    const auto& name = names[index];
+    UNICODE_STRING text = {static_cast<USHORT>(name.size() * 2), static_cast<USHORT>((name.size() + 1) * 2), const_cast<PWSTR>(name.c_str())};
+    OBJECT_ATTRIBUTES attributes = {}; attributes.Length = sizeof(attributes); attributes.ObjectName = &text; attributes.Attributes = 0x40;
+    IO_STATUS_BLOCK io = {}; HANDLE opened = nullptr;
+    const NTSTATUS status = openFile(&opened, FILE_READ_ATTRIBUTES | SYNCHRONIZE, &attributes, &io, nullptr, 0,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 1, 0x00200021, nullptr, 0);
+    const bool success = status >= 0 && opened && opened != INVALID_HANDLE_VALUE;
+    std::string metadata = "null"; bool matches = false;
+    if (success) {
+      retained.handles[retained.count++] = opened; WCHAR canonical[kPathChars] = {};
+      metadata = coordinateFile(opened);
+      matches = plainObject(opened, true) && sameId(opened, rootId) && normalizedNt(opened, canonical) && !wcscmp(canonical, rootNt);
+    }
+    if (index) roots += ",";
+    roots += "{\"kind\":\"" + std::string(index ? "private-x" : "global-dos") + "\",\"nativeName\":\"" + privateJson(name.c_str()) +
+        "\",\"desiredAccess\":1048704,\"shareAccess\":7,\"openOptions\":2097185,\"ntStatus\":" + std::to_string(static_cast<DWORD>(status)) +
+        ",\"ioStatus\":" + std::to_string(static_cast<DWORD>(io.Status)) + ",\"ioInformation\":\"" + std::to_string(io.Information) +
+        "\",\"opened\":" + (success ? "true" : "false") + ",\"matchesInheritedRoot\":" + (matches ? "true" : "false") + ",\"file\":" + metadata + "}";
+    equal = equal && matches;
+  }
+  roots += "]";
+  const auto aliasName = std::wstring(L"\\??\\Global\\") + rootDos[0] + L":";
+  UNICODE_STRING aliasText = {static_cast<USHORT>(aliasName.size() * 2), static_cast<USHORT>((aliasName.size() + 1) * 2), const_cast<PWSTR>(aliasName.c_str())};
+  OBJECT_ATTRIBUTES aliasAttributes = {}; aliasAttributes.Length = sizeof(aliasAttributes); aliasAttributes.ObjectName = &aliasText; aliasAttributes.Attributes = 0x40;
+  HANDLE link = nullptr; const NTSTATUS linkStatus = openLink(&link, 1, &aliasAttributes);
+  const bool linkOpened = linkStatus >= 0 && link && link != INVALID_HANDLE_VALUE;
+  WCHAR target[kPathChars] = {}; UNICODE_STRING targetText = {0, static_cast<USHORT>(sizeof(target) - sizeof(WCHAR)), target};
+  ULONG targetBytes = 0; NTSTATUS queryStatus = static_cast<NTSTATUS>(0xC0000001); bool aliasObserved = false;
+  NTSTATUS nameStatus = static_cast<NTSTATUS>(0xC0000001); std::string objectName = "null";
+  USHORT objectNameLength = 0; bool objectNameDecoded = false;
+  if (linkOpened) {
+    retained.handles[retained.count++] = link;
+    queryStatus = queryLink(link, &targetText, &targetBytes);
+    aliasObserved = queryStatus >= 0 && !(targetText.Length & 1) && targetText.Buffer == target &&
+        targetText.Length < sizeof(target) && targetText.Length > 0 &&
+        std::wstring(target, targetText.Length / 2).find(L'\0') == std::wstring::npos;
+    if (aliasObserved) target[targetText.Length / 2] = 0;
+    alignas(void*) BYTE nameBytes[8192] = {}; ULONG nameUsed = 0;
+    nameStatus = queryObject(link, 1, nameBytes, sizeof(nameBytes), &nameUsed);
+    auto* name = reinterpret_cast<NativeString*>(nameBytes);
+    if (nameUsed >= sizeof(NativeString)) objectNameLength = name->length;
+    const uintptr_t offset = reinterpret_cast<uintptr_t>(name->buffer) - reinterpret_cast<uintptr_t>(nameBytes);
+    if (nameStatus >= 0 && nameUsed >= sizeof(NativeString) && nameUsed <= sizeof(nameBytes) &&
+        !(name->length & 1) && name->length && name->maximum >= name->length &&
+        offset >= sizeof(NativeString) && offset <= sizeof(nameBytes) && name->maximum <= sizeof(nameBytes) - offset) {
+      const std::wstring observedName(name->buffer, name->length / 2);
+      if (observedName.find(L'\0') == std::wstring::npos) {
+        objectName = "\"" + privateJson(observedName.c_str()) + "\""; objectNameDecoded = true;
+      }
+    }
+  }
+  equal = equal && sameId(rootHandle, rootId) && sameId(logicalRootHandle, rootId);
+  const auto after = coordinateContext();
+  const bool contextObservedStable = before.expectedToken && after.expectedToken && before.json == after.json;
+  std::string json = "{\"schema\":\"chainlesschain.private-root-coordinate-observation/v1\",\"readOnly\":true,"
+      "\"admissionEligible\":false,\"compatibilityConfirmed\":false,\"prefixRebindingExcluded\":false,"
+      "\"resolutionContextBound\":false,\"suffixSemanticsVerified\":false,\"mappingChanged\":false,"
+      "\"scope\":\"fixed-root-native-open-observations\",\"inheritedRoot\":" + inherited + ",\"roots\":" + roots +
+      ",\"globalAlias\":{\"nativeName\":\"" + privateJson(aliasName.c_str()) + "\",\"desiredAccess\":1,\"openStatus\":" +
+      std::to_string(static_cast<DWORD>(linkStatus)) + ",\"opened\":" + (linkOpened ? "true" : "false") +
+      ",\"queryAttempted\":" + (linkOpened ? "true" : "false") + ",\"queryStatus\":" + (linkOpened ? std::to_string(static_cast<DWORD>(queryStatus)) : "null") +
+      ",\"objectNameStatus\":" + (linkOpened ? std::to_string(static_cast<DWORD>(nameStatus)) : "null") + ",\"objectName\":" + objectName +
+      ",\"targetBytes\":" + std::to_string(targetBytes) + ",\"targetLengthBytes\":" + std::to_string(targetText.Length) +
+      ",\"targetDecodeComplete\":" + (aliasObserved ? "true" : "false") +
+      ",\"objectNameLengthBytes\":" + std::to_string(objectNameLength) + ",\"objectNameDecodeComplete\":" + (objectNameDecoded ? "true" : "false") +
+      ",\"target\":" + (aliasObserved ? "\"" + privateJson(target) + "\"" : "null") + "},"
+      "\"rootCoordinateObservedEqual\":" + (equal ? "true" : "false") + ",\"globalAliasObserved\":" + (aliasObserved ? "true" : "false") +
+      ",\"resolutionContextObservedStable\":" + (contextObservedStable ? "true" : "false") + ",\"contextBefore\":" + before.json + ",\"contextAfter\":" + after.json + "}";
+  napi_value result;
+  if (api.napi_create_string_utf8(env, json.c_str(), NAPI_AUTO_LENGTH, &result) != napi_ok) return nullptr;
+  return result;
+}
 // Read-only diagnostic: no caller-selected namespace and no reparse translation.
 napi_value probeReparseCallback(napi_env env, napi_callback_info info) {
   constexpr char expected[] = "X:\\scratch\\private-v4-junction-probe\\link";
@@ -933,6 +1083,8 @@ extern "C" __declspec(dllexport) napi_value NAPI_CDECL napi_register_module_v1(n
   NAPI_SYMBOLS(RESOLVE)
 #undef RESOLVE
   napi_value fn;
+  if (api.napi_create_function(env, "probeRootCoordinates", NAPI_AUTO_LENGTH, rootCoordinateCallback, nullptr, &fn) != napi_ok ||
+      api.napi_set_named_property(env, exports, "probeRootCoordinates", fn) != napi_ok) return nullptr;
   if (api.napi_create_function(env, "probeReparse", NAPI_AUTO_LENGTH, probeReparseCallback, nullptr, &fn) != napi_ok ||
       api.napi_set_named_property(env, exports, "probeReparse", fn) != napi_ok) return nullptr;
   if (api.napi_create_function(env, "install", NAPI_AUTO_LENGTH, installCallback, nullptr, &fn) != napi_ok ||

@@ -212,6 +212,7 @@ jobs:
           packages/cli/test-node/windows-node-private-v4-result.node-test.mjs
           packages/cli/test-node/windows-node-private-v4-controls.node-test.mjs
           packages/cli/test-node/windows-node-private-v4-fixture-settings.node-test.mjs
+          packages/cli/test-node/windows-node-private-v4-coordinates.node-test.mjs
           packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs
           packages/cli/test-node/file-lock-concurrency.node-test.mjs
       - name: Run exact-SHA PM exploration recovery drill

@@ -1,0 +1,587 @@
+{
+  "schema": "chainlesschain.root-coordinate-evidence/v1",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "formalSample": false,
+  "sourceBaseline": "1968383e5edbd1711b29c53fc0604fcfe90eec3b",
+  "sourceBinding": "frozen input byte digests; final tracked source must match c-source originals",
+  "compilerClosureHermetic": false,
+  "host": {
+    "platform": "Windows 10 x64",
+    "node": "22.22.2"
+  },
+  "scope": "Only root coordinate queries by actual zero-capability LowBox actor; no junction mapping",
+  "result": {
+    "observationsVerified": true,
+    "rootCoordinateObservedEqual": true,
+    "globalAliasObserved": false,
+    "resolutionContextObservedStable": true,
+    "compatibilityConfirmed": false,
+    "admissionEligible": false,
+    "errors": []
+  },
+  "cleanup": {
+    "rootExit": 0,
+    "jobActiveProcesses": 0,
+    "profileDeleted": true,
+    "hostMapUnchanged": true
+  },
+  "firstAttempt": {
+    "nativeRootExit": 0,
+    "nativeCleanupConfirmed": true,
+    "runnerExit": 1,
+    "runnerError": "ERR_UNSUPPORTED_ESM_URL_SCHEME",
+    "runnerErrorSource": "tool execution record; no separate raw stderr file captured",
+    "repair": "pathToFileURL for frozen verifier import; b rebuilt and reran all three targets"
+  },
+  "reviewRepair": {
+    "prior": "a/b binary hashes not rechecked at run; verifier admitted inconsistent completed-open/held-root/alias records",
+    "final": "c records decoded lengths, rejects inconsistent observations and verifies source/binary/copied bytes before and after; all targets rebuilt and rerun",
+    "priorVerdictsTransferred": false
+  },
+  "tests": {
+    "windows": {
+      "files": 9,
+      "pass": 544,
+      "fail": 0,
+      "skip": 0
+    },
+    "linuxFloor": {
+      "node": "22.12.0",
+      "pass": 50,
+      "fail": 0,
+      "skip": 0,
+      "source": "tool execution record; raw stdout not captured"
+    }
+  },
+  "unsupported": [
+    "Global alias binding after access denial",
+    "prefix non-rebinding",
+    "all suffix resolution equivalence",
+    "durable authority",
+    "full native review",
+    "formal 36+9 evaluation"
+  ],
+  "entries": [
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\check.cjs",
+      "archive": "a-source-check.cjs.gz",
+      "bytes": 912,
+      "sha256": "sha256:c0eee8b21d8f94b23388606b886722d9a967a8e24b1d1b6d392b832fde16c096",
+      "archiveBytes": 441,
+      "archiveSha256": "sha256:5da03232f67758143f0ac262cc8fbd500b3e6b35c1b0db482a3943a5b748a7bc"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\run.mjs",
+      "archive": "a-source-run.mjs.gz",
+      "bytes": 6340,
+      "sha256": "sha256:355ebe221e1f898f6816a679d38e81c00539674491d8088d263a621bd90e16c8",
+      "archiveBytes": 2173,
+      "archiveSha256": "sha256:c4cec2009892528bb24061ac089e7977fde281684d917d073b940c4878f5e917"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\verifier.mjs",
+      "archive": "a-source-verifier.mjs.gz",
+      "bytes": 7059,
+      "sha256": "sha256:119a06013c530a9761f05a33710df1b2e6c412e6251767a26aa7c43754b80f48",
+      "archiveBytes": 2248,
+      "archiveSha256": "sha256:f8ff511ff0d008be081f27a60603eb185d8f1aeedf67dfb93ad5697bc30366fd"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-esbuild-private-map-shim.cpp",
+      "archive": "a-source-windows-esbuild-private-map-shim.cpp.gz",
+      "bytes": 12342,
+      "sha256": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "archiveBytes": 4113,
+      "archiveSha256": "sha256:b24831347264e0c190bb26e50d771990a28b2a586ecd1278623d316b991572fa"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archive": "a-source-windows-esbuild-private-map-supervisor.cpp.gz",
+      "bytes": 26434,
+      "sha256": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "archiveBytes": 9042,
+      "archiveSha256": "sha256:af91a303a9b3078915fff3c3b9c090d614d6db5bfc6bf6a1e541e673f21fd2af"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-adapter.cpp",
+      "archive": "a-source-windows-node-private-v4-adapter.cpp.gz",
+      "bytes": 64564,
+      "sha256": "sha256:2feb421ba33339a3ac26541994a3ffdcbe0ff21a8ba63246ac51e6c32c0f599e",
+      "archiveBytes": 16700,
+      "archiveSha256": "sha256:8fcd44c8ac4a47332721813e1838537fdf7acdce49d0749bf927c4769ee0d530"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-adapter.h",
+      "archive": "a-source-windows-node-private-v4-adapter.h.gz",
+      "bytes": 28012,
+      "sha256": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "archiveBytes": 8156,
+      "archiveSha256": "sha256:44ad9650cc7dfd49433657c18b7c7b5b4de26c4f56c2757495f1cdf017e239d8"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-broker.cpp",
+      "archive": "a-source-windows-node-private-v4-broker.cpp.gz",
+      "bytes": 44840,
+      "sha256": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "archiveBytes": 13298,
+      "archiveSha256": "sha256:945c560a591eb9d0eb800aa3806ecfc810a4409a5201a820746fb34a2ffa539d"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-identity.cjs",
+      "archive": "a-source-windows-node-private-v4-identity.cjs.gz",
+      "bytes": 13925,
+      "sha256": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "archiveBytes": 4362,
+      "archiveSha256": "sha256:2ca8799af441805137c8916476a30478e561d611919e023222ca74261288858a"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-paired.h",
+      "archive": "a-source-windows-node-private-v4-paired.h.gz",
+      "bytes": 7924,
+      "sha256": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "archiveBytes": 2790,
+      "archiveSha256": "sha256:379558cf2db4d4fb35122a64342db1c7145dac6a0b9cb0c11937db941001469c"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-preload.cjs",
+      "archive": "a-source-windows-node-private-v4-preload.cjs.gz",
+      "bytes": 8947,
+      "sha256": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "archiveBytes": 3125,
+      "archiveSha256": "sha256:2852f1a8ce50557f38761a6774d0e79419cc48a5f53e7d35be473f40024df930"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\source\\windows-node-private-v4-protocol.h",
+      "archive": "a-source-windows-node-private-v4-protocol.h.gz",
+      "bytes": 1137,
+      "sha256": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "archiveBytes": 516,
+      "archiveSha256": "sha256:ef6408b2acd95a9c0a98b08dc37154700b5fc0771330c1748b69aedf1faa0cee"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\run\\coordinate-probe.json",
+      "archive": "a-run-coordinate-probe.json.gz",
+      "bytes": 14187,
+      "sha256": "sha256:f970d5e573faa00576b54c34bff64eba723a69e8d8d11d9b214e45d14911c319",
+      "archiveBytes": 2494,
+      "archiveSha256": "sha256:2a10b8c5e2fe92801f0f510cc19b14c8920e0f4234ba0778ff828c23a7e8c251"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\run\\host.stderr",
+      "archive": "a-run-host.stderr.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\run\\host.stdout",
+      "archive": "a-run-host.stdout.gz",
+      "bytes": 1580,
+      "sha256": "sha256:411690942605ff6bd85e6dba5a79e39e6635276cab5324a420f2cee4b2e03dd2",
+      "archiveBytes": 788,
+      "archiveSha256": "sha256:99dee9dc89e081de7dde0f77bac0358b3276df5a1148b58798df4aee2dae2065"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\run\\private-v4-26492-exit.json",
+      "archive": "a-run-private-v4-26492-exit.json.gz",
+      "bytes": 4746,
+      "sha256": "sha256:7d6d8128816a4df843f0b0d553357dc484c2decd3815184596f5a3360d6af081",
+      "archiveBytes": 1550,
+      "archiveSha256": "sha256:ce687416a72db4d455a37eb3173c29c18dae7681a055d55ca01aa816acf24017"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\run\\private-v4-26492-installed.json",
+      "archive": "a-run-private-v4-26492-installed.json.gz",
+      "bytes": 4698,
+      "sha256": "sha256:be0f40025204f5feb3fa2aaedcee2597b975949d8bfce797c129bc3051c607f5",
+      "archiveBytes": 1522,
+      "archiveSha256": "sha256:2752bca80f89a7037980fe05a6c22a73492f6e8c8796bb62b2da746cbdebdfcd"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\sources.json",
+      "archive": "a-sources.json.gz",
+      "bytes": 2848,
+      "sha256": "sha256:f739687c9c7f36d2007ba1971adbe29b3963d3f8c21bdf75d913dbf1c80ef60b",
+      "archiveBytes": 786,
+      "archiveSha256": "sha256:ca07464a262540a2ad095f30eea0226390ba9f77a3d5df617e856e36fc36898a"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\binaries.json",
+      "archive": "a-binaries.json.gz",
+      "bytes": 669,
+      "sha256": "sha256:053e44ab501ed6166fc1a23fe47876be738d36ec88c24c2e675ead9e0ef03bc7",
+      "archiveBytes": 325,
+      "archiveSha256": "sha256:c111e2b99c01d6739247288de4e3bd7e0e056f2924825055798f6c1e69625099"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-a\\build.json",
+      "archive": "a-build.json.gz",
+      "bytes": 1978,
+      "sha256": "sha256:176e99a85903cb1702c6165b5b8c65d5b584170eb9647040936e0c6973a646c2",
+      "archiveBytes": 391,
+      "archiveSha256": "sha256:d5f44bf981eb4b932f6029b87f3697f3110b10134d84d4e2287ba06522d4bfbc"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\check.cjs",
+      "archive": "b-source-check.cjs.gz",
+      "bytes": 912,
+      "sha256": "sha256:c0eee8b21d8f94b23388606b886722d9a967a8e24b1d1b6d392b832fde16c096",
+      "archiveBytes": 441,
+      "archiveSha256": "sha256:5da03232f67758143f0ac262cc8fbd500b3e6b35c1b0db482a3943a5b748a7bc"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\run.mjs",
+      "archive": "b-source-run.mjs.gz",
+      "bytes": 6400,
+      "sha256": "sha256:7be920e9d0a1fdfaa505f12cfe13fafff01e474ce75e7b1e991980516cbefc51",
+      "archiveBytes": 2197,
+      "archiveSha256": "sha256:78fd263e7a79bdbb1b129f11e3a9e33588e670f788a00bcaa10f5941ccb6cdf1"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\verifier.mjs",
+      "archive": "b-source-verifier.mjs.gz",
+      "bytes": 7115,
+      "sha256": "sha256:cbd215da70641bb445305c32d017fe73b8d71983241b733f3bc3ae2528640fa2",
+      "archiveBytes": 2274,
+      "archiveSha256": "sha256:1d44b29c72d6e42762e61fd24ddec5bf65d381eaf3382aad58a980573c52069f"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-esbuild-private-map-shim.cpp",
+      "archive": "b-source-windows-esbuild-private-map-shim.cpp.gz",
+      "bytes": 12342,
+      "sha256": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "archiveBytes": 4113,
+      "archiveSha256": "sha256:b24831347264e0c190bb26e50d771990a28b2a586ecd1278623d316b991572fa"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archive": "b-source-windows-esbuild-private-map-supervisor.cpp.gz",
+      "bytes": 26434,
+      "sha256": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "archiveBytes": 9042,
+      "archiveSha256": "sha256:af91a303a9b3078915fff3c3b9c090d614d6db5bfc6bf6a1e541e673f21fd2af"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-adapter.cpp",
+      "archive": "b-source-windows-node-private-v4-adapter.cpp.gz",
+      "bytes": 64564,
+      "sha256": "sha256:2feb421ba33339a3ac26541994a3ffdcbe0ff21a8ba63246ac51e6c32c0f599e",
+      "archiveBytes": 16700,
+      "archiveSha256": "sha256:8fcd44c8ac4a47332721813e1838537fdf7acdce49d0749bf927c4769ee0d530"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-adapter.h",
+      "archive": "b-source-windows-node-private-v4-adapter.h.gz",
+      "bytes": 28012,
+      "sha256": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "archiveBytes": 8156,
+      "archiveSha256": "sha256:44ad9650cc7dfd49433657c18b7c7b5b4de26c4f56c2757495f1cdf017e239d8"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-broker.cpp",
+      "archive": "b-source-windows-node-private-v4-broker.cpp.gz",
+      "bytes": 44840,
+      "sha256": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "archiveBytes": 13298,
+      "archiveSha256": "sha256:945c560a591eb9d0eb800aa3806ecfc810a4409a5201a820746fb34a2ffa539d"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-identity.cjs",
+      "archive": "b-source-windows-node-private-v4-identity.cjs.gz",
+      "bytes": 13925,
+      "sha256": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "archiveBytes": 4362,
+      "archiveSha256": "sha256:2ca8799af441805137c8916476a30478e561d611919e023222ca74261288858a"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-paired.h",
+      "archive": "b-source-windows-node-private-v4-paired.h.gz",
+      "bytes": 7924,
+      "sha256": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "archiveBytes": 2790,
+      "archiveSha256": "sha256:379558cf2db4d4fb35122a64342db1c7145dac6a0b9cb0c11937db941001469c"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-preload.cjs",
+      "archive": "b-source-windows-node-private-v4-preload.cjs.gz",
+      "bytes": 8947,
+      "sha256": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "archiveBytes": 3125,
+      "archiveSha256": "sha256:2852f1a8ce50557f38761a6774d0e79419cc48a5f53e7d35be473f40024df930"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\source\\windows-node-private-v4-protocol.h",
+      "archive": "b-source-windows-node-private-v4-protocol.h.gz",
+      "bytes": 1137,
+      "sha256": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "archiveBytes": 516,
+      "archiveSha256": "sha256:ef6408b2acd95a9c0a98b08dc37154700b5fc0771330c1748b69aedf1faa0cee"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\coordinate-probe.json",
+      "archive": "b-run-coordinate-probe.json.gz",
+      "bytes": 14175,
+      "sha256": "sha256:29747844ae2bd662076a2cbbd92db7eaf56114a284bd59f986b9a7e8b19e1f87",
+      "archiveBytes": 2491,
+      "archiveSha256": "sha256:c29746719b8b97708f6f5e5bc74a5257758f815cb662e3dfa7eafaf2af5198b5"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\host.stderr",
+      "archive": "b-run-host.stderr.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\host.stdout",
+      "archive": "b-run-host.stdout.gz",
+      "bytes": 1577,
+      "sha256": "sha256:bde72f412b9cd7769f9a4dd34650b7ddc6e13c9d4e8dc711e470542c59862adf",
+      "archiveBytes": 788,
+      "archiveSha256": "sha256:934f9a36ca350b159a8b35167e2dc5f6bda1ae40aa3ba1f19dce7b685c53b221"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\private-v4-24688-exit.json",
+      "archive": "b-run-private-v4-24688-exit.json.gz",
+      "bytes": 4741,
+      "sha256": "sha256:ced707adcab98ac2eeea5ed1659689f656968dd9e93bf9557336b6cb1392c31f",
+      "archiveBytes": 1548,
+      "archiveSha256": "sha256:464ca4f5bf31ad249c884dcd6ab9b1d0d894d8fd0c128a5a26b63d4572fcf942"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\private-v4-24688-installed.json",
+      "archive": "b-run-private-v4-24688-installed.json.gz",
+      "bytes": 4693,
+      "sha256": "sha256:c3dc8aeaa9860da8559d269d96b55e87acd4e5523dffffa2e1ef9c6167d0894b",
+      "archiveBytes": 1518,
+      "archiveSha256": "sha256:51c830699bc0933d3dea9d2dd2c79c97a188b9af154b57ae44360b048ef8590b"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\run\\report.json",
+      "archive": "b-run-report.json.gz",
+      "bytes": 32939,
+      "sha256": "sha256:d9b5bb589883620f20be9104990974b5c9eed60495ba4f05003c68a0c2b02242",
+      "archiveBytes": 3935,
+      "archiveSha256": "sha256:eb3e18da9bd8fc6281b0f79312ec9b630bf67030de0269690cb58b2e8b51b2da"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\sources.json",
+      "archive": "b-sources.json.gz",
+      "bytes": 2848,
+      "sha256": "sha256:f5f565ba678cb871a42c0e0c7e24641477a1ceadfbd206ef4e6e71476639bfea",
+      "archiveBytes": 789,
+      "archiveSha256": "sha256:7391642c605a380a341292bf1d91417e662b64db74cfc3a6d1147649496368b5"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\binaries.json",
+      "archive": "b-binaries.json.gz",
+      "bytes": 669,
+      "sha256": "sha256:81b19ba8418d2bff59314c0e819131cb99730cf8cbcb00afd8dd5f87474f2562",
+      "archiveBytes": 325,
+      "archiveSha256": "sha256:99307fd217569a5ca79568cf80d708c5e4b8f936555fccef6afc7c4778c339e7"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-b\\build.json",
+      "archive": "b-build.json.gz",
+      "bytes": 1978,
+      "sha256": "sha256:77686c451841639909555455a4b7387c74ef863bb1503d99c9dd85f9efabb616",
+      "archiveBytes": 391,
+      "archiveSha256": "sha256:5aae2a7fa4f7f9175590192a28cc97518ce02fc420fa2a54c6139065c9592094"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\check.cjs",
+      "archive": "c-source-check.cjs.gz",
+      "bytes": 912,
+      "sha256": "sha256:c0eee8b21d8f94b23388606b886722d9a967a8e24b1d1b6d392b832fde16c096",
+      "archiveBytes": 441,
+      "archiveSha256": "sha256:5da03232f67758143f0ac262cc8fbd500b3e6b35c1b0db482a3943a5b748a7bc"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\run.mjs",
+      "archive": "c-source-run.mjs.gz",
+      "bytes": 7553,
+      "sha256": "sha256:9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "archiveBytes": 2398,
+      "archiveSha256": "sha256:5d880c3bb9ba0f46ab4f94bcdb29a2e851c52366cf1a744e97dd953a0f93d361"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\verifier.mjs",
+      "archive": "c-source-verifier.mjs.gz",
+      "bytes": 8950,
+      "sha256": "sha256:0b8d36a31294299c12cedbe9195e82dbb697616e8a0b6a7b486b689762e58003",
+      "archiveBytes": 2659,
+      "archiveSha256": "sha256:52b2fb9fe3c76aca516a29df50a4949f77c9caeef8dd0d7b902764fde81cfc7b"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-esbuild-private-map-shim.cpp",
+      "archive": "c-source-windows-esbuild-private-map-shim.cpp.gz",
+      "bytes": 12342,
+      "sha256": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "archiveBytes": 4113,
+      "archiveSha256": "sha256:b24831347264e0c190bb26e50d771990a28b2a586ecd1278623d316b991572fa"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archive": "c-source-windows-esbuild-private-map-supervisor.cpp.gz",
+      "bytes": 26434,
+      "sha256": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "archiveBytes": 9042,
+      "archiveSha256": "sha256:af91a303a9b3078915fff3c3b9c090d614d6db5bfc6bf6a1e541e673f21fd2af"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-adapter.cpp",
+      "archive": "c-source-windows-node-private-v4-adapter.cpp.gz",
+      "bytes": 65180,
+      "sha256": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "archiveBytes": 16824,
+      "archiveSha256": "sha256:70f7b001f9ce6d2f7c49bef87f6f1d71e4ac221651ec92359203f42cc182571d"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-adapter.h",
+      "archive": "c-source-windows-node-private-v4-adapter.h.gz",
+      "bytes": 28012,
+      "sha256": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "archiveBytes": 8156,
+      "archiveSha256": "sha256:44ad9650cc7dfd49433657c18b7c7b5b4de26c4f56c2757495f1cdf017e239d8"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-broker.cpp",
+      "archive": "c-source-windows-node-private-v4-broker.cpp.gz",
+      "bytes": 44840,
+      "sha256": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "archiveBytes": 13298,
+      "archiveSha256": "sha256:945c560a591eb9d0eb800aa3806ecfc810a4409a5201a820746fb34a2ffa539d"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-identity.cjs",
+      "archive": "c-source-windows-node-private-v4-identity.cjs.gz",
+      "bytes": 13925,
+      "sha256": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "archiveBytes": 4362,
+      "archiveSha256": "sha256:2ca8799af441805137c8916476a30478e561d611919e023222ca74261288858a"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-paired.h",
+      "archive": "c-source-windows-node-private-v4-paired.h.gz",
+      "bytes": 7924,
+      "sha256": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "archiveBytes": 2790,
+      "archiveSha256": "sha256:379558cf2db4d4fb35122a64342db1c7145dac6a0b9cb0c11937db941001469c"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-preload.cjs",
+      "archive": "c-source-windows-node-private-v4-preload.cjs.gz",
+      "bytes": 8947,
+      "sha256": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "archiveBytes": 3125,
+      "archiveSha256": "sha256:2852f1a8ce50557f38761a6774d0e79419cc48a5f53e7d35be473f40024df930"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\source\\windows-node-private-v4-protocol.h",
+      "archive": "c-source-windows-node-private-v4-protocol.h.gz",
+      "bytes": 1137,
+      "sha256": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "archiveBytes": 516,
+      "archiveSha256": "sha256:ef6408b2acd95a9c0a98b08dc37154700b5fc0771330c1748b69aedf1faa0cee"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\coordinate-probe.json",
+      "archive": "c-run-coordinate-probe.json.gz",
+      "bytes": 14311,
+      "sha256": "sha256:332244d46ddaa45f1ed2349351a5efc082d93385d8bea347452d25c50bd02231",
+      "archiveBytes": 2515,
+      "archiveSha256": "sha256:6edadce753d27bed3e63f24194157083a7ca2f14067e6be4e8d2bb9e0f0a9e21"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\host.stderr",
+      "archive": "c-run-host.stderr.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\host.stdout",
+      "archive": "c-run-host.stdout.gz",
+      "bytes": 1576,
+      "sha256": "sha256:773aaea7ccd090bc49e792fc45f60010be333c549026e9c0af14b67cb829286c",
+      "archiveBytes": 790,
+      "archiveSha256": "sha256:c55614f23461e6c2b1d31ae18be9f61c7e29dc7c735c8468fbbabcd2d1f0f477"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\private-v4-6640-exit.json",
+      "archive": "c-run-private-v4-6640-exit.json.gz",
+      "bytes": 4738,
+      "sha256": "sha256:a756809164cc384a5a23b498c6a84de0d2b7ba01c1bdf4fcb86831a10236b42c",
+      "archiveBytes": 1547,
+      "archiveSha256": "sha256:d3936183da17f35b4cfd9311936bd4e7d3247173d307b8eb47c1b724f91b4172"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\private-v4-6640-installed.json",
+      "archive": "c-run-private-v4-6640-installed.json.gz",
+      "bytes": 4690,
+      "sha256": "sha256:97d88ec1eec711f9f9f04f4cf9ad1478128e4ccb375a6606478ca8e51c0dbe25",
+      "archiveBytes": 1518,
+      "archiveSha256": "sha256:1d59fa5fc63d492214e844389309cb8e42cb9b8013cb2c04ba77935f0d1722d9"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\run\\report.json",
+      "archive": "c-run-report.json.gz",
+      "bytes": 40677,
+      "sha256": "sha256:25a47329c987e5640d650266d57a1b3d6ad6818d6c7887d983f534706488a6af",
+      "archiveBytes": 5243,
+      "archiveSha256": "sha256:fabeca1f4426dd23a5b8668220a4aa204ce71afa074b259b86910660ac7d30f5"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\sources.json",
+      "archive": "c-sources.json.gz",
+      "bytes": 2848,
+      "sha256": "sha256:56a458957a7dd2c50d59952f793fce5cd53ce6c7b667b72058feb6933fd4e379",
+      "archiveBytes": 788,
+      "archiveSha256": "sha256:5b8cd66eab78e0c1ae1fe1a415262bdc7c3f7bdc726b5ea12e8484480c554c83"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\binaries.json",
+      "archive": "c-binaries.json.gz",
+      "bytes": 669,
+      "sha256": "sha256:9902f7cbdb4f98ddd5955073cb7a75e590fff569b6e349fad9e835c4f6475141",
+      "archiveBytes": 324,
+      "archiveSha256": "sha256:3ee72e0a2ed97224fb37501d240172702b69734fad337211c00798e397b63300"
+    },
+    {
+      "source": ".work\\private-v4-coordinates-20261010-c\\build.json",
+      "archive": "c-build.json.gz",
+      "bytes": 1978,
+      "sha256": "sha256:313a0b58650c8f85832c0d320d9210df9f14b4b77e9feab0cdce91ba91f26554",
+      "archiveBytes": 391,
+      "archiveSha256": "sha256:4b132649cf783993b5acabe19379849bc18f5b779ea3f5b0bb20cd98fe31eb1a"
+    },
+    {
+      "source": ".work/coordinates-regressions.stdout",
+      "archive": "coordinates-regressions.stdout.gz",
+      "bytes": 85283,
+      "sha256": "sha256:09793cdad41f57e32a52392d1a216496cb3b217c818c669acb60e402176e9956",
+      "archiveBytes": 13210,
+      "archiveSha256": "sha256:7e339ea3917b0b6334e576661c983903163677ad46865675da96c02bf5b887aa"
+    },
+    {
+      "source": ".work/coordinates-regressions.stderr",
+      "archive": "coordinates-regressions.stderr.gz",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/coordinates-regressions.json",
+      "archive": "coordinates-regressions.json.gz",
+      "bytes": 799,
+      "sha256": "sha256:908a7ba351c475e7bb2e82d592f99a42c1002a82bce743cfaf2515a1c84a13ab",
+      "archiveBytes": 226,
+      "archiveSha256": "sha256:2b1ad64d1498ce6c7101a8bf40155d300fed64c8776898e3559614b7a552a101"
+    }
+  ]
+}

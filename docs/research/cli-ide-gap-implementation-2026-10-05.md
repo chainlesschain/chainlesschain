@@ -440,3 +440,11 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 与 Astra 实施并审查的 junction 返回表示兼容方案共保留 a–f 六轮。真正的 FILE_READ_DATA held pin 阻止了 WRITE_DATA/GENERIC_WRITE/DELETE，但三个对象仍能成功取得 WRITE_ATTRIBUTES；公开 FSCTL_SET 合同接受此权限条件，防置换证明不足。候选映射入口及七槽 profile 已撤回，五个源恢复为准确 HEAD blob，新测试保留后移除；[119 份尝试/恢复原件](./cli/evidence/gap-2026-10-05/junction-guard-2026-10-10/README.md)全部双摘要验证。未使用属性句柄实施 guard 下的实际修改，不宣称漏洞复现。受限 D control 读取升级被中止，未重试，actor/control 原件没有独立完整采集。
 
 只证明路径坐标等价的更窄方案仍需 Global alias/root/X 绑定和不可重绑定实证，不能借当前 root identity 或一次 map 拒绝代替，更不能用于 authority fencing。junction 修复仍未完成；其余 owner-only ACL、skip、durable、正式 36+9、账单/人工/长时验收及原冻结矩阵、$99 状态保持不变，无付费调用或发布。详见[验证 20.27](./cli-ide-gap-validation-2026-10-05.md#2027-junction-共享句柄方案的真实拒绝)。
+
+## 29. 2026-10-10 LowBox 根坐标观察与配对发行准备
+
+新增 `probeRootCoordinates()` 只接受已安装 adapter 的无参数调用，在实际线程用原始 NtCreateFile 查询固定 Global DOS root/X root，保留同时持有的句柄、unsigned NTSTATUS 和 FileId/卷号/NT name；精确 Global C alias 用 NtOpenSymbolicLinkObject 查询，前后记录有效 token、线程和 PID。六槽及所有 admission/compatibility/mapping 相关否定状态保持，不修改 namespace/ACL 或翻译 junction。
+
+最终本机实际两个 root open NTSTATUS 0、身份相同；alias open 为 `0xC0000022`，前后零 capability LowBox 观察稳定。root exit 0、Job 0、profile 删除。Windows 九文件 **544/544**，Linux floor 新合同 **50/50**，已接入三平台 CI；[65 份原件](./cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/README.md)保留 a 轮 runner 路径错误、b 轮及 Astra 复审后 c 轮准确重建。完成状态/held root/alias 解码矛盾拒绝已补齐，c 轮 source/binary/copied bytes 前后校验。根观察没有关闭 alias binding/不可重绑定/suffix 等价缺口，junction/full review 继续 NOT_ADMITTED。
+
+候选 CLI **0.166.97**、VS Code **0.37.141**、JetBrains **0.4.159**；两端推荐 CLI 同步，版本合同分别 **35/22/14**。Agent SDK **0.2.14**及全部 13 子包与其公开来源完整源码树/实际 tarball 字节一致，无需新子包版本。用户授权测试成功后发布；最终准确 SHA 必须完整 CLI CI、Strict、IDE 与 ARM64，通过后只用既有 OIDC、先 CLI 公开可取再 IDE，区分 JetBrains pending 和公开发行。当前未发布。正式 36+9、$99、observations、原冻结矩阵、durable/账单/真人/长时状态不变。见[验证 20.28](./cli-ide-gap-validation-2026-10-05.md#2028-lowbox-根坐标只读原生观察)。

@@ -980,3 +980,17 @@ f 以 FILE_READ_DATA pin 各目录，实际 11 次 access-open：ancestor/target
 d/f broker status 2、root exit 1；cleanup、Job 0、profile 删除、loopback absent、host map unchanged 都有记录。七槽安装但四个 reparse 计数全 0；内部 `reparseInspection.verified:true` 只核对零计数回执，不能充当成功。outside/replaced、sync/async lstat/readlink/stat、unlink/rm、worker/esbuild 子进程和 frozen review 均未执行。D control 采集曾 EPERM，升级被用户中止且未重试，只有工具记录；独立 actor/control 原文件未归档，不声称完整采集。
 
 五个尝试源按准确 HEAD 原 blob 恢复，新增测试保留后移除；恢复源、最终尝试与 diff 原字节均归档，不留下可启用的未证实映射入口。更窄的坐标等价命题仍缺实际 Global C alias/root/X 前缀绑定、相关父路径和映射不可重绑定条件的实证；一次 root FileId 匹配或 LowBox map 拒绝不足，不能上升为 authority fencing。junction 仍未修复，完整 native review 仍 `NOT_ADMITTED`；旧 **211 = 194/16/1、6/4/4**、正式 **36+9 / NOT_RUN**、$99、observations、其他 durable/账号账单/真人/长时未完成项保持不变，无付费调用或发布。
+
+### 20.28 LowBox 根坐标只读原生观察
+
+最终源码新增固定无参数 `probeRootCoordinates()`，仍使用六槽 adapter。三个目标在冻结的九个原 native/JS 输入上以 `-Wall -Wextra -Werror` 编译；原 checker、verifier、runner 和输入摘要随[65 份无损 gzip 原件](./cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/manifest.json)归档。compiler closure 非 hermetic，实际宿主 Windows 10 x64/固定 Node 22.22.2；没有运行普通进程无 X map 时已知失败的旧综合 self-test，也没有把它写成成功。
+
+普通非管理员、未受限 host 启动实际零 capability AppContainer；actor 在当前线程分别调用 NtCreateFile 打开固定 `\\??\\Global\\<rootDos>` 与 `\\??\\X:\\`，access 1048704、share 7、options 2097185。两者 unsigned NTSTATUS/IOSTATUS 均 0，FileId、卷号、NT name 与 inherited root 一致、directory=true/reparse=false。NtOpenSymbolicLinkObject 对精确 `\\??\\Global\\C:` 返回 **3221225506 = 0xC0000022**，无 query、无 fabricated target。拒绝后没有 namespace fallback、host 代开或 ACL 改动。before/after 的线程/PID、无 impersonation、有效 user/AppContainer SID、primary token、capability 0 观察一致；root exit 0、Job 0、profile 删除、loopback absent、host map 未变，带参数调用拒绝。
+
+a 轮的 native 与 cleanup 成功，但之后 runner import 使用 Windows absolute path，工具记录返回 `ERR_UNSUPPORTED_ESM_URL_SCHEME`；原 native stdout/actor/receipt 已保留，该异常没有单独原 stderr 文件。b 轮改为 pathToFileURL，重新冻结、编译并真正运行，runner exit 0，producer/verifier 输入前后摘要一致。最终原件与 tracked 源码须另逐字节复核，不能由第一轮成功转移。观察器接受完整实际 native 拒绝、拒绝签名状态/假身份/namespace/actor PID/token/越权声明及 malformed 输入；Windows 九文件 **544/544**、零失败/跳过，Linux Node 22.12.0 新合同 **50/50**，Linux 原 stdout 只有工具记录。lint、格式及 spawn inventory 无漂移。
+
+根观察相同不证明 Global alias 绑定、前缀不可重绑定、所有 suffix 解析等价或持久 authority；`compatibilityConfirmed/admissionEligible/prefixRebindingExcluded/resolutionContextBound/suffixSemanticsVerified/mappingChanged` 均 false。junction 和完整 native review 仍 NOT_ADMITTED；旧 **211=194/16/1、6/4/4**、正式 **36+9/NOT_RUN/INSUFFICIENT_EVIDENCE**、$99 和 observations、durable/账单/独立人工/辅助技术/8h/24h/SLO 不变，无付费 provider 调用。
+
+Astra 独立变异确认 b 轮会接受 root STATUS_PENDING、失败 IO completion、FILE_CREATED、矛盾 held metadata，以及 alias 失败附带值/成功缺值/奇数 byte length。没有 admission 升级，但 observationsVerified 结论过宽；已补拒绝合同和 native decoded length/completeness，新增 15 个负例。原 runner 只验 sources，现同时在执行前后核验三个 binary 与七份复制产物；最终 c 轮重新冻结、编译、实跑 exit 0，仍 root 相同/alias 拒绝。当前最终 verdict 和 source binding 只取 c 轮；b 的 producerInputsUnchanged 仅覆盖当时 source，不迁移其 binary 或 verifier 结论。
+
+下一配对 CLI **0.166.97**、VS Code **0.37.141**、JetBrains **0.4.159**。13 子包完整 Git subtree 与公开 SDK 来源 `da91e730d802b7c9dcdc075b222ecc257021e552` 一致，本地 pack 与实际 registry tarball 原字节一致；SDK 两端 vendor 重建无 tracked 差异，局部 CLI/VS Code/JetBrains 版本合同 **35/22/14** 通过。JetBrains 初次缺 Java 21，使用既有 JDK21 后成功。最终发布须新准确 SHA 的 CLI CI/Strict 三平台、IDE 主矩阵及独立 ARM64 全门；旧 SHA 的成功不能迁移。用户已授权门通过后 OIDC CLI → 公开可取 → IDE，当前尚未发布，Marketplace pending 不记作公开。
