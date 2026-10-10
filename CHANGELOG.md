@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.97: preserve diagnostic evidence and paired release identity
+
+- Preserve scheduler evidence write errors during cleanup and retain retired
+  worker and occurrence diagnostics in reliability reports.
+- Isolate native-review settings fixtures and bind diagnostic review to behavior
+  controls, cancellation observations, and retained cleanup evidence.
+- Keep unsupported Windows junction representation experimental. No junction
+  remapping is enabled; full native review remains NOT_ADMITTED and formal
+  36+9 evaluation remains NOT_RUN.
+- Reuse unchanged child package versions, including Agent SDK 0.2.14, subject
+  to the existing source-tree, public-byte, and provenance release checks.
+- Pair VS Code 0.37.141 and JetBrains 0.4.159 with CLI 0.166.97 after the
+  final release commit passes its gates and the CLI is publicly available.
+
 ### Fixed - cc CLI 0.166.96: bind changed SDK source to a new signed release
 
 - Publish Agent SDK `0.2.14` before the CLI because SDK test diagnostics changed

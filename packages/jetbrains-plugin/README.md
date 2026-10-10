@@ -5,9 +5,9 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Public Marketplace **0.4.158** recommends public CLI **0.166.96**, verified approved/listed and downloadable on 2026-10-10. Its package contents match the exact release tag artifact; the ZIP container digests differ. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
+Candidate **0.4.159** recommends CLI **0.166.97** after public CLI availability and the final commit's CLI, IDE, and ARM64 release gates pass. This pairing is not published yet; Marketplace approval and public download must be verified separately. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
 
-This release refreshes approval-card height allocation and preserves host event/layout diagnostics. Restart the chat host and run Doctor after upgrading. Formal evaluation and full native review require separate acceptance.
+This candidate updates the CLI recommendation while retaining approval-card layout and host event diagnostics. Restart the chat host and run Doctor after upgrading. Formal evaluation and full native review require separate acceptance.
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -26,26 +26,26 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Candidate 0.4.158 pairs with CLI 0.166.96 for official stable model release
-review and retained diagnostic evidence. Experimental native review and durable
+Candidate 0.4.159 pairs with CLI 0.166.97 for preserved scheduler failure
+evidence and native-review diagnostics. Experimental native review and durable
 Windows/macOS recovery require separate acceptance.
 
 The new pairing remains unpublished and requires its exact-commit release gates.
-CLI `0.166.96` pairs with Session Core `0.3.18` and Context/Memory Kernel
+CLI `0.166.97` pairs with Session Core `0.3.18` and Context/Memory Kernel
 `0.1.8`, including scheduler initialization before Windows sidecar ACL protection
 and canonical record/replay digest handling that retains captured-content
 secret and PII checks.
 
-After CLI `0.166.96` is published, install it with
-`npm i -g chainlesschain@0.166.96`, check `cc --version`, and upgrade to plugin
-`0.4.158` when available. Restart the IDE and check Doctor for the actual CLI
+After CLI `0.166.97` is published, install it with
+`npm i -g chainlesschain@0.166.97`, check `cc --version`, and upgrade to plugin
+`0.4.159` when available. Restart the IDE and check Doctor for the actual CLI
 identity and capabilities; the existing compatibility floor still applies.
 
 The Windows 2025.2 installed-ZIP test host disables development automatic plugin
 reload so restart journeys do not unload the Robot server and ChainlessChain
 plugins mid-test. This is a test-host fix; full IDE restart gates still apply.
 
-Candidate `0.4.158` recommends CLI `0.166.96` for persistent Personal Data Hub
+Candidate `0.4.159` recommends CLI `0.166.97` for persistent Personal Data Hub
 projection recovery, consumer retirement, and bounded cleanup of historical
 receipts. Its `cc project risk-evaluate --snapshot <file>` and
 `cc project task-description-preview --snapshot <file>` commands use explicit
@@ -56,7 +56,7 @@ The plugin retains opt-in ordered raw protocol capture, bounded slow-start draft
 recovery, strict ChainlessChain command identity during setup and updates, and
 live receipt/mode capability reports in Doctor.
 
-Candidate release `0.4.158` pairs with CLI `0.166.96` after the CLI is published
+Candidate release `0.4.159` pairs with CLI `0.166.97` after the CLI is published
 and this IDE commit passes its release gates. The paired CLI freezes unattended
 policy and tool limits, checks WebSocket host revisions, and revokes active
 shell authority when an official settings rule write starts in the same runtime.
@@ -115,7 +115,7 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.96` for older installations, including when the
+- Recommend `chainlesschain@0.166.97` for older installations, including when the
   npm lookup is unavailable. Status queries and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
@@ -135,7 +135,7 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.96` as
+- If npm lookup is unavailable or stale, the plugin still treats `0.166.97` as
   the recommended upgrade target and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
@@ -153,7 +153,7 @@ after this exact IDE commit passes its gates.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.158** is the current release candidate that re-certifies the read-only
+Plugin **0.4.159** is the current release candidate that re-certifies the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
@@ -172,10 +172,10 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.96`. Candidate CLI
+The recommended CLI pairing is `chainlesschain@0.166.97`. Candidate CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
-permission/budget enforcement. Version `0.4.158` accepts only the exact
+permission/budget enforcement. Version `0.4.159` accepts only the exact
 v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired versions
 fail closed. With v3 it shows sanitized run incidents and bounded live scheduler
 occurrences. Incident retry/cancel and cooperative occurrence pause/resume
@@ -184,7 +184,7 @@ The plugin refreshes the projection and rechecks that preview before execution;
 it never derives argv from display data or imports scheduler payload, authority,
 or checkpoint evidence.
 
-Version `0.4.158` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.4.159` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -193,7 +193,7 @@ governed `team merge-review` command and exact evidence contract.
 
 Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.4.158`. The plugin continues to fail closed when an older CLI cannot provide
+`0.4.159`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
 
 Public CLI `0.166.34` supersedes `0.166.18`, whose public npm dependency graph

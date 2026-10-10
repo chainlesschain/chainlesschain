@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.97",
+      "cliVersions": ["0.166.97"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.97: preserve diagnostic evidence and paired release identity",
+          "body": "- Preserve scheduler evidence write errors during cleanup and retain retired\n  worker and occurrence diagnostics in reliability reports.\n- Isolate native-review settings fixtures and bind diagnostic review to behavior\n  controls, cancellation observations, and retained cleanup evidence.\n- Keep unsupported Windows junction representation experimental. No junction\n  remapping is enabled; full native review remains NOT_ADMITTED and formal\n  36+9 evaluation remains NOT_RUN.\n- Reuse unchanged child package versions, including Agent SDK 0.2.14, subject\n  to the existing source-tree, public-byte, and provenance release checks.\n- Pair VS Code 0.37.141 and JetBrains 0.4.159 with CLI 0.166.97 after the\n  final release commit passes its gates and the CLI is publicly available."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.96",
       "cliVersions": ["0.166.96"],
       "date": null,

@@ -4,6 +4,15 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Current release and source (2026-10-10)
 
+Source candidate **0.166.97** pairs with VS Code **0.37.141** and JetBrains
+**0.4.159**. It preserves scheduler failure evidence and native-review fixture,
+behavior-control, and cleanup diagnostics. Child package versions remain
+unchanged, including Agent SDK **0.2.14**. Publication requires the final
+commit's GitHub Actions release gates and OIDC child-package verification;
+IDE publication follows public CLI availability.
+
+### Last published pairing
+
 Public npm latest is **chainlesschain@0.166.96**, with Agent SDK **0.2.14**,
 Session Core **0.3.18**, PDH **0.4.64** and Context/Memory Kernel **0.1.8**.
 Open VSX **0.37.140** and JetBrains **0.4.158** are public and recommend that

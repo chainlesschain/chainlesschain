@@ -1,0 +1,28 @@
+{
+  "schema": "chainlesschain.release-preparation/v1",
+  "published": false,
+  "versions": {
+    "cli": "0.166.97",
+    "vscode": "0.37.141",
+    "jetbrains": "0.4.159",
+    "sdk": "0.2.14"
+  },
+  "baseline": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "childPackages": 13,
+  "allFullSourceTreesMatch": true,
+  "allRegistryArchiveBytesMatch": true,
+  "source": ".work/release-pair-0.166.97-prep/children/summary.json",
+  "archive": "children-summary.json.gz",
+  "bytes": 10732,
+  "sha256": "sha256:10f01ce527ba0ee94a8c6f9097fe35435ea2b784e4c0095e4935be56b9bbaa1f",
+  "archiveBytes": 3036,
+  "archiveSha256": "sha256:96bd5e090b0f1e17bd90cd8909bcf1c096f54bcbf86bb142abf1b1bf7b129976",
+  "tests": {
+    "source": "Astra tool report; supplementary to final exact-SHA Actions",
+    "cliVersionContracts": 35,
+    "vscodeFocused": 22,
+    "jetbrainsVersionDoctor": 14
+  },
+  "finalReleaseSha": null,
+  "releaseGates": "pending final exact-SHA CLI CI / Strict / IDE Extensions / ARM64"
+}

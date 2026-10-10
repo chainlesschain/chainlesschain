@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.141] - Pair with retained CLI diagnostic evidence (2026-10-10)
+
+- Recommend CLI `0.166.97` after its public npm release and this extension's
+  exact-commit release gates pass.
+- Reuse the unchanged Agent SDK 0.2.14 vendor output and preserve the existing
+  bridge compatibility floor.
+- Keep experimental native-review and formal-evaluation acceptance separate
+  from this paired release.
+
 ## [0.37.140] - Pair with CLI model review and diagnostic evidence (2026-10-09)
 
 - Recommend CLI `0.166.96` after its public npm release and this extension's

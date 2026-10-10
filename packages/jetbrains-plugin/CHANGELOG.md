@@ -1,5 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.159] - Pair with retained CLI diagnostic evidence (2026-10-10)
+
+- Recommend CLI `0.166.97` after its public npm release and this plugin's
+  exact-commit release gates pass.
+- Align Doctor, upgrade prompts, and incremental-build version metadata with
+  the paired CLI while retaining the bridge compatibility floor.
+- Keep experimental native-review and formal-evaluation acceptance separate
+  from this paired release.
+
 ## [0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)
 
 - Recommend CLI `0.166.96` after its public npm release and this extension's
