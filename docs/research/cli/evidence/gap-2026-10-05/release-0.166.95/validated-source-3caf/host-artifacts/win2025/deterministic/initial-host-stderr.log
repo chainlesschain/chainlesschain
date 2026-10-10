@@ -1,0 +1,28 @@
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module java-frontback is not found: C:/Users/runneradmin/.gradle/caches/transforms-4/f272b127be9ffadc342cb1014bebcce1/transformed/ideaIC-2025.2-win/plugins/java/lib/java-frontback.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jetbrains.kotlinx.metadata.jvm is not found: C:/Users/runneradmin/.gradle/caches/transforms-4/f272b127be9ffadc342cb1014bebcce1/transformed/ideaIC-2025.2-win/plugins/java/lib/jetbrains.kotlinx.metadata.jvm.jar
+2026-10-09 18:51:14,491 [   2976]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found at: C:\Users\runneradmin\.gradle\caches\transforms-4\f272b127be9ffadc342cb1014bebcce1\transformed\ideaIC-2025.2-win\jdk-shared-indexes
+2026-10-09 18:51:17,025 [   5510]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=org.jetbrains.kotlin.idea.search.refIndex.KotlinCompilerReferenceIndexService, plugin=org.jetbrains.kotlin)
+2026-10-09 18:51:17,025 [   5510]   WARN - #c.i.s.ComponentManagerImpl - `preload=NOT_HEADLESS` must be used only for core services (service=com.jetbrains.rdserver.toolWindow.BackendServerToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09 18:51:17,025 [   5510]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.users.BackendUserManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09 18:51:17,047 [   5532]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.ports.CwmPortForwardingToolWindowManager, plugin=com.jetbrains.codeWithMe)
+2026-10-09 18:51:17,048 [   5533]   WARN - #c.i.s.ComponentManagerImpl - `preload=TRUE` must be used only for core services (service=com.intellij.cwm.plugin.following.FollowMeManagerService, plugin=com.jetbrains.codeWithMe)
+2026-10-09 18:51:18,715 [   7200]   WARN - #c.i.s.c.i.StationSocketConnectionLoop - Discovery connection failed with AnnotatedConnectException(ConnectException) (Connection refused: connect: C:\Users\RUNNER~1\AppData\Local\Temp\jb.station.runneradmin.sock)
+2026-10-09 18:51:29,111 [  17596]   WARN - #c.i.s.c.i.StationSocketConnectionLoop - RecentProjects connection failed with AnnotatedConnectException(ConnectException) (Connection refused: connect: C:\Users\RUNNER~1\AppData\Local\Temp\jb.station.runneradmin.sock)
+JCEF_I(52:13:753): Found free tcp-port 6188 for server.
+JCEF_I(52:13:754): Found free tcp-port 6189 for java-handlers.
+JCEF_V(52:13:770): Created CefServer instance. Transport port=6188 (backward port=6189). Params:
+[--no-proxy-server, --disable-features=SpareRendererForSitePerProcess, --disable-gpu-process-crash-limit, --disable-component-update, --autoplay-policy=no-user-gesture-required]| log_file=D:\a\chainlesschain\chainlesschain\packages\jetbrains-plugin\build\idea-sandbox\2025-2-1791571484540\IC-2024.2\log_runIdeForUiTests\jcef_7120.log, log_severity=LOGSEVERITY_DISABLE
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+2026-10-09 18:52:17,026 [  65511]   WARN - #org.intellij.plugins.markdown.ui.preview.jcef.impl.JcefBrowserPipeImpl - No subscribers for documentReady!
+Attached data: 
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_surface
+ERR: RendererVk.cpp:203 (VerifyExtensionsPresent): Extension not supported: VK_KHR_win32_surface
+ERR: Display.cpp:1052 (initialize): ANGLE Display::initialize error 0: Internal Vulkan error (-7): A requested extension is not supported, in ..\..\third_party\angle\src\libANGLE\renderer\vulkan\RendererVk.cpp, enableInstanceExtensions:1704.

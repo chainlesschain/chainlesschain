@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.uitest.IdeUiSmokeTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-10T01:55:58" hostname="runnervmfi6oq" time="12.13">
+  <properties/>
+  <testcase name="chainlessChainChatAndControlJourney()" classname="com.chainlesschain.ide.uitest.IdeUiSmokeTest" time="12.13"/>
+  <system-out><![CDATA[[ui-smoke] IDE frame state before foreground: 0
+[ui-smoke] verified governed automatic-completion contract: false|650|60|240000|30000|800|12|2000|5000|20
+[ui-smoke] canonical conversation recovery restart passed
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

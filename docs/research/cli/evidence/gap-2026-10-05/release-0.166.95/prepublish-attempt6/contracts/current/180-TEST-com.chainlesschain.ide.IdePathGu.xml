@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdePathGuardTest" tests="19" skipped="1" failures="0" errors="0" timestamp="2026-10-09T17:28:42" hostname="DESKTOP-MTMV2RE" time="0.149">
+  <properties/>
+  <testcase name="openDiffRefusesOutOfWorkspaceTargetWithoutTouchingTheFacade(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.009"/>
+  <testcase name="getDiagnosticsRefusesOutOfWorkspaceScopeWithReadWording(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.008"/>
+  <testcase name="openMultiDiffSchemaAdvertisesLifecycleMetadata(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.002"/>
+  <testcase name="openMultiDiffRejectsTheWholeBatchWhenOneFileEscapes(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.01"/>
+  <testcase name="allowsTraversalThatStaysInsideAndFoldsIt(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.008"/>
+  <testcase name="caseInsensitiveOnWindows(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.008"/>
+  <testcase name="handlesCjkAndSpacePaths(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.011"/>
+  <testcase name="symlinkEscapeIsCaught(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.008">
+    <skipped/>
+  </testcase>
+  <testcase name="rejectsUncAndDevicePathsOutright(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.003"/>
+  <testcase name="openMultiDiffValidatesAndResolvesRenameTargets(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.016"/>
+  <testcase name="absolutePathInsideAnyRootPasses(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.009"/>
+  <testcase name="failsClosedOnBadInputs(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.002"/>
+  <testcase name="legacyBuildWithoutRootsKeepsUnguardedBehavior(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.003"/>
+  <testcase name="rejectsAbsolutePathsOutsideTheWorkspace(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.005"/>
+  <testcase name="openDiffForwardsTheResolvedInWorkspacePath(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.006"/>
+  <testcase name="openDiffValidatesAndResolvesRenameTarget(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.012"/>
+  <testcase name="notFooledByPrefixConfusion(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.01"/>
+  <testcase name="rejectsTraversalEscapingTheWorkspace(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.005"/>
+  <testcase name="relativePathsResolveAgainstTheFirstRoot(Path)" classname="com.chainlesschain.ide.IdePathGuardTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

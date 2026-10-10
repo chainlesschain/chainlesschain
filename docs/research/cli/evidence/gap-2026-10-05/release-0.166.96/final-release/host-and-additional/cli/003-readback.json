@@ -1,0 +1,21 @@
+{
+  "capturedAt": "2026-10-10T03:14:00.710Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11654600497,
+  "name": "linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11654600497/metadata.json",
+    "bytes": 788,
+    "sha256": "ac51b34436ba6f1c5db088351d9460d9879574f00884f02b86c836954e9236bf",
+    "endpoint": "actions/artifacts/11654600497"
+  },
+  "downloadState": "METADATA_ONLY_SIZE_LIMIT",
+  "payload": null,
+  "expectedPayload": {
+    "bytes": 7410714,
+    "sha256": "ea55ec8cc7980a0b4f6ce334dd863c96161412f8df375c823dec567fef06f156"
+  },
+  "githubDigestMatched": null,
+  "scope": "Large smoke bundle payload not downloaded or selected; source metadata and GitHub digest retained without claiming payload verification."
+}

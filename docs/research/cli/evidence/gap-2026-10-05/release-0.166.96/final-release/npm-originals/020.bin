@@ -1,0 +1,284 @@
+{
+  "capturedAt": "2026-10-10T03:34:19.698Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38019727506,
+  "attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "counts": {
+    "success": 5,
+    "skipped": 2
+  },
+  "jobs": [
+    {
+      "id": 114117825579,
+      "name": "exact-sha-gate",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114117826732,
+      "name": "dry-run",
+      "status": "completed",
+      "conclusion": "skipped",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114117826761,
+      "name": "test",
+      "status": "completed",
+      "conclusion": "skipped",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114117923872,
+      "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114117923884,
+      "name": "linux-subreaper / Linux packaged subreaper (x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114118153985,
+      "name": "package-cli",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": [],
+      "publicationSteps": []
+    },
+    {
+      "id": 114118628533,
+      "name": "publish",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": [],
+      "publicationSteps": [
+        {
+          "name": "Publish @chainlesschain/agent-sdk",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify published Agent SDK registry bytes and npm provenance",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify public child bytes and registry-only dependencies before CLI publish",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Publish chainlesschain (CLI)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify published CLI npm provenance",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload public npm readback evidence",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11658855070,
+      "name": "chainlesschain-npm-readback-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11658145775,
+      "name": "linux-subreaper-arm64-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11658125725,
+      "name": "linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11658021052,
+      "name": "chainlesschain-npm-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11657900805,
+      "name": "linux-subreaper-x64-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11657895975,
+      "name": "linux-subreaper-smoke-arm64-da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "id": 11657338706,
+      "name": "cli-release-gate-da91e730d802b7c9dcdc075b222ecc257021e552"
+    }
+  ],
+  "records": [
+    {
+      "path": "2026-10-10T03-34-00-614Z/run.json",
+      "endpoint": "actions/runs/38019727506",
+      "bytes": 13399,
+      "sha256": "343c57e973ebea6bafa01dfdde4ae1184aa2c1bfaa32171ac1014e08b2b1d6dc"
+    },
+    {
+      "path": "2026-10-10T03-34-00-614Z/jobs-1.json",
+      "endpoint": "actions/runs/38019727506/jobs?filter=latest&per_page=100&page=1",
+      "bytes": 20458,
+      "sha256": "b3964e6021893823ebf3baf6f714d3e36e22ce66b297ebc194facbfa55c7eb5c"
+    },
+    {
+      "path": "jobs/114117825579/job.json",
+      "endpoint": "actions/jobs/114117825579",
+      "bytes": 2459,
+      "sha256": "0b61e52cb1d2a1f228f7efe4c16dea6ce312bbce2c9ef15c2ee0405e30226189"
+    },
+    {
+      "path": "jobs/114117825579/job.log",
+      "endpoint": "actions/jobs/114117825579/logs",
+      "bytes": 19644,
+      "sha256": "d17ae3d61412d4e2c35f9392dc28629fee68c4afb5c004f115f21c8cf9574970"
+    },
+    {
+      "path": "jobs/114117825579/annotations.json",
+      "endpoint": "check-runs/114117825579/annotations?per_page=100",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "path": "jobs/114117826732/job.json",
+      "endpoint": "actions/jobs/114117826732",
+      "bytes": 911,
+      "sha256": "d26e053cced3fef3b1f8b3dfa72a18b9dc88971bc44594da35e8c464c5732a18"
+    },
+    {
+      "path": "jobs/114117826761/job.json",
+      "endpoint": "actions/jobs/114117826761",
+      "bytes": 908,
+      "sha256": "e1e31b84aa862b522cbf3d40da7fb9990077fdab484ac5ef09e50912baf27860"
+    },
+    {
+      "path": "jobs/114117923872/job.json",
+      "endpoint": "actions/jobs/114117923872",
+      "bytes": 3034,
+      "sha256": "87aa3e98138804b50df6e73ff9e4361e6af909952a72860503f07c32cec78e2f"
+    },
+    {
+      "path": "jobs/114117923872/job.log",
+      "endpoint": "actions/jobs/114117923872/logs",
+      "bytes": 25318,
+      "sha256": "a69fcd53f08bd99fd4a2fcb5cab90a81d229a088d42c18b3e821277a8110c6e8"
+    },
+    {
+      "path": "jobs/114117923872/annotations.json",
+      "endpoint": "check-runs/114117923872/annotations?per_page=100",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "jobs/114117923884/job.json",
+      "endpoint": "actions/jobs/114117923884",
+      "bytes": 3028,
+      "sha256": "79c348a43a9a635047de05169816d0b6dcefb1468244c22a34c7e81430818368"
+    },
+    {
+      "path": "jobs/114117923884/job.log",
+      "endpoint": "actions/jobs/114117923884/logs",
+      "bytes": 25402,
+      "sha256": "86fba7d5c155277f948c86f3aa35a625912284b201e3c3d90fa07233b9c32d1f"
+    },
+    {
+      "path": "jobs/114117923884/annotations.json",
+      "endpoint": "check-runs/114117923884/annotations?per_page=100",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "jobs/114118153985/job.json",
+      "endpoint": "actions/jobs/114118153985",
+      "bytes": 3163,
+      "sha256": "54e7eb339ad6aa6ff77bffb4a8bfa15cdb487aeaca666dfacbf0983a06ec484d"
+    },
+    {
+      "path": "jobs/114118153985/job.log",
+      "endpoint": "actions/jobs/114118153985/logs",
+      "bytes": 284336,
+      "sha256": "fbe1f41272e693d1839ffb083c853ce3501bec6e575e3147343dad4c14de94ee"
+    },
+    {
+      "path": "jobs/114118153985/annotations.json",
+      "endpoint": "check-runs/114118153985/annotations?per_page=100",
+      "bytes": 998,
+      "sha256": "dc3ae6e322b20a28929356f37bbdd39b68895f86a9e291d58afc21628ee7cbd7"
+    },
+    {
+      "path": "jobs/114118628533/job.json",
+      "endpoint": "actions/jobs/114118628533",
+      "bytes": 6922,
+      "sha256": "ec09571d594b4d2c7dafc84ff5671dbfeb78d84f7b42a9451d71f13049434730"
+    },
+    {
+      "path": "jobs/114118628533/job.log",
+      "endpoint": "actions/jobs/114118628533/logs",
+      "bytes": 378639,
+      "sha256": "cf028b660b4ded1ea19f2adfd816c17e311c2d9d2ba59c6f21e21251d7905dc9"
+    },
+    {
+      "path": "jobs/114118628533/annotations.json",
+      "endpoint": "check-runs/114118628533/annotations?per_page=100",
+      "bytes": 7290,
+      "sha256": "a81002b9337ad4b10e8736e0ac59df7ed2f1ccd2c4ce2cc0f2cf89d0f31bf31b"
+    },
+    {
+      "path": "2026-10-10T03-34-00-614Z/artifacts.json",
+      "endpoint": "actions/runs/38019727506/artifacts?per_page=100",
+      "bytes": 5350,
+      "sha256": "f03ff786538e2bd9ed7386fdd7a0dcfe2a157266d74cb3dcf701ac842e1a72c8"
+    },
+    {
+      "path": "artifacts/11658855070/metadata.json",
+      "endpoint": "actions/artifacts/11658855070",
+      "bytes": 764,
+      "sha256": "b85827c27ff191694bc6fae0ecfa275206a5e0a3570338d9ba6e45ca0b722e20"
+    },
+    {
+      "path": "artifacts/11658855070/artifact.zip",
+      "endpoint": "actions/artifacts/11658855070/zip",
+      "bytes": 301582,
+      "sha256": "02531c1ee26d8d1cab9f5b92dd971dfa6a0eb0a5397ce737c11d73128cb8ad22"
+    },
+    {
+      "path": "artifacts/11657338706/metadata.json",
+      "endpoint": "actions/artifacts/11657338706",
+      "bytes": 750,
+      "sha256": "7028e92e6806240c5bd1ff71aedb60e76257a9d199676d3751245182f565e532"
+    },
+    {
+      "path": "artifacts/11657338706/artifact.zip",
+      "endpoint": "actions/artifacts/11657338706/zip",
+      "bytes": 479,
+      "sha256": "90cac1138ff3ea3dca0868c904572bb9196e8c33cf6f21b99c2590873e1a198e"
+    }
+  ]
+}

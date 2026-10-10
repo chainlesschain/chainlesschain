@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657237833,
+  "name": "session-message-fabric-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/metadata.json",
+    "bytes": 803,
+    "sha256": "4758f68492e53f9a88258e307ee317e9ed178df82cd7960791cb024bfc42ce49",
+    "endpoint": "actions/artifacts/11657237833"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657237833/artifact.zip",
+    "bytes": 2265,
+    "sha256": "8ef25cb493dd635edd011b7d9ee0377c53d5ce64a822d44429173d4a81e373aa",
+    "endpoint": "actions/artifacts/11657237833/zip"
+  },
+  "githubDigestMatched": true
+}

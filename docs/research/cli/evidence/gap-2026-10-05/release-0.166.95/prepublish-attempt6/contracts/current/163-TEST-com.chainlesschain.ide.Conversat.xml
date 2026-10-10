@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ConversationManagerTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.013">
+  <properties/>
+  <testcase name="listReflectsOrderActiveFlagAndSessionPresence()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.002"/>
+  <testcase name="createWithActivateFalseKeepsCurrentActive()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="closingActiveLastActivatesLeftNeighborThenNullOnFinalClose()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="closingUnknownIdReportsNotClosed()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="setTitleIgnoresBlankTitle()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="idsAreNotReusedAfterCloses()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.0"/>
+  <testcase name="thinkingDefaultsThenSetThinkingNormalizesBlankToOff()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.0"/>
+  <testcase name="closingActiveMiddleActivatesRightNeighbor()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.0"/>
+  <testcase name="firstConversationGetsStableIdTitleAndBecomesActive()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.0"/>
+  <testcase name="setSessionIdNormalizesEmptyToNull()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="approvalModeDefaultsThenSetModeNormalizesBlankToDefault()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="allSessionsReturnsOnlyLiveHandlesInOrder()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="switchToUnknownReturnsNullAndLeavesActiveUnchanged()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.001"/>
+  <testcase name="createWithTitleActivatesTheNewConversation()" classname="com.chainlesschain.ide.ConversationManagerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

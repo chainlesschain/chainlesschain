@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.intellij.QuestionFormViewTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:18" hostname="DESKTOP-MTMV2RE" time="1.032">
+  <properties/>
+  <testcase name="oversizedEditKeepsVisibleErrorEvenWhenOlderSaveCompletes()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.166"/>
+  <testcase name="urlCallbackReturningAfterReplacementCannotAnswerTheNewAgent()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.146"/>
+  <testcase name="structuredFormValidatesAndCoercesButNeverPersistsWriteOnlyValues()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.161"/>
+  <testcase name="fieldsRecoverWithoutSendingAndDoubleClickDispatchesOnlyOnce()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.236"/>
+  <testcase name="archivalSaveFailureRetainsTheReadableFormUntilItCanBeSaved()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.083"/>
+  <testcase name="unsupportedSchemaJsonIsSentOnlyExplicitlyAndIsNeverStored()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.117"/>
+  <testcase name="lateRestoreCannotReplaceUserTyping()" classname="com.chainlesschain.ide.intellij.QuestionFormViewTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

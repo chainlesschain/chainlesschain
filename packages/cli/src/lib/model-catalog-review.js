@@ -2,6 +2,52 @@ import { resolveModelCapabilityProfile } from "./model-capabilities.js";
 import { lookupRate } from "./llm-pricing.js";
 import { isDeepStrictEqual } from "node:util";
 
+function codexReleaseVersion(source) {
+  const trimmed = source.trim();
+  if (!trimmed.startsWith("<")) {
+    let release;
+    try {
+      release = JSON.parse(trimmed);
+    } catch {
+      return undefined;
+    }
+    const match =
+      /^rust-v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$/u.exec(
+        release?.tag_name,
+      );
+    if (
+      !release ||
+      Array.isArray(release) ||
+      !match ||
+      release.draft !== false ||
+      release.prerelease !== false ||
+      release.html_url !==
+        `https://github.com/openai/codex/releases/tag/${release.tag_name}`
+    )
+      return undefined;
+    return match[1];
+  }
+  // Retain explicit release-heading snapshots. Product navigation, mobile/app
+  // versions and links in old release notes are not CLI release identities.
+  const visible = source
+    .replace(/<!--[\s\S]*?-->/gu, "")
+    .replace(/<(script|style|template|nav|aside)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  // This mixed product feed no longer supplies a CLI release-version contract.
+  // Its tags classify feature notes too, not just versioned CLI releases.
+  if (/\bdata-codex-topics\s*=/iu.test(visible)) return undefined;
+  for (const heading of visible.matchAll(
+    /<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi,
+  )) {
+    const text = heading[2].replace(/<[^>]+>/gu, " ").trim();
+    const match =
+      /^Codex CLI\s+((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$/u.exec(
+        text,
+      );
+    if (match) return match[1];
+  }
+  return undefined;
+}
+
 /** Compare reviewed release facts with local behavior; never change a catalog. */
 export function reviewModelCatalog(review, snapshots = {}) {
   if (
@@ -84,13 +130,14 @@ export function reviewModelCatalog(review, snapshots = {}) {
       source.length > 16 * 1024 * 1024
     )
       throw new TypeError("Invalid upstream release snapshot");
-    const text = source
-      .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
-      .replace(/<[^>]+>/g, " ");
+    const content = source
+      .replace(/<!--[\s\S]*?-->/gu, "")
+      .replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+    const text = content.replace(/<[^>]+>/g, " ");
     const version =
       name === "codex"
-        ? /Codex CLI\s+(\d+\.\d+\.\d+)/.exec(text)?.[1]
-        : /<Update\s+label="(\d+\.\d+\.\d+)"/u.exec(source)?.[1] ||
+        ? codexReleaseVersion(source)
+        : /<Update\s+label="(\d+\.\d+\.\d+)"/u.exec(content)?.[1] ||
           /^##\s+(\d+\.\d+\.\d+)/m.exec(text)?.[1];
     if (!version)
       throw new Error(

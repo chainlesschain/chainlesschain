@@ -1,0 +1,1 @@
+require('X:/workspace/adapter/windows-node-private-v4-preload.cjs');require('X:/workspace/adapter/windows-node-private-v4.node').protocolNegative();

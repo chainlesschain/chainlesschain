@@ -3,6 +3,32 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.96",
+      "cliVersions": ["0.166.96"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.96: bind changed SDK source to a new signed release",
+          "body": "- Publish Agent SDK `0.2.14` before the CLI because SDK test diagnostics changed\n  its complete Git source tree after the signed `0.2.13` release. Preserve the\n  strict tree comparison and OIDC provenance checks.\n- Refresh the generated SDK source markers for VS Code and Desktop without\n  changing the SDK runtime output.\n- Pair unpublished VS Code `0.37.140` and JetBrains `0.4.158` with CLI\n  `0.166.96` after new exact-commit validation and public CLI availability.\n- Retain the failed `0.166.95` release tag and original failure receipts; that\n  workflow stopped before CLI publication. Formal acceptance remains open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.95",
+      "cliVersions": ["0.166.95"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added - cc CLI 0.166.95: model review evidence and Windows diagnostics",
+          "body": "- Review the official stable Codex release JSON and retain bounded upstream\n  bytes, exact source identities, and reports for success, drift, or parse\n  failure. Version drift requires review and does not enable models automatically.\n- Add Windows private toolchain, worker termination, Job recovery, and custodian\n  crash diagnostics with retained identity and cleanup evidence. Full native\n  review and durable Windows/macOS recovery remain experimental and unadmitted.\n- Add regression coverage for command argument preservation, permission policy\n  precedence, foreign-session mode acknowledgments, and APNG decoded pixel limits.\n- Pair VS Code 0.37.140 and JetBrains 0.4.158 with CLI 0.166.95 after\n  exact-commit release validation and public CLI availability. Child npm package\n  versions are unchanged; formal evaluation and long-term acceptance remain open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.94",
       "cliVersions": ["0.166.94"],
       "date": null,

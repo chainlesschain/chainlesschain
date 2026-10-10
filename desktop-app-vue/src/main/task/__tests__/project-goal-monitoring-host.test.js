@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { tmpdir } from "node:os";
+import { performance } from "node:perf_hooks";
 const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3");
 const {
@@ -243,19 +244,49 @@ describe("desktop goal monitoring native storage and lifecycle owner", () => {
       "GOAL_NOT_FOUND_OR_DENIED",
     );
   });
+  // Real SQLite recovery uses a bounded functional-test budget.
   it("restores only explicitly enabled goals when the desktop controller restarts", async () => {
-    const g = goal();
-    await host.start(event, {
-      id: g.id,
-      expectedRevision: 1,
-      intervalMs: 60_000,
-    });
-    await controller.close();
-    controller = createProjectGoalMonitoringController(options());
-    const engine = await controller.initialize();
-    await engine.tick();
-    expect(engine.status({ id: g.id }).usage.checks).toBe(1);
-  });
+    const started = performance.now();
+    let phase = null;
+    let phaseStarted = started;
+    const timings = [];
+    const enterPhase = (nextPhase) => {
+      const current = performance.now();
+      if (phase !== null) {
+        const completed = { phase, elapsedMs: current - phaseStarted };
+        timings.push(completed);
+        console.info("goal restart phase completed", completed);
+      }
+      phase = nextPhase;
+      phaseStarted = current;
+      if (phase !== null) console.info("goal restart phase entered", phase);
+    };
+    try {
+      enterPhase("create-goal");
+      const g = goal();
+      enterPhase("start");
+      await host.start(event, {
+        id: g.id,
+        expectedRevision: 1,
+        intervalMs: 60_000,
+      });
+      enterPhase("close-old-controller");
+      await controller.close();
+      enterPhase("reopen-controller");
+      controller = createProjectGoalMonitoringController(options());
+      const engine = await controller.initialize();
+      enterPhase("explicit-tick");
+      await engine.tick();
+      enterPhase("assert-restored-check");
+      expect(engine.status({ id: g.id }).usage.checks).toBe(1);
+    } finally {
+      enterPhase(null);
+      console.info("goal restart monotonic timings", {
+        elapsedMs: performance.now() - started,
+        timings,
+      });
+    }
+  }, 30_000);
   it("locks and drains the old engine before rotating a replaced database connection", async () => {
     const old = await controller.initialize();
     const previous = db;

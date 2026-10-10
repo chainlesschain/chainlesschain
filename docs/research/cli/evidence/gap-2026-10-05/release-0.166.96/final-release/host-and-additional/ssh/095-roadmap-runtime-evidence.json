@@ -1,0 +1,91 @@
+{
+  "schema": "chainlesschain.ide-roadmap-runtime-evidence.v1",
+  "schemaVersion": 1,
+  "manifestVersion": "1.9.41",
+  "caseId": "q4a-vscode-remote-ssh-container",
+  "releaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "generatedAt": "2026-10-10T01:52:50.835Z",
+  "journeyEvidenceDigest": "sha256:8835c2743765fe0829699fc37dbea8fcb856f8a84f5bf94b2d08e707c1334e0c",
+  "provenance": {
+    "provider": "github-actions",
+    "repository": "chainlesschain/chainlesschain",
+    "workflowRef": "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/pull/425/merge",
+    "workflowSha": "0371e00f1425aa9d842517f4feea0d750810ee23",
+    "runId": "38012166401",
+    "runAttempt": "1",
+    "job": "vscode-remote-ssh-container",
+    "artifactName": "vscode-remote-ssh-container-evidence-1",
+    "eventName": "pull_request"
+  },
+  "runs": [
+    {
+      "runId": "38012166401.1.vscode-remote-ssh-container.8835c2743765fe08",
+      "caseId": "q4a-vscode-remote-ssh-container",
+      "manifestVersion": "1.9.41",
+      "releaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "host": "vscode",
+      "hostVersion": "1.96.4",
+      "cliVersion": "0.166.96",
+      "operatingSystem": "linux",
+      "transport": "remote-ssh-container",
+      "startedAt": "2026-10-10T01:52:13.217Z",
+      "finishedAt": "2026-10-10T01:52:50.690Z",
+      "result": "passed",
+      "observedOutcome": {
+        "missingRequiredArtifactsFail": true,
+        "credentialLeakCount": 0,
+        "wrongCommitBindingCount": 0,
+        "evidenceReplacementCount": 0,
+        "orderedWorkspaceRootsBound": true,
+        "workspaceRootCount": 2,
+        "remoteTransportExercised": true
+      },
+      "artifacts": [
+        "exact-commit",
+        "host-environment",
+        "remote-environment",
+        "outcome-observations",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "candidate-vsix",
+        "candidate-manifest",
+        "journey-evidence"
+      ],
+      "artifactDigests": {
+        "exact-commit": "sha256:7ab2fe0ff1be4bde4858d98fdfe77dacae756526f012dba36ca43483892e0ae8",
+        "host-environment": "sha256:88e7485c5eed9eb3cc84c778613958deff24a12597fbcdf93a5ea391f30d92d2",
+        "remote-environment": "sha256:cdfc71662cc403adb01ad8f92ea26250378a8f4fa0ab486c027716b2bc433a9d",
+        "outcome-observations": "sha256:6e43de5f68f8e00edbdc00208f47db58a3c1150c3d5cbf00ca4c8e74572b8216",
+        "redacted-diagnostics": "sha256:b7fc5bc88a9095b3285faa19eb68d09556503db1211ad476970b839a3756da25",
+        "artifact-digests": "sha256:0cbbeb8dac4ba09f0a2d0f6101c28e2de6bd1bc8eac1c1dd10af1bdd7eb941e2",
+        "candidate-vsix": "sha256:437d2c4ff1025ba617e77c078c8fe66f26b25bafc9456ee9bf1271cf6198ffcb",
+        "candidate-manifest": "sha256:eaf906f75037700ae57d0bd7a18e3148636bb325e8da627363a7dbde0bb896e1",
+        "journey-evidence": "sha256:8e9ad451aec4be7189602128db92896858d56a675029a007ca26c4fc22e94ca3"
+      },
+      "artifactFiles": {
+        "exact-commit": "journey/roadmap-artifacts/001-exact-commit.json",
+        "host-environment": "journey/roadmap-artifacts/002-host-environment.json",
+        "remote-environment": "journey/roadmap-artifacts/003-remote-environment.json",
+        "outcome-observations": "journey/roadmap-artifacts/008-outcome-observations.json",
+        "redacted-diagnostics": "journey/roadmap-artifacts/004-redacted-diagnostics.json",
+        "artifact-digests": "journey/roadmap-artifacts/005-artifact-digests.json",
+        "candidate-vsix": "journey/roadmap-artifacts/006-candidate-vsix.vsix",
+        "candidate-manifest": "journey/roadmap-artifacts/007-candidate-manifest.json",
+        "journey-evidence": "journey/journey-evidence.json"
+      },
+      "journeyEvidenceDigest": "sha256:8835c2743765fe0829699fc37dbea8fcb856f8a84f5bf94b2d08e707c1334e0c",
+      "provenance": {
+        "provider": "github-actions",
+        "repository": "chainlesschain/chainlesschain",
+        "workflowRef": "chainlesschain/chainlesschain/.github/workflows/ide-extensions.yml@refs/pull/425/merge",
+        "workflowSha": "0371e00f1425aa9d842517f4feea0d750810ee23",
+        "runId": "38012166401",
+        "runAttempt": "1",
+        "job": "vscode-remote-ssh-container",
+        "artifactName": "vscode-remote-ssh-container-evidence-1",
+        "eventName": "pull_request"
+      }
+    }
+  ],
+  "evidenceDigest": "sha256:cf9dc23abf3bba877f2d568ba660a8e50daad71eea1555153c5404a8b41f16cf"
+}

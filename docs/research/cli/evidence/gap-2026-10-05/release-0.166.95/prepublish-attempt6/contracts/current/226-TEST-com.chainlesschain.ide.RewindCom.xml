@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RewindCommandsTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.011">
+  <properties/>
+  <testcase name="itemLabelForBareCheckpointIsIdOnly()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.001"/>
+  <testcase name="timelineFailsClosedForUnsupportedOrTamperedContracts()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.002"/>
+  <testcase name="formatDiffPreviewTrimsRawPatch()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="itemLabelIncludesFileCount()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="buildShowDiffArgsRequestsDiff()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.001"/>
+  <testcase name="restoredCountReadsPrimaryAndFallbackFields()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="buildListArgsScopesToSession()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="parseCheckpointListDropsRowsWithoutId()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.001"/>
+  <testcase name="restoreOkReflectsJsonObject()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="timelineBuildsVisualRowsAndRendersTheSharedPreview()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.002"/>
+  <testcase name="timelineMatchesTheSharedCliAndVsCodeProjection()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.001"/>
+  <testcase name="buildListArgsDefaultsSessionWhenNull()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="buildTimelineArgsRequestsCanonicalSessionProjection()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="parseCheckpointListToleratesBadInput()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="buildRestoreArgsForcesAndScopes()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="formatDiffPreviewRendersStatusPayloadAndDropsEmptySections()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <testcase name="formatDiffPreviewEmptyWhenNothingToShow()" classname="com.chainlesschain.ide.RewindCommandsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

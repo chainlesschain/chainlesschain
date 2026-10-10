@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-10-09T03:35:15.859Z",
+  "sourceCommit": "976c4f394fbab4fccc041787051f00abe08113c9",
+  "exitCode": 2,
+  "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "executionStatus": "NOT_RUN",
+  "status": "INSUFFICIENT_EVIDENCE",
+  "tasks": {
+    "planned": 36,
+    "observed": 0,
+    "missing": 36,
+    "succeeded": 0,
+    "successRate": 0,
+    "knownCost": 0,
+    "totalCost": null,
+    "costPerSuccess": null,
+    "retries": null,
+    "manualRepairs": null
+  },
+  "firstRuns": {
+    "planned": 9,
+    "observed": 0,
+    "missing": 9,
+    "succeeded": 0,
+    "successRate": 0,
+    "knownCost": 0,
+    "totalCost": null,
+    "costPerSuccess": null,
+    "retries": null,
+    "manualRepairs": null
+  },
+  "observationsCreated": false,
+  "productionAttested": false
+}

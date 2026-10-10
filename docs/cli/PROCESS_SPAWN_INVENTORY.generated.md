@@ -3,7 +3,7 @@
 > Generated from child process call-site scan. Do not edit by hand.
 > Regenerate with `npm run docs:spawn-inventory --workspace=packages/cli`.
 
-Total matches: 713 (runtime: 313, tooling: 365, test: 35).
+Total matches: 729 (runtime: 313, tooling: 381, test: 35).
 Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unreviewed: 0.
 
 ## Policy
@@ -491,9 +491,9 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 581 | `const output = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 598 | `const output = execFileSync(` |
 | `packages/cli/scripts/ide-roadmap-accessibility-performance.mjs` | 615 | `const output = execFileSync("ps", ["-Ao", "pid=,comm="], {` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 9 | `import { execFileSync, spawn } from "node:child_process";` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 143 | `return execFileSync("git", args, {` |
-| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 473 | `return spawn(executable, args, {` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 10 | `import { execFileSync, spawn } from "node:child_process";` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 144 | `return execFileSync("git", args, {` |
+| `packages/cli/scripts/ide-roadmap-browser-evidence.mjs` | 508 | `return spawn(executable, args, {` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 4 | `import { execFileSync, spawn } from "node:child_process";` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 255 | `const head = execFileSync("git", ["rev-parse", "HEAD"], {` |
 | `packages/cli/scripts/ide-roadmap-context-permission-matrix.mjs` | 259 | `const status = execFileSync(` |
@@ -555,6 +555,8 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/persistent-capacity-benchmark.mjs` | 778 | `const dirtyLines = execFileSync(` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 4 | `import { execFileSync } from "node:child_process";` |
 | `packages/cli/scripts/record-replay-ui-journey.mjs` | 77 | `return execFileSync("git", ["rev-parse", "HEAD"], {` |
+| `packages/cli/scripts/review-model-catalog.mjs` | 5 | `import { execFileSync } from "node:child_process";` |
+| `packages/cli/scripts/review-model-catalog.mjs` | 53 | `execFileSync("git", ["-C", repository, ...args], {` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 4 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/run-claude-security-map-tests.mjs` | 94 | `const result = spawnSync(invocation.executable, invocation.args, {` |
 | `packages/cli/scripts/run-parent-diagnostic.mjs` | 3 | `import { spawn, execFileSync } from "node:child_process";` |
@@ -684,13 +686,27 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/scripts/windows-appcontainer-pipe-diagnostic.mjs` | 239 | `const host = spawnSync(binary, [], {` |
 | `packages/cli/scripts/windows-esbuild-api-trace.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/windows-esbuild-api-trace.mjs` | 276 | `const run = spawnSync(compiler, args, {` |
+| `packages/cli/scripts/windows-esbuild-private-map-service.mjs` | 6 | `import childProcess from "node:child_process";` |
+| `packages/cli/scripts/windows-esbuild-private-map-service.mjs` | 327 | `const originalSpawn = childProcess.spawn;` |
+| `packages/cli/scripts/windows-esbuild-private-map-service.mjs` | 366 | `childProcess.spawn = (command, args, options) => {` |
+| `packages/cli/scripts/windows-esbuild-private-map-service.mjs` | 491 | `childProcess.spawn = originalSpawn;` |
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 370 | `const run = spawnSync(compiler, args, {` |
 | `packages/cli/scripts/windows-esbuild-private-map.mjs` | 413 | `const run = spawnSync(` |
+| `packages/cli/scripts/windows-job-custodian-crash-probe.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-job-custodian-crash-probe.mjs` | 51 | `const result = spawnSync(command, args, {` |
+| `packages/cli/scripts/windows-job-recovery-probe.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-job-recovery-probe.mjs` | 59 | `const build = spawnSync(` |
+| `packages/cli/scripts/windows-job-recovery-probe.mjs` | 94 | `const native = spawnSync(executable, ["probe", executionId], {` |
+| `packages/cli/scripts/windows-job-recovery-probe.mjs` | 126 | `? spawnSync(executable, ["probe-unassigned", unassignedId], {` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 23 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 43 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 50 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |
 | `packages/cli/scripts/windows-node-pipe-diagnostic.mjs` | 64 | `const processChild=cp.fork(child,['fork'],{execPath:contract.executable,execArgv,windowsHide:true,env,stdio:['pipe','pipe','pipe','ipc']});` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 6 | `import { spawnSync } from "node:child_process";` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 268 | `const run = spawnSync(compiler, args, {` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 502 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),{pathToFileURL}=require('node:url');` |
+| `packages/cli/scripts/windows-node-private-v4-diagnostic.mjs` | 544 | `const run = spawnSync(` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 29 | `const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 70 | `const sync=cp.spawnSync(contract.executable,[...execArgv,child,'sync'],{encoding:'utf8',windowsHide:true,timeout:3000,maxBuffer:65536,env,input});` |
 | `packages/cli/scripts/windows-node-runtime-diagnostic.mjs` | 77 | `const processChild=cp.spawn(contract.executable,[...execArgv,child,'async'],{windowsHide:true,env,stdio:['pipe','pipe','pipe']});` |

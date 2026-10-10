@@ -1,0 +1,57 @@
+{
+  "scope": "Actual updated driver plus actual artifact collector, synthetic large valid NDJSON and non-UTF8 IDE log; no GUI or real event dispatch",
+  "fixture": "C:\\code\\chainlesschain\\.work\\astra-win2025-8e5\\large-trace-contract-MT9uRj",
+  "complete": true,
+  "incidents": [],
+  "verified": [
+    {
+      "suffix": ".log.bin",
+      "bytes": 300004,
+      "archivedBytes": 300004,
+      "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322",
+      "archivedSha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322",
+      "artifact": {
+        "kind": "host-diagnostic",
+        "path": "diagnostics/004-idea-001.log.bin",
+        "sha256": "sha256:b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322",
+        "bytes": 300004,
+        "truncated": false,
+        "redacted": false,
+        "sensitivity": "restricted-binary"
+      },
+      "metadata": {
+        "path": "idea-001.log.bin",
+        "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+        "bytes": 300004,
+        "sha256": "b028aec192aee0b3cedc6e0bd6f43cd61798c98c1d53d8c26b78ca92ea051322",
+        "originalBytes": true
+      },
+      "pass": true
+    },
+    {
+      "suffix": "host-events.jsonl.bin",
+      "bytes": 757780,
+      "archivedBytes": 757780,
+      "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164",
+      "archivedSha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164",
+      "artifact": {
+        "kind": "host-diagnostic",
+        "path": "diagnostics/003-host-events.jsonl.bin",
+        "sha256": "sha256:fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164",
+        "bytes": 757780,
+        "truncated": false,
+        "redacted": false,
+        "sensitivity": "restricted-binary"
+      },
+      "metadata": {
+        "path": "host-events.jsonl.bin",
+        "source": "host-events.jsonl",
+        "bytes": 757780,
+        "sha256": "fe012ce0ec8555c579face98514070c9e516b71117f19a4872af32a49c3a4164",
+        "originalBytes": true
+      },
+      "pass": true
+    }
+  ],
+  "pass": true
+}

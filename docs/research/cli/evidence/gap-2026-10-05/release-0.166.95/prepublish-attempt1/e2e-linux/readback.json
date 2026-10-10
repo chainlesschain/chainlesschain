@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T12:13:30.154Z",
+  "sourceCommit": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "runId": 37912152844,
+  "jobId": 113759946941,
+  "jobName": "E2E Tests (Electron + Playwright) (ubuntu-latest, 22.x)",
+  "conclusion": "failure",
+  "bytes": 202260,
+  "sha256": "e6d0b2e2900bada3ad24993d963fe871a511c565cf9c14b5ac3e692f7d14593f"
+}

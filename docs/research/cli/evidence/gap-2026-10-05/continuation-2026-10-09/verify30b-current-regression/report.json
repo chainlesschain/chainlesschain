@@ -1,0 +1,63 @@
+{
+  "at": "2026-10-09T08:32:56.584Z",
+  "scope": "Current pure Node unit regression only; original frozen Windows verify-30b remains OPEN with 13/13 mutant-survived result unchanged",
+  "source": {
+    "path": "packages/vscode-extension/src/chat/image-decode-budget.js",
+    "bytes": 10070,
+    "sha256": "d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad"
+  },
+  "test": {
+    "path": "packages/vscode-extension/test/image-decode-budget.test.cjs",
+    "bytes": 2670,
+    "sha256": "95b1f32b5d91d17b0622d7922bce9b6d5919ce179f593043536001e5a0086703"
+  },
+  "mutation": {
+    "find": "width * height * (frames + extraCanvases) > 40_000_000",
+    "replace": "false",
+    "bytes": 10021,
+    "sha256": "42b09f7343a255d9a654877d86e40ebb0b6d8b50877441f81dd683c3f3fc44fb"
+  },
+  "package": {
+    "path": "packages/vscode-extension/package.json",
+    "beforeSha256": "39b88b81e447f8b10c0024b4550b103133788dea817752304e100910589c05c2",
+    "afterSha256": "8a86c18a74206bfd4cac85d35b8450b3d145647ec0d121e1cf73e797e1459c05",
+    "change": "Only test:unit explicit image-decode-budget.test.cjs entry added"
+  },
+  "runs": [
+    {
+      "name": "baseline",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "--test",
+        "test/image-decode-budget.test.cjs"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify30b-current-regression-20261009\\baseline",
+      "start": "2026-10-09T08:32:56.591Z",
+      "end": "2026-10-09T08:32:57.479Z",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "name": "mutant",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "--test",
+        "test/image-decode-budget.test.cjs"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\.work\\verify30b-current-regression-20261009\\mutant",
+      "start": "2026-10-09T08:32:57.486Z",
+      "end": "2026-10-09T08:32:58.127Z",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "passed": 1,
+      "failed": 1
+    }
+  ],
+  "currentSourcesStable": true,
+  "totalPixelMutantRejected": true,
+  "exactBoundaryPassedInBoth": true
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.DiffHunksTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.011">
+  <properties/>
+  <testcase name="identicalTextYieldsNoHunks()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.001"/>
+  <testcase name="partialSelectionAppliesOnlyThePickedHunk()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.005"/>
+  <testcase name="singleReplacementIsOneHunkWith1BasedHeader()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.0"/>
+  <testcase name="pureInsertionHeaderUsesTheBetween0LineShape()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.0"/>
+  <testcase name="applyingNoHunksReproducesTheOriginalText()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.001"/>
+  <testcase name="previewIsTrimmedAndCappedAt60Chars()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.001"/>
+  <testcase name="applyingAllHunksReproducesTheModifiedText()" classname="com.chainlesschain.ide.DiffHunksTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

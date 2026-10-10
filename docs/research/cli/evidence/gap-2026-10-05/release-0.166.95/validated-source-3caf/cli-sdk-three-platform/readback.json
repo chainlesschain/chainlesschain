@@ -1,0 +1,55 @@
+{
+  "capturedAt": "2026-10-09T20:11:54.053Z",
+  "runId": 37972023664,
+  "event": "pull_request",
+  "headSha": "3caf14f2ee866335608487ab57add325972709d7",
+  "branch": "feature/cli-ide-gap-completion-20261009",
+  "scope": "All three Agent SDK steps succeeded; this does not claim the remaining CLI CI steps or workflow succeeded",
+  "captures": [
+    {
+      "file": "job-114002675001.json",
+      "bytes": 7278,
+      "sha256": "348a97ddca93494365a9e568bf0447dc15a95bd77ecce3d59fdccb2675cc3fe5",
+      "jobId": 114002675001,
+      "name": "verify-cli (windows-latest)",
+      "sdk": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-09T20:09:53Z",
+        "completed_at": "2026-10-09T20:10:36Z"
+      }
+    },
+    {
+      "file": "job-114002675005.json",
+      "bytes": 7601,
+      "sha256": "38241b9f34878091250844d154b8f91c9f49126178a6da556250618a4d41ba3c",
+      "jobId": 114002675005,
+      "name": "verify-cli (ubuntu-latest)",
+      "sdk": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-09T20:06:00Z",
+        "completed_at": "2026-10-09T20:06:21Z"
+      }
+    },
+    {
+      "file": "job-114002675055.json",
+      "bytes": 7599,
+      "sha256": "7bc897c7c18c82a2c586eb38b9cd1a239e879ccf614a1b88119f4bb651ac3c58",
+      "jobId": 114002675055,
+      "name": "verify-cli (macos-latest)",
+      "sdk": {
+        "name": "Test Agent SDK release payload source",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-09T20:07:11Z",
+        "completed_at": "2026-10-09T20:07:38Z"
+      }
+    }
+  ]
+}

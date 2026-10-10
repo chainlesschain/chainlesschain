@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11658110312,
+  "name": "claude-security-map-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/metadata.json",
+    "bytes": 802,
+    "sha256": "2604aef874e8b84710c7485167760c689dcdd119486071e9285dc871b8a358e3",
+    "endpoint": "actions/artifacts/11658110312"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11658110312/artifact.zip",
+    "bytes": 33160,
+    "sha256": "bd5e3e4cee527c2df30bebdac3fe93b84e36ee80d7318628aa53c4b1e1c835b7",
+    "endpoint": "actions/artifacts/11658110312/zip"
+  },
+  "githubDigestMatched": true
+}

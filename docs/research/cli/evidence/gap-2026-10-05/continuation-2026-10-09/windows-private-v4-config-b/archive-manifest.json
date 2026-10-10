@@ -1,0 +1,74 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader",
+  "archivedAt": "2026-10-09T04:19:03.730Z",
+  "files": [
+    {
+      "path": "journal.jsonl",
+      "bytes": 328,
+      "digest": "sha256:1f9cf51d4d9a259dac3907723c95dc7d843eecef32ec91d40216bcb162711857"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1259,
+      "digest": "sha256:c48e1788eb37b308e9737328ca9acd74f3cfbc59b89cb587d6c515c16a815c0c"
+    },
+    {
+      "path": "report.json",
+      "bytes": 21026,
+      "digest": "sha256:8725ab61f93eccd8128c3f8f0c51dc750fd015f1f8fdf6c791e133ec87e64725"
+    },
+    {
+      "path": "source/run-private-v4-frozen.mjs",
+      "bytes": 6742,
+      "digest": "sha256:87f125812dcb60b5bca678f3f8ba69751b332d27a1e228cce1241581eb42778e"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "source/windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.cpp",
+      "bytes": 46521,
+      "digest": "sha256:a37d51b639d2ce83e47338062292b12a9c6598c23f80c78bba1bcbf125dc3946"
+    },
+    {
+      "path": "source/windows-node-private-v4-adapter.h",
+      "bytes": 22635,
+      "digest": "sha256:eebe37bb454aa78cd28bd1f7b9f0bd1bf700e5226ed19fd65e58d23a440548b4"
+    },
+    {
+      "path": "source/windows-node-private-v4-broker.cpp",
+      "bytes": 23911,
+      "digest": "sha256:6304f7f4a1f0c3033337d1c28be6c4e08e656c967c3a85b9b50a0509fccbd11e"
+    },
+    {
+      "path": "source/windows-node-private-v4-paired.h",
+      "bytes": 7309,
+      "digest": "sha256:0d86998fa14c23f3257aca57a3e22b6445821bc0b95dbdc7248ced4578b9e887"
+    },
+    {
+      "path": "source/windows-node-private-v4-protocol.h",
+      "bytes": 724,
+      "digest": "sha256:69792e2cdfa932eb64d509d14802b21155ff8bc65add29ba9e7acfc753b714c4"
+    },
+    {
+      "path": "stderr",
+      "bytes": 61,
+      "digest": "sha256:2129f37dcb6cc20de2e70413193455bf505719156a05d09cb20b31b15140280f"
+    },
+    {
+      "path": "stdout",
+      "bytes": 484,
+      "digest": "sha256:9437160bf7c9e211706577c7261b05ea395265c2b7530108b70ed2ad933892f8"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

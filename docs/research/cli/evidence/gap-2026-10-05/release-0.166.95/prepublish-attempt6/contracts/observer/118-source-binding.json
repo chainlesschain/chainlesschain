@@ -1,0 +1,6 @@
+{
+  "scope": "Independent javac of preserved source; equality of returned generated JS versus actual Gradle class. This does not launch IDE or validate live owner reflection.",
+  "match": true,
+  "actualGradleScriptSha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c",
+  "sourceGeneratedScriptSha256": "49e78bb21aeaf5e339f97e9ed63b409196124e53b26a3876676751d99c36804c"
+}

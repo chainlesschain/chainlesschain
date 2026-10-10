@@ -1,0 +1,71 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38019727506,
+  "status": "completed",
+  "conclusion": "success",
+  "counts": {
+    "success": 5,
+    "skipped": 2
+  },
+  "publicationOrder": [
+    {
+      "number": 23,
+      "name": "Publish @chainlesschain/agent-sdk",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T03:18:34Z",
+      "completedAt": "2026-10-10T03:18:49Z"
+    },
+    {
+      "number": 24,
+      "name": "Verify published Agent SDK registry bytes and npm provenance",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T03:18:49Z",
+      "completedAt": "2026-10-10T03:20:03Z"
+    },
+    {
+      "number": 26,
+      "name": "Verify public child bytes and registry-only dependencies before CLI publish",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T03:20:04Z",
+      "completedAt": "2026-10-10T03:20:45Z"
+    },
+    {
+      "number": 27,
+      "name": "Publish chainlesschain (CLI)",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T03:20:45Z",
+      "completedAt": "2026-10-10T03:25:16Z"
+    },
+    {
+      "number": 28,
+      "name": "Verify published CLI npm provenance",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T03:25:16Z",
+      "completedAt": "2026-10-10T03:25:43Z"
+    }
+  ],
+  "sdk": {
+    "package": "@chainlesschain/agent-sdk",
+    "version": "0.2.14",
+    "anchorMode": "exact-release",
+    "sha512": "73e1a163479dba04cf485e3771d430edb357df341504610de26438a2dc38c1a843d9382b7ac965ef8a20ada269b73ade3f5869ddbc257d0adb8c24fb841ec6e3",
+    "audit": {
+      "invalid": 0,
+      "missing": 0
+    }
+  },
+  "cli": {
+    "package": "chainlesschain",
+    "version": "0.166.96",
+    "anchorMode": "exact-release",
+    "sha256": "3af8082b95c8ebfa6766dac6c3b7395c0996817c9a697b906795dd18ec1776d6",
+    "sha512": "afe93ae7cfbd4b981f4103738b8d7f24f18c29e61f4bd9b35400a20d550b4e86e2fc28aac9c2110a30ce4656c78d7a433ca6ce5e415948796b46c450e50e94d8",
+    "bytes": 9353170,
+    "audit": {
+      "invalid": 0,
+      "missing": 0
+    }
+  },
+  "publicChildInstallCount": 10,
+  "scope": "Preserved original GitHub Actions publication evidence; public registry independent authority readback is owned by the root agent. Candidate ZIP 11658021052 is downloaded by the Windows toolchain agent."
+}

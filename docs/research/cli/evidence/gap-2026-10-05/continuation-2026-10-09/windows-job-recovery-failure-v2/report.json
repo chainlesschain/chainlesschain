@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.windows-job-recovery-diagnostic/v1",
+  "executionId": "1c0a7029-4ad6-43b7-92a6-5ccdc28ba85b",
+  "sourceSha256": "4d4caf44b53f12474547a30edce0b1b6e27eb99718685e9da833ff47eea7001c",
+  "executableSha256": "7e21ffa0327cd81c6ecf0ee165a1ec62489367a5e6dc470013e83149a0b45aa8",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2"
+  },
+  "nativeExit": 2,
+  "diagnosticCompleted": false,
+  "status": "NOT_ADMITTED",
+  "trusted": false,
+  "scope": "surviving-custodian-retained-job",
+  "networkObservation": "socket-closure-after-job-termination",
+  "durableServiceRecovery": "not-tested",
+  "wfpRevocation": "not-tested",
+  "errors": [
+    "native experiment incomplete",
+    "native failure retained",
+    "native event sequence incomplete or reordered",
+    "live descendant membership and sockets unproven",
+    "wrong Job or stale identity rejection unproven",
+    "owner death must leave live descendants and unconfirmed cleanup",
+    "original Job termination unproven",
+    "empty Job, retained handles and closed sockets are all required",
+    "native process did not complete: 2"
+  ]
+}

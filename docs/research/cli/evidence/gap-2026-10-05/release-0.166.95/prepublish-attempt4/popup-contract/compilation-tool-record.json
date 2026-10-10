@@ -1,0 +1,19 @@
+{
+  "recordType": "tool-presentation-record",
+  "rawShellLog": false,
+  "source": "Parent agent message quoting exec session 76569",
+  "exitCode": 0,
+  "build": "BUILD SUCCESSFUL in 28s",
+  "lines": [
+    "Daemon will be stopped at the end of the build",
+    "Reusing configuration cache.",
+    ":checkKotlinGradlePluginConfigurationErrors",
+    ":compileUiTestKotlin NO-SOURCE",
+    ":compileUiTestJava",
+    "BUILD SUCCESSFUL in 28s",
+    "2 actionable tasks: 2 executed",
+    "Configuration cache entry reused."
+  ],
+  "scope": "Compilation only; no GUI, host journey or CI re-run",
+  "recordedAt": "2026-10-09T16:07:37.859Z"
+}

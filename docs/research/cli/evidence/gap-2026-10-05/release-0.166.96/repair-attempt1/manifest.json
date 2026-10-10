@@ -1,0 +1,322 @@
+{
+  "schema": "chainlesschain.byte-preserved-evidence-manifest/v1",
+  "destination": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.96/repair-attempt1",
+  "hashAlgorithm": "SHA-256",
+  "files": [
+    {
+      "source": ".work/astra-3900-popup-contract/actual-activation.js",
+      "target": "arm/actual-activation.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 2508,
+      "sha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/actual-cleanup.js",
+      "target": "arm/actual-cleanup.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 437,
+      "sha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/actual-receipt.js",
+      "target": "arm/actual-receipt.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 806,
+      "sha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/bind-gradle.mjs",
+      "target": "arm/bind-gradle.mjs",
+      "kind": "local-arm-contract-original",
+      "bytes": 1805,
+      "sha256": "82e6464f5246d6b69d490d063ed2f4b00b156c488ea5f87109ffdc8e27356bb8"
+    },
+    {
+      "source": ".work/astra-3900-fail/compile-ui-jdk21.log",
+      "target": "arm/compile-ui-jdk21.log",
+      "kind": "local-arm-contract-support-original",
+      "bytes": 862,
+      "sha256": "608a5ce75f9c25c8ff1ee8a217ae9b8b905b5be727317b1c9614c53d6d07a0a3"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/compile.stderr.log",
+      "target": "arm/compile.stderr.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 5390,
+      "sha256": "121a988da010ddcdd826a76cb82ac814c4de979d71754ff7c7c01001ab7e8b7d"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/compile.stdout.log",
+      "target": "arm/compile.stdout.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/export-compile.stderr.log",
+      "target": "arm/export-compile.stderr.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/export-compile.stdout.log",
+      "target": "arm/export-compile.stdout.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/export-gradle.stderr.log",
+      "target": "arm/export-gradle.stderr.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/export-gradle.stdout.log",
+      "target": "arm/export-gradle.stdout.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/ExportPopup.java",
+      "target": "arm/ExportPopup.java",
+      "kind": "local-arm-contract-original",
+      "bytes": 1204,
+      "sha256": "9b7da8077b714fcc4b946f905520ca4e9a41cb56bc9525736bdd1642f8dd7c04"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-activation.js",
+      "target": "arm/gradle-activation.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 2508,
+      "sha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-cleanup.js",
+      "target": "arm/gradle-cleanup.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 437,
+      "sha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-receipt.js",
+      "target": "arm/gradle-receipt.js",
+      "kind": "local-arm-contract-original",
+      "bytes": 806,
+      "sha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "target": "arm/gradle-script-binding.json",
+      "kind": "local-arm-contract-original",
+      "bytes": 772,
+      "sha256": "3450c8786884126d7c524003daa8cc2e5e09b71898be03e09d3ee713aa4aca13"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/IdeUiSmokeTest.source.java",
+      "target": "arm/IdeUiSmokeTest.source.java",
+      "kind": "local-arm-contract-original",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/metadata.json",
+      "target": "arm/metadata.json",
+      "kind": "local-arm-contract-original",
+      "bytes": 765,
+      "sha256": "bfa3cdc3802224f732c6b00ce81fd254ee35ec32ec31880ffef68285e4cc8822"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/PopupReceiptContract.java",
+      "target": "arm/PopupReceiptContract.java",
+      "kind": "local-arm-contract-original",
+      "bytes": 12005,
+      "sha256": "cc208ddbf8ce56e2bb629da568bb083a9dc107317c378037e3ae9497d3833d59"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/report.json",
+      "target": "arm/report.json",
+      "kind": "local-arm-contract-original",
+      "bytes": 2008,
+      "sha256": "8ade4145629f25154e56e9056fc895ad543caf3f946c601b17a87e59af84626a"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/run.mjs",
+      "target": "arm/run.mjs",
+      "kind": "local-arm-contract-original",
+      "bytes": 2478,
+      "sha256": "0a8f65c255414d5c0ba0e04dc425aa2dca8eb4201369e6032f4372ef5b97d96a"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/run.stderr.log",
+      "target": "arm/run.stderr.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 178,
+      "sha256": "314ecb065b05533e2fbf9b36fbaab892f3067d0e932562685c2ee50d5ce3479c"
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/run.stdout.log",
+      "target": "arm/run.stdout.log",
+      "kind": "local-arm-contract-original",
+      "bytes": 5154,
+      "sha256": "3154ea8fff6822d23ee9967e8e9080cd46e4e9c5494c2535a10216199c99fba5"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/com/intellij/openapi/application/ApplicationManager.java",
+      "target": "arm/support/ApplicationManager.java",
+      "kind": "local-arm-contract-support-original",
+      "bytes": 963,
+      "sha256": "ba3c5fd50c5b71ee8912c8d6c4c974d8b1ba67aa8de9cf6be58d714b12e543e3"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/runtime-classpath.txt",
+      "target": "arm/support/runtime-classpath.txt",
+      "kind": "local-arm-contract-support-original",
+      "bytes": 4007,
+      "sha256": "752f7c8eb51b49c57fc68c6b122b4298f9fe9050c2a69b4c8092c59949eab058"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/original-test.js",
+      "target": "cli/attempt-1/original-test.js",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 16245,
+      "sha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "target": "cli/attempt-1/phases.log",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "target": "cli/attempt-1/readback.json",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 2895,
+      "sha256": "be112a945657905035e7eb1703d3c97125e5787b852e87eac63707559d5d0068"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "target": "cli/attempt-1/stderr.log",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "target": "cli/attempt-1/stdout.log",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/tested-source.js",
+      "target": "cli/attempt-1/tested-source.js",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 18753,
+      "sha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "target": "cli/attempt-1/vitest-report.json",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "target": "cli/final-readback.json",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 4476,
+      "sha256": "182dd45fbd850e46e5b69abb54830d6a9f3384ba78ed5fb954d2910e6d7b703e"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-source.js",
+      "target": "cli/final-source.js",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/finalize.mjs",
+      "target": "cli/finalize.mjs",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 3404,
+      "sha256": "c5ae2c4a5da077ab61189500ff796291e30dad08d2ce8e5ebf6d28ba34e79813"
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/run.mjs",
+      "target": "cli/run.mjs",
+      "kind": "local-cli-functional-test-original",
+      "bytes": 3209,
+      "sha256": "66ae90356ec4c99909e5d9d28a4b771aa089372306a69c6e120f9e7a4472f2f1"
+    },
+    {
+      "source": null,
+      "target": "index.json",
+      "kind": "generated-archive-metadata",
+      "bytes": 4804,
+      "sha256": "51eaaa5ac5431dc527af863d1e8820ddf0833e714ec1c34035aa4d57ee8c0eaf"
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "target": "remote/receipt.json",
+      "kind": "local-remote-command-contract-original",
+      "bytes": 1370,
+      "sha256": "53a3455acf12230980737408d6c82a89df8f5dd8c0850e852641a5c690aa3bc0"
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/test.stderr.log",
+      "target": "remote/test.stderr.log",
+      "kind": "local-remote-command-contract-original",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/test.stdout.log",
+      "target": "remote/test.stdout.log",
+      "kind": "local-remote-command-contract-original",
+      "bytes": 3759,
+      "sha256": "ee1d05f4d8096cf9ccd42f8ea802d7df08665dac009eab34004bb98abc768c31"
+    },
+    {
+      "source": null,
+      "target": "source-verification.json",
+      "kind": "generated-archive-metadata",
+      "bytes": 11529,
+      "sha256": "46b8a2993d041202d172af70807a00d827fd1f859d864d3b6645739b280630d1"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "target": "sources/cli-evolution-test.js",
+      "kind": "current-source-snapshot",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "target": "sources/IdeUiSmokeTest.java",
+      "kind": "current-source-snapshot",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1"
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+      "target": "sources/remote-run.cjs",
+      "kind": "current-source-snapshot",
+      "bytes": 40728,
+      "sha256": "5d740efe22b76242af80c9e08276336c9cc33ccd00f2c5faabfe9bdc22a5d191"
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container.test.cjs",
+      "target": "sources/remote-test.cjs",
+      "kind": "current-source-snapshot",
+      "bytes": 22414,
+      "sha256": "a39dd3e47980cdcb888344615550f7aa10e9285a9b33fd9b289d87310dec15b0"
+    }
+  ]
+}

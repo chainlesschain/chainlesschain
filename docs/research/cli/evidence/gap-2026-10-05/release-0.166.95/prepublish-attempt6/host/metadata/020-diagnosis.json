@@ -1,0 +1,22 @@
+{
+  "schema": "astra.read-only-host-failure-diagnosis/v1",
+  "releaseCommit": "8e538362109dbe0bf455d4f72dcab865962e668c",
+  "runId": 37958205583,
+  "jobId": 113925289634,
+  "artifactId": 11632252463,
+  "host": "JetBrains Windows x64 2025.2",
+  "verifiedPhase": "Initial chat/control journey permission approval, IdeUiSmokeTest.java:161. Startup, two stream turns and plan review/approval reached successful assertions. Rewind popup helper was not reached.",
+  "failure": "Approve Once component was not found within 45 seconds; UI suite 7 passed and 1 failed.",
+  "protocol": [
+    {"at":"2026-10-09T17:00:52.555Z","fact":"CLI emitted successful plan result #3"},
+    {"at":"2026-10-09T17:00:55.009Z","fact":"CLI received journey:permission user input"},
+    {"at":"2026-10-09T17:00:55.271Z","fact":"CLI emitted input_accepted with matching client message id and receipt"},
+    {"at":"2026-10-09T17:00:55.997Z","fact":"CLI called stdout.write with approval_request fixture-approval-4 and recorded its output event"}
+  ],
+  "screenshot": "Submitted permission user text and input acceptance are visible. No approval card or approval controls are visible. No blocking dialog is visible. Screenshot alone cannot prove whether a component existed offscreen or had zero size.",
+  "causeBoundary": "Request dispatch succeeded. Failure lies after fixture stdout emission and before a discoverable IDE approval control. Artifact does not establish whether host consumption, event callback, EDT scheduling, card construction, or visibility failed.",
+  "notEstablished": ["New popup helper failure", "sendInFlight swallowed this input", "ANGLE/Vulkan warnings caused failure", "IDE version-wide selector incompatibility", "infra or network root cause"],
+  "missingEvidence": ["Host receive/render-stage trace", "Remote Robot DOM/component tree", "idea.log", "Approval card registry/settlement/geometry snapshot", "EDT scheduling or exception evidence"],
+  "minimalRecommendation": "Add bounded failure diagnostics for host event receipt, approval mapping/scheduling/rendering, cards and EDT state; preserve complete sandbox idea.log and Remote Robot DOM. Keep the existing 45-second budget and real button/protocol assertions. Current evidence does not justify a behavioral production fix, delay, retry, or bypass.",
+  "scope": "Read-only diagnosis of this failed x64 Windows host only. Same-SHA ARM64 success does not satisfy this host gate. No tracked edits, Git actions, reruns, cancellations, or GUI runs."
+}

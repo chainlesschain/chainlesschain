@@ -1,0 +1,300 @@
+{
+  "id": 114008162628,
+  "run_id": 37985598206,
+  "workflow_name": "Publish CLI release to npm",
+  "head_branch": "v-npm-0-166-95",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37985598206",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAai2qBRA",
+  "head_sha": "3caf14f2ee866335608487ab57add325972709d7",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/114008162628",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37985598206/job/114008162628",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-09T20:18:00Z",
+  "started_at": "2026-10-09T20:18:03Z",
+  "completed_at": "2026-10-09T20:20:11Z",
+  "name": "publish",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T20:18:04Z",
+      "completed_at": "2026-10-09T20:18:06Z"
+    },
+    {
+      "name": "Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-09T20:18:06Z",
+      "completed_at": "2026-10-09T20:18:20Z"
+    },
+    {
+      "name": "Setup Node.js",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-09T20:18:20Z",
+      "completed_at": "2026-10-09T20:18:26Z"
+    },
+    {
+      "name": "Enable npm Trusted Publishing support",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-09T20:18:26Z",
+      "completed_at": "2026-10-09T20:18:29Z"
+    },
+    {
+      "name": "Install root dependencies (workspaces)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-09T20:18:29Z",
+      "completed_at": "2026-10-09T20:19:47Z"
+    },
+    {
+      "name": "Download exact verified CLI tarball",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-09T20:19:47Z",
+      "completed_at": "2026-10-09T20:19:49Z"
+    },
+    {
+      "name": "Verify immutable CLI tarball before publishing",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-09T20:19:49Z",
+      "completed_at": "2026-10-09T20:19:50Z"
+    },
+    {
+      "name": "Resolve version",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-09T20:19:50Z",
+      "completed_at": "2026-10-09T20:19:50Z"
+    },
+    {
+      "name": "Set publish command",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-09T20:19:50Z",
+      "completed_at": "2026-10-09T20:19:50Z"
+    },
+    {
+      "name": "Publish @chainlesschain/agent-protocol",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10,
+      "started_at": "2026-10-09T20:19:50Z",
+      "completed_at": "2026-10-09T20:19:50Z"
+    },
+    {
+      "name": "Verify Agent Protocol registry bytes and npm provenance",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-09T20:19:50Z",
+      "completed_at": "2026-10-09T20:19:54Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-env",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12,
+      "started_at": "2026-10-09T20:19:54Z",
+      "completed_at": "2026-10-09T20:19:55Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-mtc",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13,
+      "started_at": "2026-10-09T20:19:55Z",
+      "completed_at": "2026-10-09T20:19:55Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-multisig",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-09T20:19:55Z",
+      "completed_at": "2026-10-09T20:19:56Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-settlement",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15,
+      "started_at": "2026-10-09T20:19:56Z",
+      "completed_at": "2026-10-09T20:19:57Z"
+    },
+    {
+      "name": "Publish @chainlesschain/shared-logger",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 16,
+      "started_at": "2026-10-09T20:19:57Z",
+      "completed_at": "2026-10-09T20:19:57Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-config",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 17,
+      "started_at": "2026-10-09T20:19:57Z",
+      "completed_at": "2026-10-09T20:19:58Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-db",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18,
+      "started_at": "2026-10-09T20:19:58Z",
+      "completed_at": "2026-10-09T20:19:59Z"
+    },
+    {
+      "name": "Publish @chainlesschain/core-infra",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-10-09T20:19:59Z",
+      "completed_at": "2026-10-09T20:19:59Z"
+    },
+    {
+      "name": "Publish @chainlesschain/session-core",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 20,
+      "started_at": "2026-10-09T20:19:59Z",
+      "completed_at": "2026-10-09T20:20:00Z"
+    },
+    {
+      "name": "Publish @chainlesschain/context-memory-kernel",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 21,
+      "started_at": "2026-10-09T20:20:00Z",
+      "completed_at": "2026-10-09T20:20:01Z"
+    },
+    {
+      "name": "Verify published Context Memory Kernel registry bytes and npm provenance",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 22,
+      "started_at": "2026-10-09T20:20:01Z",
+      "completed_at": "2026-10-09T20:20:04Z"
+    },
+    {
+      "name": "Publish @chainlesschain/agent-sdk",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 23,
+      "started_at": "2026-10-09T20:20:04Z",
+      "completed_at": "2026-10-09T20:20:05Z"
+    },
+    {
+      "name": "Verify published Agent SDK registry bytes and npm provenance",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 24,
+      "started_at": "2026-10-09T20:20:05Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Publish @chainlesschain/personal-data-hub",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 25,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Verify public child bytes and registry-only dependencies before CLI publish",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 26,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Publish chainlesschain (CLI)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 27,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Verify published CLI npm provenance",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 28,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Upload public npm readback evidence",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 29,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Publish summary",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 30,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Sync published packages to npmmirror",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 31,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Post Setup Node.js",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 61,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:08Z"
+    },
+    {
+      "name": "Post Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 62,
+      "started_at": "2026-10-09T20:20:08Z",
+      "completed_at": "2026-10-09T20:20:09Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 63,
+      "started_at": "2026-10-09T20:20:09Z",
+      "completed_at": "2026-10-09T20:20:09Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/114008162628",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000387955,
+  "runner_name": "GitHub Actions 1000387955",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

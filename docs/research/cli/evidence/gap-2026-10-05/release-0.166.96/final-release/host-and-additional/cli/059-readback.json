@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657785624,
+  "name": "rc-default-audit-cli-ci-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/metadata.json",
+    "bytes": 798,
+    "sha256": "df577149984f1ea97ee5617cc718cabb7c763021e4f0fafeaeba23d4dc33add6",
+    "endpoint": "actions/artifacts/11657785624"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657785624/artifact.zip",
+    "bytes": 1738,
+    "sha256": "eb653c6eade304564416e5e6498665f9f116cf897c6141ef422d736a90ae5600",
+    "endpoint": "actions/artifacts/11657785624/zip"
+  },
+  "githubDigestMatched": true
+}

@@ -1,0 +1,39 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\model-catalog-pr-61d91325d0",
+  "archivedAt": "2026-10-09T07:06:48.659Z",
+  "files": [
+    {
+      "path": "artifact-11600258246.zip",
+      "bytes": 975,
+      "digest": "sha256:e81d867031645d454975bac752f31e394a30ba58c409ffb73f6d0fa649456c05"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 813,
+      "digest": "sha256:e8af9b802bd22288d0e01ef163a0ff9820a6eab35d3bcef5d3b02dc3d7160559"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 3377,
+      "digest": "sha256:686b778d922a507f2390901cd84eefd2557cd2257ebba2d2bd8eaf166035e32a"
+    },
+    {
+      "path": "local.json",
+      "bytes": 2222,
+      "digest": "sha256:1dd7f54767e18c9f1e83f6d03dae1b477f6c99752c7be990484e4d3237df9583"
+    },
+    {
+      "path": "readback.json",
+      "bytes": 1495,
+      "digest": "sha256:56951cf96ed5e1993dc633de822948594cc97b52dfc4f12021cd79b89d15c8f6"
+    },
+    {
+      "path": "run.json",
+      "bytes": 13762,
+      "digest": "sha256:a08a30a45909fcee8e94d36186fbec1bcabbe378f8c3c50dae50ff5b4eeb0911"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

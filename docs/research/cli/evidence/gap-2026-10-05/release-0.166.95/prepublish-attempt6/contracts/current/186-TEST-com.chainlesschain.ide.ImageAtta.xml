@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ImageAttachmentsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:44" hostname="DESKTOP-MTMV2RE" time="0.029">
+  <properties/>
+  <testcase name="acceptDroppedCapsAtMaxAndPreservesOrder()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.002"/>
+  <testcase name="rejectsOversizeBeforeReadingAndRejectsPixelBomb()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.005"/>
+  <testcase name="acceptsWebpDimensionsAndRejectsTruncatedHeaders()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.004"/>
+  <testcase name="isImagePathAcceptsImageExtensionsCaseInsensitively()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.002"/>
+  <testcase name="acceptDroppedRespectsAlreadyAttachedRoom()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.002"/>
+  <testcase name="acceptDroppedHandlesNullListAndFiltersNonImages()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.002"/>
+  <testcase name="checksRealHeadersAndRejectsSpoofedExtension()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.007"/>
+  <testcase name="isImagePathRejectsNonImagesAndNull()" classname="com.chainlesschain.ide.ImageAttachmentsTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

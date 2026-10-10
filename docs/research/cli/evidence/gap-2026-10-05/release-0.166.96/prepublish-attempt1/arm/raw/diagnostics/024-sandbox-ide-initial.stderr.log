@@ -1,0 +1,47 @@
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module aether-dependency-resolver is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/aether-dependency-resolver.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module java-frontback is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/java-frontback.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module javac2 is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/javac2.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jetbrains.kotlinx.metadata.jvm is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jetbrains.kotlinx.metadata.jvm.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jgoodies-common is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jgoodies-common.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jps-builders-6 is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jps-builders-6.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jps-builders is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jps-builders.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jshell-frontend is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jshell-frontend.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module jshell-protocol is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/jshell-protocol.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module maven-resolver-connector-basic is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/maven-resolver-connector-basic.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module maven-resolver-transport-file is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/maven-resolver-transport-file.jar
+[org.jetbrains.intellij.platform] The following artifact of the bundledPlugin:com.intellij.java:IC-242.20224.300 module maven-resolver-transport-http is not found: c:/a/_temp/intellij-2026.2.0.1-arm64/plugins/java/lib/maven-resolver-transport-http.jar
+java.lang.IllegalStateException: the component is not available
+	at com.intellij.remoterobot.data.ComponentContext.getComponent(RobotContext.kt:26)
+	at com.intellij.remoterobot.services.js.RhinoJavaScriptExecutor$execute$1.invoke(RhinoJavaScriptExecutor.kt:19)
+	at com.intellij.remoterobot.services.js.RhinoJavaScriptExecutor$execute$1.invoke(RhinoJavaScriptExecutor.kt:16)
+	at com.intellij.remoterobot.services.js.RhinoJavaScriptExecutor.executeWithContext(RhinoJavaScriptExecutor.kt:63)
+	at com.intellij.remoterobot.services.js.RhinoJavaScriptExecutor.execute(RhinoJavaScriptExecutor.kt:16)
+	at com.intellij.remoterobot.services.IdeRobot$retrieveAny$4$1.executeInEDT(IdeRobot.kt:361)
+	at com.intellij.remoterobot.services.IdeRobot$retrieveAny$4$1.executeInEDT(IdeRobot.kt:359)
+	at org.assertj.swing.edt.GuiQuery.run(GuiQuery.java:42)
+	at com.intellij.util.concurrency.ChildContext$runInChildContext$1.invoke(propagation.kt:193)
+	at com.intellij.util.concurrency.ChildContext$runInChildContext$1.invoke(propagation.kt:193)
+	at com.intellij.util.concurrency.ChildContext.runInChildContext(propagation.kt:199)
+	at com.intellij.util.concurrency.ChildContext.runInChildContext(propagation.kt:193)
+	at com.intellij.util.concurrency.ContextRunnable.lambda$run$0(ContextRunnable.java:26)
+	at com.intellij.concurrency.ThreadContext.resetThreadContext(threadContext.kt:295)
+	at com.intellij.util.concurrency.ContextRunnable.run(ContextRunnable.java:25)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:323)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:732)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:711)
+	at com.intellij.ide.IdeEventQueue.defaultDispatchEvent(IdeEventQueue.kt:731)
+	at com.intellij.ide.IdeEventQueue._dispatchEvent(IdeEventQueue.kt:584)
+	at com.intellij.ide.IdeEventQueue.dispatchEvent$lambda$0$0$0$0(IdeEventQueue.kt:388)
+	at com.intellij.openapi.progress.impl.CoreProgressManager.computePrioritized(CoreProgressManager.java:941)
+	at com.intellij.ide.IdeEventQueue.dispatchEvent$lambda$0$0$0(IdeEventQueue.kt:387)
+	at com.intellij.ide.IdeEventQueueKt.performActivity$lambda$0(IdeEventQueue.kt:1122)
+	at com.intellij.openapi.application.TransactionGuardImpl.performActivity(TransactionGuardImpl.java:106)
+	at com.intellij.ide.IdeEventQueueKt.performActivity(IdeEventQueue.kt:1122)
+	at com.intellij.ide.IdeEventQueue.dispatchEvent$lambda$0(IdeEventQueue.kt:382)
+	at com.intellij.ide.IdeEventQueue.dispatchEvent(IdeEventQueue.kt:422)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:207)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:128)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:117)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:105)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:92)

@@ -1,0 +1,12 @@
+2026-10-10 01:52:48.349 [info] Extension host with pid 2953 started
+2026-10-10 01:52:48.373 [info] Lock '/home/cc-roadmap/.vscode-server/data/User/workspaceStorage/4b0e3dda3e2b9a55b059c37abc9161b3/vscode.lock': Lock acquired.
+2026-10-10 01:52:48.492 [info] ExtensionService#_doActivateExtension vscode.git-base, startup: false, activationEvent: '*', root cause: vscode.git
+2026-10-10 01:52:48.559 [info] ExtensionService#_doActivateExtension vscode.git, startup: false, activationEvent: '*'
+2026-10-10 01:52:48.560 [info] ExtensionService#_doActivateExtension vscode.github, startup: false, activationEvent: '*'
+2026-10-10 01:52:48.849 [info] Eager extensions activated
+2026-10-10 01:52:48.851 [info] ExtensionService#_doActivateExtension vscode.debug-auto-launch, startup: false, activationEvent: 'onStartupFinished'
+2026-10-10 01:52:48.851 [info] ExtensionService#_doActivateExtension vscode.merge-conflict, startup: false, activationEvent: 'onStartupFinished'
+2026-10-10 01:52:48.851 [info] ExtensionService#_doActivateExtension chainlesschain.chainlesschain-ide, startup: false, activationEvent: 'onStartupFinished'
+2026-10-10 01:52:49.396 [info] Extension host terminating: received terminate message from renderer
+2026-10-10 01:52:49.397 [info] Lock '/home/cc-roadmap/.vscode-server/data/User/workspaceStorage/4b0e3dda3e2b9a55b059c37abc9161b3/vscode.lock': Marking the lockfile as scheduled to be released in 6000 ms.
+2026-10-10 01:52:49.409 [info] Extension host with pid 2953 exiting with code 0

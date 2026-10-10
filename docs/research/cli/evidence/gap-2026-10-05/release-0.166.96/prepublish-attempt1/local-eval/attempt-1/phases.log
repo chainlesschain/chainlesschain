@@ -1,0 +1,15 @@
+[eval-readonly-large-collection] {"stage":"setup fixture","event":"start"}
+[eval-readonly-large-collection] {"stage":"setup fixture","durationMs":95,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"store subject","event":"start"}
+[eval-readonly-large-collection] {"stage":"store subject","durationMs":122,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"append complete event batch","event":"start"}
+[eval-readonly-large-collection] {"stage":"append complete event batch","durationMs":38231,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"create verified audit","event":"start"}
+[eval-readonly-large-collection] {"stage":"create verified audit","durationMs":2958,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"capture verified snapshot","event":"start"}
+[eval-readonly-large-collection] {"stage":"capture verified snapshot","durationMs":0,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"assert complete immutable snapshot","event":"start"}
+[eval-readonly-large-collection] {"stage":"assert complete immutable snapshot","durationMs":61,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"verify final journal head","event":"start"}
+[eval-readonly-large-collection] {"stage":"verify final journal head","durationMs":652,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"event":"summary","functionalBudgetMs":180000,"expectedEventCount":600,"observed":{"eventCount":600,"sequence":600,"serializedBytes":3445514},"durationMs":42121,"phases":[{"stage":"setup fixture","durationMs":95,"outcome":"returned"},{"stage":"store subject","durationMs":122,"outcome":"returned"},{"stage":"append complete event batch","durationMs":38231,"outcome":"returned"},{"stage":"create verified audit","durationMs":2958,"outcome":"returned"},{"stage":"capture verified snapshot","durationMs":0,"outcome":"returned"},{"stage":"assert complete immutable snapshot","durationMs":61,"outcome":"returned"},{"stage":"verify final journal head","durationMs":652,"outcome":"returned"}]}

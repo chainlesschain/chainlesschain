@@ -1,0 +1,247 @@
+{
+  "capturedAt": "2026-10-09T14:20:41.016Z",
+  "sourceCommit": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+  "disposition": "NOT_RELEASE_ELIGIBLE",
+  "failure": {
+    "workflow": "CLI CI",
+    "runId": 37929591872,
+    "jobId": 113855554261,
+    "step": "Test Agent SDK release payload source",
+    "sdkVersion": "0.2.13",
+    "tests": {
+      "passed": 82,
+      "failed": 1
+    },
+    "error": "agent exited (code 1) before init",
+    "rootCause": "UNKNOWN: early-init stderr not reported by fixture",
+    "uploadFailures": "Four later artifacts were not generated after the SDK failure; no-files errors are not network evidence",
+    "pmRecoveryArtifactId": 11620769736
+  },
+  "notes": [
+    "69 CLI jobs succeeded and two failed. Successful older-SHA workflows cannot replace the failed CLI gate.",
+    "SDK startup diagnostics changed only in tests; no runtime, retry or timeout change.",
+    "Frozen native results and formal 36+9 observations remain unchanged."
+  ],
+  "files": [
+    {
+      "path": "cli-ci-43-attempt1-failed/artifacts-1.json",
+      "bytes": 14339,
+      "sha256": "fd351d879910f1172090d1f89e8333370c49a3c0970ade9516b709a3f70dae3a"
+    },
+    {
+      "path": "cli-ci-43-attempt1-failed/jobs-1.json",
+      "bytes": 204405,
+      "sha256": "16b77eac2ab442115284cfb497990aaf4dc016cf5f24206aa39f5a7e429617bf"
+    },
+    {
+      "path": "cli-ci-43-attempt1-failed/readback.json",
+      "bytes": 325485,
+      "sha256": "efc14d9deaec70aac2873186a2d58e659cb6b39b539669e324347e922818ad11"
+    },
+    {
+      "path": "cli-ci-43-attempt1-failed/run.json",
+      "bytes": 14156,
+      "sha256": "fb751e8628860f0bae74fc7b5beb5290953d191bd36e2b3d840b55c62d7790ae"
+    },
+    {
+      "path": "verify-cli-windows-43-attempt1-log/job.json",
+      "bytes": 9854,
+      "sha256": "5e27621be6baf1edbcf3a1047c3f80feabc46867b334f5022f51b9c57f652e7c"
+    },
+    {
+      "path": "verify-cli-windows-43-attempt1-log/job.log",
+      "bytes": 444542,
+      "sha256": "fa3a2871b4edbd3906b5d239208dc558bead58af3f97805b7fb3c251d04f5626"
+    },
+    {
+      "path": "verify-cli-windows-43-attempt1-log/readback.json",
+      "bytes": 328,
+      "sha256": "bff19e5de9abbc7ecd6d51f3bab05316e9ec60b64a3bca2c17835b1afa2cdfcd"
+    },
+    {
+      "path": "verify-cli-windows-43-attempt1-log/run.json",
+      "bytes": 15773,
+      "sha256": "76242dfe65a6e7b23de48814977c7b0a0d016842d411924187478232c55c5033"
+    },
+    {
+      "path": "strict-43-final/artifacts-1.json",
+      "bytes": 4557,
+      "sha256": "065270b8f130c2daba9485b7a6052a406bea6f50330ed9ef56f9fc63f161ce85"
+    },
+    {
+      "path": "strict-43-final/jobs-1.json",
+      "bytes": 21590,
+      "sha256": "2f519f7f551d0f2a8b9ef3e1ddedd5efccd4fb384825d4418e26a10b7b2b265c"
+    },
+    {
+      "path": "strict-43-final/readback.json",
+      "bytes": 53059,
+      "sha256": "8ca7333164a6644ea1f7e9020d1cf906a9fe4cf61a0a18345eee6910fcec27d5"
+    },
+    {
+      "path": "strict-43-final/run.json",
+      "bytes": 13788,
+      "sha256": "84b4e13f812d5e018eb1beca214b4d249f37c1db2031037e552f07c47feb78d8"
+    },
+    {
+      "path": "ide-43-final/artifacts-1.json",
+      "bytes": 17769,
+      "sha256": "ecfc6cd5e5313d32044e798fa2faed066059d0fcf9cfea4749733c8678b2fd5a"
+    },
+    {
+      "path": "ide-43-final/jobs-1.json",
+      "bytes": 67882,
+      "sha256": "398d20d3f54b383d221cf1dae722a17e296200b35e584dec7544cdf5bfe3de67"
+    },
+    {
+      "path": "ide-43-final/readback.json",
+      "bytes": 134916,
+      "sha256": "8f0c0dc58143d644967703295e7db95e00e34d1d41a88578f04bf32618ba4c89"
+    },
+    {
+      "path": "ide-43-final/run.json",
+      "bytes": 13780,
+      "sha256": "737b65173df57b198746a112743d56189922e38e5386e4b42066990fccbd2d70"
+    },
+    {
+      "path": "quality-43-final/artifacts-1.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "path": "quality-43-final/jobs-1.json",
+      "bytes": 17577,
+      "sha256": "0c888877a4a87fe0d1be783833572a77aca91bd2514c129e95c26b610cb8d9de"
+    },
+    {
+      "path": "quality-43-final/readback.json",
+      "bytes": 40881,
+      "sha256": "757000c14fc97278a191257f5a72a89a28704c6446aab949e14fd796eb88239b"
+    },
+    {
+      "path": "quality-43-final/run.json",
+      "bytes": 13787,
+      "sha256": "e700eaa53588e087e9684e9d15f50b8aa2fb71c698f02378bb9a8aa558c776ba"
+    },
+    {
+      "path": "model-catalog-43-final/artifacts-1.json",
+      "bytes": 813,
+      "sha256": "b89c84a6570a318319d291087c63c201fee850c8735072acc07480b6d99271a5"
+    },
+    {
+      "path": "model-catalog-43-final/jobs-1.json",
+      "bytes": 3377,
+      "sha256": "b1150a6a7075fe68166b9c7108d0ee9e02f797059cf2d22c007e1c36b8b03af3"
+    },
+    {
+      "path": "model-catalog-43-final/readback.json",
+      "bytes": 22128,
+      "sha256": "c22aa3368fe1584b5bb28beb023d22ccf699be670f7e6068563125b750dc0397"
+    },
+    {
+      "path": "model-catalog-43-final/run.json",
+      "bytes": 13789,
+      "sha256": "3d0942a080365260feaa16743a2bdeefd84b609151c389d0d7126ede95c6ba16"
+    },
+    {
+      "path": "pr-tests-43-final/artifacts-1.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "path": "pr-tests-43-final/jobs-1.json",
+      "bytes": 4923,
+      "sha256": "a7b1edf3e0b8624065d0326294a03e869cd58d8dfd83b61465c7592e31a371f4"
+    },
+    {
+      "path": "pr-tests-43-final/readback.json",
+      "bytes": 23462,
+      "sha256": "31c0af6e0806e34ebb43a5da32872c2138a9dbd175875678b6b0af8bdba0ed57"
+    },
+    {
+      "path": "pr-tests-43-final/run.json",
+      "bytes": 13768,
+      "sha256": "b758fe646a371ea6bb665b80d3fdaad7357c1f3960ebd1042c8de56cec01fba8"
+    },
+    {
+      "path": "ci-tests-43-final/artifacts-1.json",
+      "bytes": 2299,
+      "sha256": "7a3274810cb3c70e91605e4251d4c513215e7fd962a73cb927a6f025d1f7b1ca"
+    },
+    {
+      "path": "ci-tests-43-final/jobs-1.json",
+      "bytes": 38636,
+      "sha256": "b06fb8abd545bec30b39a12df6d9f7d53b356bc860c9c3a4a0c658d3fd516dd2"
+    },
+    {
+      "path": "ci-tests-43-final/readback.json",
+      "bytes": 74409,
+      "sha256": "6fe80c5ab69c9395a57d93d6ab271c4d72ee4ca4d3f5ef24be61ceea0df0b039"
+    },
+    {
+      "path": "ci-tests-43-final/run.json",
+      "bytes": 13764,
+      "sha256": "0490f492a69888cf016724f36fa4dcbf21640f953240cddd1c28ca610fefaeae"
+    },
+    {
+      "path": "full-tests-43-final/artifacts-1.json",
+      "bytes": 1524,
+      "sha256": "8d6f868b5dc7b384e045e7d82050ecf8c0e61c19077af8a881762e7a9539d74c"
+    },
+    {
+      "path": "full-tests-43-final/jobs-1.json",
+      "bytes": 11175,
+      "sha256": "cb6a1ba3b31b6c426054a2c1e6977a1e71a848a47301ea7e0e63455bec710797"
+    },
+    {
+      "path": "full-tests-43-final/readback.json",
+      "bytes": 34166,
+      "sha256": "09a490ec963bdb22384e449a930aa0adc3db00e1ca649c9910a2e558c889f225"
+    },
+    {
+      "path": "full-tests-43-final/run.json",
+      "bytes": 13809,
+      "sha256": "2cdded76121113409a2e80daa66240c234b091c625e78a8b484245d3537e39aa"
+    },
+    {
+      "path": "safety-43-final/artifacts-1.json",
+      "bytes": 3191,
+      "sha256": "613654e5c93512111bb43bb1a9d10ce2b0e3f65ada5ff54bc2af9d8fc9e0e1db"
+    },
+    {
+      "path": "safety-43-final/jobs-1.json",
+      "bytes": 13937,
+      "sha256": "400edaaaee8493032517f257760f43df356286c291b9b8281e1f4a40659b3d19"
+    },
+    {
+      "path": "safety-43-final/readback.json",
+      "bytes": 40084,
+      "sha256": "71a7b8bc68b6dfec4855f5f0967ccb07f6d497d913715d2542e805a0014b3834"
+    },
+    {
+      "path": "safety-43-final/run.json",
+      "bytes": 13795,
+      "sha256": "87123d7007b11dca9c10912e91a505481c8d91516b8113ddf52b028488a1f390"
+    },
+    {
+      "path": "cli-windows-unit3-43-success/job.json",
+      "bytes": 3333,
+      "sha256": "66fa1e486fe8141cf645f307e5eddb42075dcd55bbd205db51db7a3359d30ad2"
+    },
+    {
+      "path": "cli-windows-unit3-43-success/job.log",
+      "bytes": 90075,
+      "sha256": "9623123547d869421b21e9ed3f9c18e74b93ad787e0ab1c2bd1ac7500678e27e"
+    },
+    {
+      "path": "cli-windows-unit3-43-success/readback.json",
+      "bytes": 348,
+      "sha256": "dc7d2a73403d7548eaafcf88bd8b172836dd7c2c54380fac67f2da3cb17ef820"
+    },
+    {
+      "path": "cli-windows-unit3-43-success/run.json",
+      "bytes": 15765,
+      "sha256": "4ce67d4c007b96392a9cf097e88dba67a823362732c7e9a892d29bcba7cd73b6"
+    }
+  ]
+}

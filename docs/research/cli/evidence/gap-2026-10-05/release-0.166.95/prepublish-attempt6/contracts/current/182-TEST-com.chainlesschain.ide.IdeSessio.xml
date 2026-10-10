@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.IdeSessionIndexTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:42" hostname="DESKTOP-MTMV2RE" time="2.147">
+  <properties/>
+  <testcase name="corruptIndexIsPreservedInsteadOfOverwritten()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.004"/>
+  <testcase name="busyCrossProcessLockFailsClosedWithoutWriting()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="2.006"/>
+  <testcase name="itemLabelCarriesStatusAndWorkspaceForSearch()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.001"/>
+  <testcase name="removesSessionsAndReportsMisses()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.019"/>
+  <testcase name="deleteArgsForceSkipTheInteractiveConfirm()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.0"/>
+  <testcase name="renamesIndexedSessionsAndOverlaysCliOnlySessions()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.012"/>
+  <testcase name="sessionListMergesCliAndIdeIndexRows()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.0"/>
+  <testcase name="mergePrefersIdeStatusAndWorkspace()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.001"/>
+  <testcase name="upsertsSharedSessionMetadata()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.008"/>
+  <testcase name="concurrentUpsertsLoseNoRecords()" classname="com.chainlesschain.ide.IdeSessionIndexTest" time="0.091"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

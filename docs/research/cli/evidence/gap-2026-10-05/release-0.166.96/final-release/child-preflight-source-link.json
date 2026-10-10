@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-10-10T01:41:45.280Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "originalPreflightSource": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "originalPreflightObservedAt": "2026-10-09T20:35:04.202Z",
+  "originalReadback": {
+    "path": ".work/release-preflight-0.166.96/readback.json",
+    "bytes": 8253,
+    "sha256": "13ba87d53597aec4188d084f7be33df41da45e3fb19c937297d7553f9cb9f8d5"
+  },
+  "cliManifestByteIdentical": true,
+  "cliManifestSha256": "f020adce21d338221614217556aa35fdcf8012e11abf17f9fd7bcad7403fc84f",
+  "publicDirectDependencies": 10,
+  "originalTarballsRechecked": true,
+  "scope": "Historical registry byte observations for immutable exact direct dependency versions remain aligned to the current candidate. No fresh registry request, package-tree reuse or signature gate is claimed; Actions remains authoritative."
+}

@@ -9,6 +9,8 @@ on:
       - "packages/cli/src/lib/model-*.js"
       - "packages/cli/src/lib/llm-pricing.js"
       - "packages/cli/scripts/review-model-catalog.mjs"
+      - "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs"
+      - "packages/cli/__tests__/unit/model-catalog-review.test.js"
       - "packages/cli/__tests__/fixtures/model-catalog-review-*.json"
       - ".github/workflows/model-catalog-review.yml"
 
@@ -21,19 +23,51 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22.22.2"
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify evidence capture contracts
+        run: node --test packages/cli/test-node/model-catalog-review-evidence.node-test.mjs
+      - name: Prepare evidence directory
+        shell: bash
+        run: mkdir -p "$RUNNER_TEMP/model-catalog-review"
       - name: Verify reviewed model contracts
-        run: node packages/cli/scripts/review-model-catalog.mjs
+        shell: bash
+        run: >-
+          node packages/cli/scripts/review-model-catalog.mjs
+          --expected-sha "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "$RUNNER_TEMP/model-catalog-review/local.json"
       # Review alerts are separate from exact-commit npm release gates. An
       # upstream release never modifies or enables a model automatically.
       - name: Fetch official release notes
         if: github.event_name != 'pull_request'
         run: |
-          curl --fail --location --max-time 60 https://developers.openai.com/codex/changelog -o "$RUNNER_TEMP/codex.html"
-          curl --fail --location --max-time 60 https://code.claude.com/docs/en/changelog.md -o "$RUNNER_TEMP/claude.md"
+          # The mixed product changelog contains app/mobile releases, not an
+          # identifiable latest CLI version. Keep the official CLI API raw.
+          curl --fail --location --max-time 60 \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --dump-header "$RUNNER_TEMP/model-catalog-review/codex.headers" \
+            https://api.github.com/repos/openai/codex/releases/latest \
+            -o "$RUNNER_TEMP/model-catalog-review/codex.json"
+          curl --fail --location --max-time 60 https://code.claude.com/docs/en/changelog.md -o "$RUNNER_TEMP/model-catalog-review/claude.md"
       - name: Detect releases requiring review
         if: github.event_name != 'pull_request'
-        run: node packages/cli/scripts/review-model-catalog.mjs --codex "$RUNNER_TEMP/codex.html" --claude "$RUNNER_TEMP/claude.md" --fail-on-drift
+        shell: bash
+        run: >-
+          node packages/cli/scripts/review-model-catalog.mjs
+          --codex "$RUNNER_TEMP/model-catalog-review/codex.json"
+          --claude "$RUNNER_TEMP/model-catalog-review/claude.md"
+          --expected-sha "${{ github.event.pull_request.head.sha || github.sha }}"
+          --output "$RUNNER_TEMP/model-catalog-review/upstream.json" --fail-on-drift
+      - name: Preserve reports and original release snapshots on success or failure
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: model-catalog-review-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/model-catalog-review
+          if-no-files-found: error
+          retention-days: 90

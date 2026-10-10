@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.ide-host-environment.v1",
+  "operatingSystem": "linux",
+  "architecture": "x64",
+  "orchestratorPid": 2749,
+  "orchestratorHostname": "runnervmmprz5",
+  "dockerImageId": null,
+  "containerImageRef": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+  "containerHostname": "cc-roadmap-ssh-0f11227e87701704fbf1c659",
+  "containerMarkerDigest": "sha256:c65bcd7158d36c9f23dd7bea4c6f7cd9dcd7a199b9b1354d858c6e52a7104df5",
+  "remoteSsh": {
+    "id": "ms-vscode-remote.remote-ssh",
+    "version": "0.120.0",
+    "source": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode-remote/vsextensions/remote-ssh/0.120.0/vspackage",
+    "transportSha256": "sha256:4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e",
+    "sha256": "sha256:0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d"
+  },
+  "candidate": {
+    "vsixSha256": "sha256:3d0a1c1f9bd7dcfb3b74cba28a338358f040fe29a4ec3e56feda409e1e903ca8",
+    "vsixBytes": 714971,
+    "manifestSha256": "sha256:66e4cd7e90716e7ef018e68d737da0ff21081b7f4c466e0c83aecae1da62fb9b",
+    "manifestBytes": 714,
+    "packageName": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.140",
+    "releaseCommit": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/37987544322"
+  },
+  "vscodeVersion": "1.96.4"
+}

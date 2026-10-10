@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.DiffApplyGuardTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.019">
+  <properties/>
+  <testcase name="utf8ChineseTextIsNotBinary()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.002"/>
+  <testcase name="emptyVsNonEmptyIsDrift()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="identicalBaselineAndDiskIsSafe()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.003"/>
+  <testcase name="rawDiskBytesAreUsedWhenBaselineIsMissing()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="plainAndEmptyAndNullAreNotBinary()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="nulByteInBytesIsBinary()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="unreadableCurrentTextIsSafe_nothingToClobber()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="fullDiskSizeIsUsedWithOnlyABoundedProbe()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.0"/>
+  <testcase name="driftedDiskIsNotSafe()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.0"/>
+  <testcase name="reviewPayloadCountsUtf8BytesAcrossBothSides()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="reasonStringsMatchTheVsCodeTwin()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.0"/>
+  <testcase name="missingBaselineIsSafe_legacyCallersKeepTheirPath()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.0"/>
+  <testcase name="nulCharInStringIsBinary()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <testcase name="oversizedTextIsRejectedWithBoundedMetadata()" classname="com.chainlesschain.ide.DiffApplyGuardTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

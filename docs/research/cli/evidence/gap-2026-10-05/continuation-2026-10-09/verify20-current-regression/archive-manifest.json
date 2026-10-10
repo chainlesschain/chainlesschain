@@ -1,0 +1,124 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\verify20-current-regression-20261009",
+  "archivedAt": "2026-10-09T07:55:54.969Z",
+  "files": [
+    {
+      "path": "baseline/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json",
+      "bytes": 138,
+      "digest": "sha256:e3aacbce119850a85a86fef974531c4437dda9e44642a9fb6865f91fe4baeac6"
+    },
+    {
+      "path": "baseline/package.json",
+      "bytes": 33,
+      "digest": "sha256:a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "path": "baseline/results.json",
+      "bytes": 1413,
+      "digest": "sha256:511dd90dce8498bc92a461a1e8afa0afc78df55909eda5a42bbed0e6a89c3881"
+    },
+    {
+      "path": "baseline/src/lib/credential-guard.js",
+      "bytes": 13386,
+      "digest": "sha256:330ef5f5725e33cf4e35b9e63980b5ce44e61b4f2f6279ada3469e8ae17e3b29"
+    },
+    {
+      "path": "baseline/src/lib/permission-decision.js",
+      "bytes": 2827,
+      "digest": "sha256:0c762130194fa2a433b672a509d3631a31fe08326542434da99caaa68becfa54"
+    },
+    {
+      "path": "baseline/src/lib/secret-scan.js",
+      "bytes": 13733,
+      "digest": "sha256:a87a3d24236f5d22a2d722389e6fbf9f9d0c9fa3612d26ec757cc7fc5325ba83"
+    },
+    {
+      "path": "baseline/src/runtime/coding-agent-shell-policy.cjs",
+      "bytes": 14008,
+      "digest": "sha256:1cb142a68ad9abf9f837eb4fdb0dd15e1a0c180caefe53504396768ff43bc47a"
+    },
+    {
+      "path": "baseline/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline/stdout.txt",
+      "bytes": 111,
+      "digest": "sha256:819e9642aa8d7478fc5ddfb9fb937b56e1369d2c04a4ec14170e4e4e11af204f"
+    },
+    {
+      "path": "baseline/vitest.config.mjs",
+      "bytes": 148,
+      "digest": "sha256:3d111620582a0da93cb81daa691291bbeeca6bafcb1dc7448806ba886f8a655f"
+    },
+    {
+      "path": "baseline/__tests__/unit/permission-decision-precedence.test.js",
+      "bytes": 1372,
+      "digest": "sha256:9a66c1d2fcff9c9753b906f9b4d737bd1b5f254e82fe26f9e5e33c067415e20c"
+    },
+    {
+      "path": "mutant/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json",
+      "bytes": 137,
+      "digest": "sha256:47f0e3828a4a2b30187ccf2aef4e5bc830d0273e93eb345595ae2593fe94a3b9"
+    },
+    {
+      "path": "mutant/package.json",
+      "bytes": 33,
+      "digest": "sha256:a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "path": "mutant/results.json",
+      "bytes": 3643,
+      "digest": "sha256:072351ffb709f03329fed30fcc04f12f354e6a54f3bbe4aadb74ad34b5768c1e"
+    },
+    {
+      "path": "mutant/src/lib/credential-guard.js",
+      "bytes": 13386,
+      "digest": "sha256:330ef5f5725e33cf4e35b9e63980b5ce44e61b4f2f6279ada3469e8ae17e3b29"
+    },
+    {
+      "path": "mutant/src/lib/permission-decision.js",
+      "bytes": 2827,
+      "digest": "sha256:68fe7fcc8a3fb04c55b6618a844750a68b350c6e97ffec9f41afcc9a7bb43410"
+    },
+    {
+      "path": "mutant/src/lib/secret-scan.js",
+      "bytes": 13733,
+      "digest": "sha256:a87a3d24236f5d22a2d722389e6fbf9f9d0c9fa3612d26ec757cc7fc5325ba83"
+    },
+    {
+      "path": "mutant/src/runtime/coding-agent-shell-policy.cjs",
+      "bytes": 14008,
+      "digest": "sha256:1cb142a68ad9abf9f837eb4fdb0dd15e1a0c180caefe53504396768ff43bc47a"
+    },
+    {
+      "path": "mutant/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutant/stdout.txt",
+      "bytes": 109,
+      "digest": "sha256:6317ef1227e5618e1c90460b86d42b425fc766b6b460ac30c8ff22224271eb4e"
+    },
+    {
+      "path": "mutant/vitest.config.mjs",
+      "bytes": 148,
+      "digest": "sha256:3d111620582a0da93cb81daa691291bbeeca6bafcb1dc7448806ba886f8a655f"
+    },
+    {
+      "path": "mutant/__tests__/unit/permission-decision-precedence.test.js",
+      "bytes": 1372,
+      "digest": "sha256:9a66c1d2fcff9c9753b906f9b4d737bd1b5f254e82fe26f9e5e33c067415e20c"
+    },
+    {
+      "path": "report.json",
+      "bytes": 5369,
+      "digest": "sha256:f49b61310c85a6e633198556f10dba7072bc9f222bfb8b2e9f83b6e613c43dbf"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

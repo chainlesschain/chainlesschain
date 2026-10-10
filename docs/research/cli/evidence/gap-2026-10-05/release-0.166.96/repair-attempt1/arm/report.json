@@ -1,0 +1,71 @@
+{
+  "passed": 14,
+  "cases": [
+    {
+      "passed": true,
+      "name": "disposed popup fixture cannot resolve; stable receiver reads scalar dispatch receipt"
+    },
+    {
+      "passed": true,
+      "name": "wrong nonce cannot read another invocation"
+    },
+    {
+      "passed": true,
+      "name": "tampered token rejected"
+    },
+    {
+      "passed": true,
+      "name": "wrong stable owner rejected"
+    },
+    {
+      "passed": true,
+      "name": "receipt owner binding rejected"
+    },
+    {
+      "passed": true,
+      "name": "wrong target identity rejected"
+    },
+    {
+      "passed": true,
+      "name": "wrong target label rejected"
+    },
+    {
+      "passed": true,
+      "name": "wrong match mode rejected"
+    },
+    {
+      "passed": true,
+      "name": "nonterminal stages with hidden popup cannot satisfy success"
+    },
+    {
+      "passed": true,
+      "name": "returned Enter with visible popup cannot satisfy success"
+    },
+    {
+      "passed": true,
+      "name": "Enter failure remains failure and never succeeds"
+    },
+    {
+      "passed": true,
+      "name": "removed before dispatch fails once without activation"
+    },
+    {
+      "passed": true,
+      "name": "same-owner independent tokens do not consume each other receipts"
+    },
+    {
+      "passed": true,
+      "name": "receipt remains readable after disposed list is garbage collected"
+    }
+  ],
+  "engine": "Rhino 1.7.15; real Swing EDT; headless",
+  "adaptations": [
+    "ApplicationManager scheduler replaced with controlled EDT queue",
+    "Only popup owner Window lookup replaced with real injected JRootPane; receipt and cleanup scripts unmodified",
+    "Popup visibility tied to real parent attachment; Enter physically removes component and calls removeNotify; disposed Robot fixture lookup simulated"
+  ],
+  "limits": [
+    "No GUI/IDE launched; real 3900 host artifact supplies failure evidence",
+    "This contract does not replace next-menu/preview/confirmation assertions or exact-head CI"
+  ]
+}

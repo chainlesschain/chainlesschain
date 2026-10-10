@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-10T03:57:42.141Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021103046,
+  "jobId": 114124364755,
+  "jobName": "VS Code extension (Linux host gate + publish)",
+  "conclusion": "success",
+  "bytes": 1217438,
+  "sha256": "a4ea7e6ebfacd4fe39b958bfe35925cdeee3bb42ad972e5c8638b70469a6cac4"
+}

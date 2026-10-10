@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.DashboardHtmlTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.01">
+  <properties/>
+  <testcase name="countCardsReflectTheTotals()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.002"/>
+  <testcase name="darkAndLightUseDifferentBackgrounds()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.001"/>
+  <testcase name="emptyStreamShowsThePlaceholder()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.001"/>
+  <testcase name="recentEntriesRenderTimeStatusToolAndSummary()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.002"/>
+  <testcase name="htmlIsEscapedToPreventInjection()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.001"/>
+  <testcase name="stoppedBridgeShowsDashAndStoppedLabel()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.001"/>
+  <testcase name="runningBridgeShowsPortAndRunningLabel()" classname="com.chainlesschain.ide.DashboardHtmlTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

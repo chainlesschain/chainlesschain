@@ -1,0 +1,6 @@
+{"sequence":1,"pid":19560,"phase":"started"}
+{"sequence":2,"pid":19560,"phase":"vitest-import-started"}
+{"sequence":3,"pid":19560,"phase":"vitest-import-completed"}
+{"sequence":4,"pid":19560,"phase":"config-loaded","pool":"forks","maxWorkers":2,"unhandled":[]}
+{"sequence":5,"pid":19560,"phase":"test-results","count":65,"states":["passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed","passed"]}
+{"sequence":6,"pid":19560,"phase":"completed","tests":65}

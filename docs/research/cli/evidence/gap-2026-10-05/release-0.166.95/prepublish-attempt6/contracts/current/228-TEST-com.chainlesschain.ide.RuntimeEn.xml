@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RuntimeEnvironmentTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:05" hostname="DESKTOP-MTMV2RE" time="0.016">
+  <properties/>
+  <testcase name="distinguishesOutdatedMissingAndCorrupt()" classname="com.chainlesschain.ide.RuntimeEnvironmentTest" time="0.004"/>
+  <testcase name="parsesNodeAndJavaVersions()" classname="com.chainlesschain.ide.RuntimeEnvironmentTest" time="0.002"/>
+  <testcase name="evaluatesRuntimesAndOfflineCaches()" classname="com.chainlesschain.ide.RuntimeEnvironmentTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

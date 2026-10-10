@@ -1,0 +1,533 @@
+{
+  "schema": "astra.successful-real-host-diagnostics-readback/v1",
+  "sha": "3caf14f2ee866335608487ab57add325972709d7",
+  "runId": 37972023509,
+  "jobId": 113960770773,
+  "artifactId": 11638450002,
+  "manifestSchema": "chainlesschain.ide-journey-evidence",
+  "schemaVersion": 2,
+  "manifestVersion": "1.9.41",
+  "host": {
+    "name": "jetbrains",
+    "version": "2026.2.0.1",
+    "operatingSystem": "win32",
+    "architecture": "arm64",
+    "transport": "local-ide-bridge"
+  },
+  "journeyResult": "passed",
+  "evidenceComplete": true,
+  "entries": [
+    {
+      "path": "diagnostics/001-fake-cli-bin_cc",
+      "bytes": 168,
+      "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/002-fake-cli-bin_cc.cmd",
+      "bytes": 163,
+      "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/003-fake-cli-bin_chainlesschain",
+      "bytes": 168,
+      "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "bytes": 163,
+      "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/005-fake-cli-bin_clc",
+      "bytes": 168,
+      "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/006-fake-cli-bin_clc.cmd",
+      "bytes": 163,
+      "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/007-fake-cli-bin_clchain",
+      "bytes": 168,
+      "sha256": "sha256:536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/008-fake-cli-bin_clchain.cmd",
+      "bytes": 163,
+      "sha256": "sha256:3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/009-fake-cli-protocol.jsonl",
+      "bytes": 355693,
+      "sha256": "sha256:11e5c0a7373df9c79aa5ff91d4808421b7e3ab73b1da76444800d46306710587",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/010-fake-cli-state.json",
+      "bytes": 210,
+      "sha256": "sha256:db8823756ab9c457061666193f2c2ae229e2ace5e31bea06be92b948f9114439",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/011-fake-cli-state.json.llm.json",
+      "bytes": 136,
+      "sha256": "sha256:3bea14be95172dd0634d23f1d7f776bea93c6e74019261c1518c7367395e3164",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/012-fake-cli-state.json.receipts_167812a083c1154c2a21683c3326f879de52c77e0942c215dfbf90eb3e0bd5eb.json",
+      "bytes": 260,
+      "sha256": "sha256:3f4d31dd416f85d4d3c8d5a620bd8e5942d1b89f94c81cc56285f3e9d2e45462",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/013-fake-cli-state.json.receipts_28b30e790d6db67698c08e8860a5db36fa4276d1c9936f9c77a9d2a5e56077f2.json",
+      "bytes": 260,
+      "sha256": "sha256:88ddac8c914043aa99926a7ff260be62220b5b16d16dacde42b0309e443dc42f",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/014-fake-cli-state.json.receipts_4b47a52e5081d40967b03c86846e5082ac7d472949566db5db824308017d2c48.json",
+      "bytes": 274,
+      "sha256": "sha256:fb4b2f5f215ff878d4831391dbda413ae4c38c74d59c7869635b3e2af488abaf",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/015-fake-cli-state.json.receipts_508e18526c134a019d808c7ba7ff3ae352a8e6b0fdd26055eaa7720426bf165d.json",
+      "bytes": 260,
+      "sha256": "sha256:4fbbe6a85a5f2fb4f9dd45855049366d65fe4856281b7455567bad2d22493807",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/016-fake-cli-state.json.receipts_573aa6b8a1d55de9864c64fd13a8d8f28518fc727a09571ba60bf52f6161a625.json",
+      "bytes": 274,
+      "sha256": "sha256:7618b1edaf3b171fed99227d4cf3791ea32e4e21ea13d47993559dcd6922171d",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/017-fake-cli-state.json.receipts_573eafdcd7d3e7bd2120edfdd4f16d35027d5a008c0effde0ae69d10d7a2ecd5.json",
+      "bytes": 260,
+      "sha256": "sha256:37174e8c3ae7c491cecee6eb6d438d696de0e97e8a8d3ea848de3d6cd4987059",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/018-fake-cli-state.json.receipts_a69f1fda2c6a93a3aaeaf11a0a63b2918e2803807b1942664cc484b45fbcf87f.json",
+      "bytes": 274,
+      "sha256": "sha256:2614386250cca440dd5214355b4649619d1eb36635c51ca3671f68c16edd5aba",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/019-fake-cli-state.json.receipts_e0b154a3b70e41e48d209f30d87b809fbe3d52d3ffed9d140a1fdda3be3242ec.json",
+      "bytes": 260,
+      "sha256": "sha256:8119b32b8a01f45f3f4d4fad26ac7f489af29fd9c788ed52e19554e2f6381632",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/020-fake-cli-state.json.receipts_ec56db155477f2943aec71d6a6da3305a8203b6f43e9afd989d7b3aece154db7.json",
+      "bytes": 260,
+      "sha256": "sha256:a482bb5d80842d162305d23a4ec37c407e3ef4298803a46d35d578422bfa5e5e",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/021-host-capture-initial_capture-status.json",
+      "bytes": 886,
+      "sha256": "sha256:959e5d042fe6f59d30eaec10d28bf1572be60f9daf7545cbae18fffbf0d4f00a",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/022-host-capture-initial_host-events.jsonl",
+      "bytes": 25854,
+      "sha256": "sha256:0000755b82909cf2c37eee8f2b18b9e8d4b4782a51ff61425b15a5f1ad1cd322",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "bytes": 25854,
+      "sha256": "sha256:0000755b82909cf2c37eee8f2b18b9e8d4b4782a51ff61425b15a5f1ad1cd322",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "bytes": 46171,
+      "sha256": "sha256:7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "bytes": 179910,
+      "sha256": "sha256:b152df1c8b6d2dcd514b5732de9b88ce376ff923cb0675973ac88d0a8be393e0",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/026-host-capture-restart_capture-status.json",
+      "bytes": 885,
+      "sha256": "sha256:002d6b2e8f543750f2cd2edc6e7ad9afbfed334a7ddf70142a8b079db1f4c776",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/027-host-capture-restart_host-events.jsonl",
+      "bytes": 2347,
+      "sha256": "sha256:b3455cc5aa522d71c8ca58cf8c134f41fb19175941806b4b31d491bd8fc16902",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "bytes": 2347,
+      "sha256": "sha256:b3455cc5aa522d71c8ca58cf8c134f41fb19175941806b4b31d491bd8fc16902",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "bytes": 46171,
+      "sha256": "sha256:7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "bytes": 290147,
+      "sha256": "sha256:69171dae3f438f0d52ef210f40b7891a719a9c1b52bb67a14dada3d90cfc5456",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/031-prepare.stderr.log",
+      "bytes": 1005,
+      "sha256": "sha256:c64d1cbcd22aad66324409ca5d354265d183c9a6b84f21889ebb0cb943172acd",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/032-prepare.stdout.log",
+      "bytes": 21699,
+      "sha256": "sha256:fbe7c3eee5230afada1ad26d876ec4209bd36eb719721a323588c2ffbd00f83a",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/033-sandbox-ide-initial.stderr.log",
+      "bytes": 2969,
+      "sha256": "sha256:128c22678bfaa5ba9f5b186b05d6fc3441d3ab8fd8b14e5111ba602785403016",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/034-sandbox-ide-initial.stdout.log",
+      "bytes": 6665,
+      "sha256": "sha256:789a936a636667f80910af0708a45d49e843cf08d0ed7118a41b2314af4d8c66",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/035-sandbox-ide-restart.stderr.log",
+      "bytes": 2810,
+      "sha256": "sha256:ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/036-sandbox-ide-restart.stdout.log",
+      "bytes": 1013,
+      "sha256": "sha256:f088e20f98d1626def5107736edd5cb403e508319d036ab1ac517147511c51b4",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/037-ui-smoke-initial.stderr.log",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/038-ui-smoke-initial.stdout.log",
+      "bytes": 13869,
+      "sha256": "sha256:24979aba78b2c49b87a93eef87565f02735300888ed79ef0fb30e983e886204d",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/039-ui-smoke-restart.stderr.log",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/040-ui-smoke-restart.stdout.log",
+      "bytes": 13868,
+      "sha256": "sha256:1a4c6ee197cf5e83393e6f860c7447de8dd0a22183fe18b41385d3742483ce88",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/041-workbench-host-phases.json",
+      "bytes": 1883,
+      "sha256": "sha256:7bdb7e7888564ad3bdcd035a829305cb42a0a263fa35970ac1e70275f9e33938",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/042-workbench-metrics.jsonl",
+      "bytes": 25941,
+      "sha256": "sha256:930c057a696d0a5238327ee7a3eee709d19df88ce36127980e8b6d9fa38fb29e",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/043-binary_output.bin",
+      "bytes": 490,
+      "sha256": "sha256:8b2d4787cbc6635cac348d20032d2c5bf96421fcb768db1171950714e397ac13",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/044-binary_output.bin.idx",
+      "bytes": 71,
+      "sha256": "sha256:2fc68506502f25e1781d2a24d49d91d4fd042e60c848676c6bc33d577f3e7127",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/045-binary_results.bin",
+      "bytes": 1136,
+      "sha256": "sha256:dc53779b4e7b0fb20c00b98a8a74a8589fd57f25beecea2e8062ed8a933badd4",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "bytes": 826,
+      "sha256": "sha256:b9f7b4bb70ae01c9be2fc3d915837cc6da39549c699a59fb1016094c13680806",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "bytes": 654,
+      "sha256": "sha256:3e3cd789f1133b540a177b71316a7b6896e0f95d6e8980b85bc98438d32998f6",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "bytes": 1227,
+      "sha256": "sha256:d65ba34889086c573d1e8bab6e2faf7756fcc883359e65315e2d0ac29b390063",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/049-model-config-reopened-1791571048955.png",
+      "bytes": 38282,
+      "sha256": "sha256:bb6c7a20c9f12d754b8bb43603245bf98fe6e8ed677da7cc94cc847c79b12bd9",
+      "pass": true
+    },
+    {
+      "path": "diagnostics/050-model-config-saved-1791570646767.png",
+      "bytes": 39692,
+      "sha256": "sha256:e7202f61496d4c7787ac04ff5209d1646fa46e052c87f09dc19a4bd86ff1288c",
+      "pass": true
+    },
+    {
+      "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1519652,
+      "sha256": "sha256:cfcfbce489a145d69ce7fc0dc76795d8346a94f288b2e61120e9dd8a505e1c2a",
+      "pass": true
+    }
+  ],
+  "entryCount": 51,
+  "allEntryBytesAndHashesMatch": true,
+  "artifactBundleDigestMatch": true,
+  "evidenceDigestMatch": true,
+  "phases": [
+    {
+      "phase": "initial",
+      "statusComplete": true,
+      "statusFailures": [],
+      "files": [
+        {
+          "path": "host-events.jsonl.bin",
+          "source": "host-events.jsonl",
+          "bytes": 25854,
+          "sha256": "0000755b82909cf2c37eee8f2b18b9e8d4b4782a51ff61425b15a5f1ad1cd322",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+          "pass": true
+        },
+        {
+          "path": "idea-001.log.bin",
+          "source": "IC-2024.2/log/idea.log",
+          "bytes": 46171,
+          "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+          "pass": true
+        },
+        {
+          "path": "idea-002.log.bin",
+          "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+          "bytes": 179910,
+          "sha256": "b152df1c8b6d2dcd514b5732de9b88ce376ff923cb0675973ac88d0a8be393e0",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+          "pass": true
+        }
+      ],
+      "eventCount": 130,
+      "stages": {
+        "RECEIVED": 32,
+        "MAPPED": 24,
+        "SCHEDULED": 24,
+        "EDT_ENTERED": 24,
+        "RENDER_RETURNED": 24,
+        "CARD_ENTERED": 1,
+        "CARD_ADDED": 1
+      },
+      "approvalEvents": [
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.396521700Z",
+          "stage": "RECEIVED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "type": "approval_request",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.397523500Z",
+          "stage": "MAPPED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.398516500Z",
+          "stage": "SCHEDULED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.398516500Z",
+          "stage": "EDT_ENTERED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.399519100Z",
+          "stage": "CARD_ENTERED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.407523200Z",
+          "stage": "CARD_ADDED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.408523Z",
+          "stage": "RENDER_RETURNED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.767676700Z",
+          "stage": "RECEIVED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "type": "approval_resolved",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.768690600Z",
+          "stage": "MAPPED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval_done",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.770696300Z",
+          "stage": "SCHEDULED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval_done",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.770696300Z",
+          "stage": "EDT_ENTERED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval_done",
+          "id": "fixture-approval-4"
+        },
+        {
+          "schema": "chainlesschain.ui-event-diagnostic/v1",
+          "at": "2026-10-09T18:30:19.773691600Z",
+          "stage": "RENDER_RETURNED",
+          "generation": "7dc362cc",
+          "session": "panel-1791570599561-a4fbe8",
+          "kind": "approval_done",
+          "id": "fixture-approval-4"
+        }
+      ],
+      "failureEvents": []
+    },
+    {
+      "phase": "restart",
+      "statusComplete": true,
+      "statusFailures": [],
+      "files": [
+        {
+          "path": "host-events.jsonl.bin",
+          "source": "host-events.jsonl",
+          "bytes": 2347,
+          "sha256": "b3455cc5aa522d71c8ca58cf8c134f41fb19175941806b4b31d491bd8fc16902",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+          "pass": true
+        },
+        {
+          "path": "idea-001.log.bin",
+          "source": "IC-2024.2/log/idea.log",
+          "bytes": 46171,
+          "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+          "pass": true
+        },
+        {
+          "path": "idea-002.log.bin",
+          "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+          "bytes": 290147,
+          "sha256": "69171dae3f438f0d52ef210f40b7891a719a9c1b52bb67a14dada3d90cfc5456",
+          "originalBytes": true,
+          "artifactPath": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+          "pass": true
+        }
+      ],
+      "eventCount": 11,
+      "stages": {
+        "RECEIVED": 3,
+        "MAPPED": 2,
+        "SCHEDULED": 2,
+        "EDT_ENTERED": 2,
+        "RENDER_RETURNED": 2
+      },
+      "approvalEvents": [],
+      "failureEvents": []
+    }
+  ],
+  "scope": "Successful actual Windows ARM64 2026.2.0.1 artifact only; does not validate Windows x64 2025.2."
+}

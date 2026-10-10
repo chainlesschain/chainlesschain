@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.intellij.ChatCardsLayoutTest" tests="2" skipped="0" failures="2" errors="0" timestamp="2026-10-09T17:21:08" hostname="DESKTOP-MTMV2RE" time="0.237">
+  <properties/>
+  <testcase name="keepsTheComposerVisibleWithSeveralDeferredCards()" classname="com.chainlesschain.ide.intellij.ChatCardsLayoutTest" time="0.231">
+    <failure message="java.lang.InternalError: couldn't create component peer" type="java.lang.InternalError">java.lang.InternalError: couldn't create component peer
+	at java.desktop/sun.awt.windows.WComponentPeer.checkCreation(WComponentPeer.java:834)
+	at java.desktop/sun.awt.windows.WComponentPeer.&lt;init&gt;(WComponentPeer.java:805)
+	at java.desktop/sun.awt.windows.WCanvasPeer.&lt;init&gt;(WCanvasPeer.java:45)
+	at java.desktop/sun.awt.windows.WPanelPeer.&lt;init&gt;(WPanelPeer.java:80)
+	at java.desktop/sun.awt.windows.WToolkit.createPanel(WToolkit.java:492)
+	at java.desktop/java.awt.Panel.addNotify(Panel.java:92)
+	at com.chainlesschain.ide.intellij.ChatCardsLayoutTest$Hierarchy.&lt;init&gt;(ChatCardsLayoutTest.java:75)
+	at com.chainlesschain.ide.intellij.ChatCardsLayoutTest.lambda$keepsTheComposerVisibleWithSeveralDeferredCards$1(ChatCardsLayoutTest.java:133)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:781)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:728)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:722)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:750)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:207)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:128)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:117)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:105)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:92)
+</failure>
+  </testcase>
+  <testcase name="revealsAnApprovalAfterTheCardViewportWasEmpty()" classname="com.chainlesschain.ide.intellij.ChatCardsLayoutTest" time="0.005">
+    <failure message="java.lang.InternalError: couldn't create component peer" type="java.lang.InternalError">java.lang.InternalError: couldn't create component peer
+	at java.desktop/sun.awt.windows.WComponentPeer.checkCreation(WComponentPeer.java:834)
+	at java.desktop/sun.awt.windows.WComponentPeer.&lt;init&gt;(WComponentPeer.java:805)
+	at java.desktop/sun.awt.windows.WCanvasPeer.&lt;init&gt;(WCanvasPeer.java:45)
+	at java.desktop/sun.awt.windows.WPanelPeer.&lt;init&gt;(WPanelPeer.java:80)
+	at java.desktop/sun.awt.windows.WToolkit.createPanel(WToolkit.java:492)
+	at java.desktop/java.awt.Panel.addNotify(Panel.java:92)
+	at com.chainlesschain.ide.intellij.ChatCardsLayoutTest$Hierarchy.&lt;init&gt;(ChatCardsLayoutTest.java:75)
+	at com.chainlesschain.ide.intellij.ChatCardsLayoutTest.lambda$revealsAnApprovalAfterTheCardViewportWasEmpty$0(ChatCardsLayoutTest.java:99)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:308)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:781)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:728)
+	at java.desktop/java.awt.EventQueue$4.run(EventQueue.java:722)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.base/java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:87)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:750)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:207)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:128)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:117)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:105)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:92)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[java.lang.NullPointerException: peer
+	at java.desktop/sun.awt.windows.WToolkit.eventLoop(Native Method)
+	at java.desktop/sun.awt.windows.WToolkit.run(WToolkit.java:360)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+java.lang.NullPointerException: peer
+	at java.desktop/sun.awt.windows.WToolkit.eventLoop(Native Method)
+	at java.desktop/sun.awt.windows.WToolkit.run(WToolkit.java:360)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+]]></system-err>
+</testsuite>

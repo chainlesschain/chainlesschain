@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:14:00.710Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11655163056,
+  "name": "pdh-native-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/metadata.json",
+    "bytes": 788,
+    "sha256": "8632bb91fd82ce420b13629a2607949f0657b7ef6e59baddd070d6fadc648584",
+    "endpoint": "actions/artifacts/11655163056"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655163056/artifact.zip",
+    "bytes": 185742,
+    "sha256": "ee595e1e69e6ceee408725d35ac82aa6e1235005691596a193f36ee40b2619d5",
+    "endpoint": "actions/artifacts/11655163056/zip"
+  },
+  "githubDigestMatched": true
+}

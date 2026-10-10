@@ -1,0 +1,864 @@
+﻿2026-10-09T21:32:56.0653822Z Current runner version: '2.337.0'
+2026-10-09T21:32:56.0681715Z ##[group]Runner Image Provisioner
+2026-10-09T21:32:56.0682617Z Hosted Compute Agent
+2026-10-09T21:32:56.0683208Z Version: 20260901.588
+2026-10-09T21:32:56.0684529Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-09T21:32:56.0685299Z Build Date: 2026-09-01T19:56:44Z
+2026-10-09T21:32:56.0685981Z Worker ID: {fdb8f709-c8ec-455f-9b15-f628728bea06}
+2026-10-09T21:32:56.0686720Z Azure Region: northcentralus
+2026-10-09T21:32:56.0687361Z ##[endgroup]
+2026-10-09T21:32:56.0688910Z ##[group]Operating System
+2026-10-09T21:32:56.0689585Z Microsoft Windows Server 2025
+2026-10-09T21:32:56.0690256Z 10.0.26100
+2026-10-09T21:32:56.0690794Z Datacenter
+2026-10-09T21:32:56.0691306Z ##[endgroup]
+2026-10-09T21:32:56.0691878Z ##[group]Runner Image
+2026-10-09T21:32:56.0692491Z Image: windows-2025-vs2026
+2026-10-09T21:32:56.0693099Z Version: 20260925.250.1
+2026-10-09T21:32:56.0694827Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-09T21:32:56.0696617Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-09T21:32:56.0697621Z ##[endgroup]
+2026-10-09T21:32:56.0701063Z ##[group]GITHUB_TOKEN Permissions
+2026-10-09T21:32:56.0704082Z Actions: write
+2026-10-09T21:32:56.0705070Z ArtifactMetadata: write
+2026-10-09T21:32:56.0705730Z Attestations: write
+2026-10-09T21:32:56.0706334Z Checks: write
+2026-10-09T21:32:56.0706899Z CodeQuality: write
+2026-10-09T21:32:56.0707516Z Contents: write
+2026-10-09T21:32:56.0708085Z CopilotRequests: write
+2026-10-09T21:32:56.0708678Z Deployments: write
+2026-10-09T21:32:56.0709265Z Discussions: write
+2026-10-09T21:32:56.0709902Z Drives: write
+2026-10-09T21:32:56.0710437Z Issues: write
+2026-10-09T21:32:56.0711006Z Metadata: read
+2026-10-09T21:32:56.0711762Z Models: read
+2026-10-09T21:32:56.0712311Z Packages: write
+2026-10-09T21:32:56.0712887Z Pages: write
+2026-10-09T21:32:56.0713460Z PullRequests: write
+2026-10-09T21:32:56.0714048Z RepositoryProjects: write
+2026-10-09T21:32:56.0714653Z SecurityEvents: write
+2026-10-09T21:32:56.0715236Z Statuses: write
+2026-10-09T21:32:56.0715799Z VulnerabilityAlerts: read
+2026-10-09T21:32:56.0716463Z ##[endgroup]
+2026-10-09T21:32:56.0719359Z Secret source: Actions
+2026-10-09T21:32:56.0720391Z Cache mode: write
+2026-10-09T21:32:56.0721158Z Prepare workflow directory
+2026-10-09T21:32:56.1266178Z Prepare all required actions
+2026-10-09T21:32:56.1319151Z Getting action download info
+2026-10-09T21:32:56.3083675Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-09T21:32:58.3368303Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-09T21:32:58.8506403Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-09T21:32:59.4972159Z Uses: chainlesschain/chainlesschain/.github/workflows/_cli-test.yml@refs/pull/425/merge (2463ac4f4d093da163ded043ff7abe90ee94f0d0)
+2026-10-09T21:32:59.4976310Z ##[group] Inputs
+2026-10-09T21:32:59.4976691Z   commit_sha: 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T21:32:59.4977020Z   runs-on: windows-latest
+2026-10-09T21:32:59.4977686Z   shards: 4
+2026-10-09T21:32:59.4977895Z   unit-shards: 16
+2026-10-09T21:32:59.4978379Z   include-e2e: true
+2026-10-09T21:32:59.4978605Z ##[endgroup]
+2026-10-09T21:32:59.4978910Z Complete job name: test-windows / unit (windows-latest, shard 11/16)
+2026-10-09T21:32:59.6923632Z ##[group]Run actions/checkout@v5
+2026-10-09T21:32:59.6924430Z with:
+2026-10-09T21:32:59.6924696Z   ref: 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T21:32:59.6925042Z   repository: chainlesschain/chainlesschain
+2026-10-09T21:32:59.6927975Z   token: ***
+2026-10-09T21:32:59.6928181Z   ssh-strict: true
+2026-10-09T21:32:59.6928377Z   ssh-user: git
+2026-10-09T21:32:59.6928597Z   persist-credentials: true
+2026-10-09T21:32:59.6931451Z   clean: true
+2026-10-09T21:32:59.6931834Z   sparse-checkout-cone-mode: true
+2026-10-09T21:32:59.6932297Z   fetch-depth: 1
+2026-10-09T21:32:59.6932666Z   fetch-tags: false
+2026-10-09T21:32:59.6933040Z   show-progress: true
+2026-10-09T21:32:59.6933404Z   lfs: false
+2026-10-09T21:32:59.6933726Z   submodules: false
+2026-10-09T21:32:59.6934095Z   set-safe-directory: true
+2026-10-09T21:32:59.6934891Z   allow-unsafe-pr-checkout: false
+2026-10-09T21:32:59.6935707Z env:
+2026-10-09T21:32:59.6936201Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:32:59.6936762Z ##[endgroup]
+2026-10-09T21:32:59.8396598Z Syncing repository: chainlesschain/chainlesschain
+2026-10-09T21:32:59.8397929Z ##[group]Getting Git version info
+2026-10-09T21:32:59.8398335Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-09T21:32:59.9472741Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-09T21:33:00.3726951Z git version 2.55.0.windows.5
+2026-10-09T21:33:00.3784108Z ##[endgroup]
+2026-10-09T21:33:00.3807257Z Temporarily overriding HOME='D:\a\_temp\d989599c-ff4f-406a-8771-483bee981865' before making global git config changes
+2026-10-09T21:33:00.3808833Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T21:33:00.3818976Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-09T21:33:00.7003799Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-09T21:33:00.7010332Z ##[group]Initializing the repository
+2026-10-09T21:33:00.7020235Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-09T21:33:00.7963085Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-09T21:33:00.8020424Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-09T21:33:00.8709034Z ##[endgroup]
+2026-10-09T21:33:00.8709458Z ##[group]Disabling automatic garbage collection
+2026-10-09T21:33:00.8718593Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-09T21:33:00.9007803Z ##[endgroup]
+2026-10-09T21:33:00.9008156Z ##[group]Setting up auth
+2026-10-09T21:33:00.9021094Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T21:33:00.9307439Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-09T21:33:02.5104119Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T21:33:02.5408716Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-09T21:33:03.0837389Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T21:33:03.1131306Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-09T21:33:03.6431625Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-09T21:33:03.6689928Z ##[endgroup]
+2026-10-09T21:33:03.6692893Z ##[group]Fetching the repository
+2026-10-09T21:33:03.6703801Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T21:33:15.0939278Z From https://github.com/chainlesschain/chainlesschain
+2026-10-09T21:33:15.0940116Z  * branch              3900e9bd7f4d610b74b4d1639cf62b39dd9004ed -> FETCH_HEAD
+2026-10-09T21:33:15.0991919Z ##[endgroup]
+2026-10-09T21:33:15.0993708Z ##[group]Determining the checkout info
+2026-10-09T21:33:15.0995581Z ##[endgroup]
+2026-10-09T21:33:15.1011442Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-09T21:33:15.1457598Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-09T21:33:15.1754976Z ##[group]Checking out the ref
+2026-10-09T21:33:15.1764354Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T21:33:16.3076814Z Updating files:  12% (2850/23377)
+2026-10-09T21:33:16.3773541Z Updating files:  13% (3040/23377)
+2026-10-09T21:33:16.4827123Z Updating files:  14% (3273/23377)
+2026-10-09T21:33:16.5470369Z Updating files:  15% (3507/23377)
+2026-10-09T21:33:16.6015964Z Updating files:  16% (3741/23377)
+2026-10-09T21:33:16.6542411Z Updating files:  17% (3975/23377)
+2026-10-09T21:33:16.7248568Z Updating files:  18% (4208/23377)
+2026-10-09T21:33:16.7932210Z Updating files:  19% (4442/23377)
+2026-10-09T21:33:16.8701120Z Updating files:  20% (4676/23377)
+2026-10-09T21:33:16.9387215Z Updating files:  21% (4910/23377)
+2026-10-09T21:33:17.0094051Z Updating files:  22% (5143/23377)
+2026-10-09T21:33:17.2761412Z Updating files:  23% (5377/23377)
+2026-10-09T21:33:17.2918102Z Updating files:  23% (5569/23377)
+2026-10-09T21:33:17.3630889Z Updating files:  24% (5611/23377)
+2026-10-09T21:33:17.4335185Z Updating files:  25% (5845/23377)
+2026-10-09T21:33:17.5022366Z Updating files:  26% (6079/23377)
+2026-10-09T21:33:17.5718970Z Updating files:  27% (6312/23377)
+2026-10-09T21:33:17.6547954Z Updating files:  28% (6546/23377)
+2026-10-09T21:33:17.7260191Z Updating files:  29% (6780/23377)
+2026-10-09T21:33:17.7975928Z Updating files:  30% (7014/23377)
+2026-10-09T21:33:17.8711628Z Updating files:  31% (7247/23377)
+2026-10-09T21:33:17.9398673Z Updating files:  32% (7481/23377)
+2026-10-09T21:33:18.0074745Z Updating files:  33% (7715/23377)
+2026-10-09T21:33:18.0745396Z Updating files:  34% (7949/23377)
+2026-10-09T21:33:18.1441925Z Updating files:  35% (8182/23377)
+2026-10-09T21:33:18.2120302Z Updating files:  36% (8416/23377)
+2026-10-09T21:33:18.2464106Z Updating files:  37% (8650/23377)
+2026-10-09T21:33:18.2755869Z Updating files:  37% (8769/23377)
+2026-10-09T21:33:18.3385165Z Updating files:  38% (8884/23377)
+2026-10-09T21:33:18.4048310Z Updating files:  39% (9118/23377)
+2026-10-09T21:33:18.6873977Z Updating files:  40% (9351/23377)
+2026-10-09T21:33:18.7524230Z Updating files:  41% (9585/23377)
+2026-10-09T21:33:18.8249862Z Updating files:  42% (9819/23377)
+2026-10-09T21:33:18.8903794Z Updating files:  43% (10053/23377)
+2026-10-09T21:33:18.9597440Z Updating files:  44% (10286/23377)
+2026-10-09T21:33:19.0374779Z Updating files:  45% (10520/23377)
+2026-10-09T21:33:19.1269517Z Updating files:  46% (10754/23377)
+2026-10-09T21:33:19.2112031Z Updating files:  47% (10988/23377)
+2026-10-09T21:33:19.2541519Z Updating files:  48% (11221/23377)
+2026-10-09T21:33:19.3003222Z Updating files:  48% (11325/23377)
+2026-10-09T21:33:19.3836855Z Updating files:  49% (11455/23377)
+2026-10-09T21:33:19.4659913Z Updating files:  50% (11689/23377)
+2026-10-09T21:33:19.5337998Z Updating files:  51% (11923/23377)
+2026-10-09T21:33:19.6279541Z Updating files:  52% (12157/23377)
+2026-10-09T21:33:19.7253539Z Updating files:  53% (12390/23377)
+2026-10-09T21:33:20.0966014Z Updating files:  54% (12624/23377)
+2026-10-09T21:33:20.2763422Z Updating files:  55% (12858/23377)
+2026-10-09T21:33:20.6311159Z Updating files:  55% (12961/23377)
+2026-10-09T21:33:21.1807658Z Updating files:  56% (13092/23377)
+2026-10-09T21:33:21.2824450Z Updating files:  57% (13325/23377)
+2026-10-09T21:33:21.4427908Z Updating files:  57% (13386/23377)
+2026-10-09T21:33:21.5216624Z Updating files:  58% (13559/23377)
+2026-10-09T21:33:21.6154967Z Updating files:  59% (13793/23377)
+2026-10-09T21:33:21.6855405Z Updating files:  60% (14027/23377)
+2026-10-09T21:33:21.7800851Z Updating files:  61% (14260/23377)
+2026-10-09T21:33:21.8678255Z Updating files:  62% (14494/23377)
+2026-10-09T21:33:21.9714414Z Updating files:  63% (14728/23377)
+2026-10-09T21:33:22.0422939Z Updating files:  64% (14962/23377)
+2026-10-09T21:33:22.1195928Z Updating files:  65% (15196/23377)
+2026-10-09T21:33:22.1861510Z Updating files:  66% (15429/23377)
+2026-10-09T21:33:22.2503630Z Updating files:  67% (15663/23377)
+2026-10-09T21:33:22.3226177Z Updating files:  68% (15897/23377)
+2026-10-09T21:33:22.3677054Z Updating files:  68% (15987/23377)
+2026-10-09T21:33:22.4435025Z Updating files:  69% (16131/23377)
+2026-10-09T21:33:22.5111949Z Updating files:  70% (16364/23377)
+2026-10-09T21:33:22.6013595Z Updating files:  71% (16598/23377)
+2026-10-09T21:33:22.6788012Z Updating files:  72% (16832/23377)
+2026-10-09T21:33:22.7470991Z Updating files:  73% (17066/23377)
+2026-10-09T21:33:22.8141914Z Updating files:  74% (17299/23377)
+2026-10-09T21:33:22.8818386Z Updating files:  75% (17533/23377)
+2026-10-09T21:33:22.9495918Z Updating files:  76% (17767/23377)
+2026-10-09T21:33:23.0182403Z Updating files:  77% (18001/23377)
+2026-10-09T21:33:23.0792192Z Updating files:  78% (18235/23377)
+2026-10-09T21:33:23.1481534Z Updating files:  79% (18468/23377)
+2026-10-09T21:33:23.2173896Z Updating files:  80% (18702/23377)
+2026-10-09T21:33:23.2872069Z Updating files:  81% (18936/23377)
+2026-10-09T21:33:23.3099929Z Updating files:  82% (19170/23377)
+2026-10-09T21:33:23.3568508Z Updating files:  82% (19253/23377)
+2026-10-09T21:33:23.4335565Z Updating files:  83% (19403/23377)
+2026-10-09T21:33:23.5118142Z Updating files:  84% (19637/23377)
+2026-10-09T21:33:23.5911147Z Updating files:  85% (19871/23377)
+2026-10-09T21:33:23.6673440Z Updating files:  86% (20105/23377)
+2026-10-09T21:33:23.7402622Z Updating files:  87% (20338/23377)
+2026-10-09T21:33:23.8134655Z Updating files:  88% (20572/23377)
+2026-10-09T21:33:23.9139394Z Updating files:  89% (20806/23377)
+2026-10-09T21:33:23.9808593Z Updating files:  90% (21040/23377)
+2026-10-09T21:33:24.0524086Z Updating files:  91% (21274/23377)
+2026-10-09T21:33:24.1240383Z Updating files:  92% (21507/23377)
+2026-10-09T21:33:24.1908944Z Updating files:  93% (21741/23377)
+2026-10-09T21:33:24.2698180Z Updating files:  94% (21975/23377)
+2026-10-09T21:33:24.3105569Z Updating files:  95% (22209/23377)
+2026-10-09T21:33:24.3442917Z Updating files:  95% (22351/23377)
+2026-10-09T21:33:24.4157161Z Updating files:  96% (22442/23377)
+2026-10-09T21:33:24.4865336Z Updating files:  97% (22676/23377)
+2026-10-09T21:33:24.5544828Z Updating files:  98% (22910/23377)
+2026-10-09T21:33:24.6188826Z Updating files:  99% (23144/23377)
+2026-10-09T21:33:24.6189507Z Updating files: 100% (23377/23377)
+2026-10-09T21:33:24.6190115Z Updating files: 100% (23377/23377), done.
+2026-10-09T21:33:24.6611423Z Note: switching to '3900e9bd7f4d610b74b4d1639cf62b39dd9004ed'.
+2026-10-09T21:33:24.6611944Z 
+2026-10-09T21:33:24.6612326Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-09T21:33:24.6613234Z changes and commit them, and you can discard any commits you make in this
+2026-10-09T21:33:24.6614140Z state without impacting any branches by switching back to a branch.
+2026-10-09T21:33:24.6614656Z 
+2026-10-09T21:33:24.6614998Z If you want to create a new branch to retain commits you create, you may
+2026-10-09T21:33:24.6615821Z do so (now or later) by using -c with the switch command. Example:
+2026-10-09T21:33:24.6616300Z 
+2026-10-09T21:33:24.6616515Z   git switch -c <new-branch-name>
+2026-10-09T21:33:24.6616835Z 
+2026-10-09T21:33:24.6617004Z Or undo this operation with:
+2026-10-09T21:33:24.6617600Z 
+2026-10-09T21:33:24.6617760Z   git switch -
+2026-10-09T21:33:24.6617975Z 
+2026-10-09T21:33:24.6618354Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-09T21:33:24.6618928Z 
+2026-10-09T21:33:24.6619358Z HEAD is now at 3900e9bd fix(release): version changed SDK source before CLI publication
+2026-10-09T21:33:24.6846502Z ##[endgroup]
+2026-10-09T21:33:24.7178359Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-09T21:33:24.7433941Z 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T21:33:24.7830836Z ##[group]Run test "$(git rev-parse HEAD)" = "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed"
+2026-10-09T21:33:24.7831534Z [36;1mtest "$(git rev-parse HEAD)" = "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed"[0m
+2026-10-09T21:33:24.7855156Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-09T21:33:24.7855920Z env:
+2026-10-09T21:33:24.7856197Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:33:24.7856547Z ##[endgroup]
+2026-10-09T21:33:25.0256017Z ##[group]Run actions/setup-node@v5
+2026-10-09T21:33:25.0256346Z with:
+2026-10-09T21:33:25.0256952Z   node-version: 22.22.2
+2026-10-09T21:33:25.0257163Z   cache: npm
+2026-10-09T21:33:25.0257376Z   cache-dependency-path: package-lock.json
+2026-10-09T21:33:25.0257663Z   always-auth: false
+2026-10-09T21:33:25.0257864Z   check-latest: false
+2026-10-09T21:33:25.0260612Z   token: ***
+2026-10-09T21:33:25.0260840Z   package-manager-cache: true
+2026-10-09T21:33:25.0261070Z env:
+2026-10-09T21:33:25.0261263Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:33:25.0261534Z ##[endgroup]
+2026-10-09T21:33:25.2137335Z Attempting to download 22.22.2...
+2026-10-09T21:33:25.2332971Z (node:9208) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-09T21:33:25.2334326Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-09T21:33:25.8451680Z Acquiring 22.22.2 - x64 from https://github.com/actions/node-versions/releases/download/22.22.2-23521889093/node-22.22.2-win32-x64.7z
+2026-10-09T21:33:26.1686060Z Extracting ...
+2026-10-09T21:33:28.5183422Z Adding to the cache ...
+2026-10-09T21:33:32.5514774Z ##[group]Environment details
+2026-10-09T21:33:34.0760623Z node: v22.22.2
+2026-10-09T21:33:34.0760999Z npm: 10.9.7
+2026-10-09T21:33:34.0761201Z yarn: 1.22.22
+2026-10-09T21:33:34.0761692Z ##[endgroup]
+2026-10-09T21:33:34.1572038Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\22.22.2\x64\npm.cmd config get cache"
+2026-10-09T21:33:34.4662665Z C:\npm\cache
+2026-10-09T21:33:34.7923086Z Cache hit for: node-cache-Windows-x64-npm-d3503fe765434c5023351fb7fd33f45f8516162ba8b99227ac409e5de2d4d52b
+2026-10-09T21:33:34.8070726Z (node:9208) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-09T21:33:35.9304424Z Received 134217728 of 639225452 (21.0%), 127.4 MBs/sec
+2026-10-09T21:33:36.9385581Z Received 314572800 of 639225452 (49.2%), 148.9 MBs/sec
+2026-10-09T21:33:37.9518988Z Received 507510784 of 639225452 (79.4%), 159.8 MBs/sec
+2026-10-09T21:33:38.7506854Z Received 639225452 of 639225452 (100.0%), 159.3 MBs/sec
+2026-10-09T21:33:38.7510904Z Cache Size: ~610 MB (639225452 B)
+2026-10-09T21:33:38.7623957Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/c4f28739-52df-4336-bbb5-039aead86aa9/cache.tzst -P -C D:/a/chainlesschain/chainlesschain --force-local --use-compress-program "zstd -d"
+2026-10-09T21:33:57.7919008Z Cache restored successfully
+2026-10-09T21:33:57.8274111Z Cache restored from key: node-cache-Windows-x64-npm-d3503fe765434c5023351fb7fd33f45f8516162ba8b99227ac409e5de2d4d52b
+2026-10-09T21:33:57.8697627Z Prepare all required actions
+2026-10-09T21:33:57.8824043Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-09T21:33:57.8824352Z with:
+2026-10-09T21:33:57.8824552Z   working-directory: .
+2026-10-09T21:33:57.8824820Z   install-command: npm ci --legacy-peer-deps
+2026-10-09T21:33:57.8825130Z   install-desktop-app-vue: false
+2026-10-09T21:33:57.8825384Z env:
+2026-10-09T21:33:57.8825590Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:33:57.8825863Z ##[endgroup]
+2026-10-09T21:33:57.8886533Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run]
+2026-10-09T21:33:57.9037589Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-09T21:33:57.9037989Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-09T21:33:57.9038294Z [36;1mattempt_install() {[0m
+2026-10-09T21:33:57.9038535Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-09T21:33:57.9038754Z [36;1m}[0m
+2026-10-09T21:33:57.9038992Z [36;1mcleanup_partial_install() {[0m
+2026-10-09T21:33:57.9039376Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-09T21:33:57.9039864Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-09T21:33:57.9040354Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-09T21:33:57.9040819Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-09T21:33:57.9041281Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-09T21:33:57.9041765Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-09T21:33:57.9042844Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-09T21:33:57.9043772Z [36;1m}[0m
+2026-10-09T21:33:57.9043960Z [36;1mfor i in 1 2 3; do[0m
+2026-10-09T21:33:57.9044197Z [36;1m  if attempt_install; then[0m
+2026-10-09T21:33:57.9044438Z [36;1m    exit 0[0m
+2026-10-09T21:33:57.9044633Z [36;1m  fi[0m
+2026-10-09T21:33:57.9044819Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-09T21:33:57.9045066Z [36;1m    delay=$((i * 15))[0m
+2026-10-09T21:33:57.9045419Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-09T21:33:57.9045812Z [36;1m    sleep "$delay"[0m
+2026-10-09T21:33:57.9046060Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-09T21:33:57.9046499Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-09T21:33:57.9046907Z [36;1m      exit 1[0m
+2026-10-09T21:33:57.9047098Z [36;1m    fi[0m
+2026-10-09T21:33:57.9047273Z [36;1m  fi[0m
+2026-10-09T21:33:57.9047449Z [36;1mdone[0m
+2026-10-09T21:33:57.9047696Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-09T21:33:57.9048006Z [36;1mexit 1[0m
+2026-10-09T21:33:57.9065934Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-09T21:33:57.9066339Z env:
+2026-10-09T21:33:57.9066551Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:33:57.9066823Z ##[endgroup]
+2026-10-09T21:34:01.5166973Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-09T21:34:16.6065698Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-09T21:34:16.6074501Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-09T21:34:16.7117722Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-09T21:34:16.7667370Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-09T21:34:16.8361208Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-09T21:34:16.9519226Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-09T21:34:17.0066763Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-09T21:34:17.3254587Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-09T21:34:17.3267047Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-09T21:34:17.3389354Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-09T21:34:17.7906200Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-09T21:34:18.2294556Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2307135Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2318715Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2382923Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2408069Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2428037Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2480156Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2788268Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.2817269Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:18.4008573Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-09T21:34:19.1611140Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-09T21:34:19.4946409Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-09T21:34:19.6772224Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-09T21:34:21.3053138Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-09T21:34:21.9381932Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-09T21:34:22.5306344Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-09T21:34:23.7480114Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-09T21:34:23.9239124Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-09T21:34:25.2013047Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-09T21:34:28.8705515Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-09T21:34:29.3833954Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-09T21:34:29.4159025Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-09T21:34:35.1425085Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-09T21:34:35.1429287Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-09T21:34:36.4252039Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:36.4267684Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:36.4290718Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-09T21:34:36.4972615Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-09T21:34:48.8000305Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-09T21:34:54.8649752Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-09T21:37:29.6458641Z 
+2026-10-09T21:37:29.6459616Z added 2514 packages, and audited 2530 packages in 4m
+2026-10-09T21:37:29.6460094Z 
+2026-10-09T21:37:29.6460324Z 471 packages are looking for funding
+2026-10-09T21:37:29.6460782Z   run `npm fund` for details
+2026-10-09T21:37:29.9067830Z 
+2026-10-09T21:37:29.9068714Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-09T21:37:29.9069329Z 
+2026-10-09T21:37:29.9069745Z To address issues that do not require attention, run:
+2026-10-09T21:37:29.9070437Z   npm audit fix
+2026-10-09T21:37:29.9070686Z 
+2026-10-09T21:37:29.9071215Z To address all issues possible (including breaking changes), run:
+2026-10-09T21:37:29.9071961Z   npm audit fix --force
+2026-10-09T21:37:29.9072755Z 
+2026-10-09T21:37:29.9073147Z Some issues need review, and may require choosing
+2026-10-09T21:37:29.9073884Z a different dependency.
+2026-10-09T21:37:29.9074177Z 
+2026-10-09T21:37:29.9074419Z Run `npm audit` for details.
+2026-10-09T21:37:31.8033267Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=213914]
+2026-10-09T21:37:31.8037141Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_2]
+2026-10-09T21:37:31.8045302Z ##[end-action id=__self.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-09T21:37:31.8048605Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_3]
+2026-10-09T21:37:31.8189242Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-09T21:37:31.8189728Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-09T21:37:31.8190222Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-09T21:37:31.8190786Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-09T21:37:31.8191235Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-09T21:37:31.8191602Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-09T21:37:31.8192015Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-09T21:37:31.8192422Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-09T21:37:31.8192831Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-09T21:37:31.8193242Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-09T21:37:31.8193639Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-09T21:37:31.8193959Z [36;1m  *)             pkg="" ;;[0m
+2026-10-09T21:37:31.8194203Z [36;1mesac[0m
+2026-10-09T21:37:31.8194420Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-09T21:37:31.8194743Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-09T21:37:31.8195077Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-09T21:37:31.8195352Z [36;1m  echo "Installing: $packages"[0m
+2026-10-09T21:37:31.8195646Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-09T21:37:31.8196014Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-09T21:37:31.8196390Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-09T21:37:31.8196728Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-09T21:37:31.8197018Z [36;1m  else[0m
+2026-10-09T21:37:31.8197302Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-09T21:37:31.8197654Z [36;1m  fi[0m
+2026-10-09T21:37:31.8197845Z [36;1mfi[0m
+2026-10-09T21:37:31.8213836Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-09T21:37:31.8214241Z env:
+2026-10-09T21:37:31.8214457Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:37:31.8214744Z   EXTRA_PACKAGES: 
+2026-10-09T21:37:31.8214966Z   INSTALL_WORKSPACE: 
+2026-10-09T21:37:31.8215173Z ##[endgroup]
+2026-10-09T21:37:31.9443286Z Installing: @rollup/rollup-win32-x64-msvc
+2026-10-09T21:37:35.4543991Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-09T21:37:35.5087345Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-09T21:37:35.8061508Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-09T21:37:35.8646279Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-09T21:37:35.8762166Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-09T21:37:39.9924034Z 
+2026-10-09T21:37:39.9925037Z added 1 package, changed 1 package, and audited 2531 packages in 8s
+2026-10-09T21:37:39.9925616Z 
+2026-10-09T21:37:39.9928412Z 471 packages are looking for funding
+2026-10-09T21:37:39.9928860Z   run `npm fund` for details
+2026-10-09T21:37:40.2425122Z 
+2026-10-09T21:37:40.2425974Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-09T21:37:40.2426367Z 
+2026-10-09T21:37:40.2426641Z To address issues that do not require attention, run:
+2026-10-09T21:37:40.2427089Z   npm audit fix
+2026-10-09T21:37:40.2427272Z 
+2026-10-09T21:37:40.2427650Z To address all issues possible (including breaking changes), run:
+2026-10-09T21:37:40.2428282Z   npm audit fix --force
+2026-10-09T21:37:40.2428475Z 
+2026-10-09T21:37:40.2428729Z Some issues need review, and may require choosing
+2026-10-09T21:37:40.2430962Z a different dependency.
+2026-10-09T21:37:40.2431196Z 
+2026-10-09T21:37:40.2431380Z Run `npm audit` for details.
+2026-10-09T21:37:40.2902183Z ##[end-action id=__self.__run_3;outcome=success;conclusion=success;duration_ms=8485]
+2026-10-09T21:37:40.3564053Z ##[group]Run node scripts/run-vitest-with-worker-retry.mjs -- run --shard=11/16 --reporter=default --reporter=junit --outputFile.junit=test-results/unit-11.xml --silent=passed-only --maxWorkers=1 --no-file-parallelism __tests__/unit/
+2026-10-09T21:37:40.3565876Z [36;1mnode scripts/run-vitest-with-worker-retry.mjs -- run --shard=11/16 --reporter=default --reporter=junit --outputFile.junit=test-results/unit-11.xml --silent=passed-only --maxWorkers=1 --no-file-parallelism __tests__/unit/[0m
+2026-10-09T21:37:40.4161173Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-09T21:37:40.4161744Z env:
+2026-10-09T21:37:40.4162036Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:37:40.4162435Z ##[endgroup]
+2026-10-09T21:37:41.4266827Z 
+2026-10-09T21:37:41.4272760Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/a/chainlesschain/chainlesschain/packages/cli[39m
+2026-10-09T21:37:41.4273594Z 
+2026-10-09T21:38:13.7178694Z  [32m✓[39m __tests__/unit/evolution-ledger.test.js [2m([22m[2m57 tests[22m[2m)[22m[33m 30969[2mms[22m[39m
+2026-10-09T21:38:13.7182290Z      [33m[2m✓[22m[39m commits a validated batch and withholds every event receipt until final readback [33m 327[2mms[22m[39m
+2026-10-09T21:38:13.7187001Z      [33m[2m✓[22m[39m chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant [33m 355[2mms[22m[39m
+2026-10-09T21:38:13.7189386Z      [33m[2m✓[22m[39m rejects proxy and accessor schema inputs without invoking external traps [33m 505[2mms[22m[39m
+2026-10-09T21:38:13.7193603Z      [33m[2m✓[22m[39m rejects replaying legacy and domain signatures across their independent signing domains [33m 494[2mms[22m[39m
+2026-10-09T21:38:13.7195683Z      [33m[2m✓[22m[39m serves bounded batch queries from a revalidated incremental prefix index [33m 387[2mms[22m[39m
+2026-10-09T21:38:13.7199562Z      [33m[2m✓[22m[39m reopens from a witness-bound persistent snapshot without trusting tampered cache state [33m 480[2mms[22m[39m
+2026-10-09T21:38:13.7201554Z      [33m[2m✓[22m[39m rejects stale-current, cross-ledger, and signature-header receipt replay [33m 346[2mms[22m[39m
+2026-10-09T21:38:13.7203877Z      [33m[2m✓[22m[39m requires an authenticated artifact resolver and validates resolved bytes [33m 607[2mms[22m[39m
+2026-10-09T21:38:13.7238888Z      [33m[2m✓[22m[39m captures and freezes trusted ports and paths against post-construction mutation [33m 376[2mms[22m[39m
+2026-10-09T21:38:13.7240937Z      [33m[2m✓[22m[39m rejects substituting a different fully signed ledger under the same trust key [33m 343[2mms[22m[39m
+2026-10-09T21:38:13.7243165Z      [33m[2m✓[22m[39m rejects deleting HEAD or rolling the immutable log prefix behind HEAD [33m 427[2mms[22m[39m
+2026-10-09T21:38:13.7245068Z      [33m[2m✓[22m[39m rejects signature-header substitution in identity and event segments [33m 447[2mms[22m[39m
+2026-10-09T21:38:13.7246904Z      [33m[2m✓[22m[39m detects canonical-byte tamper, truncation, and missing anchored segments [33m 530[2mms[22m[39m
+2026-10-09T21:38:13.7248708Z      [33m[2m✓[22m[39m admits exactly one of two concurrent domain appends with the same eventId [33m 452[2mms[22m[39m
+2026-10-09T21:38:13.7250710Z      [33m[2m✓[22m[39m serializes one hundred concurrent fenced appends without loss, duplication, or head drift [33m 17018[2mms[22m[39m
+2026-10-09T21:38:50.2411992Z  [32m✓[39m __tests__/unit/governed-knowledge-sync-ledger-adapter.test.js [2m([22m[2m40 tests[22m[2m)[22m[33m 33200[2mms[22m[39m
+2026-10-09T21:38:50.2416087Z      [33m[2m✓[22m[39m rejects a ledger write during final read-only verification, then recovers without repeating durable effects [33m 566[2mms[22m[39m
+2026-10-09T21:38:50.2419046Z      [33m[2m✓[22m[39m captures provider and verifier methods at construction [33m 512[2mms[22m[39m
+2026-10-09T21:38:50.2424304Z      [33m[2m✓[22m[39m rejects an authenticated legacy unsafe prepare on actual Ledger reopen [33m 333[2mms[22m[39m
+2026-10-09T21:38:50.2426210Z      [33m[2m✓[22m[39m continues to authenticate and load legacy v1 sync records [33m 418[2mms[22m[39m
+2026-10-09T21:38:50.2427932Z      [33m[2m✓[22m[39m reopens the same record from actual EvolutionLedger files and witness [33m 967[2mms[22m[39m
+2026-10-09T21:38:50.2429775Z      [33m[2m✓[22m[39m recovers a locally published record through a new adapter instance [33m 335[2mms[22m[39m
+2026-10-09T21:38:50.2431484Z      [33m[2m✓[22m[39m durably preserves concurrent remote edits for human merge [33m 836[2mms[22m[39m
+2026-10-09T21:38:50.2433601Z      [33m[2m✓[22m[39m resumes an accepted reception after sync commit but before artifact activation [33m 693[2mms[22m[39m
+2026-10-09T21:38:50.2435496Z      [33m[2m✓[22m[39m builds only an independently authenticated exact human merge plan [33m 865[2mms[22m[39m
+2026-10-09T21:38:50.2437290Z      [33m[2m✓[22m[39m resumes prepared merge publication with one stable idempotency key [33m 2312[2mms[22m[39m
+2026-10-09T21:38:50.2439380Z      [33m[2m✓[22m[39m publishes a merge through the durable sync ledger and recovers transport response loss [33m 2385[2mms[22m[39m
+2026-10-09T21:38:50.2441298Z      [33m[2m✓[22m[39m requires the shared Knowledge candidate gate at composition time [33m 1073[2mms[22m[39m
+2026-10-09T21:38:50.2443029Z      [33m[2m✓[22m[39m requires an independent artifact transition verifier reader [33m 753[2mms[22m[39m
+2026-10-09T21:38:50.2445056Z      [33m[2m✓[22m[39m requires a branded artifact dependency release resolver [33m 785[2mms[22m[39m
+2026-10-09T21:38:50.2446648Z      [33m[2m✓[22m[39m does not stage or publish an unresolved Knowledge dependency [33m 979[2mms[22m[39m
+2026-10-09T21:38:50.2448452Z      [33m[2m✓[22m[39m locks a Knowledge dependency to the current typed Ledger release [33m 1729[2mms[22m[39m
+2026-10-09T21:38:50.2450253Z      [33m[2m✓[22m[39m does not publish a merge when Knowledge candidate persistence fails [33m 932[2mms[22m[39m
+2026-10-09T21:38:50.2452000Z      [33m[2m✓[22m[39m does not publish a merge rejected by the typed activation policy [33m 1038[2mms[22m[39m
+2026-10-09T21:38:50.2453608Z      [33m[2m✓[22m[39m reopens a settled merge through actual Ledger files and witness [33m 4696[2mms[22m[39m
+2026-10-09T21:38:50.2455380Z      [33m[2m✓[22m[39m exposes a redacted CLI reviewer surface backed by the durable merge [33m 3308[2mms[22m[39m
+2026-10-09T21:38:50.2457036Z      [33m[2m✓[22m[39m routes Cloud Session review through fixed App Server methods [33m 2239[2mms[22m[39m
+2026-10-09T21:38:50.2458735Z      [33m[2m✓[22m[39m refuses a merge publish result rejected by its independent verifier [33m 930[2mms[22m[39m
+2026-10-09T21:38:50.2460408Z      [33m[2m✓[22m[39m applies every revocation dependency durably before sync commit [33m 491[2mms[22m[39m
+2026-10-09T21:38:50.2462069Z      [33m[2m✓[22m[39m does not execute destructive dependencies for a concurrent conflict [33m 1085[2mms[22m[39m
+2026-10-09T21:38:50.2463589Z      [33m[2m✓[22m[39m resumes dependency response loss without reapplying a durable operation [33m 539[2mms[22m[39m
+2026-10-09T21:38:50.2465558Z      [33m[2m✓[22m[39m reopens settled dependencies from actual Ledger files without reapplying [33m 1493[2mms[22m[39m
+2026-10-09T21:38:50.2467042Z      [33m[2m✓[22m[39m recovers an idempotent commit after an append response is lost [33m 390[2mms[22m[39m
+2026-10-09T21:38:50.2468474Z      [33m[2m✓[22m[39m fails closed when the current envelope authority revokes a signature [33m 302[2mms[22m[39m
+2026-10-09T21:41:08.2253381Z  [32m✓[39m __tests__/unit/checkpoint-store.test.js [2m([22m[2m66 tests[22m[2m)[22m[33m 137188[2mms[22m[39m
+2026-10-09T21:41:08.2259278Z      [33m[2m✓[22m[39m reports availability inside vs outside a git work tree [33m 389[2mms[22m[39m
+2026-10-09T21:41:08.2261361Z      [33m[2m✓[22m[39m preserves non-secret git settings without forwarding provider secrets [33m 324[2mms[22m[39m
+2026-10-09T21:41:08.2263672Z      [33m[2m✓[22m[39m creates a checkpoint as a shadow ref without touching index/working tree [33m 858[2mms[22m[39m
+2026-10-09T21:41:08.2265535Z      [33m[2m✓[22m[39m creates shadow commits without relying on global git author config [33m 854[2mms[22m[39m
+2026-10-09T21:41:08.2267215Z      [33m[2m✓[22m[39m lists checkpoints newest-first and resolves ids [33m 1538[2mms[22m[39m
+2026-10-09T21:41:08.2269002Z      [33m[2m✓[22m[39m retries a concurrent id/tip publication without overwriting its checkpoint [33m 2697[2mms[22m[39m
+2026-10-09T21:41:08.2270942Z      [33m[2m✓[22m[39m bounds repeated checkpoint ref transaction conflicts [33m 4810[2mms[22m[39m
+2026-10-09T21:41:08.2272486Z      [33m[2m✓[22m[39m rewind restores modified files and takes a safety checkpoint [33m 6648[2mms[22m[39m
+2026-10-09T21:41:08.2273692Z      [33m[2m✓[22m[39m emits durable restore evidence at the three synchronous boundaries [33m 4893[2mms[22m[39m
+2026-10-09T21:41:08.2274636Z      [33m[2m✓[22m[39m rejects async onSafetyReady before any workspace write [33m 992[2mms[22m[39m
+2026-10-09T21:41:08.2275492Z      [33m[2m✓[22m[39m rejects async onMutationStarted before any workspace write [33m 1013[2mms[22m[39m
+2026-10-09T21:41:08.2276341Z      [33m[2m✓[22m[39m rejects async onWorkspaceApplied before any workspace write [33m 913[2mms[22m[39m
+2026-10-09T21:41:08.2277174Z      [33m[2m✓[22m[39m rejects a thenable returned by onSafetyReady [33m 1751[2mms[22m[39m
+2026-10-09T21:41:08.2277935Z      [33m[2m✓[22m[39m rejects a thenable returned by onMutationStarted [33m 2002[2mms[22m[39m
+2026-10-09T21:41:08.2279234Z      [33m[2m✓[22m[39m rejects a thenable returned by onWorkspaceApplied [33m 2365[2mms[22m[39m
+2026-10-09T21:41:08.2280603Z      [33m[2m✓[22m[39m revalidates the exact safety ref after onSafetyReady [33m 1860[2mms[22m[39m
+2026-10-09T21:41:08.2282072Z      [33m[2m✓[22m[39m revalidates the exact safety ref after onMutationStarted [33m 2097[2mms[22m[39m
+2026-10-09T21:41:08.2283625Z      [33m[2m✓[22m[39m revalidates workspace prestate after onMutationStarted [33m 2325[2mms[22m[39m
+2026-10-09T21:41:08.2285269Z      [33m[2m✓[22m[39m emits only workspace-applied and does not write for a zero-diff rewind [33m 2433[2mms[22m[39m
+2026-10-09T21:41:08.2286865Z      [33m[2m✓[22m[39m rewind deletes files created after the checkpoint [33m 2391[2mms[22m[39m
+2026-10-09T21:41:08.2288282Z      [33m[2m✓[22m[39m rewind recreates files deleted after the checkpoint [33m 2480[2mms[22m[39m
+2026-10-09T21:41:08.2289884Z      [33m[2m✓[22m[39m dry-run reports changes without writing or creating a safety checkpoint [33m 1419[2mms[22m[39m
+2026-10-09T21:41:08.2291490Z      [33m[2m✓[22m[39m statusAgainst classifies modified / added / deleted [33m 1272[2mms[22m[39m
+2026-10-09T21:41:08.2293077Z      [33m[2m✓[22m[39m returns a stable full-tree workspace binding from repo subdirectories [33m 3100[2mms[22m[39m
+2026-10-09T21:41:08.2294786Z      [33m[2m✓[22m[39m rejects same-classification workspace drift before safety or restore writes [33m 2323[2mms[22m[39m
+2026-10-09T21:41:08.2296378Z      [33m[2m✓[22m[39m fails closed on a malformed expected workspace binding [33m 1954[2mms[22m[39m
+2026-10-09T21:41:08.2298382Z      [33m[2m✓[22m[39m rejects a retargeted checkpoint ref before status or restore writes [33m 2476[2mms[22m[39m
+2026-10-09T21:41:08.2300451Z      [33m[2m✓[22m[39m attaches the immutable safety checkpoint when git restore fails [33m 2404[2mms[22m[39m
+2026-10-09T21:41:08.2302725Z      [33m[2m✓[22m[39m diffCheckpoint returns a patch / stat against current state [33m 2252[2mms[22m[39m
+2026-10-09T21:41:08.2304495Z      [33m[2m✓[22m[39m showCheckpoint lists the captured files with sizes [33m 2223[2mms[22m[39m
+2026-10-09T21:41:08.2306012Z      [33m[2m✓[22m[39m respects .gitignore (ignored files are not snapshotted) [33m 2480[2mms[22m[39m
+2026-10-09T21:41:08.2307527Z      [33m[2m✓[22m[39m delete removes one checkpoint; clear removes all in a session [33m 3422[2mms[22m[39m
+2026-10-09T21:41:08.2309190Z      [33m[2m✓[22m[39m fails manual delete and clear before removing retained restore authority [33m 1781[2mms[22m[39m
+2026-10-09T21:41:08.2310882Z      [33m[2m✓[22m[39m fails closed when an orphan session tip is the last restore authority [33m 1125[2mms[22m[39m
+2026-10-09T21:41:08.2312524Z      [33m[2m✓[22m[39m rejects retention authority redirection outside the test runtime [33m 980[2mms[22m[39m
+2026-10-09T21:41:08.2314171Z      [33m[2m✓[22m[39m uses an expected-OID CAS and never deletes a checkpoint id successor [33m 1556[2mms[22m[39m
+2026-10-09T21:41:08.2315813Z      [33m[2m✓[22m[39m rewinds the session tip when deleting latest, then supports create and clear [33m 2272[2mms[22m[39m
+2026-10-09T21:41:08.2318644Z      [33m[2m✓[22m[39m verifies the predecessor ref while atomically rewinding the session tip [33m 2009[2mms[22m[39m
+2026-10-09T21:41:08.2320051Z      [33m[2m✓[22m[39m scopes checkpoints by session namespace [33m 1504[2mms[22m[39m
+2026-10-09T21:41:08.2321328Z      [33m[2m✓[22m[39m resolveCheckpoint throws on an unknown id [33m 411[2mms[22m[39m
+2026-10-09T21:41:08.2322815Z      [33m[2m✓[22m[39m skipIfUnchanged reuses the prior checkpoint when nothing changed [33m 1753[2mms[22m[39m
+2026-10-09T21:41:08.2324404Z        [33m[2m✓[22m[39m keeps only the newest N checkpoints, pruning the oldest [33m 3613[2mms[22m[39m
+2026-10-09T21:41:08.2325942Z        [33m[2m✓[22m[39m does not prune when maxPerSession is omitted (manual = unbounded) [33m 2699[2mms[22m[39m
+2026-10-09T21:41:08.2327685Z        [33m[2m✓[22m[39m excludes retained authority and prunes the oldest free checkpoint [33m 1975[2mms[22m[39m
+2026-10-09T21:41:08.2330942Z        [33m[2m✓[22m[39m skips the entire prune when restore authority is unverified [33m 1983[2mms[22m[39m
+2026-10-09T21:41:08.2332726Z        [33m[2m✓[22m[39m a pruned checkpoint's predecessor tree is still restorable via the kept chain [33m 2912[2mms[22m[39m
+2026-10-09T21:41:08.2334266Z      [33m[2m✓[22m[39m proves and executes an exact modified/added/deleted rollback [33m 4741[2mms[22m[39m
+2026-10-09T21:41:08.2335902Z      [33m[2m✓[22m[39m accepts partial exact target residue and only counts live rollback paths [33m 4640[2mms[22m[39m
+2026-10-09T21:41:08.2337979Z      [33m[2m✓[22m[39m verifies a zero-target rollback without invoking checkout-index [33m 3516[2mms[22m[39m
+2026-10-09T21:41:08.2339711Z      [33m[2m✓[22m[39m rejects arbitrary third-party content on an original mutation path [33m 2942[2mms[22m[39m
+2026-10-09T21:41:08.2341369Z      [33m[2m✓[22m[39m rejects paths outside the immutable original mutation set [33m 3427[2mms[22m[39m
+2026-10-09T21:41:08.2343065Z      [33m[2m✓[22m[39m rejects stale identities, safety plans, counts, and missing safety refs [33m 4630[2mms[22m[39m
+2026-10-09T21:41:08.2344870Z      [33m[2m✓[22m[39m revalidates the whole plan and workspace under the lease before writing [33m 5117[2mms[22m[39m
+2026-10-09T21:41:08.2346798Z      [33m[2m✓[22m[39m rejects tampered bindings and a lease for another workspace before writing [33m 5074[2mms[22m[39m
+2026-10-09T21:41:08.2348470Z      [33m[2m✓[22m[39m never reports success when the Git write primitive fails [33m 4232[2mms[22m[39m
+2026-10-09T21:41:08.2350000Z      [33m[2m✓[22m[39m a dotted session name that git would reject still checkpoints [33m 1026[2mms[22m[39m
+2026-10-09T21:41:09.2032084Z  [32m✓[39m __tests__/unit/checkpoint-timeline-command.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 139[2mms[22m[39m
+2026-10-09T21:41:09.6524242Z  [32m✓[39m __tests__/unit/knowledge-graph.test.js [2m([22m[2m118 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+2026-10-09T21:41:28.8119312Z  [32m✓[39m __tests__/unit/evolution-artifact-ports.test.js [2m([22m[2m43 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 18742[2mms[22m[39m
+2026-10-09T21:41:28.8120596Z      [33m[2m✓[22m[39m supports only the approved ledger-retention types without an envelope TTL [33m 14409[2mms[22m[39m
+2026-10-09T21:41:29.3165284Z  [32m✓[39m __tests__/unit/aiops.test.js [2m([22m[2m107 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+2026-10-09T21:41:29.9254348Z  [32m✓[39m __tests__/unit/linux-generic-bwrap.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 113[2mms[22m[39m
+2026-10-09T21:41:31.7090386Z  [32m✓[39m __tests__/unit/app-server.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 565[2mms[22m[39m
+2026-10-09T21:41:32.1564168Z  [32m✓[39m __tests__/unit/multimodal.test.js [2m([22m[2m101 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+2026-10-09T21:41:33.0275765Z  [32m✓[39m __tests__/unit/hub-command.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+2026-10-09T21:41:42.8543910Z  [32m✓[39m __tests__/unit/sub-agent-usage-forwarding.test.js [2m([22m[2m26 tests[22m[2m)[22m[33m 6591[2mms[22m[39m
+2026-10-09T21:41:42.8546722Z      [33m[2m✓[22m[39m forwards real provider-reported usage and its real callId [33m 3824[2mms[22m[39m
+2026-10-09T21:41:44.5392381Z  [32m✓[39m __tests__/unit/web-ui-server.test.js [2m([22m[2m78 tests[22m[2m)[22m[33m 728[2mms[22m[39m
+2026-10-09T21:41:48.8761548Z  [32m✓[39m __tests__/unit/ide-context.test.js [2m([22m[2m49 tests[22m[2m)[22m[33m 2591[2mms[22m[39m
+2026-10-09T21:41:48.8763274Z      [33m[2m✓[22m[39m appends <ide-context> to the in-flight user turn but not persistence [33m 1716[2mms[22m[39m
+2026-10-09T21:41:48.8764717Z      [33m[2m✓[22m[39m re-shares <ide-context> on every turn's user message [33m 422[2mms[22m[39m
+2026-10-09T21:41:50.5865205Z  [32m✓[39m __tests__/unit/team-command-broker.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 137[2mms[22m[39m
+2026-10-09T21:41:51.5222228Z  [32m✓[39m __tests__/unit/app-server-graph-runtime.test.js [2m([22m[2m18 tests[22m[2m)[22m[33m 373[2mms[22m[39m
+2026-10-09T21:41:51.9626931Z  [32m✓[39m __tests__/unit/vscode-ext-managed-cli.test.js [2m([22m[2m72 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+2026-10-09T21:41:52.8257338Z  [32m✓[39m __tests__/unit/wallet-manager.test.js [2m([22m[2m71 tests[22m[2m)[22m[33m 504[2mms[22m[39m
+2026-10-09T21:42:03.0294328Z  [32m✓[39m __tests__/unit/agent-core-hooks.test.js [2m([22m[2m31 tests[22m[2m)[22m[33m 8424[2mms[22m[39m
+2026-10-09T21:42:03.0296027Z      [33m[2m✓[22m[39m exit 2 blocks the tool before it runs [33m 471[2mms[22m[39m
+2026-10-09T21:42:03.0297418Z      [33m[2m✓[22m[39m exit 0 lets the tool run [33m 389[2mms[22m[39m
+2026-10-09T21:42:03.0298460Z      [33m[2m✓[22m[39m blocks when the confirmer declines [33m 399[2mms[22m[39m
+2026-10-09T21:42:03.0299239Z      [33m[2m✓[22m[39m proceeds when the confirmer approves [33m 390[2mms[22m[39m
+2026-10-09T21:42:03.0300382Z      [33m[2m✓[22m[39m attaches hookFeedback on a block decision (tool still ran) [33m 321[2mms[22m[39m
+2026-10-09T21:42:03.0302221Z      [33m[2m✓[22m[39m fails open visibly when an observe-only PostToolUse hook cannot spawn [33m 405[2mms[22m[39m
+2026-10-09T21:42:03.0308482Z      [33m[2m✓[22m[39m still runs SYNC PostToolUse hooks (feedback) alongside an async one [33m 408[2mms[22m[39m
+2026-10-09T21:42:03.0316179Z      [33m[2m✓[22m[39m fires a Stop hook when the agent finishes (no tool calls) [33m 457[2mms[22m[39m
+2026-10-09T21:42:03.0318226Z      [33m[2m✓[22m[39m a Stop hook block forces one continuation (stop_hook_active guards loop) [33m 683[2mms[22m[39m
+2026-10-09T21:42:03.0319757Z      [33m[2m✓[22m[39m fires after a spawn_sub_agent call returns [33m 319[2mms[22m[39m
+2026-10-09T21:42:03.0323044Z      [33m[2m✓[22m[39m attaches hookFeedback to the result when it blocks [33m 390[2mms[22m[39m
+2026-10-09T21:42:03.0325123Z      [33m[2m✓[22m[39m vetoes the spawn when the hook blocks (before any LLM runs) [33m 350[2mms[22m[39m
+2026-10-09T21:42:03.0326691Z      [33m[2m✓[22m[39m skips the auto-compaction when a PreCompact hook blocks [33m 454[2mms[22m[39m
+2026-10-09T21:42:03.0328133Z      [33m[2m✓[22m[39m default: a later block WINS over an earlier ask [33m 425[2mms[22m[39m
+2026-10-09T21:42:03.0329540Z      [33m[2m✓[22m[39m CC_HOOK_STRICT_MERGE=0 cannot weaken the authority boundary [33m 426[2mms[22m[39m
+2026-10-09T21:42:03.0330990Z      [33m[2m✓[22m[39m managed policy also ignores an attempted strict-merge downgrade [33m 392[2mms[22m[39m
+2026-10-09T21:42:03.0332737Z      [33m[2m✓[22m[39m threads context.hookTraceId/hookParentId into the PreToolUse payload [33m 310[2mms[22m[39m
+2026-10-09T21:42:03.0334856Z      [33m[2m✓[22m[39m omits both when the caller does not thread them (legacy shape) [33m 451[2mms[22m[39m
+2026-10-09T21:42:03.0336819Z      [33m[2m✓[22m[39m agentLoop stamps its own runId as trace_id with no parent at top level [33m 339[2mms[22m[39m
+2026-10-09T21:42:03.0337769Z      [33m[2m✓[22m[39m fails closed when a PreToolUse hook cannot spawn [33m 326[2mms[22m[39m
+2026-10-09T21:42:04.3763195Z  [32m✓[39m __tests__/unit/scheduler-kernel-soak.test.js [2m([22m[2m39 tests[22m[2m)[22m[33m 644[2mms[22m[39m
+2026-10-09T21:42:04.9801602Z  [32m✓[39m __tests__/unit/mcp-tool-search.test.js [2m([22m[2m31 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+2026-10-09T21:43:09.8677752Z  [32m✓[39m __tests__/unit/windows-native-evaluator.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 64382[2mms[22m[39m
+2026-10-09T21:43:09.8680167Z      [33m[2m✓[22m[39m attests native directory identity without accepting it as a regular file [33m 935[2mms[22m[39m
+2026-10-09T21:43:09.8682683Z      [33m[2m✓[22m[39m executes a real staged Node check with immutable source/control and writable scratch on '.NET Framework' [33m 50568[2mms[22m[39m
+2026-10-09T21:43:09.8685154Z      [33m[2m✓[22m[39m executes a real staged Node check with immutable source/control and writable scratch on '.NET Core' [33m 2927[2mms[22m[39m
+2026-10-09T21:43:09.8687447Z      [33m[2m✓[22m[39m rejects changed staged source before target creation instead of blessing its old digest [33m 2884[2mms[22m[39m
+2026-10-09T21:43:09.8689765Z      [33m[2m✓[22m[39m attests zero-capability network policy without loopback exemptions and records real TCP failures [33m 4012[2mms[22m[39m
+2026-10-09T21:43:09.8691873Z      [33m[2m✓[22m[39m fences a detached AppContainer descendant after the evaluator exits [33m 2825[2mms[22m[39m
+2026-10-09T21:43:13.9626296Z  [32m✓[39m __tests__/unit/agent-repl-loop-wrapper.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 1610[2mms[22m[39m
+2026-10-09T21:43:13.9627547Z      [33m[2m✓[22m[39m persists REPL policy denials into the shared recent-denials store when enabled [33m 1582[2mms[22m[39m
+2026-10-09T21:43:20.2942026Z  [32m✓[39m __tests__/unit/ws-session-core-protocol.test.js [2m([22m[2m25 tests[22m[2m)[22m[33m 4739[2mms[22m[39m
+2026-10-09T21:43:20.2945077Z      [33m[2m✓[22m[39m usage.session returns zero totals for empty session [33m 477[2mms[22m[39m
+2026-10-09T21:43:20.2958657Z      [33m[2m✓[22m[39m usage.session aggregates token_usage events [33m 1492[2mms[22m[39m
+2026-10-09T21:43:20.2960551Z      [33m[2m✓[22m[39m usage.global rolls up across all sessions [33m 2121[2mms[22m[39m
+2026-10-09T21:43:20.2962598Z      [33m[2m✓[22m[39m dispatcher routes stream.run and emits intermediate events [33m 369[2mms[22m[39m
+2026-10-09T21:43:20.7428551Z  [32m✓[39m __tests__/unit/session-usage-attribution.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-09T21:44:07.8575913Z  [32m✓[39m __tests__/unit/governed-knowledge-sync.test.js [2m([22m[2m68 tests[22m[2m)[22m[33m 46166[2mms[22m[39m
+2026-10-09T21:44:07.8578094Z      [33m[2m✓[22m[39m publishes only ciphertext after exact approval, authorization and durable commit [33m 660[2mms[22m[39m
+2026-10-09T21:44:07.8580402Z      [33m[2m✓[22m[39m requires approval for team/org knowledge and a dependency disposition for revocation [33m 342[2mms[22m[39m
+2026-10-09T21:44:07.8582435Z        [33m[2m✓[22m[39m rejects authenticated inbound wiki / reject-candidate before authorization or commit [33m 757[2mms[22m[39m
+2026-10-09T21:44:07.8584470Z        [33m[2m✓[22m[39m rejects authenticated inbound wiki / rollback-active before authorization or commit [33m 792[2mms[22m[39m
+2026-10-09T21:44:07.8586464Z        [33m[2m✓[22m[39m rejects authenticated inbound candidate / tombstone before authorization or commit [33m 767[2mms[22m[39m
+2026-10-09T21:44:07.8588571Z        [33m[2m✓[22m[39m rejects authenticated inbound candidate / rollback-active before authorization or commit [33m 775[2mms[22m[39m
+2026-10-09T21:44:07.8590608Z        [33m[2m✓[22m[39m rejects authenticated inbound active-skill / tombstone before authorization or commit [33m 9093[2mms[22m[39m
+2026-10-09T21:44:07.8592981Z        [33m[2m✓[22m[39m rejects authenticated inbound active-skill / reject-candidate before authorization or commit [33m 5982[2mms[22m[39m
+2026-10-09T21:44:07.8595064Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / tombstone before authorization or commit [33m 968[2mms[22m[39m
+2026-10-09T21:44:07.8596938Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / quarantine before authorization or commit [33m 956[2mms[22m[39m
+2026-10-09T21:44:07.8598978Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / reject-candidate before authorization or commit [33m 1029[2mms[22m[39m
+2026-10-09T21:44:07.8600862Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / rollback-active before authorization or commit [33m 989[2mms[22m[39m
+2026-10-09T21:44:07.8602659Z        [33m[2m✓[22m[39m rejects authenticated inbound wiki / reject-candidate before authorization or commit [33m 1081[2mms[22m[39m
+2026-10-09T21:44:07.8604448Z        [33m[2m✓[22m[39m rejects authenticated inbound wiki / rollback-active before authorization or commit [33m 939[2mms[22m[39m
+2026-10-09T21:44:07.8606168Z        [33m[2m✓[22m[39m rejects authenticated inbound candidate / tombstone before authorization or commit [33m 958[2mms[22m[39m
+2026-10-09T21:44:07.8607991Z        [33m[2m✓[22m[39m rejects authenticated inbound candidate / rollback-active before authorization or commit [33m 981[2mms[22m[39m
+2026-10-09T21:44:07.8609770Z        [33m[2m✓[22m[39m rejects authenticated inbound active-skill / tombstone before authorization or commit [33m 1079[2mms[22m[39m
+2026-10-09T21:44:07.8611940Z        [33m[2m✓[22m[39m rejects authenticated inbound active-skill / reject-candidate before authorization or commit [33m 1019[2mms[22m[39m
+2026-10-09T21:44:07.8613733Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / tombstone before authorization or commit [33m 970[2mms[22m[39m
+2026-10-09T21:44:07.8615905Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / quarantine before authorization or commit [33m 937[2mms[22m[39m
+2026-10-09T21:44:07.8618183Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / reject-candidate before authorization or commit [33m 1030[2mms[22m[39m
+2026-10-09T21:44:07.8620195Z        [33m[2m✓[22m[39m rejects authenticated inbound unknown / rollback-active before authorization or commit [33m 3084[2mms[22m[39m
+2026-10-09T21:44:07.8622558Z      [33m[2m✓[22m[39m receives an authenticated newer record and rejects tenant/signature substitution [33m 1710[2mms[22m[39m
+2026-10-09T21:44:07.8624819Z      [33m[2m✓[22m[39m recovers an authenticated reception idempotently without another sync commit [33m 1746[2mms[22m[39m
+2026-10-09T21:44:07.8626734Z      [33m[2m✓[22m[39m rejects signed envelope metadata substitution and non-canonical base64 [33m 1018[2mms[22m[39m
+2026-10-09T21:44:07.8628547Z      [33m[2m✓[22m[39m rejects empty or oversized ciphertext before commit and transport [33m 475[2mms[22m[39m
+2026-10-09T21:44:07.8630401Z      [33m[2m✓[22m[39m preserves concurrent offline edits as an explicit human merge conflict [33m 1893[2mms[22m[39m
+2026-10-09T21:44:07.8632343Z      [33m[2m✓[22m[39m does not report sync success without durable storage or transport acknowledgement [33m 915[2mms[22m[39m
+2026-10-09T21:45:55.5185351Z  [31m❯[39m __tests__/unit/evolution-eval-readonly-audit.test.js [2m([22m[2m7 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 106731[2mms[22m[39m
+2026-10-09T21:45:55.5187893Z      [33m[2m✓[22m[39m captures the actual v2 journal and rejects copied, Proxy and foreign-journal tokens [33m 3329[2mms[22m[39m
+2026-10-09T21:45:55.5189485Z [31m     [31m×[31m retains and freezes the entire verified event collection above aggregate document limits[39m[33m 91619[2mms[22m[39m
+2026-10-09T21:45:55.5191515Z      [33m[2m✓[22m[39m permanently invalidates an audit after a separate v2 writer changes its head [33m 3856[2mms[22m[39m
+2026-10-09T21:45:55.5193766Z      [33m[2m✓[22m[39m permanently invalidates after a verification error even when the original HEAD bytes are restored [33m 704[2mms[22m[39m
+2026-10-09T21:45:55.5196028Z      [33m[2m✓[22m[39m preserves genuine enrolled admission bindings on v2 and requires final head closure [33m 5961[2mms[22m[39m
+2026-10-09T21:45:55.5197411Z      [33m[2m✓[22m[39m still verifies Ed25519, descriptor, lookup and authority brands without invoking the signer [33m 647[2mms[22m[39m
+2026-10-09T21:45:55.5198559Z      [33m[2m✓[22m[39m re-resolves retained artifact bytes instead of trusting a previously captured event [33m 612[2mms[22m[39m
+2026-10-09T21:45:55.8783345Z  [32m✓[39m __tests__/unit/permission-engine.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-09T21:45:56.2044501Z  [32m✓[39m __tests__/unit/capability-manifest.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+2026-10-09T21:45:58.0233000Z  [32m✓[39m __tests__/unit/background-stability-matrix.test.js [2m([22m[2m17 tests[22m[2m)[22m[33m 1165[2mms[22m[39m
+2026-10-09T21:45:58.0236066Z      [33m[2m✓[22m[39m spawns the worker WITHOUT an env override so PATH/provider env/base URL flow through [33m 482[2mms[22m[39m
+2026-10-09T21:48:02.0609290Z  [32m✓[39m __tests__/unit/rrsi-native-statistics-provenance.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 123158[2mms[22m[39m
+2026-10-09T21:48:02.0611872Z      [33m[2m✓[22m[39m accepts a correctly retained direct-append chain without manufacturing fresh execution capability [33m 12399[2mms[22m[39m
+2026-10-09T21:48:02.0613818Z      [33m[2m✓[22m[39m rejects a noncanonical scope operation ID despite valid authentication [33m 5606[2mms[22m[39m
+2026-10-09T21:48:02.0615073Z      [33m[2m✓[22m[39m rejects a noncanonical plan operation ID despite valid authentication [33m 6603[2mms[22m[39m
+2026-10-09T21:48:02.0617421Z      [33m[2m✓[22m[39m rejects a noncanonical reserve operation ID despite valid authentication [33m 7540[2mms[22m[39m
+2026-10-09T21:48:02.0619543Z      [33m[2m✓[22m[39m does not promote an unrelated record occupying the canonical scope operation ID [33m 8861[2mms[22m[39m
+2026-10-09T21:48:02.0621697Z      [33m[2m✓[22m[39m does not promote an unrelated record occupying the canonical plan operation ID [33m 14237[2mms[22m[39m
+2026-10-09T21:48:02.0625545Z      [33m[2m✓[22m[39m rejects an unrelated statistics-plan payload at the canonical plan operation ID [33m 6446[2mms[22m[39m
+2026-10-09T21:48:02.0627294Z      [33m[2m✓[22m[39m rejects scope registration with missing source references [33m 7784[2mms[22m[39m
+2026-10-09T21:48:02.0628255Z      [33m[2m✓[22m[39m rejects scope registration with substituted source references [33m 4817[2mms[22m[39m
+2026-10-09T21:48:02.0629142Z      [33m[2m✓[22m[39m rejects plan registration with missing source references [33m 6358[2mms[22m[39m
+2026-10-09T21:48:02.0630419Z      [33m[2m✓[22m[39m rejects plan registration with substituted source references [33m 7145[2mms[22m[39m
+2026-10-09T21:48:02.0631987Z      [33m[2m✓[22m[39m rejects reserve registration with missing source references [33m 7607[2mms[22m[39m
+2026-10-09T21:48:02.0633033Z      [33m[2m✓[22m[39m rejects a scope binding copied from another authenticated journal [33m 7929[2mms[22m[39m
+2026-10-09T21:48:02.0634340Z      [33m[2m✓[22m[39m rejects a foreign scope record substituted into an otherwise valid plan [33m 11428[2mms[22m[39m
+2026-10-09T21:48:04.7410260Z  [32m✓[39m __tests__/unit/skill-host-budget.test.js [2m([22m[2m19 tests[22m[2m)[22m[33m 1188[2mms[22m[39m
+2026-10-09T21:48:04.7411638Z      [33m[2m✓[22m[39m rejects non-string injected bodies without invoking their coercion hooks [33m 1084[2mms[22m[39m
+2026-10-09T21:50:01.0281329Z  [32m✓[39m __tests__/unit/governed-knowledge-candidate-rejection.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 115379[2mms[22m[39m
+2026-10-09T21:50:01.0282968Z      [33m[2m✓[22m[39m rolls back then independently settles candidate rejection (Wiki=false), and reopens without duplicate effects [33m 17425[2mms[22m[39m
+2026-10-09T21:50:01.0284280Z      [33m[2m✓[22m[39m rolls back then independently settles candidate rejection (Wiki=true), and reopens without duplicate effects [33m 20421[2mms[22m[39m
+2026-10-09T21:50:01.0285573Z      [33m[2m✓[22m[39m rejects a never-promoted immutable draft without modifying its bytes or the unrelated active pointer [33m 10611[2mms[22m[39m
+2026-10-09T21:50:01.0286630Z      [33m[2m✓[22m[39m will not certify rejection while the same candidate remains active [33m 6267[2mms[22m[39m
+2026-10-09T21:50:01.0287607Z      [33m[2m✓[22m[39m requires exact Knowledge provenance before certifying a candidate effect [33m 9136[2mms[22m[39m
+2026-10-09T21:50:01.0288630Z      [33m[2m✓[22m[39m does not settle rejection if an inactive candidate remains eligible for rollback [33m 9401[2mms[22m[39m
+2026-10-09T21:50:01.0289708Z      [33m[2m✓[22m[39m requires an in-flight promotion to finish or recover before certifying rejection [33m 11466[2mms[22m[39m
+2026-10-09T21:50:01.0291132Z      [33m[2m✓[22m[39m does not use a Wiki revision committed after the candidate's original promotion [33m 10059[2mms[22m[39m
+2026-10-09T21:50:01.0292135Z      [33m[2m✓[22m[39m will not reinterpret quarantine as candidate rejection [33m 8789[2mms[22m[39m
+2026-10-09T21:50:01.0293099Z      [33m[2m✓[22m[39m has no generic-success fallback for missing or incorrectly configured routes [33m 6596[2mms[22m[39m
+2026-10-09T21:50:01.0294097Z      [33m[2m✓[22m[39m requires genuine independent readers and cannot route a caller-built request [33m 5204[2mms[22m[39m
+2026-10-09T21:50:01.5263366Z  [32m✓[39m __tests__/unit/lib/git-integration-v2.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:01.8489821Z  [32m✓[39m __tests__/unit/plugin-runtime-capabilities.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-09T21:50:02.7915400Z  [32m✓[39m __tests__/unit/background-agent-worker-termination.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 235[2mms[22m[39m
+2026-10-09T21:50:06.1364199Z  [32m✓[39m __tests__/unit/headless-runner-usage-attribution.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1757[2mms[22m[39m
+2026-10-09T21:50:06.1365819Z      [33m[2m✓[22m[39m envelope usage excludes attributed child spend; attributed events + tool calls persist [33m 1264[2mms[22m[39m
+2026-10-09T21:50:06.4731885Z  [32m✓[39m __tests__/unit/lib/social-graph-v2.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-09T21:50:10.0482654Z  [32m✓[39m __tests__/unit/artifact-cleanup-ledger.test.js [2m([22m[2m9 tests[22m[2m)[22m[33m 3223[2mms[22m[39m
+2026-10-09T21:50:10.0484602Z      [33m[2m✓[22m[39m freezes and settles a content-free batch through per-item deletions [33m 459[2mms[22m[39m
+2026-10-09T21:50:10.0486247Z      [33m[2m✓[22m[39m returns the same terminal batch on retry and rejects id collision [33m 427[2mms[22m[39m
+2026-10-09T21:50:10.0488267Z      [33m[2m✓[22m[39m recovers a partial batch without re-deleting its settled first item [33m 364[2mms[22m[39m
+2026-10-09T21:50:10.0489930Z      [33m[2m✓[22m[39m keeps the original scope frozen when a later artifact expires [33m 442[2mms[22m[39m
+2026-10-09T21:50:10.0491599Z      [33m[2m✓[22m[39m recovers when the batch terminal append was lost after all deletions [33m 306[2mms[22m[39m
+2026-10-09T21:50:10.0493372Z      [33m[2m✓[22m[39m binds path stats to trusted handles on affected Windows libuv runtimes [33m 412[2mms[22m[39m
+2026-10-09T21:50:10.0495047Z      [33m[2m✓[22m[39m fails closed on ledger tamper, truncation, and settled-path reappearance [33m 420[2mms[22m[39m
+2026-10-09T21:50:12.6592003Z  [32m✓[39m __tests__/unit/eval-timeout-kill.test.js [2m([22m[2m18 tests[22m[2m)[22m[33m 2051[2mms[22m[39m
+2026-10-09T21:50:12.6594810Z      [33m[2m✓[22m[39m kills the child AND its grandchild before resolving (no post-timeout writes) [33m 1745[2mms[22m[39m
+2026-10-09T21:50:13.1006722Z  [32m✓[39m __tests__/unit/telemetry-recorder.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 143[2mms[22m[39m
+2026-10-09T21:50:16.4008390Z  [32m✓[39m __tests__/unit/plugin-marketplace-network.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1263[2mms[22m[39m
+2026-10-09T21:50:16.4009457Z      [33m[2m✓[22m[39m uses a custom CA for a real authenticated HTTPS registry [33m 690[2mms[22m[39m
+2026-10-09T21:50:17.5435858Z  [32m✓[39m __tests__/unit/rrsi-contracts.test.js [2m([22m[2m51 tests[22m[2m)[22m[33m 819[2mms[22m[39m
+2026-10-09T21:50:17.9183388Z  [32m✓[39m __tests__/unit/lib/cli-context-engineering-v2-iter26.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-09T21:50:18.4761371Z  [32m✓[39m __tests__/unit/video-audio-precision.test.js [2m([22m[2m31 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+2026-10-09T21:50:18.8321222Z  [32m✓[39m __tests__/unit/lib/instinct-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-09T21:50:19.2007213Z  [32m✓[39m __tests__/unit/lib/community-governance-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+2026-10-09T21:50:20.4869547Z  [32m✓[39m __tests__/unit/plugin-marketplace-selection-command.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 392[2mms[22m[39m
+2026-10-09T21:50:20.4870740Z      [33m[2m✓[22m[39m pins the reviewed selection before install and persists its authority [33m 350[2mms[22m[39m
+2026-10-09T21:50:20.8373980Z  [32m✓[39m __tests__/unit/lib/sub-agent-registry-v2-iter25.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-09T21:50:32.9497275Z  [32m✓[39m __tests__/unit/rrsi-evaluation-variants.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 11291[2mms[22m[39m
+2026-10-09T21:50:32.9498578Z      [33m[2m✓[22m[39m preserves every original source, task and hidden objective while binding changed native digests [33m 1245[2mms[22m[39m
+2026-10-09T21:50:32.9499710Z      [33m[2m✓[22m[39m retains native task digests for clean without certifying recipe execution [33m 745[2mms[22m[39m
+2026-10-09T21:50:32.9500713Z      [33m[2m✓[22m[39m retains native task digests for tool-order without certifying recipe execution [33m 748[2mms[22m[39m
+2026-10-09T21:50:32.9502123Z      [33m[2m✓[22m[39m retains native task digests for tool-delay without certifying recipe execution [33m 744[2mms[22m[39m
+2026-10-09T21:50:32.9503317Z      [33m[2m✓[22m[39m returns only original training references and rejects serialized capabilities [33m 756[2mms[22m[39m
+2026-10-09T21:50:32.9504345Z      [33m[2m✓[22m[39m rejects changed privateExpected without reassigning the frozen denominator [33m 577[2mms[22m[39m
+2026-10-09T21:50:32.9505336Z      [33m[2m✓[22m[39m rejects changed graderId without reassigning the frozen denominator [33m 593[2mms[22m[39m
+2026-10-09T21:50:32.9506272Z      [33m[2m✓[22m[39m rejects changed groupKeys without reassigning the frozen denominator [33m 592[2mms[22m[39m
+2026-10-09T21:50:32.9507233Z      [33m[2m✓[22m[39m rejects changed training-input without reassigning the frozen denominator [33m 596[2mms[22m[39m
+2026-10-09T21:50:32.9508233Z      [33m[2m✓[22m[39m rejects changed task-id without reassigning the frozen denominator [33m 586[2mms[22m[39m
+2026-10-09T21:50:32.9509298Z      [33m[2m✓[22m[39m rejects an incomplete pool, no-op paraphrase, identity-tagged perturbation and tampered result [33m 2018[2mms[22m[39m
+2026-10-09T21:50:32.9510399Z      [33m[2m✓[22m[39m rejects exact prompt exposure across different native suites and frozen pools [33m 602[2mms[22m[39m
+2026-10-09T21:50:32.9511387Z      [33m[2m✓[22m[39m checks exact collisions across multiple recipes before launch aggregation [33m 1485[2mms[22m[39m
+2026-10-09T21:50:33.3367174Z  [32m✓[39m __tests__/unit/lib/token-tracker-v2-iter24.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-09T21:50:35.5635017Z  [32m✓[39m __tests__/unit/session-message-reliability-soak.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1882[2mms[22m[39m
+2026-10-09T21:50:35.5636529Z      [33m[2m✓[22m[39m runs real offline, reorder, poison, restart and custody recovery cycles [33m 1851[2mms[22m[39m
+2026-10-09T21:50:35.9055080Z  [32m✓[39m __tests__/unit/lib/sso-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:36.4583879Z  [32m✓[39m __tests__/unit/lib/downloader-v2-iter27.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:36.8118533Z  [32m✓[39m __tests__/unit/lib/response-cache-v2-iter23.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:37.1609856Z  [32m✓[39m __tests__/unit/lib/quantization-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-09T21:50:37.5834270Z  [32m✓[39m __tests__/unit/lib/interaction-adapter-v2-iter26.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-09T21:50:37.9214074Z  [32m✓[39m __tests__/unit/lib/bi-engine-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:38.2642317Z  [32m✓[39m __tests__/unit/lib/compliance-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-09T21:50:38.5950291Z  [32m✓[39m __tests__/unit/lib/compliance-manager-v2-iter28.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:39.0340991Z  [32m✓[39m __tests__/unit/vscode-ext-fix-with-cc.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-09T21:50:39.3793147Z  [32m✓[39m __tests__/unit/lib/sandbox-v2-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-09T21:50:39.9980464Z  [32m✓[39m __tests__/unit/slash-commands.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 146[2mms[22m[39m
+2026-10-09T21:50:41.6507839Z  [32m✓[39m __tests__/unit/artifact-deletion-ledger.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 1330[2mms[22m[39m
+2026-10-09T21:50:42.1918152Z  [32m✓[39m __tests__/unit/lib/prompt-compressor-v2.test.js [2m([22m[2m38 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-09T21:50:44.0655917Z  [32m✓[39m __tests__/unit/agent-core-schedule-notify.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 389[2mms[22m[39m
+2026-10-09T21:50:45.5537992Z  [32m✓[39m __tests__/unit/session-workbench-host-fixture.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 1199[2mms[22m[39m
+2026-10-09T21:50:45.5539193Z      [33m[2m✓[22m[39m keeps the last complete projection visible while another process writes a reply [33m 454[2mms[22m[39m
+2026-10-09T21:50:45.5540616Z      [33m[2m✓[22m[39m persists dispatch -> needs_input -> reply -> artifact across CLI processes [33m 515[2mms[22m[39m
+2026-10-09T21:50:46.0797405Z  [32m✓[39m __tests__/unit/session-core-singletons.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 165[2mms[22m[39m
+2026-10-09T21:50:46.9850302Z  [32m✓[39m __tests__/unit/evolution-workbench-version-control.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+2026-10-09T21:50:47.4899734Z  [32m✓[39m __tests__/unit/update-notice.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+2026-10-09T21:50:47.7950614Z  [32m✓[39m __tests__/unit/transcript-integrity.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-09T21:50:48.1175573Z  [32m✓[39m __tests__/unit/team-budget.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-09T21:50:51.7572652Z  [32m✓[39m __tests__/unit/agent-core-permission-request.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 2184[2mms[22m[39m
+2026-10-09T21:50:51.7574648Z      [33m[2m✓[22m[39m auto-APPROVES: tool runs and the confirmer is never called [33m 337[2mms[22m[39m
+2026-10-09T21:50:51.7577016Z      [33m[2m✓[22m[39m auto-DENIES (decision:deny): blocked and the confirmer is never called [33m 307[2mms[22m[39m
+2026-10-09T21:50:51.7584423Z      [33m[2m✓[22m[39m auto-DENIES via hookSpecificOutput.permissionDecision:deny [33m 307[2mms[22m[39m
+2026-10-09T21:50:51.7586173Z      [33m[2m✓[22m[39m DEFERS on `ask`: falls through to the confirmer (approve → runs) [33m 352[2mms[22m[39m
+2026-10-09T21:50:51.7587847Z      [33m[2m✓[22m[39m an allow hook followed by a deny hook still blocks (deny wins, safety) [33m 429[2mms[22m[39m
+2026-10-09T21:50:51.7589556Z      [33m[2m✓[22m[39m auto-DENIES a destructive git command without calling the confirmer [33m 439[2mms[22m[39m
+2026-10-09T21:50:53.9871331Z  [32m✓[39m __tests__/unit/evolution-test-deployment.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 1749[2mms[22m[39m
+2026-10-09T21:50:53.9873440Z      [33m[2m✓[22m[39m generates a signed TEST profile and refreshes it after host changes [33m 568[2mms[22m[39m
+2026-10-09T21:50:53.9874676Z      [33m[2m✓[22m[39m uses the generated test root to rotate to a managed deployment [33m 592[2mms[22m[39m
+2026-10-09T21:50:53.9876340Z      [33m[2m✓[22m[39m does not overwrite an existing managed profile or environment override [33m 560[2mms[22m[39m
+2026-10-09T21:50:54.5409197Z  [32m✓[39m __tests__/unit/pr-comments.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-09T21:50:55.0405568Z  [32m✓[39m __tests__/unit/agents-loader.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+2026-10-09T21:50:55.5553189Z  [32m✓[39m __tests__/unit/automation-execution-history.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 153[2mms[22m[39m
+2026-10-09T21:50:55.8646733Z  [32m✓[39m __tests__/unit/coding-agent-contract.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-09T21:50:57.6391954Z  [32m✓[39m __tests__/unit/agent-core-mcp-scheduler.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+2026-10-09T21:50:57.9636198Z  [32m✓[39m __tests__/unit/mcp-sandbox-policy.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-09T21:51:00.2203424Z  [32m✓[39m __tests__/unit/otlp-cli-entrypoint.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 1949[2mms[22m[39m
+2026-10-09T21:51:00.2205038Z      [33m[2m✓[22m[39m sends a real eval run through --otlp-endpoint before process exit [33m 1356[2mms[22m[39m
+2026-10-09T21:51:00.2206806Z      [33m[2m✓[22m[39m exports content-free legacy and replacement command usage [33m 589[2mms[22m[39m
+2026-10-09T21:51:00.8980406Z  [32m✓[39m __tests__/unit/ask-command.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-09T21:52:32.0655029Z  [32m✓[39m __tests__/unit/rrsi-native-quality-provenance.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 85030[2mms[22m[39m
+2026-10-09T21:52:32.0656260Z      [33m[2m✓[22m[39m rejects a retained correctly hashed assessment with a noncanonical operation ID [33m 28803[2mms[22m[39m
+2026-10-09T21:52:32.0657449Z      [33m[2m✓[22m[39m rejects a retained canonical assessment that deletes the actual source references [33m 28139[2mms[22m[39m
+2026-10-09T21:52:32.0658680Z      [33m[2m✓[22m[39m rejects a correctly signed and rehashed PASS claim instead of upgrading its historical assertion [33m 28085[2mms[22m[39m
+2026-10-09T21:52:33.2728749Z  [32m✓[39m __tests__/unit/skill-vector-authority.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-09T21:52:34.2753249Z  [32m✓[39m __tests__/unit/session-pr-status.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-09T21:52:34.6024217Z  [32m✓[39m __tests__/unit/team-run-state-lock.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+2026-10-09T21:52:34.9096242Z  [32m✓[39m __tests__/unit/vscode-ext-whats-new.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-09T21:52:35.4415949Z  [32m✓[39m __tests__/unit/chrome-connector.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-09T21:52:35.7413522Z  [32m✓[39m __tests__/unit/verify-release-gates.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-09T21:52:36.1974850Z  [32m✓[39m __tests__/unit/record-replay-playwright-driver.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-09T21:52:36.9773497Z  [32m✓[39m __tests__/unit/rc-default-audit.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 454[2mms[22m[39m
+2026-10-09T21:52:37.3219951Z  [32m✓[39m __tests__/unit/llm-connection-config.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-09T21:52:37.6431793Z  [32m✓[39m __tests__/unit/remote-session-audit-sink.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-09T21:52:38.0364809Z  [32m✓[39m __tests__/unit/cli-registry-install.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 108[2mms[22m[39m
+2026-10-09T21:52:41.0129745Z  [32m✓[39m __tests__/unit/headless-runner-otlp.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 1433[2mms[22m[39m
+2026-10-09T21:52:41.0130767Z      [33m[2m✓[22m[39m writes captured spans as OTLP/JSON to the requested file [33m 1178[2mms[22m[39m
+2026-10-09T21:52:41.3158384Z  [32m✓[39m __tests__/unit/host-tool-policy-authority.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-09T21:52:42.1383505Z  [32m✓[39m __tests__/unit/skill-loader-arguments.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-09T21:52:42.4679380Z  [32m✓[39m __tests__/unit/independent-skill-revocation-source.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-09T21:52:42.7627870Z  [32m✓[39m __tests__/unit/coding-agent-managed-tool-policy.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-09T21:52:44.3464526Z  [32m✓[39m __tests__/unit/agent-core-prepare-call.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+2026-10-09T21:52:45.8177754Z  [32m✓[39m __tests__/unit/repl-tool-executor.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+2026-10-09T21:52:46.1395548Z  [32m✓[39m __tests__/unit/review-args.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-09T21:52:46.4601795Z  [32m✓[39m __tests__/unit/ide-command.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-09T21:52:46.7490541Z  [32m✓[39m __tests__/unit/init-ai-refine.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-09T21:52:47.3723339Z  [32m✓[39m __tests__/unit/hub-collect-qq.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-09T21:52:48.7971964Z  [32m✓[39m __tests__/unit/agent-core-tool-admission.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+2026-10-09T21:52:49.1265231Z  [32m✓[39m __tests__/unit/pdf-parser.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-09T21:52:49.4160172Z  [32m✓[39m __tests__/unit/accessibility.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-09T21:52:49.9099611Z  [32m✓[39m __tests__/unit/downloader.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 214[2mms[22m[39m
+2026-10-09T21:52:50.2095433Z  [32m✓[39m __tests__/unit/release-notes.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-09T21:52:50.2231338Z 
+2026-10-09T21:52:50.2233085Z [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-09T21:52:50.2234952Z 
+2026-10-09T21:52:50.2237943Z [41m[1m FAIL [22m[49m __tests__/unit/evolution-eval-readonly-audit.test.js[2m > [22mgenuine Eval read-only journal snapshots[2m > [22mretains and freezes the entire verified event collection above aggregate document limits
+2026-10-09T21:52:50.2241439Z [31m[1mError[22m: Test timed out in 90000ms.
+2026-10-09T21:52:50.2249518Z If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+2026-10-09T21:52:50.2260141Z [36m [2m❯[22m __tests__/unit/evolution-eval-readonly-audit.test.js:[2m105:5[22m[39m
+2026-10-09T21:52:50.2342417Z     [90m103|[39m   })[33m;[39m
+2026-10-09T21:52:50.2343053Z     [90m104|[39m
+2026-10-09T21:52:50.2344025Z     [90m105|[39m   it("retains and freezes the entire verified event collection above a…
+2026-10-09T21:52:50.2345049Z     [90m   |[39m     [31m^[39m
+2026-10-09T21:52:50.2346930Z     [90m106|[39m     [35mconst[39m fixture [33m=[39m [34msetupEvalLaunchAdmissionFixture[39m()[33m;[39m
+2026-10-09T21:52:50.2349860Z     [90m107|[39m     [35mconst[39m { ledger } [33m=[39m fixture[33m.[39moptions[33m;[39m
+2026-10-09T21:52:50.2350654Z 
+2026-10-09T21:52:50.2351712Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+2026-10-09T21:52:50.2352478Z 
+2026-10-09T21:52:50.2356109Z 
+2026-10-09T21:52:50.2373181Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m109 passed[39m[22m[90m (110)[39m
+2026-10-09T21:52:50.2388407Z [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m2675 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (2677)[39m
+2026-10-09T21:52:50.2390081Z [2m   Start at [22m 21:37:41
+2026-10-09T21:52:50.2393258Z [2m   Duration [22m 908.53s[2m (transform 10.33s, setup 9.26s, import 49.89s, tests 827.01s, environment 17ms)[22m
+2026-10-09T21:52:50.2396724Z 
+2026-10-09T21:52:50.8847210Z JUNIT report written to D:/a/chainlesschain/chainlesschain/packages/cli/test-results/unit-11.xml
+2026-10-09T21:52:51.3791757Z ##[error]Process completed with exit code 1.
+2026-10-09T21:52:51.4032811Z ##[group]Run actions/upload-artifact@v4
+2026-10-09T21:52:51.4033277Z with:
+2026-10-09T21:52:51.4033580Z   name: cli-windows-latest-unit-11-results
+2026-10-09T21:52:51.4033987Z   path: packages/cli/test-results/unit-11.xml
+2026-10-09T21:52:51.4034377Z   if-no-files-found: error
+2026-10-09T21:52:51.4034671Z   retention-days: 7
+2026-10-09T21:52:51.4034946Z   compression-level: 6
+2026-10-09T21:52:51.4035233Z   overwrite: false
+2026-10-09T21:52:51.4035552Z   include-hidden-files: false
+2026-10-09T21:52:51.4035853Z env:
+2026-10-09T21:52:51.4036121Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 120000
+2026-10-09T21:52:51.4036461Z ##[endgroup]
+2026-10-09T21:52:51.5962411Z (node:1272) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-09T21:52:51.5964061Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-09T21:52:51.6019591Z With the provided path, there will be 1 file uploaded
+2026-10-09T21:52:51.6027109Z Artifact name is valid!
+2026-10-09T21:52:51.6029565Z Root directory input is valid!
+2026-10-09T21:52:51.8523876Z Beginning upload of artifact content to blob storage
+2026-10-09T21:52:51.8865959Z (node:1272) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-09T21:52:52.0331185Z Uploaded bytes 70264
+2026-10-09T21:52:52.0676340Z Finished uploading artifact content to blob storage!
+2026-10-09T21:52:52.0678443Z SHA256 digest of uploaded artifact zip is b0225d683adb7d60720613612ec5d6f2f3b405df1c03791c872c65cee6b9275c
+2026-10-09T21:52:52.0680841Z Finalizing artifact upload
+2026-10-09T21:52:52.2837704Z Artifact cli-windows-latest-unit-11-results.zip successfully finalized. Artifact ID 11647421382
+2026-10-09T21:52:52.2840068Z Artifact cli-windows-latest-unit-11-results has been successfully uploaded! Final size is 70264 bytes. Artifact ID is 11647421382
+2026-10-09T21:52:52.2851472Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/37987544644/artifacts/11647421382
+2026-10-09T21:52:52.3253447Z Post job cleanup.
+2026-10-09T21:52:52.5291223Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-09T21:52:52.5592961Z git version 2.55.0.windows.5
+2026-10-09T21:52:52.5664506Z Temporarily overriding HOME='D:\a\_temp\d969a9c7-4a3d-4902-8ec7-c778ef5337ce' before making global git config changes
+2026-10-09T21:52:52.5665959Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-09T21:52:52.5675888Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-09T21:52:52.5974202Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-09T21:52:52.6264512Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-09T21:52:53.1671307Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-09T21:52:53.1938684Z http.https://github.com/.extraheader
+2026-10-09T21:52:53.1982185Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-09T21:52:53.2283892Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-09T21:52:53.7900815Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-09T21:52:53.8206728Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-09T21:52:54.4038643Z Cleaning up orphan processes
+2026-10-09T21:52:54.4314809Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

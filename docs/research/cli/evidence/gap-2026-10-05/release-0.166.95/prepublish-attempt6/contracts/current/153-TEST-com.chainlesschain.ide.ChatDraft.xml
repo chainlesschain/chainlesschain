@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ChatDraftStoreTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.365">
+  <properties/>
+  <testcase name="idleCleanupRetainsUnknownInputsAndNewComposerImages()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.068"/>
+  <testcase name="localCancellationPreservesAttachmentsAndNeverDowngradesCanonicalAcceptance()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.057"/>
+  <testcase name="enforcesTextImageAndSavedInputBudgetsWithoutClearingTheComposer()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.07"/>
+  <testcase name="savesIndependentImageSnapshotsAndRecoversAcrossStoreInstances()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.028"/>
+  <testcase name="failedMetadataReplacementPreservesOriginalTextAndAttachments()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.032"/>
+  <testcase name="preparingMovesComposerToSavedInputAndUnknownDoesNotMeanAccepted()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.061"/>
+  <testcase name="damagedFilesAndTraversalFailWithoutDiscardingRecoverableText()" classname="com.chainlesschain.ide.ChatDraftStoreTest" time="0.044"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

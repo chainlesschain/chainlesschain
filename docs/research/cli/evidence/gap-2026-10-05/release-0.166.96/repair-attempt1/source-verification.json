@@ -1,0 +1,267 @@
+{
+  "verifiedAt": "2026-10-10T01:10:08.588Z",
+  "allPassed": true,
+  "currentSourceBindings": [
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "archive": "sources/cli-evolution-test.js",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "archive": "sources/IdeUiSmokeTest.java",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+      "archive": "sources/remote-run.cjs",
+      "bytes": 40728,
+      "sha256": "5d740efe22b76242af80c9e08276336c9cc33ccd00f2c5faabfe9bdc22a5d191",
+      "matchesTestReceipt": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container.test.cjs",
+      "archive": "sources/remote-test.cjs",
+      "bytes": 22414,
+      "sha256": "a39dd3e47980cdcb888344615550f7aa10e9285a9b33fd9b289d87310dec15b0",
+      "matchesTestReceipt": true
+    }
+  ],
+  "checks": [
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/final-source.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/tested-source.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18753,
+      "sha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 2895,
+      "sha256": "be112a945657905035e7eb1703d3c97125e5787b852e87eac63707559d5d0068",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 3335,
+      "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/annotations.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 837,
+      "sha256": "4b5a4ad3cf45cfea3c843186636950cace33ff39460e2256c8c459a7cf7abbc0",
+      "verified": true
+    },
+    {
+      "source": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 98834,
+      "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/original-test.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 16245,
+      "sha256": "dc82221c9d784b368063638553a52bfb00cc940459f57a83bc05abe44c47eef1",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96",
+      "verified": true
+    },
+    {
+      "source": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167",
+      "verified": true
+    },
+    {
+      "source": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "receipt": ".work/eval-readonly-functional-budget-20261010/final-readback.json",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/IdeUiSmokeTest.source.java",
+      "receipt": ".work/astra-3900-popup-contract/metadata.json",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+      "verified": true
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "receipt": ".work/astra-3900-popup-contract/metadata.json",
+      "bytes": 71323,
+      "sha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/classes/com/chainlesschain/ide/uitest/IdeUiSmokeTest.class",
+      "receipt": ".work/astra-3900-popup-contract/metadata.json (compiled payload excluded)",
+      "bytes": 45245,
+      "sha256": "5d231ba72b9269437725c17e2a32c1f59c752e19697bb32dd8262789b450893b",
+      "verified": true
+    },
+    {
+      "source": "packages/jetbrains-plugin/build/classes/java/uiTest/com/chainlesschain/ide/uitest/IdeUiSmokeTest.class",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json (compiled payload excluded)",
+      "bytes": 50387,
+      "sha256": "873f0e27ee21221fc71fda73f6ae1616c7bc6046af01eda78d450b409299536b",
+      "verified": true
+    },
+    {
+      "source": "packages/jetbrains-plugin/build/idea-sandbox/zip-isolation-check/IC-2024.2/plugins_runIdeForUiTests/robot-server-plugin/lib/rhino-1.7.15.jar",
+      "receipt": ".work/astra-3900-popup-contract/metadata.json (dependency payload excluded)",
+      "bytes": 1407735,
+      "sha256": "2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/actual-activation.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 2508,
+      "sha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-activation.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 2508,
+      "sha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/actual-receipt.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 806,
+      "sha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-receipt.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 806,
+      "sha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/actual-cleanup.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 437,
+      "sha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-3900-popup-contract/gradle-cleanup.js",
+      "receipt": ".work/astra-3900-popup-contract/gradle-script-binding.json",
+      "bytes": 437,
+      "sha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/test.stdout.log",
+      "receipt": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "bytes": 3759,
+      "sha256": "ee1d05f4d8096cf9ccd42f8ea802d7df08665dac009eab34004bb98abc768c31",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/test.stderr.log",
+      "receipt": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verified": true
+    },
+    {
+      "source": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "receipt": "Producer supplied immutable receipt hash",
+      "bytes": 1370,
+      "sha256": "53a3455acf12230980737408d6c82a89df8f5dd8c0850e852641a5c690aa3bc0",
+      "verified": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+      "receipt": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "bytes": 40728,
+      "sha256": "5d740efe22b76242af80c9e08276336c9cc33ccd00f2c5faabfe9bdc22a5d191",
+      "verified": true
+    },
+    {
+      "source": "packages/vscode-extension/test/remote-ssh-container.test.cjs",
+      "receipt": ".work/astra-ssh3900/repair-readback/receipt.json",
+      "bytes": 22414,
+      "sha256": "a39dd3e47980cdcb888344615550f7aa10e9285a9b33fd9b289d87310dec15b0",
+      "verified": true
+    }
+  ]
+}

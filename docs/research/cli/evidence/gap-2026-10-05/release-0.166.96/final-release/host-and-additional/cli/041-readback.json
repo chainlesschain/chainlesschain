@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657337691,
+  "name": "claude-security-map-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/metadata.json",
+    "bytes": 801,
+    "sha256": "f3c08c6d47c7f44c2fb23908e7aa62793ed30590cd1805f7c3ea1f5b5e896611",
+    "endpoint": "actions/artifacts/11657337691"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657337691/artifact.zip",
+    "bytes": 33218,
+    "sha256": "ed4ab941b0bb94d6c10a69eafb0aa994eaae52dc195c0469f89318c83d80d8b5",
+    "endpoint": "actions/artifacts/11657337691/zip"
+  },
+  "githubDigestMatched": true
+}

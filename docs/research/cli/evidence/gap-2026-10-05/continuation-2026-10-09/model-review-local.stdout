@@ -1,0 +1,9 @@
+{
+  "schema": "chainlesschain.model-catalog-review-result/v1",
+  "reviewedAt": "2026-10-05",
+  "localContractPassed": true,
+  "mismatches": [],
+  "upstream": [],
+  "reviewRequired": false,
+  "automaticEnablement": false
+}

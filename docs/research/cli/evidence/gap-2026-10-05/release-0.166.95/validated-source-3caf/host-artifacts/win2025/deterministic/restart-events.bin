@@ -1,0 +1,11 @@
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.438553500Z","stage":"RECEIVED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","type":"system","session_id":"panel-1791571929702-64595e-branch-turn-2"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.442557600Z","stage":"MAPPED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"init"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.444561100Z","stage":"SCHEDULED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"init"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.450561300Z","stage":"EDT_ENTERED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"init"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.452562300Z","stage":"RENDER_RETURNED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"init"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.481561300Z","stage":"RECEIVED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","type":"system","session_id":"panel-1791571929702-64595e-branch-turn-2"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.500558200Z","stage":"RECEIVED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","type":"result","turn":3}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.501558500Z","stage":"MAPPED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"turn_end"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.502561400Z","stage":"SCHEDULED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"turn_end"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.502561400Z","stage":"EDT_ENTERED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"turn_end"}
+{"schema":"chainlesschain.ui-event-diagnostic/v1","at":"2026-10-09T19:00:24.508558800Z","stage":"RENDER_RETURNED","generation":"456a91d2","session":"panel-1791571929702-64595e-branch-turn-2","kind":"turn_end"}

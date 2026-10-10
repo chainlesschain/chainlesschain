@@ -1,0 +1,114 @@
+{
+  "runId": 37896217679,
+  "name": "CLI Strict Sandbox",
+  "headSha": "61d91325d0f30b60ec7ce14157e153a9a159707f",
+  "event": "pull_request",
+  "status": "completed",
+  "conclusion": "success",
+  "runAttempt": 1,
+  "jobs": [
+    {
+      "id": 113708046850,
+      "name": "strict native boundary (ubuntu-24.04-arm)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386355",
+      "startedAt": "2026-10-09T06:57:03Z",
+      "completedAt": "2026-10-09T06:59:30Z"
+    },
+    {
+      "id": 113708046961,
+      "name": "strict native boundary (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386380",
+      "startedAt": "2026-10-09T07:00:47Z",
+      "completedAt": "2026-10-09T07:08:52Z"
+    },
+    {
+      "id": 113708047004,
+      "name": "macOS latest native capability",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386387",
+      "startedAt": "2026-10-09T07:02:06Z",
+      "completedAt": "2026-10-09T07:05:05Z"
+    },
+    {
+      "id": 113708047048,
+      "name": "strict native boundary (macos-15)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386369",
+      "startedAt": "2026-10-09T06:59:48Z",
+      "completedAt": "2026-10-09T07:04:25Z"
+    },
+    {
+      "id": 113708047250,
+      "name": "strict native boundary (ubuntu-24.04)",
+      "status": "completed",
+      "conclusion": "success",
+      "runnerName": "GitHub Actions 1000386358",
+      "startedAt": "2026-10-09T06:57:27Z",
+      "completedAt": "2026-10-09T07:01:57Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11601071233,
+      "name": "strict-sandbox-result-windows-latest",
+      "bytes": 147119,
+      "digest": "sha256:007083058d72d4fd4f1242e50e2de13dabd7e442ed4d2387f1bd5dafc5544a20"
+    },
+    {
+      "id": 11600741789,
+      "name": "macos-latest-sandbox-capability",
+      "bytes": 406,
+      "digest": "sha256:6c2cab98203f6dabd1e541b2ede6caad21e09f2187429489f365878bc42eb202"
+    },
+    {
+      "id": 11600606909,
+      "name": "native-capsule-transport-windows",
+      "bytes": 7236,
+      "digest": "sha256:fa475381711d151ac441c28cf384eebbc1cfd6b8b553dc2d726d2829c9eab9c0"
+    },
+    {
+      "id": 11600427713,
+      "name": "strict-sandbox-result-ubuntu-24.04-arm",
+      "bytes": 6037,
+      "digest": "sha256:188981259b295d2ee786f34b0d321d613c256d986d32e0756259593fd420f836"
+    },
+    {
+      "id": 11600398815,
+      "name": "strict-sandbox-result-macos-15",
+      "bytes": 148271,
+      "digest": "sha256:97c4aaf8aba1f238622a75e7d699bcba0bb0248220491626cc31a6c42934a3e3"
+    },
+    {
+      "id": 11600203954,
+      "name": "strict-sandbox-result-ubuntu-24.04",
+      "bytes": 149942,
+      "digest": "sha256:4c3ccaa61af7d843ea734514e2b2c4ef6ffe30aa190b425bb60ce1ca4338d693"
+    }
+  ],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 13761,
+      "digest": "sha256:42f4aeceaf3af57df655a4398f712c6a2fcb63c2781b3895aa070497705a039b"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 21590,
+      "digest": "sha256:b6fe63eac32e79093b218f57e94167c1adb6f8869d9b9a2b78df6abd32426cca"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 4557,
+      "digest": "sha256:ea2d632ee1d84d6510f133960b2b9386f08f9a6fabc824e3eba57e74238a0f55"
+    }
+  ],
+  "capturedAt": "2026-10-09T07:09:32.344Z",
+  "formalSample": false,
+  "releaseEligible": false
+}

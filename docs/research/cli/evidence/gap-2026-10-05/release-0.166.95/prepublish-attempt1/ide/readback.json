@@ -1,0 +1,2973 @@
+{
+  "capturedAt": "2026-10-09T12:12:08.090Z",
+  "sourceCommit": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "run": {
+    "id": 37912152479,
+    "name": "IDE Extensions",
+    "node_id": "WFR_kwLOQgDM2s8AAAAI072Jnw",
+    "head_branch": "feature/cli-ide-gap-completion-20261009",
+    "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+    "path": ".github/workflows/ide-extensions.yml",
+    "display_title": "feat(cli): complete model review evidence and prepare CLI 0.166.95 with paired IDEs",
+    "run_number": 1693,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow_id": 292472562,
+    "check_suite_id": 102718305283,
+    "check_suite_node_id": "CS_kwDOQgDM2s8AAAAX6nz0Aw",
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+    "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479",
+    "pull_requests": [
+      {
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls/425",
+        "id": 4797156408,
+        "number": 425,
+        "head": {
+          "ref": "feature/cli-ide-gap-completion-20261009",
+          "sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        },
+        "base": {
+          "ref": "main",
+          "sha": "976c4f394fbab4fccc041787051f00abe08113c9",
+          "repo": {
+            "id": 1107348698,
+            "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+            "name": "chainlesschain"
+          }
+        }
+      }
+    ],
+    "created_at": "2026-10-09T09:34:34Z",
+    "updated_at": "2026-10-09T10:54:37Z",
+    "actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-10-09T09:34:34Z",
+    "triggering_actor": {
+      "login": "chainlesschain",
+      "id": 247070867,
+      "node_id": "U_kgDODroAkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chainlesschain",
+      "html_url": "https://github.com/chainlesschain",
+      "followers_url": "https://api.github.com/users/chainlesschain/followers",
+      "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+      "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+      "repos_url": "https://api.github.com/users/chainlesschain/repos",
+      "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479/jobs",
+    "logs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479/logs",
+    "check_suite_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-suites/102718305283",
+    "artifacts_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479/artifacts",
+    "cancel_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479/cancel",
+    "rerun_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/workflows/292472562",
+    "head_commit": {
+      "id": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "tree_id": "fe12ff6972e6849f034885bb6d74eb25292baec3",
+      "message": "docs(release): align public install guidance and historical IDE pairing",
+      "timestamp": "2026-10-09T09:34:21Z",
+      "author": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      },
+      "committer": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com"
+      }
+    },
+    "repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    },
+    "head_repository": {
+      "id": 1107348698,
+      "node_id": "R_kgDOQgDM2g",
+      "name": "chainlesschain",
+      "full_name": "chainlesschain/chainlesschain",
+      "private": false,
+      "owner": {
+        "login": "chainlesschain",
+        "id": 247070867,
+        "node_id": "U_kgDODroAkw",
+        "avatar_url": "https://avatars.githubusercontent.com/u/247070867?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/chainlesschain",
+        "html_url": "https://github.com/chainlesschain",
+        "followers_url": "https://api.github.com/users/chainlesschain/followers",
+        "following_url": "https://api.github.com/users/chainlesschain/following{/other_user}",
+        "gists_url": "https://api.github.com/users/chainlesschain/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/chainlesschain/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/chainlesschain/subscriptions",
+        "organizations_url": "https://api.github.com/users/chainlesschain/orgs",
+        "repos_url": "https://api.github.com/users/chainlesschain/repos",
+        "events_url": "https://api.github.com/users/chainlesschain/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/chainlesschain/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/chainlesschain/chainlesschain",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain",
+      "forks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/forks",
+      "keys_url": "https://api.github.com/repos/chainlesschain/chainlesschain/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/chainlesschain/chainlesschain/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/chainlesschain/chainlesschain/teams",
+      "hooks_url": "https://api.github.com/repos/chainlesschain/chainlesschain/hooks",
+      "issue_events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/chainlesschain/chainlesschain/events",
+      "assignees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/chainlesschain/chainlesschain/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/tags",
+      "blobs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/chainlesschain/chainlesschain/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/chainlesschain/chainlesschain/languages",
+      "stargazers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/stargazers",
+      "contributors_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contributors",
+      "subscribers_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscribers",
+      "subscription_url": "https://api.github.com/repos/chainlesschain/chainlesschain/subscription",
+      "commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/chainlesschain/chainlesschain/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/chainlesschain/chainlesschain/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/chainlesschain/chainlesschain/merges",
+      "archive_url": "https://api.github.com/repos/chainlesschain/chainlesschain/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/chainlesschain/chainlesschain/downloads",
+      "issues_url": "https://api.github.com/repos/chainlesschain/chainlesschain/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/chainlesschain/chainlesschain/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/chainlesschain/chainlesschain/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/chainlesschain/chainlesschain/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/chainlesschain/chainlesschain/labels{/name}",
+      "releases_url": "https://api.github.com/repos/chainlesschain/chainlesschain/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/chainlesschain/chainlesschain/deployments"
+    }
+  },
+  "jobs": [
+    {
+      "id": 113760602943,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafKkLPw",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113760602943",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113760602943",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:37:24Z",
+      "started_at": "2026-10-09T09:55:39Z",
+      "completed_at": "2026-10-09T09:56:04Z",
+      "name": "Public IDE capability manifest (drift gate)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T09:55:40Z",
+          "completed_at": "2026-10-09T09:55:40Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T09:55:40Z",
+          "completed_at": "2026-10-09T09:55:55Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T09:55:55Z",
+          "completed_at": "2026-10-09T09:56:00Z"
+        },
+        {
+          "name": "Verify IDE roadmap fixture contract",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T09:56:00Z",
+          "completed_at": "2026-10-09T09:56:00Z"
+        },
+        {
+          "name": "Verify commands, actions, Doctor and CLI floor",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T09:56:00Z",
+          "completed_at": "2026-10-09T09:56:00Z"
+        },
+        {
+          "name": "Test IDE publication prerequisite verification",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T09:56:00Z",
+          "completed_at": "2026-10-09T09:56:01Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T09:56:01Z",
+          "completed_at": "2026-10-09T09:56:01Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T09:56:01Z",
+          "completed_at": "2026-10-09T09:56:01Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T09:56:01Z",
+          "completed_at": "2026-10-09T09:56:01Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113760602943",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386720,
+      "runner_name": "GitHub Actions 1000386720",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069596,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu3nA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069596",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069596",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:19:29Z",
+      "completed_at": "2026-10-09T10:20:17Z",
+      "name": "VS Code extension (immutable candidate)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:19:30Z",
+          "completed_at": "2026-10-09T10:19:31Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:19:31Z",
+          "completed_at": "2026-10-09T10:19:45Z"
+        },
+        {
+          "name": "Reject unsafe VS Code Marketplace backfill",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 3,
+          "started_at": "2026-10-09T10:19:45Z",
+          "completed_at": "2026-10-09T10:19:45Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:19:45Z",
+          "completed_at": "2026-10-09T10:19:59Z"
+        },
+        {
+          "name": "Validate VS Code release tag version",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-09T10:19:59Z",
+          "completed_at": "2026-10-09T10:19:59Z"
+        },
+        {
+          "name": "Unit tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:19:59Z",
+          "completed_at": "2026-10-09T10:20:02Z"
+        },
+        {
+          "name": "Verify Marketplace Overview coherence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:20:02Z",
+          "completed_at": "2026-10-09T10:20:02Z"
+        },
+        {
+          "name": "Verify vendored Agent SDK freshness",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:20:02Z",
+          "completed_at": "2026-10-09T10:20:03Z"
+        },
+        {
+          "name": "Marketplace verifier self-test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:20:03Z",
+          "completed_at": "2026-10-09T10:20:03Z"
+        },
+        {
+          "name": "Package .vsix candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:20:03Z",
+          "completed_at": "2026-10-09T10:20:13Z"
+        },
+        {
+          "name": "Verify .vsix metadata",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:20:13Z",
+          "completed_at": "2026-10-09T10:20:13Z"
+        },
+        {
+          "name": "Create immutable candidate manifest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:20:13Z",
+          "completed_at": "2026-10-09T10:20:13Z"
+        },
+        {
+          "name": "Upload immutable .vsix candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:20:13Z",
+          "completed_at": "2026-10-09T10:20:14Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:20:14Z",
+          "completed_at": "2026-10-09T10:20:15Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:20:15Z",
+          "completed_at": "2026-10-09T10:20:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:20:15Z",
+          "completed_at": "2026-10-09T10:20:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069596",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386791,
+      "runner_name": "GitHub Actions 1000386791",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069611,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu3qw",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069611",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069611",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:05:44Z",
+      "completed_at": "2026-10-09T10:25:01Z",
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:05:44Z",
+          "completed_at": "2026-10-09T10:05:46Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:05:46Z",
+          "completed_at": "2026-10-09T10:06:10Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:06:10Z",
+          "completed_at": "2026-10-09T10:06:10Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:06:10Z",
+          "completed_at": "2026-10-09T10:06:22Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:06:22Z",
+          "completed_at": "2026-10-09T10:06:50Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:06:50Z",
+          "completed_at": "2026-10-09T10:06:51Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-09T10:06:51Z",
+          "completed_at": "2026-10-09T10:06:51Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:06:51Z",
+          "completed_at": "2026-10-09T10:06:51Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T10:06:51Z",
+          "completed_at": "2026-10-09T10:06:51Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:06:51Z",
+          "completed_at": "2026-10-09T10:20:51Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T10:20:51Z",
+          "completed_at": "2026-10-09T10:20:51Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:20:51Z",
+          "completed_at": "2026-10-09T10:24:55Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:24:55Z",
+          "completed_at": "2026-10-09T10:24:56Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:24:56Z",
+          "completed_at": "2026-10-09T10:24:57Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:24:57Z",
+          "completed_at": "2026-10-09T10:24:57Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:24:57Z",
+          "completed_at": "2026-10-09T10:24:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:24:59Z",
+          "completed_at": "2026-10-09T10:24:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069611",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000386756,
+      "runner_name": "GitHub Actions 1000386756",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069613,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu3rQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069613",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069613",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:00:56Z",
+      "completed_at": "2026-10-09T10:18:06Z",
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:00:57Z",
+          "completed_at": "2026-10-09T10:00:58Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:00:58Z",
+          "completed_at": "2026-10-09T10:01:17Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:01:17Z",
+          "completed_at": "2026-10-09T10:01:17Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:01:17Z",
+          "completed_at": "2026-10-09T10:01:23Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:01:23Z",
+          "completed_at": "2026-10-09T10:01:34Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:01:34Z",
+          "completed_at": "2026-10-09T10:01:34Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:01:34Z",
+          "completed_at": "2026-10-09T10:01:34Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:01:34Z",
+          "completed_at": "2026-10-09T10:01:34Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T10:01:34Z",
+          "completed_at": "2026-10-09T10:01:34Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:01:34Z",
+          "completed_at": "2026-10-09T10:14:34Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T10:14:34Z",
+          "completed_at": "2026-10-09T10:14:34Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:14:34Z",
+          "completed_at": "2026-10-09T10:17:54Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:17:54Z",
+          "completed_at": "2026-10-09T10:17:57Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:17:57Z",
+          "completed_at": "2026-10-09T10:17:57Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:17:57Z",
+          "completed_at": "2026-10-09T10:17:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:17:58Z",
+          "completed_at": "2026-10-09T10:17:58Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:17:58Z",
+          "completed_at": "2026-10-09T10:18:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069613",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000386739,
+      "runner_name": "GitHub Actions 1000386739",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069638,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu3xg",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069638",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069638",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:30:56Z",
+      "completed_at": "2026-10-09T10:33:43Z",
+      "name": "Browser evidence (macos)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:30:56Z",
+          "completed_at": "2026-10-09T10:30:57Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:30:57Z",
+          "completed_at": "2026-10-09T10:31:58Z"
+        },
+        {
+          "name": "Fetch executed browser workflow authority",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:31:58Z",
+          "completed_at": "2026-10-09T10:31:59Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:31:59Z",
+          "completed_at": "2026-10-09T10:32:07Z"
+        },
+        {
+          "name": "Install browser evidence dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:32:07Z",
+          "completed_at": "2026-10-09T10:32:21Z"
+        },
+        {
+          "name": "Verify pinned Playwright driver",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:32:21Z",
+          "completed_at": "2026-10-09T10:32:22Z"
+        },
+        {
+          "name": "Run browser evidence contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:32:22Z",
+          "completed_at": "2026-10-09T10:32:32Z"
+        },
+        {
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:32:32Z",
+          "completed_at": "2026-10-09T10:32:32Z"
+        },
+        {
+          "name": "Install Chromium (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:32:32Z",
+          "completed_at": "2026-10-09T10:32:45Z"
+        },
+        {
+          "name": "Validate actual image codecs and bounded animation workers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:32:45Z",
+          "completed_at": "2026-10-09T10:32:46Z"
+        },
+        {
+          "name": "Upload image codec and animation budget evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:32:46Z",
+          "completed_at": "2026-10-09T10:32:47Z"
+        },
+        {
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:32:47Z",
+          "completed_at": "2026-10-09T10:33:25Z"
+        },
+        {
+          "name": "Upload Workbench browser and CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:33:25Z",
+          "completed_at": "2026-10-09T10:33:26Z"
+        },
+        {
+          "name": "Run real local two-origin browser evidence journey",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 14,
+          "started_at": "2026-10-09T10:33:26Z",
+          "completed_at": "2026-10-09T10:33:38Z"
+        },
+        {
+          "name": "Upload exact-head browser evidence fragment",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-09T10:33:38Z",
+          "completed_at": "2026-10-09T10:33:38Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-10-09T10:33:38Z",
+          "completed_at": "2026-10-09T10:33:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-09T10:33:38Z",
+          "completed_at": "2026-10-09T10:33:39Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-09T10:33:39Z",
+          "completed_at": "2026-10-09T10:33:41Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069638",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000386816,
+      "runner_name": "GitHub Actions 1000386816",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069692,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu3_A",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069692",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069692",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:07:28Z",
+      "completed_at": "2026-10-09T10:23:48Z",
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:07:29Z",
+          "completed_at": "2026-10-09T10:07:31Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:07:31Z",
+          "completed_at": "2026-10-09T10:07:55Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:07:55Z",
+          "completed_at": "2026-10-09T10:07:55Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:07:55Z",
+          "completed_at": "2026-10-09T10:08:05Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:08:05Z",
+          "completed_at": "2026-10-09T10:08:23Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:08:23Z",
+          "completed_at": "2026-10-09T10:08:24Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-09T10:08:24Z",
+          "completed_at": "2026-10-09T10:08:24Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:08:24Z",
+          "completed_at": "2026-10-09T10:08:24Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T10:08:24Z",
+          "completed_at": "2026-10-09T10:08:24Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:08:24Z",
+          "completed_at": "2026-10-09T10:20:06Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T10:20:06Z",
+          "completed_at": "2026-10-09T10:20:06Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:20:06Z",
+          "completed_at": "2026-10-09T10:23:37Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:23:37Z",
+          "completed_at": "2026-10-09T10:23:43Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:23:43Z",
+          "completed_at": "2026-10-09T10:23:43Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:23:43Z",
+          "completed_at": "2026-10-09T10:23:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:23:43Z",
+          "completed_at": "2026-10-09T10:23:46Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:23:46Z",
+          "completed_at": "2026-10-09T10:23:46Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069692",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000386762,
+      "runner_name": "GitHub Actions 1000386762",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069701,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu4BQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069701",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069701",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T09:57:40Z",
+      "completed_at": "2026-10-09T09:59:37Z",
+      "name": "Browser evidence (linux)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T09:57:42Z",
+          "completed_at": "2026-10-09T09:57:42Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T09:57:42Z",
+          "completed_at": "2026-10-09T09:58:17Z"
+        },
+        {
+          "name": "Fetch executed browser workflow authority",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T09:58:17Z",
+          "completed_at": "2026-10-09T09:58:18Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T09:58:18Z",
+          "completed_at": "2026-10-09T09:58:23Z"
+        },
+        {
+          "name": "Install browser evidence dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T09:58:23Z",
+          "completed_at": "2026-10-09T09:58:36Z"
+        },
+        {
+          "name": "Verify pinned Playwright driver",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T09:58:36Z",
+          "completed_at": "2026-10-09T09:58:37Z"
+        },
+        {
+          "name": "Run browser evidence contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T09:58:37Z",
+          "completed_at": "2026-10-09T09:58:45Z"
+        },
+        {
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T09:58:45Z",
+          "completed_at": "2026-10-09T09:59:07Z"
+        },
+        {
+          "name": "Install Chromium (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T09:59:07Z",
+          "completed_at": "2026-10-09T09:59:07Z"
+        },
+        {
+          "name": "Validate actual image codecs and bounded animation workers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T09:59:07Z",
+          "completed_at": "2026-10-09T09:59:07Z"
+        },
+        {
+          "name": "Upload image codec and animation budget evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T09:59:07Z",
+          "completed_at": "2026-10-09T09:59:09Z"
+        },
+        {
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T09:59:09Z",
+          "completed_at": "2026-10-09T09:59:26Z"
+        },
+        {
+          "name": "Upload Workbench browser and CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T09:59:26Z",
+          "completed_at": "2026-10-09T09:59:28Z"
+        },
+        {
+          "name": "Run real local two-origin browser evidence journey",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 14,
+          "started_at": "2026-10-09T09:59:28Z",
+          "completed_at": "2026-10-09T09:59:35Z"
+        },
+        {
+          "name": "Upload exact-head browser evidence fragment",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-09T09:59:35Z",
+          "completed_at": "2026-10-09T09:59:35Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-10-09T09:59:35Z",
+          "completed_at": "2026-10-09T09:59:35Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-09T09:59:35Z",
+          "completed_at": "2026-10-09T09:59:35Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-09T09:59:35Z",
+          "completed_at": "2026-10-09T09:59:35Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069701",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386725,
+      "runner_name": "GitHub Actions 1000386725",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069721,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu4GQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069721",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069721",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:13:50Z",
+      "completed_at": "2026-10-09T10:17:02Z",
+      "name": "Browser evidence (windows)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:13:51Z",
+          "completed_at": "2026-10-09T10:13:52Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:13:52Z",
+          "completed_at": "2026-10-09T10:14:38Z"
+        },
+        {
+          "name": "Fetch executed browser workflow authority",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:14:38Z",
+          "completed_at": "2026-10-09T10:14:39Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:14:39Z",
+          "completed_at": "2026-10-09T10:14:50Z"
+        },
+        {
+          "name": "Install browser evidence dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:14:50Z",
+          "completed_at": "2026-10-09T10:15:11Z"
+        },
+        {
+          "name": "Verify pinned Playwright driver",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:15:11Z",
+          "completed_at": "2026-10-09T10:15:11Z"
+        },
+        {
+          "name": "Run browser evidence contract tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:15:11Z",
+          "completed_at": "2026-10-09T10:15:23Z"
+        },
+        {
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:15:23Z",
+          "completed_at": "2026-10-09T10:15:23Z"
+        },
+        {
+          "name": "Install Chromium (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:15:23Z",
+          "completed_at": "2026-10-09T10:15:39Z"
+        },
+        {
+          "name": "Validate actual image codecs and bounded animation workers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:15:39Z",
+          "completed_at": "2026-10-09T10:15:41Z"
+        },
+        {
+          "name": "Upload image codec and animation budget evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:15:41Z",
+          "completed_at": "2026-10-09T10:15:42Z"
+        },
+        {
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:15:42Z",
+          "completed_at": "2026-10-09T10:16:47Z"
+        },
+        {
+          "name": "Upload Workbench browser and CLI evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:16:47Z",
+          "completed_at": "2026-10-09T10:16:49Z"
+        },
+        {
+          "name": "Run real local two-origin browser evidence journey",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 14,
+          "started_at": "2026-10-09T10:16:49Z",
+          "completed_at": "2026-10-09T10:16:58Z"
+        },
+        {
+          "name": "Upload exact-head browser evidence fragment",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-09T10:16:58Z",
+          "completed_at": "2026-10-09T10:16:58Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-10-09T10:16:58Z",
+          "completed_at": "2026-10-09T10:16:58Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-09T10:16:58Z",
+          "completed_at": "2026-10-09T10:17:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-09T10:17:00Z",
+          "completed_at": "2026-10-09T10:17:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069721",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000386780,
+      "runner_name": "GitHub Actions 1000386780",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069737,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu4KQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069737",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069737",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:16:53Z",
+      "completed_at": "2026-10-09T10:26:25Z",
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:16:54Z",
+          "completed_at": "2026-10-09T10:16:56Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:16:56Z",
+          "completed_at": "2026-10-09T10:17:09Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:17:09Z",
+          "completed_at": "2026-10-09T10:17:09Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:17:09Z",
+          "completed_at": "2026-10-09T10:17:14Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:17:14Z",
+          "completed_at": "2026-10-09T10:17:22Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:17:22Z",
+          "completed_at": "2026-10-09T10:17:23Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:17:23Z",
+          "completed_at": "2026-10-09T10:17:23Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:17:23Z",
+          "completed_at": "2026-10-09T10:17:30Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:17:30Z",
+          "completed_at": "2026-10-09T10:24:29Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-09T10:24:29Z",
+          "completed_at": "2026-10-09T10:24:29Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:24:29Z",
+          "completed_at": "2026-10-09T10:26:21Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-09T10:26:21Z",
+          "completed_at": "2026-10-09T10:26:21Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:26:21Z",
+          "completed_at": "2026-10-09T10:26:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:26:23Z",
+          "completed_at": "2026-10-09T10:26:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:26:23Z",
+          "completed_at": "2026-10-09T10:26:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:26:23Z",
+          "completed_at": "2026-10-09T10:26:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:26:23Z",
+          "completed_at": "2026-10-09T10:26:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069737",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386787,
+      "runner_name": "GitHub Actions 1000386787",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069752,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu4OA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069752",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069752",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:13:36Z",
+      "completed_at": "2026-10-09T10:24:35Z",
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:13:37Z",
+          "completed_at": "2026-10-09T10:13:39Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:13:39Z",
+          "completed_at": "2026-10-09T10:13:54Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:13:54Z",
+          "completed_at": "2026-10-09T10:13:54Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:13:54Z",
+          "completed_at": "2026-10-09T10:13:59Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:13:59Z",
+          "completed_at": "2026-10-09T10:14:12Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:14:12Z",
+          "completed_at": "2026-10-09T10:14:12Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:14:12Z",
+          "completed_at": "2026-10-09T10:14:12Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:14:12Z",
+          "completed_at": "2026-10-09T10:14:17Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:14:17Z",
+          "completed_at": "2026-10-09T10:22:16Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-09T10:22:16Z",
+          "completed_at": "2026-10-09T10:22:16Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:22:16Z",
+          "completed_at": "2026-10-09T10:24:30Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-09T10:24:30Z",
+          "completed_at": "2026-10-09T10:24:30Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:24:30Z",
+          "completed_at": "2026-10-09T10:24:32Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:24:32Z",
+          "completed_at": "2026-10-09T10:24:32Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:24:32Z",
+          "completed_at": "2026-10-09T10:24:32Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:24:32Z",
+          "completed_at": "2026-10-09T10:24:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:24:32Z",
+          "completed_at": "2026-10-09T10:24:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069752",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386779,
+      "runner_name": "GitHub Actions 1000386779",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113767069787,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafQu4Ww",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113767069787",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113767069787",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T09:56:04Z",
+      "started_at": "2026-10-09T10:33:51Z",
+      "completed_at": "2026-10-09T10:54:36Z",
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:33:52Z",
+          "completed_at": "2026-10-09T10:33:55Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:33:55Z",
+          "completed_at": "2026-10-09T10:34:16Z"
+        },
+        {
+          "name": "Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:34:16Z",
+          "completed_at": "2026-10-09T10:34:17Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:34:17Z",
+          "completed_at": "2026-10-09T10:34:24Z"
+        },
+        {
+          "name": "Install CLI dependencies for canonical host recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:34:24Z",
+          "completed_at": "2026-10-09T10:34:38Z"
+        },
+        {
+          "name": "Verify Remote Robot startup and recovery evidence contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:34:38Z",
+          "completed_at": "2026-10-09T10:34:39Z"
+        },
+        {
+          "name": "Make gradlew executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:34:39Z",
+          "completed_at": "2026-10-09T10:34:39Z"
+        },
+        {
+          "name": "Install Linux virtual display",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T10:34:39Z",
+          "completed_at": "2026-10-09T10:34:39Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T10:34:39Z",
+          "completed_at": "2026-10-09T10:34:39Z"
+        },
+        {
+          "name": "Run deterministic chat/control/resume journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:34:39Z",
+          "completed_at": "2026-10-09T10:51:06Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Linux)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-09T10:51:06Z",
+          "completed_at": "2026-10-09T10:51:06Z"
+        },
+        {
+          "name": "Run canonical recovery and Stop journey (Windows/macOS)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T10:51:06Z",
+          "completed_at": "2026-10-09T10:54:22Z"
+        },
+        {
+          "name": "Upload host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:54:22Z",
+          "completed_at": "2026-10-09T10:54:25Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-09T10:54:25Z",
+          "completed_at": "2026-10-09T10:54:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-java@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-09T10:54:26Z",
+          "completed_at": "2026-10-09T10:54:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-09T10:54:26Z",
+          "completed_at": "2026-10-09T10:54:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-09T10:54:27Z",
+          "completed_at": "2026-10-09T10:54:33Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113767069787",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000386822,
+      "runner_name": "GitHub Actions 1000386822",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113775429308,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafYtGvA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113775429308",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113775429308",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T10:20:18Z",
+      "started_at": "2026-10-09T10:24:38Z",
+      "completed_at": "2026-10-09T10:29:33Z",
+      "name": "VS Code extension (Windows host gate)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:24:39Z",
+          "completed_at": "2026-10-09T10:24:40Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:24:40Z",
+          "completed_at": "2026-10-09T10:25:06Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:25:06Z",
+          "completed_at": "2026-10-09T10:25:29Z"
+        },
+        {
+          "name": "Download immutable .vsix candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:25:29Z",
+          "completed_at": "2026-10-09T10:25:30Z"
+        },
+        {
+          "name": "Verify immutable candidate manifest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:25:30Z",
+          "completed_at": "2026-10-09T10:25:30Z"
+        },
+        {
+          "name": "Install Extension Host test runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:25:30Z",
+          "completed_at": "2026-10-09T10:25:34Z"
+        },
+        {
+          "name": "Extension Host multi-root + multi-window journey (Windows stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:25:34Z",
+          "completed_at": "2026-10-09T10:27:42Z"
+        },
+        {
+          "name": "Extension Host multi-root + multi-window journey (Windows minimum 1.85.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:27:42Z",
+          "completed_at": "2026-10-09T10:29:27Z"
+        },
+        {
+          "name": "Upload Windows host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:29:27Z",
+          "completed_at": "2026-10-09T10:29:29Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-09T10:29:29Z",
+          "completed_at": "2026-10-09T10:29:29Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-09T10:29:29Z",
+          "completed_at": "2026-10-09T10:29:31Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-09T10:29:31Z",
+          "completed_at": "2026-10-09T10:29:31Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113775429308",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000386804,
+      "runner_name": "GitHub Actions 1000386804",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113775429503,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafYtHfw",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113775429503",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113775429503",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T10:20:18Z",
+      "started_at": "2026-10-09T10:34:34Z",
+      "completed_at": "2026-10-09T10:42:31Z",
+      "name": "VS Code extension (macOS host gate)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:34:35Z",
+          "completed_at": "2026-10-09T10:34:37Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:34:37Z",
+          "completed_at": "2026-10-09T10:35:09Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:35:09Z",
+          "completed_at": "2026-10-09T10:35:19Z"
+        },
+        {
+          "name": "Download immutable .vsix candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:35:19Z",
+          "completed_at": "2026-10-09T10:35:20Z"
+        },
+        {
+          "name": "Verify immutable candidate manifest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:35:20Z",
+          "completed_at": "2026-10-09T10:35:21Z"
+        },
+        {
+          "name": "Install Extension Host test runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:35:21Z",
+          "completed_at": "2026-10-09T10:35:22Z"
+        },
+        {
+          "name": "Extension Host multi-root + multi-window journey (macOS stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:35:22Z",
+          "completed_at": "2026-10-09T10:38:29Z"
+        },
+        {
+          "name": "Extension Host multi-root + multi-window journey (macOS minimum 1.85.2)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:38:29Z",
+          "completed_at": "2026-10-09T10:42:23Z"
+        },
+        {
+          "name": "Upload macOS host journey evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:42:23Z",
+          "completed_at": "2026-10-09T10:42:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-09T10:42:26Z",
+          "completed_at": "2026-10-09T10:42:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-09T10:42:26Z",
+          "completed_at": "2026-10-09T10:42:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-09T10:42:27Z",
+          "completed_at": "2026-10-09T10:42:28Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113775429503",
+      "labels": [
+        "macos-15-intel"
+      ],
+      "runner_id": 1000386824,
+      "runner_name": "GitHub Actions 1000386824",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113775430072,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafYtJuA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113775430072",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113775430072",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T10:20:18Z",
+      "started_at": "2026-10-09T10:25:34Z",
+      "completed_at": "2026-10-09T10:26:49Z",
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:25:35Z",
+          "completed_at": "2026-10-09T10:25:36Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:25:36Z",
+          "completed_at": "2026-10-09T10:25:50Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:25:50Z",
+          "completed_at": "2026-10-09T10:25:55Z"
+        },
+        {
+          "name": "Download immutable .vsix candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:25:55Z",
+          "completed_at": "2026-10-09T10:25:55Z"
+        },
+        {
+          "name": "Verify immutable candidate manifest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T10:25:55Z",
+          "completed_at": "2026-10-09T10:25:55Z"
+        },
+        {
+          "name": "Verify Remote-SSH driver contract",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:25:55Z",
+          "completed_at": "2026-10-09T10:25:55Z"
+        },
+        {
+          "name": "Install exact host-test runtime and Xvfb",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:25:55Z",
+          "completed_at": "2026-10-09T10:26:07Z"
+        },
+        {
+          "name": "Download and verify official Remote-SSH transport and install bytes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T10:26:07Z",
+          "completed_at": "2026-10-09T10:26:07Z"
+        },
+        {
+          "name": "Run installed VSIX in a genuine Remote-SSH container extension host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T10:26:07Z",
+          "completed_at": "2026-10-09T10:26:46Z"
+        },
+        {
+          "name": "Bridge rehashed journey bytes into the scoped roadmap envelope",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-09T10:26:46Z",
+          "completed_at": "2026-10-09T10:26:46Z"
+        },
+        {
+          "name": "Upload Remote-SSH diagnostics and trusted evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T10:26:46Z",
+          "completed_at": "2026-10-09T10:26:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-09T10:26:47Z",
+          "completed_at": "2026-10-09T10:26:47Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-09T10:26:47Z",
+          "completed_at": "2026-10-09T10:26:47Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-09T10:26:47Z",
+          "completed_at": "2026-10-09T10:26:47Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113775430072",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386806,
+      "runner_name": "GitHub Actions 1000386806",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113777631596,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafazhbA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113777631596",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113777631596",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T10:26:49Z",
+      "started_at": "2026-10-09T10:27:24Z",
+      "completed_at": "2026-10-09T10:27:53Z",
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T10:27:25Z",
+          "completed_at": "2026-10-09T10:27:26Z"
+        },
+        {
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T10:27:26Z",
+          "completed_at": "2026-10-09T10:27:41Z"
+        },
+        {
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T10:27:41Z",
+          "completed_at": "2026-10-09T10:27:47Z"
+        },
+        {
+          "name": "Download exact producer artifact from this workflow run",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T10:27:47Z",
+          "completed_at": "2026-10-09T10:27:48Z"
+        },
+        {
+          "name": "Rehash artifact bytes and assert release readiness",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-09T10:27:48Z",
+          "completed_at": "2026-10-09T10:27:48Z"
+        },
+        {
+          "name": "Rehash artifact bytes as advisory evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T10:27:48Z",
+          "completed_at": "2026-10-09T10:27:49Z"
+        },
+        {
+          "name": "Upload trusted scoped aggregate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T10:27:49Z",
+          "completed_at": "2026-10-09T10:27:50Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T10:27:50Z",
+          "completed_at": "2026-10-09T10:27:50Z"
+        },
+        {
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-09T10:27:50Z",
+          "completed_at": "2026-10-09T10:27:50Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-09T10:27:50Z",
+          "completed_at": "2026-10-09T10:27:50Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113777631596",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000386813,
+      "runner_name": "GitHub Actions 1000386813",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113779967360,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafdCFgA",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113779967360",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113779967360",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-09T10:33:44Z",
+      "started_at": "2026-10-09T10:33:44Z",
+      "completed_at": "2026-10-09T10:33:44Z",
+      "name": "Browser evidence (three-OS required aggregate)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113779967360",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 113782914135,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAaff18Vw",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113782914135",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113782914135",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-09T10:42:32Z",
+      "started_at": "2026-10-09T10:42:32Z",
+      "completed_at": "2026-10-09T10:42:31Z",
+      "name": "VS Code extension (Linux host gate + publish)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113782914135",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 113786919797,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafjqbdQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113786919797",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113786919797",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-09T10:54:36Z",
+      "started_at": "2026-10-09T10:54:36Z",
+      "completed_at": "2026-10-09T10:54:36Z",
+      "name": "JetBrains plugin (build + publish)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113786919797",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 113786920037,
+      "run_id": 37912152479,
+      "workflow_name": "IDE Extensions",
+      "head_branch": "feature/cli-ide-gap-completion-20261009",
+      "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152479",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOQgDM2s8AAAAafjqcZQ",
+      "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113786920037",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152479/job/113786920037",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-09T10:54:36Z",
+      "started_at": "2026-10-09T10:54:36Z",
+      "completed_at": "2026-10-09T10:54:36Z",
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113786920037",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11611497297,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMTQ5NzI5Nw==",
+      "name": "jetbrains-macOS-2025.2-host-evidence-1",
+      "size_in_bytes": 3514774,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11611497297",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11611497297/zip",
+      "expired": false,
+      "digest": "sha256:b37c298fbbb8ca0881436c78922a19d8d864262d5d0cfae0d106aca3db4961d6",
+      "created_at": "2026-10-09T10:54:25Z",
+      "updated_at": "2026-10-09T10:54:25Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11611245448,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMTI0NTQ0OA==",
+      "name": "jetbrains-Windows-2025.2-host-evidence-1",
+      "size_in_bytes": 3479470,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11611245448",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11611245448/zip",
+      "expired": false,
+      "digest": "sha256:1cfe41ff17237ae95589d6ae96a8dfcb933821227aa269e07cc5b1aad7cb8a76",
+      "created_at": "2026-10-09T10:24:56Z",
+      "updated_at": "2026-10-09T10:24:56Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610976195,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDk3NjE5NQ==",
+      "name": "vscode-remote-ssh-container-aggregate-1",
+      "size_in_bytes": 542,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610976195",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610976195/zip",
+      "expired": false,
+      "digest": "sha256:2a2ccc4741965c2c4add46a1ee0c06bbfd70e47f41550b43ec9229c750609537",
+      "created_at": "2026-10-09T10:27:50Z",
+      "updated_at": "2026-10-09T10:27:50Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610955704,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDk1NTcwNA==",
+      "name": "jetbrains-Linux-2024.2-host-evidence-1",
+      "size_in_bytes": 3479861,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610955704",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610955704/zip",
+      "expired": false,
+      "digest": "sha256:2ba37ab62247e2a9fd06cc2a46be7a4e782ced87fdcfbed07436edcffe0855d1",
+      "created_at": "2026-10-09T10:24:32Z",
+      "updated_at": "2026-10-09T10:24:32Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610948852,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDk0ODg1Mg==",
+      "name": "vscode-macos-host-evidence-1",
+      "size_in_bytes": 1729934,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610948852",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610948852/zip",
+      "expired": false,
+      "digest": "sha256:afcac2f18dcfc084ad6e96dee454adbf9c151d9012f6fc192a1cfb8f8302b51b",
+      "created_at": "2026-10-09T10:42:26Z",
+      "updated_at": "2026-10-09T10:42:26Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610876105,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDg3NjEwNQ==",
+      "name": "vscode-remote-ssh-container-evidence-1",
+      "size_in_bytes": 2221061,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610876105",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610876105/zip",
+      "expired": false,
+      "digest": "sha256:f108275fc2dd02e6797ddccd2bf26ed56fa8b09b27aab07e80da64c7059d9011",
+      "created_at": "2026-10-09T10:26:46Z",
+      "updated_at": "2026-10-09T10:26:46Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610831160,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDgzMTE2MA==",
+      "name": "jetbrains-Linux-2025.2-host-evidence-1",
+      "size_in_bytes": 3465404,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610831160",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610831160/zip",
+      "expired": false,
+      "digest": "sha256:594f88b43b0f041e6bbaed8e25da12701d6bda6c5879fffa7def6ad5646e990f",
+      "created_at": "2026-10-09T10:26:23Z",
+      "updated_at": "2026-10-09T10:26:23Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610811588,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDgxMTU4OA==",
+      "name": "vscode-windows-host-evidence-1",
+      "size_in_bytes": 1763920,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610811588",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610811588/zip",
+      "expired": false,
+      "digest": "sha256:9ce8c5918cbdf47738859cf3f6e616e16442aa37e5909b3e434bf2a3c008b5a1",
+      "created_at": "2026-10-09T10:29:28Z",
+      "updated_at": "2026-10-09T10:29:28Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610301446,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDMwMTQ0Ng==",
+      "name": "jetbrains-Windows-2024.2-host-evidence-1",
+      "size_in_bytes": 3493330,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610301446",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610301446/zip",
+      "expired": false,
+      "digest": "sha256:5f81451b5c8a12a99985c592828ac46c8b6d32d135e6a4d8d556b380a3f7902f",
+      "created_at": "2026-10-09T10:23:43Z",
+      "updated_at": "2026-10-09T10:23:43Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610142246,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDE0MjI0Ng==",
+      "name": "image-codec-budget-macos-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 799,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610142246",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610142246/zip",
+      "expired": false,
+      "digest": "sha256:052fad46b8ce32c0d3f023f8d3c32f85a43f0c2dbf7859f3a36105dfc1f8161b",
+      "created_at": "2026-10-09T10:32:48Z",
+      "updated_at": "2026-10-09T10:32:48Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11610022392,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYxMDAyMjM5Mg==",
+      "name": "evolution-workbench-macos-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 1232542,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610022392",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11610022392/zip",
+      "expired": false,
+      "digest": "sha256:3038ce63e8e8319fc5be346af1576b02b9177c361088e237bf460fa118a26614",
+      "created_at": "2026-10-09T10:33:27Z",
+      "updated_at": "2026-10-09T10:33:27Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609953911,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTk1MzkxMQ==",
+      "name": "evolution-workbench-windows-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 711542,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609953911",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609953911/zip",
+      "expired": false,
+      "digest": "sha256:3f8d3438f7d093c8c78fa6e82ae9c9bc9f3851f9c8fbf88584c35bf099b140f2",
+      "created_at": "2026-10-09T10:16:49Z",
+      "updated_at": "2026-10-09T10:16:49Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609749445,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTc0OTQ0NQ==",
+      "name": "jetbrains-macOS-2024.2-host-evidence-1",
+      "size_in_bytes": 3480070,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609749445",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609749445/zip",
+      "expired": false,
+      "digest": "sha256:3f9187841240d56f7b3e7df6c3e080691b0d12d3c944cd4f9f7b74d76b1fe93c",
+      "created_at": "2026-10-09T10:17:57Z",
+      "updated_at": "2026-10-09T10:17:57Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609599854,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTU5OTg1NA==",
+      "name": "chainlesschain-ide-vscode-candidate",
+      "size_in_bytes": 698528,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609599854",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609599854/zip",
+      "expired": false,
+      "digest": "sha256:b67dbba4f73e5d6b3faec17221b0a0dad5e9333487b685765ac2b0f55678ab8d",
+      "created_at": "2026-10-09T10:20:14Z",
+      "updated_at": "2026-10-09T10:20:14Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609540997,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTU0MDk5Nw==",
+      "name": "evolution-workbench-linux-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 1396139,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609540997",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609540997/zip",
+      "expired": false,
+      "digest": "sha256:96b88736a6f920ab1f13b1feb9f58c75410952c8b4c13cd378ea3b6275d0bb09",
+      "created_at": "2026-10-09T09:59:28Z",
+      "updated_at": "2026-10-09T09:59:28Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609449109,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTQ0OTEwOQ==",
+      "name": "image-codec-budget-windows-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 796,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609449109",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609449109/zip",
+      "expired": false,
+      "digest": "sha256:9cf8550bcd077f2009c2b4d8f224de3aa23e556adff3ba1a10c99cb3848078e3",
+      "created_at": "2026-10-09T10:15:42Z",
+      "updated_at": "2026-10-09T10:15:42Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    },
+    {
+      "id": 11609331074,
+      "node_id": "MDg6QXJ0aWZhY3QxMTYwOTMzMTA3NA==",
+      "name": "image-codec-budget-linux-d4b936395ee40726bff956fd3adfd4f01ff24e77-1",
+      "size_in_bytes": 789,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609331074",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11609331074/zip",
+      "expired": false,
+      "digest": "sha256:7adf509e4ec0a02bbab829749ec2a9eacaad958f127371a3a3094e4126778ce0",
+      "created_at": "2026-10-09T09:59:09Z",
+      "updated_at": "2026-10-09T09:59:09Z",
+      "expires_at": "2027-01-07T09:34:34Z",
+      "workflow_run": {
+        "id": 37912152479,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77"
+      }
+    }
+  ],
+  "captures": [
+    {
+      "path": "run.json",
+      "bytes": 13774,
+      "sha256": "0252a626064d0b3f2cdbba9846b92d19df4deb67fc6a2cf092563993b76c4e99"
+    },
+    {
+      "path": "jobs-1.json",
+      "bytes": 59283,
+      "sha256": "a7a7727bd7270858201cb289af41ace1e7505511268872e5c1ea662848a55707"
+    },
+    {
+      "path": "artifacts-1.json",
+      "bytes": 13116,
+      "sha256": "b7783f01ac583afb07f2d8be339060a3052cfa457a9821ff17863704857abd30"
+    }
+  ]
+}

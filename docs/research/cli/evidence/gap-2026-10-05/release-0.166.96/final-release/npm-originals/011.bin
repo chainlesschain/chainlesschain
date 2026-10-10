@@ -1,0 +1,326 @@
+﻿2026-10-10T03:12:48.6675459Z Current runner version: '2.337.0'
+2026-10-10T03:12:48.6692466Z ##[group]Runner Image Provisioner
+2026-10-10T03:12:48.6693000Z Hosted Compute Agent
+2026-10-10T03:12:48.6693407Z Version: 20261002.596
+2026-10-10T03:12:48.6693805Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T03:12:48.6694272Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T03:12:48.6694723Z Worker ID: {5381ff4d-35e3-415a-a472-6e754518a7e0}
+2026-10-10T03:12:48.6695175Z Region: centralus
+2026-10-10T03:12:48.6695544Z Cloud: Azure
+2026-10-10T03:12:48.6695906Z ##[endgroup]
+2026-10-10T03:12:48.6696752Z ##[group]Operating System
+2026-10-10T03:12:48.6697161Z Ubuntu
+2026-10-10T03:12:48.6697481Z 24.04.5
+2026-10-10T03:12:48.6697788Z LTS
+2026-10-10T03:12:48.6698150Z ##[endgroup]
+2026-10-10T03:12:48.6698521Z ##[group]Runner Image
+2026-10-10T03:12:48.6699136Z Image: ubuntu-24.04
+2026-10-10T03:12:48.6699523Z Version: 20261004.327.1
+2026-10-10T03:12:48.6700267Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T03:12:48.6701511Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T03:12:48.6702188Z ##[endgroup]
+2026-10-10T03:12:48.6702837Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T03:12:48.6704303Z Contents: read
+2026-10-10T03:12:48.6704689Z Metadata: read
+2026-10-10T03:12:48.6705019Z ##[endgroup]
+2026-10-10T03:12:48.6706375Z Secret source: Actions
+2026-10-10T03:12:48.6706932Z Cache mode: write
+2026-10-10T03:12:48.6707471Z Prepare workflow directory
+2026-10-10T03:12:48.6917352Z Prepare all required actions
+2026-10-10T03:12:48.6951248Z Getting action download info
+2026-10-10T03:12:48.9119120Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T03:12:49.0082217Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T03:12:49.1181869Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T03:12:49.2979717Z Uses: chainlesschain/chainlesschain/.github/workflows/_cli-linux-subreaper.yml@refs/tags/v-npm-0-166-96 (da91e730d802b7c9dcdc075b222ecc257021e552)
+2026-10-10T03:12:49.2982817Z ##[group] Inputs
+2026-10-10T03:12:49.2983160Z   commit_sha: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:49.2983516Z ##[endgroup]
+2026-10-10T03:12:49.2983852Z Complete job name: linux-subreaper / Linux packaged subreaper (x64)
+2026-10-10T03:12:49.3445784Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-10T03:12:49.3446286Z with:
+2026-10-10T03:12:49.3446549Z   ref: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:49.3446896Z   repository: chainlesschain/chainlesschain
+2026-10-10T03:12:49.3448937Z   token: ***
+2026-10-10T03:12:49.3449170Z   ssh-strict: true
+2026-10-10T03:12:49.3449409Z   ssh-user: git
+2026-10-10T03:12:49.3449668Z   persist-credentials: true
+2026-10-10T03:12:49.3449938Z   clean: true
+2026-10-10T03:12:49.3450189Z   sparse-checkout-cone-mode: true
+2026-10-10T03:12:49.3450595Z   fetch-depth: 1
+2026-10-10T03:12:49.3450837Z   fetch-tags: false
+2026-10-10T03:12:49.3451084Z   show-progress: true
+2026-10-10T03:12:49.3451331Z   lfs: false
+2026-10-10T03:12:49.3451589Z   submodules: false
+2026-10-10T03:12:49.3451840Z   set-safe-directory: true
+2026-10-10T03:12:49.3452124Z   allow-unsafe-pr-checkout: false
+2026-10-10T03:12:49.3452596Z ##[endgroup]
+2026-10-10T03:12:49.4098517Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T03:12:49.4099957Z ##[group]Getting Git version info
+2026-10-10T03:12:49.4100763Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:12:49.4101692Z [command]/usr/bin/git version
+2026-10-10T03:12:49.4171569Z git version 2.55.0
+2026-10-10T03:12:49.4185433Z ##[endgroup]
+2026-10-10T03:12:49.4195772Z Temporarily overriding HOME='/home/runner/work/_temp/5cb4a4d6-3242-4e4b-b92a-9db68d39a3e9' before making global git config changes
+2026-10-10T03:12:49.4197409Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T03:12:49.4199031Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:12:49.4243084Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:12:49.4246179Z ##[group]Initializing the repository
+2026-10-10T03:12:49.4248806Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:12:49.4345743Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T03:12:49.4346634Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T03:12:49.4347462Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T03:12:49.4348106Z hint: call:
+2026-10-10T03:12:49.4348452Z hint:
+2026-10-10T03:12:49.4348906Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T03:12:49.4349461Z hint:
+2026-10-10T03:12:49.4350680Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T03:12:49.4351517Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T03:12:49.4352175Z hint:
+2026-10-10T03:12:49.4352527Z hint: 	git branch -m <name>
+2026-10-10T03:12:49.4352954Z hint:
+2026-10-10T03:12:49.4353510Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T03:12:49.4354482Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T03:12:49.4356487Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:12:49.4398812Z ##[endgroup]
+2026-10-10T03:12:49.4399468Z ##[group]Disabling automatic garbage collection
+2026-10-10T03:12:49.4401734Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T03:12:49.4432360Z ##[endgroup]
+2026-10-10T03:12:49.4432789Z ##[group]Setting up auth
+2026-10-10T03:12:49.4438380Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T03:12:49.4465067Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T03:12:49.4766483Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T03:12:49.4796293Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T03:12:49.4971806Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T03:12:49.5000049Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T03:12:49.5173663Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T03:12:49.5206782Z ##[endgroup]
+2026-10-10T03:12:49.5207432Z ##[group]Fetching the repository
+2026-10-10T03:12:49.5213257Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:00.3843882Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:13:00.3844438Z  * branch              da91e730d802b7c9dcdc075b222ecc257021e552 -> FETCH_HEAD
+2026-10-10T03:13:00.3846795Z ##[endgroup]
+2026-10-10T03:13:00.3847099Z ##[group]Determining the checkout info
+2026-10-10T03:13:00.3852858Z ##[endgroup]
+2026-10-10T03:13:00.3861099Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T03:13:00.3898562Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T03:13:00.3925549Z ##[group]Checking out the ref
+2026-10-10T03:13:00.3928982Z [command]/usr/bin/git checkout --progress --force da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:01.4777240Z Updating files:  54% (12907/23576)
+2026-10-10T03:13:01.8072586Z Updating files:  55% (12967/23576)
+2026-10-10T03:13:02.0656019Z Updating files:  56% (13203/23576)
+2026-10-10T03:13:02.1174725Z Updating files:  57% (13439/23576)
+2026-10-10T03:13:02.1387532Z Updating files:  58% (13675/23576)
+2026-10-10T03:13:02.1607003Z Updating files:  59% (13910/23576)
+2026-10-10T03:13:02.1796614Z Updating files:  60% (14146/23576)
+2026-10-10T03:13:02.1990276Z Updating files:  61% (14382/23576)
+2026-10-10T03:13:02.2250961Z Updating files:  62% (14618/23576)
+2026-10-10T03:13:02.2627854Z Updating files:  63% (14853/23576)
+2026-10-10T03:13:02.2791816Z Updating files:  64% (15089/23576)
+2026-10-10T03:13:02.2899981Z Updating files:  65% (15325/23576)
+2026-10-10T03:13:02.3093632Z Updating files:  66% (15561/23576)
+2026-10-10T03:13:02.3190666Z Updating files:  67% (15796/23576)
+2026-10-10T03:13:02.3346230Z Updating files:  68% (16032/23576)
+2026-10-10T03:13:02.3507776Z Updating files:  69% (16268/23576)
+2026-10-10T03:13:02.3630385Z Updating files:  70% (16504/23576)
+2026-10-10T03:13:02.3780194Z Updating files:  71% (16739/23576)
+2026-10-10T03:13:02.3966046Z Updating files:  72% (16975/23576)
+2026-10-10T03:13:02.4092815Z Updating files:  73% (17211/23576)
+2026-10-10T03:13:02.4118780Z Updating files:  73% (17417/23576)
+2026-10-10T03:13:02.4226982Z Updating files:  74% (17447/23576)
+2026-10-10T03:13:02.4379690Z Updating files:  75% (17682/23576)
+2026-10-10T03:13:02.4530342Z Updating files:  76% (17918/23576)
+2026-10-10T03:13:02.4677783Z Updating files:  77% (18154/23576)
+2026-10-10T03:13:02.4795385Z Updating files:  78% (18390/23576)
+2026-10-10T03:13:02.4935050Z Updating files:  79% (18626/23576)
+2026-10-10T03:13:02.5080692Z Updating files:  80% (18861/23576)
+2026-10-10T03:13:02.5219185Z Updating files:  81% (19097/23576)
+2026-10-10T03:13:02.5356889Z Updating files:  82% (19333/23576)
+2026-10-10T03:13:02.5524590Z Updating files:  83% (19569/23576)
+2026-10-10T03:13:02.5734566Z Updating files:  84% (19804/23576)
+2026-10-10T03:13:02.5924155Z Updating files:  85% (20040/23576)
+2026-10-10T03:13:02.6109218Z Updating files:  86% (20276/23576)
+2026-10-10T03:13:02.6278814Z Updating files:  87% (20512/23576)
+2026-10-10T03:13:02.6453201Z Updating files:  88% (20747/23576)
+2026-10-10T03:13:02.6649485Z Updating files:  89% (20983/23576)
+2026-10-10T03:13:02.6764232Z Updating files:  90% (21219/23576)
+2026-10-10T03:13:02.6898415Z Updating files:  91% (21455/23576)
+2026-10-10T03:13:02.7045219Z Updating files:  92% (21690/23576)
+2026-10-10T03:13:02.7160153Z Updating files:  93% (21926/23576)
+2026-10-10T03:13:02.7302127Z Updating files:  94% (22162/23576)
+2026-10-10T03:13:02.7452853Z Updating files:  95% (22398/23576)
+2026-10-10T03:13:02.8434581Z Updating files:  96% (22633/23576)
+2026-10-10T03:13:02.8549946Z Updating files:  97% (22869/23576)
+2026-10-10T03:13:02.8683279Z Updating files:  98% (23105/23576)
+2026-10-10T03:13:02.8820535Z Updating files:  99% (23341/23576)
+2026-10-10T03:13:02.8820972Z Updating files: 100% (23576/23576)
+2026-10-10T03:13:02.8821212Z Updating files: 100% (23576/23576), done.
+2026-10-10T03:13:02.9006324Z Note: switching to 'da91e730d802b7c9dcdc075b222ecc257021e552'.
+2026-10-10T03:13:02.9006657Z 
+2026-10-10T03:13:02.9006885Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T03:13:02.9007363Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T03:13:02.9007793Z state without impacting any branches by switching back to a branch.
+2026-10-10T03:13:02.9008107Z 
+2026-10-10T03:13:02.9008278Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T03:13:02.9008684Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T03:13:02.9008917Z 
+2026-10-10T03:13:02.9009017Z   git switch -c <new-branch-name>
+2026-10-10T03:13:02.9009174Z 
+2026-10-10T03:13:02.9009268Z Or undo this operation with:
+2026-10-10T03:13:02.9009414Z 
+2026-10-10T03:13:02.9009759Z   git switch -
+2026-10-10T03:13:02.9009867Z 
+2026-10-10T03:13:02.9010057Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T03:13:02.9010317Z 
+2026-10-10T03:13:02.9010667Z HEAD is now at da91e730 fix(ci): preserve popup receipts and bound host test work
+2026-10-10T03:13:02.9058920Z ##[endgroup]
+2026-10-10T03:13:02.9164467Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T03:13:02.9165476Z da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:02.9297566Z ##[group]Run test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+2026-10-10T03:13:02.9297853Z [36;1mtest "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"[0m
+2026-10-10T03:13:02.9516126Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T03:13:02.9516328Z env:
+2026-10-10T03:13:02.9516494Z   EXPECTED_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:02.9516683Z ##[endgroup]
+2026-10-10T03:13:02.9668489Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-10-10T03:13:02.9668709Z with:
+2026-10-10T03:13:02.9668826Z   node-version: 22.12.0
+2026-10-10T03:13:02.9668958Z   always-auth: false
+2026-10-10T03:13:02.9669079Z   check-latest: false
+2026-10-10T03:13:02.9670379Z   token: ***
+2026-10-10T03:13:02.9670736Z   package-manager-cache: true
+2026-10-10T03:13:02.9670909Z ##[endgroup]
+2026-10-10T03:13:03.0556372Z Attempting to download 22.12.0...
+2026-10-10T03:13:03.0622225Z (node:2087) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T03:13:03.0622610Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T03:13:03.7060732Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-x64.tar.gz
+2026-10-10T03:13:04.3517919Z Extracting ...
+2026-10-10T03:13:04.3603735Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/f175b389-c82f-47e5-aded-2fd5b0b8def3 -f /home/runner/work/_temp/011d32cd-3a4f-4f31-8544-a9f98b3c2257
+2026-10-10T03:13:05.2516077Z Adding to the cache ...
+2026-10-10T03:13:07.0587334Z ##[group]Environment details
+2026-10-10T03:13:07.2003975Z node: v22.12.0
+2026-10-10T03:13:07.2004315Z npm: 10.9.0
+2026-10-10T03:13:07.2004496Z yarn: 1.22.22
+2026-10-10T03:13:07.2005109Z ##[endgroup]
+2026-10-10T03:13:07.2145451Z ##[group]Run node -e 'if (process.arch !== process.env.EXPECTED_ARCH) process.exit(1)'
+2026-10-10T03:13:07.2145788Z [36;1mnode -e 'if (process.arch !== process.env.EXPECTED_ARCH) process.exit(1)'[0m
+2026-10-10T03:13:07.2146191Z [36;1mnode packages/cli/scripts/build-linux-subreaper.mjs --out packages/cli/src/assets/linux-subreaper --commit "$EXPECTED_COMMIT"[0m
+2026-10-10T03:13:07.2204729Z shell: /usr/bin/bash -e {0}
+2026-10-10T03:13:07.2204881Z env:
+2026-10-10T03:13:07.2205036Z   EXPECTED_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:07.2205220Z   EXPECTED_ARCH: x64
+2026-10-10T03:13:07.2205342Z ##[endgroup]
+2026-10-10T03:13:07.9825007Z {"schema":"chainlesschain.linux-subreaper-artifact/v1","platform":"linux","arch":"x64","sourceDigest":"sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424","imageDigest":"sha256:f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e","bytes":934160,"linkage":"static","commit":"da91e730d802b7c9dcdc075b222ecc257021e552"}
+2026-10-10T03:13:07.9875550Z ##[group]Run set -euo pipefail
+2026-10-10T03:13:07.9875769Z [36;1mset -euo pipefail[0m
+2026-10-10T03:13:07.9875946Z [36;1mmkdir -p "$RUNNER_TEMP/subreaper-npm/installed"[0m
+2026-10-10T03:13:07.9876123Z [36;1m([0m
+2026-10-10T03:13:07.9876238Z [36;1m  cd packages/cli[0m
+2026-10-10T03:13:07.9876469Z [36;1m  npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/subreaper-npm"[0m
+2026-10-10T03:13:07.9876734Z [36;1m) > "$RUNNER_TEMP/subreaper-npm/pack.json"[0m
+2026-10-10T03:13:07.9877112Z [36;1mTARBALL=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[0].filename)' "$RUNNER_TEMP/subreaper-npm/pack.json")[0m
+2026-10-10T03:13:07.9877688Z [36;1mmv "$RUNNER_TEMP/subreaper-npm/$TARBALL" "$RUNNER_TEMP/linux-subreaper-tested.tgz"[0m
+2026-10-10T03:13:07.9878043Z [36;1mtar -xzf "$RUNNER_TEMP/linux-subreaper-tested.tgz" -C "$RUNNER_TEMP/subreaper-npm/installed"[0m
+2026-10-10T03:13:07.9878447Z [36;1msha256sum "$RUNNER_TEMP/linux-subreaper-tested.tgz" > "$RUNNER_TEMP/linux-subreaper-tarball.sha256"[0m
+2026-10-10T03:13:07.9878738Z [36;1mdocker pull node:22.12.0-bookworm-slim[0m
+2026-10-10T03:13:07.9878912Z [36;1mdocker run --rm --network none \[0m
+2026-10-10T03:13:07.9879139Z [36;1m  --volume "$RUNNER_TEMP/subreaper-npm/installed/package:/package:ro" \[0m
+2026-10-10T03:13:07.9879482Z [36;1m  --volume "$GITHUB_WORKSPACE/packages/cli/scripts/linux-subreaper-package-smoke.mjs:/smoke.mjs:ro" \[0m
+2026-10-10T03:13:07.9879764Z [36;1m  node:22.12.0-bookworm-slim \[0m
+2026-10-10T03:13:07.9879915Z [36;1m  node /smoke.mjs \[0m
+2026-10-10T03:13:07.9880131Z [36;1m  --package-root /package --commit "$EXPECTED_COMMIT" --require-no-compiler \[0m
+2026-10-10T03:13:07.9880387Z [36;1m  > "$RUNNER_TEMP/linux-subreaper-smoke.json"[0m
+2026-10-10T03:13:07.9933204Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T03:13:07.9933389Z env:
+2026-10-10T03:13:07.9933547Z   EXPECTED_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:07.9933731Z ##[endgroup]
+2026-10-10T03:13:11.7059617Z 22.12.0-bookworm-slim: Pulling from library/node
+2026-10-10T03:13:11.8882335Z fd674058ff8f: Pulling fs layer
+2026-10-10T03:13:11.8883867Z 015d8e3eaced: Pulling fs layer
+2026-10-10T03:13:11.8884148Z 33f2159cab19: Pulling fs layer
+2026-10-10T03:13:11.8884475Z 81f234642412: Pulling fs layer
+2026-10-10T03:13:11.8884751Z 9aab52a260ac: Pulling fs layer
+2026-10-10T03:13:11.8885016Z 81f234642412: Waiting
+2026-10-10T03:13:11.8885228Z 9aab52a260ac: Waiting
+2026-10-10T03:13:12.0889060Z 015d8e3eaced: Verifying Checksum
+2026-10-10T03:13:12.0889620Z 015d8e3eaced: Download complete
+2026-10-10T03:13:12.2508880Z fd674058ff8f: Verifying Checksum
+2026-10-10T03:13:12.2510725Z fd674058ff8f: Download complete
+2026-10-10T03:13:12.3401857Z 33f2159cab19: Verifying Checksum
+2026-10-10T03:13:12.3402191Z 33f2159cab19: Download complete
+2026-10-10T03:13:12.3590393Z 81f234642412: Verifying Checksum
+2026-10-10T03:13:12.3590836Z 81f234642412: Download complete
+2026-10-10T03:13:12.3792165Z 9aab52a260ac: Verifying Checksum
+2026-10-10T03:13:12.3792765Z 9aab52a260ac: Download complete
+2026-10-10T03:13:13.2572169Z fd674058ff8f: Pull complete
+2026-10-10T03:13:20.5048130Z 015d8e3eaced: Pull complete
+2026-10-10T03:13:22.2050005Z 33f2159cab19: Pull complete
+2026-10-10T03:13:22.2655728Z 81f234642412: Pull complete
+2026-10-10T03:13:22.2744266Z 9aab52a260ac: Pull complete
+2026-10-10T03:13:22.2774271Z Digest: sha256:35531c52ce27b6575d69755c73e65d4468dba93a25644eed56dc12879cae9213
+2026-10-10T03:13:22.2788317Z Status: Downloaded newer image for node:22.12.0-bookworm-slim
+2026-10-10T03:13:22.2801829Z docker.io/library/node:22.12.0-bookworm-slim
+2026-10-10T03:13:22.6271197Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-10T03:13:22.6271559Z with:
+2026-10-10T03:13:22.6271825Z   name: linux-subreaper-x64-da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:22.6272186Z   path: packages/cli/src/assets/linux-subreaper/
+2026-10-10T03:13:22.6272451Z   if-no-files-found: error
+2026-10-10T03:13:22.6272656Z   retention-days: 30
+2026-10-10T03:13:22.6272854Z   compression-level: 6
+2026-10-10T03:13:22.6273050Z   overwrite: false
+2026-10-10T03:13:22.6273245Z   include-hidden-files: false
+2026-10-10T03:13:22.6273463Z ##[endgroup]
+2026-10-10T03:13:22.7321631Z With the provided path, there will be 2 files uploaded
+2026-10-10T03:13:22.7322182Z Artifact name is valid!
+2026-10-10T03:13:22.7322482Z Root directory input is valid!
+2026-10-10T03:13:23.0183408Z Beginning upload of artifact content to blob storage
+2026-10-10T03:13:23.3137017Z Uploaded bytes 409551
+2026-10-10T03:13:23.3496476Z Finished uploading artifact content to blob storage!
+2026-10-10T03:13:23.3497365Z SHA256 digest of uploaded artifact zip is d2593702e76de8b23e70eaa2f36ff8ab1ef0e8508ec13d0f16b8b331481c4dff
+2026-10-10T03:13:23.3498586Z Finalizing artifact upload
+2026-10-10T03:13:23.6476635Z Artifact linux-subreaper-x64-da91e730d802b7c9dcdc075b222ecc257021e552.zip successfully finalized. Artifact ID 11657900805
+2026-10-10T03:13:23.6477448Z Artifact linux-subreaper-x64-da91e730d802b7c9dcdc075b222ecc257021e552 has been successfully uploaded! Final size is 409551 bytes. Artifact ID is 11657900805
+2026-10-10T03:13:23.6480312Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506/artifacts/11657900805
+2026-10-10T03:13:23.6586127Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-10T03:13:23.6586358Z with:
+2026-10-10T03:13:23.6586562Z   name: linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:13:23.6587034Z   path: /home/runner/work/_temp/linux-subreaper-smoke.json
+/home/runner/work/_temp/linux-subreaper-tarball.sha256
+/home/runner/work/_temp/linux-subreaper-tested.tgz
+
+2026-10-10T03:13:23.6587445Z   if-no-files-found: error
+2026-10-10T03:13:23.6587594Z   retention-days: 90
+2026-10-10T03:13:23.6587726Z   compression-level: 6
+2026-10-10T03:13:23.6587856Z   overwrite: false
+2026-10-10T03:13:23.6587989Z   include-hidden-files: false
+2026-10-10T03:13:23.6588137Z ##[endgroup]
+2026-10-10T03:13:23.7626151Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-10T03:13:23.7627376Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-10-10T03:13:23.7628068Z With the provided path, there will be 3 files uploaded
+2026-10-10T03:13:23.7632520Z Artifact name is valid!
+2026-10-10T03:13:23.7633514Z Root directory input is valid!
+2026-10-10T03:13:24.0244559Z Beginning upload of artifact content to blob storage
+2026-10-10T03:13:24.6979026Z Uploaded bytes 7410718
+2026-10-10T03:13:24.7404358Z Finished uploading artifact content to blob storage!
+2026-10-10T03:13:24.7405067Z SHA256 digest of uploaded artifact zip is 2dd645cbf1f543e92f979173230dfb5363337df5c0a2b55ba9cc20b98294b67f
+2026-10-10T03:13:24.7406519Z Finalizing artifact upload
+2026-10-10T03:13:25.0535269Z Artifact linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552.zip successfully finalized. Artifact ID 11658125725
+2026-10-10T03:13:25.0536013Z Artifact linux-subreaper-smoke-x64-da91e730d802b7c9dcdc075b222ecc257021e552 has been successfully uploaded! Final size is 7410718 bytes. Artifact ID is 11658125725
+2026-10-10T03:13:25.0538019Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506/artifacts/11658125725
+2026-10-10T03:13:25.0670654Z Post job cleanup.
+2026-10-10T03:13:25.1447538Z (node:2329) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T03:13:25.1448053Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T03:13:25.1619360Z Post job cleanup.
+2026-10-10T03:13:25.2201966Z [command]/usr/bin/git version
+2026-10-10T03:13:25.2235944Z git version 2.55.0
+2026-10-10T03:13:25.2257466Z Temporarily overriding HOME='/home/runner/work/_temp/1909c0ac-e20c-43fa-a97a-b2ed49704d11' before making global git config changes
+2026-10-10T03:13:25.2258353Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T03:13:25.2260312Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:13:25.2291491Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T03:13:25.2317434Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T03:13:25.2529585Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T03:13:25.2555690Z http.https://github.com/.extraheader
+2026-10-10T03:13:25.2563351Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T03:13:25.2598888Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T03:13:25.2867967Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T03:13:25.2903000Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T03:13:25.3223980Z Cleaning up orphan processes

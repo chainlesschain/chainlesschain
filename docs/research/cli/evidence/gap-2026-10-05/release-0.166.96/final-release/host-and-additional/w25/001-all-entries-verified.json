@@ -1,0 +1,1269 @@
+{
+  "schema": "astra.actual-host-artifact-verification/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166401,
+  "jobId": 114098931636,
+  "artifactId": 11655891865,
+  "zipDigestVerified": true,
+  "journeys": [
+    {
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "originalManifestPath": "ide-journey/canonical-Windows-2025.2/journey-evidence.json",
+      "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "result": "passed",
+      "evidenceComplete": true,
+      "entryCount": 43,
+      "allEntriesVerified": true,
+      "artifactBundleDigestVerified": true,
+      "evidenceDigestVerified": true,
+      "entries": [
+        {
+          "path": "diagnostics/001-canonical-environment.json",
+          "bytes": 175,
+          "sha256": "sha256:e7091e2ff890b36913187785a39f900a20ae6b3a3bef33f59a472a5a3f6e20e4",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/002-conversation-recovery-host-phases.json",
+          "bytes": 3336,
+          "sha256": "sha256:ec50b3974e9e5d403e7422294e37fe34d8f696572ea65d6b0f8c7accb4c77d7d",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/003-conversation-recovery-initial.json",
+          "bytes": 37600,
+          "sha256": "sha256:6fb87a0061d2a3090cad4baa0c8e4f2b6fa5c0fb2988331a251059bb13978bee",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/004-conversation-recovery-restart.json",
+          "bytes": 8530,
+          "sha256": "sha256:74052654977a58f3bb72f6d9bdf550938ddfb2a19691dd21a82dd65a08829b3d",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/005-fake-cli-bin_cc",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/006-fake-cli-bin_cc.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/007-fake-cli-bin_chainlesschain",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/008-fake-cli-bin_chainlesschain.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/009-fake-cli-bin_clc",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/010-fake-cli-bin_clc.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/011-fake-cli-bin_clchain",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/012-fake-cli-bin_clchain.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/013-fake-cli-protocol.jsonl",
+          "bytes": 31902,
+          "sha256": "sha256:3abbb1dc1ed027d2d1cf37eeeacebb647774ca71282d4c360d9f8e657a1780d3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/014-fake-cli-state.json",
+          "bytes": 108,
+          "sha256": "sha256:408064a8c9f6cf64ab6b529114db74c35f5f599982a96b915b614184924ceb86",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/015-host-capture-initial_capture-status.json",
+          "bytes": 663,
+          "sha256": "sha256:06b4beb01c7d4570c0dcef6912ecf50c87fd84e24c3bed18fa1fea8f1038f1a7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/016-host-capture-initial_host-events.jsonl",
+          "bytes": 21031,
+          "sha256": "sha256:1e7021d96351a6343c9c73dc82ea87901e5e8111d7002bd5c2219dde1507f28b",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+          "bytes": 21031,
+          "sha256": "sha256:1e7021d96351a6343c9c73dc82ea87901e5e8111d7002bd5c2219dde1507f28b",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/018-host-capture-initial_idea-001.log.bin",
+          "bytes": 115507,
+          "sha256": "sha256:1bc7d264c51c923dc8e80d73dc299f9fbfecefebe05cbb8072c37e668671e740",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/019-host-capture-restart_capture-status.json",
+          "bytes": 490,
+          "sha256": "sha256:e011046dcb01e5f9bfcf70ed979e8df660d5a4d2a2de1e5d75621fb422b25c9a",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/020-host-capture-restart_idea-001.log.bin",
+          "bytes": 196353,
+          "sha256": "sha256:321b58191b3d2cca724a63ef9295c2d772789a4e9a77d8613e97162db7d2add8",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/021-init-gate.json",
+          "bytes": 98,
+          "sha256": "sha256:59c2efc3cf06dfe52ca5db8fd566deac52ea51417ff0f516e567e2590e60d796",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/022-init-gate.json.release",
+          "bytes": 98,
+          "sha256": "sha256:59c2efc3cf06dfe52ca5db8fd566deac52ea51417ff0f516e567e2590e60d796",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/023-native-transcript-metrics.json",
+          "bytes": 32604,
+          "sha256": "sha256:ca75236cf729edc586f64e0aa32f815e1517bd8cc614bea85be5544612bd67f4",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/024-prepare.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/025-prepare.stdout.log",
+          "bytes": 1198,
+          "sha256": "sha256:a4e346e03439bc4c236501add6a6e734578dc022f93b24c9cfa2fea64bfb519a",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/026-sandbox-ide-initial.stderr.log",
+          "bytes": 2570,
+          "sha256": "sha256:2b69e1351e2356616e4a63a852eeda4d8804d3373d6093abac1ecb8d727872f3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/027-sandbox-ide-initial.stdout.log",
+          "bytes": 1342,
+          "sha256": "sha256:792bbb05989dea1cd1432d57d2ce516745eaad994828109a54972b53fb5df0b3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/028-sandbox-ide-restart.stderr.log",
+          "bytes": 3942,
+          "sha256": "sha256:8ed61678c95ea23c789dc23e2b7fa344413cb9ac949685fe4945c9c2f9398640",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/029-sandbox-ide-restart.stdout.log",
+          "bytes": 1342,
+          "sha256": "sha256:5856759d7d1f1ebf38197ac2e4bcf3ad3497ff55c6dd077d97b97482d014e085",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/030-stop-continuation-observations.json",
+          "bytes": 12338,
+          "sha256": "sha256:f3fc482b66df17a465187b29aa942e670d1af119bb21242691eb225a8b01853c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/031-ui-smoke-initial.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/032-ui-smoke-initial.stdout.log",
+          "bytes": 13288,
+          "sha256": "sha256:95399aa1bec7d47de75c513e9983272624c6067daacf9c9afb4ad4f4d2c83f42",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/033-ui-smoke-restart.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/034-ui-smoke-restart.stdout.log",
+          "bytes": 13293,
+          "sha256": "sha256:140ff3c48343e581e984fd6e932a04c1144db0b89e48dd05411a17de6d48a137",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/035-binary_output.bin",
+          "bytes": 338,
+          "sha256": "sha256:cd6b071a29171134dafed9dda3d6a1ef4ddb6a9e8c5607973dd695afc8b725ac",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/036-binary_output.bin.idx",
+          "bytes": 71,
+          "sha256": "sha256:d76364b1ba6f4870343161b8b0ae66f8a9093ee01b7b4792a7378321a5c04704",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/037-binary_results.bin",
+          "bytes": 1136,
+          "sha256": "sha256:aa38e984198cef7bbf1127eb0508ed004289c3e58b7f35ae582cb18051473ed0",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/038-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "bytes": 681,
+          "sha256": "sha256:e7fb0a297669adf7d6ea427afae6b596d4be87fdecf829c65bcb896e0b190434",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/039-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+          "bytes": 649,
+          "sha256": "sha256:a7c558dc23e4d1c7bd4897ff82fbf6ef0ebf4f40d4edd33dfa860020d8341dc8",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/040-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+          "bytes": 1222,
+          "sha256": "sha256:9c22ad7d385432c754bb4a1a695027068c2da34e54d232c2bdb19039c32717e2",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/041-model-config-reopened-1791597952486.png",
+          "bytes": 37830,
+          "sha256": "sha256:a1d799689711db823594c84705783c3d02c583fc17194ab96d1769f74131b25b",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/042-model-config-saved-1791597549077.png",
+          "bytes": 38830,
+          "sha256": "sha256:03311a1c9479a798a45d6338e6dcc2661109d85bf2231ea97e6cd888f8c08ad3",
+          "verified": true
+        },
+        {
+          "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+          "bytes": 1520052,
+          "sha256": "sha256:5fcc9ba79acfb99f7e663177353ff5242ec0d355ce069f1a43cc734739f74ab6",
+          "verified": true
+        }
+      ],
+      "phases": [
+        {
+          "phase": "initial",
+          "statusComplete": true,
+          "statusFailures": [],
+          "tracePresent": true,
+          "eventCount": 109,
+          "eventStages": {
+            "RECEIVED": 25,
+            "MAPPED": 21,
+            "SCHEDULED": 21,
+            "EDT_ENTERED": 21,
+            "RENDER_RETURNED": 21
+          },
+          "failureEvents": [],
+          "approvalEvents": [],
+          "captured": [
+            {
+              "path": "host-events.jsonl.bin",
+              "source": "host-events.jsonl",
+              "bytes": 21031,
+              "sha256": "1e7021d96351a6343c9c73dc82ea87901e5e8111d7002bd5c2219dde1507f28b",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 115507,
+              "sha256": "1bc7d264c51c923dc8e80d73dc299f9fbfecefebe05cbb8072c37e668671e740",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/018-host-capture-initial_idea-001.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": []
+        },
+        {
+          "phase": "restart",
+          "statusComplete": false,
+          "statusFailures": [
+            "event-trace-or-capture-root-unavailable"
+          ],
+          "tracePresent": false,
+          "eventCount": null,
+          "eventStages": {},
+          "failureEvents": [],
+          "approvalEvents": [],
+          "captured": [
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 196353,
+              "sha256": "321b58191b3d2cca724a63ef9295c2d772789a4e9a77d8613e97162db7d2add8",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/020-host-capture-restart_idea-001.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": []
+        }
+      ]
+    },
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "originalManifestPath": "ide-journey/Windows-2025.2/journey-evidence.json",
+      "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "host": {
+        "name": "jetbrains",
+        "version": "2025.2",
+        "operatingSystem": "win32",
+        "architecture": "x64",
+        "transport": "local-ide-bridge"
+      },
+      "result": "passed",
+      "evidenceComplete": true,
+      "entryCount": 51,
+      "allEntriesVerified": true,
+      "artifactBundleDigestVerified": true,
+      "evidenceDigestVerified": true,
+      "entries": [
+        {
+          "path": "diagnostics/001-fake-cli-bin_cc",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/002-fake-cli-bin_cc.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/003-fake-cli-bin_chainlesschain",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/005-fake-cli-bin_clc",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/006-fake-cli-bin_clc.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/007-fake-cli-bin_clchain",
+          "bytes": 166,
+          "sha256": "sha256:aa9ffffb5ed7712a4e5999e8f34de4b92fc2bfff3f6632171f92c05ef9974002",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/008-fake-cli-bin_clchain.cmd",
+          "bytes": 161,
+          "sha256": "sha256:c1812f24d5a2ec27941c280d396d70e855f460690a095cd236f4ebd77ab1e4f1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/009-fake-cli-protocol.jsonl",
+          "bytes": 357283,
+          "sha256": "sha256:6aeb9e5cbea5d1b7e15f7618c1472720b574b6ab62acd868ab89856387e48ca1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/010-fake-cli-state.json",
+          "bytes": 210,
+          "sha256": "sha256:e8fe0a80bc977ef7e00280c325f1fcbc5724eabe9f89edf6409957a98dd7d7e9",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/011-fake-cli-state.json.llm.json",
+          "bytes": 136,
+          "sha256": "sha256:3bea14be95172dd0634d23f1d7f776bea93c6e74019261c1518c7367395e3164",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/012-fake-cli-state.json.receipts_0df99bddcd08db3ba7eb407dc2cd1622813f77f0e27de7bb900172292130c2e6.json",
+          "bytes": 274,
+          "sha256": "sha256:5c59b0046e88afb822a0c22bee2c27543f093414c740a2cc4685fae7a55e81d7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/013-fake-cli-state.json.receipts_569d7a15eaab2b7805d247408f804fa0632c80728deb83729050dd23d11fafb1.json",
+          "bytes": 274,
+          "sha256": "sha256:8fa3d701a54a3d055c772399e72e7ec3315f6e1411f048225473ce757e14314f",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/014-fake-cli-state.json.receipts_56b20dcb399fe954b97f40c11c0fb337d45f396525fa354fb906505a6bf79228.json",
+          "bytes": 274,
+          "sha256": "sha256:e8bd200778324ccd11951b2283b5c58d235874d23c5faff4e5a903f6ff438c79",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/015-fake-cli-state.json.receipts_671cd3ca6d73111e9bb8425bc938014273ff211b79987d2b26fd5e5e2e231f63.json",
+          "bytes": 260,
+          "sha256": "sha256:9a7dbff99e3c4a6b6d8fc328cf6d95d1cec981be2c700095b6e24280807d76a6",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/016-fake-cli-state.json.receipts_6b1c9b3a6f62413412a391d532cab54b45b072a4babcfba4fda27c2fd3adbb69.json",
+          "bytes": 260,
+          "sha256": "sha256:20d9756dbf573b971402027c5b06023e63cb8d994d5bad00c359a7e3a50bc14e",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/017-fake-cli-state.json.receipts_830fc849dee1d00519a27dc9238dae58b6d0a376784b7d28823c4eff3a4ae97a.json",
+          "bytes": 260,
+          "sha256": "sha256:bd8fb2a899fb64aff42d532a0d6752901d41bf836aa9e7fe36c83b9be81533d1",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/018-fake-cli-state.json.receipts_96d63c0ba75278e11a765fe9fc5c669416af4891d3da468514cc803203545e00.json",
+          "bytes": 260,
+          "sha256": "sha256:c150a41884a8431b34d10511a7fffbc6a4439fdcab5e089cfcab9450a08f68b5",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/019-fake-cli-state.json.receipts_cfaeebb083a0fe0e513a11b24293dff6932ee7c8ee315f6e807fbef7f2d7b9a0.json",
+          "bytes": 260,
+          "sha256": "sha256:58ddf111978bedb97350d6556eea4fd5c26938f6496f98a096a8baa8ea9fa1ad",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/020-fake-cli-state.json.receipts_d5729320384a31a571a4dfe8d872c77ddffc154b3e60354ce76001d25e5cd648.json",
+          "bytes": 260,
+          "sha256": "sha256:5daa45019fc6608980bf9bde4124739ec2f08baaace1166e0903da88135041ab",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/021-host-capture-initial_capture-status.json",
+          "bytes": 886,
+          "sha256": "sha256:4b0a9ce914b0fa9cdc69317f1da1e21b8c5c03d8e412d792d2da1433695e25b5",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/022-host-capture-initial_host-events.jsonl",
+          "bytes": 25842,
+          "sha256": "sha256:f6b3c6c20466a28d640a73fce263b58033f87683f8af6dbc0bbe6a5c14387d68",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+          "bytes": 25842,
+          "sha256": "sha256:f6b3c6c20466a28d640a73fce263b58033f87683f8af6dbc0bbe6a5c14387d68",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+          "bytes": 45315,
+          "sha256": "sha256:8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+          "bytes": 127355,
+          "sha256": "sha256:bed7fe8a2764d1b6ef4ee37558acfa825adf9515543942d27237c0857a93e40c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/026-host-capture-restart_capture-status.json",
+          "bytes": 885,
+          "sha256": "sha256:936004944fe2e8db497e01deabfc88a95a7095364ad88bca7ef010c7dfb20d0d",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/027-host-capture-restart_host-events.jsonl",
+          "bytes": 2344,
+          "sha256": "sha256:c26af3f3d1f659c615de831db29fec9dcc4d65ac51efe9cf74dd99dff02da6e8",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+          "bytes": 2344,
+          "sha256": "sha256:c26af3f3d1f659c615de831db29fec9dcc4d65ac51efe9cf74dd99dff02da6e8",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+          "bytes": 45315,
+          "sha256": "sha256:8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+          "bytes": 204665,
+          "sha256": "sha256:2ad995720d6826819956b41aa3f3ac9febb4563775d92eedefcc8953018969fd",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/031-prepare.stderr.log",
+          "bytes": 991,
+          "sha256": "sha256:7a6896fea0730585c2efda4767505132f273e97d18fb9dcfc580f2bcd7d18d09",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/032-prepare.stdout.log",
+          "bytes": 21310,
+          "sha256": "sha256:99771d68f7a3f8df913b22e66da083236bf265e11dddc8f4b71aec6e40b3e74b",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/033-sandbox-ide-initial.stderr.log",
+          "bytes": 5054,
+          "sha256": "sha256:b23f4b3d5531371129559b4b35420647f627ca3951e43ed37785b63ea57ef027",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/034-sandbox-ide-initial.stdout.log",
+          "bytes": 6994,
+          "sha256": "sha256:47d4af6b30090d01c466dadd9418ba7a7e335761bfa01bcf1b64c70790d58789",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/035-sandbox-ide-restart.stderr.log",
+          "bytes": 5998,
+          "sha256": "sha256:b1af80b52afcacd535f8d46fb6ba2734d05b5f4ca78cb9041f3a6bf906a81ab7",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/036-sandbox-ide-restart.stdout.log",
+          "bytes": 1342,
+          "sha256": "sha256:792bbb05989dea1cd1432d57d2ce516745eaad994828109a54972b53fb5df0b3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/037-ui-smoke-initial.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/038-ui-smoke-initial.stdout.log",
+          "bytes": 13260,
+          "sha256": "sha256:fd140ba0058a727227d31b81c2b050841112a235d73e91ca31a9daf886fdd5db",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/039-ui-smoke-restart.stderr.log",
+          "bytes": 0,
+          "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/040-ui-smoke-restart.stdout.log",
+          "bytes": 13293,
+          "sha256": "sha256:7dc27185b1cb996776879ba867fbb79b703b47d5fbe40c271fb68abeef5e987c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/041-workbench-host-phases.json",
+          "bytes": 1874,
+          "sha256": "sha256:cf098cbcf1ce6e9edc042dab223528d4eafcb4ce4e861f546882351dc84d9836",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/042-workbench-metrics.jsonl",
+          "bytes": 25933,
+          "sha256": "sha256:4811250ddbc98779bba60aa8abfd63b7df23d5c378c5cb5b946b5a77d7f47a59",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/043-binary_output.bin",
+          "bytes": 382,
+          "sha256": "sha256:5030656c0b79d6428b9b8fdfa0f1563c338126f90893485d58cf089e21e3e3e3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/044-binary_output.bin.idx",
+          "bytes": 71,
+          "sha256": "sha256:a901cec49b3252cb30c92c3a78a52c6836e25ba34d5d199a346eda9eece0f957",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/045-binary_results.bin",
+          "bytes": 1136,
+          "sha256": "sha256:db37863cc12bd3dbbf6189b3952d2ab91eb495774c50488b1dba57e0928be556",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+          "bytes": 721,
+          "sha256": "sha256:b708e15b465f0f965fc5aaeb51d0e9aee37bac40ae87c982edeed32319d3977c",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+          "bytes": 649,
+          "sha256": "sha256:27a95e9439f82709a153c04108dff77e0487af344a6219164227234fbbe2fbd3",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+          "bytes": 1222,
+          "sha256": "sha256:037041c6f9b3cb19c9cc07fba0a6db6e304cb8724b37e5020f02d1c9ab479578",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/049-model-config-reopened-1791597952486.png",
+          "bytes": 37830,
+          "sha256": "sha256:a1d799689711db823594c84705783c3d02c583fc17194ab96d1769f74131b25b",
+          "verified": true
+        },
+        {
+          "path": "diagnostics/050-model-config-saved-1791597549077.png",
+          "bytes": 38830,
+          "sha256": "sha256:03311a1c9479a798a45d6338e6dcc2661109d85bf2231ea97e6cd888f8c08ad3",
+          "verified": true
+        },
+        {
+          "path": "release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+          "bytes": 1520052,
+          "sha256": "sha256:5fcc9ba79acfb99f7e663177353ff5242ec0d355ce069f1a43cc734739f74ab6",
+          "verified": true
+        }
+      ],
+      "phases": [
+        {
+          "phase": "initial",
+          "statusComplete": true,
+          "statusFailures": [],
+          "tracePresent": true,
+          "eventCount": 130,
+          "eventStages": {
+            "RECEIVED": 32,
+            "MAPPED": 24,
+            "SCHEDULED": 24,
+            "EDT_ENTERED": 24,
+            "RENDER_RETURNED": 24,
+            "CARD_ENTERED": 1,
+            "CARD_ADDED": 1
+          },
+          "failureEvents": [],
+          "approvalEvents": [
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.375704300Z",
+              "stage": "RECEIVED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "type": "approval_request",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.376704600Z",
+              "stage": "MAPPED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.377705600Z",
+              "stage": "SCHEDULED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.413706Z",
+              "stage": "EDT_ENTERED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.414706800Z",
+              "stage": "CARD_ENTERED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.422706400Z",
+              "stage": "CARD_ADDED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:39.423710100Z",
+              "stage": "RENDER_RETURNED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:41.701180600Z",
+              "stage": "RECEIVED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "type": "approval_resolved",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:41.714178900Z",
+              "stage": "MAPPED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:41.715173400Z",
+              "stage": "SCHEDULED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:41.715173400Z",
+              "stage": "EDT_ENTERED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            },
+            {
+              "schema": "chainlesschain.ui-event-diagnostic/v1",
+              "at": "2026-10-10T01:58:41.720169800Z",
+              "stage": "RENDER_RETURNED",
+              "generation": "29052ebf",
+              "session": "panel-1791597514119-061d76",
+              "kind": "approval_done",
+              "id": "fixture-approval-4"
+            }
+          ],
+          "captured": [
+            {
+              "path": "host-events.jsonl.bin",
+              "source": "host-events.jsonl",
+              "bytes": 25842,
+              "sha256": "f6b3c6c20466a28d640a73fce263b58033f87683f8af6dbc0bbe6a5c14387d68",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log/idea.log",
+              "bytes": 45315,
+              "sha256": "8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/024-host-capture-initial_idea-001.log.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-002.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 127355,
+              "sha256": "bed7fe8a2764d1b6ef4ee37558acfa825adf9515543942d27237c0857a93e40c",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/025-host-capture-initial_idea-002.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": [
+            {
+              "line": 497,
+              "text": "2026-10-10 01:58:45,951 [  81610]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 498,
+              "text": "2026-10-10 01:58:45,959 [  81618]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 499,
+              "text": "2026-10-10 01:58:45,959 [  81618]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 500,
+              "text": "2026-10-10 01:58:45,990 [  81649]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 501,
+              "text": "2026-10-10 01:58:46,332 [  81991]   INFO - STDOUT - [ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 502,
+              "text": "2026-10-10 01:58:46,345 [  82004]   INFO - STDOUT - [ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 503,
+              "text": "2026-10-10 01:58:46,345 [  82004]   INFO - STDOUT - [ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 504,
+              "text": "2026-10-10 01:58:46,360 [  82019]   INFO - STDOUT - [ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 505,
+              "text": "2026-10-10 01:58:49,650 [  85309]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 506,
+              "text": "2026-10-10 01:58:49,655 [  85314]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 507,
+              "text": "2026-10-10 01:58:49,655 [  85314]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 508,
+              "text": "2026-10-10 01:58:49,682 [  85341]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 509,
+              "text": "2026-10-10 01:58:49,954 [  85613]   INFO - STDOUT - [ui-popup-enter] Restore conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 510,
+              "text": "2026-10-10 01:58:49,959 [  85618]   INFO - STDOUT - [ui-popup-enter] Restore conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 511,
+              "text": "2026-10-10 01:58:49,959 [  85618]   INFO - STDOUT - [ui-popup-enter] Restore conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 512,
+              "text": "2026-10-10 01:58:49,967 [  85626]   INFO - STDOUT - [ui-popup-enter] Restore conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 513,
+              "text": "2026-10-10 01:58:53,239 [  88898]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 514,
+              "text": "2026-10-10 01:58:53,245 [  88904]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 515,
+              "text": "2026-10-10 01:58:53,245 [  88904]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 516,
+              "text": "2026-10-10 01:58:53,271 [  88930]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 517,
+              "text": "2026-10-10 01:58:53,531 [  89190]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 518,
+              "text": "2026-10-10 01:58:53,544 [  89203]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 519,
+              "text": "2026-10-10 01:58:53,556 [  89215]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 520,
+              "text": "2026-10-10 01:58:53,557 [  89216]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 530,
+              "text": "2026-10-10 01:58:56,962 [  92621]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 531,
+              "text": "2026-10-10 01:58:56,966 [  92625]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 532,
+              "text": "2026-10-10 01:58:56,966 [  92625]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 533,
+              "text": "2026-10-10 01:58:56,994 [  92653]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 534,
+              "text": "2026-10-10 01:58:57,185 [  92844]   INFO - STDOUT - [ui-popup-enter] Summarize from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 535,
+              "text": "2026-10-10 01:58:57,187 [  92846]   INFO - STDOUT - [ui-popup-enter] Summarize from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 536,
+              "text": "2026-10-10 01:58:57,188 [  92847]   INFO - STDOUT - [ui-popup-enter] Summarize from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 537,
+              "text": "2026-10-10 01:58:57,195 [  92854]   INFO - STDOUT - [ui-popup-enter] Summarize from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 538,
+              "text": "2026-10-10 01:59:00,223 [  95882]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 539,
+              "text": "2026-10-10 01:59:00,226 [  95885]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 540,
+              "text": "2026-10-10 01:59:00,226 [  95885]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 541,
+              "text": "2026-10-10 01:59:00,254 [  95913]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 542,
+              "text": "2026-10-10 01:59:00,429 [  96088]   INFO - STDOUT - [ui-popup-enter] Summarize up to here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 543,
+              "text": "2026-10-10 01:59:00,433 [  96092]   INFO - STDOUT - [ui-popup-enter] Summarize up to here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 544,
+              "text": "2026-10-10 01:59:00,433 [  96092]   INFO - STDOUT - [ui-popup-enter] Summarize up to here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 545,
+              "text": "2026-10-10 01:59:00,443 [  96102]   INFO - STDOUT - [ui-popup-enter] Summarize up to here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 546,
+              "text": "2026-10-10 01:59:03,551 [  99210]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 547,
+              "text": "2026-10-10 01:59:03,555 [  99214]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 548,
+              "text": "2026-10-10 01:59:03,555 [  99214]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 549,
+              "text": "2026-10-10 01:59:03,581 [  99240]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 550,
+              "text": "2026-10-10 01:59:03,765 [  99424]   INFO - STDOUT - [ui-popup-enter] Branch from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 551,
+              "text": "2026-10-10 01:59:03,767 [  99426]   INFO - STDOUT - [ui-popup-enter] Branch from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 552,
+              "text": "2026-10-10 01:59:03,767 [  99426]   INFO - STDOUT - [ui-popup-enter] Branch from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 553,
+              "text": "2026-10-10 01:59:03,775 [  99434]   INFO - STDOUT - [ui-popup-enter] Branch from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            }
+          ]
+        },
+        {
+          "phase": "restart",
+          "statusComplete": true,
+          "statusFailures": [],
+          "tracePresent": true,
+          "eventCount": 11,
+          "eventStages": {
+            "RECEIVED": 3,
+            "MAPPED": 2,
+            "SCHEDULED": 2,
+            "EDT_ENTERED": 2,
+            "RENDER_RETURNED": 2
+          },
+          "failureEvents": [],
+          "approvalEvents": [],
+          "captured": [
+            {
+              "path": "host-events.jsonl.bin",
+              "source": "host-events.jsonl",
+              "bytes": 2344,
+              "sha256": "c26af3f3d1f659c615de831db29fec9dcc4d65ac51efe9cf74dd99dff02da6e8",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-001.log.bin",
+              "source": "IC-2024.2/log/idea.log",
+              "bytes": 45315,
+              "sha256": "8a821fbc4e26436631fe616eba161370ed5e9b2d40fb4fe5fab263d7f5176dc6",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/029-host-capture-restart_idea-001.log.bin",
+              "verified": true
+            },
+            {
+              "path": "idea-002.log.bin",
+              "source": "IC-2024.2/log_runIdeForUiTests/idea.log",
+              "bytes": 204665,
+              "sha256": "2ad995720d6826819956b41aa3f3ac9febb4563775d92eedefcc8953018969fd",
+              "originalBytes": true,
+              "artifactPath": "diagnostics/030-host-capture-restart_idea-002.log.bin",
+              "verified": true
+            }
+          ],
+          "popupStages": [
+            {
+              "line": 497,
+              "text": "2026-10-10 01:58:45,951 [  81610]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 498,
+              "text": "2026-10-10 01:58:45,959 [  81618]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 499,
+              "text": "2026-10-10 01:58:45,959 [  81618]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 500,
+              "text": "2026-10-10 01:58:45,990 [  81649]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 501,
+              "text": "2026-10-10 01:58:46,332 [  81991]   INFO - STDOUT - [ui-popup-enter] Restore code scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 502,
+              "text": "2026-10-10 01:58:46,345 [  82004]   INFO - STDOUT - [ui-popup-enter] Restore code entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 503,
+              "text": "2026-10-10 01:58:46,345 [  82004]   INFO - STDOUT - [ui-popup-enter] Restore code validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 504,
+              "text": "2026-10-10 01:58:46,360 [  82019]   INFO - STDOUT - [ui-popup-enter] Restore code dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 505,
+              "text": "2026-10-10 01:58:49,650 [  85309]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 506,
+              "text": "2026-10-10 01:58:49,655 [  85314]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 507,
+              "text": "2026-10-10 01:58:49,655 [  85314]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 508,
+              "text": "2026-10-10 01:58:49,682 [  85341]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 509,
+              "text": "2026-10-10 01:58:49,954 [  85613]   INFO - STDOUT - [ui-popup-enter] Restore conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 510,
+              "text": "2026-10-10 01:58:49,959 [  85618]   INFO - STDOUT - [ui-popup-enter] Restore conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 511,
+              "text": "2026-10-10 01:58:49,959 [  85618]   INFO - STDOUT - [ui-popup-enter] Restore conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 512,
+              "text": "2026-10-10 01:58:49,967 [  85626]   INFO - STDOUT - [ui-popup-enter] Restore conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 513,
+              "text": "2026-10-10 01:58:53,239 [  88898]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 514,
+              "text": "2026-10-10 01:58:53,245 [  88904]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 515,
+              "text": "2026-10-10 01:58:53,245 [  88904]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 516,
+              "text": "2026-10-10 01:58:53,271 [  88930]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 517,
+              "text": "2026-10-10 01:58:53,531 [  89190]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 518,
+              "text": "2026-10-10 01:58:53,544 [  89203]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 519,
+              "text": "2026-10-10 01:58:53,556 [  89215]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 520,
+              "text": "2026-10-10 01:58:53,557 [  89216]   INFO - STDOUT - [ui-popup-enter] Restore code + conversation dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 530,
+              "text": "2026-10-10 01:58:56,962 [  92621]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 531,
+              "text": "2026-10-10 01:58:56,966 [  92625]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 532,
+              "text": "2026-10-10 01:58:56,966 [  92625]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 533,
+              "text": "2026-10-10 01:58:56,994 [  92653]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 534,
+              "text": "2026-10-10 01:58:57,185 [  92844]   INFO - STDOUT - [ui-popup-enter] Summarize from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 535,
+              "text": "2026-10-10 01:58:57,187 [  92846]   INFO - STDOUT - [ui-popup-enter] Summarize from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 536,
+              "text": "2026-10-10 01:58:57,188 [  92847]   INFO - STDOUT - [ui-popup-enter] Summarize from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 537,
+              "text": "2026-10-10 01:58:57,195 [  92854]   INFO - STDOUT - [ui-popup-enter] Summarize from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 538,
+              "text": "2026-10-10 01:59:00,223 [  95882]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 539,
+              "text": "2026-10-10 01:59:00,226 [  95885]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 540,
+              "text": "2026-10-10 01:59:00,226 [  95885]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 541,
+              "text": "2026-10-10 01:59:00,254 [  95913]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 542,
+              "text": "2026-10-10 01:59:00,429 [  96088]   INFO - STDOUT - [ui-popup-enter] Summarize up to here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 543,
+              "text": "2026-10-10 01:59:00,433 [  96092]   INFO - STDOUT - [ui-popup-enter] Summarize up to here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 544,
+              "text": "2026-10-10 01:59:00,433 [  96092]   INFO - STDOUT - [ui-popup-enter] Summarize up to here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 545,
+              "text": "2026-10-10 01:59:00,443 [  96102]   INFO - STDOUT - [ui-popup-enter] Summarize up to here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 546,
+              "text": "2026-10-10 01:59:03,551 [  99210]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 547,
+              "text": "2026-10-10 01:59:03,555 [  99214]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 548,
+              "text": "2026-10-10 01:59:03,555 [  99214]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 549,
+              "text": "2026-10-10 01:59:03,581 [  99240]   INFO - STDOUT - [ui-popup-enter] partial  turn-2   dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 550,
+              "text": "2026-10-10 01:59:03,765 [  99424]   INFO - STDOUT - [ui-popup-enter] Branch from here scheduled showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 551,
+              "text": "2026-10-10 01:59:03,767 [  99426]   INFO - STDOUT - [ui-popup-enter] Branch from here entered showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 552,
+              "text": "2026-10-10 01:59:03,767 [  99426]   INFO - STDOUT - [ui-popup-enter] Branch from here validated showing=true focusOwner=true focus=com.intellij.ui.components.JBList"
+            },
+            {
+              "line": 553,
+              "text": "2026-10-10 01:59:03,775 [  99434]   INFO - STDOUT - [ui-popup-enter] Branch from here dispatch-returned showing=false focusOwner=true focus=com.intellij.ui.components.JBList"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scope": "Actual passed exact-head Windows IDE journeys; capture completeness is reported per original status, never inferred from fixture output."
+}

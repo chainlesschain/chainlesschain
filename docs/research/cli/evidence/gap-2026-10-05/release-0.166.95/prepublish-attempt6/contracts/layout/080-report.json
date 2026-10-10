@@ -1,0 +1,135 @@
+{
+  "capturedAt": "2026-10-09T17:14:31.972Z",
+  "productionSource": {
+    "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+    "sha256": "ff7904a8133accf69fc752bfb026b315ca7a7c63ea6b263d5d1508956d40d108",
+    "unchanged": true
+  },
+  "probeSourceSha256": "e7f86781aa6a7741b95ec8a620c1017e2db66befa8ee73efc1767e7b9b9f2dbe",
+  "jdkJavaSha256": "82051fdab26319d77d20cc0065045d05ec00b3e3d05f44935d7c06b96b621d55",
+  "runs": [
+    {
+      "name": "compile",
+      "command": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1\\bin\\javac.exe",
+      "args": [
+        "C:\\code\\chainlesschain\\.work\\approval-layout-contract\\ApprovalLayoutProbe.java"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null
+    },
+    {
+      "name": "probe",
+      "command": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1\\bin\\java.exe",
+      "args": [
+        "-Djava.awt.headless=true",
+        "-cp",
+        "C:\\code\\chainlesschain\\.work\\approval-layout-contract",
+        "ApprovalLayoutProbe"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null
+    },
+    {
+      "name": "validate-root-bytecode",
+      "command": "C:\\code\\chainlesschain\\.work\\jdk21-release-validation\\jdk-21.0.12.1+1\\bin\\javap.exe",
+      "args": [
+        "-p",
+        "-c",
+        "javax.swing.SwingUtilities"
+      ],
+      "status": 0,
+      "signal": null,
+      "error": null
+    }
+  ],
+  "rows": [
+    {
+      "stage": "empty-initial-layout",
+      "edt": true,
+      "headless": true,
+      "windows": 0,
+      "displayable": true,
+      "showing": true,
+      "rootValid": true,
+      "scrollValidateRoot": true,
+      "scrollHeight": 0,
+      "scrollPreferredHeight": 0,
+      "viewportHeight": 0,
+      "cardsHeight": 0,
+      "cardsPreferredHeight": 0,
+      "approveHeight": 0,
+      "approveVisibleHeight": 0
+    },
+    {
+      "stage": "child-only-revalidate",
+      "edt": true,
+      "headless": true,
+      "windows": 0,
+      "displayable": true,
+      "showing": true,
+      "rootValid": false,
+      "scrollValidateRoot": true,
+      "scrollHeight": 0,
+      "scrollPreferredHeight": 126,
+      "viewportHeight": 0,
+      "cardsHeight": 126,
+      "cardsPreferredHeight": 126,
+      "approveHeight": 26,
+      "approveVisibleHeight": 0
+    },
+    {
+      "stage": "scroll-only-revalidate",
+      "edt": true,
+      "headless": true,
+      "windows": 0,
+      "displayable": true,
+      "showing": true,
+      "rootValid": false,
+      "scrollValidateRoot": true,
+      "scrollHeight": 0,
+      "scrollPreferredHeight": 126,
+      "viewportHeight": 0,
+      "cardsHeight": 126,
+      "cardsPreferredHeight": 126,
+      "approveHeight": 26,
+      "approveVisibleHeight": 0
+    },
+    {
+      "stage": "wrapper-revalidate",
+      "edt": true,
+      "headless": true,
+      "windows": 0,
+      "displayable": true,
+      "showing": true,
+      "rootValid": true,
+      "scrollValidateRoot": true,
+      "scrollHeight": 126,
+      "scrollPreferredHeight": 126,
+      "viewportHeight": 126,
+      "cardsHeight": 126,
+      "cardsPreferredHeight": 126,
+      "approveHeight": 26,
+      "approveVisibleHeight": 26
+    }
+  ],
+  "layoutMechanismDemonstrated": true,
+  "originalCiFailureReproduced": false,
+  "realIdeUsed": false,
+  "visibleWindowsCreated": 0,
+  "productionChanged": false,
+  "limitations": [
+    "Actual Swing components, BoxLayout, BorderLayout, JScrollPane/JViewport, JButton and Container.validate execute on the real EDT.",
+    "Windowless headless hierarchy is not admitted to the standard RepaintManager validation queue. The harness explicitly schedules validate() on the real nearest validate root; automatic IDE validation scheduling is not reproduced.",
+    "No showing/layout/bounds methods are mocked. Label preferred size is a fixed representative input, not an actual IDE HTML approval payload.",
+    "The setup starts after an empty cards area has received a full outer layout. It does not establish that this state or scheduling occurred in the failed CI host.",
+    "The old failed GUI evidence still does not prove host event consumption, card construction or component geometry."
+  ],
+  "recommendation": "For this reproduced hierarchy, revalidate on southWrap (the first ancestor outside cardsScroll) reaches the outer JRootPane validate root and recalculates BorderLayout.NORTH preferred height. cardsPanel or cardsScroll revalidate alone leaves its height unchanged. Capture real failure tree and scheduling diagnostics before attributing the CI failure to this mechanism.",
+  "exploration": [
+    "PowerShell unquoted -Djava.awt.headless=true initially parsed incorrectly; corrected by spawn argument array.",
+    "A parentless JRootPane.addNotify initially threw NullPointerException; corrected with an ordinary AWT Panel parent, no Window.",
+    "Standard RepaintManager flush in the no-Window hierarchy does not admit validation roots; verified by javap getValidateRoot requiring a Window/Applet ancestor, so it is not used as evidence of actual automatic scheduling."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:14:00.710Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11655365410,
+  "name": "pdh-native-windows-latest-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/metadata.json",
+    "bytes": 789,
+    "sha256": "5c26344b7db8434b92a73e8efa3f163119f24c3ffd8a4336be35780999730aeb",
+    "endpoint": "actions/artifacts/11655365410"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11655365410/artifact.zip",
+    "bytes": 180116,
+    "sha256": "0552cdef46ae1afc82589f9d234e306e23ecf7dc5e6cc7fcdebe40e3b1120c70",
+    "endpoint": "actions/artifacts/11655365410/zip"
+  },
+  "githubDigestMatched": true
+}

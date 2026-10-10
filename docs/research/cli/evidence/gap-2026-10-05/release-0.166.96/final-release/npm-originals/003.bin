@@ -1,0 +1,261 @@
+﻿2026-10-10T03:12:17.2129102Z Current runner version: '2.337.0'
+2026-10-10T03:12:17.2154814Z ##[group]Runner Image Provisioner
+2026-10-10T03:12:17.2155752Z Hosted Compute Agent
+2026-10-10T03:12:17.2156368Z Version: 20261002.596
+2026-10-10T03:12:17.2157073Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T03:12:17.2158163Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T03:12:17.2158872Z Worker ID: {25b6f73e-912a-47f3-9698-5ef45f6174b5}
+2026-10-10T03:12:17.2159669Z Region: northcentralus
+2026-10-10T03:12:17.2160244Z Cloud: Azure
+2026-10-10T03:12:17.2160786Z ##[endgroup]
+2026-10-10T03:12:17.2162396Z ##[group]Operating System
+2026-10-10T03:12:17.2163088Z Ubuntu
+2026-10-10T03:12:17.2163689Z 24.04.5
+2026-10-10T03:12:17.2164205Z LTS
+2026-10-10T03:12:17.2164744Z ##[endgroup]
+2026-10-10T03:12:17.2165357Z ##[group]Runner Image
+2026-10-10T03:12:17.2166023Z Image: ubuntu-24.04
+2026-10-10T03:12:17.2166618Z Version: 20261004.327.1
+2026-10-10T03:12:17.2168308Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T03:12:17.2169948Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T03:12:17.2170911Z ##[endgroup]
+2026-10-10T03:12:17.2172526Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T03:12:17.2174674Z Actions: read
+2026-10-10T03:12:17.2175353Z Contents: read
+2026-10-10T03:12:17.2175968Z Metadata: read
+2026-10-10T03:12:17.2176513Z ##[endgroup]
+2026-10-10T03:12:17.2179022Z Secret source: Actions
+2026-10-10T03:12:17.2179973Z Cache mode: write
+2026-10-10T03:12:17.2180994Z Prepare workflow directory
+2026-10-10T03:12:17.2599205Z Prepare all required actions
+2026-10-10T03:12:17.2669158Z Getting action download info
+2026-10-10T03:12:17.5125678Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T03:12:17.6060177Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T03:12:17.9568218Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T03:12:18.1686834Z Complete job name: exact-sha-gate
+2026-10-10T03:12:18.2485845Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-10T03:12:18.2486922Z with:
+2026-10-10T03:12:18.2487654Z   ref: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:18.2488323Z   repository: chainlesschain/chainlesschain
+2026-10-10T03:12:18.2492353Z   token: ***
+2026-10-10T03:12:18.2492784Z   ssh-strict: true
+2026-10-10T03:12:18.2493233Z   ssh-user: git
+2026-10-10T03:12:18.2493692Z   persist-credentials: true
+2026-10-10T03:12:18.2494180Z   clean: true
+2026-10-10T03:12:18.2494630Z   sparse-checkout-cone-mode: true
+2026-10-10T03:12:18.2495153Z   fetch-depth: 1
+2026-10-10T03:12:18.2495593Z   fetch-tags: false
+2026-10-10T03:12:18.2496037Z   show-progress: true
+2026-10-10T03:12:18.2496483Z   lfs: false
+2026-10-10T03:12:18.2496916Z   submodules: false
+2026-10-10T03:12:18.2497558Z   set-safe-directory: true
+2026-10-10T03:12:18.2498075Z   allow-unsafe-pr-checkout: false
+2026-10-10T03:12:18.2498891Z ##[endgroup]
+2026-10-10T03:12:18.3534657Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T03:12:18.3538037Z ##[group]Getting Git version info
+2026-10-10T03:12:18.3539157Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:12:18.3540279Z [command]/usr/bin/git version
+2026-10-10T03:12:18.3619668Z git version 2.55.0
+2026-10-10T03:12:18.3648438Z ##[endgroup]
+2026-10-10T03:12:18.3665690Z Temporarily overriding HOME='/home/runner/work/_temp/d930ecd6-fb02-40e2-873a-f085ef62b98d' before making global git config changes
+2026-10-10T03:12:18.3668403Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T03:12:18.3672898Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:12:18.3734667Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T03:12:18.3740331Z ##[group]Initializing the repository
+2026-10-10T03:12:18.3745481Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:12:18.3869060Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T03:12:18.3870796Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T03:12:18.3871834Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T03:12:18.3872923Z hint: call:
+2026-10-10T03:12:18.3873358Z hint:
+2026-10-10T03:12:18.3873916Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T03:12:18.3874565Z hint:
+2026-10-10T03:12:18.3875181Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T03:12:18.3876152Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T03:12:18.3876941Z hint:
+2026-10-10T03:12:18.3877777Z hint: 	git branch -m <name>
+2026-10-10T03:12:18.3878670Z hint:
+2026-10-10T03:12:18.3879802Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T03:12:18.3882030Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T03:12:18.3894866Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:12:18.3946616Z ##[endgroup]
+2026-10-10T03:12:18.3947749Z ##[group]Disabling automatic garbage collection
+2026-10-10T03:12:18.3951582Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T03:12:18.3995000Z ##[endgroup]
+2026-10-10T03:12:18.3996110Z ##[group]Setting up auth
+2026-10-10T03:12:18.3996860Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T03:12:18.4032942Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T03:12:18.4443148Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T03:12:18.4481735Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T03:12:18.4719020Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T03:12:18.4755933Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T03:12:18.4982189Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T03:12:18.5022249Z ##[endgroup]
+2026-10-10T03:12:18.5023228Z ##[group]Fetching the repository
+2026-10-10T03:12:18.5032347Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:29.3541413Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T03:12:29.3542273Z  * branch              da91e730d802b7c9dcdc075b222ecc257021e552 -> FETCH_HEAD
+2026-10-10T03:12:29.3545986Z ##[endgroup]
+2026-10-10T03:12:29.3546530Z ##[group]Determining the checkout info
+2026-10-10T03:12:29.3548867Z ##[endgroup]
+2026-10-10T03:12:29.3555312Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T03:12:29.3619096Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T03:12:29.3653576Z ##[group]Checking out the ref
+2026-10-10T03:12:29.3660329Z [command]/usr/bin/git checkout --progress --force da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:30.4174817Z Updating files:  48% (11325/23576)
+2026-10-10T03:12:30.4428378Z Updating files:  49% (11553/23576)
+2026-10-10T03:12:30.4590106Z Updating files:  50% (11788/23576)
+2026-10-10T03:12:30.4876403Z Updating files:  51% (12024/23576)
+2026-10-10T03:12:30.5239017Z Updating files:  52% (12260/23576)
+2026-10-10T03:12:30.5795936Z Updating files:  53% (12496/23576)
+2026-10-10T03:12:30.8421222Z Updating files:  54% (12732/23576)
+2026-10-10T03:12:31.2580669Z Updating files:  55% (12967/23576)
+2026-10-10T03:12:31.3904410Z Updating files:  56% (13203/23576)
+2026-10-10T03:12:31.6132717Z Updating files:  56% (13275/23576)
+2026-10-10T03:12:31.6830948Z Updating files:  57% (13439/23576)
+2026-10-10T03:12:31.7115042Z Updating files:  58% (13675/23576)
+2026-10-10T03:12:31.7417956Z Updating files:  59% (13910/23576)
+2026-10-10T03:12:31.7696672Z Updating files:  60% (14146/23576)
+2026-10-10T03:12:31.7992700Z Updating files:  61% (14382/23576)
+2026-10-10T03:12:31.8380180Z Updating files:  62% (14618/23576)
+2026-10-10T03:12:31.8881348Z Updating files:  63% (14853/23576)
+2026-10-10T03:12:31.9108958Z Updating files:  64% (15089/23576)
+2026-10-10T03:12:31.9260552Z Updating files:  65% (15325/23576)
+2026-10-10T03:12:31.9531055Z Updating files:  66% (15561/23576)
+2026-10-10T03:12:31.9669955Z Updating files:  67% (15796/23576)
+2026-10-10T03:12:31.9883986Z Updating files:  68% (16032/23576)
+2026-10-10T03:12:32.0110065Z Updating files:  69% (16268/23576)
+2026-10-10T03:12:32.0284703Z Updating files:  70% (16504/23576)
+2026-10-10T03:12:32.0490276Z Updating files:  71% (16739/23576)
+2026-10-10T03:12:32.0740477Z Updating files:  72% (16975/23576)
+2026-10-10T03:12:32.0950612Z Updating files:  73% (17211/23576)
+2026-10-10T03:12:32.1098883Z Updating files:  74% (17447/23576)
+2026-10-10T03:12:32.1307732Z Updating files:  75% (17682/23576)
+2026-10-10T03:12:32.1514371Z Updating files:  76% (17918/23576)
+2026-10-10T03:12:32.1712784Z Updating files:  77% (18154/23576)
+2026-10-10T03:12:32.1875768Z Updating files:  78% (18390/23576)
+2026-10-10T03:12:32.2059369Z Updating files:  79% (18626/23576)
+2026-10-10T03:12:32.2258309Z Updating files:  80% (18861/23576)
+2026-10-10T03:12:32.2450034Z Updating files:  81% (19097/23576)
+2026-10-10T03:12:32.2640488Z Updating files:  82% (19333/23576)
+2026-10-10T03:12:32.2867995Z Updating files:  83% (19569/23576)
+2026-10-10T03:12:32.3152435Z Updating files:  84% (19804/23576)
+2026-10-10T03:12:32.3409459Z Updating files:  85% (20040/23576)
+2026-10-10T03:12:32.3661870Z Updating files:  86% (20276/23576)
+2026-10-10T03:12:32.3893049Z Updating files:  87% (20512/23576)
+2026-10-10T03:12:32.3902627Z Updating files:  88% (20747/23576)
+2026-10-10T03:12:32.4131765Z Updating files:  88% (20758/23576)
+2026-10-10T03:12:32.4381099Z Updating files:  89% (20983/23576)
+2026-10-10T03:12:32.4543004Z Updating files:  90% (21219/23576)
+2026-10-10T03:12:32.4731736Z Updating files:  91% (21455/23576)
+2026-10-10T03:12:32.4937087Z Updating files:  92% (21690/23576)
+2026-10-10T03:12:32.5099219Z Updating files:  93% (21926/23576)
+2026-10-10T03:12:32.5301975Z Updating files:  94% (22162/23576)
+2026-10-10T03:12:32.5501014Z Updating files:  95% (22398/23576)
+2026-10-10T03:12:32.5689114Z Updating files:  96% (22633/23576)
+2026-10-10T03:12:32.5852822Z Updating files:  97% (22869/23576)
+2026-10-10T03:12:32.6039651Z Updating files:  98% (23105/23576)
+2026-10-10T03:12:32.6210328Z Updating files:  99% (23341/23576)
+2026-10-10T03:12:32.6211314Z Updating files: 100% (23576/23576)
+2026-10-10T03:12:32.6212087Z Updating files: 100% (23576/23576), done.
+2026-10-10T03:12:32.6477824Z Note: switching to 'da91e730d802b7c9dcdc075b222ecc257021e552'.
+2026-10-10T03:12:32.6478485Z 
+2026-10-10T03:12:32.6478934Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T03:12:32.6480184Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T03:12:32.6481000Z state without impacting any branches by switching back to a branch.
+2026-10-10T03:12:32.6481376Z 
+2026-10-10T03:12:32.6481620Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T03:12:32.6482222Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T03:12:32.6482558Z 
+2026-10-10T03:12:32.6482696Z   git switch -c <new-branch-name>
+2026-10-10T03:12:32.6483266Z 
+2026-10-10T03:12:32.6483394Z Or undo this operation with:
+2026-10-10T03:12:32.6483603Z 
+2026-10-10T03:12:32.6483709Z   git switch -
+2026-10-10T03:12:32.6483866Z 
+2026-10-10T03:12:32.6484155Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T03:12:32.6484567Z 
+2026-10-10T03:12:32.6484849Z HEAD is now at da91e730 fix(ci): preserve popup receipts and bound host test work
+2026-10-10T03:12:32.6533700Z ##[endgroup]
+2026-10-10T03:12:32.6592636Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T03:12:32.6621735Z da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:32.6961354Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-10-10T03:12:32.6961764Z with:
+2026-10-10T03:12:32.6961966Z   node-version: 22.14.0
+2026-10-10T03:12:32.6962189Z   always-auth: false
+2026-10-10T03:12:32.6962401Z   check-latest: false
+2026-10-10T03:12:32.6965276Z   token: ***
+2026-10-10T03:12:32.6965493Z   package-manager-cache: true
+2026-10-10T03:12:32.6965735Z ##[endgroup]
+2026-10-10T03:12:32.8432834Z Attempting to download 22.14.0...
+2026-10-10T03:12:32.8542701Z (node:2328) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T03:12:32.8544385Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T03:12:33.5122294Z Acquiring 22.14.0 - x64 from https://github.com/actions/node-versions/releases/download/22.14.0-13265982013/node-22.14.0-linux-x64.tar.gz
+2026-10-10T03:12:33.9898024Z Extracting ...
+2026-10-10T03:12:34.0020759Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/30e05656-cfea-45fd-900a-af93daa50d2c -f /home/runner/work/_temp/564e87ce-09d1-4055-b04a-1949c82873e9
+2026-10-10T03:12:35.2241124Z Adding to the cache ...
+2026-10-10T03:12:38.4482442Z ##[group]Environment details
+2026-10-10T03:12:38.6712622Z node: v22.14.0
+2026-10-10T03:12:38.6713039Z npm: 10.9.2
+2026-10-10T03:12:38.6713356Z yarn: 1.22.22
+2026-10-10T03:12:38.6714145Z ##[endgroup]
+2026-10-10T03:12:38.6888476Z ##[group]Run set -euo pipefail
+2026-10-10T03:12:38.6888852Z [36;1mset -euo pipefail[0m
+2026-10-10T03:12:38.6889240Z [36;1mVERSION=$(node -p "require('./packages/cli/package.json').version")[0m
+2026-10-10T03:12:38.6889700Z [36;1mEXPECTED_REF="refs/tags/v-npm-${VERSION//./-}"[0m
+2026-10-10T03:12:38.6890069Z [36;1mif [ "$GITHUB_REF" != "$EXPECTED_REF" ]; then[0m
+2026-10-10T03:12:38.6890463Z [36;1m  echo "Expected release ref $EXPECTED_REF, got $GITHUB_REF" >&2[0m
+2026-10-10T03:12:38.6890820Z [36;1m  exit 1[0m
+2026-10-10T03:12:38.6891013Z [36;1mfi[0m
+2026-10-10T03:12:38.6891247Z [36;1mtest "$GITHUB_SHA" = "$(git rev-parse HEAD)"[0m
+2026-10-10T03:12:38.7170802Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T03:12:38.7171268Z ##[endgroup]
+2026-10-10T03:12:38.7582453Z ##[group]Run node packages/cli/scripts/verify-release-gates.mjs
+2026-10-10T03:12:38.7582955Z [36;1mnode packages/cli/scripts/verify-release-gates.mjs[0m
+2026-10-10T03:12:38.7648804Z shell: /usr/bin/bash -e {0}
+2026-10-10T03:12:38.7649093Z env:
+2026-10-10T03:12:38.7652456Z   GITHUB_TOKEN: ***
+2026-10-10T03:12:38.7652740Z   CC_RELEASE_GATE_OUTPUT: cli-release-gate.json
+2026-10-10T03:12:38.7653060Z   CC_RELEASE_GATE_WAIT_MS: 10800000
+2026-10-10T03:12:38.7653330Z   CC_RELEASE_GATE_POLL_MS: 30000
+2026-10-10T03:12:38.7653583Z ##[endgroup]
+2026-10-10T03:12:42.2708209Z Verified 2 CLI release gates for exact SHA da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:42.2830978Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-10T03:12:42.2831407Z with:
+2026-10-10T03:12:42.2831703Z   name: cli-release-gate-da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T03:12:42.2832071Z   path: cli-release-gate.json
+2026-10-10T03:12:42.2832321Z   if-no-files-found: error
+2026-10-10T03:12:42.2832546Z   retention-days: 90
+2026-10-10T03:12:42.2832759Z   compression-level: 6
+2026-10-10T03:12:42.2832971Z   overwrite: false
+2026-10-10T03:12:42.2833182Z   include-hidden-files: false
+2026-10-10T03:12:42.2833631Z ##[endgroup]
+2026-10-10T03:12:42.4488560Z With the provided path, there will be 1 file uploaded
+2026-10-10T03:12:42.4538561Z Artifact name is valid!
+2026-10-10T03:12:42.4539107Z Root directory input is valid!
+2026-10-10T03:12:42.7069068Z Beginning upload of artifact content to blob storage
+2026-10-10T03:12:42.8559554Z Uploaded bytes 479
+2026-10-10T03:12:42.8910327Z Finished uploading artifact content to blob storage!
+2026-10-10T03:12:42.8911739Z SHA256 digest of uploaded artifact zip is 90cac1138ff3ea3dca0868c904572bb9196e8c33cf6f21b99c2590873e1a198e
+2026-10-10T03:12:42.8916082Z Finalizing artifact upload
+2026-10-10T03:12:43.1666728Z Artifact cli-release-gate-da91e730d802b7c9dcdc075b222ecc257021e552.zip successfully finalized. Artifact ID 11657338706
+2026-10-10T03:12:43.1668962Z Artifact cli-release-gate-da91e730d802b7c9dcdc075b222ecc257021e552 has been successfully uploaded! Final size is 479 bytes. Artifact ID is 11657338706
+2026-10-10T03:12:43.1689130Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506/artifacts/11657338706
+2026-10-10T03:12:43.1836998Z Post job cleanup.
+2026-10-10T03:12:43.3068560Z (node:2396) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T03:12:43.3069729Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T03:12:43.3316814Z Post job cleanup.
+2026-10-10T03:12:43.4201765Z [command]/usr/bin/git version
+2026-10-10T03:12:43.4244955Z git version 2.55.0
+2026-10-10T03:12:43.4318200Z Temporarily overriding HOME='/home/runner/work/_temp/bb02d587-23ef-401c-8c59-6c5cfd54393d' before making global git config changes
+2026-10-10T03:12:43.4320366Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T03:12:43.4325832Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T03:12:43.4368054Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T03:12:43.4410950Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T03:12:43.4700105Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T03:12:43.4728720Z http.https://github.com/.extraheader
+2026-10-10T03:12:43.4742364Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T03:12:43.4796634Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T03:12:43.5184596Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T03:12:43.5240670Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T03:12:43.5704321Z Cleaning up orphan processes

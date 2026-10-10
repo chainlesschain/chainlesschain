@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38021103046,
+  "captures": [
+    {
+      "path": ".work/release-readback-0.166.96/vscode-38021103046/download-attempts/2026-10-10T03-55-34.794Z/run.json",
+      "bytes": 13191,
+      "sha256": "d10ddf3e391538bdfc794c85427fa51b62f920caa7f07777eede52903ab8d816"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/vscode-38021103046/download-attempts/2026-10-10T03-55-34.794Z/artifacts-1.json",
+      "bytes": 12872,
+      "sha256": "a7318e7f4c25590e744d511064160fe3db1353b05ad750d25d612a5ab1a8c05b"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/vscode-38021103046/download-attempts/2026-10-10T03-55-34.794Z/artifact-11658427994-metadata.json",
+      "bytes": 729,
+      "sha256": "671109d3292fe159c2044604184f5ca969f7a7edd7b03ee6e8e312448c2ff4ae"
+    },
+    {
+      "path": ".work/release-readback-0.166.96/vscode-38021103046/download-attempts/2026-10-10T03-55-34.794Z/artifact-11657882662-metadata.json",
+      "bytes": 737,
+      "sha256": "35ff0feee3ea2dbf4d29e04545a37cd803a283650725e5b13e7ede8731710dbb"
+    }
+  ]
+}

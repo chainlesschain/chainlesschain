@@ -1,0 +1,62 @@
+{
+  "sourceCommit": "976c4f394fbab4fccc041787051f00abe08113c9",
+  "sourceDirty": true,
+  "runtime": "v22.22.2",
+  "platform": "win32",
+  "capturedAt": "2026-10-09T03:35:17.834Z",
+  "files": [
+    {
+      "name": "frozen-collection-readback.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "frozen-collection-readback.stdout",
+      "bytes": 41145,
+      "digest": "sha256:a66a8a1d7742f79bd60dafd62301ed25dc50f24bc01bf6e50c667bdc1a7fa9eb"
+    },
+    {
+      "name": "frozen-collection-summary.json",
+      "bytes": 821,
+      "digest": "sha256:d56d8063007dd83cd37e964209f5d5d6dd2e449779dc96db080554c2f87c4a8a"
+    },
+    {
+      "name": "model-review-local.json",
+      "bytes": 2221,
+      "digest": "sha256:146b90e76f2352ab12dd60d7d80f98f1cddf8c6fae025cfa02180f857586fd06"
+    },
+    {
+      "name": "model-review-local.stderr",
+      "bytes": 164,
+      "digest": "sha256:8e93ddcbd52432f691d9af375aa94890297db70ac25f2f91cf7a612403b28dc8"
+    },
+    {
+      "name": "model-review-local.stdout",
+      "bytes": 222,
+      "digest": "sha256:7edabd7c4205597f49bd8120b8e7725fa29fee464b511f9f17f513e4145631f5"
+    },
+    {
+      "name": "model-review-prior-artifacts.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "model-review-prior-artifacts.stdout",
+      "bytes": 32,
+      "digest": "sha256:244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "name": "model-review-prior-workflow.stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "model-review-prior-workflow.stdout",
+      "bytes": 13154,
+      "digest": "sha256:4d9906b5fea4bf13b7acbf7a147b285179567d930ada7a9fe39d452a29900dc5"
+    }
+  ],
+  "formalSample": false,
+  "observationsCreated": false,
+  "providerAssessed": false
+}

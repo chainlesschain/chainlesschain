@@ -1,0 +1,245 @@
+{
+  "schema": "chainlesschain.windows-esbuild-private-map-service/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "resultTranslation": false,
+  "clientLocation": "host-outside-appcontainer",
+  "fullFrozenReviewCompleted": false,
+  "completed": true,
+  "client": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/node_modules/esbuild/lib/main.js",
+    "bytes": 97214,
+    "digest": "sha256:8331fe1d8b3a07381f33cc425fcfaa94776e263113653f80ec3ba433e9657e73"
+  },
+  "frozenConfig": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/packages/cli/vitest.config.js",
+    "bytes": 3515,
+    "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+  },
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-esbuild-private-map-service.mjs",
+    "bytes": 17339,
+    "digest": "sha256:b1f5592fc6e5b1890e1cba13c240382ead86368bd22919b75ac7cbe550b4685e"
+  },
+  "startedAt": "2026-10-09T03:44:38.228Z",
+  "leafReport": {
+    "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\report.json",
+    "bytes": 17096,
+    "digest": "sha256:c199a401635501e9d3f1163b8543c5d33ed9d039b93a1a3c2b419e9aae87a653"
+  },
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\supervisor.exe",
+      "bytes": 799744,
+      "digest": "sha256:f31c7e8c5791dd0ec78b52ac7db2dc93d9a115a082159bd04a1c08031bdbe0c2"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "runtime": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "esbuild": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/node_modules/@esbuild/win32-x64/esbuild.exe",
+    "bytes": 11670528,
+    "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+  },
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp",
+  "stagedInputs": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp\\workspace\\esbuild.exe",
+      "bytes": 11670528,
+      "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp\\workspace\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp\\workspace\\entry.js",
+      "bytes": 26,
+      "digest": "sha256:a2098bd92b10bf8b816d24b7556b1ce8c49a879d130489065ef1051c17e042f6"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp\\workspace\\vitest.config.js",
+      "bytes": 3515,
+      "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+    }
+  ],
+  "protocol": {
+    "inputBytes": 967,
+    "outputBytes": 4228,
+    "spawnCount": 1
+  },
+  "serviceStderr": "",
+  "outputsBefore": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\supervisor.exe",
+      "bytes": 799744,
+      "digest": "sha256:f31c7e8c5791dd0ec78b52ac7db2dc93d9a115a082159bd04a1c08031bdbe0c2"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "servicePid": 28464,
+  "build": {
+    "errors": [],
+    "warnings": []
+  },
+  "transform": {
+    "warnings": [],
+    "code": "const answer = 42;\n",
+    "map": ""
+  },
+  "configBundle": {
+    "errors": [],
+    "warnings": [],
+    "outputFiles": [
+      {
+        "path": "<stdout>",
+        "text": "// vitest.config.js\nimport { defineConfig, configDefaults } from \"vitest/config\";\nvar vitest_config_default = defineConfig({\n  test: {\n    globals: true,\n    globalSetup: [\"./test/global-setup/windows-sandbox-adapter-temp-root.js\"],\n    setupFiles: [\n      \"./test/setup/windows-sandbox-adapter-cleanup.js\",\n      \"./test/setup/agent-evolution-test-boundary.js\"\n    ],\n    // e2e runs under its own config (vitest.e2e.config.js: singleFork → serial),\n    // because e2e files spawn real `cc` children + bind real ports. Letting them\n    // into this 2-fork parallel pool causes port collisions and shared-DB\n    // contention (the \"[AppConfig] is not valid JSON\" / \"malformed\" flakes).\n    // A bare `vitest run` / `npm test` therefore covers unit + integration only;\n    // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite\n    // separately and passes the e2e config explicitly.\n    exclude: [...configDefaults.exclude, \"**/__tests__/e2e/**\"],\n    pool: \"forks\",\n    // Vitest 4 removed the pool-specific `forks.maxForks` configuration in\n    // favour of the top-level worker limit. Keeping the old shape silently\n    // removes the limit and lets a large CI shard start one fork per file,\n    // which reintroduces the shared-resource contention this configuration is\n    // meant to avoid.\n    maxWorkers: 2,\n    // 90s testTimeout: vitest 4 honors testTimeout strictly (v3's hardcoded\n    // 60s birpc heartbeat used to mask anything between testTimeout and the\n    // heartbeat ceiling). Subprocess-heavy integration tests — MTC federation\n    // governance + audit MTC + multisig (policy→propose→sign→consume/finalize)\n    // end-to-end flows spawn many sequential `cc` CLI cold-starts; under the\n    // 2-fork parallel load these legitimately exceed 60s and recurringly flaked\n    // (crosschain-multisig / marketplace-multisig / multisig-cli / mtc-federation\n    // — all pass isolated). Raised 60000 → 90000 to cover the whole family in one\n    // place (local + CI shards both run integration on this base config); the\n    // per-test `it(\"...\", fn, 90000/120000)` overrides remain as defensive docs\n    // of the heaviest flows. Unit tests share this budget but are fast, so the\n    // only cost is a genuinely-hung unit test failing at 90s instead of 60s.\n    // See internal handbook trap #31.\n    testTimeout: 9e4,\n    hookTimeout: 12e4,\n    // teardownTimeout governs how long vitest's pool waits for a worker to\n    // GRACEFULLY stop before it logs \"Timeout terminating <pool> worker for\n    // test files X\" and force-terminates it — the force path then trips an\n    // unhandled \"Worker exited unexpectedly\" and fails the whole shard even\n    // though every test passed (vitest cli-api pool: setTimeout(…,\n    // teardownTimeout) racing runner.stop()). The real-subprocess + real-socket\n    // suites (background-agent-supervisor / background-session-transport spawn\n    // detached `node` workers and bind POSIX domain sockets / named pipes)\n    // drain in <1s unloaded, but under the 2-fork parallel CI load the worker's\n    // event-loop teardown (child reaping + socket close under contention) has\n    // recurringly exceeded the 10s DEFAULT — the \"forks-pool worker-death\"\n    // flake (unit shard 2/4 on ubuntu+macos). Raised 10000 → 30000, same\n    // rationale as the testTimeout/hookTimeout bumps above. A genuinely hung\n    // worker now surfaces at 30s instead of 10s — an acceptable trade for\n    // killing a false-red shard.\n    teardownTimeout: 3e4\n  }\n});\nexport {\n  vitest_config_default as default\n};\n",
+        "digest": "sha256:520c96f8eaaa8da2c4326702c76074061679d330f4aaab04742b63e158c5d1d4"
+      }
+    ]
+  },
+  "invalidTransform": {
+    "rejected": true,
+    "errors": [
+      {
+        "id": "",
+        "location": {
+          "column": 6,
+          "file": "<stdin>",
+          "length": 1,
+          "line": 1,
+          "lineText": "const =",
+          "namespace": "",
+          "suggestion": ""
+        },
+        "notes": [],
+        "pluginName": "",
+        "text": "Expected identifier but found \"=\""
+      }
+    ]
+  },
+  "serviceExit": {
+    "code": 0,
+    "signal": null
+  },
+  "outputsAfter": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\supervisor.exe",
+      "bytes": 799744,
+      "digest": "sha256:f31c7e8c5791dd0ec78b52ac7db2dc93d9a115a082159bd04a1c08031bdbe0c2"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\esbuild-private-service-20261009-final-v2\\leaf\\shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "native": {
+    "experimental": true,
+    "status": "NOT_ADMITTED",
+    "completed": true,
+    "stage": "completed",
+    "error": 0,
+    "runWaitStatus": 0,
+    "runDeadlineExceeded": false,
+    "setterStatus": 0,
+    "hostNonElevatedUnrestricted": true,
+    "rootPid": 28464,
+    "childPid": 2624,
+    "childExit": 0,
+    "childTokenProven": true,
+    "appContainerSid": "S-1-15-2-3920056005-29943769-3735987606-2709212043-3739610147-3750686585-2581280585",
+    "capabilityCount": 0,
+    "imagePinned": true,
+    "leafRestricted": true,
+    "exactHandleCount": 5,
+    "mapPrepared": true,
+    "mapInstalled": true,
+    "parentMapUnchanged": true,
+    "cleanupConfirmed": true,
+    "profileDeleted": true,
+    "loopbackExemptionAbsent": true,
+    "guardedRootNt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-esbuild-service-i646Tp",
+    "guardedRootFileId": "02469ff7:00070000:00701453",
+    "childCreated": true,
+    "jobAssigned": true,
+    "childWaitStatus": 0,
+    "childExitRead": true,
+    "childExited": true,
+    "jobQuerySucceeded": true,
+    "jobActiveProcesses": 0,
+    "directTerminationAttempted": false,
+    "directTerminationSucceeded": false,
+    "directTerminationError": 0,
+    "beforeMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    },
+    "afterSetterMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    },
+    "afterChildMap": {
+      "status": "absent",
+      "characters": 0,
+      "error": 2,
+      "valueHex": ""
+    }
+  },
+  "nativeStderr": "",
+  "trace": {
+    "digest": "sha256:d12ebf2cdf9596f9b9b864b1bfb7ddccc01941204206c50113f68cc682355f7c",
+    "text": "{\"sequence\":1,\"pid\":2624,\"api\":\"identity-accepted\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":2,\"pid\":2624,\"api\":\"device-map-handle-access\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":3,\"pid\":2624,\"api\":\"device-map-supervisor-handle\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":3,\"patches\":0,\"overflow\":0}\n{\"sequence\":4,\"pid\":2624,\"api\":\"device-map-root-proven\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":5,\"pid\":2624,\"api\":\"device-map-file-id-proven\",\"requestedPath\":\"02469ff7:00070000:00701453\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":6,\"pid\":2624,\"api\":\"namespace-host-root-denied\",\"requestedPath\":\"C:\\\\\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":7,\"pid\":2624,\"api\":\"namespace-workspace-write-denied\",\"requestedPath\":\"X:\\\\workspace\\\\forbidden.txt\",\"success\":true,\"error\":5,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":8,\"pid\":2624,\"api\":\"namespace-traversal-confined\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":0,\"overflow\":0}\n{\"sequence\":9,\"pid\":2624,\"api\":\"installed\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":10,\"pid\":2624,\"api\":\"resolve:CreateFileW\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":11,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":12,\"pid\":2624,\"api\":\"resolve:GetFileInformationByHandleEx\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n{\"sequence\":13,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":14,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":15,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":16,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":17,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":18,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\entry.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":19,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\scratch\\\\bundle.js\",\"success\":true,\"error\":0,\"kind\":1073741824,\"patches\":2,\"overflow\":0}\n{\"sequence\":20,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":21,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\\\\workspace\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":22,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\\\\workspace\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":23,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":24,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":true,\"error\":0,\"kind\":11,\"patches\":2,\"overflow\":0}\n{\"sequence\":25,\"pid\":2624,\"api\":\"GetFileInformationByHandleEx\",\"requestedPath\":\"\\\\Device\\\\HarddiskVolume3\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-esbuild-service-i646Tp\",\"success\":false,\"error\":18,\"kind\":10,\"patches\":2,\"overflow\":0}\n{\"sequence\":26,\"pid\":2624,\"api\":\"CreateFileW\",\"requestedPath\":\"X:\\\\workspace\\\\vitest.config.js\",\"success\":true,\"error\":0,\"kind\":2147483648,\"patches\":2,\"overflow\":0}\n{\"sequence\":27,\"pid\":2624,\"api\":\"exit\",\"requestedPath\":\"\",\"success\":true,\"error\":0,\"kind\":0,\"patches\":2,\"overflow\":0}\n"
+  },
+  "bundle": {
+    "digest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+    "text": "var __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __export = (target, all) => {\n  for (var name in all)\n    __defProp(target, name, { get: all[name], enumerable: true });\n};\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === \"object\" || typeof from === \"function\") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n// entry.js\nvar entry_exports = {};\n__export(entry_exports, {\n  answer: () => answer\n});\nmodule.exports = __toCommonJS(entry_exports);\nvar answer = 42;\n// Annotate the CommonJS export names for ESM import in node:\n0 && (module.exports = {\n  answer\n});\n"
+  },
+  "clientAfter": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/node_modules/esbuild/lib/main.js",
+    "bytes": 97214,
+    "digest": "sha256:8331fe1d8b3a07381f33cc425fcfaa94776e263113653f80ec3ba433e9657e73"
+  },
+  "frozenConfigAfter": {
+    "path": "C:/code/chainlesschain/.work/native-toolchain-prepare-2026-10-08-canonical-pairs/tree/packages/cli/vitest.config.js",
+    "bytes": 3515,
+    "digest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08"
+  },
+  "observations": {
+    "rows": 27,
+    "childPid": 2624,
+    "bundleDigest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07"
+  },
+  "finishedAt": "2026-10-09T03:44:45.038Z"
+}

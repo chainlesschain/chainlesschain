@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657682882,
+  "name": "claude-security-map-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/metadata.json",
+    "bytes": 800,
+    "sha256": "a16b430a98ea1cfa8bce8501cb59f76a4d3a0a1abab8a37e1c1a90c2ae0f56af",
+    "endpoint": "actions/artifacts/11657682882"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657682882/artifact.zip",
+    "bytes": 33187,
+    "sha256": "aa40120dbcb7d421b29e6e58a042281b7c96100a733d94631024aa2e217017ce",
+    "endpoint": "actions/artifacts/11657682882/zip"
+  },
+  "githubDigestMatched": true
+}

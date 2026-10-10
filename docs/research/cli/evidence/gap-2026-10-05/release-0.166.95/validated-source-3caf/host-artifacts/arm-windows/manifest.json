@@ -1,0 +1,170 @@
+{
+  "schema": "astra.selected-original-evidence/v1",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "workflowRunId": 37972023509,
+  "jobId": 113960770773,
+  "artifactId": 11638450002,
+  "host": {
+    "name": "jetbrains",
+    "version": "2026.2.0.1",
+    "operatingSystem": "win32",
+    "architecture": "arm64",
+    "transport": "local-ide-bridge"
+  },
+  "scope": "Selected original bytes only, not the complete original extraction tree. Original journey manifest is unmodified and retains references to all 51 entries; see all-entries-verified.json for full integrity checks.",
+  "artifactExtractionTreePreserved": false,
+  "originalJourneyManifestUnmodified": true,
+  "verifiedArtifactEntries": 51,
+  "selectedOriginalFiles": 18,
+  "selectedBytes": 1041857,
+  "files": [
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "targetPath": "journey-original.json",
+      "bytes": 17337,
+      "sha256": "3cdcfc0c9a69998f68e9314b807bbbc4ce78fba528fa7ff5507c6470ef8f53c8"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "metadata.json",
+      "targetPath": "github-artifact.json",
+      "bytes": 812,
+      "sha256": "69b53faa96547099717156ac142fb75deca4d78417b2b6a358a5140730f6b880"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "download-verification.json",
+      "targetPath": "download-receipt.json",
+      "bytes": 383,
+      "sha256": "0b13e51b11b777f0b823f122063cb22f59f4ae6bc83545b57588912a54e507e1"
+    },
+    {
+      "originalArtifactPath": null,
+      "sourcePath": "verification.json",
+      "targetPath": "all-entries-verified.json",
+      "bytes": 18874,
+      "sha256": "116f08fcd3395bf3519b219e2db475f6c0c30f80985cbb6c785836820fbfa44d"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_capture-status.json",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_capture-status.json",
+      "targetPath": "initial-capture.json",
+      "bytes": 886,
+      "sha256": "959e5d042fe6f59d30eaec10d28bf1572be60f9daf7545cbae18fffbf0d4f00a"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "targetPath": "initial-events.bin",
+      "bytes": 25854,
+      "sha256": "0000755b82909cf2c37eee8f2b18b9e8d4b4782a51ff61425b15a5f1ad1cd322"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "targetPath": "initial-build-idea.bin",
+      "bytes": 46171,
+      "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "targetPath": "initial-host-idea.bin",
+      "bytes": 179910,
+      "sha256": "b152df1c8b6d2dcd514b5732de9b88ce376ff923cb0675973ac88d0a8be393e0"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/026-host-capture-restart_capture-status.json",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/026-host-capture-restart_capture-status.json",
+      "targetPath": "restart-capture.json",
+      "bytes": 885,
+      "sha256": "002d6b2e8f543750f2cd2edc6e7ad9afbfed334a7ddf70142a8b079db1f4c776"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "targetPath": "restart-events.bin",
+      "bytes": 2347,
+      "sha256": "b3455cc5aa522d71c8ca58cf8c134f41fb19175941806b4b31d491bd8fc16902"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "targetPath": "restart-build-idea.bin",
+      "bytes": 46171,
+      "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "targetPath": "restart-host-idea.bin",
+      "bytes": 290147,
+      "sha256": "69171dae3f438f0d52ef210f40b7891a719a9c1b52bb67a14dada3d90cfc5456"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "targetPath": "fixture-protocol.jsonl",
+      "bytes": 355693,
+      "sha256": "11e5c0a7373df9c79aa5ff91d4808421b7e3ab73b1da76444800d46306710587"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/041-workbench-host-phases.json",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/041-workbench-host-phases.json",
+      "targetPath": "host-phases.json",
+      "bytes": 1883,
+      "sha256": "7bdb7e7888564ad3bdcd035a829305cb42a0a263fa35970ac1e70275f9e33938"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/042-workbench-metrics.jsonl",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/042-workbench-metrics.jsonl",
+      "targetPath": "workbench-metrics.jsonl",
+      "bytes": 25941,
+      "sha256": "930c057a696d0a5238327ee7a3eee709d19df88ce36127980e8b6d9fa38fb29e"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/038-ui-smoke-initial.stdout.log",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/038-ui-smoke-initial.stdout.log",
+      "targetPath": "initial-ui-stdout.log",
+      "bytes": 13869,
+      "sha256": "24979aba78b2c49b87a93eef87565f02735300888ed79ef0fb30e983e886204d"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/040-ui-smoke-restart.stdout.log",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/040-ui-smoke-restart.stdout.log",
+      "targetPath": "restart-ui-stdout.log",
+      "bytes": 13868,
+      "sha256": "1a4c6ee197cf5e83393e6f860c7447de8dd0a22183fe18b41385d3742483ce88"
+    },
+    {
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "sourcePath": "extracted/jetbrains-windows-2026.2.0.1/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "targetPath": "ui-result.xml",
+      "bytes": 826,
+      "sha256": "b9f7b4bb70ae01c9be2fc3d915837cc6da39549c699a59fb1016094c13680806"
+    }
+  ],
+  "excludedPayloads": [
+    {
+      "kind": "GitHub artifact ZIP",
+      "path": "artifact.zip",
+      "bytes": 1785559,
+      "sha256": "sha256:9b591493e6f78215f48b200830fbab543d7eb3ba2d66766db6086822c8ddd454"
+    },
+    {
+      "kind": "packaged plugin ZIP; includes compiled classes/jars",
+      "originalArtifactPath": "jetbrains-windows-2026.2.0.1/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1519652,
+      "sha256": "sha256:cfcfbce489a145d69ce7fc0dc76795d8346a94f288b2e61120e9dd8a505e1c2a"
+    }
+  ],
+  "noZipJarClassPayloadCopied": true,
+  "suggestedArchiveSubdirectory": "host-artifacts/arm-windows",
+  "pathAudit": {
+    "suggestedRepositoryPrefix": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/final-release/host-artifacts/arm-windows/",
+    "maxRelativeLength": 125,
+    "windowsCheckoutRootLength": 34,
+    "maxWindowsCheckoutLength": 160
+  }
+}

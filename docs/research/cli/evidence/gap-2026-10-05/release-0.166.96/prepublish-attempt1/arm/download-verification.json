@@ -1,0 +1,13 @@
+{
+  "sha": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "runId": 37987544323,
+  "jobId": 114013173246,
+  "artifactId": 11644775438,
+  "bytes": 1878098,
+  "digest": "sha256:7644c24f5008a4cc1dec2125fe9b53be8eb4f430e9205f46a4a597742069249f",
+  "metadataBytes": 1878098,
+  "metadataDigest": "sha256:7644c24f5008a4cc1dec2125fe9b53be8eb4f430e9205f46a4a597742069249f",
+  "sourceLogBytes": 235938,
+  "sourceLogSha256": "cad309c2c3ad7847d6b776f504f625b9f7dd8a106d89e2cf8b7216e2e8392d43",
+  "verified": true
+}

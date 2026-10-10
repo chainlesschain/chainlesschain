@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657693302,
+  "name": "pm-exploration-recovery-test-only-aggregate-da91e730d802b7c9dcdc075b222ecc257021e552-1",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/metadata.json",
+    "bytes": 804,
+    "sha256": "321dca3f9a1c38c0a33f7f8971f9257bbbdff10e221dd7936dc64eaa299d8bd6",
+    "endpoint": "actions/artifacts/11657693302"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657693302/artifact.zip",
+    "bytes": 891,
+    "sha256": "19f997f5d7427e7044283ef4cca6d57373b88db7350c8d2a601a66754a8d3dd9",
+    "endpoint": "actions/artifacts/11657693302/zip"
+  },
+  "githubDigestMatched": true
+}

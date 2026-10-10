@@ -1,0 +1,1050 @@
+TAP version 13
+# Subtest: local review binds source and fixture bytes without claiming upstream/account validation
+ok 1 - local review binds source and fixture bytes without claiming upstream/account validation
+  ---
+  duration_ms: 444.0582
+  ...
+# Subtest: drift remains a failed gate while preserving the original BOM/CRLF byte binding
+ok 2 - drift remains a failed gate while preserving the original BOM/CRLF byte binding
+  ---
+  duration_ms: 361.0904
+  ...
+# Subtest: partial upstream capture is explicitly incomplete
+ok 3 - partial upstream capture is explicitly incomplete
+  ---
+  duration_ms: 363.9849
+  ...
+# Subtest: an upstream error page retains its bytes but cannot become completed review evidence
+ok 4 - an upstream error page retains its bytes but cannot become completed review evidence
+  ---
+  duration_ms: 363.0562
+  ...
+# Subtest: a changed source pin fails before writing evidence
+ok 5 - a changed source pin fails before writing evidence
+  ---
+  duration_ms: 269.771
+  ...
+# Subtest: oversized upstream data is rejected instead of partially hashed
+ok 6 - oversized upstream data is rejected instead of partially hashed
+  ---
+  duration_ms: 210.055
+  ...
+# Subtest: report output cannot overwrite an existing evidence file
+ok 7 - report output cannot overwrite an existing evidence file
+  ---
+  duration_ms: 714.4635
+  ...
+# Subtest: trace parser records a dynamic API denial while retaining NOT_ADMITTED
+ok 8 - trace parser records a dynamic API denial while retaining NOT_ADMITTED
+  ---
+  duration_ms: 9.2581
+  ...
+# Subtest: trace parser rejects admission claim
+ok 9 - trace parser rejects admission claim
+  ---
+  duration_ms: 3.31
+  ...
+# Subtest: trace parser rejects result translation
+ok 10 - trace parser rejects result translation
+  ---
+  duration_ms: 2.2179
+  ...
+# Subtest: trace parser rejects source substitution
+ok 11 - trace parser rejects source substitution
+  ---
+  duration_ms: 3.3386
+  ...
+# Subtest: trace parser rejects different executable
+ok 12 - trace parser rejects different executable
+  ---
+  duration_ms: 1.5604
+  ...
+# Subtest: trace parser rejects missing cleanup
+ok 13 - trace parser rejects missing cleanup
+  ---
+  duration_ms: 2.4837
+  ...
+# Subtest: trace parser rejects capability added
+ok 14 - trace parser rejects capability added
+  ---
+  duration_ms: 5.7797
+  ...
+# Subtest: trace parser rejects root failed
+ok 15 - trace parser rejects root failed
+  ---
+  duration_ms: 3.7713
+  ...
+# Subtest: trace parser rejects manifest tamper
+ok 16 - trace parser rejects manifest tamper
+  ---
+  duration_ms: 3.6441
+  ...
+# Subtest: trace parser rejects trace digest tamper
+ok 17 - trace parser rejects trace digest tamper
+  ---
+  duration_ms: 4.5894
+  ...
+# Subtest: trace parser rejects empty trace
+ok 18 - trace parser rejects empty trace
+  ---
+  duration_ms: 4.0563
+  ...
+# Subtest: trace parser rejects resealed no installed shim
+ok 19 - trace parser rejects resealed no installed shim
+  ---
+  duration_ms: 2.8833
+  ...
+# Subtest: trace parser rejects resealed no dynamic resolution
+ok 20 - trace parser rejects resealed no dynamic resolution
+  ---
+  duration_ms: 4.5267
+  ...
+# Subtest: trace parser rejects resealed no actual rejection
+ok 21 - trace parser rejects resealed no actual rejection
+  ---
+  duration_ms: 3.3148
+  ...
+# Subtest: trace parser rejects resealed different Windows error
+ok 22 - trace parser rejects resealed different Windows error
+  ---
+  duration_ms: 4.1892
+  ...
+# Subtest: trace parser rejects resealed different process
+ok 23 - trace parser rejects resealed different process
+  ---
+  duration_ms: 3.4711
+  ...
+# Subtest: trace parser rejects resealed incomplete patch
+ok 24 - trace parser rejects resealed incomplete patch
+  ---
+  duration_ms: 4.404
+  ...
+# Subtest: trace parser rejects resealed truncated trace
+ok 25 - trace parser rejects resealed truncated trace
+  ---
+  duration_ms: 3.6615
+  ...
+# Subtest: trace parser rejects resealed missing exit
+ok 26 - trace parser rejects resealed missing exit
+  ---
+  duration_ms: 3.6729
+  ...
+# Subtest: trace parser rejects launcher DLL init failure
+ok 27 - trace parser rejects launcher DLL init failure
+  ---
+  duration_ms: 4.0643
+  ...
+# Subtest: trace parser rejects launcher abnormal child exit
+ok 28 - trace parser rejects launcher abnormal child exit
+  ---
+  duration_ms: 3.4587
+  ...
+# Subtest: trace parser rejects launcher launcher error
+ok 29 - trace parser rejects launcher launcher error
+  ---
+  duration_ms: 3.2967
+  ...
+# Subtest: trace parser rejects launcher console initialization
+ok 30 - trace parser rejects launcher console initialization
+  ---
+  duration_ms: 3.7272
+  ...
+# Subtest: trace parser rejects launcher remote loader thread
+ok 31 - trace parser rejects launcher remote loader thread
+  ---
+  duration_ms: 4.0359
+  ...
+# Subtest: trace parser rejects launcher child token not proven
+ok 32 - trace parser rejects launcher child token not proven
+  ---
+  duration_ms: 4.4265
+  ...
+# Subtest: trace parser rejects launcher root token not proven
+ok 33 - trace parser rejects launcher root token not proven
+  ---
+  duration_ms: 2.5132
+  ...
+# Subtest: trace parser rejects launcher unrestricted child
+ok 34 - trace parser rejects launcher unrestricted child
+  ---
+  duration_ms: 3.0303
+  ...
+# Subtest: trace parser rejects launcher broad handles
+ok 35 - trace parser rejects launcher broad handles
+  ---
+  duration_ms: 3.3696
+  ...
+# Subtest: trace parser rejects launcher different child SID
+ok 36 - trace parser rejects launcher different child SID
+  ---
+  duration_ms: 2.3188
+  ...
+# Subtest: trace parser rejects supervisor execution failure
+ok 37 - trace parser rejects supervisor execution failure
+  ---
+  duration_ms: 2.2722
+  ...
+# Subtest: trace parser rejects unrelated stderr
+ok 38 - trace parser rejects unrelated stderr
+  ---
+  duration_ms: 3.3195
+  ...
+# Subtest: successful child cannot have stderr
+ok 39 - successful child cannot have stderr
+  ---
+  duration_ms: 4.9142
+  ...
+# Subtest: trace parser rejects a resealed sequence gap
+ok 40 - trace parser rejects a resealed sequence gap
+  ---
+  duration_ms: 3.4623
+  ...
+# Subtest: trace parser rejects a resealed missing redundant API record
+ok 41 - trace parser rejects a resealed missing redundant API record
+  ---
+  duration_ms: 4.0933
+  ...
+# Subtest: frozen-client service proof preserves the host client and non-admission boundary
+ok 42 - frozen-client service proof preserves the host client and non-admission boundary
+  ---
+  duration_ms: 13.455
+  ...
+# Subtest: rejects failed report wrapped as successful evidence
+ok 43 - rejects failed report wrapped as successful evidence
+  ---
+  duration_ms: 3.1515
+  ...
+# Subtest: rejects unfinished report
+ok 44 - rejects unfinished report
+  ---
+  duration_ms: 3.4309
+  ...
+# Subtest: rejects completed report still carrying error
+ok 45 - rejects completed report still carrying error
+  ---
+  duration_ms: 2.2238
+  ...
+# Subtest: rejects completed report carrying settlement error
+ok 46 - rejects completed report carrying settlement error
+  ---
+  duration_ms: 2.2517
+  ...
+# Subtest: rejects supervisor changed before launch
+ok 47 - rejects supervisor changed before launch
+  ---
+  duration_ms: 3.6482
+  ...
+# Subtest: rejects supervisor changed after launch
+ok 48 - rejects supervisor changed after launch
+  ---
+  duration_ms: 4.5473
+  ...
+# Subtest: rejects shim changed before launch
+ok 49 - rejects shim changed before launch
+  ---
+  duration_ms: 4.3093
+  ...
+# Subtest: rejects shim changed after launch
+ok 50 - rejects shim changed after launch
+  ---
+  duration_ms: 4.6328
+  ...
+# Subtest: rejects native wait deadline exceeded
+ok 51 - rejects native wait deadline exceeded
+  ---
+  duration_ms: 5.0803
+  ...
+# Subtest: rejects native wait timed out
+ok 52 - rejects native wait timed out
+  ---
+  duration_ms: 4.1226
+  ...
+# Subtest: rejects host client relabeled as sandboxed
+ok 53 - rejects host client relabeled as sandboxed
+  ---
+  duration_ms: 3.0524
+  ...
+# Subtest: rejects full review inferred from config bundle
+ok 54 - rejects full review inferred from config bundle
+  ---
+  duration_ms: 2.6404
+  ...
+# Subtest: rejects formal sample inferred
+ok 55 - rejects formal sample inferred
+  ---
+  duration_ms: 2.284
+  ...
+# Subtest: rejects admitted status
+ok 56 - rejects admitted status
+  ---
+  duration_ms: 2.9744
+  ...
+# Subtest: rejects source driver omitted
+ok 57 - rejects source driver omitted
+  ---
+  duration_ms: 3.5863
+  ...
+# Subtest: rejects native source omitted
+ok 58 - rejects native source omitted
+  ---
+  duration_ms: 2.9664
+  ...
+# Subtest: rejects native source resealed
+ok 59 - rejects native source resealed
+  ---
+  duration_ms: 3.2955
+  ...
+# Subtest: rejects runtime bytes changed
+ok 60 - rejects runtime bytes changed
+  ---
+  duration_ms: 3.3877
+  ...
+# Subtest: rejects esbuild bytes changed
+ok 61 - rejects esbuild bytes changed
+  ---
+  duration_ms: 2.5547
+  ...
+# Subtest: rejects client bytes changed
+ok 62 - rejects client bytes changed
+  ---
+  duration_ms: 1.4568
+  ...
+# Subtest: rejects client changed after run
+ok 63 - rejects client changed after run
+  ---
+  duration_ms: 1.9374
+  ...
+# Subtest: rejects staged shim changed
+ok 64 - rejects staged shim changed
+  ---
+  duration_ms: 3.4012
+  ...
+# Subtest: rejects staged config duplicate
+ok 65 - rejects staged config duplicate
+  ---
+  duration_ms: 2.3458
+  ...
+# Subtest: rejects staged config path changed
+ok 66 - rejects staged config path changed
+  ---
+  duration_ms: 3.6063
+  ...
+# Subtest: rejects child PID reused as parent
+ok 67 - rejects child PID reused as parent
+  ---
+  duration_ms: 3.397
+  ...
+# Subtest: rejects child exit unobserved
+ok 68 - rejects child exit unobserved
+  ---
+  duration_ms: 3.6175
+  ...
+# Subtest: rejects token proof absent
+ok 69 - rejects token proof absent
+  ---
+  duration_ms: 3.7464
+  ...
+# Subtest: rejects SID malformed
+ok 70 - rejects SID malformed
+  ---
+  duration_ms: 4.0148
+  ...
+# Subtest: rejects canonical root differs
+ok 71 - rejects canonical root differs
+  ---
+  duration_ms: 3.9097
+  ...
+# Subtest: rejects cleanup inferred from process exit
+ok 72 - rejects cleanup inferred from process exit
+  ---
+  duration_ms: 3.8097
+  ...
+# Subtest: rejects Job still populated
+ok 73 - rejects Job still populated
+  ---
+  duration_ms: 3.7325
+  ...
+# Subtest: rejects capability added
+ok 74 - rejects capability added
+  ---
+  duration_ms: 3.881
+  ...
+# Subtest: rejects mapping observation unknown
+ok 75 - rejects mapping observation unknown
+  ---
+  duration_ms: 3.8323
+  ...
+# Subtest: rejects protocol never written
+ok 76 - rejects protocol never written
+  ---
+  duration_ms: 5.5802
+  ...
+# Subtest: rejects protocol never received
+ok 77 - rejects protocol never received
+  ---
+  duration_ms: 4.0496
+  ...
+# Subtest: rejects two service processes
+ok 78 - rejects two service processes
+  ---
+  duration_ms: 3.7251
+  ...
+# Subtest: rejects negative request not rejected
+ok 79 - rejects negative request not rejected
+  ---
+  duration_ms: 5.0666
+  ...
+# Subtest: rejects negative request unrelated failure
+ok 80 - rejects negative request unrelated failure
+  ---
+  duration_ms: 3.9666
+  ...
+# Subtest: rejects service stderr
+ok 81 - rejects service stderr
+  ---
+  duration_ms: 4.069
+  ...
+# Subtest: rejects native stderr
+ok 82 - rejects native stderr
+  ---
+  duration_ms: 3.0241
+  ...
+# Subtest: rejects config digest changed
+ok 83 - rejects config digest changed
+  ---
+  duration_ms: 4.164
+  ...
+# Subtest: rejects config output changed without digest
+ok 84 - rejects config output changed without digest
+  ---
+  duration_ms: 3.9854
+  ...
+# Subtest: rejects config threads substitution resealed
+ok 85 - rejects config threads substitution resealed
+  ---
+  duration_ms: 4.1549
+  ...
+# Subtest: rejects config maxWorkers changed resealed
+ok 86 - rejects config maxWorkers changed resealed
+  ---
+  duration_ms: 3.8408
+  ...
+# Subtest: rejects trace PID substituted resealed
+ok 87 - rejects trace PID substituted resealed
+  ---
+  duration_ms: 6.8807
+  ...
+# Subtest: rejects trace gap resealed
+ok 88 - rejects trace gap resealed
+  ---
+  duration_ms: 4.2892
+  ...
+# Subtest: rejects trace overflow resealed
+ok 89 - rejects trace overflow resealed
+  ---
+  duration_ms: 4.8608
+  ...
+# Subtest: rejects config filesystem read omitted resealed
+ok 90 - rejects config filesystem read omitted resealed
+  ---
+  duration_ms: 5.5309
+  ...
+# Subtest: rejects parent map negative control changed resealed
+ok 91 - rejects parent map negative control changed resealed
+  ---
+  duration_ms: 3.5935
+  ...
+# Subtest: independent entry proof binds real private-root enumeration and exact bundle bytes
+ok 92 - independent entry proof binds real private-root enumeration and exact bundle bytes
+  ---
+  duration_ms: 13.6999
+  ...
+# Subtest: rejects formal promotion
+ok 93 - rejects formal promotion
+  ---
+  duration_ms: 3.0666
+  ...
+# Subtest: rejects admission promotion
+ok 94 - rejects admission promotion
+  ---
+  duration_ms: 2.2879
+  ...
+# Subtest: rejects result translation
+ok 95 - rejects result translation
+  ---
+  duration_ms: 2.5184
+  ...
+# Subtest: rejects source replacement
+ok 96 - rejects source replacement
+  ---
+  duration_ms: 3.2901
+  ...
+# Subtest: rejects frozen binary replacement
+ok 97 - rejects frozen binary replacement
+  ---
+  duration_ms: 2.1011
+  ...
+# Subtest: rejects staged shim replacement
+ok 98 - rejects staged shim replacement
+  ---
+  duration_ms: 4.5062
+  ...
+# Subtest: rejects staged entry replacement
+ok 99 - rejects staged entry replacement
+  ---
+  duration_ms: 3.5434
+  ...
+# Subtest: rejects unlisted staged file
+ok 100 - rejects unlisted staged file
+  ---
+  duration_ms: 4.4476
+  ...
+# Subtest: rejects supervisor failure
+ok 101 - rejects supervisor failure
+  ---
+  duration_ms: 5.5022
+  ...
+# Subtest: rejects extra supervisor frame
+ok 102 - rejects extra supervisor frame
+  ---
+  duration_ms: 3.7268
+  ...
+# Subtest: rejects trace byte tamper
+ok 103 - rejects trace byte tamper
+  ---
+  duration_ms: 3.6886
+  ...
+# Subtest: rejects forged resealed bundle
+ok 104 - rejects forged resealed bundle
+  ---
+  duration_ms: 4.4164
+  ...
+# Subtest: rejects child error
+ok 105 - rejects child error
+  ---
+  duration_ms: 5.5991
+  ...
+# Subtest: rejects native denied setter
+ok 106 - rejects native denied setter
+  ---
+  duration_ms: 4.7075
+  ...
+# Subtest: rejects native privileged or unproven host
+ok 107 - rejects native privileged or unproven host
+  ---
+  duration_ms: 3.8953
+  ...
+# Subtest: rejects native missing child token proof
+ok 108 - rejects native missing child token proof
+  ---
+  duration_ms: 3.5882
+  ...
+# Subtest: rejects native extra capability
+ok 109 - rejects native extra capability
+  ---
+  duration_ms: 2.9456
+  ...
+# Subtest: rejects native non-leaf child
+ok 110 - rejects native non-leaf child
+  ---
+  duration_ms: 2.549
+  ...
+# Subtest: rejects native wrong handle count
+ok 111 - rejects native wrong handle count
+  ---
+  duration_ms: 2.9803
+  ...
+# Subtest: rejects native missing image pin
+ok 112 - rejects native missing image pin
+  ---
+  duration_ms: 2.9082
+  ...
+# Subtest: rejects native map not installed
+ok 113 - rejects native map not installed
+  ---
+  duration_ms: 3.6548
+  ...
+# Subtest: rejects native parent map changed
+ok 114 - rejects native parent map changed
+  ---
+  duration_ms: 3.3768
+  ...
+# Subtest: rejects native live job
+ok 115 - rejects native live job
+  ---
+  duration_ms: 3.0262
+  ...
+# Subtest: rejects native child was never created
+ok 116 - rejects native child was never created
+  ---
+  duration_ms: 3.2718
+  ...
+# Subtest: rejects native unassigned child
+ok 117 - rejects native unassigned child
+  ---
+  duration_ms: 2.5882
+  ...
+# Subtest: rejects native child wait timed out
+ok 118 - rejects native child wait timed out
+  ---
+  duration_ms: 2.324
+  ...
+# Subtest: rejects native child wait failed
+ok 119 - rejects native child wait failed
+  ---
+  duration_ms: 3.2292
+  ...
+# Subtest: rejects native unknown child exit
+ok 120 - rejects native unknown child exit
+  ---
+  duration_ms: 5.0421
+  ...
+# Subtest: rejects native child remains live
+ok 121 - rejects native child remains live
+  ---
+  duration_ms: 3.0446
+  ...
+# Subtest: rejects native unqueried job
+ok 122 - rejects native unqueried job
+  ---
+  duration_ms: 3.3084
+  ...
+# Subtest: rejects native nonempty job
+ok 123 - rejects native nonempty job
+  ---
+  duration_ms: 2.7087
+  ...
+# Subtest: rejects native contradictory termination
+ok 124 - rejects native contradictory termination
+  ---
+  duration_ms: 2.556
+  ...
+# Subtest: rejects native unknown but equal parent map
+ok 125 - rejects native unknown but equal parent map
+  ---
+  duration_ms: 3.7028
+  ...
+# Subtest: rejects native wrong absent error
+ok 126 - rejects native wrong absent error
+  ---
+  duration_ms: 3.4719
+  ...
+# Subtest: rejects native missing final map observation
+ok 127 - rejects native missing final map observation
+  ---
+  duration_ms: 3.5504
+  ...
+# Subtest: rejects native different map after setter
+ok 128 - rejects native different map after setter
+  ---
+  duration_ms: 3.5238
+  ...
+# Subtest: rejects native different final map
+ok 129 - rejects native different final map
+  ---
+  duration_ms: 3.8812
+  ...
+# Subtest: rejects native profile retained
+ok 130 - rejects native profile retained
+  ---
+  duration_ms: 3.7538
+  ...
+# Subtest: rejects native loopback exempted
+ok 131 - rejects native loopback exempted
+  ---
+  duration_ms: 3.5667
+  ...
+# Subtest: rejects native same PID
+ok 132 - rejects native same PID
+  ---
+  duration_ms: 3.0737
+  ...
+# Subtest: rejects native child failed
+ok 133 - rejects native child failed
+  ---
+  duration_ms: 3.7894
+  ...
+# Subtest: rejects native different guarded root
+ok 134 - rejects native different guarded root
+  ---
+  duration_ms: 3.8603
+  ...
+# Subtest: rejects resealed writable map
+ok 135 - rejects resealed writable map
+  ---
+  duration_ms: 5.0033
+  ...
+# Subtest: rejects resealed wrong mapped root
+ok 136 - rejects resealed wrong mapped root
+  ---
+  duration_ms: 4.3748
+  ...
+# Subtest: rejects resealed wrong FileId
+ok 137 - rejects resealed wrong FileId
+  ---
+  duration_ms: 4.4199
+  ...
+# Subtest: rejects resealed host read allowed
+ok 138 - rejects resealed host read allowed
+  ---
+  duration_ms: 4.0111
+  ...
+# Subtest: rejects resealed wrong host denial
+ok 139 - rejects resealed wrong host denial
+  ---
+  duration_ms: 3.7479
+  ...
+# Subtest: rejects resealed workspace write allowed
+ok 140 - rejects resealed workspace write allowed
+  ---
+  duration_ms: 5.8364
+  ...
+# Subtest: rejects resealed traversal escaped
+ok 141 - rejects resealed traversal escaped
+  ---
+  duration_ms: 3.751
+  ...
+# Subtest: rejects resealed uninstalled shim
+ok 142 - rejects resealed uninstalled shim
+  ---
+  duration_ms: 3.8293
+  ...
+# Subtest: rejects resealed root directory unreadable
+ok 143 - rejects resealed root directory unreadable
+  ---
+  duration_ms: 3.7704
+  ...
+# Subtest: rejects resealed root enumeration missing
+ok 144 - rejects resealed root enumeration missing
+  ---
+  duration_ms: 3.2893
+  ...
+# Subtest: rejects resealed entry unreadable
+ok 145 - rejects resealed entry unreadable
+  ---
+  duration_ms: 3.5206
+  ...
+# Subtest: rejects resealed bundle write missing
+ok 146 - rejects resealed bundle write missing
+  ---
+  duration_ms: 3.523
+  ...
+# Subtest: rejects resealed wrong child PID
+ok 147 - rejects resealed wrong child PID
+  ---
+  duration_ms: 2.9593
+  ...
+# Subtest: rejects resealed sequence gap
+ok 148 - rejects resealed sequence gap
+  ---
+  duration_ms: 2.4311
+  ...
+# Subtest: rejects resealed overflow
+ok 149 - rejects resealed overflow
+  ---
+  duration_ms: 3.2238
+  ...
+# Subtest: rejects resealed incomplete patches
+ok 150 - rejects resealed incomplete patches
+  ---
+  duration_ms: 2.6605
+  ...
+# Subtest: rejects resealed exit missing
+ok 151 - rejects resealed exit missing
+  ---
+  duration_ms: 3.0551
+  ...
+# Subtest: an existing parent mapping requires equal successful raw observations
+ok 152 - an existing parent mapping requires equal successful raw observations
+  ---
+  duration_ms: 5.1248
+  ...
+# Subtest: a complete diagnostic stays untrusted and cannot admit a durable backend
+ok 153 - a complete diagnostic stays untrusted and cannot admit a durable backend
+  ---
+  duration_ms: 4.0354
+  ...
+# Subtest: a previous execution cannot supply a current receipt
+ok 154 - a previous execution cannot supply a current receipt
+  ---
+  duration_ms: 0.4981
+  ...
+# Subtest: owner exit is not cleanup
+ok 155 - owner exit is not cleanup
+  ---
+  duration_ms: 0.3995
+  ...
+# Subtest: PID absence cannot replace a retained handle
+ok 156 - PID absence cannot replace a retained handle
+  ---
+  duration_ms: 0.3333
+  ...
+# Subtest: a timeout cannot replace an empty Job
+ok 157 - a timeout cannot replace an empty Job
+  ---
+  duration_ms: 0.6266
+  ...
+# Subtest: deleting a journal cannot confirm cleanup
+ok 158 - deleting a journal cannot confirm cleanup
+  ---
+  duration_ms: 0.357
+  ...
+# Subtest: a nonempty Job remains unconfirmed
+ok 159 - a nonempty Job remains unconfirmed
+  ---
+  duration_ms: 0.571
+  ...
+# Subtest: closed sockets alone cannot replace process handles
+ok 160 - closed sockets alone cannot replace process handles
+  ---
+  duration_ms: 0.8206
+  ...
+# Subtest: process termination alone cannot prove socket observation
+ok 161 - process termination alone cannot prove socket observation
+  ---
+  duration_ms: 1.5064
+  ...
+# Subtest: socket timeouts are not terminal connection evidence
+ok 162 - socket timeouts are not terminal connection evidence
+  ---
+  duration_ms: 1.1688
+  ...
+# Subtest: a wrong Job must be a real nonmember
+ok 163 - a wrong Job must be a real nonmember
+  ---
+  duration_ms: 0.4208
+  ...
+# Subtest: stale identity must leave all fixture sockets alive
+ok 164 - stale identity must leave all fixture sockets alive
+  ---
+  duration_ms: 0.247
+  ...
+# Subtest: custodian restart claims are rejected
+ok 165 - custodian restart claims are rejected
+  ---
+  duration_ms: 0.2085
+  ...
+# Subtest: WFP claims are rejected
+ok 166 - WFP claims are rejected
+  ---
+  duration_ms: 0.1989
+  ...
+# Subtest: failed native cleanup cannot be hidden by complete events
+ok 167 - failed native cleanup cannot be hidden by complete events
+  ---
+  duration_ms: 0.2343
+  ...
+# Subtest: owner cleanup failure cannot be hidden by an empty Job
+ok 168 - owner cleanup failure cannot be hidden by an empty Job
+  ---
+  duration_ms: 0.2373
+  ...
+# Subtest: event reordering is rejected
+ok 169 - event reordering is rejected
+  ---
+  duration_ms: 0.2465
+  ...
+# Subtest: duplicate events are rejected
+ok 170 - duplicate events are rejected
+  ---
+  duration_ms: 0.2003
+  ...
+# Subtest: malformed evidence remains unconfirmed
+ok 171 - malformed evidence remains unconfirmed
+  ---
+  duration_ms: 2.0962
+  ...
+# Subtest: an unassigned suspended owner requires independent original HANDLE cleanup
+ok 172 - an unassigned suspended owner requires independent original HANDLE cleanup
+  ---
+  duration_ms: 0.5004
+  ...
+# Subtest: closure requires the 41 N-API addresses to forward to the fixed Node module
+ok 173 - closure requires the 41 N-API addresses to forward to the fixed Node module
+  ---
+  duration_ms: 4.4618
+  ...
+# Subtest: closure rejects missing import
+ok 174 - closure rejects missing import
+  ---
+  duration_ms: 0.6867
+  ...
+# Subtest: closure rejects duplicate import
+ok 175 - closure rejects duplicate import
+  ---
+  duration_ms: 0.355
+  ...
+# Subtest: closure rejects ordinal in N-API population
+ok 176 - closure rejects ordinal in N-API population
+  ---
+  duration_ms: 0.4201
+  ...
+# Subtest: closure rejects second libnode import
+ok 177 - closure rejects second libnode import
+  ---
+  duration_ms: 0.5199
+  ...
+# Subtest: closure rejects missing runtime export
+ok 178 - closure rejects missing runtime export
+  ---
+  duration_ms: 0.3944
+  ...
+# Subtest: closure rejects different forwarded module
+ok 179 - closure rejects different forwarded module
+  ---
+  duration_ms: 0.6943
+  ...
+# Subtest: closure rejects extra forwarder export
+ok 180 - closure rejects extra forwarder export
+  ---
+  duration_ms: 0.5262
+  ...
+# Subtest: closure rejects missing bootstrap
+ok 181 - closure rejects missing bootstrap
+  ---
+  duration_ms: 1.0339
+  ...
+# Subtest: PE reader rejects truncated and non-x64 inputs before traversing tables
+ok 182 - PE reader rejects truncated and non-x64 inputs before traversing tables
+  ---
+  duration_ms: 4.4023
+  ...
+# Subtest: result validator accepts a complete locally bound diagnostic without granting admission
+ok 183 - result validator accepts a complete locally bound diagnostic without granting admission
+  ---
+  duration_ms: 11.3292
+  ...
+# Subtest: result rejects formal sample promotion
+ok 184 - result rejects formal sample promotion
+  ---
+  duration_ms: 6.7042
+  ...
+# Subtest: result rejects admission promotion
+ok 185 - result rejects admission promotion
+  ---
+  duration_ms: 5.1146
+  ...
+# Subtest: result rejects provider assessment
+ok 186 - result rejects provider assessment
+  ---
+  duration_ms: 3.6532
+  ...
+# Subtest: result rejects runtime substitution
+ok 187 - result rejects runtime substitution
+  ---
+  duration_ms: 3.5292
+  ...
+# Subtest: result rejects source substitution
+ok 188 - result rejects source substitution
+  ---
+  duration_ms: 2.6046
+  ...
+# Subtest: result rejects missing source
+ok 189 - result rejects missing source
+  ---
+  duration_ms: 3.2533
+  ...
+# Subtest: result rejects build bytes changed
+ok 190 - result rejects build bytes changed
+  ---
+  duration_ms: 1.8813
+  ...
+# Subtest: result rejects manifest changed
+ok 191 - result rejects manifest changed
+  ---
+  duration_ms: 3.2466
+  ...
+# Subtest: result rejects cleanup missing
+ok 192 - result rejects cleanup missing
+  ---
+  duration_ms: 2.2055
+  ...
+# Subtest: result rejects capability added
+ok 193 - result rejects capability added
+  ---
+  duration_ms: 2.1247
+  ...
+# Subtest: result rejects loopback exemption
+ok 194 - result rejects loopback exemption
+  ---
+  duration_ms: 2.1008
+  ...
+# Subtest: result rejects nonzero target exit
+ok 195 - result rejects nonzero target exit
+  ---
+  duration_ms: 2.5144
+  ...
+# Subtest: result rejects stderr failure
+ok 196 - result rejects stderr failure
+  ---
+  duration_ms: 2.6057
+  ...
+# Subtest: result rejects extra stdout frame
+ok 197 - result rejects extra stdout frame
+  ---
+  duration_ms: 3.6493
+  ...
+# Subtest: result rejects journal changed
+ok 198 - result rejects journal changed
+  ---
+  duration_ms: 2.5317
+  ...
+# Subtest: result rejects resealed wrong SID
+ok 199 - result rejects resealed wrong SID
+  ---
+  duration_ms: 2.3924
+  ...
+# Subtest: result rejects resealed wrong PID
+ok 200 - result rejects resealed wrong PID
+  ---
+  duration_ms: 2.661
+  ...
+# Subtest: result rejects resealed different forwarding address
+ok 201 - result rejects resealed different forwarding address
+  ---
+  duration_ms: 3.8369
+  ...
+# Subtest: result rejects resealed missing forwarder negative
+ok 202 - result rejects resealed missing forwarder negative
+  ---
+  duration_ms: 3.0873
+  ...
+# Subtest: result rejects resealed async parse mismatch
+ok 203 - result rejects resealed async parse mismatch
+  ---
+  duration_ms: 2.7531
+  ...
+# Subtest: result rejects resealed hash output mismatch
+ok 204 - result rejects resealed hash output mismatch
+  ---
+  duration_ms: 4.3113
+  ...
+# Subtest: result rejects resealed invalid input accepted
+ok 205 - result rejects resealed invalid input accepted
+  ---
+  duration_ms: 3.4198
+  ...
+# Subtest: result rejects resealed constant parser output
+ok 206 - result rejects resealed constant parser output
+  ---
+  duration_ms: 6.8123
+  ...
+# Subtest: result rejects resealed missing stage
+ok 207 - result rejects resealed missing stage
+  ---
+  duration_ms: 3.6047
+  ...
+# Subtest: result rejects resealed extra process row
+ok 208 - result rejects resealed extra process row
+  ---
+  duration_ms: 3.6313
+  ...
+1..208
+# tests 208
+# suites 0
+# pass 208
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2941.4683

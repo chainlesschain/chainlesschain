@@ -1,0 +1,1138 @@
+{
+  "schema": "chainlesschain.validated-source-release-blocked/v1",
+  "archivedAt": "2026-10-09T20:27:57.886Z",
+  "status": "TESTED_SOURCE_RELEASE_BLOCKED",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "historicalCliVersion": "0.166.95",
+  "historicalIdeVersions": {
+    "vscode": "0.37.140",
+    "jetbrains": "0.4.158"
+  },
+  "publicationClaim": false,
+  "scope": "Historical source validation only. This archive makes no public CLI or IDE release claim for 0.166.95 and does not establish publication readiness for a new source commit.",
+  "nextCandidate": {
+    "cliVersion": "0.166.96",
+    "requiresFreshExactHeadWorkflowMatrices": true,
+    "oldGateTransferAllowed": false
+  },
+  "workflows": [
+    {
+      "name": "CLI CI",
+      "directory": "gates/cli-ci",
+      "runId": 37972023664,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 71
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023664"
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "directory": "gates/strict",
+      "runId": 37972023598,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 5
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023598"
+    },
+    {
+      "name": "IDE Extensions",
+      "directory": "gates/ide",
+      "runId": 37972023167,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 18,
+        "skipped": 1
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023167"
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "directory": "gates/ide-arm64",
+      "runId": 37972023509,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 10
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023509"
+    },
+    {
+      "name": "Code Quality & Security",
+      "directory": "gates/quality",
+      "runId": 37972023233,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 7,
+        "skipped": 2
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023233"
+    },
+    {
+      "name": "Model Catalog Review",
+      "directory": "gates/model-catalog",
+      "runId": 37972023449,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 1
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023449"
+    },
+    {
+      "name": "PR Tests",
+      "directory": "gates/pr-tests",
+      "runId": 37972023692,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 2
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023692"
+    },
+    {
+      "name": "CI Tests",
+      "directory": "gates/ci-tests",
+      "runId": 37972023443,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 13,
+        "skipped": 1
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023443"
+    },
+    {
+      "name": "Full Test Automation with Diagnostics",
+      "directory": "gates/full-tests",
+      "runId": 37972023399,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 3,
+        "skipped": 1
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023399"
+    },
+    {
+      "name": "IDE Roadmap Safety Matrix",
+      "directory": "gates/safety",
+      "runId": 37972023304,
+      "runAttempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "event": "pull_request",
+      "counts": {
+        "success": 4
+      },
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023304"
+    }
+  ],
+  "additionalGates": [
+    {
+      "name": "Workspace Publish Staleness Check (PR mandatory)",
+      "runId": 37972023465,
+      "attempt": 2,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "conclusion": "success",
+      "counts": {
+        "success": 1
+      },
+      "directory": "gates/workspace",
+      "history": "Attempt 1 exceeded its time limit after slow checkout; the zero-violation lint substep did not make that run successful. Both attempts are preserved."
+    }
+  ],
+  "advisorySnapshots": [
+    {
+      "name": "Secret Scan Audit (PR advisory)",
+      "runId": 37972023404,
+      "attempt": 1,
+      "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+      "conclusion": "cancelled",
+      "cleanClaim": false,
+      "scope": "Secret audit exceeded the five-minute job limit during scanning; incomplete audit, no clean claim.",
+      "evidence": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-run.json"
+    }
+  ],
+  "formalAcceptance": "NOT_RUN",
+  "nativeFullReview": "NOT_ADMITTED",
+  "diagnosticBoundaries": {
+    "olderFailureCommit": "8e538362109dbe0bf455d4f72dcab865962e668c",
+    "olderWindows2025FailureRootCause": "unknown",
+    "canonicalWindows2025RestartCaptureComplete": false,
+    "canonicalWindows2025RestartTrace": "unavailable; original capture status preserved unchanged",
+    "canonicalWindows2025RestartCapturePath": "host-artifacts/win2025/canonical/restart-capture.json",
+    "hostArtifactSelections": "Original selected bytes and original unmodified manifests; not complete original artifact extraction trees. ZIP payload digests and full-entry verification receipts retained in nested selection manifests."
+  },
+  "notes": [
+    "CLI CI 71, CLI Strict Sandbox 5, IDE Extensions 18 success plus one conditional Marketplace skip, and ARM64 10 are actual historical gates for 3caf only.",
+    "CLI CI, CLI Strict Sandbox, IDE Extensions and ARM64 host workflows explicitly checkout the release head. Other PR workflow API head_sha fields identify the candidate; default checkout may use a synthetic merge ref and API identity alone does not prove checkout source.",
+    "SDK three-platform records prove source payload test steps for 3caf; they do not override the later failed npm whole-tree reuse gate. See sibling npm-publish-failure archive.",
+    "All source bytes are unmodified. No provider call, workflow rerun, publication, tag movement, source/version/lock edit, or Git mutation was performed by this archive task."
+  ],
+  "copyPlanChecks": {
+    "checkedBeforeWrites": true,
+    "noDuplicatePaths": true,
+    "caseInsensitiveDuplicateCheck": true,
+    "maxRepositoryRelativePathLength": 168,
+    "repositoryRelativePathLimit": 202
+  },
+  "verifiedInputReceipts": [
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/cli-ci-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/strict-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/ide-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/ide-arm64-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/quality-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/model-catalog-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/pr-tests-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/ci-tests-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/full-tests-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/safety-c3caf14f-final",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/release-preflight-0.166.95/workspace-c3caf14f-final",
+      "entries": 4
+    },
+    {
+      "sourceDirectory": ".work/astra-arm64-3caf14f-success/selected",
+      "entries": 18
+    },
+    {
+      "sourceDirectory": ".work/astra-win2025-3caf14f-success/selected",
+      "entries": 41
+    },
+    {
+      "sourceDirectory": ".work/cli-sdk-3caf14f2-20261010",
+      "entries": 1
+    },
+    {
+      "sourceDirectory": ".work/cli-sdk-3caf14f2-20261010/sdk-three-platform-success",
+      "entries": 3
+    },
+    {
+      "sourceDirectory": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z",
+      "entries": 17
+    },
+    {
+      "sourceDirectory": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z",
+      "entries": 5
+    }
+  ],
+  "rawBytesPreserved": true,
+  "originalFileCount": 145,
+  "totalOriginalBytes": 5781176,
+  "files": [
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/cli-ci-c3caf14f-final/artifacts-1.json",
+      "path": "gates/cli-ci/artifacts-1.json",
+      "bytes": 18347,
+      "sha256": "11b6d31e010c54744a8c8834e4041db6848d7497e0ca0299d4e60d6729be8578"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/cli-ci-c3caf14f-final/jobs-1.json",
+      "path": "gates/cli-ci/jobs-1.json",
+      "bytes": 204758,
+      "sha256": "c7ba218ca4075be425e1bfe8efaf9322993b4134cbcdce0fd96b64ef8952cbb7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/cli-ci-c3caf14f-final/readback.json",
+      "path": "gates/cli-ci/readback.json",
+      "bytes": 330861,
+      "sha256": "5848c243f6cac1ed6e86fe4937a98776790ac48209d605c3f2b00e738c84e1fb"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/cli-ci-c3caf14f-final/run.json",
+      "path": "gates/cli-ci/run.json",
+      "bytes": 14127,
+      "sha256": "8e2fd43da4f1ca54bf274779892254760dde9893258d7b3f3d78d328d0f0f7a5"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/strict-c3caf14f-final/artifacts-1.json",
+      "path": "gates/strict/artifacts-1.json",
+      "bytes": 4557,
+      "sha256": "14b28d5474301683d5f3f3cf88ed2149d494b624d6aca9778637c15978b2541d"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/strict-c3caf14f-final/jobs-1.json",
+      "path": "gates/strict/jobs-1.json",
+      "bytes": 21590,
+      "sha256": "0fface3d642ef8afb6c251c8bc263945a14bd0029313c928036de0d319c54ed7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/strict-c3caf14f-final/readback.json",
+      "path": "gates/strict/readback.json",
+      "bytes": 53079,
+      "sha256": "5cedb78a604cad7b530df948cfe5d948d883aa3d8afc3801a0bc1691e8278635"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/strict-c3caf14f-final/run.json",
+      "path": "gates/strict/run.json",
+      "bytes": 13759,
+      "sha256": "e75dcf8b362c899156e4afa762cc6b5c29259e8109736a2902294e9b5a832d56"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-c3caf14f-final/artifacts-1.json",
+      "path": "gates/ide/artifacts-1.json",
+      "bytes": 17769,
+      "sha256": "7c9a2a20c4217cffcad2863d5b7ce6e9d449d70a923f008a7132eb124601c9a7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-c3caf14f-final/jobs-1.json",
+      "path": "gates/ide/jobs-1.json",
+      "bytes": 67882,
+      "sha256": "3b8b3c646bff41466a1be06a8611f254f82021b98cdd457eef6cc2d701aefa7e"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-c3caf14f-final/readback.json",
+      "path": "gates/ide/readback.json",
+      "bytes": 134936,
+      "sha256": "4500cc6dffde430ea51f64a23c06cfbddde3946a6beb1b137a403c31616a7349"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-c3caf14f-final/run.json",
+      "path": "gates/ide/run.json",
+      "bytes": 13751,
+      "sha256": "0fe468459b72461860f4ba90ae506818ab2cb0e5642aa1eedb746211c36490b7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-arm64-c3caf14f-final/artifacts-1.json",
+      "path": "gates/ide-arm64/artifacts-1.json",
+      "bytes": 8050,
+      "sha256": "dc9a8e21c6ae6f38386ab00b9ffd4485c6edd88805101493c8876a5e54579320"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-arm64-c3caf14f-final/jobs-1.json",
+      "path": "gates/ide-arm64/jobs-1.json",
+      "bytes": 38520,
+      "sha256": "0641338bbca3ea4856fdb4063259b76658e54cf4ac60ba14de6486709c0ac1e7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-arm64-c3caf14f-final/readback.json",
+      "path": "gates/ide-arm64/readback.json",
+      "bytes": 81545,
+      "sha256": "8216d957d3736f82449637f201f94f8c4c550519cdc3e2aa94daba4c8d10df91"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-arm64-c3caf14f-final/run.json",
+      "path": "gates/ide-arm64/run.json",
+      "bytes": 13767,
+      "sha256": "f899985416aceb369f23e7da43b03f2d6b5a8b60c67af17ce7962c65c01312e8"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/quality-c3caf14f-final/artifacts-1.json",
+      "path": "gates/quality/artifacts-1.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/quality-c3caf14f-final/jobs-1.json",
+      "path": "gates/quality/jobs-1.json",
+      "bytes": 17577,
+      "sha256": "0ab3935ad605bcceb9445d810ba14692cc2fd0793c9c0a19a76f91276031c2f2"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/quality-c3caf14f-final/readback.json",
+      "path": "gates/quality/readback.json",
+      "bytes": 40901,
+      "sha256": "9576ebe4342721d490cf760009514d8071906b1681689c1cfb39f471bcb9ea10"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/quality-c3caf14f-final/run.json",
+      "path": "gates/quality/run.json",
+      "bytes": 13758,
+      "sha256": "36fa804e36a5401bfc1a756a5b41a93bc7f2dda49088b109bdb1064cb3dd6c46"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/model-catalog-c3caf14f-final/artifacts-1.json",
+      "path": "gates/model-catalog/artifacts-1.json",
+      "bytes": 813,
+      "sha256": "25c1b9030643eaefb35cb7bfe04e2fac3c6dfbc15b250382f9ab2ca7343d4b8a"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/model-catalog-c3caf14f-final/jobs-1.json",
+      "path": "gates/model-catalog/jobs-1.json",
+      "bytes": 3377,
+      "sha256": "5c0df953844c654e6e9db0d8d3ddf60ebd042ccfad981c552db3ffc01afa6885"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/model-catalog-c3caf14f-final/readback.json",
+      "path": "gates/model-catalog/readback.json",
+      "bytes": 22149,
+      "sha256": "0a830ae56e36318a333db20e823bdc959c1124f67807a7f9a84e388cf0e1ecca"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/model-catalog-c3caf14f-final/run.json",
+      "path": "gates/model-catalog/run.json",
+      "bytes": 13761,
+      "sha256": "4001337a102976298a44b19b624da8d3a28932973fcfa8e1d9460f1335823d69"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/pr-tests-c3caf14f-final/artifacts-1.json",
+      "path": "gates/pr-tests/artifacts-1.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/pr-tests-c3caf14f-final/jobs-1.json",
+      "path": "gates/pr-tests/jobs-1.json",
+      "bytes": 4923,
+      "sha256": "18e729634d5c2b5f3e3b82902abca3fa3d310bcce2e7fe7d11bcd3b7786172ed"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/pr-tests-c3caf14f-final/readback.json",
+      "path": "gates/pr-tests/readback.json",
+      "bytes": 23482,
+      "sha256": "33ffb9849d6dd184ba179a6c47de445a223af3105f7f7953394d98d980395ab7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/pr-tests-c3caf14f-final/run.json",
+      "path": "gates/pr-tests/run.json",
+      "bytes": 13739,
+      "sha256": "c53c20cef0acd1b58b01adbd03345b9fc54c386c7a9b75bfb7f4c0d3770a8bb4"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ci-tests-c3caf14f-final/artifacts-1.json",
+      "path": "gates/ci-tests/artifacts-1.json",
+      "bytes": 2299,
+      "sha256": "66557cb51ca3f6790d1d8441c9661cd9a4c21842a6fa42ff8b7d7bc4203b8eb3"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ci-tests-c3caf14f-final/jobs-1.json",
+      "path": "gates/ci-tests/jobs-1.json",
+      "bytes": 38636,
+      "sha256": "d7a5a8d95271a1a967cf94b5f427f245db89e9496273823e7ad267ddb8f6755a"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ci-tests-c3caf14f-final/readback.json",
+      "path": "gates/ci-tests/readback.json",
+      "bytes": 74429,
+      "sha256": "9dc04ba4417f59ba882ab892b9d0ada127c4cf6d64a2e2a7dd67fa0af47c2ec4"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ci-tests-c3caf14f-final/run.json",
+      "path": "gates/ci-tests/run.json",
+      "bytes": 13735,
+      "sha256": "52af338df3c73a957cad394ae7d30079146c153e4b0398312a51bc2ea52fb739"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/full-tests-c3caf14f-final/artifacts-1.json",
+      "path": "gates/full-tests/artifacts-1.json",
+      "bytes": 1524,
+      "sha256": "c8e405203abaf07bf10d9a8aa4c3caf7bc0ae123c82926936fa147ecfa824284"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/full-tests-c3caf14f-final/jobs-1.json",
+      "path": "gates/full-tests/jobs-1.json",
+      "bytes": 11175,
+      "sha256": "ff8e0fe1c09ce987c5a7487391919bc70447afcbb10f61242e2083dd4bf993cb"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/full-tests-c3caf14f-final/readback.json",
+      "path": "gates/full-tests/readback.json",
+      "bytes": 34186,
+      "sha256": "95f00e5a564140d849531a4f1e59bb6456fd8a39215ac2243b7a602aac234c2b"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/full-tests-c3caf14f-final/run.json",
+      "path": "gates/full-tests/run.json",
+      "bytes": 13780,
+      "sha256": "9f166e3c8662b857ba25cd2491972e122c981269315d33dbae305b4bf640ca07"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/safety-c3caf14f-final/artifacts-1.json",
+      "path": "gates/safety/artifacts-1.json",
+      "bytes": 3191,
+      "sha256": "7697a3858b22ee83766d682b8175f2207a1babcbdacf10e76716dbf9847efb33"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/safety-c3caf14f-final/jobs-1.json",
+      "path": "gates/safety/jobs-1.json",
+      "bytes": 13937,
+      "sha256": "168a486fc112e000284b50d5b8d3f00c8f358235ee6fcf85a14ccfb22776cd9e"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/safety-c3caf14f-final/readback.json",
+      "path": "gates/safety/readback.json",
+      "bytes": 40104,
+      "sha256": "cb972c5b35c8bc0e3f15906df7e1ba70482dd9d1337bcce31a9bfa85ca971745"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/safety-c3caf14f-final/run.json",
+      "path": "gates/safety/run.json",
+      "bytes": 13766,
+      "sha256": "532bb9c79bdf4cfc2b6d5099376a9f7f93c2898a29c65229f9c7039a43a78cc7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/workspace-c3caf14f-final/all-attempt-jobs-1.json",
+      "path": "gates/workspace/all-attempt-jobs-1.json",
+      "bytes": 5008,
+      "sha256": "bac4b8900f42d2909a52a19b4e4388d73135042aea178012585b876f13f9d83f"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/workspace-c3caf14f-final/artifacts-1.json",
+      "path": "gates/workspace/artifacts-1.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/workspace-c3caf14f-final/jobs-1.json",
+      "path": "gates/workspace/jobs-1.json",
+      "bytes": 2516,
+      "sha256": "74ef77d4fc91b85bbf806acd7ea950adf63708e6e7726e2eb94648e88e35e032"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/workspace-c3caf14f-final/readback.json",
+      "path": "gates/workspace/readback.json",
+      "bytes": 27300,
+      "sha256": "9ea96dbdb9d86f996a419d386562e810edd6d0fa48ded7c8085603bf747ffde8"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/workspace-c3caf14f-final/run.json",
+      "path": "gates/workspace/run.json",
+      "bytes": 13885,
+      "sha256": "0acb80d459ccde5c0e6d785f3cdd78b469581374ed413e9095be4d8c9311a21e"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/exact-sha-release-gates.json",
+      "path": "exact-sha-release-gates.json",
+      "bytes": 923,
+      "sha256": "08ad8b9267db0a7cd356b23b6c11093ec7885b6944dadc392a648afbe4aefcd2"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-c3caf14f-final/job.json",
+      "path": "host-logs/arm-windows/job.json",
+      "bytes": 5745,
+      "sha256": "80b3c265d67028767fd849e15d3065e8c6f8b55eb1172ad415e6b348579d3595"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-c3caf14f-final/job.log",
+      "path": "host-logs/arm-windows/job.log",
+      "bytes": 232018,
+      "sha256": "c3ad49a2a15d7f1832f2131f526b59539abdf45aca25430351c708441b610bc7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-c3caf14f-final/readback.json",
+      "path": "host-logs/arm-windows/readback.json",
+      "bytes": 338,
+      "sha256": "c3e9f32c1cad051a8b86265038277670b4502834f79e1d6693198e65d23c30b2"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-c3caf14f-final/run.json",
+      "path": "host-logs/arm-windows/run.json",
+      "bytes": 15305,
+      "sha256": "4bc1a727778660aa93e0aa1c8c602e4ac6d15d881ae29e9a52b595a19fbfda07"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-2025-c3caf14f-final/job.json",
+      "path": "host-logs/win2025/job.json",
+      "bytes": 5085,
+      "sha256": "142916a368d49606d8b6931fd45cf6026293dbad5fc47f559ca639034d695688"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-2025-c3caf14f-final/job.log",
+      "path": "host-logs/win2025/job.log",
+      "bytes": 191006,
+      "sha256": "71ff142a62f0758b278604ad61590b94ee3b3aed64d01f39125d62b07aefc9f4"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-2025-c3caf14f-final/readback.json",
+      "path": "host-logs/win2025/readback.json",
+      "bytes": 345,
+      "sha256": "c33f1f957a86b174143524ab028d59de229ce8b00716d76bdf4cf1f10b590375"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/ide-jb-windows-2025-c3caf14f-final/run.json",
+      "path": "host-logs/win2025/run.json",
+      "bytes": 15289,
+      "sha256": "4299dcbe6ae2affb42358c5eed022a4cde78561290720b7c31663e19df3f27a3"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/all-entries-verified.json",
+      "path": "host-artifacts/arm-windows/all-entries-verified.json",
+      "bytes": 18874,
+      "sha256": "116f08fcd3395bf3519b219e2db475f6c0c30f80985cbb6c785836820fbfa44d"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/download-receipt.json",
+      "path": "host-artifacts/arm-windows/download-receipt.json",
+      "bytes": 383,
+      "sha256": "0b13e51b11b777f0b823f122063cb22f59f4ae6bc83545b57588912a54e507e1"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/fixture-protocol.jsonl",
+      "path": "host-artifacts/arm-windows/fixture-protocol.jsonl",
+      "bytes": 355693,
+      "sha256": "11e5c0a7373df9c79aa5ff91d4808421b7e3ab73b1da76444800d46306710587"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/github-artifact.json",
+      "path": "host-artifacts/arm-windows/github-artifact.json",
+      "bytes": 812,
+      "sha256": "69b53faa96547099717156ac142fb75deca4d78417b2b6a358a5140730f6b880"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/host-phases.json",
+      "path": "host-artifacts/arm-windows/host-phases.json",
+      "bytes": 1883,
+      "sha256": "7bdb7e7888564ad3bdcd035a829305cb42a0a263fa35970ac1e70275f9e33938"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/initial-build-idea.bin",
+      "path": "host-artifacts/arm-windows/initial-build-idea.bin",
+      "bytes": 46171,
+      "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/initial-capture.json",
+      "path": "host-artifacts/arm-windows/initial-capture.json",
+      "bytes": 886,
+      "sha256": "959e5d042fe6f59d30eaec10d28bf1572be60f9daf7545cbae18fffbf0d4f00a"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/initial-events.bin",
+      "path": "host-artifacts/arm-windows/initial-events.bin",
+      "bytes": 25854,
+      "sha256": "0000755b82909cf2c37eee8f2b18b9e8d4b4782a51ff61425b15a5f1ad1cd322"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/initial-host-idea.bin",
+      "path": "host-artifacts/arm-windows/initial-host-idea.bin",
+      "bytes": 179910,
+      "sha256": "b152df1c8b6d2dcd514b5732de9b88ce376ff923cb0675973ac88d0a8be393e0"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/initial-ui-stdout.log",
+      "path": "host-artifacts/arm-windows/initial-ui-stdout.log",
+      "bytes": 13869,
+      "sha256": "24979aba78b2c49b87a93eef87565f02735300888ed79ef0fb30e983e886204d"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/journey-original.json",
+      "path": "host-artifacts/arm-windows/journey-original.json",
+      "bytes": 17337,
+      "sha256": "3cdcfc0c9a69998f68e9314b807bbbc4ce78fba528fa7ff5507c6470ef8f53c8"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/manifest.json",
+      "path": "host-artifacts/arm-windows/manifest.json",
+      "bytes": 8208,
+      "sha256": "65a3905c4be84bfb434985b223320e3fcc24ad0a03ccd9e51679be1997cf4e40"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/restart-build-idea.bin",
+      "path": "host-artifacts/arm-windows/restart-build-idea.bin",
+      "bytes": 46171,
+      "sha256": "7119f0b8893649ae0faf31b10a875189d0defbd36fbbc90ee48e98b3b8615bcb"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/restart-capture.json",
+      "path": "host-artifacts/arm-windows/restart-capture.json",
+      "bytes": 885,
+      "sha256": "002d6b2e8f543750f2cd2edc6e7ad9afbfed334a7ddf70142a8b079db1f4c776"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/restart-events.bin",
+      "path": "host-artifacts/arm-windows/restart-events.bin",
+      "bytes": 2347,
+      "sha256": "b3455cc5aa522d71c8ca58cf8c134f41fb19175941806b4b31d491bd8fc16902"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/restart-host-idea.bin",
+      "path": "host-artifacts/arm-windows/restart-host-idea.bin",
+      "bytes": 290147,
+      "sha256": "69171dae3f438f0d52ef210f40b7891a719a9c1b52bb67a14dada3d90cfc5456"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/restart-ui-stdout.log",
+      "path": "host-artifacts/arm-windows/restart-ui-stdout.log",
+      "bytes": 13868,
+      "sha256": "1a4c6ee197cf5e83393e6f860c7447de8dd0a22183fe18b41385d3742483ce88"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/ui-result.xml",
+      "path": "host-artifacts/arm-windows/ui-result.xml",
+      "bytes": 826,
+      "sha256": "b9f7b4bb70ae01c9be2fc3d915837cc6da39549c699a59fb1016094c13680806"
+    },
+    {
+      "sourcePath": ".work/astra-arm64-3caf14f-success/selected/workbench-metrics.jsonl",
+      "path": "host-artifacts/arm-windows/workbench-metrics.jsonl",
+      "bytes": 25941,
+      "sha256": "930c057a696d0a5238327ee7a3eee709d19df88ce36127980e8b6d9fa38fb29e"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/all-entries-verified.json",
+      "path": "host-artifacts/win2025/all-entries-verified.json",
+      "bytes": 34179,
+      "sha256": "928efe4cde815e1080a351c6b8b27ca7158e89b4b90d69d96e85eb2f4c23dfb3"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/environment.json",
+      "path": "host-artifacts/win2025/canonical/environment.json",
+      "bytes": 175,
+      "sha256": "1e481c19ad4b116be10e5ec6f57226c9295925f5d8a848aae8e0e337d3fe7a84"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/fixture-protocol.jsonl",
+      "path": "host-artifacts/win2025/canonical/fixture-protocol.jsonl",
+      "bytes": 31047,
+      "sha256": "a9ea52d4e56720dc670219f6d806b9519159295f856d700f8a546a62ab8bcd80"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/host-phases.json",
+      "path": "host-artifacts/win2025/canonical/host-phases.json",
+      "bytes": 3358,
+      "sha256": "a846a10aff78a062a711edf48925cd6fa6a5c7ce7e5aee0dd43813002542bc56"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-capture.json",
+      "path": "host-artifacts/win2025/canonical/initial-capture.json",
+      "bytes": 663,
+      "sha256": "b5835b176218129f2577e004800d90c644b22acb00802895cb71eafae70d9984"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-events.bin",
+      "path": "host-artifacts/win2025/canonical/initial-events.bin",
+      "bytes": 21087,
+      "sha256": "a610e80230f41fa0280b21356bbc71b3a06b0ed54aece8f9fcb66c37969e1933"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-host-stderr.log",
+      "path": "host-artifacts/win2025/canonical/initial-host-stderr.log",
+      "bytes": 2570,
+      "sha256": "22ff44d82e8fa773c1e192282ac4d94a6cde1bcd575a9385f70df34c5b3f143e"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-idea-001.log.bin",
+      "path": "host-artifacts/win2025/canonical/initial-idea-001.log.bin",
+      "bytes": 115628,
+      "sha256": "86670c28bd92bf541b5a0e41155f786ed96dbd08593ced25847290349644549c"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-recovery.json",
+      "path": "host-artifacts/win2025/canonical/initial-recovery.json",
+      "bytes": 37846,
+      "sha256": "fc18fe3d1c854602f78ce3d6a8914fc4bea5a2396bd6cdb82b52c222810d44fa"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/initial-ui-stdout.log",
+      "path": "host-artifacts/win2025/canonical/initial-ui-stdout.log",
+      "bytes": 13288,
+      "sha256": "209320cc1244863518b910c14a03f65253360e3ba39744c07a6e7f44c8f1a6e3"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/journey-original.json",
+      "path": "host-artifacts/win2025/canonical/journey-original.json",
+      "bytes": 14193,
+      "sha256": "f422b19cb347f5c9e7d1fc74eb4712f4103bd4ab304b777ef14f0b51a8865f23"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/native-metrics.json",
+      "path": "host-artifacts/win2025/canonical/native-metrics.json",
+      "bytes": 33003,
+      "sha256": "b54c2dffd8422e859b0868174dc6b33c78faaee89087b2ea744f114200a0e306"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/restart-capture.json",
+      "path": "host-artifacts/win2025/canonical/restart-capture.json",
+      "bytes": 490,
+      "sha256": "561666567b1bf425e7ab3e46b3ff23f193d0c32022f32dca8e0d3cefd3e952fd"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/restart-host-stderr.log",
+      "path": "host-artifacts/win2025/canonical/restart-host-stderr.log",
+      "bytes": 3630,
+      "sha256": "9f5f51eaeef5514afda1e614778e0a7e7ef6515de6c4a5e4b8ddf2abc17e93aa"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/restart-idea-001.log.bin",
+      "path": "host-artifacts/win2025/canonical/restart-idea-001.log.bin",
+      "bytes": 191901,
+      "sha256": "082ae76ebc81e33fa467abd9dc381d7f88a60ad6f6855eb5eae2a35d0b4c33b3"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/restart-recovery.json",
+      "path": "host-artifacts/win2025/canonical/restart-recovery.json",
+      "bytes": 8530,
+      "sha256": "b9ab8f020a8b2ffd3aa5b17543e12400c62c98b4df658add78f38a16c0307534"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/restart-ui-stdout.log",
+      "path": "host-artifacts/win2025/canonical/restart-ui-stdout.log",
+      "bytes": 13293,
+      "sha256": "89378be9d86215e02621732f5582c86836fc0c841b43bd094f348873dfd02910"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/stop-observations.json",
+      "path": "host-artifacts/win2025/canonical/stop-observations.json",
+      "bytes": 12344,
+      "sha256": "93523a0e539422e4ce4d4dc0d936f587feaee366dcc38ba4254c8854716bb961"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/canonical/ui-result.xml",
+      "path": "host-artifacts/win2025/canonical/ui-result.xml",
+      "bytes": 681,
+      "sha256": "eb549a759d654cf04b3720d756af07ab1c65a46d806f7ec4f401e80dc5d30b5e"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/fixture-protocol.jsonl",
+      "path": "host-artifacts/win2025/deterministic/fixture-protocol.jsonl",
+      "bytes": 357288,
+      "sha256": "2c6d7dd2947320eebf51fe0b5a3c7d9ca3877b3693f6fc4db99d2c69d3f10708"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/host-phases.json",
+      "path": "host-artifacts/win2025/deterministic/host-phases.json",
+      "bytes": 1873,
+      "sha256": "4bf7dda8ffb210466665a875233caafc9f973ac443e25474b043985a595a119e"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-capture.json",
+      "path": "host-artifacts/win2025/deterministic/initial-capture.json",
+      "bytes": 886,
+      "sha256": "f4de029348f66875e362bee9a3519496848ae20708ca077a6d15ecbb41282be2"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-events.bin",
+      "path": "host-artifacts/win2025/deterministic/initial-events.bin",
+      "bytes": 25752,
+      "sha256": "c92cccdc9ca85b949c33340508d07ebf437ae09dd7cfae72dd39070f58d2b235"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-host-stderr.log",
+      "path": "host-artifacts/win2025/deterministic/initial-host-stderr.log",
+      "bytes": 5054,
+      "sha256": "2f3754fde8b01c7b07ec9852a2417359b9f5d97a41d6af1da4ba385e2dff8e78"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-idea-001.log.bin",
+      "path": "host-artifacts/win2025/deterministic/initial-idea-001.log.bin",
+      "bytes": 45314,
+      "sha256": "d81467978b520dd4877ddda6e3bf96ac1f98738fdaa50d1ad96c36ac51612c11"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-idea-002.log.bin",
+      "path": "host-artifacts/win2025/deterministic/initial-idea-002.log.bin",
+      "bytes": 126736,
+      "sha256": "2034dcf25c4dd5e64186d6337bedd591e131ad2386db144d0a76a270adb4829f"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/initial-ui-stdout.log",
+      "path": "host-artifacts/win2025/deterministic/initial-ui-stdout.log",
+      "bytes": 13260,
+      "sha256": "cdde0bcb0abda73eded137f7194afbd58be62465e48657ac82c747daf7fde6af"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/journey-original.json",
+      "path": "host-artifacts/win2025/deterministic/journey-original.json",
+      "bytes": 17330,
+      "sha256": "0274a3aa2de68fc00f342cc48ba1cf865ff3f38015eb7c9e9f614014ac71a502"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-capture.json",
+      "path": "host-artifacts/win2025/deterministic/restart-capture.json",
+      "bytes": 885,
+      "sha256": "a69316d69e7a0529ada926d49876151e031689a444284dda50262438c42cd680"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-events.bin",
+      "path": "host-artifacts/win2025/deterministic/restart-events.bin",
+      "bytes": 2350,
+      "sha256": "a4cafda89ea11c6788f253a1db4651be87e4c21deba024d7e947f3b1b5e51195"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-host-stderr.log",
+      "path": "host-artifacts/win2025/deterministic/restart-host-stderr.log",
+      "bytes": 5998,
+      "sha256": "12023b62f31b33b937a6d71d73335d9aacfd37137fd56dd89c82d11d4e2248a6"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-idea-001.log.bin",
+      "path": "host-artifacts/win2025/deterministic/restart-idea-001.log.bin",
+      "bytes": 45314,
+      "sha256": "d81467978b520dd4877ddda6e3bf96ac1f98738fdaa50d1ad96c36ac51612c11"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-idea-002.log.bin",
+      "path": "host-artifacts/win2025/deterministic/restart-idea-002.log.bin",
+      "bytes": 208898,
+      "sha256": "046d60be0f9d6d69581e714f063b8386ef82daf02e0e722974ceb1ed8d9fa191"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/restart-ui-stdout.log",
+      "path": "host-artifacts/win2025/deterministic/restart-ui-stdout.log",
+      "bytes": 13293,
+      "sha256": "25a4d0a12dffad136097ef36d49eb503a81e505cbfd99f23b8867e155f76759f"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/ui-result.xml",
+      "path": "host-artifacts/win2025/deterministic/ui-result.xml",
+      "bytes": 721,
+      "sha256": "381a0a82669b5871c8c5bdda79e6a1b83a3898462d7f76126a37381604e399a3"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/deterministic/workbench-metrics.jsonl",
+      "path": "host-artifacts/win2025/deterministic/workbench-metrics.jsonl",
+      "bytes": 25911,
+      "sha256": "513c645df828b9f8d53e9e1948dfe9b1f092fa8a4aa8d36ead657bc2c18145da"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/download-receipt.json",
+      "path": "host-artifacts/win2025/download-receipt.json",
+      "bytes": 383,
+      "sha256": "d2459261827b551fc82fc2f7b8b96f38fb09e8317ccef0b41582bbec55614cdd"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/github-artifact.json",
+      "path": "host-artifacts/win2025/github-artifact.json",
+      "bytes": 762,
+      "sha256": "d2c4cd5228cc82a49b95f02f2a4a4290d97210524881399982bcb02768ebbe9f"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/github-job.json",
+      "path": "host-artifacts/win2025/github-job.json",
+      "bytes": 3994,
+      "sha256": "48f843d665c0d068f2d0c2fdfb4c199599a55009361978ee41b13c6a6c6df9b3"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/github-job.log",
+      "path": "host-artifacts/win2025/github-job.log",
+      "bytes": 191006,
+      "sha256": "71ff142a62f0758b278604ad61590b94ee3b3aed64d01f39125d62b07aefc9f4"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/github-run.json",
+      "path": "host-artifacts/win2025/github-run.json",
+      "bytes": 13748,
+      "sha256": "d2afed5851cccc486ae9685d3bdd24d07ce0acef0795eac3dbf85c2ea666ec31"
+    },
+    {
+      "sourcePath": ".work/astra-win2025-3caf14f-success/selected/manifest.json",
+      "path": "host-artifacts/win2025/manifest.json",
+      "bytes": 20518,
+      "sha256": "19838bd7ab8b27f50d994b27f96b525b40db5f3730a7d3334d81c433fba4b8eb"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/sdk-three-platform-success/job-114002675001.json",
+      "path": "cli-sdk-three-platform/job-114002675001.json",
+      "bytes": 7278,
+      "sha256": "348a97ddca93494365a9e568bf0447dc15a95bd77ecce3d59fdccb2675cc3fe5"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/sdk-three-platform-success/job-114002675005.json",
+      "path": "cli-sdk-three-platform/job-114002675005.json",
+      "bytes": 7601,
+      "sha256": "38241b9f34878091250844d154b8f91c9f49126178a6da556250618a4d41ba3c"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/sdk-three-platform-success/job-114002675055.json",
+      "path": "cli-sdk-three-platform/job-114002675055.json",
+      "bytes": 7599,
+      "sha256": "7bc897c7c18c82a2c586eb38b9cd1a239e879ccf614a1b88119f4bb651ac3c58"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/sdk-three-platform-success/readback.json",
+      "path": "cli-sdk-three-platform/readback.json",
+      "bytes": 1817,
+      "sha256": "15e5e9177391d83e263e41c7753e83cb5c28f69dc2ac544426dd5eb16c39074a"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/terminal-readback.json",
+      "path": "cli-ci-terminal/readback.json",
+      "bytes": 12085,
+      "sha256": "9d26bfb40c0c07a98e99f7c4d41281c50250900d6ffac4358a54fb4881f2e139"
+    },
+    {
+      "sourcePath": ".work/cli-sdk-3caf14f2-20261010/snapshot-2026-10-09T20-14-23.900Z.json",
+      "path": "cli-ci-terminal/snapshot.json",
+      "bytes": 308201,
+      "sha256": "9934da014339427f2ba9fe3674af2620707402e1839bc2dc57f89e1cd78ec6b7"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/main-protection.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/main-protection.json",
+      "bytes": 1496,
+      "sha256": "54be8650145fdf05162f0f8961c970d5baaddb98622860e7c6ea04a139e7734a"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/main-rules.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/main-rules.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/pr425.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/pr425.json",
+      "bytes": 22444,
+      "sha256": "4ac8a4394e2cd793a48afdd8c525384c8c978deacda8e30aa2ef8fa3ece1b722"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-annotations-113960769876.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-annotations-113960769876.json",
+      "bytes": 1061,
+      "sha256": "b6f296beefb645b6347b36151ed58796e2ae31b52728269dfa9f72e02bf11dcf"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-branch-runs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-branch-runs.json",
+      "bytes": 137699,
+      "sha256": "4de5d90627260f31a257718d1092409d85eb8435b1292f18ba5d13c4d61736e6"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-check-113960769876.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-check-113960769876.json",
+      "bytes": 3609,
+      "sha256": "6d3b9ec03007bac37d64fc65e02d5516c7405f11f483ee7f5765b0dca43cb866"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-job-113960769876.log",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-job-113960769876.log",
+      "bytes": 107149,
+      "sha256": "cbfde1398c8eb6b0ebef12a67f0424f69ebd7f8ce1af455097f587e275bdcf13"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-jobs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-jobs.json",
+      "bytes": 2137,
+      "sha256": "dbf88e279ddaaef95229ad7e41a5c6a497e3d7e596abfdf4dc5c7994d600db58"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-run.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-run.json",
+      "bytes": 13773,
+      "sha256": "5c64dcbebd59412a762ae13c812f87278071d0c4efabb72088ad090692e7c9cc"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/secrets-same-sha-runs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/secrets-same-sha-runs.json",
+      "bytes": 13809,
+      "sha256": "6363eea0b636dfd22ea71df5e92c00b171b34504b57c9a9aed63d9e2c90954d6"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-annotations-113960770031.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-annotations-113960770031.json",
+      "bytes": 760,
+      "sha256": "2b1b3d4330f1b2cd38176e388be1046cade78b4027ce39b3084bdedf24b9e735"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-branch-runs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-branch-runs.json",
+      "bytes": 137905,
+      "sha256": "15657715aec68f5115722693b5b02b7f7e3e3190065e898be031809ac892de4d"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-check-113960770031.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-check-113960770031.json",
+      "bytes": 3609,
+      "sha256": "546c6feb8914ca4a933b2112f8c75e4e2b7166b236c6aecb740901cde6d71230"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-job-113960770031.log",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-job-113960770031.log",
+      "bytes": 108212,
+      "sha256": "83d00c88404215cf38b2ff004a33a0ad98aa2be49cd9ae021be4c1037c2c7e3b"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-jobs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-jobs.json",
+      "bytes": 2518,
+      "sha256": "63e265f2b6f80bd41bf324c0d0ac72f5aedd683cdc40030cc268de49c01d6963"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-run.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-run.json",
+      "bytes": 13795,
+      "sha256": "81472f81a8c33b75c961066786180d231813b7d61512de0cc8f643bf5676689c"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/staleness-same-sha-runs.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/staleness-same-sha-runs.json",
+      "bytes": 13831,
+      "sha256": "613b6ffe07b839a8b3b08fe5f8a97589606771890555d6e30994f707bab68ba8"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/2026-10-09T18-50-32-035Z/summary.json",
+      "path": "history/check-timeouts/2026-10-09T18-50-32-035Z/summary.json",
+      "bytes": 26608,
+      "sha256": "343776a11a7b3433039247316fcf578212a0afa9d8a89987eedd6da8ddfabeb0"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/annotations-113975345377.json",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/annotations-113975345377.json",
+      "bytes": 433,
+      "sha256": "4fa4af9b53443f90571333e82ff489da4c8942a18bd8a96b3faccfbd137bd53c"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/attempt.json",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/attempt.json",
+      "bytes": 13907,
+      "sha256": "f972d42d7995d4391a469dad3a07eeba983e9fe8ed8a984e22a3f1e82736fe90"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/job-113975345377.log",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/job-113975345377.log",
+      "bytes": 108212,
+      "sha256": "45eaedddb2ada6cca05baf83cf4a8b974f4d4d9c10f6af73581ff804747278c0"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/jobs.json",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/jobs.json",
+      "bytes": 2516,
+      "sha256": "74ef77d4fc91b85bbf806acd7ea950adf63708e6e7726e2eb94648e88e35e032"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/manifest.json",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/manifest.json",
+      "bytes": 4581,
+      "sha256": "68a061e502b7d911dcc4c4de404e627c7e8b21bc1af2492691c9d9ba765d1355"
+    },
+    {
+      "sourcePath": ".work/astra-cancelled-checks-3caf14f/attempt2-2026-10-09T18-59-49-031Z/run.json",
+      "path": "history/check-timeouts/attempt2-2026-10-09T18-59-49-031Z/run.json",
+      "bytes": 13885,
+      "sha256": "0acb80d459ccde5c0e6d785f3cdd78b469581374ed413e9095be4d8c9311a21e"
+    }
+  ]
+}

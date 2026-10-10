@@ -1,0 +1,69 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\verify30b-current-regression-20261009",
+  "archivedAt": "2026-10-09T08:39:53.201Z",
+  "files": [
+    {
+      "path": "baseline/package.json",
+      "bytes": 35,
+      "digest": "sha256:7d38de102f9d211b8a221ab5943610473c4b23aeee36e9a9cf0e22848e04b9d4"
+    },
+    {
+      "path": "baseline/src/chat/image-decode-budget.js",
+      "bytes": 10070,
+      "digest": "sha256:d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad"
+    },
+    {
+      "path": "baseline/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline/stdout.tap",
+      "bytes": 547,
+      "digest": "sha256:d6618933d04650954f5b27315ba19c2c5eb8f87f4e73c64b76356bafa6f83564"
+    },
+    {
+      "path": "baseline/test/image-decode-budget.test.cjs",
+      "bytes": 2670,
+      "digest": "sha256:95b1f32b5d91d17b0622d7922bce9b6d5919ce179f593043536001e5a0086703"
+    },
+    {
+      "path": "mutant/package.json",
+      "bytes": 35,
+      "digest": "sha256:7d38de102f9d211b8a221ab5943610473c4b23aeee36e9a9cf0e22848e04b9d4"
+    },
+    {
+      "path": "mutant/src/chat/image-decode-budget.js",
+      "bytes": 10021,
+      "digest": "sha256:42b09f7343a255d9a654877d86e40ebb0b6d8b50877441f81dd683c3f3fc44fb"
+    },
+    {
+      "path": "mutant/stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutant/stdout.tap",
+      "bytes": 1454,
+      "digest": "sha256:4cf0de28638ccbc6ab270e055337504260aa2063ce3a80dd8740e7845b7c6934"
+    },
+    {
+      "path": "mutant/test/image-decode-budget.test.cjs",
+      "bytes": 2670,
+      "digest": "sha256:95b1f32b5d91d17b0622d7922bce9b6d5919ce179f593043536001e5a0086703"
+    },
+    {
+      "path": "package.json.before",
+      "bytes": 24504,
+      "digest": "sha256:39b88b81e447f8b10c0024b4550b103133788dea817752304e100910589c05c2"
+    },
+    {
+      "path": "report.json",
+      "bytes": 2140,
+      "digest": "sha256:8b7cc7d280e5db1ee8c1c785b9ae77544cda67dd2dca0ab25268a8a9a3a0cfe0"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

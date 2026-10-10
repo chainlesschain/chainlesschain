@@ -1,0 +1,34 @@
+
+ RUN  v4.1.10 C:/code/chainlesschain/packages/cli
+
+stdout | __tests__/unit/evolution-eval-readonly-audit.test.js > genuine Eval read-only journal snapshots > retains and freezes the entire verified event collection above aggregate document limits
+[eval-readonly-large-collection] {"stage":"setup fixture","event":"start"}
+[eval-readonly-large-collection] {"stage":"setup fixture","durationMs":95,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"store subject","event":"start"}
+[eval-readonly-large-collection] {"stage":"store subject","durationMs":122,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"append complete event batch","event":"start"}
+[eval-readonly-large-collection] {"stage":"append complete event batch","durationMs":38231,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"create verified audit","event":"start"}
+[eval-readonly-large-collection] {"stage":"create verified audit","durationMs":2958,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"capture verified snapshot","event":"start"}
+[eval-readonly-large-collection] {"stage":"capture verified snapshot","durationMs":0,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"assert complete immutable snapshot","event":"start"}
+[eval-readonly-large-collection] {"stage":"assert complete immutable snapshot","durationMs":61,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"stage":"verify final journal head","event":"start"}
+[eval-readonly-large-collection] {"stage":"verify final journal head","durationMs":652,"outcome":"returned","event":"end"}
+[eval-readonly-large-collection] {"event":"summary","functionalBudgetMs":180000,"expectedEventCount":600,"observed":{"eventCount":600,"sequence":600,"serializedBytes":3445514},"durationMs":42121,"phases":[{"stage":"setup fixture","durationMs":95,"outcome":"returned"},{"stage":"store subject","durationMs":122,"outcome":"returned"},{"stage":"append complete event batch","durationMs":38231,"outcome":"returned"},{"stage":"create verified audit","durationMs":2958,"outcome":"returned"},{"stage":"capture verified snapshot","durationMs":0,"outcome":"returned"},{"stage":"assert complete immutable snapshot","durationMs":61,"outcome":"returned"},{"stage":"verify final journal head","durationMs":652,"outcome":"returned"}]}
+
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > genuine Eval read-only journal snapshots > captures the actual v2 journal and rejects copied, Proxy and foreign-journal tokens 9093ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > genuine Eval read-only journal snapshots > retains and freezes the entire verified event collection above aggregate document limits 42753ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > genuine Eval read-only journal snapshots > permanently invalidates an audit after a separate v2 writer changes its head 8563ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > genuine Eval read-only journal snapshots > permanently invalidates after a verification error even when the original HEAD bytes are restored 706ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > Eval launch resolution inside a read-only audit > preserves genuine enrolled admission bindings on v2 and requires final head closure 12883ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > Eval launch resolution inside a read-only audit > still verifies Ed25519, descriptor, lookup and authority brands without invoking the signer 594ms
+ ✓ __tests__/unit/evolution-eval-readonly-audit.test.js > Eval launch resolution inside a read-only audit > re-resolves retained artifact bytes instead of trusting a previously captured event 539ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  08:46:05
+   Duration  78.98s (transform 2.51s, setup 422ms, import 3.01s, tests 75.13s, environment 0ms)
+
+JSON report written to C:/code/chainlesschain/.work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json

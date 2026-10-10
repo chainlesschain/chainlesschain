@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ApprovalGrantsTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:39" hostname="DESKTOP-MTMV2RE" time="0.01">
+  <properties/>
+  <testcase name="rejectsMalformedOrUnboundedAuthorityOutput()" classname="com.chainlesschain.ide.ApprovalGrantsTest" time="0.008"/>
+  <testcase name="parsesBoundedListAndRevocationProjection()" classname="com.chainlesschain.ide.ApprovalGrantsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

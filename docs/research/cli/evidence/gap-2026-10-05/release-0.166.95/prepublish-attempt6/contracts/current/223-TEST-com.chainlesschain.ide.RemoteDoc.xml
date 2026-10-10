@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RemoteDoctorTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.002">
+  <properties/>
+  <testcase name="warnsOnOutdatedCli()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="cleanLocalSessionIsAllOk()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="flagsWslMirroredNetworking()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="errorsOnMissingCliWithRemoteHint()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="bridgeStoppedErrorsAndFirewallOnlyWhenRemote()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="summaryRendersLevelAndFixes()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.0"/>
+  <testcase name="comparesVersionsIgnoringPrerelease()" classname="com.chainlesschain.ide.RemoteDoctorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

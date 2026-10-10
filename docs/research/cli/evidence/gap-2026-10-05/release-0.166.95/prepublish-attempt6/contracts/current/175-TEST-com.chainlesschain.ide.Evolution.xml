@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.EvolutionWorkbenchTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.949">
+  <properties/>
+  <testcase name="authenticatesComparisonBindingsAndMutationReceiptShape()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.02"/>
+  <testcase name="loadsEveryPageBeforeReviewOrRollbackIncludingLateActiveVersion()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.115"/>
+  <testcase name="interruptionStopsFurtherReads()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.056"/>
+  <testcase name="parsesCanonicalProjectionAndUsage()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.005"/>
+  <testcase name="rejectsTruncatedPagesAndReaderFailure()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.05"/>
+  <testcase name="rejectsForgedDigestDuplicatePacketAndMalformedUsage()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.001"/>
+  <testcase name="buildsOnlyFixedCliArguments()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.001"/>
+  <testcase name="rejectsMixedMissingDuplicatedOrForgedPagesWithoutExposingPartialResults()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.247"/>
+  <testcase name="stopsAtEmptyExactPageAndMaximumBound()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.443"/>
+  <testcase name="requiresExactlyOneActiveRollbackSource()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.002"/>
+  <testcase name="rejectsStaleReviewAndUnapprovedRollback()" classname="com.chainlesschain.ide.EvolutionWorkbenchTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

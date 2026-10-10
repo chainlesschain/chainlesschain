@@ -1,0 +1,24 @@
+{
+  "startedAt": "2026-10-09T14:49:30.803Z",
+  "finishedAt": "2026-10-09T14:49:32.667Z",
+  "node": "v22.22.2",
+  "vitestVersion": "4.1.10",
+  "ciVitestVersion": "4.1.11",
+  "sourceFixtureSha256": "d5db92c549e9e6bbf474151176745fe0bb788f79eee89bf872bf235c8a968cfb",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "--config",
+    "vitest.business-actions.config.mjs",
+    "src/main/task/__tests__/project-goal-monitoring-host.test.js",
+    "-t",
+    "restores only explicitly enabled goals",
+    "--silent=false",
+    "--reporter=verbose"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "originalCiTimeoutReproduced": false,
+  "scope": "Original one restart test with monotonic diagnostics; other 19 cases intentionally not selected. Earlier complete host file passed 20/20. Initial local failure was missing native binding, repaired using official better-sqlite3 12.11.1 Node22.22.2 prebuild; no tracked manifest or lock change. First timing harness used a wrong nested Vitest path; original failed stdout/stderr retained separately."
+}

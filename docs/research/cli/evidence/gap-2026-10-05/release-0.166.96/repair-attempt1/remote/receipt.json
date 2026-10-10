@@ -1,0 +1,44 @@
+{
+  "startedAt": "2026-10-10T01:08:31.130Z",
+  "finishedAt": "2026-10-10T01:08:31.606Z",
+  "cwd": "C:\\code\\chainlesschain",
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "nodeVersion": "v22.22.2",
+  "arguments": [
+    "--test",
+    "packages/vscode-extension/test/remote-ssh-container.test.cjs"
+  ],
+  "command": "node --test packages/vscode-extension/test/remote-ssh-container.test.cjs",
+  "exitCode": 0,
+  "signal": null,
+  "error": null,
+  "tests": 17,
+  "passed": 17,
+  "failed": 0,
+  "skipped": 0,
+  "scope": "Local command contract tests only; no Docker pull, container creation, SSH connection, real IDE or remote journey executed",
+  "sources": [
+    {
+      "path": "packages/vscode-extension/test/remote-ssh-container/run.cjs",
+      "bytes": 40728,
+      "sha256": "5d740efe22b76242af80c9e08276336c9cc33ccd00f2c5faabfe9bdc22a5d191"
+    },
+    {
+      "path": "packages/vscode-extension/test/remote-ssh-container.test.cjs",
+      "bytes": 22414,
+      "sha256": "a39dd3e47980cdcb888344615550f7aa10e9285a9b33fd9b289d87310dec15b0"
+    }
+  ],
+  "files": [
+    {
+      "path": "test.stdout.log",
+      "bytes": 3759,
+      "sha256": "ee1d05f4d8096cf9ccd42f8ea802d7df08665dac009eab34004bb98abc768c31"
+    },
+    {
+      "path": "test.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

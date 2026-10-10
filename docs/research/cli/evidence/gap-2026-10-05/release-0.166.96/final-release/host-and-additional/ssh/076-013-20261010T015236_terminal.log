@@ -1,0 +1,20 @@
+2026-10-10 01:52:40.520 [info] Latency measurements for local backend
+window<->ptyhost (message port): 1.70ms
+window<->ptyhostservice<->ptyhost: 1.40ms
+ptyhostservice<->ptyhost: 0.54ms []
+2026-10-10 01:52:41.263 [info] Latency measurements for local backend
+window<->ptyhost (message port): 0.90ms
+window<->ptyhostservice<->ptyhost: 1.60ms
+ptyhostservice<->ptyhost: 0.91ms []
+2026-10-10 01:52:48.776 [info] Latency measurements for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3 backend
+window<->ptyhostservice<->ptyhost: 145.70ms
+ptyhostservice<->ptyhost: 0.72ms []
+2026-10-10 01:52:48.776 [info] Latency measurements for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3 backend
+window<->ptyhostservice<->ptyhost: 140.80ms
+ptyhostservice<->ptyhost: 2.17ms []
+2026-10-10 01:52:48.776 [info] Latency measurements for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3 backend
+window<->ptyhostservice<->ptyhost: 140.60ms
+ptyhostservice<->ptyhost: 2.01ms []
+2026-10-10 01:52:48.776 [info] Latency measurements for ssh-remote+cc-roadmap-ssh-2353ca819996ac398c6145c3 backend
+window<->ptyhostservice<->ptyhost: 140.50ms
+ptyhostservice<->ptyhost: 1.91ms []

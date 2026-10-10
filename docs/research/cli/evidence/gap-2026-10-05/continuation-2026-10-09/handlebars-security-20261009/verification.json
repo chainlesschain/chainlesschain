@@ -1,0 +1,186 @@
+{
+  "at": "2026-10-09T07:27:57.202Z",
+  "tarballSRIValidated": true,
+  "unrelatedNodesChanged": false,
+  "locks": [
+    {
+      "file": "package-lock.json",
+      "dependencies": [
+        {
+          "name": "minimist",
+          "range": "^1.2.8",
+          "location": "node_modules/minimist",
+          "version": "1.2.8"
+        },
+        {
+          "name": "wordwrap",
+          "range": "^1.0.0",
+          "location": "node_modules/wordwrap",
+          "version": "1.0.0"
+        },
+        {
+          "name": "neo-async",
+          "range": "^2.6.2",
+          "location": "node_modules/neo-async",
+          "version": "2.6.2"
+        },
+        {
+          "name": "source-map",
+          "range": "^0.6.1",
+          "location": "node_modules/source-map",
+          "version": "0.6.1"
+        },
+        {
+          "name": "uglify-js",
+          "range": "^3.1.4",
+          "location": "node_modules/uglify-js",
+          "version": "3.19.3"
+        }
+      ],
+      "diff": [
+        {
+          "path": "/packages/desktop-app-vue/dependencies/handlebars",
+          "before": "^4.7.9",
+          "after": "^4.7.10"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/version",
+          "before": "4.7.9",
+          "after": "4.7.10"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/resolved",
+          "before": "https://registry.npmjs.org/handlebars/-/handlebars-4.7.9.tgz",
+          "after": "https://registry.npmjs.org/handlebars/-/handlebars-4.7.10.tgz"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/integrity",
+          "before": "sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==",
+          "after": "sha512-P5VJMVM7qgBn6vjXMw8WG9uVI+ncf2pi72j4de4yz5ZULLj2RGqLYaKOYGsgyrViQ0tePOVlN1tDCCXXtFqXKg=="
+        },
+        {
+          "path": "/packages/node_modules/handlebars/dependencies/minimist",
+          "before": "^1.2.5",
+          "after": "^1.2.8"
+        }
+      ]
+    },
+    {
+      "file": "desktop-app-vue/package-lock.json",
+      "dependencies": [
+        {
+          "name": "minimist",
+          "range": "^1.2.8",
+          "location": "node_modules/minimist",
+          "version": "1.2.8"
+        },
+        {
+          "name": "wordwrap",
+          "range": "^1.0.0",
+          "location": "node_modules/wordwrap",
+          "version": "1.0.0"
+        },
+        {
+          "name": "neo-async",
+          "range": "^2.6.2",
+          "location": "node_modules/neo-async",
+          "version": "2.6.2"
+        },
+        {
+          "name": "source-map",
+          "range": "^0.6.1",
+          "location": "node_modules/source-map",
+          "version": "0.6.1"
+        },
+        {
+          "name": "uglify-js",
+          "range": "^3.1.4",
+          "location": "node_modules/uglify-js",
+          "version": "3.19.3"
+        }
+      ],
+      "diff": [
+        {
+          "path": "/packages//dependencies/handlebars",
+          "before": "^4.7.9",
+          "after": "^4.7.10"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/version",
+          "before": "4.7.9",
+          "after": "4.7.10"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/dependencies/minimist",
+          "before": "^1.2.5",
+          "after": "^1.2.8"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/integrity",
+          "after": "sha512-P5VJMVM7qgBn6vjXMw8WG9uVI+ncf2pi72j4de4yz5ZULLj2RGqLYaKOYGsgyrViQ0tePOVlN1tDCCXXtFqXKg=="
+        },
+        {
+          "path": "/packages/node_modules/handlebars/resolved",
+          "after": "https://registry.npmjs.org/handlebars/-/handlebars-4.7.10.tgz"
+        }
+      ]
+    },
+    {
+      "file": "desktop-app-vue/contracts/package-lock.json",
+      "dependencies": [
+        {
+          "name": "minimist",
+          "range": "^1.2.8",
+          "location": "node_modules/minimist",
+          "version": "1.2.8"
+        },
+        {
+          "name": "wordwrap",
+          "range": "^1.0.0",
+          "location": "node_modules/wordwrap",
+          "version": "1.0.0"
+        },
+        {
+          "name": "neo-async",
+          "range": "^2.6.2",
+          "location": "node_modules/neo-async",
+          "version": "2.6.2"
+        },
+        {
+          "name": "source-map",
+          "range": "^0.6.1",
+          "location": "node_modules/handlebars/node_modules/source-map",
+          "version": "0.6.1"
+        },
+        {
+          "name": "uglify-js",
+          "range": "^3.1.4",
+          "location": "node_modules/uglify-js",
+          "version": "3.19.3"
+        }
+      ],
+      "diff": [
+        {
+          "path": "/packages/node_modules/handlebars/version",
+          "before": "4.7.8",
+          "after": "4.7.10"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/resolved",
+          "before": "https://registry.npmmirror.com/handlebars/-/handlebars-4.7.8.tgz",
+          "after": "https://registry.npmjs.org/handlebars/-/handlebars-4.7.10.tgz"
+        },
+        {
+          "path": "/packages/node_modules/handlebars/integrity",
+          "before": "sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==",
+          "after": "sha512-P5VJMVM7qgBn6vjXMw8WG9uVI+ncf2pi72j4de4yz5ZULLj2RGqLYaKOYGsgyrViQ0tePOVlN1tDCCXXtFqXKg=="
+        },
+        {
+          "path": "/packages/node_modules/handlebars/dependencies/minimist",
+          "before": "^1.2.5",
+          "after": "^1.2.8"
+        }
+      ]
+    }
+  ]
+}

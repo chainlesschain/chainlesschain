@@ -1,0 +1,11 @@
+{
+  "sha": "3caf14f2ee866335608487ab57add325972709d7",
+  "runId": 37972023509,
+  "jobId": 113960770773,
+  "artifactId": 11638450002,
+  "bytes": 1785559,
+  "digest": "sha256:9b591493e6f78215f48b200830fbab543d7eb3ba2d66766db6086822c8ddd454",
+  "metadataBytes": 1785559,
+  "metadataDigest": "sha256:9b591493e6f78215f48b200830fbab543d7eb3ba2d66766db6086822c8ddd454",
+  "verified": true
+}

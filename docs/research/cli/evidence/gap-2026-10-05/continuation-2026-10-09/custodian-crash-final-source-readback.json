@@ -1,0 +1,72 @@
+{
+  "reportPath": "C:\\code\\chainlesschain\\.work\\custodian-crash-20261009-final\\report.json",
+  "reportDigest": "sha256:27a1bae72ab71c8e6c740d058eec52becf9bb5836dde746dea058d87de02b1d1",
+  "validation": {
+    "diagnosticCompleted": true,
+    "status": "NOT_ADMITTED",
+    "trusted": false,
+    "originalsRechecked": true,
+    "scope": "three-fixed-controlled-root-processes",
+    "errors": []
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "release": "10.0.19045"
+  },
+  "sources": [
+    {
+      "name": "windows-job-custodian-crash-probe.cs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-custodian-crash-probe.cs",
+      "before": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "after": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-probe.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-custodian-crash-probe.mjs",
+      "before": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "after": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-custodian-crash-evidence.mjs",
+      "before": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "after": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      }
+    },
+    {
+      "name": "windows-job-custodian-crash-evidence.node-test.mjs",
+      "original": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "before": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "after": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      }
+    }
+  ],
+  "formalSample": false,
+  "admissionEligible": false,
+  "compiledBinariesArchived": false,
+  "recordedAt": "2026-10-09T07:54:30.171Z"
+}

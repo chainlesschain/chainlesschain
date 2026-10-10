@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.UsageReportTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:12" hostname="DESKTOP-MTMV2RE" time="0.028">
+  <properties/>
+  <testcase name="allThreeHintsRenderIntoTheReport()" classname="com.chainlesschain.ide.UsageReportTest" time="0.006"/>
+  <testcase name="rendersMeasuredToolTimeAndLlmRetryTelemetry()" classname="com.chainlesschain.ide.UsageReportTest" time="0.002"/>
+  <testcase name="rendersEmptyStatePlaceholders()" classname="com.chainlesschain.ide.UsageReportTest" time="0.001"/>
+  <testcase name="attributionParsingIsTolerant()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <testcase name="absentAttributionKeepsLegacyOutputByteIdentical()" classname="com.chainlesschain.ide.UsageReportTest" time="0.002"/>
+  <testcase name="rendersAttributionSections()" classname="com.chainlesschain.ide.UsageReportTest" time="0.003"/>
+  <testcase name="thresholdConstantsMatchVsCodeTwin()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <testcase name="rendersWindowsModelsAndTopSessions()" classname="com.chainlesschain.ide.UsageReportTest" time="0.001"/>
+  <testcase name="cacheMissHintBoundary()" classname="com.chainlesschain.ide.UsageReportTest" time="0.004"/>
+  <testcase name="toleratesHostileNames()" classname="com.chainlesschain.ide.UsageReportTest" time="0.001"/>
+  <testcase name="buildsCliArgv()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <testcase name="subagentShareHintBoundary()" classname="com.chainlesschain.ide.UsageReportTest" time="0.001"/>
+  <testcase name="hintsAbsentWithoutAttribution()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <testcase name="parsesTolerantly()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <testcase name="capsTablesAtMaxRowsAndFoldsOthers()" classname="com.chainlesschain.ide.UsageReportTest" time="0.004"/>
+  <testcase name="longContextHintBoundary()" classname="com.chainlesschain.ide.UsageReportTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

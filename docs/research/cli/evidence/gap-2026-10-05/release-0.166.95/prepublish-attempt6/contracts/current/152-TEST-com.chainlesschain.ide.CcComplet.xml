@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.CcCompletionTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:40" hostname="DESKTOP-MTMV2RE" time="0.015">
+  <properties/>
+  <testcase name="buildRequestJson_roundTripsThroughMiniJson()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="cleanCompletion_stripsMarkdownFence()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="cleanCompletion_emptyOnNullOrBlank()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.0"/>
+  <testcase name="cleanCompletion_capsLength()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.002"/>
+  <testcase name="buildRequestJson_nullFieldsBecomeEmptyStrings()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="cleanCompletion_trimsTrailingWhitespaceButKeepsLeadingIndent()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.0"/>
+  <testcase name="cleanCompletion_leavesPlainCodeUntouched()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.0"/>
+  <testcase name="fetch_returnsEmptyWhenBothSidesBlank()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.0"/>
+  <testcase name="parseCompletion_emptyOnBadShape()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="buildRequestJson_escapesQuotesAndNewlines()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="parseCompletion_nonStringCompletionYieldsEmpty()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.0"/>
+  <testcase name="cleanCompletion_dropsCursorSentinel()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <testcase name="parseCompletion_readsCompletionField()" classname="com.chainlesschain.ide.CcCompletionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

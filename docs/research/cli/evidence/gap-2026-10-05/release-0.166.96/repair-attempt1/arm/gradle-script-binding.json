@@ -1,0 +1,24 @@
+{
+  "sourceSha256": "26091bf03638b171367488cb24d94dad392c9f3dce596c0f56f97c23638ff2d1",
+  "gradleClassSha256": "873f0e27ee21221fc71fda73f6ae1616c7bc6046af01eda78d450b409299536b",
+  "scripts": [
+    {
+      "name": "activation",
+      "bytes": 2508,
+      "sha256": "ff64303c5cd76d9df7e2258b47aacea2403f3fe7021bee21f3cffd0a2117837c",
+      "gradleAndIsolatedExportBytesEqual": true
+    },
+    {
+      "name": "receipt",
+      "bytes": 806,
+      "sha256": "e4a01e9a7a51177ebe67169894198db62bd462e1718804637fd2f134ec057329",
+      "gradleAndIsolatedExportBytesEqual": true
+    },
+    {
+      "name": "cleanup",
+      "bytes": 437,
+      "sha256": "6af0c1934306b1cfd9a16911e465065322e8843f1c82c0e095d2281db2c0996c",
+      "gradleAndIsolatedExportBytesEqual": true
+    }
+  ]
+}

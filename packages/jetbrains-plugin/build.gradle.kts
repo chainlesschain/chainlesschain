@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.157"
+version = "0.4.158"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 val hostIdeLocalPath = providers.gradleProperty("hostIdeLocalPath")
@@ -238,6 +238,9 @@ tasks {
     test {
         useJUnitPlatform()
         systemProperty("file.encoding", "UTF-8")
+        // Pure Swing contracts use no Window. Keep their AWT peers headless;
+        // the separate uiSmokeTest worker still drives the real IDE desktop.
+        systemProperty("java.awt.headless", "true")
         testLogging { events("failed") }
     }
 }
@@ -334,6 +337,15 @@ runCatching {
         && file(verifyCaptureRoot).isAbsolute && file(verifyCaptureRoot).isDirectory) {
         "VERIFY01 workspace, home and absolute capture directory must already exist"
     }
+    val uiEventCaptureRoot = System.getProperty("ui.event.captureRoot", "")
+    val uiEventCaptureDir = if (uiEventCaptureRoot.isNotBlank()) file(uiEventCaptureRoot) else null
+    if (uiEventCaptureDir != null) require(uiJourneyRunId.isPresent
+        && uiEventCaptureDir.isAbsolute && uiEventCaptureDir.isDirectory
+        && uiEventCaptureDir.toPath() == uiEventCaptureDir.canonicalFile.toPath()
+        && uiEventCaptureDir.canonicalFile.toPath().startsWith(
+            layout.buildDirectory.dir("reports/ui-host-driver").get().asFile.canonicalFile.toPath())) {
+        "UI event diagnostics require an existing absolute directory in this build's isolated host captures"
+    }
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
         // Compile/package once against the minimum supported 2024.2 API, then
         // launch that exact artifact in each declared real-host version. Newer
@@ -378,9 +390,11 @@ runCatching {
                     // smoke test drives (throwaway dir generated below).
                     "-Didea.trust.all.projects=true",
                     "-Duser.home=${verifyHome?.absolutePath ?: uiTestHomeDir.get().asFile.absolutePath}",
-                ) + if (verifyCaptureRoot.isNotBlank()) listOf(
+                ) + (if (verifyCaptureRoot.isNotBlank()) listOf(
                     "-Dchainlesschain.verify01.captureRoot=${file(verifyCaptureRoot).canonicalPath}"
-                ) else emptyList()
+                ) else emptyList()) + (if (uiEventCaptureDir != null) listOf(
+                    "-Dchainlesschain.uiTest.eventCaptureRoot=${uiEventCaptureDir.canonicalPath}"
+                ) else emptyList())
             }
             doFirst {
                 if (verifyProject == null) {

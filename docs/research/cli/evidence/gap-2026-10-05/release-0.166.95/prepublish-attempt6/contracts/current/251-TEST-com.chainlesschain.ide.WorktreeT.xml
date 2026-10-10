@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.WorktreeTasksTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:13" hostname="DESKTOP-MTMV2RE" time="0.02">
+  <properties/>
+  <testcase name="projectsAndAttachesBackgroundGovernance()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.002"/>
+  <testcase name="projectsReadOnlyCollaborationGovernanceWithoutBackgroundControlId()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.0"/>
+  <testcase name="parsesStrictMergeReviewV1AndExplainsConflicts()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.006"/>
+  <testcase name="rejectsMalformedUnknownAndInconsistentMergeReviewAuthority()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.004"/>
+  <testcase name="summarizesShortstatAndFormatsLines()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.0"/>
+  <testcase name="parsesWorktreeListAndMarksTasks()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.0"/>
+  <testcase name="buildsExactMergeReviewArgvAndValidatesTransitions()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.004"/>
+  <testcase name="buildsArgvAndNewTaskCommand()" classname="com.chainlesschain.ide.WorktreeTasksTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ApprovalResponsesTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:39" hostname="DESKTOP-MTMV2RE" time="0.046">
+  <properties/>
+  <testcase name="reusableDecisionFailsClosedWithoutValidCliPermission()" classname="com.chainlesschain.ide.ApprovalResponsesTest" time="0.002"/>
+  <testcase name="emitsCanonicalLeastPrivilegeDecisionAndEchoesBinding()" classname="com.chainlesschain.ide.ApprovalResponsesTest" time="0.006"/>
+  <testcase name="emitsExactTurnAndSessionGrantsFromTrustedRequestPermissions()" classname="com.chainlesschain.ide.ApprovalResponsesTest" time="0.008"/>
+  <testcase name="generatedKotlinUnionReplaysEveryCanonicalFixture()" classname="com.chainlesschain.ide.ApprovalResponsesTest" time="0.026"/>
+  <testcase name="denialUsesCanonicalDecisionAndDropsBlankBinding()" classname="com.chainlesschain.ide.ApprovalResponsesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,63 @@
+﻿2026-10-09T22:22:17.4178765Z Current runner version: '2.337.0'
+2026-10-09T22:22:17.4203565Z ##[group]Runner Image Provisioner
+2026-10-09T22:22:17.4204479Z Hosted Compute Agent
+2026-10-09T22:22:17.4205179Z Version: 20261002.596
+2026-10-09T22:22:17.4205825Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-09T22:22:17.4206544Z Build Date: 2026-10-02T22:28:27Z
+2026-10-09T22:22:17.4207325Z Worker ID: {2523d3c3-940b-40fb-b0be-371adc1757e7}
+2026-10-09T22:22:17.4208082Z Region: canadaeast
+2026-10-09T22:22:17.4208737Z Cloud: Azure
+2026-10-09T22:22:17.4209297Z ##[endgroup]
+2026-10-09T22:22:17.4210734Z ##[group]Operating System
+2026-10-09T22:22:17.4211545Z Ubuntu
+2026-10-09T22:22:17.4212538Z 24.04.5
+2026-10-09T22:22:17.4213112Z LTS
+2026-10-09T22:22:17.4213646Z ##[endgroup]
+2026-10-09T22:22:17.4214200Z ##[group]Runner Image
+2026-10-09T22:22:17.4214870Z Image: ubuntu-24.04
+2026-10-09T22:22:17.4215512Z Version: 20261004.327.1
+2026-10-09T22:22:17.4216898Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-09T22:22:17.4218536Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-09T22:22:17.4219619Z ##[endgroup]
+2026-10-09T22:22:17.4223111Z ##[group]GITHUB_TOKEN Permissions
+2026-10-09T22:22:17.4225579Z Actions: write
+2026-10-09T22:22:17.4226237Z ArtifactMetadata: write
+2026-10-09T22:22:17.4226933Z Attestations: write
+2026-10-09T22:22:17.4227587Z Checks: write
+2026-10-09T22:22:17.4228156Z CodeQuality: write
+2026-10-09T22:22:17.4228819Z Contents: write
+2026-10-09T22:22:17.4229390Z CopilotRequests: write
+2026-10-09T22:22:17.4229996Z Deployments: write
+2026-10-09T22:22:17.4230662Z Discussions: write
+2026-10-09T22:22:17.4231260Z Drives: write
+2026-10-09T22:22:17.4232073Z Issues: write
+2026-10-09T22:22:17.4232740Z Metadata: read
+2026-10-09T22:22:17.4233275Z Models: read
+2026-10-09T22:22:17.4233915Z Packages: write
+2026-10-09T22:22:17.4234460Z Pages: write
+2026-10-09T22:22:17.4235056Z PullRequests: write
+2026-10-09T22:22:17.4235673Z RepositoryProjects: write
+2026-10-09T22:22:17.4236293Z SecurityEvents: write
+2026-10-09T22:22:17.4236982Z Statuses: write
+2026-10-09T22:22:17.4237551Z VulnerabilityAlerts: read
+2026-10-09T22:22:17.4238179Z ##[endgroup]
+2026-10-09T22:22:17.4240807Z Secret source: Actions
+2026-10-09T22:22:17.4242123Z Cache mode: write
+2026-10-09T22:22:17.4243530Z Prepare workflow directory
+2026-10-09T22:22:17.4777702Z Prepare all required actions
+2026-10-09T22:22:17.4825156Z Getting action download info
+2026-10-09T22:22:17.7407767Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-09T22:22:17.8343002Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-09T22:22:17.9337254Z Download action repository 'actions/download-artifact@v7' (SHA:37930b1c2abaa49bbe596cd826c3c89aef350131)
+2026-10-09T22:22:18.3388890Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-09T22:22:18.5690902Z Complete job name: Test-only PM exploration recovery three-OS aggregate
+2026-10-09T22:22:18.6392120Z ##[group]Run echo "::error::At least one test-only PM recovery platform failed or did not finish"
+2026-10-09T22:22:18.6393516Z [36;1mecho "::error::At least one test-only PM recovery platform failed or did not finish"[0m
+2026-10-09T22:22:18.6394416Z [36;1mexit 1[0m
+2026-10-09T22:22:18.6644548Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-09T22:22:18.6645599Z env:
+2026-10-09T22:22:18.6646269Z   CC_PM_RECOVERY_EXPECTED_SHA: 3900e9bd7f4d610b74b4d1639cf62b39dd9004ed
+2026-10-09T22:22:18.6647059Z ##[endgroup]
+2026-10-09T22:22:18.6835535Z ##[error]At least one test-only PM recovery platform failed or did not finish
+2026-10-09T22:22:18.6849813Z ##[error]Process completed with exit code 1.
+2026-10-09T22:22:18.7039325Z Cleaning up orphan processes

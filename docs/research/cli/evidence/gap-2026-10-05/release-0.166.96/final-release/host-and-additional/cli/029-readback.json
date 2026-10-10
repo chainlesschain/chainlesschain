@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657143147,
+  "name": "rc-default-audit-cli-ci-macos-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/metadata.json",
+    "bytes": 796,
+    "sha256": "e9157cf1ba3d11ddd83714ea653b27065332328e37b10bcebc84bff279e1c1a2",
+    "endpoint": "actions/artifacts/11657143147"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657143147/artifact.zip",
+    "bytes": 1734,
+    "sha256": "ad16b86e7eec4a2e8d66621b9e794f86d312b238707bc3ba2e54a957f0e253e3",
+    "endpoint": "actions/artifacts/11657143147/zip"
+  },
+  "githubDigestMatched": true
+}

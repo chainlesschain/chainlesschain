@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.TeamControlTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.488">
+  <properties/>
+  <testcase name="windowsNpmAndManagedShimsResolveToNodeArgvWithoutShell(Path)" classname="com.chainlesschain.ide.TeamControlTest" time="0.012"/>
+  <testcase name="caseReplacementRejectsStaleDecisionBeforeCliInvocation()" classname="com.chainlesschain.ide.TeamControlTest" time="0.005"/>
+  <testcase name="commandRunnerPreservesLiteralArgumentsWithoutShellInterpretation()" classname="com.chainlesschain.ide.TeamControlTest" time="0.44"/>
+  <testcase name="distributedParserExposesAuthorityFenceEvidenceAndCheckpointRecovery()" classname="com.chainlesschain.ide.TeamControlTest" time="0.007"/>
+  <testcase name="executeReReadsThenRunsTheExactPinnedArgv()" classname="com.chainlesschain.ide.TeamControlTest" time="0.002"/>
+  <testcase name="distributedCasRejectsAuthorityFenceEvidenceAndRecoveryRaces()" classname="com.chainlesschain.ide.TeamControlTest" time="0.002"/>
+  <testcase name="interruptAndAdjudicationArgvExactlyPinStateAndDigest()" classname="com.chainlesschain.ide.TeamControlTest" time="0.001"/>
+  <testcase name="invalidAttemptAndCaseBindingsRemainMonitorOnly()" classname="com.chainlesschain.ide.TeamControlTest" time="0.001"/>
+  <testcase name="completedAttemptAndResolvedCaseRejectOldClicks()" classname="com.chainlesschain.ide.TeamControlTest" time="0.0"/>
+  <testcase name="invalidReasonAndMalformedOrExplicitFailureOutputFailClosed()" classname="com.chainlesschain.ide.TeamControlTest" time="0.004"/>
+  <testcase name="leaseReacquireRejectsStaleTakeoverBeforeCliInvocation()" classname="com.chainlesschain.ide.TeamControlTest" time="0.001"/>
+  <testcase name="parserMatchesCliCanonicalDigestsAndLeaseReacquireChangesAttempt()" classname="com.chainlesschain.ide.TeamControlTest" time="0.002"/>
+  <testcase name="failuresAreSingleLineCredentialRedactedAndBounded()" classname="com.chainlesschain.ide.TeamControlTest" time="0.003"/>
+  <testcase name="changedStateIdRejectsStaleClickBeforeCliInvocation()" classname="com.chainlesschain.ide.TeamControlTest" time="0.001"/>
+  <testcase name="distributedArgvPinsQueueLeaseAndEvidenceWithUniqueIds()" classname="com.chainlesschain.ide.TeamControlTest" time="0.0"/>
+  <testcase name="distributedExecuteReReadsBeforeShellFreeCliInvocation()" classname="com.chainlesschain.ide.TeamControlTest" time="0.001"/>
+  <testcase name="timeoutSignalNonzeroAndStderrOnlySuccessAllFailClosed()" classname="com.chainlesschain.ide.TeamControlTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

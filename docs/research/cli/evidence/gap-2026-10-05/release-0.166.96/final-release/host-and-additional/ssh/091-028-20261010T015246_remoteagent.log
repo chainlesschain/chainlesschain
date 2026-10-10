@@ -1,0 +1,15 @@
+2026-10-10 01:52:46.799 [info] 
+
+
+
+
+2026-10-10 01:52:46.808 [info] Extension host agent started.
+2026-10-10 01:52:46.858 [info] Started initializing default profile extensions in extensions installation folder. file:///home/cc-roadmap/.vscode-server/extensions
+2026-10-10 01:52:46.862 [info] [<unknown>][92d36e7b][ManagementConnection] New connection established.
+2026-10-10 01:52:46.867 [info] [<unknown>][1c7aa97a][ExtensionHostConnection] New connection established.
+2026-10-10 01:52:46.903 [info] Completed initializing default profile extensions in extensions installation folder. file:///home/cc-roadmap/.vscode-server/extensions
+2026-10-10 01:52:46.918 [info] [<unknown>][1c7aa97a][ExtensionHostConnection] <2953> Launched Extension Host Process.
+2026-10-10 01:52:47.505 [info] Loading development extension at /home/cc-roadmap/driver
+2026-10-10 01:52:49.421 [info] [<unknown>][1c7aa97a][ExtensionHostConnection] <2953> Extension Host Process exited with code: 0, signal: null.
+2026-10-10 01:52:49.422 [info] Cancelling previous shutdown timeout
+2026-10-10 01:52:49.423 [info] Last EH closed, waiting before shutting down

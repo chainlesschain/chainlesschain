@@ -1,5 +1,15 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-10 发行完成、合并待门校验**：准确发行源码 `da91e730d802b7c9dcdc075b222ecc257021e552` 的 CLI CI **71/71**、Strict **5/5**、IDE Extensions **18 success / 1 非标签后验证 skip**、ARM64 **10/10** 及其余完整测试门全部通过。既有 GitHub Actions OIDC 已先发布并核验 Agent SDK `0.2.14`，再发布 CLI `0.166.96`；公开包与不可变制品的摘要、SRI、来源证明和十个直接子包安装/精确版本均匹配。随后发布 Open VSX `0.37.140`，公开可下载内容与标签制品一致。JetBrains `0.4.158` 的标签发布已成功提交 Marketplace，当前仍 `pending`，等待公开审批，不能声称已公开可安装。 见[验证 20.22](./cli-ide-gap-validation-2026-10-05.md#2022-cli-016696-与双-ide-发行回读)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 继续开放；本轮无新增付费 provider 调用。
+
+> **2026-10-10 候选重验修复**：准确候选 `3900e9bd7f4d610b74b4d1639cf62b39dd9004ed` 的 CLI CI 为 **66 success / 2 failure / 1 skip**（69 个实际 job，SDK 尚未运行），Strict **5/5**；IDE Extensions 为 **15 success / 1 failure / 3 skip**，ARM64 为 **8 success / 2 failure**。完整门未通过，四个候选版本均未发布。 当前修复仅涉及功能测试驱动：CLI 单个 600 事件完整集合用例使用 180 秒有界功能预算并保留全部断言；ARM64 Enter 后改从稳定 frame/rootpane 读取每次调用的独立标量收据；Remote SSH 仅在明确匿名 Docker Hub 限流时回退到相同固定 digest 镜像，并校验实际 RepoDigests、保存两次完整输出。局部 CLI **7/7**、Rhino/Swing **14/14**、Remote SSH **17/17** 通过，不能替代新准确提交的真实宿主与完整三平台门。 版本仍为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。新提交须重新完成自身全部矩阵，再按子包 → CLI → IDE → 合并顺序发行；保留原 `.95` 标签，不移动标签，不改为本地或 token 发布。 详见[验证 20.21](./cli-ide-gap-validation-2026-10-05.md#2021-cli-016696-首轮失败与独立收据修复)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**以及完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 仍开放，本轮无新增付费 provider 调用。
+
+> **2026-10-10 发布修复**：新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。 见[验证 20.20](./cli-ide-gap-validation-2026-10-05.md#2020-cli-016695-发布复用失败与-016696-候选)。正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。
+
+> **2026-10-09 最终续做与提交**：完成增量已按批次提交；最新官方发布来源、当前四处测试覆盖修补、Handlebars critical 修复、custodian 崩溃清理和追加 op4 报告校验见[验证 20.8–20.13](./cli-ide-gap-validation-2026-10-05.md#208-最终合同基线绑定与验收状态)。原 Windows 矩阵为 6 检出/4 存活/4 因基线失败未运行，保持 `NOT_ADMITTED`；当前新增回归不改写冻结结果。首批 61d91325d0 的完整 CLI CI 71 / Strict 5 已成功，后续提交另验；[草稿 PR #425](https://github.com/chainlesschain/chainlesschain/pull/425)保留检查。正式 36+9、平台持久后端和账号/目标宿主/人工长时条件仍开放，没有发布新包。
+
+> **2026-10-09 继续处理未完成项**：本页第 1 节及此前各节保留各轮交付时点；最新配对发行见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)。本轮完成模型审查证据保存、Windows 同 SID/Job 的 esbuild service/原冻结配置/默认 forks 65 项实跑，以及 owner 崩溃后原 Job/活跃 socket 回收原语。最新实现、完整 review 的真实失败和外部验收条件集中于[验证第 20 节](./cli-ide-gap-validation-2026-10-05.md#20-2026-10-09-剩余工程与验收边界)，局部原生诊断保持 `NOT_ADMITTED`，正式 36+9 未运行。
+
 > **2026-10-07 独立原生诊断与预检**：七个探针各自原生 Job，确认清理后才继续；新增 v2 严格回读与原准入兼容，并交付冻结 lock/文件/setup/Node ABI 的只读工具链 inventory。**68 项回归通过**。实际 pipe/IPC 仍超时，整包无能力；inventory 明确 `trusted:false` / `INVENTORIED_NOT_EXECUTABLE`，不关闭完整 native36 或 durable 后端。证据与剩余条件见[验证第 11 节](./cli-ide-gap-validation-2026-10-05.md#11-2026-10-07-独立原生探针与工具链预检)。
 
 > **2026-10-06 公开安装与 Windows 原生增量**：公开 CLI `0.166.90` 的 registry lock/子包校验与真实工具旅程完成；Windows watchdog、只读 stage 和一次性原生检查器完成，**360/360** 回归及关键失败已归档。公开 VS Code `0.37.135` / JetBrains `0.4.153` 在真实火山任务后重启恢复且零输入重放；补齐许可模式启动前校验并修复合法 `system/end` 的终态导入。详细证据见[验证记录第 9 节](./cli-ide-gap-validation-2026-10-05.md#9-2026-10-06-公开安装与-windows-原生检查器)。完整 native36、durable Windows/macOS、官方账户/账单及正式人工验收仍独立开放。
@@ -352,3 +362,31 @@ Windows/macOS durable、正式36+9、官方账户账单、独立人工与长时�
 ## 20. 2026-10-09 完整验证与配对发行
 
 准确提交 `efcab5f632` 的 CLI 双门、双 IDE 实际宿主/构建及相关恢复门已通过，PR #423 已合并。CLI `0.166.94` 已通过 OIDC 发布；配对 Open VSX `0.37.139` 已公开且 latest/listed，JetBrains `0.4.157` 已获批并公开上架。上传前的公开 CLI/子包回执、标签产物摘要及独立市场下载回读已归档；VSIX 原始字节一致，JetBrains 全部 entry 字节一致，其 ZIP 容器字节差异另行记录。见[验证第 19 节](./cli-ide-gap-validation-2026-10-05.md#19-2026-10-09-准确提交完整门与-oidc-发行)及[发行证据](./cli/evidence/gap-2026-10-05/release-0.166.94/README.md)。正式 36+9、Windows/macOS durable 后端、完整原生 review 与人工/长时验收仍未完成，不因发行改变状态。
+
+## 21. CLI 0.166.96 与 SDK 0.2.14 发布候选
+
+CLI `0.166.95` 的准确提交 `3caf14f2ee866335608487ab57add325972709d7` 已取得 CLI CI **71/71**、Strict **5/5**、IDE **18 成功 / 1 条件跳过**及 ARM64 **10/10**。但 OIDC 发布 run `37985598206` 在 Agent SDK `0.2.13` 的整个源码树复用检查失败，CLI 发布步骤明确跳过；它没有成为新公开 CLI。SDK 的签名来源校验通过，实际改变的是测试诊断文件，公开 tarball 字节一致的预检不足以证明整个 Git 子树未变。
+
+新候选为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。两端 IDE 尚未发布，因此保留插件版本并将推荐 CLI 改为 `.96`；SDK 与锁文件升级，VS Code/Desktop 生成标记同步，SDK 运行时输出摘要未变。保留 `.95` 原标签和失败原件，不移动标签、不削弱复用门。新提交必须重新完成自身的三平台完整矩阵，再按 SDK → CLI → IDE → 合并顺序发行。当前没有发布新版本。
+
+正式 36 tasks + 9 firstRuns 保持 `NOT_RUN`，完整 native review 保持 `NOT_ADMITTED`；冻结源码、配置、分母、$99、observations 以及 Windows/macOS durable、账户账单、独立人工和长时验收状态不变。
+
+## 22. CLI 0.166.96 首轮失败后的测试驱动修复
+
+准确候选 `3900e9bd7f4d610b74b4d1639cf62b39dd9004ed` 的 CLI CI 为 **66 success / 2 failure / 1 skip**（69 个实际 job，SDK 尚未运行），Strict **5/5**；IDE Extensions 为 **15 success / 1 failure / 3 skip**，ARM64 为 **8 success / 2 failure**。完整门未通过，四个候选版本均未发布。
+
+当前修复仅涉及功能测试驱动：CLI 单个 600 事件完整集合用例使用 180 秒有界功能预算并保留全部断言；ARM64 Enter 后改从稳定 frame/rootpane 读取每次调用的独立标量收据；Remote SSH 仅在明确匿名 Docker Hub 限流时回退到相同固定 digest 镜像，并校验实际 RepoDigests、保存两次完整输出。局部 CLI **7/7**、Rhino/Swing **14/14**、Remote SSH **17/17** 通过，不能替代新准确提交的真实宿主与完整三平台门。
+
+[验证 20.21](./cli-ide-gap-validation-2026-10-05.md#2021-cli-016696-首轮失败与独立收据修复)逐项说明原 CI 失败、局部合同、AWS 官方包恢复及其证明范围。仅四个测试文件改变，生产断言与既有发布 gate 保持。
+
+版本仍为 Agent SDK `0.2.14`、CLI `0.166.96`、VS Code `0.37.140`、JetBrains `0.4.158`。新提交须重新完成自身全部矩阵，再按子包 → CLI → IDE → 合并顺序发行；保留原 `.95` 标签，不移动标签，不改为本地或 token 发布。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**以及完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 仍开放，本轮无新增付费 provider 调用。
+
+## 23. CLI 0.166.96 配对发行与合并顺序
+
+准确发行源码 `da91e730d802b7c9dcdc075b222ecc257021e552` 的 CLI CI **71/71**、Strict **5/5**、IDE Extensions **18 success / 1 非标签后验证 skip**、ARM64 **10/10** 及其余完整测试门全部通过。既有 GitHub Actions OIDC 已先发布并核验 Agent SDK `0.2.14`，再发布 CLI `0.166.96`；公开包与不可变制品的摘要、SRI、来源证明和十个直接子包安装/精确版本均匹配。随后发布 Open VSX `0.37.140`，公开可下载内容与标签制品一致。JetBrains `0.4.158` 的标签发布已成功提交 Marketplace，当前仍 `pending`，等待公开审批，不能声称已公开可安装。
+
+[准确发行证据](./cli/evidence/gap-2026-10-05/release-0.166.96/final-release/manifest.json)与[验证 20.22](./cli-ide-gap-validation-2026-10-05.md#2022-cli-016696-与双-ide-发行回读)绑定完整门、发布及公开包回读。保留所有失败原件和 `.95` 标签；按用户要求先发布后合并，不将后续 merge 提交冒充已测发行源码。
+
+正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 继续开放；本轮无新增付费 provider 调用。

@@ -1,0 +1,853 @@
+{
+  "schema": "chainlesschain.prepublish-attempt-evidence/v1",
+  "attempt": 4,
+  "createdAt": "2026-10-09T16:07:37.862Z",
+  "releaseVersion": "0.166.95",
+  "sourceCommit": "a3f3ed3dd1fb809fb7fd520ad5a35616ae64bb3b",
+  "purpose": "Preserve the genuine Windows ARM64 rewind popup-transition failure and the narrowly scoped test-driver correction; this archive is not release-gate success evidence.",
+  "github": {
+    "runId": 37947977140,
+    "jobId": 113880537429,
+    "artifactId": 11625812501,
+    "artifactArchiveSha256": "e01ebf0239d2e3ebf270324fae8d714b6bc0304fa1d55071268b7395c3f4a794",
+    "artifactDigestSource": "ci-run/artifacts-1.json",
+    "artifactZipRetained": false,
+    "artifactExtractedFileVerification": "All 30 files listed by the downloaded journey-evidence manifest were SHA256-verified before this selected archive; included originals remain byte-preserved."
+  },
+  "failure": {
+    "host": {
+      "os": "win32",
+      "architecture": "arm64",
+      "ideVersion": "2026.2.0.1",
+      "ideBuild": "262.8665.337"
+    },
+    "result": "failure",
+    "uiSmokeTests": {
+      "passed": 7,
+      "total": 8
+    },
+    "failedCase": "chainlessChainChatAndControlJourney",
+    "error": "Popup item 'Restore code + conversation' did not appear within 45s; visible lists=",
+    "confirmed": [
+      "Restore code and Restore conversation reached preview and confirm in the captured deterministic CLI protocol.",
+      "The third checkpoint-timeline response was recorded at 2026-10-09T15:19:07.328Z, followed by no restore-both preview or confirm request.",
+      "Failure screenshot contains no action popup; the test failed at the timeline-to-action-menu transition."
+    ],
+    "rootCauseStatus": "unknown",
+    "notEstablished": [
+      "Exact focus/cancellation event or selected-item callback failure",
+      "Generic IDEA 2026.2 selector incompatibility",
+      "Restore-both engine execution failure",
+      "Network failure or infrastructure incident"
+    ],
+    "diagnosticLimitations": [
+      "Artifact contains no DOM or idea.log.",
+      "GUI guard records updater termination PIDs without per-event timestamps or focus evidence.",
+      "The host journey used a deterministic CLI peer; this is real-host plugin/UI evidence, not production checkpoint engine execution evidence."
+    ]
+  },
+  "correction": {
+    "scope": "IdeUiSmokeTest test driver only; retain true menu/preview/confirm/completion assertions, existing 45 second budget and no newly added retry.",
+    "changes": [
+      "Capture target, label and prefix in an IIFE.",
+      "Validate showing and unique target, select target and execute the real Enter action in one deferred EDT runnable.",
+      "Persist/log scheduled, entered, validated, dispatch-returned or failed states and focus diagnostics.",
+      "Require dispatch-returned and hidden; still require the genuine next popup and preview/confirm assertions."
+    ],
+    "reviewFinding": "Java generic callJs result initially selected String.valueOf(char[]); corrected to Object overload and independently verified in bytecode.",
+    "correctedSourceSha256": "2eda534b6bb3969b5dfb195efeca291b2843f93132b03b39dc97e27748f12655",
+    "correctedClassSha256": "9c860433e9c65afe64c808ab3d63219fc6018170e575800e57bb49a60a9d8c33"
+  },
+  "contract": {
+    "report": "popup-contract/report.json",
+    "reviewResolution": "popup-contract/review-resolution.json",
+    "passed": 10,
+    "total": 10,
+    "execution": "Actual compiled generator output, real Rhino 1.7.15, real Swing JList and EDT; controlled substitute IDEA scheduler and injected isShowing in a headless JVM.",
+    "realIdeExecuted": false,
+    "realPopupExecuted": false,
+    "originalCiFailureReproduced": false,
+    "selectedCallbackCompletionProven": false,
+    "firstAttempt": "Incomplete PowerShell invocation stopped on expected stderr; original outputs retained, complete second invocation passed.",
+    "postCorrection": "Generated JS was byte-identical after Java Object-overload correction; 10 scenarios were not repeated."
+  },
+  "officialSourceReview": {
+    "version": "2026.2.0.1",
+    "build": "262.8665.337",
+    "tag": "idea/262.8665.337",
+    "commit": "15645ead6f20019cc2537dbbd43df4eb344423a8",
+    "provenance": "official-idea-source/provenance.json",
+    "conclusion": "Normal Enter closes and disposes the parent popup before the focus-settled selected callback. This does not support changing production code on the theory that a later parent dispose necessarily removes the child popup. Enter dispatched after cancellation can return through the cancelled/disposed guard without executing the selected callback; mechanism confirmed, occurrence in original CI unproven."
+  },
+  "omittedDependencies": [
+    {
+      "name": "rhino-1.7.15.jar",
+      "sha256": "2427fdcbc149ca0a25ccfbb7c71b01f39ad42708773a47816cd2342861766b63",
+      "hashSource": "popup-contract/run2-metadata.json",
+      "copied": false
+    }
+  ],
+  "verification": {
+    "byteForByteVerified": true,
+    "files": 72,
+    "totalBytes": 1984451,
+    "includedFileDigestsVerifiedAgainstCopiedBytes": true
+  },
+  "files": [
+    {
+      "path": "ci-run/artifacts-1.json",
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/artifacts-1.json",
+      "bytes": 7256,
+      "sha256": "8f1f168ad8db0f43885bbce199e31e0b720f0a522d9145bf634eff314af7a4e0",
+      "scope": "Original GitHub run/jobs/artifacts API capture",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-run/jobs-1.json",
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/jobs-1.json",
+      "bytes": 38177,
+      "sha256": "cd2f83b44382da5987f5cdabea9c4f1eb295581e822789125f94c671ea134d8e",
+      "scope": "Original GitHub run/jobs/artifacts API capture",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-run/readback.json",
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/readback.json",
+      "bytes": 80023,
+      "sha256": "625f4cd56cb11fa93d5592367230a6c04da7f6c9697749b43bcf91c8139127f1",
+      "scope": "Original GitHub run/jobs/artifacts API capture",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-run/run.json",
+      "source": ".work/release-preflight-0.166.95/ide-arm64-a3f-failed/run.json",
+      "bytes": 13773,
+      "sha256": "f44a7389a514327c601b265823ab5fc7e197dadfb268fd1dc36c594eea678031",
+      "scope": "Original GitHub run/jobs/artifacts API capture",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-job/job.json",
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/job.json",
+      "bytes": 5745,
+      "sha256": "6f11a6a674f05e451dca73d096cc78b6c1c566ccb0bee5d28f263810b5d1ba79",
+      "scope": "Original failing Windows ARM64 job API and raw job log",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-job/job.log",
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/job.log",
+      "bytes": 216526,
+      "sha256": "f79aae2aa80b9f49bb586dab677027fe09cbae044208cc986e74f936f5a27804",
+      "scope": "Original failing Windows ARM64 job API and raw job log",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-job/readback.json",
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/readback.json",
+      "bytes": 338,
+      "sha256": "5ef6b69b55ea4d33e20b80cf6f29a1af2d3d246e6dd160f749a535e5e838fafe",
+      "scope": "Original failing Windows ARM64 job API and raw job log",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "ci-job/run.json",
+      "source": ".work/release-preflight-0.166.95/ide-jb-windows-arm64-a3f-failed/run.json",
+      "bytes": 15319,
+      "sha256": "daa40edb57b1781aca5d57542d98c6f7fba2928168aceedf53e2a902533fae55",
+      "scope": "Original failing Windows ARM64 job API and raw job log",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "bytes": 17718,
+      "sha256": "cf242d3d4925b31990fd123322b4805327c19848dc9bc99954a8947eafcd55cd",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+      "bytes": 47,
+      "sha256": "42c0b19478cab8c3e26422ea7b95122803288c198a4c0e416fb94cc8c9cd6d29",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+      "bytes": 260,
+      "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+      "bytes": 260,
+      "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+      "bytes": 260,
+      "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+      "bytes": 260,
+      "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+      "bytes": 260,
+      "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+      "bytes": 260,
+      "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/017-prepare.stderr.log",
+      "bytes": 1005,
+      "sha256": "c368b336f08006294c0bb9f87f776edb0594232836e5960c1336613ac01e1cb5",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/018-prepare.stdout.log",
+      "bytes": 21698,
+      "sha256": "29b0b2611a30f133a614bc1637fa06872188093d066839abc198f7b23d9b1806",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/019-sandbox-ide-initial.stderr.log",
+      "bytes": 2810,
+      "sha256": "ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/020-sandbox-ide-initial.stdout.log",
+      "bytes": 1013,
+      "sha256": "f088e20f98d1626def5107736edd5cb403e508319d036ab1ac517147511c51b4",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/021-ui-smoke-initial.stderr.log",
+      "bytes": 14896,
+      "sha256": "6874a4b95974fcb9828a11b2a911cb5800ec79cbc815a2f1bee72c2beaa558af",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/022-ui-smoke-initial.stdout.log",
+      "bytes": 14303,
+      "sha256": "df409ad2b12c8fe65d716b51b4b79fcbcddf97a29bdfce250963f35e9c3746da",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/026-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "bytes": 2256,
+      "sha256": "e13dd0c213f857e5db8c9238a98956f49072598c542488bcabd3d69c3495cdf1",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/027-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "bytes": 654,
+      "sha256": "dfe14437dd39517332f1aaa4a72c6b02a98a1c89a740f5d5b089301f28a6b9c2",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/028-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "bytes": 1227,
+      "sha256": "f9f7bf2a884f1dfe948b3258edc107e974b7f4077ec65ce4754b8e901132b721",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/029-chat-control-journey-1791559192742.png",
+      "bytes": 341074,
+      "sha256": "2e32fbd94ad47413206c00cdbb3d2189e18b7feba7435dbb5bc686a5b8a6944a",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "bytes": 10521,
+      "sha256": "d2283d903af9efe64e9487c3449662d72c9ed26f110834548b859d1cb32c3495",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "host-artifact/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/runner-diagnostics/chainlesschain-windows-gui-guard.log",
+      "bytes": 782,
+      "sha256": "e7692375cdf52056e41106f1fe3012194b400fdcfafb3408b8d0b009763cfe04",
+      "scope": "Selected original artifact 11625812501: manifest, diagnostics, protocol, JUnit, failure screenshot and GUI guard",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/actual-corrected-exact-script.js",
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-corrected-exact-script.js",
+      "bytes": 1590,
+      "sha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/actual-exact-script.js",
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-exact-script.js",
+      "bytes": 1590,
+      "sha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/actual-prefix-script.js",
+      "source": ".work/astra-popup-dispatch-contract-20261009/actual-prefix-script.js",
+      "bytes": 1579,
+      "sha256": "7d04e167bd97258c69fc6c8219d8cda2e161220fd6ed2312d9e181c0c11c23bf",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/classpath.init.gradle",
+      "source": ".work/astra-popup-dispatch-contract-20261009/classpath.init.gradle",
+      "bytes": 480,
+      "sha256": "789a8e0139553377d45e8aa226c3b928f2a00c7ba8b4d343d76505059251a5af",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/compile.stderr.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/compile.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/compile.stdout.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/compile.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/compiled-driver-after-review.javap.txt",
+      "source": ".work/astra-popup-dispatch-contract-20261009/compiled-driver-after-review.javap.txt",
+      "bytes": 165914,
+      "sha256": "2a983c80fc6cacf9b621d710d65b57c4a9d1c7878d1e0bd0ed50ad70a35de17e",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/compiled-driver-before-review.javap.txt",
+      "source": ".work/astra-popup-dispatch-contract-20261009/compiled-driver-before-review.javap.txt",
+      "bytes": 165958,
+      "sha256": "35f2eaed1ef83af823e1053fa5376d0958a831d0e67e24938cabe5d7abe0f3d9",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/IdeUiSmokeTest.corrected.source.java",
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.corrected.source.java",
+      "bytes": 66395,
+      "sha256": "2eda534b6bb3969b5dfb195efeca291b2843f93132b03b39dc97e27748f12655",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/IdeUiSmokeTest.source.java",
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.source.java",
+      "bytes": 66386,
+      "sha256": "f4bb79ab6d6328b2bcf488b7aba33033e93475b6999ab8d0dcfbdf499598554f",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/report.json",
+      "source": ".work/astra-popup-dispatch-contract-20261009/report.json",
+      "bytes": 5006,
+      "sha256": "90efda05bd97787533b654709c670a5aa4d599d5ef3acfcde4e4902c11bf2f02",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/review-finding.json",
+      "source": ".work/astra-popup-dispatch-contract-20261009/review-finding.json",
+      "bytes": 691,
+      "sha256": "1d2a8c4a0334f8bebde3e32af5344b698b91ef2ad8351dba76228c12fa6efda7",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/review-resolution.json",
+      "source": ".work/astra-popup-dispatch-contract-20261009/review-resolution.json",
+      "bytes": 754,
+      "sha256": "48366c631ae92fc309a5a682cc6171ace78534c5465249fc3a11bdd9fc2bff84",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run.mjs",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.mjs",
+      "bytes": 1808,
+      "sha256": "17602f2417d59cd011bd1c4681b216ce521eff20347adcd0f9c9cce82b032bb1",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run.ps1",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.ps1",
+      "bytes": 2438,
+      "sha256": "48e8e0570f039a2cb4e1923953f214a7ecfe67c491bbad96c27d189234d29545",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run.stderr.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run.stdout.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run.stdout.log",
+      "bytes": 2212,
+      "sha256": "2c718e7eb8783bca28a5e43451c301dfe66141c9e6d6fe5ea4734cba588dcd4a",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run2-metadata.json",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2-metadata.json",
+      "bytes": 517,
+      "sha256": "452ea480403fc1b36b41e3234274ad6694cb3ec2c70f594456705a8fdc20ab87",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run2.stderr.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2.stderr.log",
+      "bytes": 586,
+      "sha256": "b19aae1951efbd47e70c3cfe9c5c893c6fb8f1fbd58c6a521c388eff12442634",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/run2.stdout.log",
+      "source": ".work/astra-popup-dispatch-contract-20261009/run2.stdout.log",
+      "bytes": 3734,
+      "sha256": "9988dc4bc0911cafa2b3f12d2b05258da59455e5780c6bf1b538b19207f50c25",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/runtime-classpath.txt",
+      "source": ".work/astra-popup-dispatch-contract-20261009/runtime-classpath.txt",
+      "bytes": 4007,
+      "sha256": "752f7c8eb51b49c57fc68c6b122b4298f9fe9050c2a69b4c8092c59949eab058",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/src/com/intellij/openapi/application/ApplicationManager.java",
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/com/intellij/openapi/application/ApplicationManager.java",
+      "bytes": 963,
+      "sha256": "ba3c5fd50c5b71ee8912c8d6c4c974d8b1ba67aa8de9cf6be58d714b12e543e3",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/src/ExportActual.java",
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/ExportActual.java",
+      "bytes": 531,
+      "sha256": "4bc649e8706ba5bb0f920ea1ac5d3a0e9e7d592e6870ae1076183b21d3189adb",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/src/PopupDispatchContract.java",
+      "source": ".work/astra-popup-dispatch-contract-20261009/src/PopupDispatchContract.java",
+      "bytes": 10790,
+      "sha256": "19e2ffd09cda664c53f366da5990a827e6dcd77201a945ed5afa425364669e33",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/verify-review-correction.mjs",
+      "source": ".work/astra-popup-dispatch-contract-20261009/verify-review-correction.mjs",
+      "bytes": 2571,
+      "sha256": "bb6c7b82f809a3ae5220198231a777121e886293c60328486e5617ac2b3ade8d",
+      "scope": "Original actual-generated-JS Rhino/Swing contract and independent Java bytecode review evidence",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/AbstractPopup.java",
+      "source": ".work/astra-popup-official-source-20261010/AbstractPopup.java",
+      "bytes": 114898,
+      "sha256": "a48c3b50d918694529f6109fe40ad51a5b2843ccb9ab143ad9ddb56ef734fa25",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/AbstractPopup.java.metadata.json",
+      "source": ".work/astra-popup-official-source-20261010/AbstractPopup.java.metadata.json",
+      "bytes": 159685,
+      "sha256": "f435d0ed6ca0c62f2b316cebd4a77b9fd1faba3a6b73773a3ad9d4578fe5143a",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupChooserBuilder.java",
+      "source": ".work/astra-popup-official-source-20261010/PopupChooserBuilder.java",
+      "bytes": 20814,
+      "sha256": "87ff943af7d31282dc922c97aa4f6e14efcf5a685e3943ad73e295630c53c944",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupChooserBuilder.java.metadata.json",
+      "source": ".work/astra-popup-official-source-20261010/PopupChooserBuilder.java.metadata.json",
+      "bytes": 30138,
+      "sha256": "ce2dd2218ed9585390c73474992c5aeea72fe97deaf616c3394176b925c9d7b7",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupFactoryImpl.java",
+      "source": ".work/astra-popup-official-source-20261010/PopupFactoryImpl.java",
+      "bytes": 45838,
+      "sha256": "ab1a97d5d302105d3fb419f4d7acf8a8636ab4c408933d9f5b9424e9df01a670",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupFactoryImpl.java.metadata.json",
+      "source": ".work/astra-popup-official-source-20261010/PopupFactoryImpl.java.metadata.json",
+      "bytes": 64555,
+      "sha256": "256f36e0d12b38ad8c0b160843df3a9b215508f1d6c888c23a626712a40ca543",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupListAdapter.java",
+      "source": ".work/astra-popup-official-source-20261010/PopupListAdapter.java",
+      "bytes": 5377,
+      "sha256": "7d64d1da793eccf642292c3612e32ba0af3d1a1b75c000e0688c82652c0a056e",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/PopupListAdapter.java.metadata.json",
+      "source": ".work/astra-popup-official-source-20261010/PopupListAdapter.java.metadata.json",
+      "bytes": 8808,
+      "sha256": "e13906491926a68b6635c4fb1cff5a425cc9f08eddb88d6f022456661ba8c13f",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/provenance.json",
+      "source": ".work/astra-popup-official-source-20261010/provenance.json",
+      "bytes": 3386,
+      "sha256": "61d42dcc0f3b1e002abc5135f6e684ed561ea09bd96074eb70b74c92a3b15819",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/tag-ref.json",
+      "source": ".work/astra-popup-official-source-20261010/tag-ref.json",
+      "bytes": 399,
+      "sha256": "a7d27ec3f668646cf7617ee558d1f4d4d5378ac316f285ac5a7af18c3e7b5f53",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/vendor-selected-release.json",
+      "source": ".work/astra-popup-official-source-20261010/vendor-selected-release.json",
+      "bytes": 6526,
+      "sha256": "21a8a9423a1549853f85f449635afabc096e02b7d657adb0373848382129d761",
+      "scope": "Official source bytes/metadata bound to IDEA build 262.8665.337 and immutable Git commit",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/prior-analysis-captures/PopupChooserBuilder.java",
+      "source": ".work/astra-PopupChooserBuilder-262.8665.337.java",
+      "bytes": 21489,
+      "sha256": "75ee1071854e27f24131113a60d6edcba4b3e7a8890c6f98d2e0ef6082380bf7",
+      "scope": "Earlier PowerShell-rendered source capture used during analysis; raw official bytes are archived separately",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/prior-analysis-captures/AbstractPopup.java",
+      "source": ".work/astra-AbstractPopup-262.8665.337.java",
+      "bytes": 118072,
+      "sha256": "f176b024899ef16c962deb3a19a42e1b6d216deaf1b20450254b6d37176b0fd1",
+      "scope": "Earlier PowerShell-rendered source capture used during analysis; raw official bytes are archived separately",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/prior-analysis-captures/PopupFactoryImpl.java",
+      "source": ".work/astra-PopupFactoryImpl-262.8665.337.java",
+      "bytes": 46890,
+      "sha256": "0054efe708719013fb5522d9cc424a905eb7a73293e575b5652dfae522868b49",
+      "scope": "Earlier PowerShell-rendered source capture used during analysis; raw official bytes are archived separately",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "official-idea-source/prior-analysis-captures/PopupListAdapter.java",
+      "source": ".work/astra-PopupListAdapter-262.8665.337.java",
+      "bytes": 5562,
+      "sha256": "f39dd3b5f10734f75cd7613bd7edc3bb678a972aac0b80ce534f3c92954b16d9",
+      "scope": "Earlier PowerShell-rendered source capture used during analysis; raw official bytes are archived separately",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "archive-tools/astra-capture-official-popup-sources-20261010.mjs",
+      "source": ".work/astra-capture-official-popup-sources-20261010.mjs",
+      "bytes": 3028,
+      "sha256": "5373a8356e2710ae741989c8a694dec459f2f95cd4ca18b62cfc10e5464d1747",
+      "scope": "Archive/capture implementation, not product source",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "archive-tools/astra-finalize-official-popup-source-20261010.mjs",
+      "source": ".work/astra-finalize-official-popup-source-20261010.mjs",
+      "bytes": 2374,
+      "sha256": "dec6f952c44db8f02ded73e0ad288a84d4dd5611516f7c8b4bcc32574660fc86",
+      "scope": "Archive/capture implementation, not product source",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "archive-tools/astra-archive-arm64-attempt4-20261010.mjs",
+      "source": ".work/astra-archive-arm64-attempt4-20261010.mjs",
+      "bytes": 10760,
+      "sha256": "b58a33e62d34ba339475344d7959355ee967d95fd982e3b635956a07c8cd4863",
+      "scope": "Archive/capture implementation, not product source",
+      "byteForByteVerified": true
+    },
+    {
+      "path": "popup-contract/compilation-tool-record.json",
+      "source": ".work/astra-popup-dispatch-contract-20261009-compilation-tool-record.json",
+      "bytes": 631,
+      "sha256": "8197139f3aab194a45b459cf217cdeb481a484d89f1b9165da2b57cae9575bad",
+      "scope": "Explicitly labeled tool presentation record; not original shell output",
+      "byteForByteVerified": true
+    }
+  ],
+  "omittedFiles": [
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/001-fake-cli-bin_cc",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/002-fake-cli-bin_cc.cmd",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/003-fake-cli-bin_chainlesschain",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/005-fake-cli-bin_clc",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/006-fake-cli-bin_clc.cmd",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/007-fake-cli-bin_clchain",
+      "bytes": 168,
+      "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/008-fake-cli-bin_clchain.cmd",
+      "bytes": 163,
+      "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/023-binary_output.bin",
+      "bytes": 1156,
+      "sha256": "6480e6cf88e84b75a1ceca92a895c570830446bdff8647d3262a95e173885631",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/024-binary_output.bin.idx",
+      "bytes": 71,
+      "sha256": "dd1f49b9ebaa01c0bf7add528fd2fe5c0eb415a6ba01bd11c4d26a5d8e505320",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/025-binary_results.bin",
+      "bytes": 1889,
+      "sha256": "74474b24eaf6a4c19636ca6e88ea9a8dc5816d6777dfb9d54c4baa33ba2dfef4",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1514571,
+      "sha256": "07905a1ec80d20eee57665348ba0dc24647053128536e40c5954535e2e72dc07",
+      "reason": "Not copied: packaged release ZIP, binary test database or launcher wrapper; original artifact manifest retains its identity"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/com/intellij/openapi/application/ApplicationManager.class",
+      "bytes": 691,
+      "sha256": "64f5c9dca7ebc61165c71910935fcba1449f4247728d8d758b940d56910c1b14",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/com/intellij/openapi/application/ApplicationManager$QueuedApplication.class",
+      "bytes": 1197,
+      "sha256": "2589666e73903d6c492a8f97792de0f7036bfe080082f1cc8ac1abebbafab2fe",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/ExportActual.class",
+      "bytes": 1326,
+      "sha256": "fb4eed6c3c39a233cdf40719abbdd71bbfa10ec35f48b9e16146405f6983b993",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/PopupDispatchContract.class",
+      "bytes": 12168,
+      "sha256": "a2db8372cee1b55f6c0a6f881867eeda43324494d9a97a6b8670fbe36581f492",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/PopupDispatchContract$ProbeList.class",
+      "bytes": 2817,
+      "sha256": "90d476136b3bef9f8cfad76edf6ef9b0222cb7abfc880665b27bb4a67adab95f",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/classes/PopupDispatchContract$ProbeList$1.class",
+      "bytes": 1492,
+      "sha256": "592b4692a830b0d291a999aa348e4af188be2fec7687ed4622d3871ba1f42779",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.class",
+      "bytes": 46650,
+      "sha256": "1222189ca8e31d82a8f49d506ffb0a58efc9074cd76c3a7cc5c3b046f8cfd3f1",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-dispatch-contract-20261009/IdeUiSmokeTest.corrected.class",
+      "bytes": 46604,
+      "sha256": "9c860433e9c65afe64c808ab3d63219fc6018170e575800e57bb49a60a9d8c33",
+      "reason": "Compiled class omitted by archive scope; source, generated script, javap disassembly and class hashes retained"
+    },
+    {
+      "source": ".work/astra-popup-official-source-20261010/vendor-releases.original.json",
+      "bytes": 1130402,
+      "sha256": "7de4df22e6ce60d4f3df22f52532fd77163b807ccd032b5db577d565895855e3",
+      "reason": "Unrelated full vendor release catalog omitted; exact selected release, original payload size/hash and retrieval provenance retained"
+    }
+  ],
+  "archivePathMapping": {
+    "reason": "Windows Git checkout at release candidate 9f4df1157e493daaee137655c4e1d37c066c50e8 rejected six 236-character relative paths. Only archive basenames are shortened; original artifact/source paths and all payload bytes/digests remain unchanged.",
+    "capturedAt": "2026-10-09T16:15:18.466Z",
+    "originalManifestSha256": "0fe6ee6e2334cd55ab196607b19ef9c5c0b7d395ccbf68812a7627c8db26f1a4",
+    "files": [
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/011-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_23875fd00813e1ce688d449c1bb8cf4f2789b885ae6784d2fd12ca3f3e43ada0.json",
+        "bytes": 260,
+        "sha256": "e873417fcde6461e8842192811176e82d23e686f1cc894005fc8ac0ec9986b03"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/012-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_24959eb129be2d590bf014b62611532eb5beb7fceea0f5944d7fc43c9b14daea.json",
+        "bytes": 260,
+        "sha256": "58a2d886c5ec71b8dbf8896405ac9b07c092cca137dbe368a7ce7df1b0a0ded6"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/013-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_7327f0c0e99ae260b365b249f16b0e8c71a1f59d9b3c87e7e1a7f114163cb958.json",
+        "bytes": 260,
+        "sha256": "d124d1b06c5b4e027cecf9c5f0aaaddcfc91f15afd73717770ee32f6f71be061"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/014-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_bf391115f6f469b0a996348269f4a196163da4ef06bc0260f5f7938f8b5aacaf.json",
+        "bytes": 260,
+        "sha256": "08d4a192b441e1f1af8469ef9a38038b817cc1d729da1d65299ae75ff9af21d1"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/015-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_e050a3a771350adba4a182ea8a945589ff28b6342e5c6b5d00eeb239f780c2c7.json",
+        "bytes": 260,
+        "sha256": "ea02156a539f732293a2af0b16f1fa150e0633158543a936f0cab9055ffd5c47"
+      },
+      {
+        "originalArchivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+        "archivePath": "host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/016-receipt.json",
+        "artifactSourcePath": ".work/release-preflight-0.166.95/astra-jb-arm64-artifact-11625812501/jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_e198f1a2a60f81fe6f7f1e0decb90addc8e580851422d85030127b72430489d4.json",
+        "bytes": 260,
+        "sha256": "0552da601caebfb5c08e454640e8bd905964bf6f6ba9aed921ef7666304e21b6"
+      }
+    ],
+    "artifactExtractionTreePreserved": false,
+    "originalJourneyManifestUnmodified": true
+  }
+}

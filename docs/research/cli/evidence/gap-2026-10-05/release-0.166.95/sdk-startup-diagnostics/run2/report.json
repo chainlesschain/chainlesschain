@@ -1,0 +1,192 @@
+{
+  "schema": "chainlesschain.sdk-startup-diagnostic-contract/v1",
+  "verified": true,
+  "originalCiFailureReproduced": false,
+  "usesRealDiagnosticNodeChildren": true,
+  "usesActualFixtureHelpers": true,
+  "productionSdkChanged": false,
+  "timeLimitsChanged": false,
+  "node": "v22.22.2",
+  "platform": "win32",
+  "typescript": "5.9.3",
+  "fixture": {
+    "path": "packages\\agent-sdk\\__tests__\\e2e-agent-session.test.ts",
+    "bytes": 11946,
+    "sha256": "5efb522d5dcc6e187f678d058972d2bebe7e122e2ab23dd2fbf41b3067ee06e3"
+  },
+  "helperNames": [
+    "waitForInit",
+    "withDiagnostics"
+  ],
+  "helperSourceSha256": "66317d0bed8acca865fb355f6f0209d2c5ec7c5c5c333deff63e3377bdbe9cb6",
+  "sdkSources": [
+    {
+      "path": "packages\\agent-sdk\\src\\agent-session.ts",
+      "bytes": 17098,
+      "sha256": "749b4bb8db0a60f5721a2442d3fbeb92a3e09741d62ea7e84c3e027ef29acb51"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\app-server-client.ts",
+      "bytes": 11727,
+      "sha256": "243254aebace7128fe28329c9fae4a5672fc896fe195861eacb9a9fc3ab4ba32"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\app-server-pilot-client.ts",
+      "bytes": 8267,
+      "sha256": "43b33f270d32844fb42560d167a46fcd065c0109fe183d3ef8ea5b872096ddf0"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\background.ts",
+      "bytes": 5010,
+      "sha256": "b0db1cb27d800726d8687e80c8075546377b82dd591eda97f84a4aa3776d7ed6"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\browser.ts",
+      "bytes": 882,
+      "sha256": "7b41ebc730465658983df55d781002c10688a3716d1921efbcc723832da65457"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\cli-json.ts",
+      "bytes": 3797,
+      "sha256": "32b0257ee64980a7880319e05d320d5f854a28d453f8f8b399bfe2782eb96085"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\generated\\app-protocol.ts",
+      "bytes": 180374,
+      "sha256": "cae1f47b57964f358a5bd48b72e0f1536f66604102e67d19ea8645743522b458"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\index.ts",
+      "bytes": 1566,
+      "sha256": "7cdcdae1cea083c1dbad8055345c90d2d38838380464c1d868be224a8e7084d1"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\ndjson.ts",
+      "bytes": 2596,
+      "sha256": "5bc47cae06707a775ae6be3886e2959260167d05c0db87d5d042b58f442062ae"
+    },
+    {
+      "path": "packages\\agent-sdk\\src\\protocol.ts",
+      "bytes": 28861,
+      "sha256": "cb83a311459c8cd8e552c58459982b3487d1bc17044e9cbee284023100242f61"
+    }
+  ],
+  "checks": [
+    {
+      "phase": "first",
+      "spawnError": false,
+      "resume": false,
+      "commandUsed": "C:\\nvm4w\\nodejs\\node.exe",
+      "argsUsed": [
+        "C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\diagnostic-child.mjs",
+        "agent",
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--include-partial-messages",
+        "--session",
+        "diagnostic-session"
+      ],
+      "close": {
+        "code": 1,
+        "signal": null
+      },
+      "stderr": "first diagnostic stderr\n",
+      "events": [
+        {
+          "type": "diagnostic_fixture",
+          "phase": "first",
+          "detail": "first event"
+        }
+      ],
+      "message": "agent exited (code 1) before init\ncc phase: first init\ncc stderr observed before failure:\nfirst diagnostic stderr\ncc events:\n[\n  {\n    \"type\": \"diagnostic_fixture\",\n    \"phase\": \"first\",\n    \"detail\": \"first event\"\n  }\n]",
+      "cause": {
+        "sameObject": true,
+        "name": "Error",
+        "message": "agent exited (code 1) before init"
+      },
+      "listenersAfter": {
+        "init": 0,
+        "exit": 0,
+        "error": 0
+      }
+    },
+    {
+      "phase": "resume",
+      "spawnError": false,
+      "resume": true,
+      "commandUsed": "C:\\nvm4w\\nodejs\\node.exe",
+      "argsUsed": [
+        "C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\diagnostic-child.mjs",
+        "agent",
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--include-partial-messages",
+        "--resume",
+        "diagnostic-session"
+      ],
+      "close": {
+        "code": 1,
+        "signal": null
+      },
+      "stderr": "resume diagnostic stderr\n",
+      "events": [
+        {
+          "type": "diagnostic_fixture",
+          "phase": "resume",
+          "detail": "resume event"
+        }
+      ],
+      "message": "agent exited (code 1) before init\ncc phase: resume init\ncc stderr observed before failure:\nresume diagnostic stderr\ncc events:\n[\n  {\n    \"type\": \"diagnostic_fixture\",\n    \"phase\": \"resume\",\n    \"detail\": \"resume event\"\n  }\n]",
+      "cause": {
+        "sameObject": true,
+        "name": "Error",
+        "message": "agent exited (code 1) before init"
+      },
+      "listenersAfter": {
+        "init": 0,
+        "exit": 0,
+        "error": 0
+      }
+    },
+    {
+      "phase": "spawn-error",
+      "spawnError": true,
+      "resume": false,
+      "commandUsed": "C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\missing-os-executable.exe",
+      "argsUsed": [
+        "/c",
+        "C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\nonexistent-diagnostic-executable.exe",
+        "agent",
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--include-partial-messages",
+        "--session",
+        "diagnostic-session"
+      ],
+      "close": {
+        "code": -4058,
+        "signal": null
+      },
+      "stderr": "",
+      "events": [],
+      "message": "spawn C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\missing-os-executable.exe ENOENT\ncc phase: spawn-error init\ncc stderr observed before failure:\n<empty>\ncc events:\n[]",
+      "cause": {
+        "sameObject": true,
+        "name": "Error",
+        "message": "spawn C:\\code\\chainlesschain\\.work\\astra-sdk-startup-diagnostics-20261009\\run2\\missing-os-executable.exe ENOENT",
+        "code": "ENOENT"
+      },
+      "listenersAfter": {
+        "init": 0,
+        "exit": 0,
+        "error": 0
+      }
+    }
+  ]
+}

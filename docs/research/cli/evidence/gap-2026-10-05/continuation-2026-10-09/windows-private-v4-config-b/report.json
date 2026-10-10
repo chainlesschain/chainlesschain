@@ -1,0 +1,478 @@
+{
+  "schema": "chainlesschain.windows-private-v4-diagnostic/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullFrozenReviewCompleted": false,
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-broker.cpp",
+      "bytes": 23911,
+      "digest": "sha256:6304f7f4a1f0c3033337d1c28be6c4e08e656c967c3a85b9b50a0509fccbd11e"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.cpp",
+      "bytes": 46521,
+      "digest": "sha256:a37d51b639d2ce83e47338062292b12a9c6598c23f80c78bba1bcbf125dc3946"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.h",
+      "bytes": 22635,
+      "digest": "sha256:eebe37bb454aa78cd28bd1f7b9f0bd1bf700e5226ed19fd65e58d23a440548b4"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-paired.h",
+      "bytes": 7309,
+      "digest": "sha256:0d86998fa14c23f3257aca57a3e22b6445821bc0b95dbdc7248ced4578b9e887"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-protocol.h",
+      "bytes": 724,
+      "digest": "sha256:69792e2cdfa932eb64d509d14802b21155ff8bc65add29ba9e7acfc753b714c4"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    }
+  ],
+  "commands": [
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-municode",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-broker.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-luserenv",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\broker.exe"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-node-private-v4-adapter.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\windows-node-private-v4.node"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "-std=c++17",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-static",
+        "-shared",
+        "-I",
+        "C:\\Users\\longfa\\AppData\\Local\\node-gyp\\Cache\\22.22.2\\include\\node",
+        "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-esbuild-private-map-shim.cpp",
+        "-ladvapi32",
+        "-lbcrypt",
+        "-lshell32",
+        "-Wl,--no-insert-timestamp",
+        "-o",
+        "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\esbuild-private-shim.dll"
+      ],
+      "status": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\.work\\run-private-v4-frozen.mjs",
+    "bytes": 6742,
+    "digest": "sha256:87f125812dcb60b5bca678f3f8ba69751b332d27a1e228cce1241581eb42778e"
+  },
+  "outputs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\broker.exe",
+      "bytes": 848384,
+      "digest": "sha256:46c21e6f9e46fd69e1a75b2ce69433d89382662a1da942a6fbc97a5f9c84195b"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\windows-node-private-v4.node",
+      "bytes": 770048,
+      "digest": "sha256:be67769750b58013b72db266aeb6f8df4fac4f6312cf2d957f794b146f1705d4"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-frozen-20261009-b-native-loader\\esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+    }
+  ],
+  "root": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+  "checker": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\check.cjs",
+    "bytes": 2473,
+    "digest": "sha256:2ac628056c7fb4e6f1df83e944eb9d6d1ccaf6330b3edb7466caf1c978979786"
+  },
+  "execution": {
+    "status": 2,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"schema\":\"chainlesschain.windows-private-broker/v4\",\"status\":\"NOT_ADMITTED\",\"completed\":false,\"stage\":\"root-settlement\",\"error\":1,\"hostPid\":21476,\"rootPid\":7216,\"servicePid\":0,\"rootTokenAndSameJobProven\":true,\"serviceTokenAndSameJobProven\":false,\"rootMapInstalled\":true,\"serviceMapInstalled\":false,\"serviceMapStatus\":2147483647,\"rootWait\":0,\"serviceWait\":4294967295,\"rootExit\":1,\"serviceExit\":259,\"requests\":0,\"serviceParent\":\"host-custodian\",\"cleanupConfirmed\":true,\"jobActiveProcesses\":0,\"profileDeleted\":true,\"loopbackExemptionAbsent\":true,\"hostMapUnchanged\":true,\"sessionId\":\"df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d\",\"generation\":\"df5632cb-d5e3-406c-8706-4ff634cc6df6\",\"appContainerSid\":\"S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101\"}\r\n",
+    "stderr": ""
+  },
+  "stdout": {
+    "digest": "sha256:9437160bf7c9e211706577c7261b05ea395265c2b7530108b70ed2ad933892f8",
+    "text": "{\"numTotalTestSuites\":0,\"numPassedTestSuites\":0,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":0,\"numPassedTests\":0,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1791519168675,\"success\":false,\"testResults\":[]}\n"
+  },
+  "stderr": {
+    "digest": "sha256:2129f37dcb6cc20de2e70413193455bf505719156a05d09cb20b31b15140280f",
+    "text": "Error: smoke did not pass\n    at X:\\control\\check.cjs:6:1107\n"
+  },
+  "journal.jsonl": {
+    "digest": "sha256:1f9cf51d4d9a259dac3907723c95dc7d843eecef32ec91d40216bcb162711857",
+    "text": "{\"sequence\":1,\"pid\":7216,\"phase\":\"started\"}\n{\"sequence\":2,\"pid\":7216,\"phase\":\"vitest-import-started\"}\n{\"sequence\":3,\"pid\":7216,\"phase\":\"vitest-import-completed\"}\n{\"sequence\":4,\"pid\":7216,\"phase\":\"config-loaded\",\"pool\":\"forks\",\"maxWorkers\":2}\n{\"sequence\":5,\"pid\":7216,\"phase\":\"failed\",\"message\":\"smoke did not pass\",\"code\":null}\n"
+  },
+  "receipts": [
+    {
+      "schema": "chainlesschain.windows-node-private-preload/v4",
+      "status": "NOT_ADMITTED",
+      "trusted": false,
+      "admissionEligible": false,
+      "stage": "same-sid-esbuild-service",
+      "role": "root",
+      "phase": "exit",
+      "pid": 7216,
+      "ppid": 21476,
+      "parentage": "host-broker-created",
+      "manifestSha256": "c48e1788eb37b308e9737328ca9acd74f3cfbc59b89cb587d6c515c16a815c0c",
+      "sessionId": "df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d",
+      "generation": "df5632cb-d5e3-406c-8706-4ff634cc6df6",
+      "paired": {
+        "status": "NOT_ADMITTED",
+        "trusted": false,
+        "admissionEligible": false,
+        "role": "root",
+        "scope": "paired-path-diagnostic",
+        "sameJobAuthority": "host-custodian-only",
+        "native": {
+          "schema": "chainlesschain.windows-private-identity/v4",
+          "status": "NOT_ADMITTED",
+          "sessionId": "df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d",
+          "generation": "df5632cb-d5e3-406c-8706-4ff634cc6df6",
+          "role": "root",
+          "nodeVersion": "22.22.2",
+          "modulesAbi": "127",
+          "token": {
+            "appContainerSid": "S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101",
+            "capabilityCount": 0,
+            "inJob": true
+          },
+          "root": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "39be7100000005000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "39be7100000005000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true
+          },
+          "runtime": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "42be7100000003000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\control\\node.exe",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "42be7100000003000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true,
+            "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+            "bytes": 87074816
+          }
+        }
+      },
+      "adapter": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@4",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 7216,
+        "appContainerSid": "S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 5,
+        "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+        "originalCreateFileA": "00007FFBDF4B4E90",
+        "pipeSlot": "00007FF7CD3077B8",
+        "fileSlot": "00007FF7CD307560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 6,
+        "clientCalls": 3,
+        "serverMapped": 6,
+        "clientMapped": 3,
+        "serverFailures": 3,
+        "clientFailures": 0,
+        "serverFirstError": 231,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+        "finalPathSlot": "00007FF7CD307820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "39be7100000005000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 0,
+        "nullMapped": 0,
+        "nullRejected": 0,
+        "launches": 1,
+        "launched": 0,
+        "launchRejected": 1,
+        "launchError": 50,
+        "launchStage": "private-service-shape",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      },
+      "exitCode": 1
+    },
+    {
+      "schema": "chainlesschain.windows-node-private-preload/v4",
+      "status": "NOT_ADMITTED",
+      "trusted": false,
+      "admissionEligible": false,
+      "stage": "same-sid-esbuild-service",
+      "role": "root",
+      "phase": "installed",
+      "pid": 7216,
+      "ppid": 21476,
+      "parentage": "host-broker-created",
+      "manifestSha256": "c48e1788eb37b308e9737328ca9acd74f3cfbc59b89cb587d6c515c16a815c0c",
+      "sessionId": "df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d",
+      "generation": "df5632cb-d5e3-406c-8706-4ff634cc6df6",
+      "paired": {
+        "status": "NOT_ADMITTED",
+        "trusted": false,
+        "admissionEligible": false,
+        "role": "root",
+        "scope": "paired-path-diagnostic",
+        "sameJobAuthority": "host-custodian-only",
+        "native": {
+          "schema": "chainlesschain.windows-private-identity/v4",
+          "status": "NOT_ADMITTED",
+          "sessionId": "df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d",
+          "generation": "df5632cb-d5e3-406c-8706-4ff634cc6df6",
+          "role": "root",
+          "nodeVersion": "22.22.2",
+          "modulesAbi": "127",
+          "token": {
+            "appContainerSid": "S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101",
+            "capabilityCount": 0,
+            "inJob": true
+          },
+          "root": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "39be7100000005000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "39be7100000005000000000000000000",
+              "directory": true,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true
+          },
+          "runtime": {
+            "physical": {
+              "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "accessMode": "host-inherited-handle",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "42be7100000003000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "logical": {
+              "path": "X:\\control\\node.exe",
+              "accessMode": "logical-dos",
+              "ntPath": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE\\control\\node.exe",
+              "volumeSerial": "3816218020381368311",
+              "fileId": "42be7100000003000000000000000000",
+              "directory": false,
+              "reparse": false,
+              "links": 1
+            },
+            "handlesHeldTogether": true,
+            "componentsGuarded": true,
+            "sha256": "ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3",
+            "bytes": 87074816
+          }
+        }
+      },
+      "adapter": {
+        "schema": "chainlesschain/windows-node-runtime-adapter@4",
+        "experimental": true,
+        "admissionEligible": false,
+        "pid": 7216,
+        "appContainerSid": "S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101",
+        "capabilityCount": 0,
+        "inJob": true,
+        "state": 2,
+        "stage": "installed",
+        "installError": 0,
+        "patches": 5,
+        "originalCreateNamedPipeA": "00007FFBDF4F2E20",
+        "originalCreateFileA": "00007FFBDF4B4E90",
+        "pipeSlot": "00007FF7CD3077B8",
+        "fileSlot": "00007FF7CD307560",
+        "pipeProtection": 2,
+        "fileProtection": 2,
+        "serverCalls": 0,
+        "clientCalls": 0,
+        "serverMapped": 0,
+        "clientMapped": 0,
+        "serverFailures": 0,
+        "clientFailures": 0,
+        "serverFirstError": 0,
+        "clientFirstError": 0,
+        "serverLastError": 0,
+        "clientLastError": 0,
+        "originalGetFinalPathNameByHandleW": "00007FFBDF4B5110",
+        "finalPathSlot": "00007FF7CD307820",
+        "finalPathProtection": 2,
+        "supportedPrivateRealpath": true,
+        "rootProof": {
+          "dos": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+          "nt": "\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-v4-S1fvFE",
+          "volumeSerial": "3816218020381368311",
+          "fileId": "39be7100000005000000000000000000",
+          "normalizedNtFlags": 2,
+          "handlePinned": true,
+          "ancestorAuthority": "supervisor-private-tree-guards",
+          "componentPolicy": "pinned-no-reparse-single-link-file-id"
+        },
+        "realpathCalls": 0,
+        "realpathFallbacks": 0,
+        "realpathMapped": 0,
+        "realpathRejected": 0,
+        "realpathLastError": 0,
+        "nullProof": {
+          "readAttested": true,
+          "writeAttested": true,
+          "object": "\\Device\\Null",
+          "readAccess": 1179785,
+          "writeAccess": 1180054,
+          "mode": 32
+        },
+        "nullFallbacks": 0,
+        "nullMapped": 0,
+        "nullRejected": 0,
+        "launches": 0,
+        "launched": 0,
+        "launchRejected": 0,
+        "launchError": 0,
+        "launchStage": "fresh",
+        "unsupported": [
+          "nonexact-NUL-calls",
+          "outside-private-root-realpath",
+          "uninstrumented-descendants"
+        ]
+      }
+    }
+  ],
+  "manifestRaw": "{\"schema\":\"chainlesschain.windows-node-private-manifest/v4\",\"status\":\"NOT_ADMITTED\",\"experimental\":true,\"admissionEligible\":false,\"stage\":\"same-sid-esbuild-service\",\"role\":\"root\",\"sessionId\":\"df3b0eb3-f4d0-4ae6-bbc2-a5d814bdc32d\",\"generation\":\"df5632cb-d5e3-406c-8706-4ff634cc6df6\",\"appContainerSid\":\"S-1-15-2-4136939089-764797160-728551971-1286652758-636859137-590930294-276793101\",\"root\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-S1fvFE\",\"logical\":\"X:\\\\\"},\"runtime\":{\"physical\":\"C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-private-v4-S1fvFE\\\\control\\\\node.exe\",\"logical\":\"X:\\\\control\\\\node.exe\",\"sha256\":\"ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3\",\"bytes\":87074816,\"nodeVersion\":\"22.22.2\",\"modulesAbi\":\"127\"},\"files\":{\"identity\":{\"path\":\"workspace/adapter/windows-node-private-v4-identity.cjs\",\"sha256\":\"6e619f5c6b2ec21f8afc562fde84fbe6585ca7e1ae7f67d461a3050693863b56\",\"bytes\":11400},\"preload\":{\"path\":\"workspace/adapter/windows-node-private-v4-preload.cjs\",\"sha256\":\"e30ef06e27e95d4cb965a395905e09d158de4f042bfe8234d8109feb86e8da45\",\"bytes\":4536},\"addon\":{\"path\":\"workspace/adapter/windows-node-private-v4.node\",\"sha256\":\"be67769750b58013b72db266aeb6f8df4fac4f6312cf2d957f794b146f1705d4\",\"bytes\":770048}}}\n"
+}

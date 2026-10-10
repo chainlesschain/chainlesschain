@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PluginManagerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.006">
+  <properties/>
+  <testcase name="parsesTransactionalUpgradeActivationAndRollback()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="parsesMcpServersWithPolicyAnnotations()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="distinguishesUnreadableFromEmpty()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.0"/>
+  <testcase name="targetsUnifiedRuntimeCommands()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="parsesAndFiltersSkills()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.001"/>
+  <testcase name="parsesPluginRowsAndFormatsLines()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

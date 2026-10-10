@@ -1,0 +1,70 @@
+{
+  "phases": [
+    {
+      "phase": "initial",
+      "attempt": 1,
+      "processId": 9408,
+      "startedAt": "2026-10-09T18:26:53.772Z",
+      "completedAt": "2026-10-09T18:36:04.372Z"
+    },
+    {
+      "phase": "restart",
+      "attempt": 1,
+      "processId": 4776,
+      "startedAt": "2026-10-09T18:36:05.151Z",
+      "completedAt": "2026-10-09T18:37:30.691Z"
+    }
+  ],
+  "rewindCoverage": {
+    "timelineReads": 6,
+    "actions": [
+      "restore-code",
+      "restore-conversation",
+      "restore-both",
+      "summary-from",
+      "summary-to",
+      "branch"
+    ],
+    "coverage": "partial"
+  },
+  "modelConfigurationCoverage": {
+    "saves": 1,
+    "savedReads": 6,
+    "tests": 1,
+    "existingSessionReload": true,
+    "ideRestart": true,
+    "unsavedChangesDiscarded": true,
+    "providerEvidence": "deterministic keyless fixture"
+  },
+  "workbenchCoverage": {
+    "samples": 100,
+    "readinessSamples": 40,
+    "warmupSamples": 40,
+    "finalReply": 1808,
+    "recoveredProjection": 1810,
+    "coverage": "canonical-workbench-restart"
+  },
+  "visibilitySummary": {
+    "samples": 100,
+    "minLatencyMs": 706,
+    "maxLatencyMs": 1063,
+    "p95LatencyMs": 1042,
+    "thresholdMs": 2000,
+    "readinessSamples": 40,
+    "readinessMinimumSamples": 40,
+    "readinessMaximumSamples": 75,
+    "readinessConsecutiveSamples": 10,
+    "quiescenceStableProbes": 4,
+    "warmupSamples": 40,
+    "networkCondition": "loopback fixture; no external network",
+    "transport": "installed-plugin-remote-robot-production-route",
+    "runnerEnvironment": "github-hosted",
+    "runnerName": "GitHub Actions 1000387738",
+    "runnerOS": "Windows",
+    "runnerArch": "ARM64",
+    "runnerImageOS": "win11-vs2026-arm64",
+    "runnerImageVersion": "20261004.176.1",
+    "measurementStartedAt": "2026-10-09T18:26:53.772Z",
+    "measurementCompletedAt": "2026-10-09T18:36:04.372Z"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "id": 113761435906,
+  "run_id": 37912152813,
+  "workflow_name": "Project Management E2E Tests",
+  "head_branch": "feature/cli-ide-gap-completion-20261009",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37912152813",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAafLXBAg",
+  "head_sha": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/113761435906",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37912152813/job/113761435906",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-09T09:39:48Z",
+  "started_at": "2026-10-09T09:58:56Z",
+  "completed_at": "2026-10-09T10:00:41Z",
+  "name": "Performance & Stress Tests",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T09:58:56Z",
+      "completed_at": "2026-10-09T09:58:58Z"
+    },
+    {
+      "name": "Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-09T09:58:58Z",
+      "completed_at": "2026-10-09T09:59:13Z"
+    },
+    {
+      "name": "Setup Node.js",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-09T09:59:13Z",
+      "completed_at": "2026-10-09T09:59:21Z"
+    },
+    {
+      "name": "Download build artifacts",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-09T09:59:21Z",
+      "completed_at": "2026-10-09T09:59:23Z"
+    },
+    {
+      "name": "Install dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-09T09:59:23Z",
+      "completed_at": "2026-10-09T10:00:10Z"
+    },
+    {
+      "name": "Install Playwright browsers",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-09T10:00:10Z",
+      "completed_at": "2026-10-09T10:00:34Z"
+    },
+    {
+      "name": "Run Performance tests",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 7,
+      "started_at": "2026-10-09T10:00:34Z",
+      "completed_at": "2026-10-09T10:00:38Z"
+    },
+    {
+      "name": "Upload test results",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-09T10:00:38Z",
+      "completed_at": "2026-10-09T10:00:38Z"
+    },
+    {
+      "name": "Upload performance metrics",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-09T10:00:38Z",
+      "completed_at": "2026-10-09T10:00:39Z"
+    },
+    {
+      "name": "Post Setup Node.js",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 17,
+      "started_at": "2026-10-09T10:00:39Z",
+      "completed_at": "2026-10-09T10:00:39Z"
+    },
+    {
+      "name": "Post Checkout code",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18,
+      "started_at": "2026-10-09T10:00:39Z",
+      "completed_at": "2026-10-09T10:00:39Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-10-09T10:00:39Z",
+      "completed_at": "2026-10-09T10:00:39Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/113761435906",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000386728,
+  "runner_name": "GitHub Actions 1000386728",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

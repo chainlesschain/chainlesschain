@@ -1,0 +1,156 @@
+{
+  "capturedAt": "2026-10-10T01:51:13.620Z",
+  "label": "strict",
+  "runId": 38012166296,
+  "headSha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "event": "pull_request",
+  "branch": "feature/cli-ide-gap-completion-20261009",
+  "runAttempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "expectedJobCount": 5,
+  "actualJobCount": 5,
+  "counts": {
+    "success": 5
+  },
+  "fullMatrixPassed": true,
+  "sdkThreePlatformStepsPassed": false,
+  "captures": [
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/run.json",
+      "bytes": 13746,
+      "sha256": "bc69f4a0577d26d48c25107ea4114a50a63c59e8c62479767ef4b210eaebee75",
+      "endpoint": "actions/runs/38012166296"
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/jobs-1.json",
+      "bytes": 21590,
+      "sha256": "b8afceb7cf2c37b0056c9b9ea9feccf638f7337717ac66a0cefe6550b0852d99",
+      "endpoint": "actions/runs/38012166296/jobs?filter=latest&per_page=100&page=1"
+    },
+    {
+      "file": ".work/cli-sdk-da91e730-20261010/strict-2026-10-10T01-51-13.620Z/artifacts-1.json",
+      "bytes": 4557,
+      "sha256": "cecabc579107faf1254320ca2336bda4e1672c2dc1db3eab8ab27489045f4ef7",
+      "endpoint": "actions/runs/38012166296/artifacts?per_page=100&page=1"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 114094368949,
+      "name": "strict native boundary (macos-15)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369077,
+      "name": "strict native boundary (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369083,
+      "name": "macOS latest native capability",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369088,
+      "name": "strict native boundary (ubuntu-24.04)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 114094369186,
+      "name": "strict native boundary (ubuntu-24.04-arm)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 11655765114,
+      "name": "strict-sandbox-result-ubuntu-24.04-arm",
+      "bytes": 6019,
+      "digest": "sha256:6757341498ccd6fd24f5a220917b222b0e1834d467df4d4ec8fbff8b2968f075",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655435657,
+      "name": "strict-sandbox-result-ubuntu-24.04",
+      "bytes": 149895,
+      "digest": "sha256:c34ac19e02263964ac98d3fb3973521633c54c9b0d394f80abec3e7d8dd38f0e",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655118011,
+      "name": "native-capsule-transport-windows",
+      "bytes": 7245,
+      "digest": "sha256:6bc57f996493ea2bd2d2b31ff50449a54d10de13edd9b741c11aaaa968bae3fc",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11655094573,
+      "name": "macos-latest-sandbox-capability",
+      "bytes": 404,
+      "digest": "sha256:af869ca682cdc11914309c29d076a27ea6a919280cb83d656fb36879c01cb135",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11654563333,
+      "name": "strict-sandbox-result-windows-latest",
+      "bytes": 146820,
+      "digest": "sha256:de38291d032234ca0dcd2c6e7f1125e35231bc27a07f5328b19ef076c38bc551",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    },
+    {
+      "id": 11654471033,
+      "name": "strict-sandbox-result-macos-15",
+      "bytes": 147799,
+      "digest": "sha256:947fe6ec28f278095bd98ff1c73b6ace462ae0ab4914d7900b0aae952ea15f2b",
+      "expired": false,
+      "workflow_run": {
+        "id": 38012166296,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "feature/cli-ide-gap-completion-20261009",
+        "head_sha": "da91e730d802b7c9dcdc075b222ecc257021e552"
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T20:21:26.764Z",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "runId": 37985598206,
+  "jobId": 114008162628,
+  "jobName": "publish",
+  "conclusion": "failure",
+  "bytes": 78470,
+  "sha256": "d02e5314929fde498deb06f6c1b91453f27c04cc36500019ef261e53f8e3a84b"
+}

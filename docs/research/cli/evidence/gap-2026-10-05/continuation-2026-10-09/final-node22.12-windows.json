@@ -1,0 +1,191 @@
+{
+  "runtime": "v22.12.0",
+  "platform": "win32",
+  "source": "working-tree",
+  "sourceSnapshot": [
+    {
+      "path": "packages/cli/test-node/windows-esbuild-api-trace.node-test.mjs",
+      "bytes": 8423,
+      "digest": "sha256:bbb905aa2f8b185e4e6fc0c33c382260dfcadcae5c221b5ba7cf7b1f877108de"
+    },
+    {
+      "path": "packages/cli/test-node/windows-esbuild-private-map.node-test.mjs",
+      "bytes": 11643,
+      "digest": "sha256:250c948aca9a7cacbbe7d108cfe93284d6334849f5c79b5558a586d42bcd8d33"
+    },
+    {
+      "path": "packages/cli/test-node/windows-rollup-gnu-forwarder.node-test.mjs",
+      "bytes": 9316,
+      "digest": "sha256:baf2c45e2406a56ed8c0d5d07da9f4dd7410eac291ef4f89b89adeffacca2dcf"
+    },
+    {
+      "path": "packages/cli/test-node/windows-esbuild-private-map-service.node-test.mjs",
+      "bytes": 7854,
+      "digest": "sha256:a9e58361b53ab2fb11d0ece302e25f6bb2ff99ae637dda6bd74ecfb979589b81"
+    },
+    {
+      "path": "packages/cli/test-node/windows-job-recovery-evidence.node-test.mjs",
+      "bytes": 5483,
+      "digest": "sha256:e10844c176f7ef3e5acf0b4285c1dc5df7d74b9fe09c84f246d50ef07f23b91a"
+    },
+    {
+      "path": "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs",
+      "bytes": 4890,
+      "digest": "sha256:d4ac08f44cfd2cc362891a815c1c4f9016092bfafade5fcb1d2b0cf6e47ff7f2"
+    },
+    {
+      "path": "packages/cli/test-node/windows-node-private-v4-identity.node-test.mjs",
+      "bytes": 14941,
+      "digest": "sha256:d63e1777ae3db4eb1addf65b211ea0e2ffc43f84b16313d4af54e1fc4598fc57"
+    },
+    {
+      "path": "packages/cli/test-node/windows-node-private-v4-result.node-test.mjs",
+      "bytes": 33376,
+      "digest": "sha256:09355d78f66dda0d99648af9a95d9bc0d61a8021b6ca435077a40f31e8b9a1d2"
+    },
+    {
+      "path": "packages/cli/scripts/review-model-catalog.mjs",
+      "bytes": 5404,
+      "digest": "sha256:6583b9bf19ab8150d180eb5f4c0b91c62e430ffa4d61e58d6a1e5c14623549c2"
+    },
+    {
+      "path": "packages/cli/scripts/windows-esbuild-api-trace.mjs",
+      "bytes": 14002,
+      "digest": "sha256:3dc0224db8baf0ee500c4ac302ce7c4771b62c82e7182a8080f1fcbdfe3ca087"
+    },
+    {
+      "path": "packages/cli/scripts/windows-esbuild-private-map-service.mjs",
+      "bytes": 17339,
+      "digest": "sha256:b1f5592fc6e5b1890e1cba13c240382ead86368bd22919b75ac7cbe550b4685e"
+    },
+    {
+      "path": "packages/cli/scripts/windows-esbuild-private-map.mjs",
+      "bytes": 15585,
+      "digest": "sha256:0c2e332bcf8c1735a297937f3113019770522432e548d5096e1f9dbaed35975a"
+    },
+    {
+      "path": "packages/cli/scripts/windows-job-recovery-probe.mjs",
+      "bytes": 7206,
+      "digest": "sha256:d75d589acea4d40069100e417fbf9587fcc10a1f3cb525f77684cb9e4f96d524"
+    },
+    {
+      "path": "packages/cli/scripts/windows-node-private-v4-diagnostic.mjs",
+      "bytes": 27786,
+      "digest": "sha256:f555da1ac5df3bf0fadd7d04beffe5fe382f7556f94fc146a127209bbe75e9fc"
+    },
+    {
+      "path": "packages/cli/scripts/windows-node-private-v4-result.mjs",
+      "bytes": 29301,
+      "digest": "sha256:9df836e981c9905f2dd262cba911816d1360c904cb19f3d3a82e01f55c04519d"
+    },
+    {
+      "path": "packages/cli/scripts/windows-rollup-gnu-forwarder.mjs",
+      "bytes": 25374,
+      "digest": "sha256:4ccf019710a1d54d4a139ef26c00b6d1a3a52f8564a4755c4399a0dac06e3497"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-esbuild-trace-launcher.cpp",
+      "bytes": 9967,
+      "digest": "sha256:88f2a70fc02a2139b09353c4af3f354a65c48eac7570caf687469b12bc42e483"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-esbuild-trace-shim.cpp",
+      "bytes": 8484,
+      "digest": "sha256:846af94bf73ed2b3a6525ece782b02be587be53a5167c39934077634538e7d65"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-job-recovery-probe.cs",
+      "bytes": 19511,
+      "digest": "sha256:3f371c47b07e06dfd7c015092d1c270b85746e85dec478bdb6b96a82845b69ac"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-broker.cpp",
+      "bytes": 42810,
+      "digest": "sha256:b5d0ca55778c18cda7bef77d1edd3ff1fd14f2395c047c269af3ec62ace08b3e"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-rollup-gnu-forwarder.cpp",
+      "bytes": 3383,
+      "digest": "sha256:1c16199ba6de4a0cede60bd75440de8ddd1e1b98726e2016bdf165666ebacb8c"
+    },
+    {
+      "path": "packages/cli/scripts/diagnostics/windows-rollup-gnu-forwarder.def",
+      "bytes": 2205,
+      "digest": "sha256:c8ffe387255f46f43402fd27c8d94f0ae45d6eda6d44e3bf206713bdd75c2412"
+    },
+    {
+      "path": "packages/cli/scripts/lib/windows-job-recovery-evidence.mjs",
+      "bytes": 4787,
+      "digest": "sha256:b9ba97062083f9f34d22ebf1f405e360b059f3f05261a7853de6afc11d8b2e6f"
+    },
+    {
+      "path": "packages/cli/test-node/fixtures/windows-esbuild-private-map-service.json",
+      "bytes": 14554,
+      "digest": "sha256:02f8c61281d16cb7a577dc67dcb23fd90fa220b8cca0453b0afe95fc79fdae91"
+    }
+  ],
+  "sourceStable": true,
+  "files": [
+    "packages\\cli\\test-node\\windows-esbuild-api-trace.node-test.mjs",
+    "packages\\cli\\test-node\\windows-esbuild-private-map.node-test.mjs",
+    "packages\\cli\\test-node\\windows-rollup-gnu-forwarder.node-test.mjs",
+    "packages\\cli\\test-node\\windows-esbuild-private-map-service.node-test.mjs",
+    "packages\\cli\\test-node\\windows-job-recovery-evidence.node-test.mjs",
+    "packages\\cli\\test-node\\model-catalog-review-evidence.node-test.mjs",
+    "packages\\cli\\test-node\\windows-node-private-v4-identity.node-test.mjs",
+    "packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 351,
+    "pass": 351,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "stdoutDigest": "sha256:e876de42c12efe9a766109da4588be48161ff134822829dddd87cf505c94513a",
+  "recordedAt": "2026-10-09T05:19:31.616Z"
+}

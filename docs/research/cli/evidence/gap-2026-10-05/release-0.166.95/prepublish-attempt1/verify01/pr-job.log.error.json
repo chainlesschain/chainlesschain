@@ -1,0 +1,9 @@
+{
+  "args": [
+    "api",
+    "repos/chainlesschain/chainlesschain/actions/jobs/113762808250/logs"
+  ],
+  "status": 1,
+  "message": "Command failed: gh api repos/chainlesschain/chainlesschain/actions/jobs/113762808250/logs\ngh: Must have admin rights to Repository. (HTTP 403)\n",
+  "stderr": "gh: Must have admin rights to Repository. (HTTP 403)\n"
+}

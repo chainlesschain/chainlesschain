@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.ide-roadmap-runtime-evidence.v1",
+  "manifestVersion": "1.9.41",
+  "releaseCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "releaseCommitAuthority": "caller-asserted-unverified",
+  "artifactDigestAuthority": "envelope-asserted-unverified",
+  "provenanceAuthority": "github-actions-context-matched-advisory",
+  "verificationMode": "advisory",
+  "scope": "selected-cases",
+  "releaseReady": null,
+  "selectedCaseIds": [
+    "q4a-vscode-remote-ssh-container"
+  ],
+  "evidenceFileCount": 1,
+  "runCount": 1,
+  "aggregateDigest": "sha256:0df1881d3b3d0cbb6d8b6c506606a921999db38c7522075c8f1e91fbb235e772"
+}

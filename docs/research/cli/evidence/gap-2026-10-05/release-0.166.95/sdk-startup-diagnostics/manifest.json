@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-10-09T14:23:21.055Z",
+  "fixtureSha256": "5efb522d5dcc6e187f678d058972d2bebe7e122e2ab23dd2fbf41b3067ee06e3",
+  "checks": 3,
+  "verified": true,
+  "originalCiFailureReproduced": false,
+  "files": [
+    {
+      "path": "verify.mjs",
+      "bytes": 6974,
+      "sha256": "6d7bb9143cf086b6f075bd6d9633a207d26930ba71f84e98ee94845ac07236a3"
+    },
+    {
+      "path": "verify-attempt1.mjs",
+      "bytes": 6703,
+      "sha256": "2f84a1a77ce2e7d14f6f80234a3d360743b5b415d7165fb6ecc138898ff5cb66"
+    },
+    {
+      "path": "attempt1-diagnosis.json",
+      "bytes": 473,
+      "sha256": "0d6ece8483762fa49ff3e05c32d62da1e41f7ed1b75d4d2aaa13db5874a25812"
+    },
+    {
+      "path": "run2/report.json",
+      "bytes": 6238,
+      "sha256": "9b8442eb040f3ac8f44dbd650ad05febe95b3c7c0e9a776a99b80147905cf9be"
+    },
+    {
+      "path": "run2/fixture-helpers.ts",
+      "bytes": 1384,
+      "sha256": "66317d0bed8acca865fb355f6f0209d2c5ec7c5c5c333deff63e3377bdbe9cb6"
+    },
+    {
+      "path": "run2/fixture-helpers.mjs",
+      "bytes": 1350,
+      "sha256": "848da1fb125326ad475ef9f474126216daa95fc6fe95684969c501c4a4a7268d"
+    },
+    {
+      "path": "run2/diagnostic-child.mjs",
+      "bytes": 276,
+      "sha256": "03dae33a3749d1798184891bc51570969f82d30c1f220b0bd7fdf2421c806438"
+    }
+  ]
+}

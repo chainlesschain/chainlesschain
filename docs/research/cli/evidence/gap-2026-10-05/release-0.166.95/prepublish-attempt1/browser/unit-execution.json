@@ -1,0 +1,25 @@
+{
+  "startedAt": "2026-10-09T12:14:25.517Z",
+  "finishedAt": "2026-10-09T12:14:35.995Z",
+  "command": "C:\\nvm4w\\nodejs\\node.exe",
+  "args": [
+    "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+    "run",
+    "__tests__/unit/ide-roadmap-browser-evidence.test.js",
+    "__tests__/unit/browser-evidence.test.js",
+    "--maxWorkers=1",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\.work\\browser-evidence-ci-095\\unit-results.json"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "before": {
+    "packages/cli/scripts/ide-roadmap-browser-evidence.mjs": "cbb5f07a4dae342264d9c6b65be6a19740d0059ce20f7c0bb49d358528651237",
+    "packages/cli/__tests__/unit/ide-roadmap-browser-evidence.test.js": "248c5cc5cd6b8fde8b5ebc2cbbdbe28e856be5e53995a280a36c1dd4a0b7048b"
+  },
+  "after": {
+    "packages/cli/scripts/ide-roadmap-browser-evidence.mjs": "cbb5f07a4dae342264d9c6b65be6a19740d0059ce20f7c0bb49d358528651237",
+    "packages/cli/__tests__/unit/ide-roadmap-browser-evidence.test.js": "248c5cc5cd6b8fde8b5ebc2cbbdbe28e856be5e53995a280a36c1dd4a0b7048b"
+  }
+}

@@ -1,0 +1,653 @@
+{
+  "schema": "chainlesschain.selected-evidence-copy-plan.v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "createdAt": "2026-10-10T02:27:41.196Z",
+  "isOriginalExtractionTree": false,
+  "layoutNote": "This selected set is not the original extraction tree. Target paths are shortened; source manifest bytes remain unchanged. Original ZIP files preserve original extraction paths.",
+  "journeyResult": "passed",
+  "remoteTransportExercised": true,
+  "canonicalRef": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+  "usedRef": "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+  "fallbackOccurred": false,
+  "fallbackReason": null,
+  "aggregateScope": "selected-cases",
+  "aggregateVerificationMode": "advisory",
+  "aggregateReleaseReady": null,
+  "workflowStatus": [
+    {
+      "scope": "ide",
+      "id": 38012166401,
+      "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "status": "completed",
+      "conclusion": "success",
+      "counts": {
+        "success": 18,
+        "skipped": 1
+      }
+    },
+    {
+      "scope": "ci",
+      "id": 38012166446,
+      "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "status": "completed",
+      "conclusion": "success",
+      "counts": {
+        "success": 13,
+        "skipped": 1
+      }
+    }
+  ],
+  "files": [
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11655769440/metadata.json",
+      "target": "ssh/artifacts/11655769440/metadata.json",
+      "bytes": 760,
+      "sha256": "035cc285cd2409cbb807945b6bb1df96d078205fc95de30a6ca37a13457faca1"
+    },
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11655769440/artifact.zip",
+      "target": "ssh/artifacts/11655769440/artifact.zip",
+      "bytes": 2223197,
+      "sha256": "149e7584e94a7e1a22a723253b5dc40ca6787fc0861fc98e3021fab80db69531"
+    },
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11655769440/verification.json",
+      "target": "ssh/artifacts/11655769440/verification.json",
+      "bytes": 288,
+      "sha256": "f8c95f35f0110c7f2f7051d414f4f3aed4bb5ff1e5c135df06a43f0397a91b4c"
+    },
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11654454333/metadata.json",
+      "target": "ssh/artifacts/11654454333/metadata.json",
+      "bytes": 757,
+      "sha256": "6091b9151da661da8becc05011a2c7279f611089a5edca4b72eb2bb12e815bae"
+    },
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11654454333/artifact.zip",
+      "target": "ssh/artifacts/11654454333/artifact.zip",
+      "bytes": 542,
+      "sha256": "d055f19e593f67a0894157c81e405eba9d2bbceba6f55639256c274d45160fc3"
+    },
+    {
+      "source": ".work/astra-da91-ssh/artifacts/11654454333/verification.json",
+      "target": "ssh/artifacts/11654454333/verification.json",
+      "bytes": 285,
+      "sha256": "6835aa5e74ed88be6a3a28c1d27df43397b4833a17804fab98ba09b429e830f0"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11654454333/cc-remote-ssh-aggregate.json",
+      "target": "ssh/raw/11654454333/cc-remote-ssh-aggregate.json",
+      "bytes": 638,
+      "sha256": "f9b964fdec51910b5175e8b45120b2134ce9c3a745642fa46863de72fb67c052"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/001-host-ready.json",
+      "target": "ssh/raw/11655769440/001-host-ready.json",
+      "bytes": 353,
+      "sha256": "99e105d49981ee327410a007ed58569190cdc19821384aca3e5b69b52c1c6ec7"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/002-host-result.json",
+      "target": "ssh/raw/11655769440/002-host-result.json",
+      "bytes": 89,
+      "sha256": "82469a47922c22275cf6ddfef2d6f8c5f3c9dad774d09b8b6137cd4ca47bb076"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/003-host-trace.jsonl",
+      "target": "ssh/raw/11655769440/003-host-trace.jsonl",
+      "bytes": 691,
+      "sha256": "b082be21feb8de98b302826da5e14a004529f66ee7dd17e5bbc5b54f2ac22775"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/004-remote-environment.json",
+      "target": "ssh/raw/11655769440/004-remote-environment.json",
+      "bytes": 1246,
+      "sha256": "cdfc71662cc403adb01ad8f92ea26250378a8f4fa0ab486c027716b2bc433a9d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/005-vscode-remote-ssh.log",
+      "target": "ssh/raw/11655769440/005-vscode-remote-ssh.log",
+      "bytes": 14395,
+      "sha256": "20bb7ff11aa0d55cdcfea16f8da1856bce3df44fd2f2a87d1af7fabe9adceb94"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/006-20261010T015230_cli.log",
+      "target": "ssh/raw/11655769440/006-20261010T015230_cli.log",
+      "bytes": 8410,
+      "sha256": "967925f81f508b2cfbd4ab5774f1a33aba2a36379fb78f5926de3dedb61127df"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/007-20261010T015232_cli.log",
+      "target": "ssh/raw/11655769440/007-20261010T015232_cli.log",
+      "bytes": 1514,
+      "sha256": "087a96a0c814dbe25892806a67fd462990dfdbd626f28475b020c995b1321962"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/008-20261010T015236_editSessions.log",
+      "target": "ssh/raw/11655769440/008-20261010T015236_editSessions.log",
+      "bytes": 131,
+      "sha256": "d8abb91f95d77060aa0a42d103ae19facca02d6967880bcaf99a00c3a156550a"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/009-20261010T015236_main.log",
+      "target": "ssh/raw/11655769440/009-20261010T015236_main.log",
+      "bytes": 239,
+      "sha256": "6acdcb26f024705d26efadfef142edd22a83d85ac24df37804064d71599103b7"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/010-20261010T015236_ptyhost.log",
+      "target": "ssh/raw/11655769440/010-20261010T015236_ptyhost.log",
+      "bytes": 13274,
+      "sha256": "e1ce99e4c76d71dc2e79d17acd30d257dbcd43bbdee7004d21a1049b66f80ab3"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/011-20261010T015236_remoteTunnelService.log",
+      "target": "ssh/raw/11655769440/011-20261010T015236_remoteTunnelService.log",
+      "bytes": 55,
+      "sha256": "85a9817b09b8ebb15db96affe83fd2e2f078fb236acc5924863d07adac412218"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/012-20261010T015236_sharedprocess.log",
+      "target": "ssh/raw/11655769440/012-20261010T015236_sharedprocess.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/013-20261010T015236_terminal.log",
+      "target": "ssh/raw/11655769440/013-20261010T015236_terminal.log",
+      "bytes": 1156,
+      "sha256": "c0729de05baff36c39be31ff419114d7313bf9633ffd8d3c38f6e79a0e703879"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/014-20261010T015236_userDataSync.log",
+      "target": "ssh/raw/11655769440/014-20261010T015236_userDataSync.log",
+      "bytes": 153,
+      "sha256": "272f1c8b72946bef5a5670a9e1edaa9f7d43cbc4ed2107c5d8e91900a19b7158"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/015-20261010T015236_window1_exthost_extensionTelemetry.log",
+      "target": "ssh/raw/11655769440/015.log",
+      "bytes": 490,
+      "sha256": "e2c9943bc03ed23459631b806476d8990e02bd54ed3465d0f07b71b4daa04a48"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/016-20261010T015236_window1_exthost_exthost.log",
+      "target": "ssh/raw/11655769440/016.log",
+      "bytes": 11639,
+      "sha256": "dfe44c0b315d7e9a6ba3cf5aab67dbe764880d7ddbb0eb3871c449b2ff17d694"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/017-20261010T015236_window1_exthost_output_logging_20261010T015239_1-Remote_-_SSH.log",
+      "target": "ssh/raw/11655769440/017.log",
+      "bytes": 26063,
+      "sha256": "b3e6a456a50ee3092cc04aa50c8e9d1b839449d6959cbe06adc87c4e6fb54c30"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/018-20261010T015236_window1_exthost_vscode.github-authentication_GitHub_Authentication.log",
+      "target": "ssh/raw/11655769440/018.log",
+      "bytes": 1025,
+      "sha256": "81a72b9d39954825867a21310f57ae79d7876e1380e4f005e2e5ddf1a2f4ec4d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/019-20261010T015236_window1_notebook.rendering.log",
+      "target": "ssh/raw/11655769440/019.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/020-20261010T015236_window1_output_20261010T015239_tasks.log",
+      "target": "ssh/raw/11655769440/020.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/021-20261010T015236_window1_renderer.log",
+      "target": "ssh/raw/11655769440/021-20261010T015236_window1_renderer.log",
+      "bytes": 13722,
+      "sha256": "55b3ec8632c69014a1af8e17970fb6c3e45faf768f048c9e13ceb2b3ca0efe95"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/022-20261010T015236_window1_views.log",
+      "target": "ssh/raw/11655769440/022-20261010T015236_window1_views.log",
+      "bytes": 1575,
+      "sha256": "fa4ad9b301d42155fa6bd8dc8b800d6a904d70a9074799a15a7124d6bd1b2da9"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/023-20261010T015246_exthost1_output_logging_20261010T015248_1-ChainlessChain_IDE.log",
+      "target": "ssh/raw/11655769440/023.log",
+      "bytes": 454,
+      "sha256": "8bd8015432b414e341ac3e09f61cf09de61d356e70015666e81edce4b8e472df"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/024-20261010T015246_exthost1_remoteexthost.log",
+      "target": "ssh/raw/11655769440/024.log",
+      "bytes": 1504,
+      "sha256": "4fc4d2d3d983790736243d61c1ed007e79634e8905b455a5fbeec34294e377ba"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/025-20261010T015246_exthost1_vscode.git_Git.log",
+      "target": "ssh/raw/11655769440/025.log",
+      "bytes": 301,
+      "sha256": "45cb4912daf6465b0dc7012473a78a9c1ec1cb5115e48fcbbb51a429c9d8a85b"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/026-20261010T015246_exthost1_vscode.github_GitHub.log",
+      "target": "ssh/raw/11655769440/026.log",
+      "bytes": 47,
+      "sha256": "a6a93a2ecb9ff2bb130313fcf1e95e060c12d3b0e3948a269d1ddf7a6bc215ac"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/027-20261010T015246_ptyhost.log",
+      "target": "ssh/raw/11655769440/027-20261010T015246_ptyhost.log",
+      "bytes": 2000,
+      "sha256": "b39d2294107de8ae7517457dc76117458681f6e303441cc373f621dbfb285e30"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/028-20261010T015246_remoteagent.log",
+      "target": "ssh/raw/11655769440/028-20261010T015246_remoteagent.log",
+      "bytes": 1129,
+      "sha256": "2f51b2818de79cc9fa8b7b779479ec527ea260fed9bae10671d0635de1bd2650"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/029-container-image-pull.json.bin",
+      "target": "ssh/raw/11655769440/029-container-image-pull.json.bin",
+      "bytes": 1205,
+      "sha256": "bfd5827bb74ec62ccd75c52168e8b851126ef32daff6a57cb6b72f033fe502ba"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/diagnostics/030-redacted-diagnostics.json",
+      "target": "ssh/raw/11655769440/030-redacted-diagnostics.json",
+      "bytes": 26959,
+      "sha256": "b7fc5bc88a9095b3285faa19eb68d09556503db1211ad476970b839a3756da25"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/journey-evidence.json",
+      "target": "ssh/raw/11655769440/journey-evidence.json",
+      "bytes": 15684,
+      "sha256": "8e9ad451aec4be7189602128db92896858d56a675029a007ca26c4fc22e94ca3"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/release-artifacts/001-remote-ssh-0.120.0.vsix.gz",
+      "target": "ssh/raw/11655769440/001-remote-ssh-0.120.0.vsix.gz",
+      "bytes": 736432,
+      "sha256": "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/release-artifacts/002-remote-ssh-0.120.0.vsix",
+      "target": "ssh/raw/11655769440/002-remote-ssh-0.120.0.vsix",
+      "bytes": 744451,
+      "sha256": "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/001-exact-commit.json",
+      "target": "ssh/raw/11655769440/001-exact-commit.json",
+      "bytes": 123,
+      "sha256": "7ab2fe0ff1be4bde4858d98fdfe77dacae756526f012dba36ca43483892e0ae8"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/002-host-environment.json",
+      "target": "ssh/raw/11655769440/002-host-environment.json",
+      "bytes": 2097,
+      "sha256": "88e7485c5eed9eb3cc84c778613958deff24a12597fbcdf93a5ea391f30d92d2"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/003-remote-environment.json",
+      "target": "ssh/raw/11655769440/003-remote-environment.json",
+      "bytes": 1246,
+      "sha256": "cdfc71662cc403adb01ad8f92ea26250378a8f4fa0ab486c027716b2bc433a9d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/004-redacted-diagnostics.json",
+      "target": "ssh/raw/11655769440/004-redacted-diagnostics.json",
+      "bytes": 26959,
+      "sha256": "b7fc5bc88a9095b3285faa19eb68d09556503db1211ad476970b839a3756da25"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/005-artifact-digests.json",
+      "target": "ssh/raw/11655769440/005-artifact-digests.json",
+      "bytes": 1208,
+      "sha256": "0cbbeb8dac4ba09f0a2d0f6101c28e2de6bd1bc8eac1c1dd10af1bdd7eb941e2"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/006-candidate-vsix.vsix",
+      "target": "ssh/raw/11655769440/006-candidate-vsix.vsix",
+      "bytes": 714971,
+      "sha256": "437d2c4ff1025ba617e77c078c8fe66f26b25bafc9456ee9bf1271cf6198ffcb"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/007-candidate-manifest.json",
+      "target": "ssh/raw/11655769440/007-candidate-manifest.json",
+      "bytes": 714,
+      "sha256": "eaf906f75037700ae57d0bd7a18e3148636bb325e8da627363a7dbde0bb896e1"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/journey/roadmap-artifacts/008-outcome-observations.json",
+      "target": "ssh/raw/11655769440/008-outcome-observations.json",
+      "bytes": 303,
+      "sha256": "6e43de5f68f8e00edbdc00208f47db58a3c1150c3d5cbf00ca4c8e74572b8216"
+    },
+    {
+      "source": ".work/astra-da91-ssh/raw/11655769440/roadmap-runtime-evidence.json",
+      "target": "ssh/raw/11655769440/roadmap-runtime-evidence.json",
+      "bytes": 4433,
+      "sha256": "abf93b541bd45952d437bcad940ff3372131f097555ee99d63ae7fa9acd12a63"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368733/annotations.json",
+      "target": "ssh/jobs/114094368733/annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368733/job.json",
+      "target": "ssh/jobs/114094368733/job.json",
+      "bytes": 2549,
+      "sha256": "96d8bf11020ea05c36d802966540e1480011a19d93881c18419a44d8f2ec1e45"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368733/job.log",
+      "target": "ssh/jobs/114094368733/job.log",
+      "bytes": 176825,
+      "sha256": "62506b7310f5f8ca9128c0e53edadf993e7491e244f5d039ecb15afa4021c927"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368875/annotations.json",
+      "target": "ssh/jobs/114094368875/annotations.json",
+      "bytes": 370,
+      "sha256": "c70b71ff9e2fe84d9a7257fc6a7c494b0224f2fc7f690aa9a3f33d3b97b88dd5"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368875/job.json",
+      "target": "ssh/jobs/114094368875/job.json",
+      "bytes": 3031,
+      "sha256": "df3fdb47abe3cc632457833d0923f8731becf7423f6b3f239e6eed796f60034c"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368875/job.log",
+      "target": "ssh/jobs/114094368875/job.log",
+      "bytes": 204388,
+      "sha256": "4a72c61bc857b367b6b063c6ebfe9e92874badd506f84e6882372137bbdb48ad"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368905/annotations.json",
+      "target": "ssh/jobs/114094368905/annotations.json",
+      "bytes": 679,
+      "sha256": "0da1349a39de9ee6ebf7a88fbed99af417d59d89cfcedb71805b0705ec32dc92"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368905/job.json",
+      "target": "ssh/jobs/114094368905/job.json",
+      "bytes": 3999,
+      "sha256": "7939e5791c79ef28e6fc8f20b9222a7521938f79bfcbac3bbea91dff3e7f7485"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368905/job.log",
+      "target": "ssh/jobs/114094368905/job.log",
+      "bytes": 809443,
+      "sha256": "b6b91591774f83b60babd8581710719b9bc4e04e536225193007e52388206018"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368926/annotations.json",
+      "target": "ssh/jobs/114094368926/annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368926/job.json",
+      "target": "ssh/jobs/114094368926/job.json",
+      "bytes": 3035,
+      "sha256": "48dd4b444488ddf711995958b10157dc7dd9da4cde1f5c5a87c69a5f668caddb"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368926/job.log",
+      "target": "ssh/jobs/114094368926/job.log",
+      "bytes": 209597,
+      "sha256": "bca76b228ffeb5d4a222de907763270deb1309f44658f12f4cf6cb2902381655"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368964/annotations.json",
+      "target": "ssh/jobs/114094368964/annotations.json",
+      "bytes": 742,
+      "sha256": "c87b142784d2fe81fd5ab64f9c6d244ba6fc451d171ec245a80928d9788d3112"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368964/job.json",
+      "target": "ssh/jobs/114094368964/job.json",
+      "bytes": 4001,
+      "sha256": "785038bd71626df2bddcfae1eadfae53da857ca2cd4f530ee477a4452d30bd44"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368964/job.log",
+      "target": "ssh/jobs/114094368964/job.log",
+      "bytes": 810063,
+      "sha256": "ffc71beb380c2a9b599285580cd5b18df422d9b596bbd0b0909c31e762ee677b"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368965/annotations.json",
+      "target": "ssh/jobs/114094368965/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368965/job.json",
+      "target": "ssh/jobs/114094368965/job.json",
+      "bytes": 2214,
+      "sha256": "b9fa59a74edb9067466fe94b088fd787238c351f23e78ab88a283aeb15f10eb2"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368965/job.log",
+      "target": "ssh/jobs/114094368965/job.log",
+      "bytes": 58529,
+      "sha256": "ece9b44d0075124f4fe2d82214224e93967f3d8db465da6fa4b1f2bdb3485612"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368978/annotations.json",
+      "target": "ssh/jobs/114094368978/annotations.json",
+      "bytes": 4659,
+      "sha256": "4ed6409aadc5fb6368092245c29a7eed645528d2523d879a170cc1f91467506d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368978/job.json",
+      "target": "ssh/jobs/114094368978/job.json",
+      "bytes": 2365,
+      "sha256": "af63cd98980b7d417904ddeef150fbe040ace9f2e34ddd91214df80c4dc4270d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368978/job.log",
+      "target": "ssh/jobs/114094368978/job.log",
+      "bytes": 792601,
+      "sha256": "5a1fcba2bb170a94a281eb3144bccbcd25d4b9ad74f09803aa4f65a0befa3b8d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368982/annotations.json",
+      "target": "ssh/jobs/114094368982/annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368982/job.json",
+      "target": "ssh/jobs/114094368982/job.json",
+      "bytes": 2117,
+      "sha256": "f97763f9cfcde4b19ff0e1c91ebb103afd8da320d3626398f676c39dd28c55a1"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368982/job.log",
+      "target": "ssh/jobs/114094368982/job.log",
+      "bytes": 144526,
+      "sha256": "1b6ae6ee1efe757edf6ab27203dd53c799af1d3c4f7cbc307a9072ffacd85ee8"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368997/annotations.json",
+      "target": "ssh/jobs/114094368997/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368997/job.json",
+      "target": "ssh/jobs/114094368997/job.json",
+      "bytes": 2660,
+      "sha256": "2a19731a9888b8dcc97d9f95eae39901123266f7bd035194204529517be7711c"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094368997/job.log",
+      "target": "ssh/jobs/114094368997/job.log",
+      "bytes": 40503,
+      "sha256": "3cc555c28ca9d456595c7dd1d19deded0cbc0c7f767fb0220aea9f7349078d23"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369003/annotations.json",
+      "target": "ssh/jobs/114094369003/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369003/job.json",
+      "target": "ssh/jobs/114094369003/job.json",
+      "bytes": 2115,
+      "sha256": "fc59a03a9ed9af44a60855b008f85b0461d570c3cd6f0706a994c1f73a45fe5c"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369003/job.log",
+      "target": "ssh/jobs/114094369003/job.log",
+      "bytes": 101522,
+      "sha256": "97ff6b109aaefef205a10e981f9b515d4ec1dbdda8d15ac42e4faa7f8e15f625"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369011/annotations.json",
+      "target": "ssh/jobs/114094369011/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369011/job.json",
+      "target": "ssh/jobs/114094369011/job.json",
+      "bytes": 3033,
+      "sha256": "b6ca6a76ad916a19e2f67d73fc3087886fd0343b7a1bad27f38a88dc37b43cbc"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369011/job.log",
+      "target": "ssh/jobs/114094369011/job.log",
+      "bytes": 203658,
+      "sha256": "7e3959c13653977a88ffb7bda0512eb3390180ee6d15d80bce4196a781293f39"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369019/annotations.json",
+      "target": "ssh/jobs/114094369019/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369019/job.json",
+      "target": "ssh/jobs/114094369019/job.json",
+      "bytes": 2547,
+      "sha256": "d18b8e3bc520925abd5ea93459e17e960988ee7e412058ca3df87738787879eb"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369019/job.log",
+      "target": "ssh/jobs/114094369019/job.log",
+      "bytes": 175387,
+      "sha256": "bd1275364c7277e895a670cf7b5e1ad1ad94057f8a80be63a33c0e10515ca502"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369045/annotations.json",
+      "target": "ssh/jobs/114094369045/annotations.json",
+      "bytes": 310,
+      "sha256": "0fcb45cacb323b4fc7481d9fbb0ff50edb0b83e4f030d8566b74984a215beb7e"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369045/job.json",
+      "target": "ssh/jobs/114094369045/job.json",
+      "bytes": 4003,
+      "sha256": "c26fd04ca276978beaf0f86eae122855655f4a0fbce891176f38ca4db664b474"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114094369045/job.log",
+      "target": "ssh/jobs/114094369045/job.log",
+      "bytes": 866884,
+      "sha256": "b020aa6cbeb2c44614b9141b25891f9efebd26cb1fc5502e216b67510543995d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114100102783/annotations.json",
+      "target": "ssh/jobs/114100102783/annotations.json",
+      "bytes": 998,
+      "sha256": "dc3ae6e322b20a28929356f37bbdd39b68895f86a9e291d58afc21628ee7cbd7"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114100102783/job.json",
+      "target": "ssh/jobs/114100102783/job.json",
+      "bytes": 3651,
+      "sha256": "78192e0e8af69c8fd774071acc38cab0d5c7959df5dfef8fc20825c4da35389f"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114100102783/job.log",
+      "target": "ssh/jobs/114100102783/job.log",
+      "bytes": 42000,
+      "sha256": "74821aa866d9f3466b72c7002cefae971fe4e6c6bd05bcf9aa816d22bffd88df"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114102805601/annotations.json",
+      "target": "ssh/jobs/114102805601/annotations.json",
+      "bytes": 998,
+      "sha256": "dc3ae6e322b20a28929356f37bbdd39b68895f86a9e291d58afc21628ee7cbd7"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114102805601/job.json",
+      "target": "ssh/jobs/114102805601/job.json",
+      "bytes": 2872,
+      "sha256": "d6c8d11bb3a8a482f661d25534fe795cb9b2b5f950aec1ff43791ba100dd194d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/jobs/114102805601/job.log",
+      "target": "ssh/jobs/114102805601/job.log",
+      "bytes": 24074,
+      "sha256": "e5e1a48bcba4bca31d0ffbb4f376f671f4f4c8f2318c3cba35721da4e30fe88a"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/ci-jobs-1.json",
+      "target": "ssh/readback/ci-jobs-1.json",
+      "bytes": 38636,
+      "sha256": "14ab2e7da51a50228e170fe4993b2c44b96d6888bf05f92641fd5b7d4f34056e"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/ci-run.json",
+      "target": "ssh/readback/ci-run.json",
+      "bytes": 13722,
+      "sha256": "5bad3b181d025da83c4fa530d3a0fee63ace2e4f06475ef661b4b4bed1401cc2"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/ide-artifacts.json",
+      "target": "ssh/readback/ide-artifacts.json",
+      "bytes": 17769,
+      "sha256": "b928119f6d80ad1a19b00d0a90fb780eae39881eb148989301bab7b7ac1432ec"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/ide-jobs-1.json",
+      "target": "ssh/readback/ide-jobs-1.json",
+      "bytes": 67882,
+      "sha256": "ff80774a5243bf24f337c342f791be5ad446f3bd3fcc2cf49204c0d3004c8d76"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/ide-run.json",
+      "target": "ssh/readback/ide-run.json",
+      "bytes": 13738,
+      "sha256": "3bbf85451853fbb3fcc4f2318bee07d89c58cc50acce1cd9956e1a79fa33d84d"
+    },
+    {
+      "source": ".work/astra-da91-ssh/2026-10-10T02-27-14-110Z/readback.json",
+      "target": "ssh/readback/readback.json",
+      "bytes": 7352,
+      "sha256": "d26186cd41395593f4aeb692cfcd64acf251bc8c4a865e9402f2f21b77778b5c"
+    },
+    {
+      "source": ".work/astra-da91-ssh/extraction-verification.json",
+      "target": "ssh/extraction-verification.json",
+      "bytes": 18690,
+      "sha256": "97c68fd5c1b696a2d9ad0cb9b2c1749a1d1753da91e49050eaf0e3161d5c0100"
+    }
+  ],
+  "materialized": true,
+  "copyVerification": {
+    "files": 101,
+    "allBytesAndSha256Verified": true
+  }
+}

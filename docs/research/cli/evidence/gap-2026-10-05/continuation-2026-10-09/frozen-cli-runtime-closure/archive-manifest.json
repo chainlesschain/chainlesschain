@@ -1,0 +1,39 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\private-v4-full-runtime-evidence-20261009",
+  "archivedAt": "2026-10-09T05:46:14.056Z",
+  "files": [
+    {
+      "path": "manifest.json",
+      "bytes": 6560852,
+      "digest": "sha256:5bfc483de04a94957f1a979eee01f3079f613afd192f15dfd1fd203ac04d4db9"
+    },
+    {
+      "path": "preflight-private-v4-closure-20261009.mjs",
+      "bytes": 4197,
+      "digest": "sha256:6e5550ff57c799a3d594e5c035660a09a550bec3e8df48c3495020fcdf2971c4"
+    },
+    {
+      "path": "preflight.json",
+      "bytes": 505,
+      "digest": "sha256:552c0d877a6fa05f146bbc64f5584e9dfec06593516c6e6120ca2da6a4987358"
+    },
+    {
+      "path": "prepare-private-v4-cli-runtime-closure-20261009.mjs",
+      "bytes": 8047,
+      "digest": "sha256:4f9b41dd77c010043781e1a8d99ce04520905a7a35fa3663db74a1589685cf4b"
+    },
+    {
+      "path": "required-runtime-plan.json",
+      "bytes": 773308,
+      "digest": "sha256:88541c676ffbe825bff459449b8122bd45734760d3eeeddad94d6eaa3be1dfc4"
+    },
+    {
+      "path": "retention.json",
+      "bytes": 296,
+      "digest": "sha256:3d23ebb4f06bceab1d14d393fedbe3418db94522d6feafa7ad8287146825b8c4"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

@@ -1,0 +1,2384 @@
+TAP version 13
+# Subtest: local review binds source and fixture bytes without claiming upstream/account validation
+ok 1 - local review binds source and fixture bytes without claiming upstream/account validation
+  ---
+  duration_ms: 995.6011
+  ...
+# Subtest: drift remains a failed gate while preserving the original BOM/CRLF byte binding
+ok 2 - drift remains a failed gate while preserving the original BOM/CRLF byte binding
+  ---
+  duration_ms: 427.4357
+  ...
+# Subtest: partial upstream capture is explicitly incomplete
+ok 3 - partial upstream capture is explicitly incomplete
+  ---
+  duration_ms: 398.1531
+  ...
+# Subtest: an upstream error page retains its bytes but cannot become completed review evidence
+ok 4 - an upstream error page retains its bytes but cannot become completed review evidence
+  ---
+  duration_ms: 448.3579
+  ...
+# Subtest: a changed source pin fails before writing evidence
+ok 5 - a changed source pin fails before writing evidence
+  ---
+  duration_ms: 270.3021
+  ...
+# Subtest: oversized upstream data is rejected instead of partially hashed
+ok 6 - oversized upstream data is rejected instead of partially hashed
+  ---
+  duration_ms: 244.7534
+  ...
+# Subtest: report output cannot overwrite an existing evidence file
+ok 7 - report output cannot overwrite an existing evidence file
+  ---
+  duration_ms: 732.9199
+  ...
+# Subtest: trace parser records a dynamic API denial while retaining NOT_ADMITTED
+ok 8 - trace parser records a dynamic API denial while retaining NOT_ADMITTED
+  ---
+  duration_ms: 19.5437
+  ...
+# Subtest: trace parser rejects admission claim
+ok 9 - trace parser rejects admission claim
+  ---
+  duration_ms: 7.2351
+  ...
+# Subtest: trace parser rejects result translation
+ok 10 - trace parser rejects result translation
+  ---
+  duration_ms: 2.3246
+  ...
+# Subtest: trace parser rejects source substitution
+ok 11 - trace parser rejects source substitution
+  ---
+  duration_ms: 7.1102
+  ...
+# Subtest: trace parser rejects different executable
+ok 12 - trace parser rejects different executable
+  ---
+  duration_ms: 4.5951
+  ...
+# Subtest: trace parser rejects missing cleanup
+ok 13 - trace parser rejects missing cleanup
+  ---
+  duration_ms: 4.8734
+  ...
+# Subtest: trace parser rejects capability added
+ok 14 - trace parser rejects capability added
+  ---
+  duration_ms: 7.4188
+  ...
+# Subtest: trace parser rejects root failed
+ok 15 - trace parser rejects root failed
+  ---
+  duration_ms: 4.3165
+  ...
+# Subtest: trace parser rejects manifest tamper
+ok 16 - trace parser rejects manifest tamper
+  ---
+  duration_ms: 9.6198
+  ...
+# Subtest: trace parser rejects trace digest tamper
+ok 17 - trace parser rejects trace digest tamper
+  ---
+  duration_ms: 5.9767
+  ...
+# Subtest: trace parser rejects empty trace
+ok 18 - trace parser rejects empty trace
+  ---
+  duration_ms: 4.1253
+  ...
+# Subtest: trace parser rejects resealed no installed shim
+ok 19 - trace parser rejects resealed no installed shim
+  ---
+  duration_ms: 22.5876
+  ...
+# Subtest: trace parser rejects resealed no dynamic resolution
+ok 20 - trace parser rejects resealed no dynamic resolution
+  ---
+  duration_ms: 13.0008
+  ...
+# Subtest: trace parser rejects resealed no actual rejection
+ok 21 - trace parser rejects resealed no actual rejection
+  ---
+  duration_ms: 4.0729
+  ...
+# Subtest: trace parser rejects resealed different Windows error
+ok 22 - trace parser rejects resealed different Windows error
+  ---
+  duration_ms: 4.7337
+  ...
+# Subtest: trace parser rejects resealed different process
+ok 23 - trace parser rejects resealed different process
+  ---
+  duration_ms: 15.5215
+  ...
+# Subtest: trace parser rejects resealed incomplete patch
+ok 24 - trace parser rejects resealed incomplete patch
+  ---
+  duration_ms: 32.4132
+  ...
+# Subtest: trace parser rejects resealed truncated trace
+ok 25 - trace parser rejects resealed truncated trace
+  ---
+  duration_ms: 5.1818
+  ...
+# Subtest: trace parser rejects resealed missing exit
+ok 26 - trace parser rejects resealed missing exit
+  ---
+  duration_ms: 21.1821
+  ...
+# Subtest: trace parser rejects launcher DLL init failure
+ok 27 - trace parser rejects launcher DLL init failure
+  ---
+  duration_ms: 21.271
+  ...
+# Subtest: trace parser rejects launcher abnormal child exit
+ok 28 - trace parser rejects launcher abnormal child exit
+  ---
+  duration_ms: 4.3626
+  ...
+# Subtest: trace parser rejects launcher launcher error
+ok 29 - trace parser rejects launcher launcher error
+  ---
+  duration_ms: 4.2256
+  ...
+# Subtest: trace parser rejects launcher console initialization
+ok 30 - trace parser rejects launcher console initialization
+  ---
+  duration_ms: 17.1374
+  ...
+# Subtest: trace parser rejects launcher remote loader thread
+ok 31 - trace parser rejects launcher remote loader thread
+  ---
+  duration_ms: 3.9279
+  ...
+# Subtest: trace parser rejects launcher child token not proven
+ok 32 - trace parser rejects launcher child token not proven
+  ---
+  duration_ms: 12.7658
+  ...
+# Subtest: trace parser rejects launcher root token not proven
+ok 33 - trace parser rejects launcher root token not proven
+  ---
+  duration_ms: 16.5426
+  ...
+# Subtest: trace parser rejects launcher unrestricted child
+ok 34 - trace parser rejects launcher unrestricted child
+  ---
+  duration_ms: 36.0876
+  ...
+# Subtest: trace parser rejects launcher broad handles
+ok 35 - trace parser rejects launcher broad handles
+  ---
+  duration_ms: 6.2889
+  ...
+# Subtest: trace parser rejects launcher different child SID
+ok 36 - trace parser rejects launcher different child SID
+  ---
+  duration_ms: 3.8873
+  ...
+# Subtest: trace parser rejects supervisor execution failure
+ok 37 - trace parser rejects supervisor execution failure
+  ---
+  duration_ms: 4.9831
+  ...
+# Subtest: trace parser rejects unrelated stderr
+ok 38 - trace parser rejects unrelated stderr
+  ---
+  duration_ms: 8.6537
+  ...
+# Subtest: successful child cannot have stderr
+ok 39 - successful child cannot have stderr
+  ---
+  duration_ms: 61.2334
+  ...
+# Subtest: trace parser rejects a resealed sequence gap
+ok 40 - trace parser rejects a resealed sequence gap
+  ---
+  duration_ms: 4.7671
+  ...
+# Subtest: trace parser rejects a resealed missing redundant API record
+ok 41 - trace parser rejects a resealed missing redundant API record
+  ---
+  duration_ms: 14.3484
+  ...
+# Subtest: frozen-client service proof preserves the host client and non-admission boundary
+ok 42 - frozen-client service proof preserves the host client and non-admission boundary
+  ---
+  duration_ms: 26.4664
+  ...
+# Subtest: rejects failed report wrapped as successful evidence
+ok 43 - rejects failed report wrapped as successful evidence
+  ---
+  duration_ms: 23.6095
+  ...
+# Subtest: rejects unfinished report
+ok 44 - rejects unfinished report
+  ---
+  duration_ms: 7.4008
+  ...
+# Subtest: rejects completed report still carrying error
+ok 45 - rejects completed report still carrying error
+  ---
+  duration_ms: 4.095
+  ...
+# Subtest: rejects completed report carrying settlement error
+ok 46 - rejects completed report carrying settlement error
+  ---
+  duration_ms: 3.2021
+  ...
+# Subtest: rejects supervisor changed before launch
+ok 47 - rejects supervisor changed before launch
+  ---
+  duration_ms: 14.3967
+  ...
+# Subtest: rejects supervisor changed after launch
+ok 48 - rejects supervisor changed after launch
+  ---
+  duration_ms: 41.2981
+  ...
+# Subtest: rejects shim changed before launch
+ok 49 - rejects shim changed before launch
+  ---
+  duration_ms: 6.4323
+  ...
+# Subtest: rejects shim changed after launch
+ok 50 - rejects shim changed after launch
+  ---
+  duration_ms: 38.4564
+  ...
+# Subtest: rejects native wait deadline exceeded
+ok 51 - rejects native wait deadline exceeded
+  ---
+  duration_ms: 35.7531
+  ...
+# Subtest: rejects native wait timed out
+ok 52 - rejects native wait timed out
+  ---
+  duration_ms: 25.2833
+  ...
+# Subtest: rejects host client relabeled as sandboxed
+ok 53 - rejects host client relabeled as sandboxed
+  ---
+  duration_ms: 2.3671
+  ...
+# Subtest: rejects full review inferred from config bundle
+ok 54 - rejects full review inferred from config bundle
+  ---
+  duration_ms: 2.6091
+  ...
+# Subtest: rejects formal sample inferred
+ok 55 - rejects formal sample inferred
+  ---
+  duration_ms: 2.9535
+  ...
+# Subtest: rejects admitted status
+ok 56 - rejects admitted status
+  ---
+  duration_ms: 5.6775
+  ...
+# Subtest: rejects source driver omitted
+ok 57 - rejects source driver omitted
+  ---
+  duration_ms: 5.2202
+  ...
+# Subtest: rejects native source omitted
+ok 58 - rejects native source omitted
+  ---
+  duration_ms: 3.6315
+  ...
+# Subtest: rejects native source resealed
+ok 59 - rejects native source resealed
+  ---
+  duration_ms: 31.2172
+  ...
+# Subtest: rejects runtime bytes changed
+ok 60 - rejects runtime bytes changed
+  ---
+  duration_ms: 18.2258
+  ...
+# Subtest: rejects esbuild bytes changed
+ok 61 - rejects esbuild bytes changed
+  ---
+  duration_ms: 4.486
+  ...
+# Subtest: rejects client bytes changed
+ok 62 - rejects client bytes changed
+  ---
+  duration_ms: 5.1679
+  ...
+# Subtest: rejects client changed after run
+ok 63 - rejects client changed after run
+  ---
+  duration_ms: 2.2732
+  ...
+# Subtest: rejects staged shim changed
+ok 64 - rejects staged shim changed
+  ---
+  duration_ms: 4.6664
+  ...
+# Subtest: rejects staged config duplicate
+ok 65 - rejects staged config duplicate
+  ---
+  duration_ms: 4.5629
+  ...
+# Subtest: rejects staged config path changed
+ok 66 - rejects staged config path changed
+  ---
+  duration_ms: 7.2009
+  ...
+# Subtest: rejects child PID reused as parent
+ok 67 - rejects child PID reused as parent
+  ---
+  duration_ms: 11.1644
+  ...
+# Subtest: rejects child exit unobserved
+ok 68 - rejects child exit unobserved
+  ---
+  duration_ms: 5.6332
+  ...
+# Subtest: rejects token proof absent
+ok 69 - rejects token proof absent
+  ---
+  duration_ms: 42.3279
+  ...
+# Subtest: rejects SID malformed
+ok 70 - rejects SID malformed
+  ---
+  duration_ms: 15.6101
+  ...
+# Subtest: rejects canonical root differs
+ok 71 - rejects canonical root differs
+  ---
+  duration_ms: 6.1635
+  ...
+# Subtest: rejects cleanup inferred from process exit
+ok 72 - rejects cleanup inferred from process exit
+  ---
+  duration_ms: 5.9915
+  ...
+# Subtest: rejects Job still populated
+ok 73 - rejects Job still populated
+  ---
+  duration_ms: 6.1824
+  ...
+# Subtest: rejects capability added
+ok 74 - rejects capability added
+  ---
+  duration_ms: 4.7755
+  ...
+# Subtest: rejects mapping observation unknown
+ok 75 - rejects mapping observation unknown
+  ---
+  duration_ms: 4.0148
+  ...
+# Subtest: rejects protocol never written
+ok 76 - rejects protocol never written
+  ---
+  duration_ms: 6.898
+  ...
+# Subtest: rejects protocol never received
+ok 77 - rejects protocol never received
+  ---
+  duration_ms: 5.5256
+  ...
+# Subtest: rejects two service processes
+ok 78 - rejects two service processes
+  ---
+  duration_ms: 5.3373
+  ...
+# Subtest: rejects negative request not rejected
+ok 79 - rejects negative request not rejected
+  ---
+  duration_ms: 4.2366
+  ...
+# Subtest: rejects negative request unrelated failure
+ok 80 - rejects negative request unrelated failure
+  ---
+  duration_ms: 6.4639
+  ...
+# Subtest: rejects service stderr
+ok 81 - rejects service stderr
+  ---
+  duration_ms: 4.5314
+  ...
+# Subtest: rejects native stderr
+ok 82 - rejects native stderr
+  ---
+  duration_ms: 3.929
+  ...
+# Subtest: rejects config digest changed
+ok 83 - rejects config digest changed
+  ---
+  duration_ms: 4.2123
+  ...
+# Subtest: rejects config output changed without digest
+ok 84 - rejects config output changed without digest
+  ---
+  duration_ms: 4.3431
+  ...
+# Subtest: rejects config threads substitution resealed
+ok 85 - rejects config threads substitution resealed
+  ---
+  duration_ms: 4.0557
+  ...
+# Subtest: rejects config maxWorkers changed resealed
+ok 86 - rejects config maxWorkers changed resealed
+  ---
+  duration_ms: 4.5316
+  ...
+# Subtest: rejects trace PID substituted resealed
+ok 87 - rejects trace PID substituted resealed
+  ---
+  duration_ms: 5.0856
+  ...
+# Subtest: rejects trace gap resealed
+ok 88 - rejects trace gap resealed
+  ---
+  duration_ms: 4.8341
+  ...
+# Subtest: rejects trace overflow resealed
+ok 89 - rejects trace overflow resealed
+  ---
+  duration_ms: 4.242
+  ...
+# Subtest: rejects config filesystem read omitted resealed
+ok 90 - rejects config filesystem read omitted resealed
+  ---
+  duration_ms: 5.3731
+  ...
+# Subtest: rejects parent map negative control changed resealed
+ok 91 - rejects parent map negative control changed resealed
+  ---
+  duration_ms: 3.7889
+  ...
+# Subtest: independent entry proof binds real private-root enumeration and exact bundle bytes
+ok 92 - independent entry proof binds real private-root enumeration and exact bundle bytes
+  ---
+  duration_ms: 16.3438
+  ...
+# Subtest: rejects formal promotion
+ok 93 - rejects formal promotion
+  ---
+  duration_ms: 3.592
+  ...
+# Subtest: rejects admission promotion
+ok 94 - rejects admission promotion
+  ---
+  duration_ms: 17.0822
+  ...
+# Subtest: rejects result translation
+ok 95 - rejects result translation
+  ---
+  duration_ms: 2.4671
+  ...
+# Subtest: rejects source replacement
+ok 96 - rejects source replacement
+  ---
+  duration_ms: 22.9885
+  ...
+# Subtest: rejects frozen binary replacement
+ok 97 - rejects frozen binary replacement
+  ---
+  duration_ms: 14.2228
+  ...
+# Subtest: rejects staged shim replacement
+ok 98 - rejects staged shim replacement
+  ---
+  duration_ms: 4.9053
+  ...
+# Subtest: rejects staged entry replacement
+ok 99 - rejects staged entry replacement
+  ---
+  duration_ms: 5.0163
+  ...
+# Subtest: rejects unlisted staged file
+ok 100 - rejects unlisted staged file
+  ---
+  duration_ms: 4.5662
+  ...
+# Subtest: rejects supervisor failure
+ok 101 - rejects supervisor failure
+  ---
+  duration_ms: 6.3032
+  ...
+# Subtest: rejects extra supervisor frame
+ok 102 - rejects extra supervisor frame
+  ---
+  duration_ms: 5.8479
+  ...
+# Subtest: rejects trace byte tamper
+ok 103 - rejects trace byte tamper
+  ---
+  duration_ms: 20.7897
+  ...
+# Subtest: rejects forged resealed bundle
+ok 104 - rejects forged resealed bundle
+  ---
+  duration_ms: 10.428
+  ...
+# Subtest: rejects child error
+ok 105 - rejects child error
+  ---
+  duration_ms: 8.3032
+  ...
+# Subtest: rejects native denied setter
+ok 106 - rejects native denied setter
+  ---
+  duration_ms: 8.98
+  ...
+# Subtest: rejects native privileged or unproven host
+ok 107 - rejects native privileged or unproven host
+  ---
+  duration_ms: 12.4914
+  ...
+# Subtest: rejects native missing child token proof
+ok 108 - rejects native missing child token proof
+  ---
+  duration_ms: 4.8796
+  ...
+# Subtest: rejects native extra capability
+ok 109 - rejects native extra capability
+  ---
+  duration_ms: 19.4479
+  ...
+# Subtest: rejects native non-leaf child
+ok 110 - rejects native non-leaf child
+  ---
+  duration_ms: 4.5871
+  ...
+# Subtest: rejects native wrong handle count
+ok 111 - rejects native wrong handle count
+  ---
+  duration_ms: 7.8789
+  ...
+# Subtest: rejects native missing image pin
+ok 112 - rejects native missing image pin
+  ---
+  duration_ms: 5.0632
+  ...
+# Subtest: rejects native map not installed
+ok 113 - rejects native map not installed
+  ---
+  duration_ms: 7.5338
+  ...
+# Subtest: rejects native parent map changed
+ok 114 - rejects native parent map changed
+  ---
+  duration_ms: 33.6353
+  ...
+# Subtest: rejects native live job
+ok 115 - rejects native live job
+  ---
+  duration_ms: 4.904
+  ...
+# Subtest: rejects native child was never created
+ok 116 - rejects native child was never created
+  ---
+  duration_ms: 3.7874
+  ...
+# Subtest: rejects native unassigned child
+ok 117 - rejects native unassigned child
+  ---
+  duration_ms: 14.9077
+  ...
+# Subtest: rejects native child wait timed out
+ok 118 - rejects native child wait timed out
+  ---
+  duration_ms: 23.6597
+  ...
+# Subtest: rejects native child wait failed
+ok 119 - rejects native child wait failed
+  ---
+  duration_ms: 3.7952
+  ...
+# Subtest: rejects native unknown child exit
+ok 120 - rejects native unknown child exit
+  ---
+  duration_ms: 8.0844
+  ...
+# Subtest: rejects native child remains live
+ok 121 - rejects native child remains live
+  ---
+  duration_ms: 5.9171
+  ...
+# Subtest: rejects native unqueried job
+ok 122 - rejects native unqueried job
+  ---
+  duration_ms: 4.2025
+  ...
+# Subtest: rejects native nonempty job
+ok 123 - rejects native nonempty job
+  ---
+  duration_ms: 8.5029
+  ...
+# Subtest: rejects native contradictory termination
+ok 124 - rejects native contradictory termination
+  ---
+  duration_ms: 11.5429
+  ...
+# Subtest: rejects native unknown but equal parent map
+ok 125 - rejects native unknown but equal parent map
+  ---
+  duration_ms: 10.8739
+  ...
+# Subtest: rejects native wrong absent error
+ok 126 - rejects native wrong absent error
+  ---
+  duration_ms: 7.8357
+  ...
+# Subtest: rejects native missing final map observation
+ok 127 - rejects native missing final map observation
+  ---
+  duration_ms: 8.0177
+  ...
+# Subtest: rejects native different map after setter
+ok 128 - rejects native different map after setter
+  ---
+  duration_ms: 7.418
+  ...
+# Subtest: rejects native different final map
+ok 129 - rejects native different final map
+  ---
+  duration_ms: 3.973
+  ...
+# Subtest: rejects native profile retained
+ok 130 - rejects native profile retained
+  ---
+  duration_ms: 5.5154
+  ...
+# Subtest: rejects native loopback exempted
+ok 131 - rejects native loopback exempted
+  ---
+  duration_ms: 4.8468
+  ...
+# Subtest: rejects native same PID
+ok 132 - rejects native same PID
+  ---
+  duration_ms: 4.312
+  ...
+# Subtest: rejects native child failed
+ok 133 - rejects native child failed
+  ---
+  duration_ms: 5.7632
+  ...
+# Subtest: rejects native different guarded root
+ok 134 - rejects native different guarded root
+  ---
+  duration_ms: 4.7733
+  ...
+# Subtest: rejects resealed writable map
+ok 135 - rejects resealed writable map
+  ---
+  duration_ms: 4.7892
+  ...
+# Subtest: rejects resealed wrong mapped root
+ok 136 - rejects resealed wrong mapped root
+  ---
+  duration_ms: 6.2954
+  ...
+# Subtest: rejects resealed wrong FileId
+ok 137 - rejects resealed wrong FileId
+  ---
+  duration_ms: 3.8556
+  ...
+# Subtest: rejects resealed host read allowed
+ok 138 - rejects resealed host read allowed
+  ---
+  duration_ms: 3.497
+  ...
+# Subtest: rejects resealed wrong host denial
+ok 139 - rejects resealed wrong host denial
+  ---
+  duration_ms: 4.0361
+  ...
+# Subtest: rejects resealed workspace write allowed
+ok 140 - rejects resealed workspace write allowed
+  ---
+  duration_ms: 5.4536
+  ...
+# Subtest: rejects resealed traversal escaped
+ok 141 - rejects resealed traversal escaped
+  ---
+  duration_ms: 3.8731
+  ...
+# Subtest: rejects resealed uninstalled shim
+ok 142 - rejects resealed uninstalled shim
+  ---
+  duration_ms: 3.4995
+  ...
+# Subtest: rejects resealed root directory unreadable
+ok 143 - rejects resealed root directory unreadable
+  ---
+  duration_ms: 3.8084
+  ...
+# Subtest: rejects resealed root enumeration missing
+ok 144 - rejects resealed root enumeration missing
+  ---
+  duration_ms: 3.6917
+  ...
+# Subtest: rejects resealed entry unreadable
+ok 145 - rejects resealed entry unreadable
+  ---
+  duration_ms: 3.3539
+  ...
+# Subtest: rejects resealed bundle write missing
+ok 146 - rejects resealed bundle write missing
+  ---
+  duration_ms: 2.5288
+  ...
+# Subtest: rejects resealed wrong child PID
+ok 147 - rejects resealed wrong child PID
+  ---
+  duration_ms: 3.8932
+  ...
+# Subtest: rejects resealed sequence gap
+ok 148 - rejects resealed sequence gap
+  ---
+  duration_ms: 3.4582
+  ...
+# Subtest: rejects resealed overflow
+ok 149 - rejects resealed overflow
+  ---
+  duration_ms: 4.1261
+  ...
+# Subtest: rejects resealed incomplete patches
+ok 150 - rejects resealed incomplete patches
+  ---
+  duration_ms: 4.7961
+  ...
+# Subtest: rejects resealed exit missing
+ok 151 - rejects resealed exit missing
+  ---
+  duration_ms: 6.1455
+  ...
+# Subtest: an existing parent mapping requires equal successful raw observations
+ok 152 - an existing parent mapping requires equal successful raw observations
+  ---
+  duration_ms: 8.2116
+  ...
+# Subtest: a complete diagnostic stays untrusted and cannot admit a durable backend
+ok 153 - a complete diagnostic stays untrusted and cannot admit a durable backend
+  ---
+  duration_ms: 3.4655
+  ...
+# Subtest: a previous execution cannot supply a current receipt
+ok 154 - a previous execution cannot supply a current receipt
+  ---
+  duration_ms: 0.6967
+  ...
+# Subtest: owner exit is not cleanup
+ok 155 - owner exit is not cleanup
+  ---
+  duration_ms: 0.3995
+  ...
+# Subtest: PID absence cannot replace a retained handle
+ok 156 - PID absence cannot replace a retained handle
+  ---
+  duration_ms: 0.3646
+  ...
+# Subtest: a timeout cannot replace an empty Job
+ok 157 - a timeout cannot replace an empty Job
+  ---
+  duration_ms: 0.5822
+  ...
+# Subtest: deleting a journal cannot confirm cleanup
+ok 158 - deleting a journal cannot confirm cleanup
+  ---
+  duration_ms: 0.3643
+  ...
+# Subtest: a nonempty Job remains unconfirmed
+ok 159 - a nonempty Job remains unconfirmed
+  ---
+  duration_ms: 0.4955
+  ...
+# Subtest: closed sockets alone cannot replace process handles
+ok 160 - closed sockets alone cannot replace process handles
+  ---
+  duration_ms: 0.3246
+  ...
+# Subtest: process termination alone cannot prove socket observation
+ok 161 - process termination alone cannot prove socket observation
+  ---
+  duration_ms: 1.1483
+  ...
+# Subtest: socket timeouts are not terminal connection evidence
+ok 162 - socket timeouts are not terminal connection evidence
+  ---
+  duration_ms: 0.9683
+  ...
+# Subtest: a wrong Job must be a real nonmember
+ok 163 - a wrong Job must be a real nonmember
+  ---
+  duration_ms: 0.4145
+  ...
+# Subtest: stale identity must leave all fixture sockets alive
+ok 164 - stale identity must leave all fixture sockets alive
+  ---
+  duration_ms: 0.2495
+  ...
+# Subtest: custodian restart claims are rejected
+ok 165 - custodian restart claims are rejected
+  ---
+  duration_ms: 0.2276
+  ...
+# Subtest: WFP claims are rejected
+ok 166 - WFP claims are rejected
+  ---
+  duration_ms: 0.2845
+  ...
+# Subtest: failed native cleanup cannot be hidden by complete events
+ok 167 - failed native cleanup cannot be hidden by complete events
+  ---
+  duration_ms: 1.4788
+  ...
+# Subtest: owner cleanup failure cannot be hidden by an empty Job
+ok 168 - owner cleanup failure cannot be hidden by an empty Job
+  ---
+  duration_ms: 0.6505
+  ...
+# Subtest: event reordering is rejected
+ok 169 - event reordering is rejected
+  ---
+  duration_ms: 0.7303
+  ...
+# Subtest: duplicate events are rejected
+ok 170 - duplicate events are rejected
+  ---
+  duration_ms: 0.6854
+  ...
+# Subtest: malformed evidence remains unconfirmed
+ok 171 - malformed evidence remains unconfirmed
+  ---
+  duration_ms: 0.8172
+  ...
+# Subtest: an unassigned suspended owner requires independent original HANDLE cleanup
+ok 172 - an unassigned suspended owner requires independent original HANDLE cleanup
+  ---
+  duration_ms: 2.2785
+  ...
+# Subtest: reads authorized package file node_modules/one/index.js
+not ok 173 - reads authorized package file node_modules/one/index.js
+  ---
+  duration_ms: 9.9222
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:42:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:43:15)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.start (node:internal/test_runner/test:833:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: reads authorized package file node_modules/@scope/one/index.js
+not ok 174 - reads authorized package file node_modules/@scope/one/index.js
+  ---
+  duration_ms: 3.1119
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:42:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:43:15)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: reads authorized package file packages/cli/node_modules/one/index.js
+not ok 175 - reads authorized package file packages/cli/node_modules/one/index.js
+  ---
+  duration_ms: 18.0897
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:42:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:43:15)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: reads authorized package file packages/shared-logger/node_modules/@scope/one/index.js
+not ok 176 - reads authorized package file packages/shared-logger/node_modules/@scope/one/index.js
+  ---
+  duration_ms: 1.2389
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:42:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:43:15)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: reads authorized package file node_modules/one/node_modules/two/index.js
+not ok 177 - reads authorized package file node_modules/one/node_modules/two/index.js
+  ---
+  duration_ms: 1.1191
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:42:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:43:15)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: empty package file is verified by its real empty SHA256
+not ok 178 - empty package file is verified by its real empty SHA256
+  ---
+  duration_ms: 2.2404
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:52:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:53:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "../control/node.exe"
+ok 179 - rejects unauthorized or unsafe dependency path "../control/node.exe"
+  ---
+  duration_ms: 3.3342
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/../../control/node.exe"
+ok 180 - rejects unauthorized or unsafe dependency path "node_modules/one/../../control/node.exe"
+  ---
+  duration_ms: 0.3528
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "/node_modules/one/index.js"
+ok 181 - rejects unauthorized or unsafe dependency path "/node_modules/one/index.js"
+  ---
+  duration_ms: 0.7495
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "C:/node_modules/one/index.js"
+ok 182 - rejects unauthorized or unsafe dependency path "C:/node_modules/one/index.js"
+  ---
+  duration_ms: 0.8911
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules\\\\one\\\\index.js"
+ok 183 - rejects unauthorized or unsafe dependency path "node_modules\\\\one\\\\index.js"
+  ---
+  duration_ms: 0.4171
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules//one/index.js"
+ok 184 - rejects unauthorized or unsafe dependency path "node_modules//one/index.js"
+  ---
+  duration_ms: 0.2598
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/./index.js"
+ok 185 - rejects unauthorized or unsafe dependency path "node_modules/one/./index.js"
+  ---
+  duration_ms: 0.5195
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CON.txt"
+ok 186 - rejects unauthorized or unsafe dependency path "node_modules/one/CON.txt"
+  ---
+  duration_ms: 0.7652
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/COM1"
+ok 187 - rejects unauthorized or unsafe dependency path "node_modules/one/COM1"
+  ---
+  duration_ms: 0.3818
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CONIN$"
+ok 188 - rejects unauthorized or unsafe dependency path "node_modules/one/CONIN$"
+  ---
+  duration_ms: 1.406
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/CLOCK$"
+ok 189 - rejects unauthorized or unsafe dependency path "node_modules/one/CLOCK$"
+  ---
+  duration_ms: 1.2719
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/lpt².log"
+ok 190 - rejects unauthorized or unsafe dependency path "node_modules/one/lpt².log"
+  ---
+  duration_ms: 0.634
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/trailing. "
+ok 191 - rejects unauthorized or unsafe dependency path "node_modules/one/trailing. "
+  ---
+  duration_ms: 1.2723
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/alternate:stream"
+ok 192 - rejects unauthorized or unsafe dependency path "node_modules/one/alternate:stream"
+  ---
+  duration_ms: 0.3897
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/control\\u0000.js"
+ok 193 - rejects unauthorized or unsafe dependency path "node_modules/one/control\\u0000.js"
+  ---
+  duration_ms: 0.3505
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one/wild*.js"
+ok 194 - rejects unauthorized or unsafe dependency path "node_modules/one/wild*.js"
+  ---
+  duration_ms: 0.9631
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/one"
+ok 195 - rejects unauthorized or unsafe dependency path "node_modules/one"
+  ---
+  duration_ms: 15.9132
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/@scope/one"
+ok 196 - rejects unauthorized or unsafe dependency path "node_modules/@scope/one"
+  ---
+  duration_ms: 0.3802
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "node_modules/.bin/one"
+ok 197 - rejects unauthorized or unsafe dependency path "node_modules/.bin/one"
+  ---
+  duration_ms: 0.261
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "packages/not-authorized/node_modules/one/index.js"
+ok 198 - rejects unauthorized or unsafe dependency path "packages/not-authorized/node_modules/one/index.js"
+  ---
+  duration_ms: 0.2364
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "packages/cli/src/index.js"
+ok 199 - rejects unauthorized or unsafe dependency path "packages/cli/src/index.js"
+  ---
+  duration_ms: 0.2138
+  ...
+# Subtest: rejects unauthorized or unsafe dependency path "control/node_modules/one/index.js"
+ok 200 - rejects unauthorized or unsafe dependency path "control/node_modules/one/index.js"
+  ---
+  duration_ms: 0.2207
+  ...
+# Subtest: manifest cannot grant itself a workspace namespace
+ok 201 - manifest cannot grant itself a workspace namespace
+  ---
+  duration_ms: 1.0028
+  ...
+# Subtest: case aliases and file-directory collisions are rejected
+ok 202 - case aliases and file-directory collisions are rejected
+  ---
+  duration_ms: 0.8373
+  ...
+# Subtest: rejects invalid descriptor {"bytes":-1}
+ok 203 - rejects invalid descriptor {"bytes":-1}
+  ---
+  duration_ms: 0.7616
+  ...
+# Subtest: rejects invalid descriptor {"bytes":0.5}
+ok 204 - rejects invalid descriptor {"bytes":0.5}
+  ---
+  duration_ms: 2.6225
+  ...
+# Subtest: rejects invalid descriptor {"bytes":134217729}
+ok 205 - rejects invalid descriptor {"bytes":134217729}
+  ---
+  duration_ms: 0.2874
+  ...
+# Subtest: rejects invalid descriptor {"digest":"sha256:bad"}
+ok 206 - rejects invalid descriptor {"digest":"sha256:bad"}
+  ---
+  duration_ms: 0.3038
+  ...
+# Subtest: extra bytes cannot masquerade as a valid empty dependency
+not ok 207 - extra bytes cannot masquerade as a valid empty dependency
+  ---
+  duration_ms: 4.5474
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:154:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:155:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: same-sized wrong content fails the pinned digest
+not ok 208 - same-sized wrong content fails the pinned digest
+  ---
+  duration_ms: 1.3005
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:159:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:160:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: hardlinked source file is rejected
+not ok 209 - hardlinked source file is rejected
+  ---
+  duration_ms: 1.387
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:164:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:165:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: directory substituted for package file is rejected
+not ok 210 - directory substituted for package file is rejected
+  ---
+  duration_ms: 6.5987
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:169:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:170:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: junction or symlink package parent cannot escape artifact tree
+not ok 211 - junction or symlink package parent cannot escape artifact tree
+  ---
+  duration_ms: 1.3504
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:175:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:176:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: aliased artifact tree is rejected
+not ok 212 - aliased artifact tree is rejected
+  ---
+  duration_ms: 1.5923
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:188:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:189:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: concurrent content change during descriptor read is rejected
+not ok 213 - concurrent content change during descriptor read is rejected
+  ---
+  duration_ms: 4.638
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:198:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:199:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: parent namespace change during read is rejected
+not ok 214 - parent namespace change during read is rejected
+  ---
+  duration_ms: 9.9587
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-dependencies.node-test.mjs:214:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:25:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs:215:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: GLOBALROOT-backed physical identity and logical X refer to the same held object
+ok 215 - GLOBALROOT-backed physical identity and logical X refer to the same held object
+  ---
+  duration_ms: 14.9432
+  ...
+# Subtest: physical inherited file handles do not claim that C paths can be opened in the child
+ok 216 - physical inherited file handles do not claim that C paths can be opened in the child
+  ---
+  duration_ms: 4.1441
+  ...
+# Subtest: rejects different root FileID
+ok 217 - rejects different root FileID
+  ---
+  duration_ms: 4.6517
+  ...
+# Subtest: rejects same FileID on different volume
+ok 218 - rejects same FileID on different volume
+  ---
+  duration_ms: 1.6227
+  ...
+# Subtest: rejects different NT root with equal IDs
+ok 219 - rejects different NT root with equal IDs
+  ---
+  duration_ms: 1.4621
+  ...
+# Subtest: rejects root pair not held together
+ok 220 - rejects root pair not held together
+  ---
+  duration_ms: 9.0429
+  ...
+# Subtest: rejects unguarded ancestors
+ok 221 - rejects unguarded ancestors
+  ---
+  duration_ms: 0.9337
+  ...
+# Subtest: rejects logical root uses drive-relative X
+ok 222 - rejects logical root uses drive-relative X
+  ---
+  duration_ms: 0.6871
+  ...
+# Subtest: rejects physical side pretends to open DOS C
+ok 223 - rejects physical side pretends to open DOS C
+  ---
+  duration_ms: 1.3378
+  ...
+# Subtest: rejects logical root is only a claimed alias
+ok 224 - rejects logical root is only a claimed alias
+  ---
+  duration_ms: 1.2488
+  ...
+# Subtest: rejects root is a reparse point
+ok 225 - rejects root is a reparse point
+  ---
+  duration_ms: 0.7231
+  ...
+# Subtest: rejects runtime has additional hard links
+ok 226 - rejects runtime has additional hard links
+  ---
+  duration_ms: 0.6365
+  ...
+# Subtest: rejects runtime is outside guarded root
+ok 227 - rejects runtime is outside guarded root
+  ---
+  duration_ms: 0.9655
+  ...
+# Subtest: rejects runtime bytes changed
+ok 228 - rejects runtime bytes changed
+  ---
+  duration_ms: 0.7532
+  ...
+# Subtest: rejects runtime length changed
+ok 229 - rejects runtime length changed
+  ---
+  duration_ms: 1.7708
+  ...
+# Subtest: rejects runtime alias targets another file
+ok 230 - rejects runtime alias targets another file
+  ---
+  duration_ms: 0.6962
+  ...
+# Subtest: rejects ABI changed
+ok 231 - rejects ABI changed
+  ---
+  duration_ms: 0.6241
+  ...
+# Subtest: rejects runtime version changed
+ok 232 - rejects runtime version changed
+  ---
+  duration_ms: 1.8554
+  ...
+# Subtest: rejects different AppContainer
+ok 233 - rejects different AppContainer
+  ---
+  duration_ms: 0.5966
+  ...
+# Subtest: rejects network capability added
+ok 234 - rejects network capability added
+  ---
+  duration_ms: 0.6094
+  ...
+# Subtest: rejects no Job membership
+ok 235 - rejects no Job membership
+  ---
+  duration_ms: 0.5832
+  ...
+# Subtest: rejects another broker session
+ok 236 - rejects another broker session
+  ---
+  duration_ms: 0.6845
+  ...
+# Subtest: rejects replayed generation
+ok 237 - rejects replayed generation
+  ---
+  duration_ms: 3.1578
+  ...
+# Subtest: rejects fork role not wired
+ok 238 - rejects fork role not wired
+  ---
+  duration_ms: 0.6603
+  ...
+# Subtest: rejects admitted status
+ok 239 - rejects admitted status
+  ---
+  duration_ms: 0.6795
+  ...
+# Subtest: rejects zero object ID
+ok 240 - rejects zero object ID
+  ---
+  duration_ms: 0.6506
+  ...
+# Subtest: rejects out of range volume
+ok 241 - rejects out of range volume
+  ---
+  duration_ms: 0.6698
+  ...
+# Subtest: rejects manifest full review inferred
+ok 242 - rejects manifest full review inferred
+  ---
+  duration_ms: 0.9725
+  ...
+# Subtest: rejects manifest sandbox-generated authority flag
+ok 243 - rejects manifest sandbox-generated authority flag
+  ---
+  duration_ms: 0.6286
+  ...
+# Subtest: rejects manifest unlisted preload file
+ok 244 - rejects manifest unlisted preload file
+  ---
+  duration_ms: 7.454
+  ...
+# Subtest: rejects manifest root with traversal
+ok 245 - rejects manifest root with traversal
+  ---
+  duration_ms: 2.7626
+  ...
+# Subtest: rejects manifest root with UNC alias
+ok 246 - rejects manifest root with UNC alias
+  ---
+  duration_ms: 0.5199
+  ...
+# Subtest: rejects manifest runtime digest chosen by caller
+ok 247 - rejects manifest runtime digest chosen by caller
+  ---
+  duration_ms: 0.6108
+  ...
+# Subtest: rejects manifest fork role in manifest
+ok 248 - rejects manifest fork role in manifest
+  ---
+  duration_ms: 0.5714
+  ...
+# Subtest: rejects manifest relative X root in manifest
+ok 249 - rejects manifest relative X root in manifest
+  ---
+  duration_ms: 0.7312
+  ...
+# Subtest: only both exact executable spellings and the fixed runtime ABI are accepted
+ok 250 - only both exact executable spellings and the fixed runtime ABI are accepted
+  ---
+  duration_ms: 1.7667
+  ...
+# Subtest: bounded reads reject hard links and oversize files, and return actual bytes
+ok 251 - bounded reads reject hard links and oversize files, and return actual bytes
+  ---
+  duration_ms: 12.5365
+  ...
+# Subtest: malformed or oversized native JSON cannot supply identity
+ok 252 - malformed or oversized native JSON cannot supply identity
+  ---
+  duration_ms: 1.7306
+  ...
+# Subtest: root and worker retain distinct native registrations under one session
+ok 253 - root and worker retain distinct native registrations under one session
+  ---
+  duration_ms: 4.0737
+  ...
+# Subtest: rejects registered native another registration
+ok 254 - rejects registered native another registration
+  ---
+  duration_ms: 1.0253
+  ...
+# Subtest: rejects registered native another creation PID
+ok 255 - rejects registered native another creation PID
+  ---
+  duration_ms: 0.6423
+  ...
+# Subtest: rejects registered native root parent registration
+ok 256 - rejects registered native root parent registration
+  ---
+  duration_ms: 0.6982
+  ...
+# Subtest: rejects registered native worker called root
+ok 257 - rejects registered native worker called root
+  ---
+  duration_ms: 1.02
+  ...
+# Subtest: rejects registered native actor called root
+ok 258 - rejects registered native actor called root
+  ---
+  duration_ms: 15.7448
+  ...
+# Subtest: rejects registered native environment-only authority
+ok 259 - rejects registered native environment-only authority
+  ---
+  duration_ms: 0.8883
+  ...
+# Subtest: rejects registered native missing broker response
+ok 260 - rejects registered native missing broker response
+  ---
+  duration_ms: 0.7627
+  ...
+# Subtest: rejects registered native missing actor
+ok 261 - rejects registered native missing actor
+  ---
+  duration_ms: 0.6581
+  ...
+# Subtest: rejects registered native extra actor authority
+ok 262 - rejects registered native extra actor authority
+  ---
+  duration_ms: 0.6739
+  ...
+# Subtest: rejects registered manifest root without actor
+ok 263 - rejects registered manifest root without actor
+  ---
+  duration_ms: 0.684
+  ...
+# Subtest: rejects registered manifest worker without parent
+ok 264 - rejects registered manifest worker without parent
+  ---
+  duration_ms: 0.5781
+  ...
+# Subtest: rejects registered manifest self parent
+ok 265 - rejects registered manifest self parent
+  ---
+  duration_ms: 0.5735
+  ...
+# Subtest: rejects registered manifest zero PID
+ok 266 - rejects registered manifest zero PID
+  ---
+  duration_ms: 0.4884
+  ...
+# Subtest: rejects registered manifest oversize PID
+ok 267 - rejects registered manifest oversize PID
+  ---
+  duration_ms: 0.931
+  ...
+# Subtest: rejects registered manifest string PID
+ok 268 - rejects registered manifest string PID
+  ---
+  duration_ms: 0.553
+  ...
+# Subtest: rejects registered manifest role mismatch
+ok 269 - rejects registered manifest role mismatch
+  ---
+  duration_ms: 0.4643
+  ...
+# Subtest: rejects registered manifest legacy worker role
+ok 270 - rejects registered manifest legacy worker role
+  ---
+  duration_ms: 0.4503
+  ...
+# Subtest: rejects registered manifest legacy actor extension
+ok 271 - rejects registered manifest legacy actor extension
+  ---
+  duration_ms: 0.6492
+  ...
+# Subtest: legacy root proof cannot import worker actor authority
+ok 272 - legacy root proof cannot import worker actor authority
+  ---
+  duration_ms: 0.6137
+  ...
+# Subtest: manifest selection binds an exact worker filename to its registration
+ok 273 - manifest selection binds an exact worker filename to its registration
+  ---
+  duration_ms: 1.6495
+  ...
+# Subtest: actual process PID must equal host registered creation PID
+ok 274 - actual process PID must equal host registered creation PID
+  ---
+  duration_ms: 0.88
+  ...
+# Subtest: fixed report helper has a separate role and manifest namespace
+ok 275 - fixed report helper has a separate role and manifest namespace
+  ---
+  duration_ms: 4.6529
+  ...
+# Subtest: actor roles cannot expand to arbitrary helpers
+ok 276 - actor roles cannot expand to arbitrary helpers
+  ---
+  duration_ms: 1.1531
+  ...
+# Subtest: otherwise complete synthetic diagnostic cannot satisfy the immutable frozen lock
+ok 277 - otherwise complete synthetic diagnostic cannot satisfy the immutable frozen lock
+  ---
+  duration_ms: 40.0184
+  ...
+# Subtest: rejects failed outer execution
+ok 278 - rejects failed outer execution
+  ---
+  duration_ms: 12.7683
+  ...
+# Subtest: rejects outer error with successful native payload
+ok 279 - rejects outer error with successful native payload
+  ---
+  duration_ms: 10.8634
+  ...
+# Subtest: rejects timed out process
+ok 280 - rejects timed out process
+  ---
+  duration_ms: 8.801
+  ...
+# Subtest: rejects full review escalation
+ok 281 - rejects full review escalation
+  ---
+  duration_ms: 7.0966
+  ...
+# Subtest: rejects helper substituted for actual fork
+ok 282 - rejects helper substituted for actual fork
+  ---
+  duration_ms: 4.4551
+  ...
+# Subtest: rejects worker was never assigned
+ok 283 - rejects worker was never assigned
+  ---
+  duration_ms: 4.9395
+  ...
+# Subtest: rejects retained handle missing
+ok 284 - rejects retained handle missing
+  ---
+  duration_ms: 4.0014
+  ...
+# Subtest: rejects wait timeout
+ok 285 - rejects wait timeout
+  ---
+  duration_ms: 3.626
+  ...
+# Subtest: rejects worker still active
+ok 286 - rejects worker still active
+  ---
+  duration_ms: 7.1007
+  ...
+# Subtest: rejects unproven worker exit 143
+ok 287 - rejects unproven worker exit 143
+  ---
+  duration_ms: 3.7978
+  ...
+# Subtest: rejects wrong worker command
+ok 288 - rejects wrong worker command
+  ---
+  duration_ms: 4.195
+  ...
+# Subtest: rejects worker without IPC descriptor
+ok 289 - rejects worker without IPC descriptor
+  ---
+  duration_ms: 4.9272
+  ...
+# Subtest: rejects duplicate PID
+ok 290 - rejects duplicate PID
+  ---
+  duration_ms: 3.5631
+  ...
+# Subtest: rejects unknown caller registration
+ok 291 - rejects unknown caller registration
+  ---
+  duration_ms: 3.7195
+  ...
+# Subtest: rejects Job still populated
+ok 292 - rejects Job still populated
+  ---
+  duration_ms: 3.2464
+  ...
+# Subtest: rejects missing worker exit receipt
+ok 293 - rejects missing worker exit receipt
+  ---
+  duration_ms: 3.1926
+  ...
+# Subtest: rejects worker receipt claims root
+ok 294 - rejects worker receipt claims root
+  ---
+  duration_ms: 4.9821
+  ...
+# Subtest: rejects manifest registration mismatch
+ok 295 - rejects manifest registration mismatch
+  ---
+  duration_ms: 6.8963
+  ...
+# Subtest: rejects paired native FileID changed
+ok 296 - rejects paired native FileID changed
+  ---
+  duration_ms: 3.6636
+  ...
+# Subtest: rejects missing manifest
+ok 297 - rejects missing manifest
+  ---
+  duration_ms: 2.777
+  ...
+# Subtest: rejects journal forged digest
+ok 298 - rejects journal forged digest
+  ---
+  duration_ms: 4.1748
+  ...
+# Subtest: rejects missing compiler result
+ok 299 - rejects missing compiler result
+  ---
+  duration_ms: 5.2628
+  ...
+# Subtest: rejects source capture altered
+ok 300 - rejects source capture altered
+  ---
+  duration_ms: 6.0107
+  ...
+# Subtest: rejects artifact binding altered
+ok 301 - rejects artifact binding altered
+  ---
+  duration_ms: 6.4448
+  ...
+# Subtest: retained files are read again instead of trusting captured digests
+ok 302 - retained files are read again instead of trusting captured digests
+  ---
+  duration_ms: 8.7529
+  ...
+# Subtest: staged post-run test digest must equal the retained frozen input
+ok 303 - staged post-run test digest must equal the retained frozen input
+  ---
+  duration_ms: 4.6275
+  ...
+# Subtest: archived inputs remain verifiable when the protected staging tree is unreadable
+ok 304 - archived inputs remain verifiable when the protected staging tree is unreadable
+  ---
+  duration_ms: 4.4971
+  ...
+# Subtest: a missing before snapshot cannot be replaced by only an after hash
+ok 305 - a missing before snapshot cannot be replaced by only an after hash
+  ---
+  duration_ms: 5.3126
+  ...
+# Subtest: malformed or absent reports are rejected without success
+ok 306 - malformed or absent reports are rejected without success
+  ---
+  duration_ms: 2.3364
+  ...
+# Subtest: malformed ledger and non-text manifest payloads cannot bypass rejection
+ok 307 - malformed ledger and non-text manifest payloads cannot bypass rejection
+  ---
+  duration_ms: 3.4955
+  ...
+# Subtest: rejects missing real service even after evidence text is rehashed
+ok 308 - rejects missing real service even after evidence text is rehashed
+  ---
+  duration_ms: 5.0907
+  ...
+# Subtest: rejects different service command even after evidence text is rehashed
+ok 309 - rejects different service command even after evidence text is rehashed
+  ---
+  duration_ms: 3.4248
+  ...
+# Subtest: rejects invalid TypeScript accepted even after evidence text is rehashed
+ok 310 - rejects invalid TypeScript accepted even after evidence text is rehashed
+  ---
+  duration_ms: 3.8855
+  ...
+# Subtest: rejects bundled configuration changed even after evidence text is rehashed
+ok 311 - rejects bundled configuration changed even after evidence text is rehashed
+  ---
+  duration_ms: 5.8357
+  ...
+# Subtest: rejects borrowed shim PID even after evidence text is rehashed
+ok 312 - rejects borrowed shim PID even after evidence text is rehashed
+  ---
+  duration_ms: 5.7193
+  ...
+# Subtest: rejects shim trace overflow even after evidence text is rehashed
+ok 313 - rejects shim trace overflow even after evidence text is rehashed
+  ---
+  duration_ms: 4.2781
+  ...
+# Subtest: rejects namespace check failed even after evidence text is rehashed
+ok 314 - rejects namespace check failed even after evidence text is rehashed
+  ---
+  duration_ms: 4.3428
+  ...
+# Subtest: rejects shim root FileID differs even after evidence text is rehashed
+ok 315 - rejects shim root FileID differs even after evidence text is rehashed
+  ---
+  duration_ms: 3.6248
+  ...
+# Subtest: rejects missing shim exit even after evidence text is rehashed
+ok 316 - rejects missing shim exit even after evidence text is rehashed
+  ---
+  duration_ms: 5.4857
+  ...
+# Subtest: rejects missing validator snapshot even after evidence text is rehashed
+ok 317 - rejects missing validator snapshot even after evidence text is rehashed
+  ---
+  duration_ms: 2.9874
+  ...
+# Subtest: rejects post-run binary differs even after evidence text is rehashed
+ok 318 - rejects post-run binary differs even after evidence text is rehashed
+  ---
+  duration_ms: 3.5448
+  ...
+# Subtest: rejects wrong experiment mode even after evidence text is rehashed
+ok 319 - rejects wrong experiment mode even after evidence text is rehashed
+  ---
+  duration_ms: 3.7073
+  ...
+# Subtest: config pre/post self-consistency cannot replace binding to the frozen closure
+ok 320 - config pre/post self-consistency cannot replace binding to the frozen closure
+  ---
+  duration_ms: 4.9005
+  ...
+# Subtest: rewriting config and its closure together still cannot replace the immutable closure digest
+ok 321 - rewriting config and its closure together still cannot replace the immutable closure digest
+  ---
+  duration_ms: 3.9112
+  ...
+# Subtest: host original-handle termination replaces only the killed worker exit event
+ok 322 - host original-handle termination replaces only the killed worker exit event
+  ---
+  duration_ms: 4.6614
+  ...
+# Subtest: rejects host termination already signaled before kill
+ok 323 - rejects host termination already signaled before kill
+  ---
+  duration_ms: 3.1102
+  ...
+# Subtest: rejects host termination already exited before kill
+ok 324 - rejects host termination already exited before kill
+  ---
+  duration_ms: 2.8166
+  ...
+# Subtest: rejects host termination unobserved pre-wait
+ok 325 - rejects host termination unobserved pre-wait
+  ---
+  duration_ms: 3.1393
+  ...
+# Subtest: rejects host termination termination call failed
+ok 326 - rejects host termination termination call failed
+  ---
+  duration_ms: 3.2489
+  ...
+# Subtest: rejects host termination post-termination timeout
+ok 327 - rejects host termination post-termination timeout
+  ---
+  duration_ms: 4.4686
+  ...
+# Subtest: rejects host termination post-termination still active
+ok 328 - rejects host termination post-termination still active
+  ---
+  duration_ms: 3.578
+  ...
+# Subtest: rejects host termination unrequested kill
+ok 329 - rejects host termination unrequested kill
+  ---
+  duration_ms: 3.0715
+  ...
+# Subtest: rejects host termination unbound request sequence
+ok 330 - rejects host termination unbound request sequence
+  ---
+  duration_ms: 2.847
+  ...
+# Subtest: rejects host termination unknown birth sequence
+ok 331 - rejects host termination unknown birth sequence
+  ---
+  duration_ms: 5.0806
+  ...
+# Subtest: rejects host termination different caller
+ok 332 - rejects host termination different caller
+  ---
+  duration_ms: 4.1302
+  ...
+# Subtest: rejects host termination handle value without object comparison
+ok 333 - rejects host termination handle value without object comparison
+  ---
+  duration_ms: 2.5979
+  ...
+# Subtest: rejects host termination wrong requested exit
+ok 334 - rejects host termination wrong requested exit
+  ---
+  duration_ms: 5.7948
+  ...
+# Subtest: rejects host termination different actual exit
+ok 335 - rejects host termination different actual exit
+  ---
+  duration_ms: 3.3332
+  ...
+# Subtest: a host termination attestation cannot excuse root failure
+ok 336 - a host termination attestation cannot excuse root failure
+  ---
+  duration_ms: 6.0212
+  ...
+# Subtest: review baseline settlement remains separate from immutable admission
+ok 337 - review baseline settlement remains separate from immutable admission
+  ---
+  duration_ms: 8.2922
+  ...
+# Subtest: review mutant settlement remains separate from immutable admission
+ok 338 - review mutant settlement remains separate from immutable admission
+  ---
+  duration_ms: 12.1665
+  ...
+# Subtest: review settlement rejects parser approval cannot waive active Job
+ok 339 - review settlement rejects parser approval cannot waive active Job
+  ---
+  duration_ms: 5.8955
+  ...
+# Subtest: review settlement rejects baseline unexpected root failure
+ok 340 - review settlement rejects baseline unexpected root failure
+  ---
+  duration_ms: 5.4582
+  ...
+# Subtest: review settlement rejects mutant root timeout
+ok 341 - review settlement rejects mutant root timeout
+  ---
+  duration_ms: 5.1574
+  ...
+# Subtest: review settlement rejects mutant worker failure without attribution
+ok 342 - review settlement rejects mutant worker failure without attribution
+  ---
+  duration_ms: 3.6614
+  ...
+# Subtest: review settlement rejects missing actor exit receipt
+ok 343 - review settlement rejects missing actor exit receipt
+  ---
+  duration_ms: 2.7134
+  ...
+# Subtest: review settlement rejects missing full staged source
+ok 344 - review settlement rejects missing full staged source
+  ---
+  duration_ms: 2.7308
+  ...
+# Subtest: review settlement rejects duplicate support source
+ok 345 - review settlement rejects duplicate support source
+  ---
+  duration_ms: 3.4687
+  ...
+# Subtest: review settlement rejects unretained mutation source
+ok 346 - review settlement rejects unretained mutation source
+  ---
+  duration_ms: 3.0991
+  ...
+# Subtest: review settlement rejects different mutation task
+ok 347 - review settlement rejects different mutation task
+  ---
+  duration_ms: 5.6593
+  ...
+# Subtest: review settlement rejects unchanged mutation bytes
+ok 348 - review settlement rejects unchanged mutation bytes
+  ---
+  duration_ms: 3.9699
+  ...
+# Subtest: review settlement requires explicit expected root exit
+ok 349 - review settlement requires explicit expected root exit
+  ---
+  duration_ms: 4.1249
+  ...
+# Subtest: review settlement permits no esbuild service when no service was created
+ok 350 - review settlement permits no esbuild service when no service was created
+  ---
+  duration_ms: 3.2019
+  ...
+# Subtest: explicit callback intent with exact host termination
+ok 351 - explicit callback intent with exact host termination
+  ---
+  duration_ms: 2.9251
+  ...
+# Subtest: callback intent missing disposition
+ok 352 - callback intent missing disposition
+  ---
+  duration_ms: 3.1358
+  ...
+# Subtest: callback intent concealing callback failure
+ok 353 - callback intent concealing callback failure
+  ---
+  duration_ms: 3.0239
+  ...
+# Subtest: callback intent without original handle comparison
+ok 354 - callback intent without original handle comparison
+  ---
+  duration_ms: 3.9022
+  ...
+# Subtest: duplicate callback intent
+ok 355 - duplicate callback intent
+  ---
+  duration_ms: 3.0061
+  ...
+# Subtest: already exited worker remains ordinary zero exit with callback receipt
+ok 356 - already exited worker remains ordinary zero exit with callback receipt
+  ---
+  duration_ms: 4.1898
+  ...
+# Subtest: already exited worker with nonzero actual exit has no host termination exemption
+ok 357 - already exited worker with nonzero actual exit has no host termination exemption
+  ---
+  duration_ms: 2.8508
+  ...
+# Subtest: review dependency custody accepts retained zero-byte and nested workspace files
+not ok 358 - review dependency custody accepts retained zero-byte and nested workspace files
+  ---
+  duration_ms: 2.7149
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1260:1'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1261:36)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects missing helper snapshot
+not ok 359 - review dependency custody rejects missing helper snapshot
+  ---
+  duration_ms: 2.073
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects missing staged file
+not ok 360 - review dependency custody rejects missing staged file
+  ---
+  duration_ms: 3.2008
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects duplicate staged path
+not ok 361 - review dependency custody rejects duplicate staged path
+  ---
+  duration_ms: 2.4712
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects wrong staged after digest
+not ok 362 - review dependency custody rejects wrong staged after digest
+  ---
+  duration_ms: 2.8424
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects extra staged bytes for empty file
+not ok 363 - review dependency custody rejects extra staged bytes for empty file
+  ---
+  duration_ms: 2.005
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects source path outside retained tree
+not ok 364 - review dependency custody rejects source path outside retained tree
+  ---
+  duration_ms: 2.5468
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects staged target outside capsule workspace
+not ok 365 - review dependency custody rejects staged target outside capsule workspace
+  ---
+  duration_ms: 3.1229
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects retained empty file gained bytes
+not ok 366 - review dependency custody rejects retained empty file gained bytes
+  ---
+  duration_ms: 3.4965
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: review dependency custody rejects retained manifest removed
+not ok 367 - review dependency custody rejects retained manifest removed
+  ---
+  duration_ms: 1.9964
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-node-private-v4-result.node-test.mjs:1324:3'
+  failureType: 'testCodeFailure'
+  error: "EPERM: operation not permitted, lstat 'C:\\Users\\longfa'"
+  code: 'EPERM'
+  stack: |-
+    Object.realpathSync (node:fs:2705:29)
+    dependencyReviewFixture (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1218:19)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/windows-node-private-v4-result.node-test.mjs:1325:38)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+    Test.run (node:internal/test_runner/test:973:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:633:7)
+  ...
+# Subtest: rejects missing native guard count
+ok 368 - rejects missing native guard count
+  ---
+  duration_ms: 2.7135
+  ...
+# Subtest: rejects empty native guard count
+ok 369 - rejects empty native guard count
+  ---
+  duration_ms: 3.6544
+  ...
+# Subtest: rejects overflow native guard count
+ok 370 - rejects overflow native guard count
+  ---
+  duration_ms: 2.5751
+  ...
+# Subtest: rejects fractional native guard count
+ok 371 - rejects fractional native guard count
+  ---
+  duration_ms: 3.7155
+  ...
+# Subtest: rejects caller-selected guard limit
+ok 372 - rejects caller-selected guard limit
+  ---
+  duration_ms: 3.1401
+  ...
+# Subtest: closure requires the 41 N-API addresses to forward to the fixed Node module
+ok 373 - closure requires the 41 N-API addresses to forward to the fixed Node module
+  ---
+  duration_ms: 3.8494
+  ...
+# Subtest: closure rejects missing import
+ok 374 - closure rejects missing import
+  ---
+  duration_ms: 0.8263
+  ...
+# Subtest: closure rejects duplicate import
+ok 375 - closure rejects duplicate import
+  ---
+  duration_ms: 0.3906
+  ...
+# Subtest: closure rejects ordinal in N-API population
+ok 376 - closure rejects ordinal in N-API population
+  ---
+  duration_ms: 0.3429
+  ...
+# Subtest: closure rejects second libnode import
+ok 377 - closure rejects second libnode import
+  ---
+  duration_ms: 0.5017
+  ...
+# Subtest: closure rejects missing runtime export
+ok 378 - closure rejects missing runtime export
+  ---
+  duration_ms: 0.3492
+  ...
+# Subtest: closure rejects different forwarded module
+ok 379 - closure rejects different forwarded module
+  ---
+  duration_ms: 0.6735
+  ...
+# Subtest: closure rejects extra forwarder export
+ok 380 - closure rejects extra forwarder export
+  ---
+  duration_ms: 0.4627
+  ...
+# Subtest: closure rejects missing bootstrap
+ok 381 - closure rejects missing bootstrap
+  ---
+  duration_ms: 0.9415
+  ...
+# Subtest: PE reader rejects truncated and non-x64 inputs before traversing tables
+ok 382 - PE reader rejects truncated and non-x64 inputs before traversing tables
+  ---
+  duration_ms: 2.1769
+  ...
+# Subtest: result validator accepts a complete locally bound diagnostic without granting admission
+ok 383 - result validator accepts a complete locally bound diagnostic without granting admission
+  ---
+  duration_ms: 17.7252
+  ...
+# Subtest: result rejects formal sample promotion
+ok 384 - result rejects formal sample promotion
+  ---
+  duration_ms: 6.1634
+  ...
+# Subtest: result rejects admission promotion
+ok 385 - result rejects admission promotion
+  ---
+  duration_ms: 4.3468
+  ...
+# Subtest: result rejects provider assessment
+ok 386 - result rejects provider assessment
+  ---
+  duration_ms: 3.6529
+  ...
+# Subtest: result rejects runtime substitution
+ok 387 - result rejects runtime substitution
+  ---
+  duration_ms: 3.4611
+  ...
+# Subtest: result rejects source substitution
+ok 388 - result rejects source substitution
+  ---
+  duration_ms: 3.2751
+  ...
+# Subtest: result rejects missing source
+ok 389 - result rejects missing source
+  ---
+  duration_ms: 2.6005
+  ...
+# Subtest: result rejects build bytes changed
+ok 390 - result rejects build bytes changed
+  ---
+  duration_ms: 1.2953
+  ...
+# Subtest: result rejects manifest changed
+ok 391 - result rejects manifest changed
+  ---
+  duration_ms: 2.3838
+  ...
+# Subtest: result rejects cleanup missing
+ok 392 - result rejects cleanup missing
+  ---
+  duration_ms: 2.1955
+  ...
+# Subtest: result rejects capability added
+ok 393 - result rejects capability added
+  ---
+  duration_ms: 2.4527
+  ...
+# Subtest: result rejects loopback exemption
+ok 394 - result rejects loopback exemption
+  ---
+  duration_ms: 3.0527
+  ...
+# Subtest: result rejects nonzero target exit
+ok 395 - result rejects nonzero target exit
+  ---
+  duration_ms: 2.1383
+  ...
+# Subtest: result rejects stderr failure
+ok 396 - result rejects stderr failure
+  ---
+  duration_ms: 2.3681
+  ...
+# Subtest: result rejects extra stdout frame
+ok 397 - result rejects extra stdout frame
+  ---
+  duration_ms: 3.5412
+  ...
+# Subtest: result rejects journal changed
+ok 398 - result rejects journal changed
+  ---
+  duration_ms: 3.4195
+  ...
+# Subtest: result rejects resealed wrong SID
+ok 399 - result rejects resealed wrong SID
+  ---
+  duration_ms: 2.9719
+  ...
+# Subtest: result rejects resealed wrong PID
+ok 400 - result rejects resealed wrong PID
+  ---
+  duration_ms: 3.1721
+  ...
+# Subtest: result rejects resealed different forwarding address
+ok 401 - result rejects resealed different forwarding address
+  ---
+  duration_ms: 3.5308
+  ...
+# Subtest: result rejects resealed missing forwarder negative
+ok 402 - result rejects resealed missing forwarder negative
+  ---
+  duration_ms: 2.5139
+  ...
+# Subtest: result rejects resealed async parse mismatch
+ok 403 - result rejects resealed async parse mismatch
+  ---
+  duration_ms: 2.5319
+  ...
+# Subtest: result rejects resealed hash output mismatch
+ok 404 - result rejects resealed hash output mismatch
+  ---
+  duration_ms: 3.7216
+  ...
+# Subtest: result rejects resealed invalid input accepted
+ok 405 - result rejects resealed invalid input accepted
+  ---
+  duration_ms: 2.9319
+  ...
+# Subtest: result rejects resealed constant parser output
+ok 406 - result rejects resealed constant parser output
+  ---
+  duration_ms: 2.8619
+  ...
+# Subtest: result rejects resealed missing stage
+ok 407 - result rejects resealed missing stage
+  ---
+  duration_ms: 2.7914
+  ...
+# Subtest: result rejects resealed extra process row
+ok 408 - result rejects resealed extra process row
+  ---
+  duration_ms: 3.0651
+  ...
+1..408
+# tests 408
+# suites 0
+# pass 384
+# fail 24
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3823.5069

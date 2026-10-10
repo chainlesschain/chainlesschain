@@ -1,0 +1,115 @@
+{
+  "schema": "chainlesschain.windows-private-v4-diagnostic/v1",
+  "status": "NOT_ADMITTED",
+  "experimental": true,
+  "admissionEligible": false,
+  "formalSample": false,
+  "fullFrozenReviewCompleted": false,
+  "sources": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-broker.cpp",
+      "bytes": 43120,
+      "digest": "sha256:3a1980af9446867926be6aba93fcc7ff93de580a2451dfb4fa71f311ba386436"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-adapter.cpp",
+      "bytes": 53145,
+      "digest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-adapter.h",
+      "bytes": 28012,
+      "digest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-paired.h",
+      "bytes": 7924,
+      "digest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-protocol.h",
+      "bytes": 1137,
+      "digest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "bytes": 26434,
+      "digest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-esbuild-private-map-shim.cpp",
+      "bytes": 12342,
+      "digest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-identity.cjs",
+      "bytes": 13925,
+      "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-preload.cjs",
+      "bytes": 5958,
+      "digest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8"
+    }
+  ],
+  "commands": [],
+  "driver": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-diagnostic.mjs",
+    "bytes": 32417,
+    "digest": "sha256:d6e34b516aec402902a1f1ee1bcc2ea925a9c96aa9822ee8e263538ec3877027"
+  },
+  "validatorSource": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-result.mjs",
+    "bytes": 32064,
+    "digest": "sha256:aa71ddcdbb0555fd45d5bbfbe38d8d669f947f7f68b29c1bb2fb41a2d08e32fa"
+  },
+  "dependencyValidatorSource": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\source\\windows-node-private-v4-dependencies.mjs",
+    "bytes": 6698,
+    "digest": "sha256:f674bbdcd21f901d483781cc78936ae79768378de7d7f1d5f8fd7879822c4398"
+  },
+  "mode": "review-mutant",
+  "runtime": {
+    "path": "C:\\nvm4w\\nodejs\\node.exe",
+    "bytes": 87074816,
+    "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+  },
+  "compiler": {
+    "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+    "bytes": 13824,
+    "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+  },
+  "preparation": {
+    "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\inputs\\preparation.json",
+    "bytes": 1855718,
+    "digest": "sha256:5bf26376fb4b2fccc06cf2af1a60aee90a381035148a6881a22b772b12ed69a6"
+  },
+  "sourceProof": {
+    "binding": {
+      "inventoryDigest": "sha256:469d8a901b1b03b047f3d1cd3c25d480acfbb88222f7dc7382dde5ebaff77d17",
+      "lockDigest": "sha256:f70a1beec6cb222e3e4fbcb13711e67681d49c8f8edb5d75f55000832b95455a",
+      "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+      "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "runtime": {
+        "platform": "win32",
+        "architecture": "x64",
+        "nodeVersion": "v22.22.2",
+        "modulesAbi": "127",
+        "executableDigest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      }
+    },
+    "registryContentVerified": true
+  },
+  "baseline": {
+    "capture": {
+      "path": "C:\\code\\chainlesschain\\.work\\windows-private-v4-20261009-rejected-failed-baseline\\inputs\\report.json",
+      "bytes": 25258887,
+      "digest": "sha256:a518155ed66cd2f24816afb6761903966fbf7550aab6639cf6a980c4c113c658"
+    },
+    "tests": [
+      "packages/cli/__tests__/unit/model-capabilities.test.js",
+      "packages/cli/__tests__/unit/model-release-contract.test.js"
+    ]
+  },
+  "error": "Error: skipped, pending, todo or empty tests cannot pass acceptance\n    at requireCondition (file:///C:/code/chainlesschain/packages/cli/scripts/verify01-review-runtime.mjs:17:25)\n    at parseReviewTests (file:///C:/code/chainlesschain/packages/cli/scripts/verify01-review-runtime.mjs:167:3)\n    at runPrivateV4Diagnostic (file:///C:/code/chainlesschain/packages/cli/scripts/windows-node-private-v4-diagnostic.mjs:172:22)\n    at file:///C:/code/chainlesschain/packages/cli/scripts/windows-node-private-v4-diagnostic.mjs:743:18"
+}

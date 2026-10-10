@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: successful canonical pull binds inspect, container execution and source evidence
+ok 1 - successful canonical pull binds inspect, container execution and source evidence
+  ---
+  duration_ms: 4.326
+  type: 'test'
+  ...
+# Subtest: only anonymous Hub quota uses the fixed same-digest mirror and preserves full pull output
+ok 2 - only anonymous Hub quota uses the fixed same-digest mirror and preserves full pull output
+  ---
+  duration_ms: 2.434
+  type: 'test'
+  ...
+# Subtest: network, auth, generic rate limits and interrupted pulls do not select a mirror
+ok 3 - network, auth, generic rate limits and interrupted pulls do not select a mirror
+  ---
+  duration_ms: 1.452
+  type: 'test'
+  ...
+# Subtest: mirror failure retains both causes and cannot proceed to inspect or run
+ok 4 - mirror failure retains both causes and cannot proceed to inspect or run
+  ---
+  duration_ms: 0.5346
+  type: 'test'
+  ...
+# Subtest: other images, digests and transport references cannot use the mirror policy
+ok 5 - other images, digests and transport references cannot use the mirror policy
+  ---
+  duration_ms: 2.8763
+  type: 'test'
+  ...
+# Subtest: inspection must bind the selected registry and exact digest before container creation
+ok 6 - inspection must bind the selected registry and exact digest before container creation
+  ---
+  duration_ms: 0.6758
+  type: 'test'
+  ...
+# Subtest: container startup failure remains the original failure without another pull
+ok 7 - container startup failure remains the original failure without another pull
+  ---
+  duration_ms: 0.9047
+  type: 'test'
+  ...
+# Subtest: Remote-SSH supply-chain identity pins both transport and install bytes
+ok 8 - Remote-SSH supply-chain identity pins both transport and install bytes
+  ---
+  duration_ms: 7.0341
+  type: 'test'
+  ...
+# Subtest: remote driver calls the existing real host journey after proving remote identity
+ok 9 - remote driver calls the existing real host journey after proving remote identity
+  ---
+  duration_ms: 3.4735
+  type: 'test'
+  ...
+# Subtest: remote workspace binds every root to the selected SSH authority
+ok 10 - remote workspace binds every root to the selected SSH authority
+  ---
+  duration_ms: 1.5024
+  type: 'test'
+  ...
+# Subtest: container marker digest binds the exact bytes written remotely
+ok 11 - container marker digest binds the exact bytes written remotely
+  ---
+  duration_ms: 0.9743
+  type: 'test'
+  ...
+# Subtest: failed Remote-SSH host runs retain local and container diagnostics
+ok 12 - failed Remote-SSH host runs retain local and container diagnostics
+  ---
+  duration_ms: 1.3264
+  type: 'test'
+  ...
+# Subtest: workflow preserves diagnostics and aggregates one exact producer provenance
+ok 13 - workflow preserves diagnostics and aggregates one exact producer provenance
+  ---
+  duration_ms: 3.2376
+  type: 'test'
+  ...
+# Subtest: known_hosts is derived from the container host key without TOFU
+ok 14 - known_hosts is derived from the container host key without TOFU
+  ---
+  duration_ms: 0.871
+  type: 'test'
+  ...
+# Subtest: candidate replacement after initial verification fails closed
+ok 15 - candidate replacement after initial verification fails closed
+  ---
+  duration_ms: 8.6943
+  type: 'test'
+  ...
+# Subtest: missing semantic artifacts fail the scoped negative control
+ok 16 - missing semantic artifacts fail the scoped negative control
+  ---
+  duration_ms: 11.9788
+  type: 'test'
+  ...
+# Subtest: outcome evidence closes its self-reference before trusted evidence is emitted
+ok 17 - outcome evidence closes its self-reference before trusted evidence is emitted
+  ---
+  duration_ms: 15.9947
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.1132

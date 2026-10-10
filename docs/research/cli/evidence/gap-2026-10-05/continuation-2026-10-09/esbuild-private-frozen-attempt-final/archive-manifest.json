@@ -1,0 +1,44 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\esbuild-private-frozen-20261009-final",
+  "archivedAt": "2026-10-09T03:47:42.969Z",
+  "files": [
+    {
+      "path": "journal.jsonl",
+      "bytes": 362,
+      "digest": "sha256:476652871a437a8005b2b4f95f8d914c803bb8725511763f2525c52bebfd73e9"
+    },
+    {
+      "path": "report.json",
+      "bytes": 1666184,
+      "digest": "sha256:798565a863feae793dcbffa4ff3fcb16165e83a8e6029fe7ffbd70b3c5bfa963"
+    },
+    {
+      "path": "shim.cpp",
+      "bytes": 12349,
+      "digest": "sha256:a33cabedc5bbe8e9d0e57ec5b66b5b4adb71298388b9ee58a55585ff28e8e9a8"
+    },
+    {
+      "path": "stderr",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stdout",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "supervisor.cpp",
+      "bytes": 27308,
+      "digest": "sha256:955beeead7bece128e0a12c586c1284b61d94d9e51a34eb37c92ca0e40497a9a"
+    },
+    {
+      "path": "trace.jsonl",
+      "bytes": 1462,
+      "digest": "sha256:e2117783247945cd169d02b2e59ced44438edf2a59eb4edf8dd2e430391b2e03"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

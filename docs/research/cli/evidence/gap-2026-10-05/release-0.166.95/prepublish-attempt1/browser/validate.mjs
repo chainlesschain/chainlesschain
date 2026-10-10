@@ -1,0 +1,10 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';
+const root=process.cwd(),dir=path.resolve('.work/browser-evidence-ci-095');
+const files=['packages/cli/scripts/ide-roadmap-browser-evidence.mjs','packages/cli/__tests__/unit/ide-roadmap-browser-evidence.test.js'];
+const hashes=()=>Object.fromEntries(files.map(file=>[file,crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')]));
+const before=hashes();const startedAt=new Date().toISOString();
+const args=[path.join(root,'node_modules/vitest/vitest.mjs'),'run','__tests__/unit/ide-roadmap-browser-evidence.test.js','__tests__/unit/browser-evidence.test.js','--maxWorkers=1','--reporter=json',`--outputFile=${path.join(dir,'unit-results.json')}`];
+const result=spawnSync(process.execPath,args,{cwd:path.join(root,'packages/cli'),windowsHide:true,maxBuffer:8*1024*1024,timeout:120000});
+fs.writeFileSync(path.join(dir,'unit.stdout.txt'),result.stdout||'');fs.writeFileSync(path.join(dir,'unit.stderr.txt'),result.stderr||'');
+const report={startedAt,finishedAt:new Date().toISOString(),command:process.execPath,args,status:result.status,signal:result.signal,error:result.error?.message||null,before,after:hashes()};fs.writeFileSync(path.join(dir,'unit-execution.json'),JSON.stringify(report,null,2));
+console.log(JSON.stringify(report));if(fs.existsSync(path.join(dir,'unit-results.json'))){const j=JSON.parse(fs.readFileSync(path.join(dir,'unit-results.json')));console.log(JSON.stringify({passed:j.numPassedTests,failed:j.numFailedTests,total:j.numTotalTests,failures:j.testResults.flatMap(t=>t.assertionResults.filter(a=>a.status==='failed').map(a=>({name:a.fullName,messages:a.failureMessages})))}));}process.exitCode=result.status??1;

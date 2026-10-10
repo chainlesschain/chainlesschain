@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RuntimeCompatibilityTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:05" hostname="DESKTOP-MTMV2RE" time="0.004">
+  <properties/>
+  <testcase name="fixtureRepresentsAllUserFacingOutcomes()" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.001"/>
+  <testcase name="ready above floor" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="ready exactly at floor and trust unknown" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="bridge stopped degrades" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.001"/>
+  <testcase name="restricted workspace degrades" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="outdated CLI requires repair" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="missing CLI requires repair and preserves bridge reason" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="shadowed compiler is not accepted as cc" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="version alone does not prove runtime readiness" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="initializing session is unconfirmed" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="receipt degradation" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="pending approval acknowledgement" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <testcase name="missing approval acknowledgement" classname="com.chainlesschain.ide.RuntimeCompatibilityTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

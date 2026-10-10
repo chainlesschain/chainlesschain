@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ElicitationSchemaTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.013">
+  <properties/>
+  <testcase name="nativeAdapterReturnsTheSameValidationCodes()" classname="com.chainlesschain.ide.ElicitationSchemaTest" time="0.005"/>
+  <testcase name="nestedObjectIsAnExplicitUnsupportedBoundary()" classname="com.chainlesschain.ide.ElicitationSchemaTest" time="0.001"/>
+  <testcase name="nativeAdapterMatchesSharedRestrictedVocabularyFixture()" classname="com.chainlesschain.ide.ElicitationSchemaTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

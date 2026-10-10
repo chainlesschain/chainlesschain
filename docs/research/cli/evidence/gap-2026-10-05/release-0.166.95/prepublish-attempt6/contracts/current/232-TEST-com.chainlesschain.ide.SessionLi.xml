@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SessionListTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:11" hostname="DESKTOP-MTMV2RE" time="0.003">
+  <properties/>
+  <testcase name="parseSessionListDropsRowsWithoutId()" classname="com.chainlesschain.ide.SessionListTest" time="0.0"/>
+  <testcase name="storeMapsFromJsonlStoreMarker()" classname="com.chainlesschain.ide.SessionListTest" time="0.001"/>
+  <testcase name="updatedAtSupportsBothCaseConventions()" classname="com.chainlesschain.ide.SessionListTest" time="0.0"/>
+  <testcase name="buildListArgsCapsWithLimit()" classname="com.chainlesschain.ide.SessionListTest" time="0.001"/>
+  <testcase name="itemLabelIncludesTitleWhenPresent()" classname="com.chainlesschain.ide.SessionListTest" time="0.0"/>
+  <testcase name="itemLabelForUntitledIsIdAndStore()" classname="com.chainlesschain.ide.SessionListTest" time="0.0"/>
+  <testcase name="parseSessionListToleratesBadInput()" classname="com.chainlesschain.ide.SessionListTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

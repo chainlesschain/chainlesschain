@@ -1,0 +1,243 @@
+{
+  "schema": "chainlesschain.selected-evidence-copy-plan.v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38019727506,
+  "materialized": true,
+  "isOriginalExtractionTree": false,
+  "layoutNote": "This selected set is not the original extraction tree. Original artifact ZIPs and JSON bytes are preserved; source-to-target mappings are explicit.",
+  "workflowStatus": [
+    {
+      "scope": "npm",
+      "id": 38019727506,
+      "sha": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "status": "completed",
+      "conclusion": "success",
+      "counts": {
+        "success": 5,
+        "skipped": 2
+      }
+    }
+  ],
+  "copyVerification": {
+    "files": 36,
+    "allBytesAndSha256Verified": true
+  },
+  "files": [
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117825579/annotations.json",
+      "target": "npm/jobs/114117825579/annotations.json",
+      "bytes": 433,
+      "sha256": "17988d7a7036ac581d44d65a3a350f26baab8e39816d279812743458694e964f"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117825579/job.json",
+      "target": "npm/jobs/114117825579/job.json",
+      "bytes": 2459,
+      "sha256": "0b61e52cb1d2a1f228f7efe4c16dea6ce312bbce2c9ef15c2ee0405e30226189"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117825579/job.log",
+      "target": "npm/jobs/114117825579/job.log",
+      "bytes": 19644,
+      "sha256": "d17ae3d61412d4e2c35f9392dc28629fee68c4afb5c004f115f21c8cf9574970"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117826732/job.json",
+      "target": "npm/jobs/114117826732/job.json",
+      "bytes": 911,
+      "sha256": "d26e053cced3fef3b1f8b3dfa72a18b9dc88971bc44594da35e8c464c5732a18"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117826761/job.json",
+      "target": "npm/jobs/114117826761/job.json",
+      "bytes": 908,
+      "sha256": "e1e31b84aa862b522cbf3d40da7fb9990077fdab484ac5ef09e50912baf27860"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923872/annotations.json",
+      "target": "npm/jobs/114117923872/annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923872/job.json",
+      "target": "npm/jobs/114117923872/job.json",
+      "bytes": 3034,
+      "sha256": "87aa3e98138804b50df6e73ff9e4361e6af909952a72860503f07c32cec78e2f"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923872/job.log",
+      "target": "npm/jobs/114117923872/job.log",
+      "bytes": 25318,
+      "sha256": "a69fcd53f08bd99fd4a2fcb5cab90a81d229a088d42c18b3e821277a8110c6e8"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923884/annotations.json",
+      "target": "npm/jobs/114117923884/annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923884/job.json",
+      "target": "npm/jobs/114117923884/job.json",
+      "bytes": 3028,
+      "sha256": "79c348a43a9a635047de05169816d0b6dcefb1468244c22a34c7e81430818368"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114117923884/job.log",
+      "target": "npm/jobs/114117923884/job.log",
+      "bytes": 25402,
+      "sha256": "86fba7d5c155277f948c86f3aa35a625912284b201e3c3d90fa07233b9c32d1f"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118153985/annotations.json",
+      "target": "npm/jobs/114118153985/annotations.json",
+      "bytes": 998,
+      "sha256": "dc3ae6e322b20a28929356f37bbdd39b68895f86a9e291d58afc21628ee7cbd7"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118153985/job.json",
+      "target": "npm/jobs/114118153985/job.json",
+      "bytes": 3163,
+      "sha256": "54e7eb339ad6aa6ff77bffb4a8bfa15cdb487aeaca666dfacbf0983a06ec484d"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118153985/job.log",
+      "target": "npm/jobs/114118153985/job.log",
+      "bytes": 284336,
+      "sha256": "fbe1f41272e693d1839ffb083c853ce3501bec6e575e3147343dad4c14de94ee"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118628533/annotations.json",
+      "target": "npm/jobs/114118628533/annotations.json",
+      "bytes": 7290,
+      "sha256": "a81002b9337ad4b10e8736e0ac59df7ed2f1ccd2c4ce2cc0f2cf89d0f31bf31b"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118628533/job.json",
+      "target": "npm/jobs/114118628533/job.json",
+      "bytes": 6922,
+      "sha256": "ec09571d594b4d2c7dafc84ff5671dbfeb78d84f7b42a9451d71f13049434730"
+    },
+    {
+      "source": ".work/astra-npm096-publication/jobs/114118628533/job.log",
+      "target": "npm/jobs/114118628533/job.log",
+      "bytes": 378639,
+      "sha256": "cf028b660b4ded1ea19f2adfd816c17e311c2d9d2ba59c6f21e21251d7905dc9"
+    },
+    {
+      "source": ".work/astra-npm096-publication/2026-10-10T03-34-00-614Z/artifacts.json",
+      "target": "npm/api/artifacts.json",
+      "bytes": 5350,
+      "sha256": "f03ff786538e2bd9ed7386fdd7a0dcfe2a157266d74cb3dcf701ac842e1a72c8"
+    },
+    {
+      "source": ".work/astra-npm096-publication/2026-10-10T03-34-00-614Z/jobs-1.json",
+      "target": "npm/api/jobs-1.json",
+      "bytes": 20458,
+      "sha256": "b3964e6021893823ebf3baf6f714d3e36e22ce66b297ebc194facbfa55c7eb5c"
+    },
+    {
+      "source": ".work/astra-npm096-publication/2026-10-10T03-34-00-614Z/readback.json",
+      "target": "npm/api/readback.json",
+      "bytes": 8823,
+      "sha256": "49f243087cf47583c2859059305d2afc520fb2a1d122d51e3fac19ef2a624493"
+    },
+    {
+      "source": ".work/astra-npm096-publication/2026-10-10T03-34-00-614Z/run.json",
+      "target": "npm/api/run.json",
+      "bytes": 13399,
+      "sha256": "343c57e973ebea6bafa01dfdde4ae1184aa2c1bfaa32171ac1014e08b2b1d6dc"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11657338706/metadata.json",
+      "target": "npm/artifacts/11657338706/metadata.json",
+      "bytes": 750,
+      "sha256": "7028e92e6806240c5bd1ff71aedb60e76257a9d199676d3751245182f565e532"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11657338706/artifact.zip",
+      "target": "npm/artifacts/11657338706/artifact.zip",
+      "bytes": 479,
+      "sha256": "90cac1138ff3ea3dca0868c904572bb9196e8c33cf6f21b99c2590873e1a198e"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11657338706/verification.json",
+      "target": "npm/artifacts/11657338706/verification.json",
+      "bytes": 305,
+      "sha256": "749e41957afd96c568707039c9392f1596c2f4c4ebaad2f6435f76d6ecd14956"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11658855070/metadata.json",
+      "target": "npm/artifacts/11658855070/metadata.json",
+      "bytes": 764,
+      "sha256": "b85827c27ff191694bc6fae0ecfa275206a5e0a3570338d9ba6e45ca0b722e20"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11658855070/artifact.zip",
+      "target": "npm/artifacts/11658855070/artifact.zip",
+      "bytes": 301582,
+      "sha256": "02531c1ee26d8d1cab9f5b92dd971dfa6a0eb0a5397ce737c11d73128cb8ad22"
+    },
+    {
+      "source": ".work/astra-npm096-publication/artifacts/11658855070/verification.json",
+      "target": "npm/artifacts/11658855070/verification.json",
+      "bytes": 319,
+      "sha256": "e8d4862b04ea1ea7ac6afc048e39295de1cf4ee563c439ae824b02065cfad54d"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/agent-protocol-npm-provenance.json",
+      "target": "npm/raw/agent-protocol-npm-provenance.json",
+      "bytes": 1207,
+      "sha256": "4315bef80dbe5d0ec64be4170a50fac09afb6a73e8a79c1c37b79cdbd6b250dd"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/agent-sdk-npm-provenance.json",
+      "target": "npm/raw/agent-sdk-npm-provenance.json",
+      "bytes": 840,
+      "sha256": "b7da92803fa46b6310380aabdeb8789696b8f2660a7ffa7f206a7520182eee0f"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/chainlesschain-npm-provenance.json",
+      "target": "npm/raw/chainlesschain-npm-provenance.json",
+      "bytes": 831,
+      "sha256": "898d22bb9f4f2b08e3a231f56a9eaffcfc36b234c799a69c0a57de3cc71650e5"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/chainlesschain-release.json",
+      "target": "npm/raw/chainlesschain-release.json",
+      "bytes": 2606,
+      "sha256": "330144696460ca352bb842de47a45b0a0d23b5a29c9cf1e15c720cfce171ffae"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/children/chainlesschain-core-db-0.1.5.tgz",
+      "target": "npm/raw/children/chainlesschain-core-db-0.1.5.tgz",
+      "bytes": 10302,
+      "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/children/chainlesschain-session-core-0.3.18.tgz",
+      "target": "npm/raw/children/chainlesschain-session-core-0.3.18.tgz",
+      "bytes": 285649,
+      "sha256": "6189574f7bd8170ef355d7ec95db6c403b557d11364ccf566bdb39fbada2fc23"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/cli-public-child-install.json",
+      "target": "npm/raw/cli-public-child-install.json",
+      "bytes": 3282,
+      "sha256": "cfec4047ab73271bdf1cdeb7b3c0ae99a9f76769ec5fd6bb7210f45aa96ebd84"
+    },
+    {
+      "source": ".work/astra-npm096-publication/raw/11658855070/context-memory-kernel-npm-provenance.json",
+      "target": "npm/raw/context-memory-kernel-npm-provenance.json",
+      "bytes": 1220,
+      "sha256": "7e3c087ddec70d509002f579abe0d31fa3133f5a898e324ce48df9d131e5e631"
+    },
+    {
+      "source": ".work/astra-npm096-publication/publication-verification.json",
+      "target": "npm/publication-verification.json",
+      "bytes": 2296,
+      "sha256": "e3abb386653c8d2b50b1e28f7810575fa2808597e0f3cb4907cc77e41acab890"
+    }
+  ]
+}

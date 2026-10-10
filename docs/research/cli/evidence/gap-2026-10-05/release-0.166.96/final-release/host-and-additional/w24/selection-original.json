@@ -1,0 +1,596 @@
+{
+  "schema": "astra.selected-original-host-evidence/v1",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "workflowRunId": 38012166401,
+  "jobId": 114098931675,
+  "artifactId": 11655995041,
+  "jobConclusion": "success",
+  "originalJourneyManifestsUnmodified": true,
+  "artifactExtractionTreePreserved": false,
+  "scope": "Byte-exact selection, not the original full artifact extraction tree. Original journey manifests retain all original references. All original manifest entries and ZIP digest were verified before selection. Missing diagnostic flags, if any, are preserved unchanged; fixture stdout alone is not host-rendering evidence.",
+  "verifiedArtifactEntries": [
+    {
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "entries": 43
+    },
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "entries": 51
+    }
+  ],
+  "captureStatus": [
+    {
+      "journeyId": "jetbrains-canonical-conversation-recovery",
+      "phases": [
+        {
+          "phase": "initial",
+          "complete": true,
+          "failures": [],
+          "tracePresent": true
+        },
+        {
+          "phase": "restart",
+          "complete": false,
+          "failures": [
+            "event-trace-or-capture-root-unavailable"
+          ],
+          "tracePresent": false
+        }
+      ]
+    },
+    {
+      "journeyId": "jetbrains-chat-control-workbench-restart-rewind",
+      "phases": [
+        {
+          "phase": "initial",
+          "complete": true,
+          "failures": [],
+          "tracePresent": true
+        },
+        {
+          "phase": "restart",
+          "complete": true,
+          "failures": [],
+          "tracePresent": true
+        }
+      ]
+    }
+  ],
+  "selectedOriginalFiles": 64,
+  "selectedBytes": 1639607,
+  "noZipJarClassPayloadCopied": true,
+  "excludedPayloads": [
+    {
+      "kind": "Complete GitHub artifact ZIP",
+      "path": "artifact.zip",
+      "bytes": 3754000,
+      "sha256": "sha256:9fb8396bdfed56909b0cb157da8878dbb73f5d5513f27c704e72da82aaa60285"
+    },
+    {
+      "kind": "Packaged plugin ZIP, compiled class/JAR payload",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1520043,
+      "sha256": "sha256:8983ea9f66598aa7153168a1343e38d7ff6e5808b6da54b2ce5b70fbd75ff791"
+    },
+    {
+      "kind": "Packaged plugin ZIP, compiled class/JAR payload",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/release-artifacts/001-chainlesschain-ide-bridge-0.4.158.zip",
+      "bytes": 1520043,
+      "sha256": "sha256:8983ea9f66598aa7153168a1343e38d7ff6e5808b6da54b2ce5b70fbd75ff791"
+    }
+  ],
+  "files": [
+    {
+      "source": ".work/astra-da91-native/win2024/run.json",
+      "target": "github-run.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/github-run.json",
+      "originalArtifactPath": null,
+      "bytes": 13730,
+      "sha256": "98aba99ad7d8a462a2099a9592304c01dfdf13e37c81b2c31ec626b9b1d807fa"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/job.json",
+      "target": "github-job.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/github-job.json",
+      "originalArtifactPath": null,
+      "bytes": 3994,
+      "sha256": "798b1a8b28d4b4321084186d2ff3506934e435fab89085c47320b4a2e7134aa0"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/job.log",
+      "target": "github-job.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/github-job.log",
+      "originalArtifactPath": null,
+      "bytes": 230802,
+      "sha256": "33ac406210fd5db1406980bf291431544138c411555243704b2a96ff068bfe27"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/metadata.json",
+      "target": "github-artifact.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/github-artifact.json",
+      "originalArtifactPath": null,
+      "bytes": 762,
+      "sha256": "e08fd32c55ac66bf0cbb5bc7e531503b7624718903ec8bf6b6f5f02e769f66eb"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/download-verification.json",
+      "target": "download-receipt.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/download-receipt.json",
+      "originalArtifactPath": null,
+      "bytes": 533,
+      "sha256": "c7add2ce17a87a7977333a24c17e1f1a872cbd4df9b79968f7f1ceb3d3438e38"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/verification.json",
+      "target": "all-entries-verified.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/all-entries-verified.json",
+      "originalArtifactPath": null,
+      "bytes": 58370,
+      "sha256": "7226e0fa63705cf4863f1e34ae294525d7fbc3abea9e6aeeefd200631c1e8cd0"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/journey-evidence.json",
+      "target": "canonical/journey-original.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/journey-original.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/journey-evidence.json",
+      "bytes": 14193,
+      "sha256": "587921451b481e8e119c92e21314e5309833618412ca103729342fc24c95d539"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/001-canonical-environment.json",
+      "target": "canonical/environment.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/environment.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/001-canonical-environment.json",
+      "bytes": 175,
+      "sha256": "36b9541ca29aa2b05e5d478cf41a3efdfabe7f4f76475f728d9b53062fc9d80f"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "target": "canonical/host-phases.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/host-phases.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/002-conversation-recovery-host-phases.json",
+      "bytes": 3359,
+      "sha256": "11e5d45fcf3523ee232a9dcb9b9b2a3e5095052fda8da7fac1fdfa523da96815"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/003-conversation-recovery-initial.json",
+      "target": "canonical/initial-recovery.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-recovery.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/003-conversation-recovery-initial.json",
+      "bytes": 48916,
+      "sha256": "25e736381d92057bd8f3e476cfb89f14325d466f068f16af2285a1038c01608b"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/004-conversation-recovery-restart.json",
+      "target": "canonical/restart-recovery.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-recovery.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/004-conversation-recovery-restart.json",
+      "bytes": 8527,
+      "sha256": "60acf6e13fa615a0846128be96876a812b9921e39103809abbe2a0e8c7a94410"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/013-fake-cli-protocol.jsonl",
+      "target": "canonical/fixture-protocol.jsonl",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/fixture-protocol.jsonl",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/013-fake-cli-protocol.jsonl",
+      "bytes": 31560,
+      "sha256": "5e3f2f523239125466cb579d272bb28a0f04ca23eb5d856a4d2899d0566cc4c1"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/014-fake-cli-state.json",
+      "target": "canonical/fixture-state.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/fixture-state.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/014-fake-cli-state.json",
+      "bytes": 108,
+      "sha256": "ad82530f5dd60772be60f8db434e95cb7b552d3013707afa77a60ff894623b51"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/015-host-capture-initial_capture-status.json",
+      "target": "canonical/initial-capture.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-capture.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/015-host-capture-initial_capture-status.json",
+      "bytes": 662,
+      "sha256": "a6bd93b56cffc9570611b134b8a16ddfc1efdf4027c0e815a2cbc33b8fbfe986"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+      "target": "canonical/initial-events.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-events.bin",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/017-host-capture-initial_host-events.jsonl.bin",
+      "bytes": 21090,
+      "sha256": "89c415df44dbcdf6f014d33b3f83a932af9a8164caa4106b56abf5f023505d3a"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/018-host-capture-initial_idea-001.log.bin",
+      "target": "canonical/initial-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-idea-001.log.bin",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/018-host-capture-initial_idea-001.log.bin",
+      "bytes": 95789,
+      "sha256": "a2a4b2dc83ecb883d8edb4026bf20df7822dad2de133b7eeadcce669ec5b3aaf"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/019-host-capture-restart_capture-status.json",
+      "target": "canonical/restart-capture.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-capture.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/019-host-capture-restart_capture-status.json",
+      "bytes": 490,
+      "sha256": "5f2780eeafefb8bf05e0991bfc6b9c3b509ff5e0766180cba33a8c6b8450376e"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/020-host-capture-restart_idea-001.log.bin",
+      "target": "canonical/restart-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-idea-001.log.bin",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/020-host-capture-restart_idea-001.log.bin",
+      "bytes": 153963,
+      "sha256": "e46f20ad229a318ced9d495158c962372917adc36a1597e59492ca1eb1100325"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/023-native-transcript-metrics.json",
+      "target": "canonical/native-metrics.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/native-metrics.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/023-native-transcript-metrics.json",
+      "bytes": 32413,
+      "sha256": "71cde693ca00e1590edb4e89f7c6563a75688640226e3f910c54d6923d792080"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/026-sandbox-ide-initial.stderr.log",
+      "target": "canonical/initial-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-host-stderr.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/026-sandbox-ide-initial.stderr.log",
+      "bytes": 16532,
+      "sha256": "d41dbd198e6c56293175e27c8aa2f7687a859d0b608e85c26d0542031f7a6677"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/027-sandbox-ide-initial.stdout.log",
+      "target": "canonical/initial-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-host-stdout.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/027-sandbox-ide-initial.stdout.log",
+      "bytes": 1101,
+      "sha256": "214edd34bd16bd4e6cf7f5b685743ad033f3882846aeeb9472ccc6a767c38a93"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/028-sandbox-ide-restart.stderr.log",
+      "target": "canonical/restart-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-host-stderr.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/028-sandbox-ide-restart.stderr.log",
+      "bytes": 8113,
+      "sha256": "a65ec9db706bf96182e45f7ec6a846917740c959d90e65126d34ce11ea8b21b2"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/029-sandbox-ide-restart.stdout.log",
+      "target": "canonical/restart-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-host-stdout.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/029-sandbox-ide-restart.stdout.log",
+      "bytes": 1101,
+      "sha256": "214edd34bd16bd4e6cf7f5b685743ad033f3882846aeeb9472ccc6a767c38a93"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/030-stop-continuation-observations.json",
+      "target": "canonical/stop-observations.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/stop-observations.json",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/030-stop-continuation-observations.json",
+      "bytes": 12350,
+      "sha256": "443da0f0a93d666eda01e74a7f84f3da1dcc2733d42fb28eff784cff818000dd"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/031-ui-smoke-initial.stderr.log",
+      "target": "canonical/initial-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-ui-stderr.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/031-ui-smoke-initial.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/032-ui-smoke-initial.stdout.log",
+      "target": "canonical/initial-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/initial-ui-stdout.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/032-ui-smoke-initial.stdout.log",
+      "bytes": 13288,
+      "sha256": "ad2a9b8e855e05d764be1d734ffb108962090bf490ec92764f3d61401618ac3d"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/033-ui-smoke-restart.stderr.log",
+      "target": "canonical/restart-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-ui-stderr.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/033-ui-smoke-restart.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/034-ui-smoke-restart.stdout.log",
+      "target": "canonical/restart-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/restart-ui-stdout.log",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/034-ui-smoke-restart.stdout.log",
+      "bytes": 13293,
+      "sha256": "27b218cc29cd6efdf033ba72aa64808afebdd9b6beb73f6037b52c62c48b9521"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/038-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "target": "canonical/ui-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/ui-result.xml",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/038-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "bytes": 679,
+      "sha256": "1142a0b38a61568423e16c915b50f0d1e5a1262e6b76cd12c2a34150869ea2f3"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/039-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "target": "canonical/native-probe-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/native-probe-result.xml",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/039-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "bytes": 647,
+      "sha256": "22d1e5eb30c728dfd8210bf070cea20a4aa1ec570eb9a0ee4760a5a79a677536"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/canonical-Windows-2024.2/diagnostics/040-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "target": "canonical/startup-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/canonical/startup-result.xml",
+      "originalArtifactPath": "ide-journey/canonical-Windows-2024.2/diagnostics/040-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "bytes": 1222,
+      "sha256": "fd78203f194d4299cb599853146d5ba1509a639236a2f6bbcb959b9e5a993d9d"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/journey-evidence.json",
+      "target": "deterministic/journey-original.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/journey-original.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/journey-evidence.json",
+      "bytes": 17331,
+      "sha256": "3b4b820c465a06561db4d34bc2bdd62e4b35d2af159a98f230b62019bb0778db"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/009-fake-cli-protocol.jsonl",
+      "target": "deterministic/fixture-protocol.jsonl",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/fixture-protocol.jsonl",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/009-fake-cli-protocol.jsonl",
+      "bytes": 354357,
+      "sha256": "0377ae72c8b6a440c591e476fa7ab1095bdd5fb2639f5741c1dd10e9a207505b"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/010-fake-cli-state.json",
+      "target": "deterministic/fixture-state.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/fixture-state.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/010-fake-cli-state.json",
+      "bytes": 210,
+      "sha256": "af579b60dc9d7d8e550798035dcb596eca9c616422771d173db23c8b3537e4e4"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/012-fake-cli-state.json.receipts_0826ffb4c49ac2dbf2a30418dc1a49d6c00d270769888de1f4544e2c51de6aa7.json",
+      "target": "deterministic/control-receipt-01.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-01.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/012-fake-cli-state.json.receipts_0826ffb4c49ac2dbf2a30418dc1a49d6c00d270769888de1f4544e2c51de6aa7.json",
+      "bytes": 260,
+      "sha256": "9b5ed3ff8b71466c292f70b358ed33149a4aa252c7b238c34c1294dbf7edb8fe"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/013-fake-cli-state.json.receipts_0a559e515f183fcbf2f6d63f7cc8770c7a22a416c8bb237d3c05b90c114c6e07.json",
+      "target": "deterministic/control-receipt-02.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-02.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/013-fake-cli-state.json.receipts_0a559e515f183fcbf2f6d63f7cc8770c7a22a416c8bb237d3c05b90c114c6e07.json",
+      "bytes": 260,
+      "sha256": "23ab3813d9b295d79b4fe53726835a85063f25a83e9050421586b8907fcd6979"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/014-fake-cli-state.json.receipts_10fef808feb19ce258d2aa85c5fb14ab6ef5f6e2581acecc28d67f53ffb52cba.json",
+      "target": "deterministic/control-receipt-03.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-03.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/014-fake-cli-state.json.receipts_10fef808feb19ce258d2aa85c5fb14ab6ef5f6e2581acecc28d67f53ffb52cba.json",
+      "bytes": 274,
+      "sha256": "bd65a6b8342d9c1d872aea723d40b33979f3027fb7a3a654c8b23d25b62d71ab"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/015-fake-cli-state.json.receipts_3b363c2ceeccba1e57c3d870f3e7f0075d614f8969885ac0a45f69a9e91decce.json",
+      "target": "deterministic/control-receipt-04.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-04.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/015-fake-cli-state.json.receipts_3b363c2ceeccba1e57c3d870f3e7f0075d614f8969885ac0a45f69a9e91decce.json",
+      "bytes": 260,
+      "sha256": "ea92bb222496cb70cd7ab9e9deac0e421d3ddb6415ea119f1ffb93b446146a00"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/016-fake-cli-state.json.receipts_4b53f61279a3c850285ce07813293b2ce161678fb9ff88d4314e1b67a0c4966c.json",
+      "target": "deterministic/control-receipt-05.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-05.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/016-fake-cli-state.json.receipts_4b53f61279a3c850285ce07813293b2ce161678fb9ff88d4314e1b67a0c4966c.json",
+      "bytes": 260,
+      "sha256": "30d59ec99a3cfd4091c8d2f30cbd7e89e36225fc6901072fbe2963352cb358a7"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/017-fake-cli-state.json.receipts_5f9c6debe35551401e2ffeab06a9568c96806a1966b4787b50e498829e9ddd91.json",
+      "target": "deterministic/control-receipt-06.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-06.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/017-fake-cli-state.json.receipts_5f9c6debe35551401e2ffeab06a9568c96806a1966b4787b50e498829e9ddd91.json",
+      "bytes": 260,
+      "sha256": "f1dfb003740c637ceded3dea0aa96a09fbadf9e004375afab462461bccd09785"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/018-fake-cli-state.json.receipts_7aba84579e017c8bb40f4a034054e35e044022fb5c749b1bcd50c21ad6137638.json",
+      "target": "deterministic/control-receipt-07.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-07.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/018-fake-cli-state.json.receipts_7aba84579e017c8bb40f4a034054e35e044022fb5c749b1bcd50c21ad6137638.json",
+      "bytes": 274,
+      "sha256": "622e9502e265e498502612f5a238ad2155e4b2926846669ec056969687578f0c"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/019-fake-cli-state.json.receipts_8b305d6785e254dbb4fd073bc2fad53e61cedd289749654894f4c947abdc2aa0.json",
+      "target": "deterministic/control-receipt-08.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-08.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/019-fake-cli-state.json.receipts_8b305d6785e254dbb4fd073bc2fad53e61cedd289749654894f4c947abdc2aa0.json",
+      "bytes": 274,
+      "sha256": "256fc93a7723062c096ea276cdabd307ecc880e83f7812b269ce1b4a8c43c8ab"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/020-fake-cli-state.json.receipts_c81b275e28b60d486bb77c929fec0bcd2e94ad6b735d489504e1917f116d8ad3.json",
+      "target": "deterministic/control-receipt-09.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/control-receipt-09.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/020-fake-cli-state.json.receipts_c81b275e28b60d486bb77c929fec0bcd2e94ad6b735d489504e1917f116d8ad3.json",
+      "bytes": 260,
+      "sha256": "427828e2af127a8a960ac4b846f2e7e2fd61f7059a54feba43e8f4d3c808c736"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/021-host-capture-initial_capture-status.json",
+      "target": "deterministic/initial-capture.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-capture.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/021-host-capture-initial_capture-status.json",
+      "bytes": 886,
+      "sha256": "e6d7f18a2eb5116abd9f12e50f9800d525f5e64fa8a58d9e13d97f4ce257d8c7"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "target": "deterministic/initial-events.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-events.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "bytes": 25839,
+      "sha256": "44c3702fb94572caea90ddcf941a642e676cb6a44c9eb3a9d2a182a80ee6c4e9"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "target": "deterministic/initial-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-idea-001.log.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/024-host-capture-initial_idea-001.log.bin",
+      "bytes": 45313,
+      "sha256": "57eeea028d10a374901095adc3027432c426bc1bfee7c8fb8b6e23cec6029b5e"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "target": "deterministic/initial-idea-002.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-idea-002.log.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/025-host-capture-initial_idea-002.log.bin",
+      "bytes": 104871,
+      "sha256": "36c6b0da6e7fe1dbabfb029838747e94e832c5ee3d55af353cd3a482ba851f8a"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/026-host-capture-restart_capture-status.json",
+      "target": "deterministic/restart-capture.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-capture.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/026-host-capture-restart_capture-status.json",
+      "bytes": 885,
+      "sha256": "12fb1fd274bbb24a713d4e382088eeb8372f19308c6170944c324e0ab4016f2a"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "target": "deterministic/restart-events.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-events.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "bytes": 2347,
+      "sha256": "bb46ff810ebef08f00d43ddfacfc01df0bb109d9613df84ebf13d6fb7480589d"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "target": "deterministic/restart-idea-001.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-idea-001.log.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/029-host-capture-restart_idea-001.log.bin",
+      "bytes": 45313,
+      "sha256": "57eeea028d10a374901095adc3027432c426bc1bfee7c8fb8b6e23cec6029b5e"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "target": "deterministic/restart-idea-002.log.bin",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-idea-002.log.bin",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/030-host-capture-restart_idea-002.log.bin",
+      "bytes": 162439,
+      "sha256": "b6f44664067961781b3939722639b81d3b583a03cf75c96149b1a5f2b0f27a50"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "target": "deterministic/initial-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-host-stderr.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/033-sandbox-ide-initial.stderr.log",
+      "bytes": 16702,
+      "sha256": "640054819f6ae3141516af2f3c19d27987d85479b0b82565f0fa030170b31ff1"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/034-sandbox-ide-initial.stdout.log",
+      "target": "deterministic/initial-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-host-stdout.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/034-sandbox-ide-initial.stdout.log",
+      "bytes": 6753,
+      "sha256": "fb16b175646c3c18e5a912e218073050a6146a255a477bea9ab485e2ac002549"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "target": "deterministic/restart-host-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-host-stderr.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/035-sandbox-ide-restart.stderr.log",
+      "bytes": 8164,
+      "sha256": "e71fa364d4ccf3a86dea4f62158d502ae7dcb74d3071f9b3aa4eaacaa1007b0a"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/036-sandbox-ide-restart.stdout.log",
+      "target": "deterministic/restart-host-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-host-stdout.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/036-sandbox-ide-restart.stdout.log",
+      "bytes": 1101,
+      "sha256": "214edd34bd16bd4e6cf7f5b685743ad033f3882846aeeb9472ccc6a767c38a93"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/037-ui-smoke-initial.stderr.log",
+      "target": "deterministic/initial-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-ui-stderr.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/037-ui-smoke-initial.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/038-ui-smoke-initial.stdout.log",
+      "target": "deterministic/initial-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/initial-ui-stdout.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/038-ui-smoke-initial.stdout.log",
+      "bytes": 13261,
+      "sha256": "fba1da3d71d079efa23932f6b01ee70f67ad716b6bd119c297595cd4a85881b8"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/039-ui-smoke-restart.stderr.log",
+      "target": "deterministic/restart-ui-stderr.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-ui-stderr.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/039-ui-smoke-restart.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/040-ui-smoke-restart.stdout.log",
+      "target": "deterministic/restart-ui-stdout.log",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/restart-ui-stdout.log",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/040-ui-smoke-restart.stdout.log",
+      "bytes": 13293,
+      "sha256": "1213590d28fd9cffdc01742760203f723b3a7a461f1d26b1bf7b76f061afcd32"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/041-workbench-host-phases.json",
+      "target": "deterministic/host-phases.json",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/host-phases.json",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/041-workbench-host-phases.json",
+      "bytes": 1874,
+      "sha256": "7eeae80ead0d5acbaf231378dd018ea02956ab357b4bc41aaf9bbb42c4d09dc5"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/042-workbench-metrics.jsonl",
+      "target": "deterministic/workbench-metrics.jsonl",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/workbench-metrics.jsonl",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/042-workbench-metrics.jsonl",
+      "bytes": 25932,
+      "sha256": "305adfd0e0f69e3cb16e19dba3713b2996bd0044da23ff6c96d044af30672bf6"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "target": "deterministic/ui-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/ui-result.xml",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "bytes": 721,
+      "sha256": "f0fdc8513c1340a320a79bb6e7c8a1cf400a203a014bad4e245e0b636bd25eec"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "target": "deterministic/native-probe-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/native-probe-result.xml",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "bytes": 649,
+      "sha256": "a2d9f9b13fb4435381163982dce85b30908fb089387a2a1e155fd3a2fa057f21"
+    },
+    {
+      "source": ".work/astra-da91-native/win2024/extracted/ide-journey/Windows-2024.2/diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "target": "deterministic/startup-result.xml",
+      "selectedSource": ".work/astra-da91-native/win2024/selected/deterministic/startup-result.xml",
+      "originalArtifactPath": "ide-journey/Windows-2024.2/diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "bytes": 1222,
+      "sha256": "2045e3fa4061048ea3b473255f1d2e36bfb70fe0d15336e2d8894e22d7629ddc"
+    }
+  ]
+}

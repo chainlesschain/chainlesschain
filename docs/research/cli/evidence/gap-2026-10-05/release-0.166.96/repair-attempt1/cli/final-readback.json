@@ -1,0 +1,138 @@
+{
+  "capturedAt": "2026-10-10T00:48:43.843Z",
+  "changedTrackedFile": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+  "localTests": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "exitCode": 0,
+    "stderrBytes": 0
+  },
+  "phaseSummary": {
+    "event": "summary",
+    "functionalBudgetMs": 180000,
+    "expectedEventCount": 600,
+    "observed": {
+      "eventCount": 600,
+      "sequence": 600,
+      "serializedBytes": 3445514
+    },
+    "durationMs": 42121,
+    "phases": [
+      {
+        "stage": "setup fixture",
+        "durationMs": 95,
+        "outcome": "returned"
+      },
+      {
+        "stage": "store subject",
+        "durationMs": 122,
+        "outcome": "returned"
+      },
+      {
+        "stage": "append complete event batch",
+        "durationMs": 38231,
+        "outcome": "returned"
+      },
+      {
+        "stage": "create verified audit",
+        "durationMs": 2958,
+        "outcome": "returned"
+      },
+      {
+        "stage": "capture verified snapshot",
+        "durationMs": 0,
+        "outcome": "returned"
+      },
+      {
+        "stage": "assert complete immutable snapshot",
+        "durationMs": 61,
+        "outcome": "returned"
+      },
+      {
+        "stage": "verify final journal head",
+        "durationMs": 652,
+        "outcome": "returned"
+      }
+    ]
+  },
+  "verification": {
+    "prettierCheck": "passed",
+    "gitDiffCheck": "passed",
+    "finalAstEqualsTestedAst": true,
+    "globalVitestConfigUnchanged": true,
+    "globalTestTimeoutMs": 90000,
+    "onlyThisCaseBudgetMs": 180000,
+    "productionLimitsChanged": false,
+    "retryAdded": false
+  },
+  "originalCiFailure": {
+    "kind": "GitHub Windows unit shard 11: test exceeded global 90000ms budget",
+    "runId": 37987544644,
+    "jobId": 114013174530,
+    "observedCaseDurationMs": 91619,
+    "files": [
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.json",
+        "bytes": 3335,
+        "sha256": "96cbf55d6e80c9feae73f7c544f8a35b6aeaef9c1a61e1d24adcc8857f5cf596"
+      },
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/annotations.json",
+        "bytes": 837,
+        "sha256": "4b5a4ad3cf45cfea3c843186636950cace33ff39460e2256c8c459a7cf7abbc0"
+      },
+      {
+        "file": ".work/cli-sdk-3900e9bd-20261010/failed-job-114013174530/job.log",
+        "bytes": 98834,
+        "sha256": "196cafd0bcf1ffa9f7d65f6e1aa691ba78ec900fce62ccac37bd0665e4adf597"
+      }
+    ]
+  },
+  "limitations": [
+    "The original unmodified source was not rerun locally. The modified full fixture completed below 90 seconds locally; this does not reproduce or establish the cause of the hosted CI timeout.",
+    "Local timings are phase diagnostics, not a production SLO or a substitute for the next exact-SHA GitHub matrix."
+  ],
+  "captures": [
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-readonly-audit.test.js",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/final-source.js",
+      "bytes": 18778,
+      "sha256": "d7ed54d844520493e322c68ec43346c0579b22a5efdb00078b338f230c120d4c"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/tested-source.js",
+      "bytes": 18753,
+      "sha256": "8429aa1bc49ae52232a1bbc6caed1d4fda3ddea9b5e080c64f37ba093d2d74ce"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/readback.json",
+      "bytes": 2895,
+      "sha256": "be112a945657905035e7eb1703d3c97125e5787b852e87eac63707559d5d0068"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/stdout.log",
+      "bytes": 4097,
+      "sha256": "245af78d5ad3accae0a06be65cece548e3d215d25c7cb2e1c3b39e336272cc96"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/phases.log",
+      "bytes": 2156,
+      "sha256": "eb1136328a925d910bf738a5ab2ec21ac9b97c55c3fc58f5fe94bbee9158283c"
+    },
+    {
+      "file": ".work/eval-readonly-functional-budget-20261010/attempt-1/vitest-report.json",
+      "bytes": 3443,
+      "sha256": "45ce4b3338110d85a8406218328a8235087b7e090e4700a1a77cef19cc72f167"
+    }
+  ]
+}

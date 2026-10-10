@@ -1,0 +1,5 @@
+{
+  "schema": "chainlesschain.remote-ssh-container-observation.v2",
+  "journeyPassed": false,
+  "failureDigest": "sha256:ef185e0e58e1938134d2c6658bc11741559bf9e39b1b689d2a17e100850203ee"
+}

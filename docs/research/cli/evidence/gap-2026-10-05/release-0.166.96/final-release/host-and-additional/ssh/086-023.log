@@ -1,0 +1,6 @@
+[2026-10-10T01:52:49.002Z] [InlineChat] initialized (MVP stable)
+[2026-10-10T01:52:49.002Z] Inline chat decorator initialized (CodeBuddy/Cursor-style quick actions)
+[2026-10-10T01:52:49.022Z] App Server error: write EPIPE
+[2026-10-10T01:52:49.024Z] bridge up on 127.0.0.1:43567 as MCP server "ide" (18 tools)
+[2026-10-10T01:52:49.027Z] CC App Server pilot startup failed: write EPIPE
+[2026-10-10T01:52:49.284Z] extension 0.37.140: Window Reload deferred

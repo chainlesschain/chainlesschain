@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.96: bind changed SDK source to a new signed release
+
+- Publish Agent SDK `0.2.14` before the CLI because SDK test diagnostics changed
+  its complete Git source tree after the signed `0.2.13` release. Preserve the
+  strict tree comparison and OIDC provenance checks.
+- Refresh the generated SDK source markers for VS Code and Desktop without
+  changing the SDK runtime output.
+- Pair unpublished VS Code `0.37.140` and JetBrains `0.4.158` with CLI
+  `0.166.96` after new exact-commit validation and public CLI availability.
+- Retain the failed `0.166.95` release tag and original failure receipts; that
+  workflow stopped before CLI publication. Formal acceptance remains open.
+
+### Added - cc CLI 0.166.95: model review evidence and Windows diagnostics
+
+- Review the official stable Codex release JSON and retain bounded upstream
+  bytes, exact source identities, and reports for success, drift, or parse
+  failure. Version drift requires review and does not enable models automatically.
+- Add Windows private toolchain, worker termination, Job recovery, and custodian
+  crash diagnostics with retained identity and cleanup evidence. Full native
+  review and durable Windows/macOS recovery remain experimental and unadmitted.
+- Add regression coverage for command argument preservation, permission policy
+  precedence, foreign-session mode acknowledgments, and APNG decoded pixel limits.
+- Pair VS Code 0.37.140 and JetBrains 0.4.158 with CLI 0.166.95 after
+  exact-commit release validation and public CLI availability. Child npm package
+  versions are unchanged; formal evaluation and long-term acceptance remain open.
+
 ### Fixed - cc CLI 0.166.94: concurrent settings writes and native diagnostics
 
 - Reduce disk contention while waiting for a live settings lock and yield after

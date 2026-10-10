@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('astraPopupClasspath') {
+            doLast {
+                def target = new File(rootDir, '../../.work/astra-popup-dispatch-contract-20261009/runtime-classpath.txt')
+                target.text = sourceSets.uiTest.runtimeClasspath.asPath
+                println 'ASTRA_POPUP_CLASSPATH=' + target.absolutePath
+                println 'ASTRA_GRADLE_JAVA=' + System.getProperty('java.home')
+            }
+        }
+    }
+}

@@ -1,0 +1,684 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\handlebars-security-20261009",
+  "archivedAt": "2026-10-09T07:35:27.033Z",
+  "files": [
+    {
+      "path": "audit.execution.json",
+      "bytes": 1237,
+      "digest": "sha256:0f25e21fd43ef6946364123f6f985d3e7cbdb6a9e5ae868d5a91ed7a38f94900"
+    },
+    {
+      "path": "audit.stderr.txt",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "audit.stdout.json",
+      "bytes": 214085,
+      "digest": "sha256:19a5c1855d419ad389d7517d66e4ddd38389bcc2db51f14673b494cdf041b933"
+    },
+    {
+      "path": "changes.json",
+      "bytes": 1996,
+      "digest": "sha256:11f6f84113a35ce301005c74305894364c96c1cb178ff21737e8be2dda260f34"
+    },
+    {
+      "path": "desktop-app-vue__contracts__package-lock.json.before",
+      "bytes": 347652,
+      "digest": "sha256:50301e2fc8ebc18c666d305a072493df801bb85b5895ba2959bd40872962fe41"
+    },
+    {
+      "path": "desktop-app-vue__package-lock.json.before",
+      "bytes": 773994,
+      "digest": "sha256:2dcb4c6e3cbc30da27b15ddbc97cc2580392649283e2b334d7ec80e1b994946b"
+    },
+    {
+      "path": "desktop-app-vue__package.json.before",
+      "bytes": 19844,
+      "digest": "sha256:313b5e02dfe2251b5c6a5848b69104b6971f7fb1f6cdbbfe0275fb5bcc04e4e0"
+    },
+    {
+      "path": "handlebars-4.7.10.tgz",
+      "bytes": 712317,
+      "digest": "sha256:14f356e6cadb5b064a156d2b39dd843abba8f4b1a38ee036935adecc1a13ad9f"
+    },
+    {
+      "path": "package/bin/.eslintrc.js",
+      "bytes": 74,
+      "digest": "sha256:4de8bedb84d2d7e17d75b051fde8bdc7d391f520fa8df65b178ba8f6794ec7ec"
+    },
+    {
+      "path": "package/bin/handlebars",
+      "bytes": 4284,
+      "digest": "sha256:cba44ff174d61af4d2b8baa3876db9b3e2d0d9af4f880711fcbc28f357e0a799"
+    },
+    {
+      "path": "package/dist/amd/handlebars/base.js",
+      "bytes": 9834,
+      "digest": "sha256:a3726a8c9b7d35318cd78c328a13d354e5bc5e6a870ac71eaa3e68ff721b06da"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/ast.js",
+      "bytes": 3468,
+      "digest": "sha256:7769fbaf112e515c6f87be90aff19c1aaea80f8be379f2f7444390bbe5d7a0bd"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/base.js",
+      "bytes": 3531,
+      "digest": "sha256:b774864dff20123c122160b990104268d100d18e40d0ac7305eeca21d0998f45"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/code-gen.js",
+      "bytes": 22015,
+      "digest": "sha256:18338b887645d30c128a430a52837e6688dd52f7ea15ddc20fc917ac8799f4c9"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/compiler.js",
+      "bytes": 75210,
+      "digest": "sha256:ac39efd14f318a7458d301eb34b62a3752512de959a779ffb772bcffb9a873b1"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/helpers.js",
+      "bytes": 19614,
+      "digest": "sha256:f3aa4f7960501d4f00d6dcd158a010deeb8c954399e91a6ff46a43086c1ba103"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/javascript-compiler.js",
+      "bytes": 126522,
+      "digest": "sha256:64c433d23f73b9dce1880c3d042a206b8ef12c23d2e4ea41d60628bf98ff5744"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/node-types.js",
+      "bytes": 2296,
+      "digest": "sha256:563de3fd57051d749f972f5abb6f3a9fa79bae4b46f2849576864b5fbefaa27b"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/parser.js",
+      "bytes": 208549,
+      "digest": "sha256:792be3364caa238af74924de8b13a44b935dd69d1f65e731f50a35029e3b9c9c"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/printer.js",
+      "bytes": 18479,
+      "digest": "sha256:4cec4d70954adc663614f3b549a95e89b7be197eb6f8c61a3fb1ffa958ed6483"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/visitor.js",
+      "bytes": 15466,
+      "digest": "sha256:aa37ce5ac364a1d830dc80b2bbbf8a8f0505a57f35fbd346762e5f65d19405d3"
+    },
+    {
+      "path": "package/dist/amd/handlebars/compiler/whitespace-control.js",
+      "bytes": 24552,
+      "digest": "sha256:714e69480d204a75e88ebdca34426341b086b9a574c06f7ca9b73b03bbf50b15"
+    },
+    {
+      "path": "package/dist/amd/handlebars/decorators/inline.js",
+      "bytes": 2708,
+      "digest": "sha256:b60aa097e66d396ec53865fb753835aef91074fc13bebc3a0ffb6a34b4611225"
+    },
+    {
+      "path": "package/dist/amd/handlebars/decorators.js",
+      "bytes": 1022,
+      "digest": "sha256:7ed9523e6195917b4c6da3fb626d761b7023f102be7495244679f0c50c6a5cf4"
+    },
+    {
+      "path": "package/dist/amd/handlebars/exception.js",
+      "bytes": 6512,
+      "digest": "sha256:d0853bc4153adb5080952f1922b457c470f248a17b59ee9bb945a6e1bb0502f8"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/block-helper-missing.js",
+      "bytes": 3897,
+      "digest": "sha256:7b5c427b54426684275c9e9ba8aed36708a16b74fe856b3c4bea5634a7a7835d"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/each.js",
+      "bytes": 12018,
+      "digest": "sha256:65f65f807ff88e0276554a3af8671949b03aee1ca5c449e23d54963125181a65"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/helper-missing.js",
+      "bytes": 2004,
+      "digest": "sha256:625db9889061b7e1a55da835ec3ed5cc02eeef5fd88dd4d49cb000983b69e242"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/if.js",
+      "bytes": 4475,
+      "digest": "sha256:7a4d0af7eb2070f415f361d08c9d473b13e7807f83687313f61566af73040893"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/log.js",
+      "bytes": 2536,
+      "digest": "sha256:67feb9b62fb964440147b2e4f3e1fa7fca980371347925147082bb91e2fbb738"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/lookup.js",
+      "bytes": 1253,
+      "digest": "sha256:c2b552470d06ca5ba4ffb477c1ee804ee532f6147daae217d639c78c4cf32d60"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers/with.js",
+      "bytes": 3821,
+      "digest": "sha256:b5cf2dda45f9449173ceb157890ab11940a918cace1a25261861d2bd970e0e8e"
+    },
+    {
+      "path": "package/dist/amd/handlebars/helpers.js",
+      "bytes": 3874,
+      "digest": "sha256:fc22c3892036e561ed2425bca2e21f569ad268a77031b3ac59a6845971a75879"
+    },
+    {
+      "path": "package/dist/amd/handlebars/internal/proto-access.js",
+      "bytes": 11228,
+      "digest": "sha256:c0143351848a1576d33fd88ebe3f10cf6f1df938a9769d6f55af8d8aaaae9d6b"
+    },
+    {
+      "path": "package/dist/amd/handlebars/internal/wrapHelper.js",
+      "bytes": 2269,
+      "digest": "sha256:506f4b36ab7743e30d62e3bf6544b39dc6bc1acdcc954b6a9e64f70d1a650f5c"
+    },
+    {
+      "path": "package/dist/amd/handlebars/logger.js",
+      "bytes": 3924,
+      "digest": "sha256:179ee2bdab60dc8d3b842bad24e17103ce3759b82012021968e66705aa35b5b3"
+    },
+    {
+      "path": "package/dist/amd/handlebars/no-conflict.js",
+      "bytes": 2544,
+      "digest": "sha256:76b1cc64024fb5f33b927eb6334209342ab1fbc1039724c3d174b5f08531412f"
+    },
+    {
+      "path": "package/dist/amd/handlebars/runtime.js",
+      "bytes": 49568,
+      "digest": "sha256:d559af2fe4ffa180d9c650b7c834eca07576fa26f8deeef0e33e1c4c95005797"
+    },
+    {
+      "path": "package/dist/amd/handlebars/safe-string.js",
+      "bytes": 1177,
+      "digest": "sha256:2aeeddc6b28dc5e0f1d078c2a0cbf351bda2fede5f02bab142d86e754984172c"
+    },
+    {
+      "path": "package/dist/amd/handlebars/utils.js",
+      "bytes": 10876,
+      "digest": "sha256:3b0d2a5145b427ad2164735b8f7863bd331231167535a84fa580527bb6593869"
+    },
+    {
+      "path": "package/dist/amd/handlebars.js",
+      "bytes": 4652,
+      "digest": "sha256:80fff4cdd63a1fa2a041801c32f0dd460f71810b4f1cc9a785d2888b481b6315"
+    },
+    {
+      "path": "package/dist/amd/handlebars.runtime.js",
+      "bytes": 3891,
+      "digest": "sha256:6f7740d38d8c8d7fa96a8998a4e9fbe493177098a0d8b2de7788f16978ddada7"
+    },
+    {
+      "path": "package/dist/amd/precompiler.js",
+      "bytes": 36461,
+      "digest": "sha256:b36a9b93e544758cfeda31f5cb9285d901744af737fb14acf7f3d95c6187cf02"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/base.js",
+      "bytes": 9641,
+      "digest": "sha256:77d96cd889c7ed97b9c076ee9aa3721c9819e206a85d59402cbfc5d3954eaa8d"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/ast.js",
+      "bytes": 3425,
+      "digest": "sha256:256e26e4a9daa82c622ca868c5ffe318007316fdae2fd5946eb92a391bdf61e1"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/base.js",
+      "bytes": 3926,
+      "digest": "sha256:166de3f716b73150c4bc7c0fa1956e47961028514dc767ff31d11ee7600da423"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/code-gen.js",
+      "bytes": 21565,
+      "digest": "sha256:90b6a71646ffdbf263c7da5ae64eb63cfd28e82f1d18e3123d61753282e22ff7"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/compiler.js",
+      "bytes": 73950,
+      "digest": "sha256:9478d256d7168af1ef727ad4bc82279a489d49c01b2219cb7f58273cedbd2790"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/helpers.js",
+      "bytes": 19212,
+      "digest": "sha256:a9bce7cc09eb86c5b1860e2953d1c00a44d769a98379e8517f234ed4d64f418c"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/javascript-compiler.js",
+      "bytes": 124572,
+      "digest": "sha256:0523d0f3ff90b98bf81256c03986c069d6fbedef3af530ebdc2672d56e9e943a"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/node-types.js",
+      "bytes": 2235,
+      "digest": "sha256:cb0223bb5ea3badfca672fa8679e93bbf79165f353a20280a6a7319ffbbbabad"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/parser.js",
+      "bytes": 205666,
+      "digest": "sha256:3fdb0091ee5d21df4668d85f3772669d9871e1111cf832535913fe3d3189df37"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/printer.js",
+      "bytes": 18175,
+      "digest": "sha256:cc963490630affcdd381c9bf3aa928563a012f2b48eddbf00f7284927646b5de"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/visitor.js",
+      "bytes": 15292,
+      "digest": "sha256:ecc0ef76f461c5f39bf7c02570701891947c7bdef8a68d4b06d0141f432ef6bc"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/compiler/whitespace-control.js",
+      "bytes": 24212,
+      "digest": "sha256:7ac915e01322c7bf7ea5db5d3023f3ee34c7573715e8d3d797587e645fc35d17"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/decorators/inline.js",
+      "bytes": 2696,
+      "digest": "sha256:4ac0a5729144cbee031426c35a9efa57c2de75696ce79d74de83a1baa865602a"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/decorators.js",
+      "bytes": 1000,
+      "digest": "sha256:c7f29d481e3fa1bbdbb6e1cfc1e363afbca8364b04990063cd7f8013485dd43f"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/exception.js",
+      "bytes": 6405,
+      "digest": "sha256:10ac536ec90185063612d872faa212300ae2ad737a482cf8db7242ad015fbbfc"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/block-helper-missing.js",
+      "bytes": 3831,
+      "digest": "sha256:bf1672d914aed118a1edf8f83a82333a97747174c0acb4a572a2fd726e7c8765"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/each.js",
+      "bytes": 11772,
+      "digest": "sha256:9908cd8a42efb29d3dd61dcf52abdb8894a5527a0f6f78c4de2697ebed4644d0"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/helper-missing.js",
+      "bytes": 2013,
+      "digest": "sha256:f8630801450bd707f94dbf6dc7a16a8b1ca5e40b3103cb1279b9d4a427c424f0"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/if.js",
+      "bytes": 4458,
+      "digest": "sha256:ed0b3b310fb99c760a5a70a4c4a5d2f45441ca730263d483629896c87115a399"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/log.js",
+      "bytes": 2507,
+      "digest": "sha256:e3d1a7d4e1b1ee8e02eca89a98f805524a2132e7d58982ee3c45480853f28bda"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/lookup.js",
+      "bytes": 1244,
+      "digest": "sha256:17d2ec1e3df209483d506bebc3b9cd36f2dc7ab08ee5510d7e10d20b7eb7f91e"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers/with.js",
+      "bytes": 3759,
+      "digest": "sha256:c9f36ccc5c1d050e2a83d4d90039a5acdf657b5dee52bfc29666f561d9f8c437"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/helpers.js",
+      "bytes": 4000,
+      "digest": "sha256:97a565afc31fd3258ba6b5b6f1484643471183391f15e4d93aab218f515b89e7"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/internal/proto-access.js",
+      "bytes": 11057,
+      "digest": "sha256:a473030c79a532610822f34850336891ca7e86fa9f6205464816d453e0150b36"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/internal/wrapHelper.js",
+      "bytes": 2192,
+      "digest": "sha256:143d010ee40c74b1e32df4b3952cc8f739a9ebbd7879548244ccad786b7f4e7c"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/logger.js",
+      "bytes": 3883,
+      "digest": "sha256:cec4e7ccd06d9d3590e2faa1f8bd1f644f542707ee3b3e12d9f618d11c965184"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/no-conflict.js",
+      "bytes": 2507,
+      "digest": "sha256:ce932f953ead0a866467ca07663319e652454a18f25a982272eaafb7ab141494"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/runtime.js",
+      "bytes": 49189,
+      "digest": "sha256:116508647dd3da470cf63bab36acbdf04867bc3137bc1d58fc2783df8ea2f4f3"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/safe-string.js",
+      "bytes": 1164,
+      "digest": "sha256:d9e1b6c24b51a7afa526853f687a4a80dbcdf884c8446972ea7eadfd376da5b6"
+    },
+    {
+      "path": "package/dist/cjs/handlebars/utils.js",
+      "bytes": 10619,
+      "digest": "sha256:206d78d82f46ccd89c418837a30d47e830f03c6d84b8af9147131d2761949384"
+    },
+    {
+      "path": "package/dist/cjs/handlebars.js",
+      "bytes": 4900,
+      "digest": "sha256:b4918a0c545733377f9164603b673f0a4f3a30afecffe2e49b97ed2575f4ef45"
+    },
+    {
+      "path": "package/dist/cjs/handlebars.runtime.js",
+      "bytes": 4606,
+      "digest": "sha256:5aaf4c66ea0cbae5d2ba737c28ddcb2bf179c70b73b9270cb8c9e820fe59d764"
+    },
+    {
+      "path": "package/dist/cjs/precompiler.js",
+      "bytes": 36342,
+      "digest": "sha256:dd34cccad8d0fac09922fa2b8d4616fe559b822bd0eae528b5c239401ea90b74"
+    },
+    {
+      "path": "package/dist/handlebars.amd.js",
+      "bytes": 647328,
+      "digest": "sha256:3178d805cde29b8d4f2a56b957e46367a2d90196fdf4a872270624d559a00a27"
+    },
+    {
+      "path": "package/dist/handlebars.amd.min.js",
+      "bytes": 81366,
+      "digest": "sha256:65c2524c1c732cd18953f09f17d3d9154ede19b35da86a261979cb7fa6568e26"
+    },
+    {
+      "path": "package/dist/handlebars.js",
+      "bytes": 215867,
+      "digest": "sha256:5e25e8190da08af70e4ef544849e51c37a95125cacc86d4dbfca46cde9979af4"
+    },
+    {
+      "path": "package/dist/handlebars.min.js",
+      "bytes": 90836,
+      "digest": "sha256:e3be13921b1a0a6d7d7c72e4f561cc638e608c2476fd9b1919b72707e6933b62"
+    },
+    {
+      "path": "package/dist/handlebars.runtime.amd.js",
+      "bytes": 141098,
+      "digest": "sha256:692e89b6f69d3548f88b1c6072d4786dcc48fc1f81d5c48122faf27ec52f808b"
+    },
+    {
+      "path": "package/dist/handlebars.runtime.amd.min.js",
+      "bytes": 18841,
+      "digest": "sha256:4c52cbadb6f4a3394f66bbd4b9a36ff2e1852417a564cd81e4364ff9639cf538"
+    },
+    {
+      "path": "package/dist/handlebars.runtime.js",
+      "bytes": 77716,
+      "digest": "sha256:c0d39ced3aa35a40d7ba707f42320c4aff9dae0bb19242202e7eda7fa7c244af"
+    },
+    {
+      "path": "package/dist/handlebars.runtime.min.js",
+      "bytes": 29198,
+      "digest": "sha256:4c5a7f5dc9852b4a3e33edcd7afe24330e84eb51f01f03bb770627d2d704e1dc"
+    },
+    {
+      "path": "package/lib/.eslintrc.js",
+      "bytes": 167,
+      "digest": "sha256:891f2576604287473b29d0bdab656a600d86b9fc68e0951aa1fc639fc0b6c641"
+    },
+    {
+      "path": "package/lib/handlebars/base.js",
+      "bytes": 2504,
+      "digest": "sha256:4b102e57f522f8da9086b808d39f3f70b501fcfded4d3ec2972e81e335813d2e"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/ast.js",
+      "bytes": 983,
+      "digest": "sha256:f7834cb7302c0bb6fed0998526a649385bde8fa2fbfa19439414ee48483490a9"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/base.js",
+      "bytes": 821,
+      "digest": "sha256:a21a57bff908da3b28f3373aaa2d35f154f925d20d9b5d0b45d0e0bf9e822d24"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/code-gen.js",
+      "bytes": 6009,
+      "digest": "sha256:4dcc9c7f3661f1818bbface99beb995e03409e943f6241d90696d9bda6ec2a1a"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/compiler.js",
+      "bytes": 20486,
+      "digest": "sha256:0fa9075e5da669e0b7b0b351b61445a66bfdf6031d2b5314371ef8179918fe50"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/helpers.js",
+      "bytes": 4721,
+      "digest": "sha256:ac0380274808c2a845150f1ca3615bf7dfe627b1acb4e727bc752aa287ce868d"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/javascript-compiler.js",
+      "bytes": 35473,
+      "digest": "sha256:f375c16c9f1368964ffa50f47e34974a72ce4f10755575504c83d2e0d0eed3f3"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/node-types.js",
+      "bytes": 678,
+      "digest": "sha256:53a9396deabdc32e58d49e4a017c92c9504d29d3d0a73cbc0618e4c5a690b3f2"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/parser.js",
+      "bytes": 34901,
+      "digest": "sha256:9241966f662ffb687d8eef05ba41853f653bf59b46db307ec9122e4dcb191ca8"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/printer.js",
+      "bytes": 4236,
+      "digest": "sha256:27feb622871f6b51a20d4fa2e69a8baf74ef57fe3836a44b3d775ddbe3ebdecf"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/visitor.js",
+      "bytes": 4262,
+      "digest": "sha256:e317c62e4414f640c421d89bd9e858f86b4af2ba15e04b035c2aac6df9733d59"
+    },
+    {
+      "path": "package/lib/handlebars/compiler/whitespace-control.js",
+      "bytes": 6771,
+      "digest": "sha256:924d1285020b5f62d89b9ba3f161ae0828ac47f3fff9f1f1c73659d5bf3653e0"
+    },
+    {
+      "path": "package/lib/handlebars/decorators/inline.js",
+      "bytes": 626,
+      "digest": "sha256:81a2d144b673b685617c70019e76e2aae77ec34448ec48977dd7391877956bc3"
+    },
+    {
+      "path": "package/lib/handlebars/decorators.js",
+      "bytes": 135,
+      "digest": "sha256:b08bdeb717cbebcf93227c8d335c58c41fc3af62260fe69a3f801bd621ebb3d6"
+    },
+    {
+      "path": "package/lib/handlebars/exception.js",
+      "bytes": 1703,
+      "digest": "sha256:3f51f530a6ae0459ed103b0ab87b1760f9942be4c8c08784bf927e3f1e5ad2ac"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/block-helper-missing.js",
+      "bytes": 937,
+      "digest": "sha256:04cd69cec999a205249d76387ea04c4a540530d0fdb87b4885581ff9a7cfa5b9"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/each.js",
+      "bytes": 3151,
+      "digest": "sha256:0592ba249dd2849b0e4f6c051e87525aa39c9f52fca40649fa18b8c9f5bbbf36"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/helper-missing.js",
+      "bytes": 459,
+      "digest": "sha256:dac2efacfff0625e09403ad2651d8ccaffda03dacc571d1c0339e8297c0a16e6"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/if.js",
+      "bytes": 1179,
+      "digest": "sha256:c9e209b7aa4dda08f35a03255d549c662ba67c20d5499dbef9dc68c8bbaa9d59"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/log.js",
+      "bytes": 521,
+      "digest": "sha256:6578dcc8b30cd900785e6fce7555a16a3b88fefe34bf5a00f4fc6a0e9b1213c7"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/lookup.js",
+      "bytes": 253,
+      "digest": "sha256:05f7afa72e416faba2a5c80a352f513ec7ca293a4f87f69bdc89b9eed71c311f"
+    },
+    {
+      "path": "package/lib/handlebars/helpers/with.js",
+      "bytes": 908,
+      "digest": "sha256:15678784198fe6eec12171b881e1cf105164b9c65e1c79e196b568f5e40eacee"
+    },
+    {
+      "path": "package/lib/handlebars/helpers.js",
+      "bytes": 891,
+      "digest": "sha256:862735a1fc6d3ff814ab0539932eeb9def7a458c56c84edbceb4c2ac753c0a16"
+    },
+    {
+      "path": "package/lib/handlebars/internal/proto-access.js",
+      "bytes": 3350,
+      "digest": "sha256:e6fa05480748a7f6813c37ba094a1a87782fa59da1f693a7a03a10e36339bb8e"
+    },
+    {
+      "path": "package/lib/handlebars/internal/wrapHelper.js",
+      "bytes": 568,
+      "digest": "sha256:1c3ae62f4ceeecad509f1a405853fd9a548c937004282584296d52272377bb71"
+    },
+    {
+      "path": "package/lib/handlebars/logger.js",
+      "bytes": 951,
+      "digest": "sha256:4ae319352268d99a4acad3f1bd9732ba154c7189c910f31ae70f4ee379e78c26"
+    },
+    {
+      "path": "package/lib/handlebars/no-conflict.js",
+      "bytes": 652,
+      "digest": "sha256:17cddd10919cda5369052fcb3f9491d62499aebe8ce7f897104cfd8b47f0b1a2"
+    },
+    {
+      "path": "package/lib/handlebars/runtime.js",
+      "bytes": 14057,
+      "digest": "sha256:ef770fa0981e490654575762a1a4585dbd73a0f3322fd81f55405a4e68b2f2e7"
+    },
+    {
+      "path": "package/lib/handlebars/safe-string.js",
+      "bytes": 229,
+      "digest": "sha256:214c12a416acf0d941eb8c38b5032a59794aaa680758fbf088d7d23930d0f529"
+    },
+    {
+      "path": "package/lib/handlebars/utils.js",
+      "bytes": 2824,
+      "digest": "sha256:75b6b061aacf2c8d015c3dd3573905b9235db873521ca2c48caa6337effb5bbb"
+    },
+    {
+      "path": "package/lib/handlebars.js",
+      "bytes": 1061,
+      "digest": "sha256:1be6004eb7c14597dbe99c82c2d4915ba1f46d7ce18121191add539d16148357"
+    },
+    {
+      "path": "package/lib/handlebars.runtime.js",
+      "bytes": 971,
+      "digest": "sha256:6584ea0310ffd0ae5d467038d360f7072690071be62e23cf3100f34ddc11ebd3"
+    },
+    {
+      "path": "package/lib/index.js",
+      "bytes": 814,
+      "digest": "sha256:76f96bd806c6b48987dd811de149be3d8c296eb440f9c91a3b8cad9fb2f9030a"
+    },
+    {
+      "path": "package/lib/precompiler.js",
+      "bytes": 10073,
+      "digest": "sha256:2dba29416d6eafb30b5a5fc7819a8870e92534d6c85a40378133a8d92bfce693"
+    },
+    {
+      "path": "package/LICENSE",
+      "bytes": 1063,
+      "digest": "sha256:e1955f622a2386195a4b67a1f30b9e88fde5cfb3fa95da46afdc4093bb9d0c5c"
+    },
+    {
+      "path": "package/package.json",
+      "bytes": 3622,
+      "digest": "sha256:cf06251288836dd2ba6d8d1a83dbe4c8c944556c34e17a3263c86325115d2a3c"
+    },
+    {
+      "path": "package/README.markdown",
+      "bytes": 9230,
+      "digest": "sha256:e6117118d5d11eb3dfa6f2cd34237387af270e75f5f6bff59900b18eddc57998"
+    },
+    {
+      "path": "package/release-notes.md",
+      "bytes": 62965,
+      "digest": "sha256:994899e936e5658d83068fed4f53c25c1e8eb4b6e5c98e45c59733837db58b00"
+    },
+    {
+      "path": "package/runtime.d.ts",
+      "bytes": 86,
+      "digest": "sha256:7ca7381b7a8db6aa80c6ae200192b4d7e1178ff873f361772079cd67dcb25ce1"
+    },
+    {
+      "path": "package/runtime.js",
+      "bytes": 167,
+      "digest": "sha256:50ffffa232011595d4bec828ddf0859677cf2dd3a82513e7d056d886ccd298d7"
+    },
+    {
+      "path": "package/types/index.d.ts",
+      "bytes": 13186,
+      "digest": "sha256:d49769912810f3cb82bf9246df286b396204dc16853bc6f77c70dbb6f60b8434"
+    },
+    {
+      "path": "package-lock.json.before",
+      "bytes": 1352181,
+      "digest": "sha256:c678437cd3d3e381ee8d5c235cbc5241053ec9f0d11b43d39525737bbf3a63e4"
+    },
+    {
+      "path": "preload.cjs",
+      "bytes": 1139,
+      "digest": "sha256:42b0ff0b9214af1feb634ed49b7a459bbf5b3d59e2f7857fa60e8ed009ffbfb4"
+    },
+    {
+      "path": "run-validation.cjs",
+      "bytes": 2147,
+      "digest": "sha256:4e16d6b71487e9d756987f0178cdbd3bd01c4f3da2758b2ccc1b7736a9b09054"
+    },
+    {
+      "path": "summarize.cjs",
+      "bytes": 2692,
+      "digest": "sha256:05ea8ffaaded63f9161589b870c40746ffb788f85569d91f2297598485451744"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 3355,
+      "digest": "sha256:86a2c94c54614bbbc75631a37dc58f02772b6e2d8a187117cbc079f66d5e334b"
+    },
+    {
+      "path": "template.execution.json",
+      "bytes": 1416,
+      "digest": "sha256:fa01e660c1511cbabf2c1e625cb6fd4d0f976358e7ee917fd26013a710e8c0d0"
+    },
+    {
+      "path": "template.stderr.txt",
+      "bytes": 1170,
+      "digest": "sha256:2a249f66cc1ed528c56b3981b1fba65abb9ebc8e0408011d7b09ac535bc45a1c"
+    },
+    {
+      "path": "template.stdout.txt",
+      "bytes": 229,
+      "digest": "sha256:add2cab21919962fe63db775efa51374b1974b231d6584304e31af72441cb764"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 5563,
+      "digest": "sha256:919bb29108a51afd466e527a132eb39eacc0bf7b7004ed7fa685e81f523d7927"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

@@ -6,6 +6,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
@@ -145,6 +146,40 @@ function gitBytes(root, args) {
     encoding: null,
     windowsHide: true,
     maxBuffer: 64 * 1024 * 1024,
+  });
+}
+
+/** Hash the entire binary diff without buffering its potentially large body. */
+export function browserEvidenceDiffDigest(
+  root,
+  baseSha,
+  headSha,
+  spawnImpl = spawn,
+) {
+  return new Promise((resolve, reject) => {
+    const child = spawnImpl(
+      "git",
+      ["diff", "--binary", "--no-ext-diff", baseSha, headSha, "--"],
+      { cwd: root, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    const hash = createHash("sha256");
+    let stderr = "";
+    child.stdout.on("data", (chunk) => hash.update(chunk));
+    child.stdout.on("error", reject);
+    child.stderr.on("data", (chunk) => {
+      stderr = (stderr + chunk.toString()).slice(0, 64 * 1024);
+    });
+    child.stderr.on("error", reject);
+    child.on("error", reject);
+    child.on("close", (code, signal) => {
+      if (code !== 0 || signal) {
+        reject(
+          new Error(`git diff failed (${signal || code}): ${stderr.trim()}`),
+        );
+        return;
+      }
+      resolve(`sha256:${hash.digest("hex")}`);
+    });
   });
 }
 
@@ -646,21 +681,14 @@ export async function runBrowserEvidenceJourney(options) {
     );
     await waitForCdp(port, chromium);
 
-    const diffBytes = gitBytes(root, [
-      "diff",
-      "--binary",
-      "--no-ext-diff",
-      baseSha,
-      headSha,
-      "--",
-    ]);
+    const diffDigest = await browserEvidenceDiffDigest(root, baseSha, headSha);
     const binding = {
       sessionId: `browser-evidence-${options.os}`,
       sessionRevision: 1,
       diff: {
         baseSha,
         headSha,
-        digest: browserEvidenceDigest(diffBytes),
+        digest: diffDigest,
       },
       testRun: {
         id: `browser-evidence.local-two-origin.${options.os}`,

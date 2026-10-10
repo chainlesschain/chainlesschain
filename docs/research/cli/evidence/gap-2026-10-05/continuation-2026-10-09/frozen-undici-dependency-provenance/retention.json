@@ -1,0 +1,14 @@
+{
+  "artifactOriginals": "C:\\code\\chainlesschain\\.work\\private-v4-review-dependencies-20261009-with-undici",
+  "compressedArtifactsArchived": false,
+  "installedDependencyBytesArchived": false,
+  "manifestDigest": "sha256:a6a470a2a7439954afb71c2205552ffc8f34836b62351f9a778309569cd39129",
+  "acquisitionTool": {
+    "name": "tar",
+    "version": "7.5.20",
+    "hermeticAssessed": false
+  },
+  "prebuildSignatureAssessed": false,
+  "formalSample": false,
+  "admissionEligible": false
+}

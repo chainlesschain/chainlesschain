@@ -1,0 +1,29 @@
+{
+  "command": "C:\\Windows\\system32\\cmd.exe",
+  "args": [
+    "/d",
+    "/s",
+    "/c",
+    "npm.cmd audit --json --ignore-scripts"
+  ],
+  "cwd": "C:\\code\\chainlesschain",
+  "start": "2026-10-09T07:32:21.405Z",
+  "end": "2026-10-09T07:32:49.772Z",
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "before": {
+    "desktop-app-vue/package.json": "d13b07a612c9c36c0c90fa5e699e9777cd94e6c3740089d02d92e57517e8886b",
+    "package-lock.json": "dd5e438925d8a42b407ce436618cb6764faba052ec8d08814199832b0ff85a3a",
+    "desktop-app-vue/package-lock.json": "7021f25af40b589ab74f7885724151c726d20794e05c6039cf137a11aba23920",
+    "desktop-app-vue/contracts/package-lock.json": "4fb4910745ebe977e7930e36ce8a874d64ed41dd64950fdbb486a58d17da3cdb"
+  },
+  "after": {
+    "desktop-app-vue/package.json": "d13b07a612c9c36c0c90fa5e699e9777cd94e6c3740089d02d92e57517e8886b",
+    "package-lock.json": "dd5e438925d8a42b407ce436618cb6764faba052ec8d08814199832b0ff85a3a",
+    "desktop-app-vue/package-lock.json": "7021f25af40b589ab74f7885724151c726d20794e05c6039cf137a11aba23920",
+    "desktop-app-vue/contracts/package-lock.json": "4fb4910745ebe977e7930e36ce8a874d64ed41dd64950fdbb486a58d17da3cdb"
+  },
+  "sourceStable": true,
+  "testInjection": null
+}

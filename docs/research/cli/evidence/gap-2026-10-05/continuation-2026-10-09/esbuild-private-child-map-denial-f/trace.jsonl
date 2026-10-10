@@ -1,0 +1,10 @@
+{"sequence":1,"pid":24860,"api":"identity-accepted","requestedPath":"","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":2,"pid":24860,"api":"device-map-handle-access","requestedPath":"","success":true,"error":0,"kind":3,"patches":0,"overflow":0}
+{"sequence":3,"pid":24860,"api":"device-map-supervisor-handle","requestedPath":"","success":true,"error":0,"kind":3,"patches":0,"overflow":0}
+{"sequence":4,"pid":24860,"api":"device-map-root-proven","requestedPath":"\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-bB4CXI","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":5,"pid":24860,"api":"device-map-file-id-proven","requestedPath":"02469ff7:00170000:0070530e","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":6,"pid":24860,"api":"namespace-host-root-denied","requestedPath":"C:\\","success":true,"error":5,"kind":0,"patches":0,"overflow":0}
+{"sequence":7,"pid":24860,"api":"namespace-workspace-write-denied","requestedPath":"X:\\workspace\\forbidden.txt","success":true,"error":5,"kind":0,"patches":0,"overflow":0}
+{"sequence":8,"pid":24860,"api":"namespace-traversal-confined","requestedPath":"\\Device\\HarddiskVolume3\\Users\\longfa\\AppData\\Local\\Temp\\cc-private-frozen-bB4CXI","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":9,"pid":24860,"api":"installed","requestedPath":"","success":true,"error":0,"kind":0,"patches":0,"overflow":0}
+{"sequence":10,"pid":24860,"api":"exit","requestedPath":"","success":true,"error":0,"kind":0,"patches":0,"overflow":0}

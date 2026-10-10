@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.RemoteHandoffTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.007">
+  <properties/>
+  <testcase name="parsesStatusJsonAndFiltersInvalidRecords()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.001"/>
+  <testcase name="buildsRemoteControlArgv()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="directPairingPresentationIsFailClosedForLoopbackAndLegacyPayloads()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="appendsRelayFlagsOnlyForNonBlankSettings()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="buildsTheBackgroundHandoffArgv()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.001"/>
+  <testcase name="slashMenuAdvertisesHandoff()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.001"/>
+  <testcase name="parsesLauncherStateOutOfNoisyStdout()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="formatsHandoffNoteAndPairingNote()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="extractsPrettyPrintedPairingJsonFromAccumulatingBuffer()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="formatsStatusLines()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <testcase name="appendsAllowLanOnlyForExplicitConsent()" classname="com.chainlesschain.ide.RemoteHandoffTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

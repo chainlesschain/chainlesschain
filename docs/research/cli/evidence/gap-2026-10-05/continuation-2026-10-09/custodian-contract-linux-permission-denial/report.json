@@ -1,0 +1,122 @@
+{
+  "schema": "chainlesschain.custodian-crash-linux-contracts/v1",
+  "status": "NOT_ADMITTED",
+  "nativeExecuted": false,
+  "startedAt": "2026-10-09T08:05:55.379Z",
+  "finishedAt": "2026-10-09T08:05:55.747Z",
+  "sourcesStable": true,
+  "sources": [
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\diagnostics\\windows-job-custodian-crash-probe.cs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-final\\windows-job-custodian-crash-probe.cs",
+      "before": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "snapshotBytes": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      },
+      "after": {
+        "sha256": "18679906a4e2787250d5c812d68936de1c3e988c00b3caa209c9e6f1a086b3d2",
+        "bytes": 29134
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\windows-job-custodian-crash-probe.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-final\\windows-job-custodian-crash-probe.mjs",
+      "before": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "snapshotBytes": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      },
+      "after": {
+        "sha256": "6046dbe1312c29f4499475661cdf5d3b0e4a035a0f911e281a7e948430e40eff",
+        "bytes": 8057
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\scripts\\lib\\windows-job-custodian-crash-evidence.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-final\\windows-job-custodian-crash-evidence.mjs",
+      "before": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "snapshotBytes": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      },
+      "after": {
+        "sha256": "5199885365cc1162379b06990e1ad6a45b1f41f9b76685381d11f6946a8b5beb",
+        "bytes": 13014
+      }
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\packages\\cli\\test-node\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "snapshot": "C:\\code\\chainlesschain\\.work\\custodian-crash-contract-linux22.22.2-final\\windows-job-custodian-crash-evidence.node-test.mjs",
+      "before": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "snapshotBytes": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      },
+      "after": {
+        "sha256": "720bbdd1afbea532dad2878dd0b2bfb5d9a9845ccaa2b1a8d4b2513d37708312",
+        "bytes": 16568
+      }
+    }
+  ],
+  "runtimeIdentity": null,
+  "runtimeCheck": {
+    "command": "wsl.exe",
+    "args": [
+      "--exec",
+      "/mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node",
+      "-p",
+      "JSON.stringify({platform:process.platform,version:process.version,arch:process.arch})"
+    ],
+    "startedAt": "2026-10-09T08:05:55.393Z",
+    "elapsedMs": 179.80150000000003,
+    "status": 4294967295,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "sha256": "e76f48e30df2f3a356acd4c80a006fc559f6dc248269a7333a647b856d55a634",
+      "bytes": 256
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "text": "�b�~���\u00020 \u0000\r\u0000\n\u0000\u0019���N\u0001x\u001a� \u0000W\u0000s\u0000l\u0000/\u0000S\u0000e\u0000r\u0000v\u0000i\u0000c\u0000e\u0000/\u0000C\u0000r\u0000e\u0000a\u0000t\u0000e\u0000I\u0000n\u0000s\u0000t\u0000a\u0000n\u0000c\u0000e\u0000/\u0000E\u0000_\u0000A\u0000C\u0000C\u0000E\u0000S\u0000S\u0000D\u0000E\u0000N\u0000I\u0000E\u0000D\u0000\r\u0000\n\u0000�Y�gdk\u0019��/f\u000fa\u0016Y\u0019��\f���\u0003�Q�\u001cd\"}�s\tg�\u0016b(W \u0000h\u0000t\u0000t\u0000p\u0000s\u0000:\u0000/\u0000/\u0000g\u0000i\u0000t\u0000h\u0000u\u0000b\u0000.\u0000c\u0000o\u0000m\u0000/\u0000m\u0000i\u0000c\u0000r\u0000o\u0000s\u0000o\u0000f\u0000t\u0000/\u0000W\u0000S\u0000L\u0000/\u0000i\u0000s\u0000s\u0000u\u0000e\u0000s\u0000 \u0000�c�N�e�\u00020\r\u0000\n\u0000"
+  },
+  "tests": {
+    "command": "wsl.exe",
+    "args": [
+      "--exec",
+      "/mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node",
+      "--test",
+      "/mnt/c/code/chainlesschain/packages/cli/test-node/windows-job-custodian-crash-evidence.node-test.mjs"
+    ],
+    "startedAt": "2026-10-09T08:05:55.575Z",
+    "elapsedMs": 168.93630000000002,
+    "status": 4294967295,
+    "signal": null,
+    "error": null,
+    "stdout": {
+      "sha256": "e76f48e30df2f3a356acd4c80a006fc559f6dc248269a7333a647b856d55a634",
+      "bytes": 256
+    },
+    "stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "text": "�b�~���\u00020 \u0000\r\u0000\n\u0000\u0019���N\u0001x\u001a� \u0000W\u0000s\u0000l\u0000/\u0000S\u0000e\u0000r\u0000v\u0000i\u0000c\u0000e\u0000/\u0000C\u0000r\u0000e\u0000a\u0000t\u0000e\u0000I\u0000n\u0000s\u0000t\u0000a\u0000n\u0000c\u0000e\u0000/\u0000E\u0000_\u0000A\u0000C\u0000C\u0000E\u0000S\u0000S\u0000D\u0000E\u0000N\u0000I\u0000E\u0000D\u0000\r\u0000\n\u0000�Y�gdk\u0019��/f\u000fa\u0016Y\u0019��\f���\u0003�Q�\u001cd\"}�s\tg�\u0016b(W \u0000h\u0000t\u0000t\u0000p\u0000s\u0000:\u0000/\u0000/\u0000g\u0000i\u0000t\u0000h\u0000u\u0000b\u0000.\u0000c\u0000o\u0000m\u0000/\u0000m\u0000i\u0000c\u0000r\u0000o\u0000s\u0000o\u0000f\u0000t\u0000/\u0000W\u0000S\u0000L\u0000/\u0000i\u0000s\u0000s\u0000u\u0000e\u0000s\u0000 \u0000�c�N�e�\u00020\r\u0000\n\u0000"
+  },
+  "completed": false
+}

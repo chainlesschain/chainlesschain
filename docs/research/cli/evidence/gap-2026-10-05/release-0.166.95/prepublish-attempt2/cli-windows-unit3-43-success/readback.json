@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T13:34:13.708Z",
+  "sourceCommit": "43eb29d1f72697d849b6f1aed573fd044ad9da9b",
+  "runId": 37929591872,
+  "jobId": 113816755349,
+  "jobName": "test-windows / unit (windows-latest, shard 3/16)",
+  "conclusion": "success",
+  "bytes": 90075,
+  "sha256": "9623123547d869421b21e9ed3f9c18e74b93ad787e0ab1c2bd1ac7500678e27e"
+}

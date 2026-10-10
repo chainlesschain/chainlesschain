@@ -1,0 +1,298 @@
+{
+  "schema": "chainlesschain.ide-redacted-diagnostics.v1",
+  "records": [
+    {
+      "command": "docker",
+      "args": [
+        "pull",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "docker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467: Pulling from library/ubuntu\n966c395d29cb: Pulling fs layer\n966c395d29cb: Verifying Checksum\n966c395d29cb: Download complete\n966c395d29cb: Pull complete\nDigest: sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\nStatus: Downloaded newer image for ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\ndocker.io/library/ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "image",
+        "inspect",
+        "--format={{json .}}",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "{\"Id\":\"sha256:045183670ef29ce21bc22a8d4f62511ce472679ca8fc9774f04181f7f383ca62\",\"RepoTags\":[],\"RepoDigests\":[\"ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467\"],\"Parent\":\"\",\"Comment\":\"\",\"Created\":\"2026-07-31T20:37:23.365889685Z\",\"DockerVersion\":\"26.1.3\",\"Author\":\"\",\"Config\":{\"Hostname\":\"\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"],\"Cmd\":[\"/bin/bash\"],\"Image\":\"sha256:1197e324d66fd5bba2982219c77ee16fb573ec1276c92d4cf4d2145c92d5368b\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":{\"org.opencontainers.image.version\":\"24.04\"}},\"Architecture\":\"amd64\",\"Os\":\"linux\",\"Size\":78151922,\"GraphDriver\":{\"Data\":{\"MergedDir\":\"/var/lib/docker/overlay2/f7bb2bf20667b57a9e2e4428845f00dff189fbd93c9898eac64c778a254b3d4d/merged\",\"UpperDir\":\"/var/lib/docker/overlay2/f7bb2bf20667b57a9e2e4428845f00dff189fbd93c9898eac64c778a254b3d4d/diff\",\"WorkDir\":\"/var/lib/docker/overlay2/f7bb2bf20667b57a9e2e4428845f00dff189fbd93c9898eac64c778a254b3d4d/work\"},\"Name\":\"overlay2\"},\"RootFS\":{\"Type\":\"layers\",\"Layers\":[\"sha256:42724e448bf499ec7d4b3c21d6cc68fe665ef677ed393c3dbb5357394e89ff91\"]},\"Metadata\":{\"LastTagTime\":\"0001-01-01T00:00:00Z\"}}\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "run",
+        "--detach",
+        "--name",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "--hostname",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "--publish",
+        "127.0.0.1::22",
+        "ubuntu@sha256:019e8eb29a85e74d64925745884f2ec79aa27e3feab36353d24656f4d6b89467",
+        "sleep",
+        "infinity"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "d35da030bd0f7344322fd1410eedd3f63ed286288e263aaf5d841d52157040b2\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "bash",
+        "-lc",
+        "export DEBIAN_FRONTEND=noninteractive; apt-get update; apt-get install -y --no-install-recommends ca-certificates openssh-server unzip nodejs; useradd --create-home --shell /bin/bash cc-roadmap; mkdir -p /run/sshd"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "security InRelease [126 kB]\nGet:2 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]\nGet:3 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1546 kB]\nGet:4 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]\nGet:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]\nGet:6 http://archive.ubuntu.com/ubuntu noble/universe amd64 Packages [19.3 MB]\nGet:7 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [1381 kB]\nGet:8 http://security.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [61.4 kB]\nGet:9 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [2069 kB]\nGet:10 http://archive.ubuntu.com/ubuntu noble/multiverse amd64 Packages [331 kB]\nGet:11 http://archive.ubuntu.com/ubuntu noble/main amd64 Packages [1808 kB]\nGet:12 http://archive.ubuntu.com/ubuntu noble/restricted amd64 Packages [117 kB]\nGet:13 http://archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [67.4 kB]\nGet:14 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [2166 kB]\nGet:15 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [2177 kB]\nGet:16 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1702 kB]\nGet:17 http://archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [49.0 kB]\nGet:18 http://archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages [671 B]\nGet:19 http://archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [36.0 kB]\nFetched 33.5 MB in 3s (11.4 MB/s)\nReading package lists...\nReading package lists...\nBuilding dependency tree...\nReading state information...\nThe following additional packages will be installed:\n  adduser libbrotli1 libbsd0 libcares2 libcbor0.10 libedit2 libfido2-1\n  libgssapi-krb5-2 libicu74 libk5crypto3 libkeyutils1 libkrb5-3\n  libkrb5support0 libnghttp2-14 libnode109 libssl3t64 libuv1t64 libwrap0\n  node-acorn node-busboy node-cjs-module-lexer node-undici node-xtend\n  openssh-client openssh-sftp-server openssl ucf\nSuggested packages:\n  liblocale-gettext-perl perl cron quota ecryptfs-utils krb5-doc krb5-user npm\n  keychain libpam-ssh monkeysphere ssh-askpass molly-guard ufw zip\nRecommended packages:\n  krb5-locales nodejs-doc xauth default-logind | logind | libpam-systemd\n  ncurses-term ssh-import-id\nThe following NEW packages will be installed:\n  adduser ca-certificates libbrotli1 libbsd0 libcares2 libcbor0.10 libedit2\n  libfido2-1 libgssapi-krb5-2 libicu74 libk5crypto3 libkeyutils1 libkrb5-3\n  libkrb5support0 libnghttp2-14 libnode109 libuv1t64 libwrap0 node-acorn\n  node-busboy node-cjs-module-lexer node-undici node-xtend nodejs\n  openssh-client openssh-server openssh-sftp-server openssl ucf unzip\nThe following packages will be upgraded:\n  libssl3t64\n1 upgraded, 30 newly installed, 0 to remove and 33 not upgraded.\nNeed to get 29.7 MB of archives.\nAfter this operation, 105 MB of additional disk space will be used.\nGet:1 http://archive.ubuntu.com/ubuntu noble/main amd64 adduser all 3.137ubuntu1 [101 kB]\nGet:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libbsd0 amd64 0.12.1-1build1.1 [41.2 kB]\nGet:3 http://archive.ubuntu.com/ubuntu noble/main amd64 libedit2 amd64 3.1-20230828-1build1 [97.6 kB]\nGet:4 http://archive.ubuntu.com/ubuntu noble/main amd64 libcbor0.10 amd64 0.10.2-1.2ubuntu2 [25.8 kB]\nGet:5 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libssl3t64 amd64 3.0.13-0ubuntu3.16 [1945 kB]\nGet:6 http://archive.ubuntu.com/ubuntu noble/main amd64 libfido2-1 amd64 1.14.0-1build3 [83.5 kB]\nGet:7 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libkrb5support0 amd64 1.20.1-6ubuntu2.10 [34.9 kB]\nGet:8 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libk5crypto3 amd64 1.20.1-6ubuntu2.10 [81.9 kB]\nGet:9 http://archive.ubuntu.com/ubuntu noble/main amd64 libkeyutils1 amd64 1.6.3-3build1 [9490 B]\nGet:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libkrb5-3 amd64 1.20.1-6ubuntu2.10 [348 kB]\nGet:11 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgssapi-krb5-2 amd64 1.20.1-6ubuntu2.10 [143 kB]\nGet:12 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssh-client amd64 1:9.6p1-3ubuntu13.19 [908 kB]\nGet:13 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssh-sftp-server amd64 1:9.6p1-3ubuntu13.19 [37.1 kB]\nGet:14 http://archive.ubuntu.com/ubuntu noble/main amd64 ucf all 3.0043+nmu1 [56.5 kB]\nGet:15 http://archive.ubuntu.com/ubuntu noble/main amd64 libwrap0 amd64 7.6.q-33 [47.9 kB]\nGet:16 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssh-server amd64 1:9.6p1-3ubuntu13.19 [511 kB]\nGet:17 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 openssl amd64 3.0.13-0ubuntu3.16 [1004 kB]\nGet:18 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 ca-certificates all 20260601~24.04.1 [139 kB]\nGet:19 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libicu74 amd64 74.2-1ubuntu3.1 [10.9 MB]\nGet:20 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libnghttp2-14 amd64 1.59.0-1ubuntu0.4 [74.6 kB]\nGet:21 http://archive.ubuntu.com/ubuntu noble/main amd64 libuv1t64 amd64 1.48.0-1.1build1 [97.3 kB]\nGet:22 http://archive.ubuntu.com/ubuntu noble/main amd64 libbrotli1 amd64 1.1.0-2build2 [331 kB]\nGet:23 http://archive.ubuntu.com/ubuntu noble/main amd64 libcares2 amd64 1.27.0-1.0ubuntu1 [73.7 kB]\nGet:24 http://archive.ubuntu.com/ubuntu noble/universe amd64 node-xtend all 4.0.2-3 [3902 B]\nGet:25 http://archive.ubuntu.com/ubuntu noble/universe amd64 nodejs amd64 18.19.1+dfsg-6ubuntu5 [306 kB]\nGet:26 http://archive.ubuntu.com/ubuntu noble/universe amd64 node-acorn all 8.8.1+ds+~cs25.17.7-2 [115 kB]\nGet:27 http://archive.ubuntu.com/ubuntu noble/universe amd64 node-cjs-module-lexer all 1.2.3+dfsg-1 [32.1 kB]\nGet:28 http://archive.ubuntu.com/ubuntu noble/universe amd64 node-busboy all 1.6.0+~cs2.6.0-2 [17.3 kB]\nGet:29 http://archive.ubuntu.com/ubuntu noble/universe amd64 node-undici all 5.26.3+dfsg1+~cs23.10.12-2 [325 kB]\nGet:30 http://archive.ubuntu.com/ubuntu noble/universe amd64 libnode109 amd64 18.19.1+dfsg-6ubuntu5 [11.6 MB]\nGet:31 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 unzip amd64 6.0-28ubuntu4.1 [174 kB]\nFetched 29.7 MB in 0s (74.3 MB/s)\nSelecting previously unselected package adduser.\r\n(Reading database ... \r(Reading database ... 5%\r(Reading database ... 10%\r(Reading database ... 15%\r(Reading database ... 20%\r(Reading database ... 25%\r(Reading database ... 30%\r(Reading database ... 35%\r(Reading database ... 40%\r(Reading database ... 45%\r(Reading database ... 50%\r(Reading database ... 55%\r(Reading database ... 60%\r(Reading database ... 65%\r(Reading database ... 70%\r(Reading database ... 75%\r(Reading database ... 80%\r(Reading database ... 85%\r(Reading database ... 90%\r(Reading database ... 95%\r(Reading database ... 100%\r(Reading database ... 4381 files and directories currently installed.)\r\nPreparing to unpack .../adduser_3.137ubuntu1_all.deb ...\r\nUnpacking adduser (3.137ubuntu1) ...\r\nSetting up adduser (3.137ubuntu1) ...\r\nSelecting previously unselected package libbsd0:amd64.\r\n(Reading database ... \r(Reading database ... 5%\r(Reading database ... 10%\r(Reading database ... 15%\r(Reading database ... 20%\r(Reading database ... 25%\r(Reading database ... 30%\r(Reading database ... 35%\r(Reading database ... 40%\r(Reading database ... 45%\r(Reading database ... 50%\r(Reading database ... 55%\r(Reading database ... 60%\r(Reading database ... 65%\r(Reading database ... 70%\r(Reading database ... 75%\r(Reading database ... 80%\r(Reading database ... 85%\r(Reading database ... 90%\r(Reading database ... 95%\r(Reading database ... 100%\r(Reading database ... 4429 files and directories currently installed.)\r\nPreparing to unpack .../libbsd0_0.12.1-1build1.1_amd64.deb ...\r\nUnpacking libbsd0:amd64 (0.12.1-1build1.1) ...\r\nSelecting previously unselected package libedit2:amd64.\r\nPreparing to unpack .../libedit2_3.1-20230828-1build1_amd64.deb ...\r\nUnpacking libedit2:amd64 (3.1-20230828-1build1) ...\r\nSelecting previously unselected package libcbor0.10:amd64.\r\nPreparing to unpack .../libcbor0.10_0.10.2-1.2ubuntu2_amd64.deb ...\r\nUnpacking libcbor0.10:amd64 (0.10.2-1.2ubuntu2) ...\r\nPreparing to unpack .../libssl3t64_3.0.13-0ubuntu3.16_amd64.deb ...\r\nUnpacking libssl3t64:amd64 (3.0.13-0ubuntu3.16) over (3.0.13-0ubuntu3.11) ...\r\nSetting up libssl3t64:amd64 (3.0.13-0ubuntu3.16) ...\r\nSelecting previously unselected package libfido2-1:amd64.\r\n(Reading database ... \r(Reading database ... 5%\r(Reading database ... 10%\r(Reading database ... 15%\r(Reading database ... 20%\r(Reading database ... 25%\r(Reading database ... 30%\r(Reading database ... 35%\r(Reading database ... 40%\r(Reading database ... 45%\r(Reading database ... 50%\r(Reading database ... 55%\r(Reading database ... 60%\r(Reading database ... 65%\r(Reading database ... 70%\r(Reading database ... 75%\r(Reading database ... 80%\r(Reading database ... 85%\r(Reading database ... 90%\r(Reading database ... 95%\r(Reading database ... 100%\r(Reading database ... 4450 files and directories currently installed.)\r\nPreparing to unpack .../00-libfido2-1_1.14.0-1build3_amd64.deb ...\r\nUnpacking libfido2-1:amd64 (1.14.0-1build3) ...\r\nSelecting previously unselected package libkrb5support0:amd64.\r\nPreparing to unpack .../01-libkrb5support0_1.20.1-6ubuntu2.10_amd64.deb ...\r\nUnpacking libkrb5support0:amd64 (1.20.1-6ubuntu2.10) ...\r\nSelecting previously unselected package libk5crypto3:amd64.\r\nPreparing to unpack .../02-libk5crypto3_1.20.1-6ubuntu2.10_amd64.deb ...\r\nUnpacking libk5crypto3:amd64 (1.20.1-6ubuntu2.10) ...\r\nSelecting previously unselected package libkeyutils1:amd64.\r\nPreparing to unpack .../03-libkeyutils1_1.6.3-3build1_amd64.deb ...\r\nUnpacking libkeyutils1:amd64 (1.6.3-3build1) ...\r\nSelecting previously unselected package libkrb5-3:amd64.\r\nPreparing to unpack .../04-libkrb5-3_1.20.1-6ubuntu2.10_amd64.deb ...\r\nUnpacking libkrb5-3:amd64 (1.20.1-6ubuntu2.10) ...\r\nSelecting previously unselected package libgssapi-krb5-2:amd64.\r\nPreparing to unpack .../05-libgssapi-krb5-2_1.20.1-6ubuntu2.10_amd64.deb ...\r\nUnpacking libgssapi-krb5-2:amd64 (1.20.1-6ubuntu2.10) ...\r\nSelecting previously unselected package openssh-client.\r\nPreparing to unpack .../06-openssh-client_1%3a9.6p1-3ubuntu13.19_amd64.deb ...\r\nUnpacking openssh-client (1:9.6p1-3ubuntu13.19) ...\r\nSelecting previously unselected package openssh-sftp-server.\r\nPreparing to unpack .../07-openssh-sftp-server_1%3a9.6p1-3ubuntu13.19_amd64.deb ...\r\nUnpacking openssh-sftp-server (1:9.6p1-3ubuntu13.19) ...\r\nSelecting previously unselected package ucf.\r\nPreparing to unpack .../08-ucf_3.0043+nmu1_all.deb ...\r\nMoving old data out of the way\r\nUnpacking ucf (3.0043+nmu1) ...\r\nSelecting previously unselected package libwrap0:amd64.\r\nPreparing to unpack .../09-libwrap0_7.6.q-33_amd64.deb ...\r\nUnpacking libwrap0:amd64 (7.6.q-33) ...\r\nSelecting previously unselected package openssh-server.\r\nPreparing to unpack .../10-openssh-server_1%3a9.6p1-3ubuntu13.19_amd64.deb ...\r\nUnpacking openssh-server (1:9.6p1-3ubuntu13.19) ...\r\nSelecting previously unselected package openssl.\r\nPreparing to unpack .../11-openssl_3.0.13-0ubuntu3.16_amd64.deb ...\r\nUnpacking openssl (3.0.13-0ubuntu3.16) ...\r\nSelecting previously unselected package ca-certificates.\r\nPreparing to unpack .../12-ca-certificates_20260601~24.04.1_all.deb ...\r\nUnpacking ca-certificates (20260601~24.04.1) ...\r\nSelecting previously unselected package libicu74:amd64.\r\nPreparing to unpack .../13-libicu74_74.2-1ubuntu3.1_amd64.deb ...\r\nUnpacking libicu74:amd64 (74.2-1ubuntu3.1) ...\r\nSelecting previously unselected package libnghttp2-14:amd64.\r\nPreparing to unpack .../14-libnghttp2-14_1.59.0-1ubuntu0.4_amd64.deb ...\r\nUnpacking libnghttp2-14:amd64 (1.59.0-1ubuntu0.4) ...\r\nSelecting previously unselected package libuv1t64:amd64.\r\nPreparing to unpack .../15-libuv1t64_1.48.0-1.1build1_amd64.deb ...\r\nUnpacking libuv1t64:amd64 (1.48.0-1.1build1) ...\r\nSelecting previously unselected package libbrotli1:amd64.\r\nPreparing to unpack .../16-libbrotli1_1.1.0-2build2_amd64.deb ...\r\nUnpacking libbrotli1:amd64 (1.1.0-2build2) ...\r\nSelecting previously unselected package libcares2:amd64.\r\nPreparing to unpack .../17-libcares2_1.27.0-1.0ubuntu1_amd64.deb ...\r\nUnpacking libcares2:amd64 (1.27.0-1.0ubuntu1) ...\r\nSelecting previously unselected package node-xtend.\r\nPreparing to unpack .../18-node-xtend_4.0.2-3_all.deb ...\r\nUnpacking node-xtend (4.0.2-3) ...\r\nSelecting previously unselected package nodejs.\r\nPreparing to unpack .../19-nodejs_18.19.1+dfsg-6ubuntu5_amd64.deb ...\r\nUnpacking nodejs (18.19.1+dfsg-6ubuntu5) ...\r\nSelecting previously unselected package node-acorn.\r\nPreparing to unpack .../20-node-acorn_8.8.1+ds+~cs25.17.7-2_all.deb ...\r\nUnpacking node-acorn (8.8.1+ds+~cs25.17.7-2) ...\r\nSelecting previously unselected package node-cjs-module-lexer.\r\nPreparing to unpack .../21-node-cjs-module-lexer_1.2.3+dfsg-1_all.deb ...\r\nUnpacking node-cjs-module-lexer (1.2.3+dfsg-1) ...\r\nSelecting previously unselected package node-busboy.\r\nPreparing to unpack .../22-node-busboy_1.6.0+~cs2.6.0-2_all.deb ...\r\nUnpacking node-busboy (1.6.0+~cs2.6.0-2) ...\r\nSelecting previously unselected package node-undici.\r\nPreparing to unpack .../23-node-undici_5.26.3+dfsg1+~cs23.10.12-2_all.deb ...\r\nUnpacking node-undici (5.26.3+dfsg1+~cs23.10.12-2) ...\r\nSelecting previously unselected package libnode109:amd64.\r\nPreparing to unpack .../24-libnode109_18.19.1+dfsg-6ubuntu5_amd64.deb ...\r\nUnpacking libnode109:amd64 (18.19.1+dfsg-6ubuntu5) ...\r\nSelecting previously unselected package unzip.\r\nPreparing to unpack .../25-unzip_6.0-28ubuntu4.1_amd64.deb ...\r\nUnpacking unzip (6.0-28ubuntu4.1) ...\r\nSetting up libkeyutils1:amd64 (1.6.3-3build1) ...\r\nSetting up libcbor0.10:amd64 (0.10.2-1.2ubuntu2) ...\r\nSetting up unzip (6.0-28ubuntu4.1) ...\r\nSetting up libbrotli1:amd64 (1.1.0-2build2) ...\r\nSetting up libuv1t64:amd64 (1.48.0-1.1build1) ...\r\nSetting up libnghttp2-14:amd64 (1.59.0-1ubuntu0.4) ...\r\nSetting up node-cjs-module-lexer (1.2.3+dfsg-1) ...\r\nSetting up libkrb5support0:amd64 (1.20.1-6ubuntu2.10) ...\r\nSetting up libwrap0:amd64 (7.6.q-33) ...\r\nSetting up libcares2:amd64 (1.27.0-1.0ubuntu1) ...\r\nSetting up ucf (3.0043+nmu1) ...\r\nSetting up libk5crypto3:amd64 (1.20.1-6ubuntu2.10) ...\r\nSetting up libicu74:amd64 (74.2-1ubuntu3.1) ...\r\nSetting up libkrb5-3:amd64 (1.20.1-6ubuntu2.10) ...\r\nSetting up node-xtend (4.0.2-3) ...\r\nSetting up libfido2-1:amd64 (1.14.0-1build3) ...\r\nSetting up openssl (3.0.13-0ubuntu3.16) ...\r\nSetting up libbsd0:amd64 (0.12.1-1build1.1) ...\r\nSetting up node-busboy (1.6.0+~cs2.6.0-2) ...\r\nSetting up libedit2:amd64 (3.1-20230828-1build1) ...\r\nSetting up ca-certificates (20260601~24.04.1) ...\r\nUpdating certificates in /etc/ssl/certs...\r\n121 added, 0 removed; done.\r\nSetting up libgssapi-krb5-2:amd64 (1.20.1-6ubuntu2.10) ...\r\nSetting up node-undici (5.26.3+dfsg1+~cs23.10.12-2) ...\r\nSetting up openssh-client (1:9.6p1-3ubuntu13.19) ...\r\nSetting up openssh-sftp-server (1:9.6p1-3ubuntu13.19) ...\r\nSetting up openssh-server (1:9.6p1-3ubuntu13.19) ...\r\n\r\nCreating config file /etc/ssh/sshd_config with new version\r\nCreating SSH2 RSA key; this may take some time ...\r\n3072 SHA256:yvt8LSvB5jrC6RPNtxKz7LdAtnBoKf1RzN4qozulBHk root@cc-roadmap-ssh-2353ca819996ac398c6145c3 (RSA)\r\nCreating SSH2 ECDSA key; this may take some time ...\r\n256 SHA256:/asWbyyEz9/sKE3UV5hTDtKEPM0QwvPRWulUmq+LvhM root@cc-roadmap-ssh-2353ca819996ac398c6145c3 (ECDSA)\r\nCreating SSH2 ED25519 key; this may take some time ...\r\n256 SHA256:tl6n7jAacGa8I5LMmTWH0dYNNa17wWzFRF9uHtlPmVI root@cc-roadmap-ssh-2353ca819996ac398c6145c3 (ED25519)\r\ninvoke-rc.d: could not determine current runlevel\r\ninvoke-rc.d: policy-rc.d denied execution of start.\r\nSetting up node-acorn (8.8.1+ds+~cs25.17.7-2) ...\r\nSetting up libnode109:amd64 (18.19.1+dfsg-6ubuntu5) ...\r\nSetting up nodejs (18.19.1+dfsg-6ubuntu5) ...\r\nupdate-alternatives: using /usr/bin/nodejs to provide /usr/bin/js (js) in auto mode\r\nupdate-alternatives: warning: skip creation of /usr/share/man/man1/js.1.gz because associated file /usr/share/man/man1/nodejs.1.gz (of link group js) doesn't exist\r\nProcessing triggers for libc-bin (2.39-0ubuntu8.8) ...\r\nProcessing triggers for ca-certificates (20260601~24.04.1) ...\r\nUpdating certificates in /etc/ssl/certs...\r\n0 added, 0 removed; done.\r\nRunning hooks in /etc/ca-certificates/update.d...\r\ndone.\r\n",
+      "stderr": "debconf: delaying package configuration, since apt-utils is not installed\n"
+    },
+    {
+      "command": "ssh-keygen",
+      "args": [
+        "-q",
+        "-t",
+        "ed25519",
+        "-N",
+        "",
+        "-f",
+        "/tmp/cc-remote-ssh-Hxjq9K/id_ed25519"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/id_ed25519.pub",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/tmp/authorized_key"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "bash",
+        "-lc",
+        "install -d -m 700 -o cc-roadmap -g cc-roadmap /home/cc-roadmap/.ssh; install -m 600 -o cc-roadmap -g cc-roadmap /tmp/authorized_key /home/cc-roadmap/.ssh/authorized_keys; printf '%s' 'chainlesschain-remote-ssh-container:2353ca819996ac398c6145c3' > /etc/chainlesschain-remote-id; chmod 0444 /etc/chainlesschain-remote-id; ssh-keygen -A"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "--detach",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "/usr/sbin/sshd",
+        "-D",
+        "-e"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "port",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "22/tcp"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "127.0.0.1:32768\n",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "bash",
+        "-lc",
+        "cat /etc/ssh/ssh_host_ed25519_key.pub"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKwcmFGq+Z6oZ9jiba4XpyssZoo5ZRBcgIrYCuvV1r1/ root@cc-roadmap-ssh-2353ca819996ac398c6145c3\n",
+      "stderr": ""
+    },
+    {
+      "command": "ssh",
+      "args": [
+        "-F",
+        "/tmp/cc-remote-ssh-Hxjq9K/ssh_config",
+        "-o",
+        "BatchMode=yes",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "true"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-driver",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/driver"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/home/runner/work/_temp/cc-vscode-candidate/chainlesschain-ide.vsix",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/tmp/chainlesschain-ide.vsix"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "bash",
+        "-lc",
+        "mkdir -p /home/cc-roadmap/workspace-primary /home/cc-roadmap/workspace-secondary /home/cc-roadmap/runtime /home/cc-roadmap/bin"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-workspace/primary.txt",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/workspace-primary/primary.txt"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-workspace/secondary.txt",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/workspace-secondary/secondary.txt"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-workspace/cc",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/bin/cc"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "/tmp/cc-remote-ssh-Hxjq9K/chainlesschain.code-workspace",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/chainlesschain.code-workspace"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "exec",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3",
+        "bash",
+        "-lc",
+        "set -euo pipefail; test \"$(sha256sum /tmp/chainlesschain-ide.vsix | cut -d ' ' -f 1)\" = \"437d2c4ff1025ba617e77c078c8fe66f26b25bafc9456ee9bf1271cf6198ffcb\"; test \"$(stat -c %s /tmp/chainlesschain-ide.vsix)\" = \"714971\"; mkdir -p /tmp/cc-vsix /home/cc-roadmap/.vscode-server/extensions; unzip -q /tmp/chainlesschain-ide.vsix -d /tmp/cc-vsix; test -f /tmp/cc-vsix/extension/package.json; mv /tmp/cc-vsix/extension /home/cc-roadmap/.vscode-server/extensions/chainlesschain.chainlesschain-ide-0.37.140; chmod 700 /home/cc-roadmap/bin/cc; chown -R cc-roadmap:cc-roadmap /home/cc-roadmap"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/.vscode-server/data/logs",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-vscode-logs"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "cp",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3:/home/cc-roadmap/runtime",
+        "/tmp/cc-remote-ssh-Hxjq9K/remote-runtime"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "docker",
+      "args": [
+        "rm",
+        "--force",
+        "cc-roadmap-ssh-2353ca819996ac398c6145c3"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "cc-roadmap-ssh-2353ca819996ac398c6145c3\n",
+      "stderr": ""
+    }
+  ],
+  "journeyFailureDigest": null
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SessionHistoryReaderTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:05" hostname="DESKTOP-MTMV2RE" time="6.48">
+  <properties/>
+  <testcase name="cancelsAfterSpawnAndRefusesAnAlreadyCancelledSpawn()" classname="com.chainlesschain.ide.SessionHistoryReaderTest" time="0.481"/>
+  <testcase name="drainsChattyStderrAndPreservesCompleteUnicodeStdout()" classname="com.chainlesschain.ide.SessionHistoryReaderTest" time="0.452"/>
+  <testcase name="killsOversizedAndTimedOutQueriesInsteadOfReturningPartialHistory()" classname="com.chainlesschain.ide.SessionHistoryReaderTest" time="2.037"/>
+  <testcase name="rejectsNonzeroExitAndMalformedUtf8()" classname="com.chainlesschain.ide.SessionHistoryReaderTest" time="0.991"/>
+  <testcase name="onlyExplicitValidStaleStdoutFromExpectedSessionAllowsBaselineFallback()" classname="com.chainlesschain.ide.SessionHistoryReaderTest" time="2.519"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

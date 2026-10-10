@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.SessionArgsTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:05" hostname="DESKTOP-MTMV2RE" time="0.004">
+  <properties/>
+  <testcase name="fourArgOverloadStillWorks()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.001"/>
+  <testcase name="permissionModesAllowListExcludesDefault()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="goalConditionIsPassedToAgentSpawn()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.001"/>
+  <testcase name="thinkFlagMapsOnAndUltra()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="modeAndThinkComposeTogether()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="fullBlockPassesBaseUrlButNeverApiKey()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="thinkOffAndNullEmitNoFlag()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.001"/>
+  <testcase name="handsOffModesEmitPermissionModeFlag()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="composedArgsFollowProviderModelResumeModeOrder()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="blankBaseUrlIsOmitted()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <testcase name="defaultUnknownAndNullModeEmitNoFlag()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.001"/>
+  <testcase name="allBlankInputsYieldEmpty()" classname="com.chainlesschain.ide.SessionArgsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

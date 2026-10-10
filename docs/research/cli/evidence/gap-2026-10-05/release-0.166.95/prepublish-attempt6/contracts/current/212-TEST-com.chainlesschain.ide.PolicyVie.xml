@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PolicyViewerTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.017">
+  <properties/>
+  <testcase name="parsePermissionsGroupsRulesWithSourcesAndManagedFlags()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.003"/>
+  <testcase name="parseSideEffectsKeepsResourcesDecisionChainAndRecovery()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <testcase name="parseAutoModeReadsMatrixFineRulesAndFlags()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.002"/>
+  <testcase name="describeDegradesFailedSourcesToWarningsOthersStillRender()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <testcase name="describeRendersAllSections()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.002"/>
+  <testcase name="parseSideEffectsRejectsUnsupportedAuthorityAndSchema()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.0"/>
+  <testcase name="parsePermissionsToleratesMalformedAndEmpty()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <testcase name="ccArgsMatchTheCliSurface()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.0"/>
+  <testcase name="parseDenialsToleratesMalformed()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <testcase name="parsePrecedenceChain()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.0"/>
+  <testcase name="summaryLineCounts()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <testcase name="describeHandlesEmptyEverythingWithoutThrowing()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.0"/>
+  <testcase name="parseDenialsShapesRecords()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.0"/>
+  <testcase name="parseAutoModeToleratesMalformed()" classname="com.chainlesschain.ide.PolicyViewerTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T01:51:47.263Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166296,
+  "artifactId": 11654471033,
+  "name": "strict-sandbox-result-macos-15",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/metadata.json",
+    "bytes": 751,
+    "sha256": "5910b2a4aa0b6d53ac8eb5618f5300f2321d458dcc717af5ad0be4a3912b047a",
+    "endpoint": "actions/artifacts/11654471033"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654471033/artifact.zip",
+    "bytes": 147799,
+    "sha256": "947fe6ec28f278095bd98ff1c73b6ace462ae0ab4914d7900b0aae952ea15f2b",
+    "endpoint": "actions/artifacts/11654471033/zip"
+  },
+  "githubDigestMatched": true
+}

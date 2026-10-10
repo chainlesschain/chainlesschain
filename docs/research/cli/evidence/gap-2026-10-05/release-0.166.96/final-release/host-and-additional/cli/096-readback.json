@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T01:51:47.263Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166296,
+  "artifactId": 11654563333,
+  "name": "strict-sandbox-result-windows-latest",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/metadata.json",
+    "bytes": 757,
+    "sha256": "e26431ed8464a07b9881d112995e68d5db1e10302c5e668d056ccc8db549b311",
+    "endpoint": "actions/artifacts/11654563333"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11654563333/artifact.zip",
+    "bytes": 146820,
+    "sha256": "de38291d032234ca0dcd2c6e7f1125e35231bc27a07f5328b19ef076c38bc551",
+    "endpoint": "actions/artifacts/11654563333/zip"
+  },
+  "githubDigestMatched": true
+}

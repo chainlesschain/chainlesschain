@@ -1,0 +1,54 @@
+{
+  "original": "C:\\code\\chainlesschain\\.work\\private-v4-review-dependency-evidence-20261009",
+  "archivedAt": "2026-10-09T04:52:39.838Z",
+  "files": [
+    {
+      "path": "better-sqlite3-12.11.1.tgz.download.json",
+      "bytes": 695,
+      "digest": "sha256:1d2ae53b3a06b2353437fd733d80d63c5699b64b8b64478e3d01f3cfecab6d8d"
+    },
+    {
+      "path": "better-sqlite3-v12.11.1-node-v127-win32-x64.tar.gz.download.json",
+      "bytes": 986,
+      "digest": "sha256:b1db557b8df46dd92f8a199740acc1f377688c73f333fa134fc6049fc8c73a06"
+    },
+    {
+      "path": "bindings-1.5.0.tgz.download.json",
+      "bytes": 602,
+      "digest": "sha256:5e5e4679202da85c291f7c05b354c10ad9d67cc11646ff341488f006596fcd40"
+    },
+    {
+      "path": "file-uri-to-path-1.0.0.tgz.download.json",
+      "bytes": 618,
+      "digest": "sha256:8218ffb1a747f221de18170adea375d5344b7a33e89729e7bc2fef6cb0cbf7ab"
+    },
+    {
+      "path": "github-release.json",
+      "bytes": 239879,
+      "digest": "sha256:95214b5d22879ea61aeeedf5672035ed8e9630f666607fbd76a634bdb66e47a1"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 16462,
+      "digest": "sha256:5d23e625547730f6dba7957fc73d5d692d2548f4d815c76b593cf92fe3e84baf"
+    },
+    {
+      "path": "prepare-private-v4-review-dependencies-20261009.mjs",
+      "bytes": 6090,
+      "digest": "sha256:2855043de50708d42cc7d3f8092d708916700e978e43b70146061b3cac900419"
+    },
+    {
+      "path": "retention.json",
+      "bytes": 483,
+      "digest": "sha256:2b247cdf4a5e68f33935c4d6315ca43822c660087964f0d747bba97f0c3fedc7"
+    },
+    {
+      "path": "sandbox-tls-failure.json",
+      "bytes": 502,
+      "digest": "sha256:0dd0c344793cb91b7b9ceee886d8fbeffedbd507329d1b7f46b43bcb869207c9"
+    }
+  ],
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "formalSample": false
+}

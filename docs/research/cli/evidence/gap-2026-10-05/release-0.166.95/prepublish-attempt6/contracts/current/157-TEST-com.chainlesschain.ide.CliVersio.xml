@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.CliVersionCheckTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.009">
+  <properties/>
+  <testcase name="parseNpmLatestPullsVersion()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.001"/>
+  <testcase name="parseVersionNullWhenNoSemver()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.001"/>
+  <testcase name="updateNoticeWhenTrailingLatest()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.001"/>
+  <testcase name="compareOrdersVersions()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.0"/>
+  <testcase name="recommendedReleaseIsTheOfflineUpgradeFloor()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.0"/>
+  <testcase name="installedIdentityRejectsCompilerAndErrorBanners()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.0"/>
+  <testcase name="parseVersionExtractsSemverFromOutput()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.001"/>
+  <testcase name="updateNoticeNullWhenUpToDateOrAheadOrUnknown()" classname="com.chainlesschain.ide.CliVersionCheckTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

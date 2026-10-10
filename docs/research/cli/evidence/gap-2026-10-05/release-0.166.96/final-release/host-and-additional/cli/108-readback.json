@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T01:51:47.263Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166296,
+  "artifactId": 11655765114,
+  "name": "strict-sandbox-result-ubuntu-24.04-arm",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/metadata.json",
+    "bytes": 757,
+    "sha256": "849888ad823a60bff7655e425dd62485012d4120a57eccc60eade948c0c5c500",
+    "endpoint": "actions/artifacts/11655765114"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/strict-artifacts/11655765114/artifact.zip",
+    "bytes": 6019,
+    "sha256": "6757341498ccd6fd24f5a220917b222b0e1834d467df4d4ec8fbff8b2968f075",
+    "endpoint": "actions/artifacts/11655765114/zip"
+  },
+  "githubDigestMatched": true
+}

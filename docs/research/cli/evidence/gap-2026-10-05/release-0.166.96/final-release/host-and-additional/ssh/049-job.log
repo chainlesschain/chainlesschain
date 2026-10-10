@@ -1,0 +1,524 @@
+﻿2026-10-10T01:51:41.8182001Z Current runner version: '2.337.0'
+2026-10-10T01:51:41.8217150Z ##[group]Runner Image Provisioner
+2026-10-10T01:51:41.8218478Z Hosted Compute Agent
+2026-10-10T01:51:41.8219497Z Version: 20261002.596
+2026-10-10T01:51:41.8220625Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T01:51:41.8222148Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T01:51:41.8223378Z Worker ID: {a76561b4-4466-4c4e-88ba-91de5cece2b1}
+2026-10-10T01:51:41.8224604Z Region: eastus
+2026-10-10T01:51:41.8225617Z Cloud: Azure
+2026-10-10T01:51:41.8226513Z ##[endgroup]
+2026-10-10T01:51:41.8229237Z ##[group]Operating System
+2026-10-10T01:51:41.8230282Z Ubuntu
+2026-10-10T01:51:41.8231231Z 24.04.5
+2026-10-10T01:51:41.8232578Z LTS
+2026-10-10T01:51:41.8233495Z ##[endgroup]
+2026-10-10T01:51:41.8235312Z ##[group]Runner Image
+2026-10-10T01:51:41.8236385Z Image: ubuntu-24.04
+2026-10-10T01:51:41.8237358Z Version: 20261004.327.1
+2026-10-10T01:51:41.8239596Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T01:51:41.8242743Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T01:51:41.8244412Z ##[endgroup]
+2026-10-10T01:51:41.8246391Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T01:51:41.8249112Z Contents: read
+2026-10-10T01:51:41.8250245Z Metadata: read
+2026-10-10T01:51:41.8251327Z ##[endgroup]
+2026-10-10T01:51:41.8254769Z Secret source: Actions
+2026-10-10T01:51:41.8256499Z Cache mode: write
+2026-10-10T01:51:41.8257888Z Prepare workflow directory
+2026-10-10T01:51:41.9123392Z Prepare all required actions
+2026-10-10T01:51:41.9199325Z Getting action download info
+2026-10-10T01:51:42.1379007Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T01:51:42.2315792Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T01:51:42.3318008Z Download action repository 'actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53' (SHA:018cc2cf5baa6db3ef3c5f8a56943fffe632ef53)
+2026-10-10T01:51:42.4892169Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-10T01:51:42.7439667Z Complete job name: VS Code Remote-SSH container (scoped trusted cell)
+2026-10-10T01:51:42.8230078Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-10T01:51:42.8231383Z with:
+2026-10-10T01:51:42.8232416Z   ref: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:42.8233181Z   repository: chainlesschain/chainlesschain
+2026-10-10T01:51:42.8237784Z   token: ***
+2026-10-10T01:51:42.8238282Z   ssh-strict: true
+2026-10-10T01:51:42.8238784Z   ssh-user: git
+2026-10-10T01:51:42.8239283Z   persist-credentials: true
+2026-10-10T01:51:42.8239834Z   clean: true
+2026-10-10T01:51:42.8240338Z   sparse-checkout-cone-mode: true
+2026-10-10T01:51:42.8240926Z   fetch-depth: 1
+2026-10-10T01:51:42.8241447Z   fetch-tags: false
+2026-10-10T01:51:42.8242110Z   show-progress: true
+2026-10-10T01:51:42.8242630Z   lfs: false
+2026-10-10T01:51:42.8243113Z   submodules: false
+2026-10-10T01:51:42.8243619Z   set-safe-directory: true
+2026-10-10T01:51:42.8244188Z   allow-unsafe-pr-checkout: false
+2026-10-10T01:51:42.8245119Z env:
+2026-10-10T01:51:42.8245649Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:51:42.8246344Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:42.8247235Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:42.8248180Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:51:42.8248995Z ##[endgroup]
+2026-10-10T01:51:42.9280290Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T01:51:42.9375225Z ##[group]Getting Git version info
+2026-10-10T01:51:42.9376836Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:51:42.9378903Z [command]/usr/bin/git version
+2026-10-10T01:51:42.9381178Z git version 2.55.0
+2026-10-10T01:51:42.9403978Z ##[endgroup]
+2026-10-10T01:51:42.9417554Z Temporarily overriding HOME='/home/runner/work/_temp/fcea2864-aaf1-4b8d-94ef-663a4e65080b' before making global git config changes
+2026-10-10T01:51:42.9420222Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:51:42.9425474Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:51:42.9500871Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:51:42.9504073Z ##[group]Initializing the repository
+2026-10-10T01:51:42.9505888Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:51:42.9645126Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T01:51:42.9647234Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T01:51:42.9649084Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T01:51:42.9650576Z hint: call:
+2026-10-10T01:51:42.9651374Z hint:
+2026-10-10T01:51:42.9652632Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T01:51:42.9653819Z hint:
+2026-10-10T01:51:42.9654973Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T01:51:42.9656966Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T01:51:42.9658458Z hint:
+2026-10-10T01:51:42.9659292Z hint: 	git branch -m <name>
+2026-10-10T01:51:42.9660282Z hint:
+2026-10-10T01:51:42.9661539Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T01:51:42.9663969Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T01:51:42.9667385Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:51:42.9730849Z ##[endgroup]
+2026-10-10T01:51:42.9732547Z ##[group]Disabling automatic garbage collection
+2026-10-10T01:51:42.9735201Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T01:51:42.9768411Z ##[endgroup]
+2026-10-10T01:51:42.9769767Z ##[group]Setting up auth
+2026-10-10T01:51:42.9777338Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:51:42.9815765Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:51:43.0223776Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:51:43.0265474Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:51:43.0500790Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:51:43.0540015Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:51:43.0772495Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T01:51:43.0815620Z ##[endgroup]
+2026-10-10T01:51:43.0816660Z ##[group]Fetching the repository
+2026-10-10T01:51:43.0825654Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:53.7456965Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:51:53.7458223Z  * branch              da91e730d802b7c9dcdc075b222ecc257021e552 -> FETCH_HEAD
+2026-10-10T01:51:53.7463646Z ##[endgroup]
+2026-10-10T01:51:53.7464816Z ##[group]Determining the checkout info
+2026-10-10T01:51:53.7466809Z ##[endgroup]
+2026-10-10T01:51:53.7475218Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T01:51:53.7539230Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T01:51:53.7576813Z ##[group]Checking out the ref
+2026-10-10T01:51:53.7581093Z [command]/usr/bin/git checkout --progress --force da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:54.8129136Z Updating files:  48% (11321/23576)
+2026-10-10T01:51:54.8379045Z Updating files:  49% (11553/23576)
+2026-10-10T01:51:54.8532801Z Updating files:  50% (11788/23576)
+2026-10-10T01:51:54.8815783Z Updating files:  51% (12024/23576)
+2026-10-10T01:51:54.9178157Z Updating files:  52% (12260/23576)
+2026-10-10T01:51:54.9738026Z Updating files:  53% (12496/23576)
+2026-10-10T01:51:55.2376488Z Updating files:  54% (12732/23576)
+2026-10-10T01:51:55.6542817Z Updating files:  55% (12967/23576)
+2026-10-10T01:51:55.7966405Z Updating files:  56% (13203/23576)
+2026-10-10T01:51:55.9827896Z Updating files:  56% (13282/23576)
+2026-10-10T01:51:56.0505207Z Updating files:  57% (13439/23576)
+2026-10-10T01:51:56.0792161Z Updating files:  58% (13675/23576)
+2026-10-10T01:51:56.1088119Z Updating files:  59% (13910/23576)
+2026-10-10T01:51:56.1348560Z Updating files:  60% (14146/23576)
+2026-10-10T01:51:56.1618320Z Updating files:  61% (14382/23576)
+2026-10-10T01:51:56.2011213Z Updating files:  62% (14618/23576)
+2026-10-10T01:51:56.2519769Z Updating files:  63% (14853/23576)
+2026-10-10T01:51:56.2745082Z Updating files:  64% (15089/23576)
+2026-10-10T01:51:56.2898332Z Updating files:  65% (15325/23576)
+2026-10-10T01:51:56.3170835Z Updating files:  66% (15561/23576)
+2026-10-10T01:51:56.3311914Z Updating files:  67% (15796/23576)
+2026-10-10T01:51:56.3529932Z Updating files:  68% (16032/23576)
+2026-10-10T01:51:56.3753911Z Updating files:  69% (16268/23576)
+2026-10-10T01:51:56.3925718Z Updating files:  70% (16504/23576)
+2026-10-10T01:51:56.4132061Z Updating files:  71% (16739/23576)
+2026-10-10T01:51:56.4379102Z Updating files:  72% (16975/23576)
+2026-10-10T01:51:56.4584318Z Updating files:  73% (17211/23576)
+2026-10-10T01:51:56.4734956Z Updating files:  74% (17447/23576)
+2026-10-10T01:51:56.4942512Z Updating files:  75% (17682/23576)
+2026-10-10T01:51:56.5150804Z Updating files:  76% (17918/23576)
+2026-10-10T01:51:56.5350222Z Updating files:  77% (18154/23576)
+2026-10-10T01:51:56.5518443Z Updating files:  78% (18390/23576)
+2026-10-10T01:51:56.5703734Z Updating files:  79% (18626/23576)
+2026-10-10T01:51:56.5906307Z Updating files:  80% (18861/23576)
+2026-10-10T01:51:56.6099845Z Updating files:  81% (19097/23576)
+2026-10-10T01:51:56.6292396Z Updating files:  82% (19333/23576)
+2026-10-10T01:51:56.6521234Z Updating files:  83% (19569/23576)
+2026-10-10T01:51:56.6809240Z Updating files:  84% (19804/23576)
+2026-10-10T01:51:56.7066753Z Updating files:  85% (20040/23576)
+2026-10-10T01:51:56.7318883Z Updating files:  86% (20276/23576)
+2026-10-10T01:51:56.7548666Z Updating files:  87% (20512/23576)
+2026-10-10T01:51:56.7787084Z Updating files:  88% (20747/23576)
+2026-10-10T01:51:56.7844744Z Updating files:  89% (20983/23576)
+2026-10-10T01:51:56.8038917Z Updating files:  89% (21046/23576)
+2026-10-10T01:51:56.8195416Z Updating files:  90% (21219/23576)
+2026-10-10T01:51:56.8403105Z Updating files:  91% (21455/23576)
+2026-10-10T01:51:56.8602586Z Updating files:  92% (21690/23576)
+2026-10-10T01:51:56.8766918Z Updating files:  93% (21926/23576)
+2026-10-10T01:51:56.8970061Z Updating files:  94% (22162/23576)
+2026-10-10T01:51:56.9169864Z Updating files:  95% (22398/23576)
+2026-10-10T01:51:56.9383672Z Updating files:  96% (22633/23576)
+2026-10-10T01:51:56.9547129Z Updating files:  97% (22869/23576)
+2026-10-10T01:51:56.9739752Z Updating files:  98% (23105/23576)
+2026-10-10T01:51:56.9913220Z Updating files:  99% (23341/23576)
+2026-10-10T01:51:56.9914268Z Updating files: 100% (23576/23576)
+2026-10-10T01:51:56.9914855Z Updating files: 100% (23576/23576), done.
+2026-10-10T01:51:57.0177737Z Note: switching to 'da91e730d802b7c9dcdc075b222ecc257021e552'.
+2026-10-10T01:51:57.0178280Z 
+2026-10-10T01:51:57.0178652Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T01:51:57.0179715Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T01:51:57.0180544Z state without impacting any branches by switching back to a branch.
+2026-10-10T01:51:57.0181042Z 
+2026-10-10T01:51:57.0181381Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T01:51:57.0182448Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T01:51:57.0182910Z 
+2026-10-10T01:51:57.0183094Z   git switch -c <new-branch-name>
+2026-10-10T01:51:57.0183399Z 
+2026-10-10T01:51:57.0183564Z Or undo this operation with:
+2026-10-10T01:51:57.0183844Z 
+2026-10-10T01:51:57.0183990Z   git switch -
+2026-10-10T01:51:57.0184190Z 
+2026-10-10T01:51:57.0184566Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T01:51:57.0184960Z 
+2026-10-10T01:51:57.0185219Z HEAD is now at da91e730 fix(ci): preserve popup receipts and bound host test work
+2026-10-10T01:51:57.0237903Z ##[endgroup]
+2026-10-10T01:51:57.0289534Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T01:51:57.0321312Z da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:57.0605558Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-10-10T01:51:57.0605989Z with:
+2026-10-10T01:51:57.0606205Z   node-version: 22.12.0
+2026-10-10T01:51:57.0606441Z   always-auth: false
+2026-10-10T01:51:57.0606676Z   check-latest: false
+2026-10-10T01:51:57.0609650Z   token: ***
+2026-10-10T01:51:57.0609883Z   package-manager-cache: true
+2026-10-10T01:51:57.0610136Z env:
+2026-10-10T01:51:57.0610336Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:51:57.0610647Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:57.0611065Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:51:57.0611515Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:51:57.0612113Z ##[endgroup]
+2026-10-10T01:51:57.2214768Z Attempting to download 22.12.0...
+2026-10-10T01:51:57.2336778Z (node:2335) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:51:57.2338639Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:51:57.7866934Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-linux-x64.tar.gz
+2026-10-10T01:51:58.2317868Z Extracting ...
+2026-10-10T01:51:58.2457245Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a340f588-6159-4d70-a96a-4db789067676 -f /home/runner/work/_temp/adcc1ead-86f4-428a-a47a-b89b24bffc73
+2026-10-10T01:51:59.6919343Z Adding to the cache ...
+2026-10-10T01:52:01.9815592Z ##[group]Environment details
+2026-10-10T01:52:02.2382492Z node: v22.12.0
+2026-10-10T01:52:02.2382956Z npm: 10.9.0
+2026-10-10T01:52:02.2383318Z yarn: 1.22.22
+2026-10-10T01:52:02.2384094Z ##[endgroup]
+2026-10-10T01:52:02.2602049Z ##[group]Run actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+2026-10-10T01:52:02.2602576Z with:
+2026-10-10T01:52:02.2602827Z   name: chainlesschain-ide-vscode-candidate
+2026-10-10T01:52:02.2603190Z   path: /home/runner/work/_temp/cc-vscode-candidate
+2026-10-10T01:52:02.2603540Z   merge-multiple: false
+2026-10-10T01:52:02.2603817Z   repository: chainlesschain/chainlesschain
+2026-10-10T01:52:02.2604101Z   run-id: 38012166401
+2026-10-10T01:52:02.2604312Z env:
+2026-10-10T01:52:02.2604515Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:02.2604823Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.2605237Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.2605678Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:02.2606055Z ##[endgroup]
+2026-10-10T01:52:02.4275112Z Downloading single artifact
+2026-10-10T01:52:02.4412451Z (node:2373) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:52:02.4413492Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:52:02.5257390Z Preparing to download the following artifacts:
+2026-10-10T01:52:02.5258640Z - chainlesschain-ide-vscode-candidate (ID: 11655102932, Size: 698564, Expected Digest: sha256:4eb77bfd6d54e1e5298dca3bede56b0d58f1f82e6028490b74b1ec03a6262c3c)
+2026-10-10T01:52:02.6491616Z Redirecting to blob download url: https://productionresultssa7.blob.core.windows.net/actions-results/b73f2df5-1d5d-8d51-8594-831ea7bec277/workflow-job-run-182e0a39-0f8a-5e31-a45c-9231421a633f/artifacts/c5bfe9f4d2c2e820b71da5cfe77063a0d1677a9edfc0becd567308f6722580bf.zip
+2026-10-10T01:52:02.6494609Z Starting download of artifact to: /home/runner/work/_temp/cc-vscode-candidate
+2026-10-10T01:52:02.7169254Z (node:2373) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-10T01:52:02.7605831Z SHA256 digest of downloaded artifact is 4eb77bfd6d54e1e5298dca3bede56b0d58f1f82e6028490b74b1ec03a6262c3c
+2026-10-10T01:52:02.7607059Z Artifact download completed successfully.
+2026-10-10T01:52:02.7607674Z Total of 1 artifact(s) downloaded
+2026-10-10T01:52:02.7612389Z Download artifact has finished successfully
+2026-10-10T01:52:02.7747619Z ##[group]Run node scripts/vsix-release-artifact.mjs verify "$RUNNER_TEMP/cc-vscode-candidate/chainlesschain-ide.vsix" "$RUNNER_TEMP/cc-vscode-candidate/manifest.json"
+2026-10-10T01:52:02.7748926Z [36;1mnode scripts/vsix-release-artifact.mjs verify "$RUNNER_TEMP/cc-vscode-candidate/chainlesschain-ide.vsix" "$RUNNER_TEMP/cc-vscode-candidate/manifest.json"[0m
+2026-10-10T01:52:02.8028930Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:52:02.8029276Z env:
+2026-10-10T01:52:02.8029534Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:02.8029919Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.8030441Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.8031009Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:02.8031474Z ##[endgroup]
+2026-10-10T01:52:02.8531536Z verified 437d2c4ff1025ba617e77c078c8fe66f26b25bafc9456ee9bf1271cf6198ffcb  chainlesschain-ide.vsix
+2026-10-10T01:52:02.8663029Z ##[group]Run node --test test/remote-ssh-container.test.cjs
+2026-10-10T01:52:02.8663560Z [36;1mnode --test test/remote-ssh-container.test.cjs[0m
+2026-10-10T01:52:02.8732218Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:52:02.8732514Z env:
+2026-10-10T01:52:02.8732745Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:02.8733083Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.8733523Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:02.8733991Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:02.8734388Z ##[endgroup]
+2026-10-10T01:52:02.9223722Z TAP version 13
+2026-10-10T01:52:02.9853548Z # Subtest: successful canonical pull binds inspect, container execution and source evidence
+2026-10-10T01:52:02.9861015Z ok 1 - successful canonical pull binds inspect, container execution and source evidence
+2026-10-10T01:52:02.9862491Z   ---
+2026-10-10T01:52:02.9863177Z   duration_ms: 2.262452
+2026-10-10T01:52:02.9864009Z   ...
+2026-10-10T01:52:02.9868841Z # Subtest: only anonymous Hub quota uses the fixed same-digest mirror and preserves full pull output
+2026-10-10T01:52:02.9870843Z ok 2 - only anonymous Hub quota uses the fixed same-digest mirror and preserves full pull output
+2026-10-10T01:52:02.9872137Z   ---
+2026-10-10T01:52:02.9872585Z   duration_ms: 0.815118
+2026-10-10T01:52:02.9873031Z   ...
+2026-10-10T01:52:02.9873990Z # Subtest: network, auth, generic rate limits and interrupted pulls do not select a mirror
+2026-10-10T01:52:02.9875377Z ok 3 - network, auth, generic rate limits and interrupted pulls do not select a mirror
+2026-10-10T01:52:02.9876303Z   ---
+2026-10-10T01:52:02.9893246Z   duration_ms: 0.959239
+2026-10-10T01:52:02.9893949Z   ...
+2026-10-10T01:52:02.9895717Z # Subtest: mirror failure retains both causes and cannot proceed to inspect or run
+2026-10-10T01:52:02.9897229Z ok 4 - mirror failure retains both causes and cannot proceed to inspect or run
+2026-10-10T01:52:02.9898329Z   ---
+2026-10-10T01:52:02.9898978Z   duration_ms: 0.455685
+2026-10-10T01:52:02.9899649Z   ...
+2026-10-10T01:52:02.9900756Z # Subtest: other images, digests and transport references cannot use the mirror policy
+2026-10-10T01:52:02.9902453Z ok 5 - other images, digests and transport references cannot use the mirror policy
+2026-10-10T01:52:02.9903413Z   ---
+2026-10-10T01:52:02.9903969Z   duration_ms: 1.642109
+2026-10-10T01:52:02.9904536Z   ...
+2026-10-10T01:52:02.9905602Z # Subtest: inspection must bind the selected registry and exact digest before container creation
+2026-10-10T01:52:02.9907142Z ok 6 - inspection must bind the selected registry and exact digest before container creation
+2026-10-10T01:52:02.9908088Z   ---
+2026-10-10T01:52:02.9908704Z   duration_ms: 0.529543
+2026-10-10T01:52:02.9909329Z   ...
+2026-10-10T01:52:02.9910304Z # Subtest: container startup failure remains the original failure without another pull
+2026-10-10T01:52:02.9912088Z ok 7 - container startup failure remains the original failure without another pull
+2026-10-10T01:52:02.9913186Z   ---
+2026-10-10T01:52:02.9913801Z   duration_ms: 0.360505
+2026-10-10T01:52:02.9914514Z   ...
+2026-10-10T01:52:02.9915677Z # Subtest: Remote-SSH supply-chain identity pins both transport and install bytes
+2026-10-10T01:52:02.9917166Z ok 8 - Remote-SSH supply-chain identity pins both transport and install bytes
+2026-10-10T01:52:02.9918238Z   ---
+2026-10-10T01:52:02.9918778Z   duration_ms: 1.939526
+2026-10-10T01:52:02.9919361Z   ...
+2026-10-10T01:52:02.9920538Z # Subtest: remote driver calls the existing real host journey after proving remote identity
+2026-10-10T01:52:02.9923270Z ok 9 - remote driver calls the existing real host journey after proving remote identity
+2026-10-10T01:52:02.9924430Z   ---
+2026-10-10T01:52:02.9925067Z   duration_ms: 1.105232
+2026-10-10T01:52:02.9925743Z   ...
+2026-10-10T01:52:02.9926836Z # Subtest: remote workspace binds every root to the selected SSH authority
+2026-10-10T01:52:02.9928695Z ok 10 - remote workspace binds every root to the selected SSH authority
+2026-10-10T01:52:02.9929605Z   ---
+2026-10-10T01:52:02.9930307Z   duration_ms: 0.787547
+2026-10-10T01:52:02.9930912Z   ...
+2026-10-10T01:52:02.9932128Z # Subtest: container marker digest binds the exact bytes written remotely
+2026-10-10T01:52:02.9933517Z ok 11 - container marker digest binds the exact bytes written remotely
+2026-10-10T01:52:02.9934452Z   ---
+2026-10-10T01:52:02.9935119Z   duration_ms: 0.701907
+2026-10-10T01:52:02.9935796Z   ...
+2026-10-10T01:52:02.9936812Z # Subtest: failed Remote-SSH host runs retain local and container diagnostics
+2026-10-10T01:52:02.9938279Z ok 12 - failed Remote-SSH host runs retain local and container diagnostics
+2026-10-10T01:52:02.9939296Z   ---
+2026-10-10T01:52:02.9939927Z   duration_ms: 0.55461
+2026-10-10T01:52:02.9940585Z   ...
+2026-10-10T01:52:02.9942287Z # Subtest: workflow preserves diagnostics and aggregates one exact producer provenance
+2026-10-10T01:52:02.9944205Z ok 13 - workflow preserves diagnostics and aggregates one exact producer provenance
+2026-10-10T01:52:02.9945367Z   ---
+2026-10-10T01:52:02.9946168Z   duration_ms: 0.824736
+2026-10-10T01:52:02.9946943Z   ...
+2026-10-10T01:52:02.9948212Z # Subtest: known_hosts is derived from the container host key without TOFU
+2026-10-10T01:52:02.9949796Z ok 14 - known_hosts is derived from the container host key without TOFU
+2026-10-10T01:52:02.9950971Z   ---
+2026-10-10T01:52:02.9952066Z   duration_ms: 0.439404
+2026-10-10T01:52:02.9952968Z   ...
+2026-10-10T01:52:02.9954036Z # Subtest: candidate replacement after initial verification fails closed
+2026-10-10T01:52:02.9955518Z ok 15 - candidate replacement after initial verification fails closed
+2026-10-10T01:52:02.9956836Z   ---
+2026-10-10T01:52:02.9957482Z   duration_ms: 2.962645
+2026-10-10T01:52:02.9957917Z   ...
+2026-10-10T01:52:02.9958817Z # Subtest: missing semantic artifacts fail the scoped negative control
+2026-10-10T01:52:02.9959513Z ok 16 - missing semantic artifacts fail the scoped negative control
+2026-10-10T01:52:02.9960015Z   ---
+2026-10-10T01:52:02.9960365Z   duration_ms: 1.412659
+2026-10-10T01:52:02.9960722Z   ...
+2026-10-10T01:52:02.9961339Z # Subtest: outcome evidence closes its self-reference before trusted evidence is emitted
+2026-10-10T01:52:02.9962797Z ok 17 - outcome evidence closes its self-reference before trusted evidence is emitted
+2026-10-10T01:52:02.9963491Z   ---
+2026-10-10T01:52:02.9963720Z   duration_ms: 1.527084
+2026-10-10T01:52:02.9963973Z   ...
+2026-10-10T01:52:03.0004281Z 1..17
+2026-10-10T01:52:03.0004704Z # tests 17
+2026-10-10T01:52:03.0005052Z # suites 0
+2026-10-10T01:52:03.0005394Z # pass 17
+2026-10-10T01:52:03.0005739Z # fail 0
+2026-10-10T01:52:03.0006808Z # cancelled 0
+2026-10-10T01:52:03.0007356Z # skipped 0
+2026-10-10T01:52:03.0008032Z # todo 0
+2026-10-10T01:52:03.0012449Z # duration_ms 90.107358
+2026-10-10T01:52:03.0084347Z ##[group]Run sudo apt-get update
+2026-10-10T01:52:03.0084716Z [36;1msudo apt-get update[0m
+2026-10-10T01:52:03.0085014Z [36;1msudo apt-get install -y xvfb[0m
+2026-10-10T01:52:03.0085443Z [36;1mnpm install --no-save --no-package-lock @vscode/test-electron@3.1.0[0m
+2026-10-10T01:52:03.0157000Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:52:03.0157317Z env:
+2026-10-10T01:52:03.0157561Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:03.0157906Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:03.0158347Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:03.0158812Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:03.0159215Z ##[endgroup]
+2026-10-10T01:52:03.1176583Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-10T01:52:03.1479864Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-10T01:52:03.1631212Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-10T01:52:03.1658442Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-10T01:52:03.1712272Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-10T01:52:03.1730591Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-10T01:52:03.2598387Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [492 kB]
+2026-10-10T01:52:03.2834471Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.3 kB]
+2026-10-10T01:52:03.2933896Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [548 kB]
+2026-10-10T01:52:03.3063457Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main all Packages [640 B]
+2026-10-10T01:52:03.3981634Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1375 kB]
+2026-10-10T01:52:03.4076141Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [306 kB]
+2026-10-10T01:52:03.4103262Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1702 kB]
+2026-10-10T01:52:03.4191097Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [342 kB]
+2026-10-10T01:52:03.4220670Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1761 kB]
+2026-10-10T01:52:03.4333713Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [401 kB]
+2026-10-10T01:52:03.4358036Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [55.0 kB]
+2026-10-10T01:52:03.4366204Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+2026-10-10T01:52:03.5316661Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1121 kB]
+2026-10-10T01:52:03.5384535Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [228 kB]
+2026-10-10T01:52:03.5850021Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1220 kB]
+2026-10-10T01:52:03.5923534Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [245 kB]
+2026-10-10T01:52:03.5974186Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1669 kB]
+2026-10-10T01:52:03.6041098Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [383 kB]
+2026-10-10T01:52:03.6069571Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [49.8 kB]
+2026-10-10T01:52:03.6083427Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [12.4 kB]
+2026-10-10T01:52:09.5862148Z Fetched 12.3 MB in 1s (9030 kB/s)
+2026-10-10T01:52:10.6078120Z Reading package lists...
+2026-10-10T01:52:10.6395457Z Reading package lists...
+2026-10-10T01:52:10.8703017Z Building dependency tree...
+2026-10-10T01:52:10.8710944Z Reading state information...
+2026-10-10T01:52:11.1854351Z xvfb is already the newest version (2:21.1.12-1ubuntu1.8).
+2026-10-10T01:52:11.1855043Z 0 upgraded, 0 newly installed, 0 to remove and 23 not upgraded.
+2026-10-10T01:52:12.5447042Z 
+2026-10-10T01:52:12.5447779Z added 38 packages, and audited 39 packages in 1s
+2026-10-10T01:52:12.5448225Z 
+2026-10-10T01:52:12.5448508Z 17 packages are looking for funding
+2026-10-10T01:52:12.5449015Z   run `npm fund` for details
+2026-10-10T01:52:12.5458414Z 
+2026-10-10T01:52:12.5458808Z found 0 vulnerabilities
+2026-10-10T01:52:12.5595962Z ##[group]Run set -euo pipefail
+2026-10-10T01:52:12.5596327Z [36;1mset -euo pipefail[0m
+2026-10-10T01:52:12.5597016Z [36;1msource_url='https://marketplace.visualstudio.com/_apis/public/gallery/publishers/ms-vscode-remote/vsextensions/remote-ssh/0.120.0/vspackage'[0m
+2026-10-10T01:52:12.5597785Z [36;1mcurl --fail --location --silent --show-error \[0m
+2026-10-10T01:52:12.5598264Z [36;1m  --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 \[0m
+2026-10-10T01:52:12.5598802Z [36;1m  "$source_url" --output "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz"[0m
+2026-10-10T01:52:12.5599600Z [36;1mecho "4caa944dc6c81c8e1a345f3aefed2c0b8efacfe91ba46dff04cb6da2238b949e  $RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" | sha256sum --check --strict[0m
+2026-10-10T01:52:12.5600496Z [36;1mgzip -dc "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" > "$RUNNER_TEMP/remote-ssh-0.120.0.vsix"[0m
+2026-10-10T01:52:12.5601395Z [36;1mecho "0fd6262ca183b486f6c067cb3516dccea2f87f32c049b642ff9eb77b0cea195d  $RUNNER_TEMP/remote-ssh-0.120.0.vsix" | sha256sum --check --strict[0m
+2026-10-10T01:52:12.5669947Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:52:12.5670326Z env:
+2026-10-10T01:52:12.5670549Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:12.5670915Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:12.5671350Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:12.5672108Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:12.5672542Z ##[endgroup]
+2026-10-10T01:52:12.7553990Z /home/runner/work/_temp/remote-ssh-0.120.0.vsix.gz: OK
+2026-10-10T01:52:12.7630474Z /home/runner/work/_temp/remote-ssh-0.120.0.vsix: OK
+2026-10-10T01:52:12.7670994Z ##[group]Run xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+2026-10-10T01:52:12.7671646Z [36;1mxvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \[0m
+2026-10-10T01:52:12.7672393Z [36;1m  node test/remote-ssh-container/run.cjs \[0m
+2026-10-10T01:52:12.7672853Z [36;1m    --vsix "$RUNNER_TEMP/cc-vscode-candidate/chainlesschain-ide.vsix" \[0m
+2026-10-10T01:52:12.7673404Z [36;1m    --candidate-manifest "$RUNNER_TEMP/cc-vscode-candidate/manifest.json" \[0m
+2026-10-10T01:52:12.7673949Z [36;1m    --remote-ssh-payload "$RUNNER_TEMP/remote-ssh-0.120.0.vsix.gz" \[0m
+2026-10-10T01:52:12.7674442Z [36;1m    --remote-ssh-vsix "$RUNNER_TEMP/remote-ssh-0.120.0.vsix" \[0m
+2026-10-10T01:52:12.7675110Z [36;1m    --artifact-dir build/reports/remote-ssh-container/journey \[0m
+2026-10-10T01:52:12.7675542Z [36;1m    --release-commit "$IDE_RELEASE_COMMIT" \[0m
+2026-10-10T01:52:12.7675893Z [36;1m    --repository "$GITHUB_REPOSITORY" \[0m
+2026-10-10T01:52:12.7676283Z [36;1m    --workflow-ref "$GITHUB_WORKFLOW_REF" \[0m
+2026-10-10T01:52:12.7676636Z [36;1m    --workflow-sha "$GITHUB_WORKFLOW_SHA" \[0m
+2026-10-10T01:52:12.7676958Z [36;1m    --run-id "$GITHUB_RUN_ID" \[0m
+2026-10-10T01:52:12.7677280Z [36;1m    --run-attempt "$GITHUB_RUN_ATTEMPT" \[0m
+2026-10-10T01:52:12.7677600Z [36;1m    --job "$GITHUB_JOB" \[0m
+2026-10-10T01:52:12.7677939Z [36;1m    --artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \[0m
+2026-10-10T01:52:12.7678310Z [36;1m    --event-name "$GITHUB_EVENT_NAME" \[0m
+2026-10-10T01:52:12.7678634Z [36;1m    --server-url "$GITHUB_SERVER_URL"[0m
+2026-10-10T01:52:12.7743081Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:52:12.7743359Z env:
+2026-10-10T01:52:12.7743580Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:12.7743931Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:12.7744362Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:12.7744842Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:12.7745236Z ##[endgroup]
+2026-10-10T01:52:26.2833294Z - Resolving version...
+2026-10-10T01:52:26.4015017Z ✔ Validated version: 1.96.4
+2026-10-10T01:52:26.4027943Z - Found at https://update.code.visualstudio.com/1.96.4/linux-x64/stable?released=true
+2026-10-10T01:52:26.5682540Z ✔ Found at https://update.code.visualstudio.com/1.96.4/linux-x64/stable?released=true
+2026-10-10T01:52:26.5683586Z - Downloading (142.52 MB)
+2026-10-10T01:52:30.0763609Z ✔ Downloaded VS Code (07b4ff1883f94da91f6d698744fc7c3638b59720) into /home/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-linux-x64-1.96.4
+2026-10-10T01:52:30.0768528Z - Resolving version...
+2026-10-10T01:52:30.0769142Z ✔ Validated version: 1.96.4
+2026-10-10T01:52:30.0774397Z ✔ Found existing install in /home/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-linux-x64-1.96.4
+2026-10-10T01:52:32.2405922Z - Resolving version...
+2026-10-10T01:52:32.2406835Z ✔ Validated version: 1.96.4
+2026-10-10T01:52:32.2409668Z ✔ Found existing install in /home/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/.vscode-test/vscode-linux-x64-1.96.4
+2026-10-10T01:52:49.6250515Z Exit code:   0
+2026-10-10T01:52:50.7080168Z {"destination":"/home/runner/work/chainlesschain/chainlesschain/packages/vscode-extension/build/reports/remote-ssh-container/journey/journey-evidence.json","evidenceDigest":"sha256:8835c2743765fe0829699fc37dbea8fcb856f8a84f5bf94b2d08e707c1334e0c"}
+2026-10-10T01:52:50.7236655Z ##[group]Run node ../../packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \
+2026-10-10T01:52:50.7237303Z [36;1mnode ../../packages/cli/scripts/verify-ide-roadmap-fixtures.mjs \[0m
+2026-10-10T01:52:50.7238043Z [36;1m  --bridge-journey-evidence build/reports/remote-ssh-container/journey/journey-evidence.json \[0m
+2026-10-10T01:52:50.7238668Z [36;1m  --bridge-case q4a-vscode-remote-ssh-container \[0m
+2026-10-10T01:52:50.7259336Z [36;1m  --output build/reports/remote-ssh-container/roadmap-runtime-evidence.json \[0m
+2026-10-10T01:52:50.7260081Z [36;1m  --release-commit "$IDE_RELEASE_COMMIT" \[0m
+2026-10-10T01:52:50.7260708Z [36;1m  --trusted-repository "$GITHUB_REPOSITORY" \[0m
+2026-10-10T01:52:50.7261239Z [36;1m  --trusted-workflow-ref "$GITHUB_WORKFLOW_REF" \[0m
+2026-10-10T01:52:50.7261921Z [36;1m  --trusted-workflow-sha "$GITHUB_WORKFLOW_SHA" \[0m
+2026-10-10T01:52:50.7262330Z [36;1m  --trusted-run-id "$GITHUB_RUN_ID" \[0m
+2026-10-10T01:52:50.7262775Z [36;1m  --trusted-run-attempt "$GITHUB_RUN_ATTEMPT" \[0m
+2026-10-10T01:52:50.7263174Z [36;1m  --trusted-job "$GITHUB_JOB" \[0m
+2026-10-10T01:52:50.7263555Z [36;1m  --trusted-artifact-name "$CC_REMOTE_EVIDENCE_ARTIFACT" \[0m
+2026-10-10T01:52:50.7264273Z [36;1m  --trusted-event-name "$GITHUB_EVENT_NAME"[0m
+2026-10-10T01:52:50.7327588Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:52:50.7327872Z env:
+2026-10-10T01:52:50.7328099Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:50.7328439Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:50.7328865Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:50.7329322Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:50.7329706Z ##[endgroup]
+2026-10-10T01:52:50.8378363Z Bridged trusted IDE journey q4a-vscode-remote-ssh-container at release da91e730d802b7c9dcdc075b222ecc257021e552.
+2026-10-10T01:52:50.8479288Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-10T01:52:50.8479741Z with:
+2026-10-10T01:52:50.8480002Z   name: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:50.8480435Z   path: packages/vscode-extension/build/reports/remote-ssh-container/
+2026-10-10T01:52:50.8480856Z   if-no-files-found: error
+2026-10-10T01:52:50.8481115Z   compression-level: 6
+2026-10-10T01:52:50.8481347Z   overwrite: false
+2026-10-10T01:52:50.8481586Z   include-hidden-files: false
+2026-10-10T01:52:50.8482254Z env:
+2026-10-10T01:52:50.8482532Z   CC_UI_STREAM_PROFILE: 1
+2026-10-10T01:52:50.8482852Z   IDE_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:50.8483260Z   CC_RELEASE_COMMIT: da91e730d802b7c9dcdc075b222ecc257021e552
+2026-10-10T01:52:50.8483709Z   CC_REMOTE_EVIDENCE_ARTIFACT: vscode-remote-ssh-container-evidence-1
+2026-10-10T01:52:50.8484092Z ##[endgroup]
+2026-10-10T01:52:51.0316031Z With the provided path, there will be 42 files uploaded
+2026-10-10T01:52:51.0322401Z Artifact name is valid!
+2026-10-10T01:52:51.0323313Z Root directory input is valid!
+2026-10-10T01:52:51.2458370Z Beginning upload of artifact content to blob storage
+2026-10-10T01:52:51.5098561Z Uploaded bytes 2223197
+2026-10-10T01:52:51.5257160Z Finished uploading artifact content to blob storage!
+2026-10-10T01:52:51.5259228Z SHA256 digest of uploaded artifact zip is 149e7584e94a7e1a22a723253b5dc40ca6787fc0861fc98e3021fab80db69531
+2026-10-10T01:52:51.5260704Z Finalizing artifact upload
+2026-10-10T01:52:51.7456365Z Artifact vscode-remote-ssh-container-evidence-1.zip successfully finalized. Artifact ID 11655769440
+2026-10-10T01:52:51.7458380Z Artifact vscode-remote-ssh-container-evidence-1 has been successfully uploaded! Final size is 2223197 bytes. Artifact ID is 11655769440
+2026-10-10T01:52:51.7460839Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/38012166401/artifacts/11655769440
+2026-10-10T01:52:51.7639088Z Post job cleanup.
+2026-10-10T01:52:51.8964975Z (node:6747) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:52:51.8966067Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:52:51.9152523Z Post job cleanup.
+2026-10-10T01:52:52.0132375Z [command]/usr/bin/git version
+2026-10-10T01:52:52.0179776Z git version 2.55.0
+2026-10-10T01:52:52.0223162Z Temporarily overriding HOME='/home/runner/work/_temp/36ed22fb-cbc2-4529-afdd-92a1f94cbfaa' before making global git config changes
+2026-10-10T01:52:52.0225054Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:52:52.0229267Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:52:52.0276307Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:52:52.0318585Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:52:52.0653861Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:52:52.0687123Z http.https://github.com/.extraheader
+2026-10-10T01:52:52.0784080Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T01:52:52.0817160Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:52:52.1177717Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:52:52.1243533Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:52:52.1738175Z Cleaning up orphan processes
+2026-10-10T01:52:52.2132160Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

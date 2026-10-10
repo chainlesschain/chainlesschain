@@ -1,0 +1,166 @@
+{
+  "generatedAt": "2026-10-09T15:58:24.633793800Z",
+  "scope": "Actual compiled IdeUiSmokeTest.popupActivationScript; real Rhino 1.7.15 and Swing JList, real EDT, deterministic replacement IDEA scheduler, injected isShowing, headless JVM",
+  "realIdeExecuted": false,
+  "realPopupExecuted": false,
+  "originalCiFailureReproduced": false,
+  "callbackCompletionProven": false,
+  "sourceSha256": "f4bb79ab6d6328b2bcf488b7aba33033e93475b6999ab8d0dcfbdf499598554f",
+  "compiledClassSha256": "1222189ca8e31d82a8f49d506ffb0a58efc9074cd76c3a7cc5c3b046f8cfd3f1",
+  "exactScriptSha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+  "javaVersion": "21.0.12.1",
+  "results": [
+    {
+      "name": "original-target-exact-captured-across-later-script",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "validated",
+        "dispatch-returned"
+      ],
+      "calls": 1,
+      "showing": false,
+      "selectedAtAction": "Restore code + conversation",
+      "eventSourceBound": true,
+      "callbackExecuted": false,
+      "finalState": "dispatch-returned"
+    },
+    {
+      "name": "second-target-prefix-captured-across-later-script",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "validated",
+        "dispatch-returned"
+      ],
+      "calls": 1,
+      "showing": false,
+      "selectedAtAction": "partial  turn-2  checkpoint",
+      "eventSourceBound": true,
+      "callbackExecuted": false,
+      "finalState": "dispatch-returned"
+    },
+    {
+      "name": "hidden-after-scheduling-rejected",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "failed:Error: Popup cancelled before Enter dispatch"
+      ],
+      "calls": 0,
+      "showing": false,
+      "eventSourceBound": false,
+      "callbackExecuted": false,
+      "finalState": "failed:Error: Popup cancelled before Enter dispatch"
+    },
+    {
+      "name": "target-removed-after-scheduling-rejected",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "failed:Error: Popup target missing or ambiguous at dispatch"
+      ],
+      "calls": 0,
+      "showing": true,
+      "eventSourceBound": false,
+      "callbackExecuted": false,
+      "finalState": "failed:Error: Popup target missing or ambiguous at dispatch"
+    },
+    {
+      "name": "duplicate-target-after-scheduling-rejected",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "failed:Error: Popup target missing or ambiguous at dispatch"
+      ],
+      "calls": 0,
+      "showing": true,
+      "eventSourceBound": false,
+      "callbackExecuted": false,
+      "finalState": "failed:Error: Popup target missing or ambiguous at dispatch"
+    },
+    {
+      "name": "missing-enter-action-rejected",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "failed:Error: Popup Enter action unavailable"
+      ],
+      "calls": 0,
+      "showing": true,
+      "eventSourceBound": false,
+      "callbackExecuted": false,
+      "finalState": "failed:Error: Popup Enter action unavailable"
+    },
+    {
+      "name": "dispatch-exception-preserved-without-retry",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "validated",
+        "failed:JavaException: java.lang.IllegalStateException: distinct-dispatch-failure-731"
+      ],
+      "calls": 1,
+      "showing": true,
+      "selectedAtAction": "Restore code + conversation",
+      "eventSourceBound": true,
+      "callbackExecuted": false,
+      "finalState": "failed:JavaException: java.lang.IllegalStateException: distinct-dispatch-failure-731"
+    },
+    {
+      "name": "target-moved-and-selection-changed-resolved-at-dispatch",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "validated",
+        "dispatch-returned"
+      ],
+      "calls": 1,
+      "showing": false,
+      "selectedAtAction": "Restore code + conversation",
+      "eventSourceBound": true,
+      "callbackExecuted": false,
+      "finalState": "dispatch-returned"
+    },
+    {
+      "name": "ambiguous-prefix-rejected",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "failed:Error: Popup target missing or ambiguous at dispatch"
+      ],
+      "calls": 0,
+      "showing": true,
+      "eventSourceBound": false,
+      "callbackExecuted": false,
+      "finalState": "failed:Error: Popup target missing or ambiguous at dispatch"
+    },
+    {
+      "name": "dispatch-returned-visible-does-not-meet-driver-close-condition",
+      "passed": true,
+      "states": [
+        "scheduled",
+        "entered",
+        "validated",
+        "dispatch-returned"
+      ],
+      "calls": 1,
+      "showing": true,
+      "selectedAtAction": "Restore code + conversation",
+      "eventSourceBound": true,
+      "callbackExecuted": false,
+      "finalState": "dispatch-returned"
+    }
+  ],
+  "passed": true,
+  "caseCount": 10
+}

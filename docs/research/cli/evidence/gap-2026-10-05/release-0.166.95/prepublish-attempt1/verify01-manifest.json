@@ -1,0 +1,87 @@
+{
+  "capturedAt": "2026-10-09T12:19:12.773Z",
+  "candidateHead": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "prCheckout": "b26d7135c25592fd17c8ae8cc25765cdb867df33",
+  "files": [
+    {
+      "path": "verify01/capture-manifest.json",
+      "bytes": 2437,
+      "sha256": "9484d686943456614cffa440d12ac56a3626e6a95a0c65a7bc823f579d6c1ac8"
+    },
+    {
+      "path": "verify01/diagnosis.json",
+      "bytes": 3208,
+      "sha256": "8612647c1dd29476431bb77e571d2c38f459ef070960eb36fe9c006a77728479"
+    },
+    {
+      "path": "verify01/pr-annotations.json",
+      "bytes": 915,
+      "sha256": "448636ae1b2b45a446f964d698bf45fcaa4afe0b5007c287850c71f2285088f7"
+    },
+    {
+      "path": "verify01/pr-artifacts.json",
+      "bytes": 4537,
+      "sha256": "b6dba2b4a1905460e57640a501bbf3a5e90da32c5d3277434f1bb2943305e526"
+    },
+    {
+      "path": "verify01/pr-gh-rendered.log",
+      "bytes": 73087,
+      "sha256": "8f591ab82d116a31fd4114847e0c3e46fff40b04e1e5a6dfd2f8aa8893bcb4fa"
+    },
+    {
+      "path": "verify01/pr-job.json",
+      "bytes": 4311,
+      "sha256": "47ebb628e56b1a145911fbee3b1a2a0074b8e8c038a851fa5776e77e02f918ce"
+    },
+    {
+      "path": "verify01/pr-job.log.error.json",
+      "bytes": 351,
+      "sha256": "2dff8f8950e303985dfc9455634ce0b6c3e8cf33f77d040dc45612f27e083205"
+    },
+    {
+      "path": "verify01/pr-jobs.json",
+      "bytes": 27667,
+      "sha256": "7efefe4762b6ed21199933f029bd1fafeb9c94041a0535632671490342d7865e"
+    },
+    {
+      "path": "verify01/pr-run.json",
+      "bytes": 13794,
+      "sha256": "109f5c62633e07e1d534f8c1b53848dd2320fc2df6754b8c875ac1068c438bed"
+    },
+    {
+      "path": "verify01/push-annotations.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "verify01/push-artifacts.json",
+      "bytes": 5294,
+      "sha256": "e2e0f98ea1cfff802b8006cef6897342cc2d15fafab502a677d2b4b0a260ac92"
+    },
+    {
+      "path": "verify01/push-gh-rendered.log.error.json",
+      "bytes": 547,
+      "sha256": "158446a0c43a72fb0a1179cff9101ba18535ce09551f872046c4ccd2de6ec0d1"
+    },
+    {
+      "path": "verify01/push-job.json",
+      "bytes": 4311,
+      "sha256": "567403b940c2f05b71e67944777be80d1fb6feced9b0a89dd788b056aabe17cb"
+    },
+    {
+      "path": "verify01/push-job.log.error.json",
+      "bytes": 351,
+      "sha256": "dae3d42be67f23434c1250b0b89fc333363a2df84af883946695be07b304b234"
+    },
+    {
+      "path": "verify01/push-jobs.json",
+      "bytes": 27667,
+      "sha256": "7f2fd1c72c8b18bd1d92af5c8a57b66954c3fc97b8580d9f27b728e39b5269ba"
+    },
+    {
+      "path": "verify01/push-run.json",
+      "bytes": 13774,
+      "sha256": "c18e18c77a0d91ff93b4c948da646833abdf04df71fc9bd2b59f3a8046364654"
+    }
+  ]
+}

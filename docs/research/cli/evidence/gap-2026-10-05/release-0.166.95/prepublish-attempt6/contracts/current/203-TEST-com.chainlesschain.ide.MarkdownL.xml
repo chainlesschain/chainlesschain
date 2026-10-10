@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.MarkdownLiteTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.005">
+  <properties/>
+  <testcase name="boldIsTokenized()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.001"/>
+  <testcase name="fencedCodeDropsLanguageTagKeepsBody()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.001"/>
+  <testcase name="spansLoseOnlyTheMarkers()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.0"/>
+  <testcase name="emptyAndNullYieldNoSpans()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.0"/>
+  <testcase name="inlineCodeIsTokenized()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.001"/>
+  <testcase name="unclosedInlineCodeDegradesToPlain()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.0"/>
+  <testcase name="unclosedBoldDegradesToPlain()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.001"/>
+  <testcase name="plainTextYieldsOneTextSpan()" classname="com.chainlesschain.ide.MarkdownLiteTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

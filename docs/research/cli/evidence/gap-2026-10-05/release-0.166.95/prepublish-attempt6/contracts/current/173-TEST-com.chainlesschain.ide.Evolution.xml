@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.EvolutionDeploymentConfigTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:28:41" hostname="DESKTOP-MTMV2RE" time="0.005">
+  <properties/>
+  <testcase name="displaysCommandAdmissionWithoutClaimingTaskReadiness()" classname="com.chainlesschain.ide.EvolutionDeploymentConfigTest" time="0.002"/>
+  <testcase name="parsesStatusWithoutTreatingHoldAsPromotion()" classname="com.chainlesschain.ide.EvolutionDeploymentConfigTest" time="0.001"/>
+  <testcase name="rejectsUnrecognizedOrMismatchedAdmissionClaims()" classname="com.chainlesschain.ide.EvolutionDeploymentConfigTest" time="0.001"/>
+  <testcase name="buildsOnlyFixedDeploymentCommands()" classname="com.chainlesschain.ide.EvolutionDeploymentConfigTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

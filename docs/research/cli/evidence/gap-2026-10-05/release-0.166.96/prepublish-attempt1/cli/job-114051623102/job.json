@@ -1,0 +1,100 @@
+{
+  "id": 114051623102,
+  "run_id": 37987544644,
+  "workflow_name": "CLI CI",
+  "head_branch": "feature/cli-ide-gap-completion-20261009",
+  "run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/37987544644",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOQgDM2s8AAAAajgGovg",
+  "head_sha": "3900e9bd7f4d610b74b4d1639cf62b39dd9004ed",
+  "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/jobs/114051623102",
+  "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37987544644/job/114051623102",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-09T22:22:13Z",
+  "started_at": "2026-10-09T22:22:16Z",
+  "completed_at": "2026-10-09T22:22:20Z",
+  "name": "Test-only PM exploration recovery three-OS aggregate",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-09T22:22:17Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Refuse an incomplete PM recovery platform matrix",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 2,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Checkout exact PM recovery commit",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 3,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Verify exact source identity",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 4,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Run actions/setup-node@v5",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 5,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Download exact-SHA PM recovery evidence",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 6,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Verify complete test-only PM recovery evidence matrix",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Upload immutable test-only PM recovery aggregate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-09T22:22:18Z",
+      "completed_at": "2026-10-09T22:22:18Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/chainlesschain/chainlesschain/check-runs/114051623102",
+  "labels": [
+    "ubuntu-latest"
+  ],
+  "runner_id": 1000388181,
+  "runner_name": "GitHub Actions 1000388181",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

@@ -1,0 +1,664 @@
+﻿2026-10-10T01:22:10.1993761Z Current runner version: '2.337.0'
+2026-10-10T01:22:10.2019910Z ##[group]Runner Image Provisioner
+2026-10-10T01:22:10.2020819Z Hosted Compute Agent
+2026-10-10T01:22:10.2021483Z Version: 20261002.596
+2026-10-10T01:22:10.2022135Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-10T01:22:10.2023066Z Build Date: 2026-10-02T22:28:27Z
+2026-10-10T01:22:10.2023815Z Worker ID: {d4f6b344-254d-4d82-977f-847bb6b2915b}
+2026-10-10T01:22:10.2024540Z Region: westus2
+2026-10-10T01:22:10.2025111Z Cloud: Azure
+2026-10-10T01:22:10.2025714Z ##[endgroup]
+2026-10-10T01:22:10.2027238Z ##[group]Operating System
+2026-10-10T01:22:10.2027959Z Ubuntu
+2026-10-10T01:22:10.2028517Z 24.04.5
+2026-10-10T01:22:10.2029016Z LTS
+2026-10-10T01:22:10.2029582Z ##[endgroup]
+2026-10-10T01:22:10.2030126Z ##[group]Runner Image
+2026-10-10T01:22:10.2030762Z Image: ubuntu-24.04
+2026-10-10T01:22:10.2031350Z Version: 20261004.327.1
+2026-10-10T01:22:10.2032951Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-10T01:22:10.2034555Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-10T01:22:10.2035589Z ##[endgroup]
+2026-10-10T01:22:10.2038881Z ##[group]GITHUB_TOKEN Permissions
+2026-10-10T01:22:10.2041090Z Actions: write
+2026-10-10T01:22:10.2041714Z ArtifactMetadata: write
+2026-10-10T01:22:10.2042306Z Attestations: write
+2026-10-10T01:22:10.2043183Z Checks: write
+2026-10-10T01:22:10.2043766Z CodeQuality: write
+2026-10-10T01:22:10.2044346Z Contents: write
+2026-10-10T01:22:10.2044919Z CopilotRequests: write
+2026-10-10T01:22:10.2045556Z Deployments: write
+2026-10-10T01:22:10.2046217Z Discussions: write
+2026-10-10T01:22:10.2046771Z Drives: write
+2026-10-10T01:22:10.2047341Z Issues: write
+2026-10-10T01:22:10.2048020Z Metadata: read
+2026-10-10T01:22:10.2048559Z Models: read
+2026-10-10T01:22:10.2049152Z Packages: write
+2026-10-10T01:22:10.2049733Z Pages: write
+2026-10-10T01:22:10.2050257Z PullRequests: write
+2026-10-10T01:22:10.2050953Z RepositoryProjects: write
+2026-10-10T01:22:10.2051609Z SecurityEvents: write
+2026-10-10T01:22:10.2052258Z Statuses: write
+2026-10-10T01:22:10.2053072Z VulnerabilityAlerts: read
+2026-10-10T01:22:10.2053661Z ##[endgroup]
+2026-10-10T01:22:10.2055930Z Secret source: Actions
+2026-10-10T01:22:10.2056904Z Cache mode: write
+2026-10-10T01:22:10.2057735Z Prepare workflow directory
+2026-10-10T01:22:10.2450658Z Prepare all required actions
+2026-10-10T01:22:10.2505310Z Getting action download info
+2026-10-10T01:22:10.6595540Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-10T01:22:10.7637082Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-10T01:22:10.9663800Z Complete job name: Database Tests
+2026-10-10T01:22:11.0496933Z ##[group]Run actions/checkout@v5
+2026-10-10T01:22:11.0497902Z with:
+2026-10-10T01:22:11.0498419Z   repository: chainlesschain/chainlesschain
+2026-10-10T01:22:11.0502658Z   token: ***
+2026-10-10T01:22:11.0503196Z   ssh-strict: true
+2026-10-10T01:22:11.0503680Z   ssh-user: git
+2026-10-10T01:22:11.0504168Z   persist-credentials: true
+2026-10-10T01:22:11.0504711Z   clean: true
+2026-10-10T01:22:11.0505197Z   sparse-checkout-cone-mode: true
+2026-10-10T01:22:11.0505770Z   fetch-depth: 1
+2026-10-10T01:22:11.0506260Z   fetch-tags: false
+2026-10-10T01:22:11.0506751Z   show-progress: true
+2026-10-10T01:22:11.0507250Z   lfs: false
+2026-10-10T01:22:11.0507697Z   submodules: false
+2026-10-10T01:22:11.0508181Z   set-safe-directory: true
+2026-10-10T01:22:11.0508728Z   allow-unsafe-pr-checkout: false
+2026-10-10T01:22:11.0509572Z ##[endgroup]
+2026-10-10T01:22:11.1563967Z Syncing repository: chainlesschain/chainlesschain
+2026-10-10T01:22:11.1566986Z ##[group]Getting Git version info
+2026-10-10T01:22:11.1568510Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:22:11.1570394Z [command]/usr/bin/git version
+2026-10-10T01:22:11.1620859Z git version 2.55.0
+2026-10-10T01:22:11.1647145Z ##[endgroup]
+2026-10-10T01:22:11.1704857Z Temporarily overriding HOME='/home/runner/work/_temp/3d8dd4e3-166b-4ebf-8d2b-14216b598769' before making global git config changes
+2026-10-10T01:22:11.1708441Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:22:11.1711608Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:22:11.1764142Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-10T01:22:11.1769140Z ##[group]Initializing the repository
+2026-10-10T01:22:11.1775779Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:22:11.1911532Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-10T01:22:11.1914121Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-10T01:22:11.1915845Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-10T01:22:11.1917288Z hint: call:
+2026-10-10T01:22:11.1918192Z hint:
+2026-10-10T01:22:11.1919337Z hint: 	git config --global init.defaultBranch <name>
+2026-10-10T01:22:11.1921066Z hint:
+2026-10-10T01:22:11.1922228Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-10T01:22:11.1924333Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-10T01:22:11.1925840Z hint:
+2026-10-10T01:22:11.1926682Z hint: 	git branch -m <name>
+2026-10-10T01:22:11.1927571Z hint:
+2026-10-10T01:22:11.1928380Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-10T01:22:11.1929583Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-10T01:22:11.1934502Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:22:11.1989917Z ##[endgroup]
+2026-10-10T01:22:11.1990799Z ##[group]Disabling automatic garbage collection
+2026-10-10T01:22:11.1995156Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-10T01:22:11.2028157Z ##[endgroup]
+2026-10-10T01:22:11.2028994Z ##[group]Setting up auth
+2026-10-10T01:22:11.2036707Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:22:11.2073642Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:22:11.2505128Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:22:11.2561598Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:22:11.2831432Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:22:11.2872683Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:22:11.3124532Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-10T01:22:11.3171777Z ##[endgroup]
+2026-10-10T01:22:11.3173462Z ##[group]Fetching the repository
+2026-10-10T01:22:11.3191912Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0371e00f1425aa9d842517f4feea0d750810ee23:refs/remotes/pull/425/merge
+2026-10-10T01:22:21.9848802Z From https://github.com/chainlesschain/chainlesschain
+2026-10-10T01:22:21.9849622Z  * [new ref]           0371e00f1425aa9d842517f4feea0d750810ee23 -> pull/425/merge
+2026-10-10T01:22:21.9852753Z ##[endgroup]
+2026-10-10T01:22:21.9853648Z ##[group]Determining the checkout info
+2026-10-10T01:22:21.9855928Z ##[endgroup]
+2026-10-10T01:22:21.9897781Z [command]/usr/bin/git sparse-checkout disable
+2026-10-10T01:22:21.9952624Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-10T01:22:21.9986565Z ##[group]Checking out the ref
+2026-10-10T01:22:21.9991548Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/425/merge
+2026-10-10T01:22:23.0364405Z Updating files:  48% (11447/23576)
+2026-10-10T01:22:23.0614639Z Updating files:  49% (11553/23576)
+2026-10-10T01:22:23.0765390Z Updating files:  50% (11788/23576)
+2026-10-10T01:22:23.1044381Z Updating files:  51% (12024/23576)
+2026-10-10T01:22:23.1407151Z Updating files:  52% (12260/23576)
+2026-10-10T01:22:23.1966578Z Updating files:  53% (12496/23576)
+2026-10-10T01:22:23.4623222Z Updating files:  54% (12732/23576)
+2026-10-10T01:22:23.8923928Z Updating files:  55% (12967/23576)
+2026-10-10T01:22:24.0398059Z Updating files:  56% (13203/23576)
+2026-10-10T01:22:24.2293898Z Updating files:  56% (13282/23576)
+2026-10-10T01:22:24.2969530Z Updating files:  57% (13439/23576)
+2026-10-10T01:22:24.3252043Z Updating files:  58% (13675/23576)
+2026-10-10T01:22:24.3546750Z Updating files:  59% (13910/23576)
+2026-10-10T01:22:24.3808041Z Updating files:  60% (14146/23576)
+2026-10-10T01:22:24.4092042Z Updating files:  61% (14382/23576)
+2026-10-10T01:22:24.4502197Z Updating files:  62% (14618/23576)
+2026-10-10T01:22:24.5018691Z Updating files:  63% (14853/23576)
+2026-10-10T01:22:24.5239867Z Updating files:  64% (15089/23576)
+2026-10-10T01:22:24.5394717Z Updating files:  65% (15325/23576)
+2026-10-10T01:22:24.5657461Z Updating files:  66% (15561/23576)
+2026-10-10T01:22:24.5793299Z Updating files:  67% (15796/23576)
+2026-10-10T01:22:24.6004226Z Updating files:  68% (16032/23576)
+2026-10-10T01:22:24.6224926Z Updating files:  69% (16268/23576)
+2026-10-10T01:22:24.6394416Z Updating files:  70% (16504/23576)
+2026-10-10T01:22:24.6597243Z Updating files:  71% (16739/23576)
+2026-10-10T01:22:24.6845862Z Updating files:  72% (16975/23576)
+2026-10-10T01:22:24.7048326Z Updating files:  73% (17211/23576)
+2026-10-10T01:22:24.7196470Z Updating files:  74% (17447/23576)
+2026-10-10T01:22:24.7404445Z Updating files:  75% (17682/23576)
+2026-10-10T01:22:24.7610873Z Updating files:  76% (17918/23576)
+2026-10-10T01:22:24.7805978Z Updating files:  77% (18154/23576)
+2026-10-10T01:22:24.7966782Z Updating files:  78% (18390/23576)
+2026-10-10T01:22:24.8150217Z Updating files:  79% (18626/23576)
+2026-10-10T01:22:24.8348908Z Updating files:  80% (18861/23576)
+2026-10-10T01:22:24.8538518Z Updating files:  81% (19097/23576)
+2026-10-10T01:22:24.8728030Z Updating files:  82% (19333/23576)
+2026-10-10T01:22:24.8953725Z Updating files:  83% (19569/23576)
+2026-10-10T01:22:24.9238521Z Updating files:  84% (19804/23576)
+2026-10-10T01:22:24.9492397Z Updating files:  85% (20040/23576)
+2026-10-10T01:22:24.9744144Z Updating files:  86% (20276/23576)
+2026-10-10T01:22:24.9973381Z Updating files:  87% (20512/23576)
+2026-10-10T01:22:25.0207962Z Updating files:  88% (20747/23576)
+2026-10-10T01:22:25.0246225Z Updating files:  89% (20983/23576)
+2026-10-10T01:22:25.0455721Z Updating files:  89% (21024/23576)
+2026-10-10T01:22:25.0612988Z Updating files:  90% (21219/23576)
+2026-10-10T01:22:25.0797504Z Updating files:  91% (21455/23576)
+2026-10-10T01:22:25.0996946Z Updating files:  92% (21690/23576)
+2026-10-10T01:22:25.1157350Z Updating files:  93% (21926/23576)
+2026-10-10T01:22:25.1353963Z Updating files:  94% (22162/23576)
+2026-10-10T01:22:25.1578289Z Updating files:  95% (22398/23576)
+2026-10-10T01:22:25.1809347Z Updating files:  96% (22633/23576)
+2026-10-10T01:22:25.1971903Z Updating files:  97% (22869/23576)
+2026-10-10T01:22:25.2157373Z Updating files:  98% (23105/23576)
+2026-10-10T01:22:25.2326403Z Updating files:  99% (23341/23576)
+2026-10-10T01:22:25.2327304Z Updating files: 100% (23576/23576)
+2026-10-10T01:22:25.2327930Z Updating files: 100% (23576/23576), done.
+2026-10-10T01:22:25.2590900Z Note: switching to 'refs/remotes/pull/425/merge'.
+2026-10-10T01:22:25.2591561Z 
+2026-10-10T01:22:25.2591846Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-10T01:22:25.2592422Z changes and commit them, and you can discard any commits you make in this
+2026-10-10T01:22:25.2593551Z state without impacting any branches by switching back to a branch.
+2026-10-10T01:22:25.2593887Z 
+2026-10-10T01:22:25.2594097Z If you want to create a new branch to retain commits you create, you may
+2026-10-10T01:22:25.2594627Z do so (now or later) by using -c with the switch command. Example:
+2026-10-10T01:22:25.2594941Z 
+2026-10-10T01:22:25.2595058Z   git switch -c <new-branch-name>
+2026-10-10T01:22:25.2595267Z 
+2026-10-10T01:22:25.2595391Z Or undo this operation with:
+2026-10-10T01:22:25.2595571Z 
+2026-10-10T01:22:25.2595677Z   git switch -
+2026-10-10T01:22:25.2595814Z 
+2026-10-10T01:22:25.2596059Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-10T01:22:25.2596412Z 
+2026-10-10T01:22:25.2596834Z HEAD is now at 0371e00f Merge da91e730d802b7c9dcdc075b222ecc257021e552 into 976c4f394fbab4fccc041787051f00abe08113c9
+2026-10-10T01:22:25.2652671Z ##[endgroup]
+2026-10-10T01:22:25.2711310Z [command]/usr/bin/git log -1 --format=%H
+2026-10-10T01:22:25.2741968Z 0371e00f1425aa9d842517f4feea0d750810ee23
+2026-10-10T01:22:25.3116594Z ##[group]Run actions/setup-node@v5
+2026-10-10T01:22:25.3116900Z with:
+2026-10-10T01:22:25.3117104Z   node-version: 22.x
+2026-10-10T01:22:25.3117328Z   cache: npm
+2026-10-10T01:22:25.3117688Z   cache-dependency-path: package-lock.json
+desktop-app-vue/package-lock.json
+
+2026-10-10T01:22:25.3118101Z   always-auth: false
+2026-10-10T01:22:25.3118323Z   check-latest: false
+2026-10-10T01:22:25.3120595Z   token: ***
+2026-10-10T01:22:25.3120827Z   package-manager-cache: true
+2026-10-10T01:22:25.3121095Z ##[endgroup]
+2026-10-10T01:22:25.4592316Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-10T01:22:25.4596133Z (node:2320) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:22:25.4597143Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:22:25.4599438Z ##[group]Environment details
+2026-10-10T01:22:25.8679137Z node: v22.23.3
+2026-10-10T01:22:25.8679442Z npm: 10.9.9
+2026-10-10T01:22:25.8679709Z yarn: 1.22.22
+2026-10-10T01:22:25.8680256Z ##[endgroup]
+2026-10-10T01:22:25.8704099Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-10T01:22:26.1204069Z /home/runner/.npm
+2026-10-10T01:22:26.3942218Z Cache hit for: node-cache-Linux-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93
+2026-10-10T01:22:26.4041647Z (node:2320) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-10T01:22:27.6924236Z Received 0 of 665410121 (0.0%), 0.0 MBs/sec
+2026-10-10T01:22:28.6922042Z Received 109051904 of 665410121 (16.4%), 52.0 MBs/sec
+2026-10-10T01:22:29.6923691Z Received 222298112 of 665410121 (33.4%), 70.6 MBs/sec
+2026-10-10T01:22:30.6958007Z Received 360710144 of 665410121 (54.2%), 86.0 MBs/sec
+2026-10-10T01:22:31.6948258Z Received 507510784 of 665410121 (76.3%), 96.7 MBs/sec
+2026-10-10T01:22:32.6952930Z Received 612368384 of 665410121 (92.0%), 97.3 MBs/sec
+2026-10-10T01:22:33.0560417Z Received 665410121 of 665410121 (100.0%), 99.7 MBs/sec
+2026-10-10T01:22:33.0561993Z Cache Size: ~635 MB (665410121 B)
+2026-10-10T01:22:33.0601587Z [command]/usr/bin/tar -xf /home/runner/work/_temp/6bbf210b-8a50-4087-ad73-314262c01818/cache.tzst -P -C /home/runner/work/chainlesschain/chainlesschain --use-compress-program unzstd
+2026-10-10T01:22:34.6424147Z Cache restored successfully
+2026-10-10T01:22:34.6723002Z Cache restored from key: node-cache-Linux-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93
+2026-10-10T01:22:34.7120614Z Prepare all required actions
+2026-10-10T01:22:34.7694857Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-10T01:22:34.7695399Z with:
+2026-10-10T01:22:34.7695777Z   install-desktop-app-vue: true
+2026-10-10T01:22:34.7696241Z   working-directory: .
+2026-10-10T01:22:34.7696700Z   install-command: npm ci --legacy-peer-deps
+2026-10-10T01:22:34.7697478Z ##[endgroup]
+2026-10-10T01:22:34.7784514Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run]
+2026-10-10T01:22:34.7880605Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-10T01:22:34.7881356Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-10T01:22:34.7881929Z [36;1mattempt_install() {[0m
+2026-10-10T01:22:34.7882375Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-10T01:22:34.7882986Z [36;1m}[0m
+2026-10-10T01:22:34.7883356Z [36;1mcleanup_partial_install() {[0m
+2026-10-10T01:22:34.7883991Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-10T01:22:34.7884529Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-10T01:22:34.7885055Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-10T01:22:34.7885558Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-10T01:22:34.7886058Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-10T01:22:34.7886566Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-10T01:22:34.7887641Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-10T01:22:34.7889079Z [36;1m}[0m
+2026-10-10T01:22:34.7889440Z [36;1mfor i in 1 2 3; do[0m
+2026-10-10T01:22:34.7889883Z [36;1m  if attempt_install; then[0m
+2026-10-10T01:22:34.7890356Z [36;1m    exit 0[0m
+2026-10-10T01:22:34.7890731Z [36;1m  fi[0m
+2026-10-10T01:22:34.7891099Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-10T01:22:34.7891568Z [36;1m    delay=$((i * 15))[0m
+2026-10-10T01:22:34.7892220Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-10T01:22:34.7893178Z [36;1m    sleep "$delay"[0m
+2026-10-10T01:22:34.7893658Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-10T01:22:34.7894446Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-10T01:22:34.7895194Z [36;1m      exit 1[0m
+2026-10-10T01:22:34.7895643Z [36;1m    fi[0m
+2026-10-10T01:22:34.7895986Z [36;1m  fi[0m
+2026-10-10T01:22:34.7896329Z [36;1mdone[0m
+2026-10-10T01:22:34.7896795Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-10T01:22:34.7897386Z [36;1mexit 1[0m
+2026-10-10T01:22:34.8709958Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:22:34.8710588Z ##[endgroup]
+2026-10-10T01:22:37.9477486Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-10T01:22:50.4646376Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-10T01:22:50.4677555Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:22:50.5688929Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-10T01:22:50.6070383Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-10T01:22:50.6695206Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-10T01:22:50.7306885Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:22:50.7397911Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:22:50.7761884Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-10T01:22:50.8077780Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-10T01:22:50.8235258Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:22:50.8614559Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-10T01:22:51.0536276Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:22:51.0687841Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-10T01:22:51.1187587Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1204150Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1221124Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1270880Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1279702Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1292927Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1387276Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1410773Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.1414757Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:22:51.5416196Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:22:51.5687704Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-10T01:22:51.6055496Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-10T01:22:51.9638219Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:22:52.2049358Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:22:53.5787033Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:22:53.7686836Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-10T01:22:54.2614538Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-10T01:22:55.9657222Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-10T01:22:56.4315308Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-10T01:22:57.2024061Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-10T01:22:59.3363215Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:22:59.3374413Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:23:00.0947835Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-10T01:23:00.6648086Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:23:00.6658855Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:23:00.6663320Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-10T01:23:07.2943755Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-10T01:23:09.4569247Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-10T01:23:33.4810801Z 
+2026-10-10T01:23:33.4811623Z added 2540 packages, and audited 2556 packages in 59s
+2026-10-10T01:23:33.4812103Z 
+2026-10-10T01:23:33.4812385Z 482 packages are looking for funding
+2026-10-10T01:23:33.4813216Z   run `npm fund` for details
+2026-10-10T01:23:33.7171995Z 
+2026-10-10T01:23:33.7173365Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T01:23:33.7173802Z 
+2026-10-10T01:23:33.7174108Z To address issues that do not require attention, run:
+2026-10-10T01:23:33.7174554Z   npm audit fix
+2026-10-10T01:23:33.7174740Z 
+2026-10-10T01:23:33.7175078Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:23:33.7175570Z   npm audit fix --force
+2026-10-10T01:23:33.7175766Z 
+2026-10-10T01:23:33.7176009Z Some issues need review, and may require choosing
+2026-10-10T01:23:33.7176439Z a different dependency.
+2026-10-10T01:23:33.7176615Z 
+2026-10-10T01:23:33.7176771Z Run `npm audit` for details.
+2026-10-10T01:23:33.9867257Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=59208]
+2026-10-10T01:23:33.9870592Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_2]
+2026-10-10T01:23:33.9896044Z ##[group]Run attempt_install() {
+2026-10-10T01:23:33.9896386Z [36;1mattempt_install() {[0m
+2026-10-10T01:23:33.9896686Z [36;1m  npm install --legacy-peer-deps[0m
+2026-10-10T01:23:33.9897179Z [36;1m}[0m
+2026-10-10T01:23:33.9897396Z [36;1mfor i in 1 2 3; do[0m
+2026-10-10T01:23:33.9897653Z [36;1m  if attempt_install; then[0m
+2026-10-10T01:23:33.9897921Z [36;1m    exit 0[0m
+2026-10-10T01:23:33.9898137Z [36;1m  fi[0m
+2026-10-10T01:23:33.9898552Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-10T01:23:33.9899003Z [36;1m    delay=$((i * 15))[0m
+2026-10-10T01:23:33.9899476Z [36;1m    echo "::warning::desktop-app-vue npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-10T01:23:33.9899977Z [36;1m    sleep "$delay"[0m
+2026-10-10T01:23:33.9900231Z [36;1m  fi[0m
+2026-10-10T01:23:33.9900436Z [36;1mdone[0m
+2026-10-10T01:23:33.9900781Z [36;1mecho "::error::desktop-app-vue npm install failed after 3 attempts"[0m
+2026-10-10T01:23:33.9901189Z [36;1mexit 1[0m
+2026-10-10T01:23:33.9973433Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:23:33.9973804Z ##[endgroup]
+2026-10-10T01:23:34.1275617Z npm warn config ignoring workspace config at /home/runner/work/chainlesschain/chainlesschain/desktop-app-vue/.npmrc
+2026-10-10T01:23:36.4032211Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:23:36.4089522Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:23:36.5036692Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:23:36.5386135Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:23:39.0842119Z 
+2026-10-10T01:23:39.0843589Z up to date, audited 2556 packages in 5s
+2026-10-10T01:23:39.0844273Z 
+2026-10-10T01:23:39.0844650Z 482 packages are looking for funding
+2026-10-10T01:23:39.0845927Z   run `npm fund` for details
+2026-10-10T01:23:39.3027446Z 
+2026-10-10T01:23:39.3028774Z 119 vulnerabilities (8 low, 23 moderate, 87 high, 1 critical)
+2026-10-10T01:23:39.3029393Z 
+2026-10-10T01:23:39.3029895Z To address issues that do not require attention, run:
+2026-10-10T01:23:39.3030547Z   npm audit fix
+2026-10-10T01:23:39.3030817Z 
+2026-10-10T01:23:39.3031329Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:23:39.3032141Z   npm audit fix --force
+2026-10-10T01:23:39.3032354Z 
+2026-10-10T01:23:39.3032883Z Some issues need review, and may require choosing
+2026-10-10T01:23:39.3033335Z a different dependency.
+2026-10-10T01:23:39.3033533Z 
+2026-10-10T01:23:39.3033695Z Run `npm audit` for details.
+2026-10-10T01:23:39.3311049Z ##[end-action id=__self.__run_2;outcome=success;conclusion=success;duration_ms=5343]
+2026-10-10T01:23:39.3323700Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_3]
+2026-10-10T01:23:39.3347499Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-10T01:23:39.3348019Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-10T01:23:39.3348566Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-10T01:23:39.3349242Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-10T01:23:39.3349766Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-10T01:23:39.3350182Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-10T01:23:39.3350679Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-10T01:23:39.3351162Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-10T01:23:39.3351642Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-10T01:23:39.3352125Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-10T01:23:39.3353145Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-10T01:23:39.3353538Z [36;1m  *)             pkg="" ;;[0m
+2026-10-10T01:23:39.3353827Z [36;1mesac[0m
+2026-10-10T01:23:39.3354083Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-10T01:23:39.3354452Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-10T01:23:39.3354956Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-10T01:23:39.3355275Z [36;1m  echo "Installing: $packages"[0m
+2026-10-10T01:23:39.3355624Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-10T01:23:39.3356045Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-10T01:23:39.3356480Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-10T01:23:39.3356870Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-10T01:23:39.3357211Z [36;1m  else[0m
+2026-10-10T01:23:39.3357549Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-10T01:23:39.3357971Z [36;1m  fi[0m
+2026-10-10T01:23:39.3358188Z [36;1mfi[0m
+2026-10-10T01:23:39.3420909Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-10T01:23:39.3421317Z env:
+2026-10-10T01:23:39.3421541Z   EXTRA_PACKAGES: 
+2026-10-10T01:23:39.3421790Z   INSTALL_WORKSPACE: 
+2026-10-10T01:23:39.3422042Z ##[endgroup]
+2026-10-10T01:23:39.3551129Z Installing: @rollup/rollup-linux-x64-gnu
+2026-10-10T01:23:41.8254324Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-10T01:23:41.8522089Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-10T01:23:42.1402088Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-10T01:23:42.1438807Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-10T01:23:43.5625039Z 
+2026-10-10T01:23:43.5625904Z added 1 package, changed 1 package, and audited 2557 packages in 4s
+2026-10-10T01:23:43.5626488Z 
+2026-10-10T01:23:43.5626684Z 482 packages are looking for funding
+2026-10-10T01:23:43.5627850Z   run `npm fund` for details
+2026-10-10T01:23:43.7965409Z 
+2026-10-10T01:23:43.7966344Z 120 vulnerabilities (8 low, 23 moderate, 88 high, 1 critical)
+2026-10-10T01:23:43.7966766Z 
+2026-10-10T01:23:43.7967096Z To address issues that do not require attention, run:
+2026-10-10T01:23:43.7967610Z   npm audit fix
+2026-10-10T01:23:43.7967793Z 
+2026-10-10T01:23:43.7968165Z To address all issues possible (including breaking changes), run:
+2026-10-10T01:23:43.7968704Z   npm audit fix --force
+2026-10-10T01:23:43.7968915Z 
+2026-10-10T01:23:43.7969177Z Some issues need review, and may require choosing
+2026-10-10T01:23:43.7969658Z a different dependency.
+2026-10-10T01:23:43.7969861Z 
+2026-10-10T01:23:43.7970031Z Run `npm audit` for details.
+2026-10-10T01:23:43.8244602Z ##[end-action id=__self.__run_3;outcome=success;conclusion=success;duration_ms=4491]
+2026-10-10T01:23:43.8288487Z ##[group]Run npm run test:db
+2026-10-10T01:23:43.8288842Z [36;1mnpm run test:db[0m
+2026-10-10T01:23:43.8354428Z shell: /usr/bin/bash -e {0}
+2026-10-10T01:23:43.8354777Z ##[endgroup]
+2026-10-10T01:23:43.9680641Z npm warn config ignoring workspace config at /home/runner/work/chainlesschain/chainlesschain/desktop-app-vue/.npmrc
+2026-10-10T01:23:43.9996681Z 
+2026-10-10T01:23:43.9997630Z > chainlesschain-desktop-vue@5.0.3-alpha.140 test:db
+2026-10-10T01:23:43.9998503Z > node scripts/test-database.js
+2026-10-10T01:23:43.9998804Z 
+2026-10-10T01:23:44.0823445Z [2026-10-10T01:23:44.081Z] [INFO] [main] [BetterSQLiteAdapter] 使用 better-sqlite3-multiple-ciphers
+2026-10-10T01:23:44.0829214Z [logger] 写入日志文件失败: ENOENT: no such file or directory, open '/tmp/chainlesschain-test/logs/chainlesschain-2026-10-10.log'
+2026-10-10T01:23:44.0842970Z === 开始数据库测试 ===
+2026-10-10T01:23:44.0843473Z 
+2026-10-10T01:23:44.0843997Z 1. 初始化数据库...
+2026-10-10T01:23:44.0860872Z [2026-10-10T01:23:44.085Z] [INFO] [main] [Database] Prepared statement 缓存已初始化 (LRU, max=500)
+2026-10-10T01:23:44.0862349Z [2026-10-10T01:23:44.085Z] [INFO] [main] [Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)
+2026-10-10T01:23:44.0865629Z [2026-10-10T01:23:44.086Z] [INFO] [main] [AppConfig] 配置文件不存在，使用默认配置
+2026-10-10T01:23:44.0867475Z [2026-10-10T01:23:44.086Z] [INFO] [main] [AppConfig] 配置保存成功
+2026-10-10T01:23:44.0871224Z [2026-10-10T01:23:44.086Z] [INFO] [main] [AppConfig] 创建数据库目录: /tmp/chainlesschain-test/data
+2026-10-10T01:23:44.0874244Z [2026-10-10T01:23:44.087Z] [INFO] [main] 数据库路径: "/tmp/chainlesschain-test/data/chainlesschain.db"
+2026-10-10T01:23:44.0875769Z [2026-10-10T01:23:44.087Z] [INFO] [main] [Database] 使用 Better-SQLite3 初始化数据库...
+2026-10-10T01:23:44.0878598Z [2026-10-10T01:23:44.087Z] [INFO] [main] [BetterSQLiteAdapter] 使用 better-sqlite3 创建数据库: "/tmp/chainlesschain-test/data/chainlesschain.db"
+2026-10-10T01:23:44.0890698Z (node:3030) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/chainlesschain/chainlesschain/desktop-app-vue/src/main/utils/logger.js is not specified and it doesn't parse as CommonJS.
+2026-10-10T01:23:44.0893227Z Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+2026-10-10T01:23:44.0894974Z To eliminate this warning, add "type": "module" to /home/runner/work/chainlesschain/chainlesschain/desktop-app-vue/package.json.
+2026-10-10T01:23:44.0896483Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-10T01:23:44.1121862Z [2026-10-10T01:23:44.111Z] [INFO] [main] [BetterSQLiteAdapter] WAL 模式已启用
+2026-10-10T01:23:44.1178893Z [2026-10-10T01:23:44.117Z] [INFO] [main] [Database] 开始创建数据库表...
+2026-10-10T01:23:44.1179893Z [2026-10-10T01:23:44.117Z] [INFO] [main] [Database] 禁用外键约束...
+2026-10-10T01:23:44.2076785Z [2026-10-10T01:23:44.207Z] [INFO] [main] [Database] 重新启用外键约束...
+2026-10-10T01:23:44.2085424Z [2026-10-10T01:23:44.208Z] [INFO] [main] [Database] ✓ 所有表和索引创建成功
+2026-10-10T01:23:44.2086496Z [2026-10-10T01:23:44.208Z] [INFO] [main] [Database] 数据库表创建完成
+2026-10-10T01:23:44.2121050Z [2026-10-10T01:23:44.211Z] [INFO] [main] [Database] 开始数据库迁移...
+2026-10-10T01:23:44.2129285Z [2026-10-10T01:23:44.212Z] [INFO] [main] [Database] 添加 conversations.is_starred 列
+2026-10-10T01:23:44.2164550Z [2026-10-10T01:23:44.216Z] [INFO] [main] [Database] 添加 p2p_chat_messages.transfer_id 列
+2026-10-10T01:23:44.2194913Z [2026-10-10T01:23:44.219Z] [INFO] [main] [Database] 执行同步字段迁移 (V2)...
+2026-10-10T01:23:44.2196903Z [2026-10-10T01:23:44.219Z] [INFO] [main] [Database] 添加 conversations.sync_status 列
+2026-10-10T01:23:44.2227240Z [2026-10-10T01:23:44.222Z] [INFO] [main] [Database] 添加 conversations.synced_at 列
+2026-10-10T01:23:44.2257720Z [2026-10-10T01:23:44.225Z] [INFO] [main] [Database] 添加 messages.sync_status 列
+2026-10-10T01:23:44.2292195Z [2026-10-10T01:23:44.229Z] [INFO] [main] [Database] 添加 messages.synced_at 列
+2026-10-10T01:23:44.2329583Z [2026-10-10T01:23:44.232Z] [INFO] [main] [Database] 添加 knowledge_items.synced_at 列
+2026-10-10T01:23:44.2364631Z [2026-10-10T01:23:44.236Z] [INFO] [main] [Database] 添加 knowledge_items.deleted 列
+2026-10-10T01:23:44.2394670Z [2026-10-10T01:23:44.239Z] [INFO] [main] [Database] 执行企业版字段迁移...
+2026-10-10T01:23:44.2395534Z [2026-10-10T01:23:44.239Z] [INFO] [main] [Database] 添加 knowledge_items.org_id 列
+2026-10-10T01:23:44.2425555Z [2026-10-10T01:23:44.242Z] [INFO] [main] [Database] 添加 knowledge_items.created_by 列
+2026-10-10T01:23:44.2455863Z [2026-10-10T01:23:44.245Z] [INFO] [main] [Database] 添加 knowledge_items.updated_by 列
+2026-10-10T01:23:44.2485931Z [2026-10-10T01:23:44.248Z] [INFO] [main] [Database] 添加 knowledge_items.share_scope 列
+2026-10-10T01:23:44.2516150Z [2026-10-10T01:23:44.251Z] [INFO] [main] [Database] 添加 knowledge_items.permissions 列
+2026-10-10T01:23:44.2545978Z [2026-10-10T01:23:44.254Z] [INFO] [main] [Database] 添加 knowledge_items.version 列
+2026-10-10T01:23:44.2575761Z [2026-10-10T01:23:44.257Z] [INFO] [main] [Database] 添加 knowledge_items.parent_version_id 列
+2026-10-10T01:23:44.2605459Z [2026-10-10T01:23:44.260Z] [INFO] [main] [Database] 添加 knowledge_items.cid 列
+2026-10-10T01:23:44.2638842Z [2026-10-10T01:23:44.263Z] [INFO] [main] [Database] 添加 project_conversations.sync_status 列
+2026-10-10T01:23:44.2669324Z [2026-10-10T01:23:44.266Z] [INFO] [main] [Database] 添加 project_conversations.synced_at 列
+2026-10-10T01:23:44.2698903Z [2026-10-10T01:23:44.269Z] [INFO] [main] [Database] 添加 project_conversations.deleted 列
+2026-10-10T01:23:44.2729568Z [2026-10-10T01:23:44.272Z] [INFO] [main] [Database] 执行项目分类迁移 (V3)...
+2026-10-10T01:23:44.2730780Z [2026-10-10T01:23:44.272Z] [INFO] [main] [Database] 执行CHECK约束更新迁移 (V4)...
+2026-10-10T01:23:44.2733447Z [2026-10-10T01:23:44.273Z] [INFO] [main] [Database] 执行任务规划消息支持迁移 (V5)...
+2026-10-10T01:23:44.2734697Z [2026-10-10T01:23:44.273Z] [INFO] [main] [Database] 添加 messages.message_type 列
+2026-10-10T01:23:44.2764741Z [2026-10-10T01:23:44.276Z] [INFO] [main] [Database] 迁移现有消息的 message_type...
+2026-10-10T01:23:44.2765856Z [2026-10-10T01:23:44.276Z] [INFO] [main] [Database] 添加 messages.metadata 列
+2026-10-10T01:23:44.2795317Z [2026-10-10T01:23:44.279Z] [INFO] [main] [Database] 执行项目交付时间迁移 (V6)...
+2026-10-10T01:23:44.2796551Z [2026-10-10T01:23:44.279Z] [INFO] [main] [Database] 执行 Android 远程终端入口字段迁移 (V7)...
+2026-10-10T01:23:44.2798596Z [2026-10-10T01:23:44.279Z] [INFO] [main] [Database] 添加 org_teams.team_type 列
+2026-10-10T01:23:44.2831107Z [2026-10-10T01:23:44.282Z] [INFO] [main] [Database] 数据库迁移完成
+2026-10-10T01:23:44.2848555Z [2026-10-10T01:23:44.284Z] [INFO] [main] [Database] 运行数据库迁移...
+2026-10-10T01:23:44.2855276Z [2026-10-10T01:23:44.285Z] [INFO] [main] [Database] 开始运行数据库迁移...
+2026-10-10T01:23:44.2857748Z [2026-10-10T01:23:44.285Z] [INFO] [main] [Database] 创建插件系统表...
+2026-10-10T01:23:44.2941895Z [2026-10-10T01:23:44.294Z] [INFO] [main] [Database] 插件系统表创建完成
+2026-10-10T01:23:44.2943214Z [2026-10-10T01:23:44.294Z] [INFO] [main] [Database] 创建音频系统表...
+2026-10-10T01:23:44.2952189Z [2026-10-10T01:23:44.295Z] [INFO] [main] [Database] 音频系统表创建完成
+2026-10-10T01:23:44.2953896Z [2026-10-10T01:23:44.295Z] [INFO] [main] [Database] 创建技能和工具管理系统表...
+2026-10-10T01:23:44.2993979Z [2026-10-10T01:23:44.299Z] [INFO] [main] [Database] 技能和工具管理系统表创建完成
+2026-10-10T01:23:44.2995748Z [2026-10-10T01:23:44.299Z] [INFO] [main] [Database] Phase 1 迁移 - 创建工作区与任务管理系统表...
+2026-10-10T01:23:44.3010649Z [2026-10-10T01:23:44.300Z] [INFO] [main] [Database] 工作区与任务管理系统表创建完成
+2026-10-10T01:23:44.3012141Z [2026-10-10T01:23:44.301Z] [INFO] [main] [Database] 添加 project_tasks.org_id 列
+2026-10-10T01:23:44.3049407Z [2026-10-10T01:23:44.304Z] [INFO] [main] [Database] 添加 project_tasks.workspace_id 列
+2026-10-10T01:23:44.3082238Z [2026-10-10T01:23:44.308Z] [INFO] [main] [Database] 添加 project_tasks.assigned_to 列
+2026-10-10T01:23:44.3115464Z [2026-10-10T01:23:44.311Z] [INFO] [main] [Database] 添加 project_tasks.collaborators 列
+2026-10-10T01:23:44.3148004Z [2026-10-10T01:23:44.314Z] [INFO] [main] [Database] 添加 project_tasks.labels 列
+2026-10-10T01:23:44.3180145Z [2026-10-10T01:23:44.317Z] [INFO] [main] [Database] 添加 project_tasks.due_date 列
+2026-10-10T01:23:44.3213160Z [2026-10-10T01:23:44.321Z] [INFO] [main] [Database] 添加 project_tasks.reminder_at 列
+2026-10-10T01:23:44.3244957Z [2026-10-10T01:23:44.324Z] [INFO] [main] [Database] 添加 project_tasks.blocked_by 列
+2026-10-10T01:23:44.3277554Z [2026-10-10T01:23:44.327Z] [INFO] [main] [Database] 添加 project_tasks.estimate_hours 列
+2026-10-10T01:23:44.3309786Z [2026-10-10T01:23:44.330Z] [INFO] [main] [Database] 添加 project_tasks.actual_hours 列
+2026-10-10T01:23:44.3342275Z [2026-10-10T01:23:44.334Z] [INFO] [main] [Database] project_tasks 表字段扩展完成
+2026-10-10T01:23:44.3344244Z [2026-10-10T01:23:44.334Z] [INFO] [main] [Database] Phase 2 迁移 - 创建文件共享与版本控制系统表...
+2026-10-10T01:23:44.3370202Z [2026-10-10T01:23:44.336Z] [INFO] [main] [Database] 文件共享与版本控制系统表创建完成
+2026-10-10T01:23:44.3372009Z [2026-10-10T01:23:44.337Z] [INFO] [main] [Database] 添加 project_files.org_id 列
+2026-10-10T01:23:44.3406843Z [2026-10-10T01:23:44.340Z] [INFO] [main] [Database] 添加 project_files.workspace_id 列
+2026-10-10T01:23:44.3439831Z [2026-10-10T01:23:44.343Z] [INFO] [main] [Database] 添加 project_files.shared_with 列
+2026-10-10T01:23:44.3473223Z [2026-10-10T01:23:44.347Z] [INFO] [main] [Database] 添加 project_files.lock_status 列
+2026-10-10T01:23:44.3506091Z [2026-10-10T01:23:44.350Z] [INFO] [main] [Database] 添加 project_files.locked_by 列
+2026-10-10T01:23:44.3539271Z [2026-10-10T01:23:44.353Z] [INFO] [main] [Database] 添加 project_files.locked_at 列
+2026-10-10T01:23:44.3572894Z [2026-10-10T01:23:44.357Z] [INFO] [main] [Database] 添加 project_files.version_number 列
+2026-10-10T01:23:44.3605837Z [2026-10-10T01:23:44.360Z] [INFO] [main] [Database] 添加 project_files.checksum 列
+2026-10-10T01:23:44.3640118Z [2026-10-10T01:23:44.363Z] [INFO] [main] [Database] project_files 表字段扩展完成
+2026-10-10T01:23:44.3641865Z [2026-10-10T01:23:44.364Z] [INFO] [main] [Database] 创建 LLM 会话管理和 Token 追踪系统表...
+2026-10-10T01:23:44.3663928Z [2026-10-10T01:23:44.366Z] [INFO] [main] [Database] LLM 会话管理和 Token 追踪系统表创建完成
+2026-10-10T01:23:44.3666121Z [2026-10-10T01:23:44.366Z] [INFO] [main] [Database] 添加 conversations.total_input_tokens 列
+2026-10-10T01:23:44.3702305Z [2026-10-10T01:23:44.369Z] [INFO] [main] [Database] 添加 conversations.total_output_tokens 列
+2026-10-10T01:23:44.3735677Z [2026-10-10T01:23:44.373Z] [INFO] [main] [Database] 添加 conversations.total_cost_usd 列
+2026-10-10T01:23:44.3769594Z [2026-10-10T01:23:44.376Z] [INFO] [main] [Database] 添加 conversations.total_cost_cny 列
+2026-10-10T01:23:44.3803509Z [2026-10-10T01:23:44.380Z] [INFO] [main] [Database] conversations 表字段扩展完成
+2026-10-10T01:23:44.3805973Z [2026-10-10T01:23:44.380Z] [INFO] [main] [Database] 创建 ErrorMonitor AI 诊断系统表...
+2026-10-10T01:23:44.3822954Z [2026-10-10T01:23:44.382Z] [INFO] [main] [Database] ✓ ErrorMonitor AI 诊断系统表创建完成
+2026-10-10T01:23:44.3824799Z [2026-10-10T01:23:44.382Z] [INFO] [main] [Database] 创建 Email 草稿系统表...
+2026-10-10T01:23:44.3830052Z [2026-10-10T01:23:44.382Z] [INFO] [main] [Database] ✓ Email 草稿系统表创建完成
+2026-10-10T01:23:44.3831853Z [2026-10-10T01:23:44.382Z] [INFO] [main] [Database] 创建浏览器自动化系统表 (Phase 4-5)...
+2026-10-10T01:23:44.3876351Z [2026-10-10T01:23:44.387Z] [INFO] [main] [Database] ✓ 浏览器自动化系统表创建完成
+2026-10-10T01:23:44.3878206Z [2026-10-10T01:23:44.387Z] [INFO] [main] [Database] 创建 Permanent Memory 系统表 (009_embedding_cache)...
+2026-10-10T01:23:44.3901498Z [2026-10-10T01:23:44.389Z] [INFO] [main] [Database] ✓ Permanent Memory 表创建完成 (embedding_cache / memory_stats / memory_sections / memory_file_hashes / daily_notes_metadata)
+2026-10-10T01:23:44.3903728Z [2026-10-10T01:23:44.390Z] [INFO] [main] [Database] 创建 Memory System 表 (009_memory_system)...
+2026-10-10T01:23:44.3945704Z [2026-10-10T01:23:44.394Z] [INFO] [main] [Database] ✓ Memory System 表创建完成 (user_preferences / usage_history / search_history / prompt_patterns / error_fix_patterns / code_snippets / workflow_patterns)
+2026-10-10T01:23:44.3948255Z [2026-10-10T01:23:44.394Z] [INFO] [main] [Database] 数据库迁移任务完成
+2026-10-10T01:23:44.3949261Z [2026-10-10T01:23:44.394Z] [INFO] [main] [Database] 迁移版本已更新到 v8
+2026-10-10T01:23:44.3950334Z [2026-10-10T01:23:44.394Z] [INFO] [main] 数据库初始化成功（Better-SQLite3 开发模式）
+2026-10-10T01:23:44.3951075Z ✓ 数据库初始化成功
+2026-10-10T01:23:44.3951717Z   数据库路径: /tmp/chainlesschain-test/data/chainlesschain.db
+2026-10-10T01:23:44.3952184Z 
+2026-10-10T01:23:44.3952731Z 2. 添加知识库项...
+2026-10-10T01:23:44.3974292Z ✓ 添加成功: 测试笔记1
+2026-10-10T01:23:44.3978064Z ✓ 添加成功: 测试文档
+2026-10-10T01:23:44.3981600Z ✓ 添加成功: 测试对话
+2026-10-10T01:23:44.3982104Z 
+2026-10-10T01:23:44.3982725Z 3. 查询所有知识库项...
+2026-10-10T01:23:44.3986506Z ✓ 查询到 3 个项目
+2026-10-10T01:23:44.3987141Z   1. 测试文档 (document)
+2026-10-10T01:23:44.3987821Z   2. 测试对话 (conversation)
+2026-10-10T01:23:44.3988324Z   3. 测试笔记1 (note)
+2026-10-10T01:23:44.3988531Z 
+2026-10-10T01:23:44.3988869Z 4. 根据ID查询...
+2026-10-10T01:23:44.3989489Z ✓ 查询成功: 测试笔记1
+2026-10-10T01:23:44.3989798Z 
+2026-10-10T01:23:44.3990092Z 5. 更新知识库项...
+2026-10-10T01:23:44.3993841Z ✓ 更新成功: 测试笔记1（已更新）
+2026-10-10T01:23:44.3994149Z 
+2026-10-10T01:23:44.3994408Z 6. 测试搜索功能...
+2026-10-10T01:23:44.3997442Z ✓ 搜索到 3 个结果
+2026-10-10T01:23:44.3997887Z   1. 测试笔记1（已更新）
+2026-10-10T01:23:44.3998276Z   2. 测试文档
+2026-10-10T01:23:44.3998707Z   3. 测试对话
+2026-10-10T01:23:44.3998932Z 
+2026-10-10T01:23:44.3999143Z 7. 创建标签...
+2026-10-10T01:23:44.4000574Z [2026-10-10T01:23:44.399Z] [INFO] [main] [Database] 开始执行SQL操作
+2026-10-10T01:23:44.4001601Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 参数规范化完成
+2026-10-10T01:23:44.4004007Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 执行SQL: " INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?) "
+2026-10-10T01:23:44.4006159Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 参数数量:
+2026-10-10T01:23:44.4007697Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 前3个参数: [
+2026-10-10T01:23:44.4008805Z   "1d325d5b-69b3-40f3-b55d-cfb7cb4df930",
+2026-10-10T01:23:44.4009852Z   "工作",
+2026-10-10T01:23:44.4010374Z   "#1890ff"
+2026-10-10T01:23:44.4010972Z ]
+2026-10-10T01:23:44.4012235Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 调用 prepare + run...
+2026-10-10T01:23:44.4014026Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] ✅ SQL执行成功
+2026-10-10T01:23:44.4015228Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 开始保存到文件...
+2026-10-10T01:23:44.4016375Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] ✅ 数据已保存到文件
+2026-10-10T01:23:44.4017064Z ✓ 创建标签: 工作
+2026-10-10T01:23:44.4017808Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 开始执行SQL操作
+2026-10-10T01:23:44.4018807Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 参数规范化完成
+2026-10-10T01:23:44.4020362Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 执行SQL: " INSERT INTO tags (id, name, color, created_at) VALUES (?, ?, ?, ?) "
+2026-10-10T01:23:44.4021759Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 参数数量:
+2026-10-10T01:23:44.4023067Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 前3个参数: [
+2026-10-10T01:23:44.4023755Z   "e37ecc2d-c5f0-4863-b208-44e12ecabf67",
+2026-10-10T01:23:44.4024379Z   "学习",
+2026-10-10T01:23:44.4024751Z   "#1890ff"
+2026-10-10T01:23:44.4025113Z ]
+2026-10-10T01:23:44.4025989Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 调用 prepare + run...
+2026-10-10T01:23:44.4027468Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] ✅ SQL执行成功
+2026-10-10T01:23:44.4028594Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] 开始保存到文件...
+2026-10-10T01:23:44.4029620Z [2026-10-10T01:23:44.400Z] [INFO] [main] [Database] ✅ 数据已保存到文件
+2026-10-10T01:23:44.4030282Z ✓ 创建标签: 学习
+2026-10-10T01:23:44.4030498Z 
+2026-10-10T01:23:44.4030729Z 8. 为知识库项添加标签...
+2026-10-10T01:23:44.4031235Z ✓ 项目 "测试笔记1" 的标签: 工作, 学习
+2026-10-10T01:23:44.4031537Z 
+2026-10-10T01:23:44.4031760Z 9. 获取统计信息...
+2026-10-10T01:23:44.4032216Z ✓ 统计数据:
+2026-10-10T01:23:44.4032949Z   总数: 3
+2026-10-10T01:23:44.4033400Z   今日新增: 3
+2026-10-10T01:23:44.4034063Z   按类型分布: { conversation: 1, document: 1, note: 1 }
+2026-10-10T01:23:44.4034499Z 
+2026-10-10T01:23:44.4034760Z 10. 删除知识库项...
+2026-10-10T01:23:44.4035570Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 开始执行SQL操作
+2026-10-10T01:23:44.4036643Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 参数规范化完成
+2026-10-10T01:23:44.4038064Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 执行SQL: "DELETE FROM knowledge_search WHERE id = ?"
+2026-10-10T01:23:44.4039348Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 参数数量:
+2026-10-10T01:23:44.4040354Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 前3个参数: [
+2026-10-10T01:23:44.4041056Z   "0f1bb711-27cd-4ed9-8327-67159b29bb4d"
+2026-10-10T01:23:44.4041557Z ]
+2026-10-10T01:23:44.4042403Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 调用 prepare + run...
+2026-10-10T01:23:44.4044140Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] ✅ SQL执行成功
+2026-10-10T01:23:44.4045191Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 开始保存到文件...
+2026-10-10T01:23:44.4046196Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] ✅ 数据已保存到文件
+2026-10-10T01:23:44.4047208Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 开始执行SQL操作
+2026-10-10T01:23:44.4048215Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 参数规范化完成
+2026-10-10T01:23:44.4049554Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 执行SQL: "DELETE FROM knowledge_items WHERE id = ?"
+2026-10-10T01:23:44.4050803Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 参数数量:
+2026-10-10T01:23:44.4051785Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 前3个参数: [
+2026-10-10T01:23:44.4052670Z   "0f1bb711-27cd-4ed9-8327-67159b29bb4d"
+2026-10-10T01:23:44.4053217Z ]
+2026-10-10T01:23:44.4054084Z [2026-10-10T01:23:44.402Z] [INFO] [main] [Database] 调用 prepare + run...
+2026-10-10T01:23:44.4055188Z [2026-10-10T01:23:44.403Z] [INFO] [main] [Database] ✅ SQL执行成功
+2026-10-10T01:23:44.4056250Z [2026-10-10T01:23:44.403Z] [INFO] [main] [Database] 开始保存到文件...
+2026-10-10T01:23:44.4057216Z [2026-10-10T01:23:44.403Z] [INFO] [main] [Database] ✅ 数据已保存到文件
+2026-10-10T01:23:44.4057882Z ✓ 删除成功: true
+2026-10-10T01:23:44.4058337Z ✓ 删除后剩余 2 个项目
+2026-10-10T01:23:44.4058553Z 
+2026-10-10T01:23:44.4058785Z 11. 备份数据库...
+2026-10-10T01:23:44.4230687Z ✓ 备份成功
+2026-10-10T01:23:44.4231613Z   备份路径: /tmp/chainlesschain-test/data/chainlesschain-backup.db
+2026-10-10T01:23:44.4232085Z 
+2026-10-10T01:23:44.4233633Z [2026-10-10T01:23:44.423Z] [INFO] [main] [Database] Prepared statement缓存已清除
+2026-10-10T01:23:44.4308974Z [2026-10-10T01:23:44.430Z] [INFO] [main] 数据库连接已关闭
+2026-10-10T01:23:44.4309654Z === 所有测试通过 ✓ ===
+2026-10-10T01:23:44.4309893Z 
+2026-10-10T01:23:44.4544551Z Post job cleanup.
+2026-10-10T01:23:44.5838106Z (node:3042) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-10T01:23:44.5839844Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-10T01:23:44.5843113Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-e6cb04f390af8ddea9ee566ae5b89428bb428baab2cec58dce4ec96439473b93, not saving cache.
+2026-10-10T01:23:44.6011755Z Post job cleanup.
+2026-10-10T01:23:44.6944180Z [command]/usr/bin/git version
+2026-10-10T01:23:44.6994299Z git version 2.55.0
+2026-10-10T01:23:44.7044129Z Temporarily overriding HOME='/home/runner/work/_temp/bd1d4433-5a46-496a-a980-452887436672' before making global git config changes
+2026-10-10T01:23:44.7046014Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-10T01:23:44.7047593Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-10T01:23:44.7091192Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-10T01:23:44.7137693Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-10T01:23:44.7430127Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-10T01:23:44.7465269Z http.https://github.com/.extraheader
+2026-10-10T01:23:44.7483697Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-10T01:23:44.7565136Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-10T01:23:44.7940637Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-10T01:23:44.8000581Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-10T01:23:44.8489026Z Cleaning up orphan processes

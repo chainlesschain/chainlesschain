@@ -1,0 +1,135 @@
+{
+  "capturedAt": "2026-10-09T18:59:55.034Z",
+  "directory": "C:\\code\\chainlesschain\\.work\\astra-cancelled-checks-3caf14f\\attempt2-2026-10-09T18-59-49-031Z",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "runId": 37972023465,
+  "runAttempt": 2,
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/37972023465",
+  "jobs": [
+    {
+      "id": 113975345377,
+      "conclusion": "success",
+      "status": "completed",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T18:58:04Z",
+          "completed_at": "2026-10-09T18:58:05Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T18:58:05Z",
+          "completed_at": "2026-10-09T18:59:25Z"
+        },
+        {
+          "name": "Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T18:59:25Z",
+          "completed_at": "2026-10-09T18:59:26Z"
+        },
+        {
+          "name": "Run publish-staleness lint",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T18:59:26Z",
+          "completed_at": "2026-10-09T18:59:26Z"
+        },
+        {
+          "name": "Comment on PR with violations",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-10-09T18:59:26Z",
+          "completed_at": "2026-10-09T18:59:26Z"
+        },
+        {
+          "name": "Delete prior failure comment on clean run",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T18:59:26Z",
+          "completed_at": "2026-10-09T18:59:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-09T18:59:26Z",
+          "completed_at": "2026-10-09T18:59:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-09T18:59:26Z",
+          "completed_at": "2026-10-09T18:59:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T18:59:27Z",
+          "completed_at": "2026-10-09T18:59:27Z"
+        }
+      ]
+    }
+  ],
+  "priorAttempt": {
+    "path": "../2026-10-09T18-50-32-035Z/summary.json",
+    "conclusion": "cancelled",
+    "reason": "3 minute job timeout; checkout took about 215 seconds; lint substep reported zero violations"
+  },
+  "secretAdvisory": {
+    "runId": 37972023404,
+    "runAttempt": 1,
+    "conclusion": "cancelled",
+    "reason": "5 minute job timeout during audit; audit incomplete, not clean; not rerun",
+    "evidence": "../2026-10-09T18-50-32-035Z/summary.json"
+  },
+  "files": [
+    {
+      "path": "run.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023465",
+      "bytes": 13885,
+      "sha256": "0acb80d459ccde5c0e6d785f3cdd78b469581374ed413e9095be4d8c9311a21e"
+    },
+    {
+      "path": "attempt.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023465/attempts/2",
+      "bytes": 13907,
+      "sha256": "f972d42d7995d4391a469dad3a07eeba983e9fe8ed8a984e22a3f1e82736fe90"
+    },
+    {
+      "path": "jobs.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/runs/37972023465/attempts/2/jobs?per_page=100",
+      "bytes": 2516,
+      "sha256": "74ef77d4fc91b85bbf806acd7ea950adf63708e6e7726e2eb94648e88e35e032"
+    },
+    {
+      "path": "job-113975345377.log",
+      "endpoint": "repos/chainlesschain/chainlesschain/actions/jobs/113975345377/logs",
+      "bytes": 108212,
+      "sha256": "45eaedddb2ada6cca05baf83cf4a8b974f4d4d9c10f6af73581ff804747278c0"
+    },
+    {
+      "path": "annotations-113975345377.json",
+      "endpoint": "repos/chainlesschain/chainlesschain/check-runs/113975345377/annotations?per_page=100",
+      "bytes": 433,
+      "sha256": "4fa4af9b53443f90571333e82ff489da4c8942a18bd8a96b3faccfbd137bd53c"
+    }
+  ]
+}

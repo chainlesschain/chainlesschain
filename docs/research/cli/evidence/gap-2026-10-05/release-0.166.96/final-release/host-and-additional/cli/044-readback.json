@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-10T03:11:45.545Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "artifactId": 11657342737,
+  "name": "rc-default-audit-cli-ci-ubuntu-latest-da91e730d802b7c9dcdc075b222ecc257021e552",
+  "metadata": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/metadata.json",
+    "bytes": 797,
+    "sha256": "9c1231e1e7ee36f7fcbae9f554e8ebde79ca91903cb194ec0301afa54ee7a33b",
+    "endpoint": "actions/artifacts/11657342737"
+  },
+  "payload": {
+    "file": ".work/cli-sdk-da91e730-20261010/cli-artifacts/11657342737/artifact.zip",
+    "bytes": 1734,
+    "sha256": "1625908d2029599086f107f580c6d7bf5d2ff535ef6194d4e41d416ed53459bd",
+    "endpoint": "actions/artifacts/11657342737/zip"
+  },
+  "githubDigestMatched": true
+}

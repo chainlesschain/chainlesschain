@@ -1,0 +1,5 @@
+{"sequence":1,"pid":27904,"phase":"started"}
+{"sequence":2,"pid":27904,"phase":"spawn","application":"X:\\workspace\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe","args":["--service=0.28.1","--ping"]}
+{"sequence":3,"pid":27904,"phase":"esbuild-completed","invalidRejected":true,"servicePid":11840}
+{"sequence":4,"pid":27904,"phase":"vitest-import-started"}
+{"sequence":5,"pid":27904,"phase":"vitest-import-completed"}

@@ -1,0 +1,118 @@
+{
+  "date": "2026-07-23",
+  "type": "release",
+  "downloads": {
+    "linuxARM64": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.tar.gz",
+      "size": 1619252707,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.tar.gz.sha256"
+    },
+    "linux": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1.tar.gz",
+      "size": 1596498482,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1.tar.gz.sha256"
+    },
+    "thirdPartyLibrariesJson": {
+      "link": "https://resources.jetbrains.com/storage/third-party-libraries/idea/idea-2026.2.0.1-third-party-libraries.json",
+      "size": 74440,
+      "checksumLink": "https://resources.jetbrains.com/storage/third-party-libraries/idea/idea-2026.2.0.1-third-party-libraries.json.sha256"
+    },
+    "windows": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1.exe",
+      "size": 1176011448,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1.exe.sha256"
+    },
+    "windowsZip": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1.win.zip",
+      "size": 1610650246,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1.win.zip.sha256"
+    },
+    "windowsARM64": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.exe",
+      "size": 1150442152,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.exe.sha256"
+    },
+    "mac": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1.dmg",
+      "size": 1557338732,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1.dmg.sha256"
+    },
+    "macM1": {
+      "link": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.dmg",
+      "size": 1508025133,
+      "checksumLink": "https://download.jetbrains.com/idea/idea-2026.2.0.1-aarch64.dmg.sha256"
+    }
+  },
+  "patches": {
+    "win": [
+      {
+        "fromBuild": "262.8665.258",
+        "link": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-win.jar",
+        "size": 41369574,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-win.jar.sha256"
+      },
+      {
+        "fromBuild": "261.26222.65",
+        "link": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-win.jar",
+        "size": 658162468,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-win.jar.sha256"
+      }
+    ],
+    "mac": [
+      {
+        "fromBuild": "262.8665.258",
+        "link": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-mac.jar",
+        "size": 39501382,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-mac.jar.sha256"
+      },
+      {
+        "fromBuild": "261.26222.65",
+        "link": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-mac.jar",
+        "size": 601775447,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-mac.jar.sha256"
+      }
+    ],
+    "unix": [
+      {
+        "fromBuild": "262.8665.258",
+        "link": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-unix.jar",
+        "size": 39384045,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-262.8665.258-262.8665.337-patch-unix.jar.sha256"
+      },
+      {
+        "fromBuild": "261.26222.65",
+        "link": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-unix.jar",
+        "size": 608781951,
+        "checksumLink": "https://download.jetbrains.com/idea/IU-261.26222.65-262.8665.337-patch-unix.jar.sha256"
+      }
+    ]
+  },
+  "notesLink": "https://youtrack.jetbrains.com/articles/IDEA-A-2100662711",
+  "licenseRequired": true,
+  "version": "2026.2.0.1",
+  "majorVersion": "2026.2",
+  "build": "262.8665.337",
+  "whatsnew": "<p>IntelliJ IDEA 2026.2.0.1 is out with the following hotfix:</p>\n<p>Resolved issues affecting projects containing files stored in cloud-synced folders on Windows <a href=\"https://youtrack.jetbrains.com/issue/IJPL-250709\">[IJPL-250709]</a>, preventing repeated project reloads, endless re-imports, and files from disappearing or closing unexpectedly. <a href=\"https://youtrack.jetbrains.com/issue/IDEA-391665\">[IDEA-391665]</a>, <a href=\"https://youtrack.jetbrains.com/issue/IJPL-250598\">[IJPL-250598]</a>, <a href=\"https://youtrack.jetbrains.com/issue/IJPL-250615\">[IJPL-250615]</a>, <a href=\"https://youtrack.jetbrains.com/issue/IJPL-250539\">[IJPL-250539]</a>.</p>\n<p>For more details, please refer to the <a href=\"https://youtrack.jetbrains.com/articles/IDEA-A-2100662711/IntelliJ-IDEA-2026.2.0.1-262.8665.337-build-Release-Notes\">release notes</a></p>",
+  "uninstallFeedbackLinks": {
+    "macWithJBR": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "linuxARM64": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "sourcesArchive": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsJBR8": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsZipJBR8": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "linuxWithoutJBR": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsZipJBR11": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "thirdPartyLibrariesJson": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windows": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsZip": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "mac": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "macJBR8": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "macJBR11": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsJBR11": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "linux": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "linuxJBR11": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "windowsARM64": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "linuxJBR8": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1",
+    "macM1": "https://www.jetbrains.com/idea/uninstall/?edition=IU-2026.2.0.1"
+  },
+  "printableReleaseType": null
+}

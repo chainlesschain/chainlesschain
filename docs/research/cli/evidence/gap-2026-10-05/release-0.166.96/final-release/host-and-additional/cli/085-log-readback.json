@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-10T03:08:25.826Z",
+  "sourceCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+  "runId": 38012166593,
+  "jobId": 114115687813,
+  "name": "verify-cli (ubuntu-latest)",
+  "conclusion": "success",
+  "capture": {
+    "file": ".work/cli-sdk-da91e730-20261010/sdk-jobs/job-114115687813.log",
+    "bytes": 457607,
+    "sha256": "87d04aa4612b2da6283ae2504edaba2b4d78fb1b80330915cbaf161346d06562",
+    "endpoint": "actions/jobs/114115687813/logs"
+  }
+}

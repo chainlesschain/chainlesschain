@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-10-09T16:01:35.094Z",
+  "reviewStatus": "correction-verified-no-remaining-blocking-finding",
+  "genericOverload": "String.valueOf(Object)",
+  "charArrayCastRemoved": true,
+  "generatedScriptUnchanged": true,
+  "generatedScriptSha256": "ce69b8534f6b504545f6034c6cd6cb3cae3da11240adee0849fe35ecaf092def",
+  "correctedClassSha256": "9c860433e9c65afe64c808ab3d63219fc6018170e575800e57bb49a60a9d8c33",
+  "correctedSourceSha256": "2eda534b6bb3969b5dfb195efeca291b2843f93132b03b39dc97e27748f12655",
+  "priorFinding": "review-finding.json",
+  "contractReport": "report.json",
+  "contractCasesPassed": 10,
+  "contractsRerun": false,
+  "realIdeExecuted": false,
+  "originalCiFailureReproduced": false,
+  "callbackCompletionProven": false
+}

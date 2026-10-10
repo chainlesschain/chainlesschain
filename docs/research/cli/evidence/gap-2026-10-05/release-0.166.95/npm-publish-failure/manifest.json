@@ -1,0 +1,111 @@
+{
+  "schema": "chainlesschain.npm-publish-failure-archive/v1",
+  "createdAt": "2026-10-09T20:23:25.469Z",
+  "sourceCommit": "3caf14f2ee866335608487ab57add325972709d7",
+  "tag": "v-npm-0-166-95",
+  "runId": 37985598206,
+  "runAttempt": 1,
+  "jobId": 114008162628,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37985598206",
+  "jobUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/37985598206/job/114008162628",
+  "workflowConclusion": "failure",
+  "publishJobConclusion": "failure",
+  "failedStep": {
+    "name": "Verify published Agent SDK registry bytes and npm provenance",
+    "status": "completed",
+    "conclusion": "failure",
+    "number": 24,
+    "started_at": "2026-10-09T20:20:05Z",
+    "completed_at": "2026-10-09T20:20:08Z"
+  },
+  "cliPublishStep": {
+    "name": "Publish chainlesschain (CLI)",
+    "status": "completed",
+    "conclusion": "skipped",
+    "number": 27,
+    "started_at": "2026-10-09T20:20:08Z",
+    "completed_at": "2026-10-09T20:20:08Z"
+  },
+  "cliPublishExecuted": false,
+  "agentSdk": {
+    "version": "0.2.13",
+    "existingVersionReused": true,
+    "signedNpmProvenanceVerification": "passed according to original job log; no new verification performed by this archival task",
+    "provenanceAnchorCommit": "28cff6adc82a4f358d785baada110e48884527ea",
+    "provenanceAnchorTag": "v-npm-0-166-90",
+    "wholePackageTreeReuseGate": "failure",
+    "reason": "packages/agent-sdk changed since signed npm provenance anchor; gate requires package version bump"
+  },
+  "logEvidence": [
+    {
+      "file": "failed-job/job.log",
+      "line": 908,
+      "text": "2026-10-09T20:20:07.6057099Z Verified npm provenance for @chainlesschain/agent-sdk@0.2.13 from 28cff6adc82a4f358d785baada110e48884527ea (run 37413002340, attempt 1)"
+    },
+    {
+      "file": "failed-job/job.log",
+      "line": 909,
+      "text": "2026-10-09T20:20:08.9077147Z npm package reuse error: packages/agent-sdk changed since signed npm provenance anchor refs/tags/v-npm-0-166-90; bump the package version before release"
+    }
+  ],
+  "preservedEvaluationStatus": {
+    "formal": "NOT_RUN",
+    "native": "NOT_ADMITTED",
+    "source": "Parent task instruction; this archive does not execute or admit evaluations"
+  },
+  "scope": "Byte-for-byte archive of eight supplied raw/API/readback files. Artifact listing metadata is preserved; listed artifact ZIP payloads are not included. This records a failed publication attempt, not a successful release or a registry availability proof. No provider calls, rerun, publish, tag movement, commit, source/version/lock changes were performed.",
+  "sourceReadbackHashesVerified": true,
+  "rawBytesPreserved": true,
+  "originalFileCount": 8,
+  "totalOriginalBytes": 191440,
+  "files": [
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-attempt1/run.json",
+      "targetPath": "workflow/run.json",
+      "bytes": 13425,
+      "sha256": "67679b98b8e8bdbfb683261fbc47113f66c8080c5c6694cd3d7623263f76321d"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-attempt1/jobs-1.json",
+      "targetPath": "workflow/jobs-1.json",
+      "bytes": 20458,
+      "sha256": "e32e3261aef54149a09d16d821553f3d201412bf82c7f667261d67b68c871d54"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-attempt1/artifacts-1.json",
+      "targetPath": "workflow/artifacts-1.json",
+      "bytes": 4585,
+      "sha256": "4ea7708dfc0fb6ce8a56718733ab68922798dbeccc17af64ec6cdc784c4c424b"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-attempt1/readback.json",
+      "targetPath": "workflow/readback.json",
+      "bytes": 50405,
+      "sha256": "786f99b9936b3950d81c83e641653ff591914bf94c82e31025ccc1e5f1ad7ea7"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-failed-attempt1/run.json",
+      "targetPath": "failed-job/run.json",
+      "bytes": 14791,
+      "sha256": "68a27b011646de836573accf3c8bfa17409b5baf0ed74da7e65f03bf3b47b14b"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-failed-attempt1/job.json",
+      "targetPath": "failed-job/job.json",
+      "bytes": 8999,
+      "sha256": "89e1f1b0a07f73a0f56da89ced517c230e56e402c252173d97248bca61ec4315"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-failed-attempt1/job.log",
+      "targetPath": "failed-job/job.log",
+      "bytes": 78470,
+      "sha256": "d02e5314929fde498deb06f6c1b91453f27c04cc36500019ef261e53f8e3a84b"
+    },
+    {
+      "sourcePath": ".work/release-preflight-0.166.95/npm-c3caf14f-failed-attempt1/readback.json",
+      "targetPath": "failed-job/readback.json",
+      "bytes": 307,
+      "sha256": "130ba73596e4a49041892f84e44d3387727ce9cce818cc84c97e4ca4967e6def"
+    }
+  ]
+}

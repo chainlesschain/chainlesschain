@@ -1,0 +1,13 @@
+Private launch startup cb=104 flags=257 show=0 reserved=31
+Private launch descriptor count=3
+Private descriptor 0 flags=9 type=3 inherit=1
+Private descriptor 1 flags=9 type=3 inherit=1
+Private descriptor 2 flags=9 type=3 inherit=1
+Private application=C:\Users\longfa\AppData\Local\Temp\cc-private-v4-8gDK2k\control\node.exe command=C:\Users\longfa\AppData\Local\Temp\cc-private-v4-8gDK2k\control\node.exe -p "const r=require('node:process').report;r.excludeNetwork=true;console.log(JSON.stringify(r.getReport().header));" worker=1 leaf=0 reserved=0000000000000000 desktop=0000000000000000 title=0000000000000000
+Private launch startup cb=104 flags=257 show=10 reserved=40
+Private launch descriptor count=4
+Private descriptor 0 flags=9 type=3 inherit=1
+Private descriptor 1 flags=9 type=3 inherit=1
+Private descriptor 2 flags=9 type=3 inherit=1
+Private descriptor 3 flags=9 type=3 inherit=1
+Private application=C:\Users\longfa\AppData\Local\Temp\cc-private-v4-8gDK2k\control\node.exe command=C:\Users\longfa\AppData\Local\Temp\cc-private-v4-8gDK2k\control\node.exe --experimental-import-meta-resolve --require X:/workspace/tree/node_modules/vitest/suppress-warnings.cjs --conditions node --conditions development X:\workspace\tree\node_modules\vitest\dist\workers\forks.js worker=1 leaf=0 reserved=0000000000000000 desktop=0000000000000000 title=0000000000000000

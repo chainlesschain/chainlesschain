@@ -1,0 +1,17 @@
+{
+  "headSha": "9f4df1157e493daaee137655c4e1d37c066c50e8",
+  "runId": 37957249938,
+  "jobId": 113911369726,
+  "jobName": "test-windows / unit (windows-latest, shard 2/16)",
+  "failedStep": "Run actions/checkout@v5",
+  "cause": "Git could not create six newly archived evidence files because their Windows checkout paths exceed supported path length",
+  "annotationMessage": "Filename too long",
+  "relativePathLength": 236,
+  "pathPrefix": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.95/prepublish-attempt4/host-artifact/jetbrains-windows-2026.2.0.1/diagnostics/",
+  "affectedFiles": "011 through 016-fake-cli-state.json.receipts_<64-character hash>.json",
+  "secondaryFailure": "Upload failed unit report found no packages/cli/test-results/unit-2.xml because tests were never reached",
+  "sdkResult": "NOT_RUN; verify-cli jobs not yet created",
+  "recommendation": "Shorten archive names/paths while preserving bytes, hashes, and manifest mapping, or enable Git longpaths before checkout on Windows. Do not treat a same-SHA rerun as a reliable repair.",
+  "evidenceLimit": "Annotations and job API captured. Direct log endpoint returned HTTP 403; gh run view reports logs unavailable until run completes. No raw job log captured yet.",
+  "actionsTaken": "Read-only API/log requests and local .work evidence writes only; root notified immediately; no source changes, reruns, cancellations, or commits"
+}

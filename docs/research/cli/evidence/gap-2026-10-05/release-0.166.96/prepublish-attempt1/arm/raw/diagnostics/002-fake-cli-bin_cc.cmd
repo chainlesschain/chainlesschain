@@ -1,0 +1,2 @@
+@echo off
+"C:\hostedtoolcache\windows\node\22.12.0\arm64\node.exe" "C:\a\chainlesschain\chainlesschain\tests\fixtures\ide-roadmap\fake-stream-json-agent.mjs" %*

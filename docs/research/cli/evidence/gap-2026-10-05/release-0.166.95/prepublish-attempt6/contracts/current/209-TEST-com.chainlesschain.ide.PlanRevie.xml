@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PlanReviewTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-09T17:30:04" hostname="DESKTOP-MTMV2RE" time="0.023">
+  <properties/>
+  <testcase name="feedbackPromptAsksForPlanRevision()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.002"/>
+  <testcase name="progressMergePreservesReviewerText()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.001"/>
+  <testcase name="reviewRecordTrimsSnapshotAndPlanEventCarriesIt()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.002"/>
+  <testcase name="markdownRendersEditableReviewDocument()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.001"/>
+  <testcase name="structuralRevisionDiffPreservesReviewerTextAndIgnoresProgress()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.005"/>
+  <testcase name="persistedDraftListIsCappedAtTwenty()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.003"/>
+  <testcase name="persistedDraftsAreVersionedBoundedReplacedAndRestoredBySession()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.008"/>
+  <testcase name="commentsCarryItemFileLineColumnAndTurnAttribution()" classname="com.chainlesschain.ide.PlanReviewTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

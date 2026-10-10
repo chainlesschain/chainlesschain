@@ -1,0 +1,10 @@
+{
+  "capturedAt": "2026-10-09T12:13:30.915Z",
+  "sourceCommit": "d4b936395ee40726bff956fd3adfd4f01ff24e77",
+  "runId": 37912152813,
+  "jobId": 113761435906,
+  "jobName": "Performance & Stress Tests",
+  "conclusion": "failure",
+  "bytes": 55713,
+  "sha256": "9f74832966b668736e110199771fe854b9a84b94c7567d686cc2ddc85a40ee33"
+}
