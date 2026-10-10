@@ -913,3 +913,17 @@ JetBrains journey collector 新增 `failureDetails`，按阶段保留错误 stag
 [本地验证与发布范围回执](./cli/evidence/gap-2026-10-05/diagnostics-2026-10-10/local/validation.json)绑定六个源码文件摘要。`npm pack --dry-run --ignore-scripts` 的 1,523 个文件与相对发行源码的改动没有交集；IDE runtime/build/version 源码也未改变。这是发布范围检查，未独立重建或宣称公开产物字节相同。定向 ESLint 返回一个既有 `no-unsafe-finally` 错误；对发行源码使用同一配置读取，规则及消息一致（旧行 483、当前行 486），其余五文件无发现，不能称完整 lint 全绿。
 
 正式 36 tasks + 9 firstRuns、$99 和 observations 继续 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 的 `NOT_ADMITTED` 不变。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方 usage/账单、独立人工/辅助技术及 8h/24h/SLO 仍开放。无付费 provider 调用，不能将本轮诊断增量或四版本发行表述为两份差距报告全部任务完成。
+
+### 20.24 Windows 控制接线、真实基线与收尾错误保留
+
+新增显式 `--behavior-controls` 的四文件/五断言诊断，复用既有 Linux donor，不改冻结 specs、review runtime、源闭包、原 setup/config 或正式 observations。校验 raw reporter 的准确文件集合及全部控制名称，并将生成字节、前后 capture、donor source、runtime、依赖与成功基线一起绑定；仅控制文件的真实行为 AssertionError 可作检出，普通应用/加载错误、跳过或超时均拒绝。134 项 Node 合同、原 donor 13 项 Vitest、格式和定向 lint 通过。
+
+最终基线 c 在本机 Windows 10 x64 / 固定 Node 22.22.2 实际 **52/52**；普通用户监督器、同 SID/Job、零 capabilities、原 HANDLE 结算、Job 0、profile 删除均成立，guard **36,262 / 48,000**，未放宽上限。原源/配置/依赖及完整原始 reporter 验证通过，仍 `NOT_ADMITTED`，不冒充 Windows 11 24H2 / Node 22.12.0 正式宿主。中间 a 的 52 项通过与运行期间源码更新后的来源拒绝同时保留；b 在沙箱内 `host-token` 前置检查失败，未启动原生 root，原报告未细分具体拒绝条件。
+
+最初 verify-12/20 并行原生尝试在 Vitest import 阶段退出：`broker-termination-policy / error 13`，root/service/helper exit 125，JSON reporter 为空，两次 Job 0/profile 删除确认。12 helper 已注册并有 installed receipt，20 尚无注册完成记录；不能把二者统一说成 helper 未开始启动。固定 Rollup report-header spawnSync 的 3000ms 与此路径可能有关，但拒绝请求/精确 predicate/时间尚无证据，不确认并行资源竞争或某一具体 policy 分支为根因。原失败 gzip 逐字节保存，串行复核正在进行，原权限与期限保持。
+
+Scheduler 原子报告写入修复保留主异常对象/code及独立清理异常：文件 close、目录 close、unlink 均独立尝试；正常 replace 后清理失败仍抛出异常。六条新增回归在 Windows **48 pass / 1 POSIX skip**、WSL Ubuntu Node 22.12.0 **49/49**，修复后真实 worker/coordinator **11/11**；`no-unsafe-finally` 已消除。先前本地缺失 CLI 嵌套 Ajv 8 的导入失败保留，按原 lockfile 恢复依赖后成功，不能写成 Scheduler 生产故障。
+
+[本轮归档](./cli/evidence/gap-2026-10-05/controls-2026-10-10/README.md)逐文件保存原始字节/摘要及无损 gzip 摘要，编译二进制仍在本机，compiler closure 非 hermetic。旧 Scheduler run `38029503816` 的 `9feab8bf4dee6837f0df04ab01456a89ce760944` 三平台 smoke 回读与现有 verifier 复核成功，单机持续时间分别 Linux **17.766s**、macOS **17.920s**、Windows **19.965s**；聚合最早/最晚跨度不作为单机连续运行证明，也不确认旧失租根因。[PR #428](https://github.com/chainlesschain/chainlesschain/pull/428) 当前准确 SHA 矩阵仍排队，局部结果和旧成功不能替代。
+
+旧完整 Windows **211 = 194/16/1**、**6 检出 / 4 存活 / 4 未运行**和正式 **36+9 / NOT_RUN / INSUFFICIENT_EVIDENCE**、$99、observations 不改写。Windows/macOS durable 后端仍待实现，完整 review 的其余失败与平台冲突、官方账号/账单、独立人工、真人辅助技术及 8h/24h/SLO 继续开放。本轮无付费模型调用或发布。

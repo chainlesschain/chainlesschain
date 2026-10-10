@@ -1,0 +1,405 @@
+{
+  "schema": "chainlesschain.gap-controls-lossless-archive/v1",
+  "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a",
+  "archivedAt": "2026-10-10T07:37:39.629Z",
+  "formalSample": false,
+  "observationsCreated": false,
+  "admissionEligible": false,
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "encoding": "gzip; unmodified original bytes and both hashes retained",
+  "files": [
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\bundle.js",
+      "archived": "bundle.js.gz",
+      "originalBytes": 1038,
+      "originalDigest": "sha256:a665166e9ad45f6b74dfc00bf116547d14b374b345ba0474cfcdb5c366006c07",
+      "storedBytes": 485,
+      "storedDigest": "sha256:390ea300562b0ba74441005e9233ec86a0813e1d1d9d096c1da177681c677289"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\esbuild-trace-1.jsonl",
+      "archived": "esbuild-trace-1.jsonl.gz",
+      "originalBytes": 7183,
+      "originalDigest": "sha256:a55fdcfd386ee8a56bdd2541876b77aedef2fb00a7fc3848c28d1ceb9053fbf3",
+      "storedBytes": 688,
+      "storedDigest": "sha256:550d11b2d3c67cfa6329daeb2d8e1cb645d2782fe589618e13da5ad08a1413d9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\agent-evolution-test-boundary.js",
+      "archived": "inputs/agent-evolution-test-boundary.js.gz",
+      "originalBytes": 4922,
+      "originalDigest": "sha256:c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516",
+      "storedBytes": 1388,
+      "storedDigest": "sha256:f5d8f503cd0bdb32ff44deeb375273546b45fe4e49800a4eec56cd76050222be"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\check.cjs",
+      "archived": "inputs/check.cjs.gz",
+      "originalBytes": 4961,
+      "originalDigest": "sha256:ec071d17080e85d3cfd8c2abf67f35da4812dd6377d383c6048efdc210b6b8de",
+      "storedBytes": 1895,
+      "storedDigest": "sha256:b55c551d658591e546c6edad6befcb0ca54dd36d8e117ef4f535dfada88fd048"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\manifest.json",
+      "archived": "inputs/manifest.json.gz",
+      "originalBytes": 6560852,
+      "originalDigest": "sha256:5bfc483de04a94957f1a979eee01f3079f613afd192f15dfd1fd203ac04d4db9",
+      "storedBytes": 982285,
+      "storedDigest": "sha256:905f0fe1203616c66622e7ab7ccaa6b79458465ba0e54f2aa092b6812bf7c038"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\model-capabilities.test.js",
+      "archived": "inputs/model-capabilities.test.js.gz",
+      "originalBytes": 14263,
+      "originalDigest": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf",
+      "storedBytes": 3231,
+      "storedDigest": "sha256:36f9ac5eb660de94f6252d2977dde2be1997fe9acebc8482697b9c0daeac8d66"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\preparation.json",
+      "archived": "inputs/preparation.json.gz",
+      "originalBytes": 1855718,
+      "originalDigest": "sha256:5bf26376fb4b2fccc06cf2af1a60aee90a381035148a6881a22b772b12ed69a6",
+      "storedBytes": 481533,
+      "storedDigest": "sha256:0826cc7f971fdb52d4cf5a7a53d537f43fc5ee50f1a8321617d10556b6e3217f"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\review-vitest.config.mjs",
+      "archived": "inputs/review-vitest.config.mjs.gz",
+      "originalBytes": 985,
+      "originalDigest": "sha256:da41650e6e5d71c8da0618281cbf697bda9df861d82de8cfaf4fe75b53a88f08",
+      "storedBytes": 389,
+      "storedDigest": "sha256:c2b854584fd0bd6ac7a29cbe79a0ba045aa8c1008d8dc7854f71a9d3966a8748"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\source-closure.json",
+      "archived": "inputs/source-closure.json.gz",
+      "originalBytes": 1366950,
+      "originalDigest": "sha256:b8a63ab9af6e4d9be9469af2c07416d350b5a1f70301b40d8f89ffbc0f1ea658",
+      "storedBytes": 369128,
+      "storedDigest": "sha256:b0bb606143218d618ad4ec08ce23cb77048daa463d9a9accee348f5da2800d19"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\verify-12.test.js",
+      "archived": "inputs/verify-12.test.js.gz",
+      "originalBytes": 838,
+      "originalDigest": "sha256:a72a79179afcb0aea2ac0436e472c0df189dcfb87fa485abe62ed4a808e9db56",
+      "storedBytes": 384,
+      "storedDigest": "sha256:15dc49f521a42cfcb43e5bcd93c209c5c3c4b66d27072f984b394f28172c9bf4"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\verify-20.test.js",
+      "archived": "inputs/verify-20.test.js.gz",
+      "originalBytes": 709,
+      "originalDigest": "sha256:f6bd1f777ca894520d8317b5055c4db29ec2fb5b06da9c0b879dde1bee314d07",
+      "storedBytes": 317,
+      "storedDigest": "sha256:26cedeb9cb7f1183a198edb477039b83d2a02bece81ef676aaed9b6120e0d72f"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\verify-29.test.js",
+      "archived": "inputs/verify-29.test.js.gz",
+      "originalBytes": 1398,
+      "originalDigest": "sha256:7fbba29e4507b18ab74be8fa69f1825a2394c4b85cb1f91cf897faba3fdf3f8d",
+      "storedBytes": 559,
+      "storedDigest": "sha256:9a670ad1045e96a3c25c163ef15b1ba586b08716fe6efb971521c80e265beac9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\verify-30.test.js",
+      "archived": "inputs/verify-30.test.js.gz",
+      "originalBytes": 2201,
+      "originalDigest": "sha256:6bf5a485c54aa26722221a9fefbc0f7d9828280fd734f14e9f663508124be0fe",
+      "storedBytes": 937,
+      "storedDigest": "sha256:a9b22ea35cf2fab9f32c2515557f2482166fad818616ff3846b3a83b87310d76"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\vitest.config.js",
+      "archived": "inputs/vitest.config.js.gz",
+      "originalBytes": 3515,
+      "originalDigest": "sha256:2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08",
+      "storedBytes": 1741,
+      "storedDigest": "sha256:467aeec21e30d774f901b2db28161db101e68d3300452ee34d4e82255e4c91e5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.manifest.json",
+      "archived": "inputs/windows-node-private-v4.manifest.json.gz",
+      "originalBytes": 1370,
+      "originalDigest": "sha256:eb1b532fefa1984c6c93185db60af775e1ad111af5d833ca254772ae7a957355",
+      "storedBytes": 761,
+      "storedDigest": "sha256:eaea836b1eea3f3ce7f4c3e565602f24d5eb27752a28bbc627ebf56f8c33fbbb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.report-helper-c82c0eba-e682-4471-a15f-5a1734ed9c8a.manifest.json",
+      "archived": "inputs/windows-node-private-v4.report-helper-c82c0eba-e682-4471-a15f-5a1734ed9c8a.manifest.json.gz",
+      "originalBytes": 1422,
+      "originalDigest": "sha256:768d9b2bd54844743791cb7a7efd8e4fa9bc6647c1c36fa2d0daf7c35eef7c67",
+      "storedBytes": 785,
+      "storedDigest": "sha256:5f3ce725ec3f69985cda1fca27cfdc47e160fb7e00c2186ab7d213d77d516f5a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-0c7888a9-b2f0-49e7-b672-d1f8a619eafe.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-0c7888a9-b2f0-49e7-b672-d1f8a619eafe.manifest.json.gz",
+      "originalBytes": 1408,
+      "originalDigest": "sha256:62ad2ee1206c491cb31dd73b3ef7a9939674b0ae78fd9f346fe5ddb0b64cae8b",
+      "storedBytes": 778,
+      "storedDigest": "sha256:6d6b902a553d2514ce18c68ec59e342b70f0289c1df3440cf3a226948a81c775"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-1b818e6b-cea3-4cb9-af56-33b10c6f6aa7.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-1b818e6b-cea3-4cb9-af56-33b10c6f6aa7.manifest.json.gz",
+      "originalBytes": 1408,
+      "originalDigest": "sha256:76bf301f28b7e5fd71fc6a3900bb6ceef670a28069180634ac49dc5eeb4a74b3",
+      "storedBytes": 777,
+      "storedDigest": "sha256:3d6898259a15f1db32a6c58d2241c89c56af02b9b2adac48e10e7d705361c903"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-36b0bf0c-df33-4b54-add7-156211ef2e30.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-36b0bf0c-df33-4b54-add7-156211ef2e30.manifest.json.gz",
+      "originalBytes": 1408,
+      "originalDigest": "sha256:f7f138adb11dca18dca4e6dd4cdfb67e87712959c7792f3217233cc582317cc0",
+      "storedBytes": 778,
+      "storedDigest": "sha256:535ef450793b51df093bc57d1a834a8d3d9236e51c95f50b8345966d70ecde23"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-5e120960-e55c-4f95-9d05-da75821fa5ee.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-5e120960-e55c-4f95-9d05-da75821fa5ee.manifest.json.gz",
+      "originalBytes": 1408,
+      "originalDigest": "sha256:ce674b7ccfd488096dccf526bf263edeb0f66b96e40e1ebbf6431d81252a901d",
+      "storedBytes": 778,
+      "storedDigest": "sha256:882cf57ebfb5c49349e3876316a65316a90280a4632fbcc61461bc86aac4077a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-6d139180-f685-40a0-8421-4caf6d468b3f.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-6d139180-f685-40a0-8421-4caf6d468b3f.manifest.json.gz",
+      "originalBytes": 1408,
+      "originalDigest": "sha256:56d9027c309682e210baceb38bcc9a0e91f23aba9a5e3bfb7c0fda128d34a59b",
+      "storedBytes": 779,
+      "storedDigest": "sha256:87a97cf814b901054f0d67c5ab60295934a6ba84d0ee01f951b935b86307061a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-8bf0949d-d99e-4e29-b4b7-087df8534f1d.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-8bf0949d-d99e-4e29-b4b7-087df8534f1d.manifest.json.gz",
+      "originalBytes": 1407,
+      "originalDigest": "sha256:3a2a61db125bc317c83052ec3b93e2b2a9819c00aef23bd920b41f5343d0d4ea",
+      "storedBytes": 778,
+      "storedDigest": "sha256:49896bf1ac32d5cec6a5f5677dfc77825afbc9bce9326a60c06fe15a421b0af9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-994d5793-6ec5-470b-ac8b-f39f9ad57282.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-994d5793-6ec5-470b-ac8b-f39f9ad57282.manifest.json.gz",
+      "originalBytes": 1407,
+      "originalDigest": "sha256:6a04e64f7ac811eccf161e535200abb98be0b951d4d5f90f8a8999622ec9090d",
+      "storedBytes": 778,
+      "storedDigest": "sha256:cbae7b29381f0481a2d6b706555895f71d52ac106f28fd4b6ad8823d6f8756d9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-node-private-v4.worker-a3a9a41b-f129-4102-b143-3798bd7f47bd.manifest.json",
+      "archived": "inputs/windows-node-private-v4.worker-a3a9a41b-f129-4102-b143-3798bd7f47bd.manifest.json.gz",
+      "originalBytes": 1407,
+      "originalDigest": "sha256:313acdc746f780a58dfb415a73a279379273fca6e69c5ddfd0f500a53f5cee00",
+      "storedBytes": 775,
+      "storedDigest": "sha256:74de927ece0395ad6c9b5325a8f5bb21c08ac1701d8b3d69706bc01d3fce57e4"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-sandbox-adapter-cleanup.js",
+      "archived": "inputs/windows-sandbox-adapter-cleanup.js.gz",
+      "originalBytes": 1490,
+      "originalDigest": "sha256:c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+      "storedBytes": 699,
+      "storedDigest": "sha256:a4ff546eb9b0d08d739d567b56db042955fa690748fa585b88f0f98d8f2a0ce2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\inputs\\windows-sandbox-adapter-temp-root.js",
+      "archived": "inputs/windows-sandbox-adapter-temp-root.js.gz",
+      "originalBytes": 376,
+      "originalDigest": "sha256:6038c0e7b3d40886fee5f16c7803e62488f945554e6ef234b60947fc93341637",
+      "storedBytes": 211,
+      "storedDigest": "sha256:4c65ef4e89a3e6f64c6699786377c7e7df03544f05dae979175de9490e0b1dec"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\journal.jsonl",
+      "archived": "journal.jsonl.gz",
+      "originalBytes": 3593,
+      "originalDigest": "sha256:14b057d15281cdb464df4a92dea1bf74006dab8a02ec661dba68e28a3e9d6b32",
+      "storedBytes": 941,
+      "storedDigest": "sha256:a9387062782b071ef983c4735abce6fadc2c9ece3cd60996a029f0f8c94b300c"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\manifest.json",
+      "archived": "manifest.json.gz",
+      "originalBytes": 1370,
+      "originalDigest": "sha256:eb1b532fefa1984c6c93185db60af775e1ad111af5d833ca254772ae7a957355",
+      "storedBytes": 761,
+      "storedDigest": "sha256:eaea836b1eea3f3ce7f4c3e565602f24d5eb27752a28bbc627ebf56f8c33fbbb"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\report.json",
+      "archived": "report.json.gz",
+      "originalBytes": 25143306,
+      "originalDigest": "sha256:5d9b26c6623e9c314f10fd30cff57a00d2cb602ebc1c5626788e1eef2ab22bbb",
+      "storedBytes": 1875526,
+      "storedDigest": "sha256:d659ab0dfe9d6d15a257fe01fb44c80228ec177689007b339d8914b6255f0001"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\service.json",
+      "archived": "service.json.gz",
+      "originalBytes": 3844,
+      "originalDigest": "sha256:030edf97cfd8ee60d280b4d1746f3d4fd9cb29279e23478582310e05f4e8cd7f",
+      "storedBytes": 1906,
+      "storedDigest": "sha256:7966ff2c14a9e755a18d94947eb453525bb8e2430656930843c18ce040d77450"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\verify01-review-diagnostic-extra-controls.mjs",
+      "archived": "source/verify01-review-diagnostic-extra-controls.mjs.gz",
+      "originalBytes": 13693,
+      "originalDigest": "sha256:30b77589681169a7b6dc03187949f0699eb594eda156ae6b1cf6a7e7b6038866",
+      "storedBytes": 4235,
+      "storedDigest": "sha256:b08f0bd47f3327153af4d6e3bec1354ca14ffe1d752274156369efde15916e94"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\verify01-review-pack-diagnostic.mjs",
+      "archived": "source/verify01-review-pack-diagnostic.mjs.gz",
+      "originalBytes": 25408,
+      "originalDigest": "sha256:b2a0596088be934c9ed7700c92f3ab475b5b938514b5188d48218d480489afa3",
+      "storedBytes": 8012,
+      "storedDigest": "sha256:8ec49810236849514a6a10a3266c3f057379178d3ff7afdf59bd3c16790471cd"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\verify01-review-runtime.mjs",
+      "archived": "source/verify01-review-runtime.mjs.gz",
+      "originalBytes": 19522,
+      "originalDigest": "sha256:39a0825c4c738a5a944e7350919997b75840187a6df50d6fc5ff4e3389b4179a",
+      "storedBytes": 6405,
+      "storedDigest": "sha256:13e05d4bde0c20afa54f1fca2e81e7c1cc7f27f490d4b37add5d608f5ee7f70d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\verify01-review-specs.mjs",
+      "archived": "source/verify01-review-specs.mjs.gz",
+      "originalBytes": 18732,
+      "originalDigest": "sha256:25e77b0c812727ca15ec3a7d46c5eb264e458be2d2d0c6efd0449a54c463b237",
+      "storedBytes": 4214,
+      "storedDigest": "sha256:597fbbd0f4530a904f9aaf8c9202f0320abb6fb5035487b55710e65fbc67fdb6"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-esbuild-private-map-shim.cpp",
+      "archived": "source/windows-esbuild-private-map-shim.cpp.gz",
+      "originalBytes": 12342,
+      "originalDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "storedBytes": 4106,
+      "storedDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-esbuild-private-map-supervisor.cpp",
+      "archived": "source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "originalBytes": 26434,
+      "originalDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "storedBytes": 9037,
+      "storedDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-adapter.cpp",
+      "archived": "source/windows-node-private-v4-adapter.cpp.gz",
+      "originalBytes": 53145,
+      "originalDigest": "sha256:c958c5d1a278b9eae2c2639074ff39b2156618cee97a69e27abb69d996138694",
+      "storedBytes": 13912,
+      "storedDigest": "sha256:55d65f05d3486c5edca1d0d6ebe866d96351d44c8a8c0ea6a7c267450b872201"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-adapter.h",
+      "archived": "source/windows-node-private-v4-adapter.h.gz",
+      "originalBytes": 28012,
+      "originalDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "storedBytes": 8150,
+      "storedDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-broker.cpp",
+      "archived": "source/windows-node-private-v4-broker.cpp.gz",
+      "originalBytes": 43120,
+      "originalDigest": "sha256:3a1980af9446867926be6aba93fcc7ff93de580a2451dfb4fa71f311ba386436",
+      "storedBytes": 12782,
+      "storedDigest": "sha256:df067822bb10c4ec28b588aedee7a62c8603278de6855f43ca0d1c9f005f99ff"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-controls.mjs",
+      "archived": "source/windows-node-private-v4-controls.mjs.gz",
+      "originalBytes": 4232,
+      "originalDigest": "sha256:60759f609fdcab937e76956a8faf90d84e9eeabfe3fe4923cdf6bb4118beaeee",
+      "storedBytes": 1613,
+      "storedDigest": "sha256:d90c89c783cb0c2c6ac14a05dbd328d35c10dd779dc85bc99bd43293826adb35"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-dependencies.mjs",
+      "archived": "source/windows-node-private-v4-dependencies.mjs.gz",
+      "originalBytes": 6698,
+      "originalDigest": "sha256:f674bbdcd21f901d483781cc78936ae79768378de7d7f1d5f8fd7879822c4398",
+      "storedBytes": 2406,
+      "storedDigest": "sha256:4653b47590f20c14458c4497f900611eaf0b046eecc2a149eb16e039a518fb12"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-diagnostic.mjs",
+      "archived": "source/windows-node-private-v4-diagnostic.mjs.gz",
+      "originalBytes": 35407,
+      "originalDigest": "sha256:feeaadaeab220a34df23b32c906526a00845689f2b3f4cfe43811726d58a154d",
+      "storedBytes": 9268,
+      "storedDigest": "sha256:e7de3ff7ecb731ae8b2a3ee3e2712ff4f34667adea5bd05b2aa9a4134c508d6c"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-identity.cjs",
+      "archived": "source/windows-node-private-v4-identity.cjs.gz",
+      "originalBytes": 13925,
+      "originalDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-paired.h",
+      "archived": "source/windows-node-private-v4-paired.h.gz",
+      "originalBytes": 7924,
+      "originalDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "storedBytes": 2790,
+      "storedDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-preload.cjs",
+      "archived": "source/windows-node-private-v4-preload.cjs.gz",
+      "originalBytes": 5958,
+      "originalDigest": "sha256:4e4e3662288853b6cd6169da47edad5da74dbbf28403001833c49d3eef270ca8",
+      "storedBytes": 2226,
+      "storedDigest": "sha256:de69528c818ad189e342866cd7905622e9b933090d481548dca0ae35bfe65f1a"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-protocol.h",
+      "archived": "source/windows-node-private-v4-protocol.h.gz",
+      "originalBytes": 1137,
+      "originalDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "storedBytes": 516,
+      "storedDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\source\\windows-node-private-v4-result.mjs",
+      "archived": "source/windows-node-private-v4-result.mjs.gz",
+      "originalBytes": 35673,
+      "originalDigest": "sha256:9d3d433445b833f70f40ae70eea3c9cc577fb6de5da52381c1a4ddb288448a20",
+      "storedBytes": 8944,
+      "storedDigest": "sha256:6d7445e4ac700894f064913ed3440000f0c6de045e2c9121a6ed9bf19bbaeebf"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\stderr",
+      "archived": "stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-native-baseline-20261010-a\\stdout",
+      "archived": "stdout.gz",
+      "originalBytes": 18658,
+      "originalDigest": "sha256:5408ae174c93e821d07d4a4f266d34aa9ac451550c82ca7c408e1dea1714c4e1",
+      "storedBytes": 3349,
+      "storedDigest": "sha256:94be9d36e2f0a4c201683ae08bd682374ffe49feed8c5f6aab13755cefa91bb9"
+    }
+  ]
+}

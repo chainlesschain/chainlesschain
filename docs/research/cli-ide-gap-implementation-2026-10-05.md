@@ -402,3 +402,15 @@ JetBrains `0.4.158` 已由 pending 转为公开 approved（update `1190815`）�
 本轮仅修改未进入发行 payload 的 CI/helper、回归和文档证据，不改变生产 runtime/store、fencing/lease、IO 顺序、重试策略、原 1000ms smoke lease 或 45 秒 UI 期限；没有升版或新发布。workflow/campaign 15/15 和 JetBrains collector 22/22 通过；Scheduler 三文件首轮 54 项中 53 通过，1 项是新增 `toEqual` 未计入 safeError.stack 的断言不匹配，真实退出传播成功。该断言修正后定向 worker 文件 10/10 通过，未再修改的 unit 43/43 与真实协调器 1/1 已通过，不能称其为生产问题或原失租根因；新准确 SHA 的相关三平台矩阵及真实宿主验证仍待完成，旧结果不转移。
 
 正式 36 tasks + 9 firstRuns、$99、observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**及完整 native review 的 `NOT_ADMITTED` 保留。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放；无付费调用，两份报告的整体任务尚未全部完成。详见[验证 20.23](./cli-ide-gap-validation-2026-10-05.md#2023-四版本公开发行后的诊断增量)。
+
+## 25. 2026-10-10 Windows 行为控制与报告异常保留
+
+Windows private-v4 diagnostic 新增显式 `--behavior-controls`，复用既有 Linux donor 的 argv、deny 优先、跨会话 ACK 和动画 fallback 像素预算控制。四个生成文件、五条断言与原冻结基线一起运行，原 specs、source closure、setup/config 及 observations 不变。新 verifier 核对生成字节、留存来源和前后摘要，要求 raw reporter 包含准确的基线/控制文件集合及完整控制断言；拒绝漏跑、重复/额外文件、跳过、超时、应用错误和无关 AssertionError。mutant 还须绑定同 driver、validator、控制源码、runtime、依赖及原生结算的成功基线，不能复用旧 159 项报告。
+
+最终本地基线 c **52/52**、原 HANDLE/Job 清理及 profile 删除确认。中间 a 的 52 项通过但控制来源在运行期间更新，整体正确拒绝；沙箱内 b 在 `host-token` 前置检查退出，具体拒绝字段未单独记录。两项并行 mutants 在 `broker-termination-policy / error 13`、Vitest 断言前退出，空 reporter 不计检出，失败原件及 Job 0/profile 删除保留；串行复核正在进行。见[本轮证据](./cli/evidence/gap-2026-10-05/controls-2026-10-10/README.md)。
+
+另修复旧 Scheduler helper 的 `no-unsafe-finally`：报告写入/fsync/rename 的原始异常不再被 close/unlink 清理异常覆盖，各清理动作独立执行并保留 secondary errors；成功 replace 后的清理失败仍报错。新增六项有意义故障回归，Windows **48 pass / 1 POSIX skip**、WSL Node 22.12.0 **49/49**，定向 lint/格式通过；修复后真实 worker/coordinator **11/11** 再次通过。lease、fencing、重试和生产 runtime 未改变。
+
+实现已进入[草稿 PR #428](https://github.com/chainlesschain/chainlesschain/pull/428)：控制接线 `b471bfe441`、清单同步 `7ece0f7523`、Scheduler 修复 `c6bda4c485`。本轮准确 SHA CI 仍排队，旧 `9feab` 三平台 smoke 的成功按来源单独回读，不替代本轮检查。未改包版本或发布。
+
+Windows/macOS 受保护 durable authority/journal、服务恢复和网络撤销仍需工程实现；完整 native review 的其余失败及冻结平台冲突、正式 36+9、官方账号/账单、独立人工/辅助技术、8h/24h 与获批 SLO 仍未完成。旧冻结失败矩阵与 $99/observations 保留；新诊断不授予 production admission。

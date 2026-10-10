@@ -1,0 +1,445 @@
+{
+  "schema": "chainlesschain.gap-controls-lossless-archive/v1",
+  "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010",
+  "archivedAt": "2026-10-10T07:49:04.269Z",
+  "formalSample": false,
+  "observationsCreated": false,
+  "admissionEligible": false,
+  "compilerClosureVerified": false,
+  "compiledBinariesArchived": false,
+  "encoding": "gzip; unmodified original bytes and both hashes retained",
+  "files": [
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661203839.json",
+      "archived": "artifact-11661203839.json.gz",
+      "originalBytes": 777,
+      "originalDigest": "sha256:5286bbdad479c2256161604369e9e419aa0e18b6c4a97634beb06d44575a33e7",
+      "storedBytes": 389,
+      "storedDigest": "sha256:dcc9e4d6759e8c6403e951cb2599413457b940a8cd5f59fb140a688820b9440e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661203839.stderr",
+      "archived": "artifact-11661203839.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661203839.stdout",
+      "archived": "artifact-11661203839.stdout.gz",
+      "originalBytes": 4551,
+      "originalDigest": "sha256:b0096ae9c741f8d82f0ff1c34d20cc0a1da8d945eaf2613d0f9df78e34a49536",
+      "storedBytes": 4558,
+      "storedDigest": "sha256:64f7d77a8528f532ee7a12d5afa55d4c68474a5245d3b308777bf00d69aee102"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661203839.zip",
+      "archived": "artifact-11661203839.zip.gz",
+      "originalBytes": 4551,
+      "originalDigest": "sha256:b0096ae9c741f8d82f0ff1c34d20cc0a1da8d945eaf2613d0f9df78e34a49536",
+      "storedBytes": 4558,
+      "storedDigest": "sha256:64f7d77a8528f532ee7a12d5afa55d4c68474a5245d3b308777bf00d69aee102"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661973177.json",
+      "archived": "artifact-11661973177.json.gz",
+      "originalBytes": 777,
+      "originalDigest": "sha256:6fdbb5c3a35429ad49c31aafc8556d31875258d4ddad1ad3f102c0986a3051db",
+      "storedBytes": 388,
+      "storedDigest": "sha256:f4bea9aac7f30ae78c9027a06b900f8be066fb7f630a0458223b9f9d78c7db04"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661973177.stderr",
+      "archived": "artifact-11661973177.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661973177.stdout",
+      "archived": "artifact-11661973177.stdout.gz",
+      "originalBytes": 4360,
+      "originalDigest": "sha256:49f51bd57741b345702f9c8a6a96df43d1579e05fff4d054d064125023b99e35",
+      "storedBytes": 4362,
+      "storedDigest": "sha256:8106d025964afdb98f12678c86493e30e4ae21532a5766d5c158ac2f3751837d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11661973177.zip",
+      "archived": "artifact-11661973177.zip.gz",
+      "originalBytes": 4360,
+      "originalDigest": "sha256:49f51bd57741b345702f9c8a6a96df43d1579e05fff4d054d064125023b99e35",
+      "storedBytes": 4362,
+      "storedDigest": "sha256:8106d025964afdb98f12678c86493e30e4ae21532a5766d5c158ac2f3751837d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11662611051.json",
+      "archived": "artifact-11662611051.json.gz",
+      "originalBytes": 777,
+      "originalDigest": "sha256:76959e6cb5035c0f18359309d4e1e95262d5b72442bd81588465bba41f60046f",
+      "storedBytes": 389,
+      "storedDigest": "sha256:bc313ed67d8ecfe0ca4ce40e63d76f5b8ee5ee2275b7d5da75192e0523dca855"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11662611051.stderr",
+      "archived": "artifact-11662611051.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11662611051.stdout",
+      "archived": "artifact-11662611051.stdout.gz",
+      "originalBytes": 4368,
+      "originalDigest": "sha256:2c3ad313f6a29fb4e2198f423d159b3175b5767221fcf98d20723b875537a9bd",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:26fae49c5ef3a97e2612bd3732c95995594925a8a27f020f7093bc938f1abbd7"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11662611051.zip",
+      "archived": "artifact-11662611051.zip.gz",
+      "originalBytes": 4368,
+      "originalDigest": "sha256:2c3ad313f6a29fb4e2198f423d159b3175b5767221fcf98d20723b875537a9bd",
+      "storedBytes": 4363,
+      "storedDigest": "sha256:26fae49c5ef3a97e2612bd3732c95995594925a8a27f020f7093bc938f1abbd7"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11663098554.json",
+      "archived": "artifact-11663098554.json.gz",
+      "originalBytes": 777,
+      "originalDigest": "sha256:c6944c27c64acfdcaa9bd5bcc22dc243146e811d0eb719b402ec57643939102a",
+      "storedBytes": 389,
+      "storedDigest": "sha256:96e6c41626a217dfd7aac5bc999a2ba494ba21a62252a46433f03bc30a005a1c"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11663098554.stderr",
+      "archived": "artifact-11663098554.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11663098554.stdout",
+      "archived": "artifact-11663098554.stdout.gz",
+      "originalBytes": 1124,
+      "originalDigest": "sha256:4db5fbe87ea7f2b9012b10e1c4c517ad8b81380236e80cbbe0acf57c37480fab",
+      "storedBytes": 1121,
+      "storedDigest": "sha256:31f9f49298ba11db3762cc0e98b69fbb36e2127bced2787f44467ce66a33cbe5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\artifact-11663098554.zip",
+      "archived": "artifact-11663098554.zip.gz",
+      "originalBytes": 1124,
+      "originalDigest": "sha256:4db5fbe87ea7f2b9012b10e1c4c517ad8b81380236e80cbbe0acf57c37480fab",
+      "storedBytes": 1121,
+      "storedDigest": "sha256:31f9f49298ba11db3762cc0e98b69fbb36e2127bced2787f44467ce66a33cbe5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts-attempt2.json",
+      "archived": "ci-38029503816-artifacts-attempt2.json.gz",
+      "originalBytes": 830,
+      "originalDigest": "sha256:3e3fd9ad07d81a20f5ce511152af68a75680c83932a0229f34fb68c3ce4ceaec",
+      "storedBytes": 410,
+      "storedDigest": "sha256:afd9a9e755b72713f274ee120833a4862bcd99d3efb0562b387636675e34da88"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts-attempt2.stderr",
+      "archived": "ci-38029503816-artifacts-attempt2.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts-attempt2.stdout",
+      "archived": "ci-38029503816-artifacts-attempt2.stdout.gz",
+      "originalBytes": 3189,
+      "originalDigest": "sha256:193349183812e7706f7d3230e7c4cb345629419b29e57eba953cb7c10ca02b87",
+      "storedBytes": 757,
+      "storedDigest": "sha256:1a2b9945849e7f12454f1d993d876ccc9b3da55f64b4df8235dc8fd3385f13bf"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts.json",
+      "archived": "ci-38029503816-artifacts.json.gz",
+      "originalBytes": 803,
+      "originalDigest": "sha256:f5d5224c35d4553a50cae892b565c75504ceca5568fc65052eebad7d19a5a5ab",
+      "storedBytes": 404,
+      "storedDigest": "sha256:8ea51db9d0e471e0569c195264a1ce8255a0429acd426d21ab362cde793f861c"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts.stderr",
+      "archived": "ci-38029503816-artifacts.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-artifacts.stdout",
+      "archived": "ci-38029503816-artifacts.stdout.gz",
+      "originalBytes": 3189,
+      "originalDigest": "sha256:193349183812e7706f7d3230e7c4cb345629419b29e57eba953cb7c10ca02b87",
+      "storedBytes": 757,
+      "storedDigest": "sha256:1a2b9945849e7f12454f1d993d876ccc9b3da55f64b4df8235dc8fd3385f13bf"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs-attempt2.json",
+      "archived": "ci-38029503816-jobs-attempt2.json.gz",
+      "originalBytes": 825,
+      "originalDigest": "sha256:08b66f38d662cdb594c1b6fa634481e8dd877d1f12010c172735d9458028404e",
+      "storedBytes": 417,
+      "storedDigest": "sha256:dd462366afaaa09b1f809d2dcef8956e98bf1cac1588e1d2d3b746b3d6446e20"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs-attempt2.stderr",
+      "archived": "ci-38029503816-jobs-attempt2.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs-attempt2.stdout",
+      "archived": "ci-38029503816-jobs-attempt2.stdout.gz",
+      "originalBytes": 11965,
+      "originalDigest": "sha256:e23cb787db2404007275c48c8b08f5f98ca8f3429de8e09e64198fefb2484645",
+      "storedBytes": 1363,
+      "storedDigest": "sha256:81f5d7e165253bfb9be33a89fe4a61a249bc5b5c83f6949be53de9d5205cd86d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs.json",
+      "archived": "ci-38029503816-jobs.json.gz",
+      "originalBytes": 798,
+      "originalDigest": "sha256:59fd417f53c4c3a202fa093a80a1d0d46ef119cc75a83fe1ba1fa108b91be7fd",
+      "storedBytes": 412,
+      "storedDigest": "sha256:6bf8f0c28d9b8d1a42b3b487c43ae3955e28e9c02040dfd18eeabcd548c739a7"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs.stderr",
+      "archived": "ci-38029503816-jobs.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-jobs.stdout",
+      "archived": "ci-38029503816-jobs.stdout.gz",
+      "originalBytes": 11965,
+      "originalDigest": "sha256:e23cb787db2404007275c48c8b08f5f98ca8f3429de8e09e64198fefb2484645",
+      "storedBytes": 1363,
+      "storedDigest": "sha256:81f5d7e165253bfb9be33a89fe4a61a249bc5b5c83f6949be53de9d5205cd86d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt2.json",
+      "archived": "ci-38029503816-run-attempt2.json.gz",
+      "originalBytes": 790,
+      "originalDigest": "sha256:5450459554329de5936f8055c48bf79d77f453cfcc5ecf043a453f264d91f15b",
+      "storedBytes": 393,
+      "storedDigest": "sha256:7b0bd1d41303e2a611a37d6ad133a10d36025029205e3409dddc3d544e882dee"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt2.stderr",
+      "archived": "ci-38029503816-run-attempt2.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt2.stdout",
+      "archived": "ci-38029503816-run-attempt2.stdout.gz",
+      "originalBytes": 13241,
+      "originalDigest": "sha256:cd7fe60c68abf6fd64246820ed9b9cbb91a91cfeb09c57935ae2746e3d1349d9",
+      "storedBytes": 1524,
+      "storedDigest": "sha256:5e841e6aead8fb5ee95d31bd0ff4da1e86cf92cf322794a7dfa408a723cfea84"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt3.json",
+      "archived": "ci-38029503816-run-attempt3.json.gz",
+      "originalBytes": 790,
+      "originalDigest": "sha256:e54f47f0ad8804e734fed92f1cc4503703c1bc6482158e24b5b48702e7a0393a",
+      "storedBytes": 393,
+      "storedDigest": "sha256:4c0cedd1efc989dc531a97a9bbc6b891e384886b94dc9f1aaa1d30e132fc84ae"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt3.stderr",
+      "archived": "ci-38029503816-run-attempt3.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run-attempt3.stdout",
+      "archived": "ci-38029503816-run-attempt3.stdout.gz",
+      "originalBytes": 13241,
+      "originalDigest": "sha256:cd7fe60c68abf6fd64246820ed9b9cbb91a91cfeb09c57935ae2746e3d1349d9",
+      "storedBytes": 1524,
+      "storedDigest": "sha256:5e841e6aead8fb5ee95d31bd0ff4da1e86cf92cf322794a7dfa408a723cfea84"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run.json",
+      "archived": "ci-38029503816-run.json.gz",
+      "originalBytes": 763,
+      "originalDigest": "sha256:96f9776ed43385cae244153deeb0511a26d79ea369f99af92bee31ccb86dfeb7",
+      "storedBytes": 386,
+      "storedDigest": "sha256:d8f9de8f510caf9e61ed6f14a6889a2d5a9bf46d56cde513cf573988d1118701"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run.stderr",
+      "archived": "ci-38029503816-run.stderr.gz",
+      "originalBytes": 180,
+      "originalDigest": "sha256:6223d0a29c1438e0c31493b065a2ba53ed3e40a2b2babb526514c81f9fe3a2ed",
+      "storedBytes": 157,
+      "storedDigest": "sha256:9152614f533619579ec138635bf7a0c185fc70a3b4c331203f3d66573716be83"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\ci-38029503816-run.stdout",
+      "archived": "ci-38029503816-run.stdout.gz",
+      "originalBytes": 279,
+      "originalDigest": "sha256:10ebbcf2c04bdd0853c58db4a10caee79d84037b489b6a2b37e842f80ba8af71",
+      "storedBytes": 219,
+      "storedDigest": "sha256:d24cd457d9140b08ac6ecdd181f7e2318dfd31a6d87032ed022671f642030be9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\frozen-collection.json",
+      "archived": "frozen-collection.json.gz",
+      "originalBytes": 926,
+      "originalDigest": "sha256:f120fb8204fe423acc09316273c92e5bccc9316d3fb2a70676eeb2412cb3fdcc",
+      "storedBytes": 479,
+      "storedDigest": "sha256:918d0b270630e49b18644903981ebeefa24e15327defb07cc4b59dc8f10454f6"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\frozen-collection.stderr",
+      "archived": "frozen-collection.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\frozen-collection.stdout",
+      "archived": "frozen-collection.stdout.gz",
+      "originalBytes": 41145,
+      "originalDigest": "sha256:06c87f677ce2eb5edb604ca65a9873b918efc3e7a4623803e36fd997e678bbc7",
+      "storedBytes": 1950,
+      "storedDigest": "sha256:dc895352c6257ea9f61e665f4aa7b3ffcda826f64ddbc954165c94329cd8f5a3"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-aggregate\\cli-scheduler-soak-aggregate.json",
+      "archived": "scheduler-aggregate/cli-scheduler-soak-aggregate.json.gz",
+      "originalBytes": 2203,
+      "originalDigest": "sha256:3b42af295d9a21958052fbcd998aa0a111dbbe89e501a35ed3327d06b632eeda",
+      "storedBytes": 962,
+      "storedDigest": "sha256:aa50fa94469ca4fc18473f7106756b763050b94fc4f29374a5451dca7736c362"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt2.json",
+      "archived": "scheduler-integration-attempt2.json.gz",
+      "originalBytes": 982,
+      "originalDigest": "sha256:58c3ef518f2bb51294e8b4a553509ab11de5fa9b5e8921eecc333871990d7a64",
+      "storedBytes": 464,
+      "storedDigest": "sha256:79c87729bacba975faf0215ac6228ecd168961a67ffdbc3ccc830fde9e9bdd16"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt2.stderr",
+      "archived": "scheduler-integration-attempt2.stderr.gz",
+      "originalBytes": 0,
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "storedBytes": 20,
+      "storedDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration-attempt2.stdout",
+      "archived": "scheduler-integration-attempt2.stdout.gz",
+      "originalBytes": 249,
+      "originalDigest": "sha256:304128c34ae2ea85a87cf3a57d441ad212ce9f4b63ee783d0b586eadc8c2a611",
+      "storedBytes": 198,
+      "storedDigest": "sha256:80be6af4054089102b08aa3ee21f8bb9178d4a59c1b4b7eda65aa184646f72a9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration.json",
+      "archived": "scheduler-integration.json.gz",
+      "originalBytes": 958,
+      "originalDigest": "sha256:782b66a127a95549bc91cef8c622675f089c45488b86dc143abd4fdc8593fc89",
+      "storedBytes": 458,
+      "storedDigest": "sha256:3cf252d8496b718e182ca9822fdc88c4105bfc8cad302dc5ae5c29b19612dfe5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration.stderr",
+      "archived": "scheduler-integration.stderr.gz",
+      "originalBytes": 2423,
+      "originalDigest": "sha256:2ecbc596effa47c1e2a21cd42838937ae88ecb0fe5cd52c6da8525a706e0f882",
+      "storedBytes": 960,
+      "storedDigest": "sha256:afc0e1aa4f5b01e20218c9a7d3072d1711e68d93fc7abb40fc49d5b35dd17d9d"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-integration.stdout",
+      "archived": "scheduler-integration.stdout.gz",
+      "originalBytes": 224,
+      "originalDigest": "sha256:9a91747456d0a84f09143e85f734b3ebda7dddccbbcc21629519d02310eb21cb",
+      "storedBytes": 187,
+      "storedDigest": "sha256:9ec0d3e68157f4f3c56caa5bc5a95fbc5a428552528ac3efc5fc48f7c615baf9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-linux\\scheduler-kernel-soak-Linux.json",
+      "archived": "scheduler-linux/scheduler-kernel-soak-Linux.json.gz",
+      "originalBytes": 22161,
+      "originalDigest": "sha256:47ce4e5cec21d0144fd19130fd34eb83cc040ca6cfae7855c215c1c324892723",
+      "storedBytes": 4125,
+      "storedDigest": "sha256:87c146dadd5dc35854eae5ba8d4c29ee0903984979dc593fd5345d60fb41ced9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-macos\\scheduler-kernel-soak-macOS.json",
+      "archived": "scheduler-macos/scheduler-kernel-soak-macOS.json.gz",
+      "originalBytes": 22185,
+      "originalDigest": "sha256:d557c8453359bcdceccf97ac9960cf7818befcc2e7f7e90f1ac0979fbdef9f9e",
+      "storedBytes": 4142,
+      "storedDigest": "sha256:1ab964b04544b75ef9bf64e15c90cabe9b5b05a23745af413f8e677020db9368"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-readback-summary.json",
+      "archived": "scheduler-readback-summary.json.gz",
+      "originalBytes": 3931,
+      "originalDigest": "sha256:803bf9fe0e29586037170f6b6c573c1e259ce3f2a9ef77e338269bd55605216f",
+      "storedBytes": 955,
+      "storedDigest": "sha256:c340875322f2ac6e6bfe2e88cacbd1956272ab11a06f5773bf90e2f366009491"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-set\\linux.json",
+      "archived": "scheduler-set/linux.json.gz",
+      "originalBytes": 22161,
+      "originalDigest": "sha256:47ce4e5cec21d0144fd19130fd34eb83cc040ca6cfae7855c215c1c324892723",
+      "storedBytes": 4125,
+      "storedDigest": "sha256:87c146dadd5dc35854eae5ba8d4c29ee0903984979dc593fd5345d60fb41ced9"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-set\\macos.json",
+      "archived": "scheduler-set/macos.json.gz",
+      "originalBytes": 22185,
+      "originalDigest": "sha256:d557c8453359bcdceccf97ac9960cf7818befcc2e7f7e90f1ac0979fbdef9f9e",
+      "storedBytes": 4142,
+      "storedDigest": "sha256:1ab964b04544b75ef9bf64e15c90cabe9b5b05a23745af413f8e677020db9368"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-set\\windows.json",
+      "archived": "scheduler-set/windows.json.gz",
+      "originalBytes": 23393,
+      "originalDigest": "sha256:84b87370c43fb84973f29544f54dc43105f2cf400735024fc5fdb370a4149461",
+      "storedBytes": 4315,
+      "storedDigest": "sha256:44a341deb3e14bc2dee252fe34a01a2e27b46cfa43aa42d674c9bd2503ff6da5"
+    },
+    {
+      "original": "C:\\code\\chainlesschain\\.work\\gap-controls-20261010\\scheduler-windows\\scheduler-kernel-soak-Windows.json",
+      "archived": "scheduler-windows/scheduler-kernel-soak-Windows.json.gz",
+      "originalBytes": 23393,
+      "originalDigest": "sha256:84b87370c43fb84973f29544f54dc43105f2cf400735024fc5fdb370a4149461",
+      "storedBytes": 4315,
+      "storedDigest": "sha256:44a341deb3e14bc2dee252fe34a01a2e27b46cfa43aa42d674c9bd2503ff6da5"
+    }
+  ]
+}
