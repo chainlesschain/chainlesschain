@@ -25,6 +25,7 @@ const workspace = path.join(root, "workspace");
 let provider;
 let providerUrl;
 let providerCalls = 0;
+const providerErrors = [];
 
 beforeAll(async () => {
   for (const directory of [
@@ -40,12 +41,29 @@ beforeAll(async () => {
     request.on("data", (chunk) => chunks.push(chunk));
     request.on("end", () => {
       providerCalls += 1;
-      const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-      expect(request.url).toBe("/api/chat");
-      expect(body.messages.at(-1)).toMatchObject({
-        role: "user",
-        content: expect.stringContaining("hello"),
-      });
+      try {
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        expect(request.url).toBe("/api/chat");
+        expect(
+          body.messages.findLast((message) => message.role === "user"),
+        ).toMatchObject({
+          role: "user",
+          content: expect.stringContaining("hello"),
+        });
+        // The first dispatch consumes one of the default 50 requests. Trusted
+        // ephemeral budget guidance follows the last conversational user turn.
+        expect(body.messages.at(-1)).toMatchObject({
+          role: "system",
+          content: expect.stringContaining(
+            "Execution budget: this request plus 49 further model requests.",
+          ),
+        });
+      } catch (error) {
+        providerErrors.push(error);
+        response.writeHead(500, { connection: "close" });
+        response.end("Loopback provider request assertion failed");
+        return;
+      }
       response.writeHead(200, {
         "content-type": "application/json",
         connection: "close",
@@ -116,6 +134,7 @@ async function waitForEvent(
 ) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (providerErrors.length) throw providerErrors[0];
     const event = events.find(predicate);
     if (event) return event;
     if (childState.closed) {
@@ -130,6 +149,9 @@ async function waitForEvent(
 
 describe("real Agent duplex startup without an Evolution deployment", () => {
   it("returns a successful result for the first user turn", async () => {
+    // Each configured Vitest retry must observe its own provider accounting.
+    providerCalls = 0;
+    providerErrors.length = 0;
     const child = spawn(
       process.execPath,
       [
@@ -194,6 +216,7 @@ describe("real Agent duplex startup without an Evolution deployment", () => {
         (event) => event.type === "result",
         90_000,
       );
+      expect(providerErrors).toEqual([]);
       expect(result).toMatchObject({
         subtype: "success",
         is_error: false,

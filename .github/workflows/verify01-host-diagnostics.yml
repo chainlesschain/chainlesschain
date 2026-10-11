@@ -69,6 +69,7 @@ jobs:
       - name: Verify process deadlines and evidence rejection
         run: >-
           node --test scripts/__tests__/verify01-diagnostic-process.test.mjs
+          scripts/__tests__/verify01-diagnostic-port.test.mjs
           scripts/__tests__/verify01-diagnostic-evidence.test.mjs
           scripts/__tests__/verify01-diagnostic-command-drain.test.mjs
           scripts/__tests__/verify01-onboarding-fixture.test.mjs

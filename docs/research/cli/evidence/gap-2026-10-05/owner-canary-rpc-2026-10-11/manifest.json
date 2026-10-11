@@ -1,0 +1,855 @@
+{
+  "schema": "chainlesschain.owner-canary-rpc-archive/v1",
+  "createdAt": "2026-10-11T11:57:40.470Z",
+  "releaseCandidateUnchanged": "821c63eff2698c8625a7be596f935d658ce095cf",
+  "frozenNativeBase": "53ad9df8c46269d725d2f3cde77185a5806e86da",
+  "experiment": ".work/owner-canary-rpc-20261011-a",
+  "verification": ".work/owner-canary-rpc-readback-2026-10-11T11-56-07.129Z-LKDxow",
+  "capsulePreserved": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "compatibilityConfirmed": false,
+  "durable": false,
+  "authorityProven": false,
+  "continuousStabilityProven": false,
+  "formalSample": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "paidProviderCalls": 0,
+  "actualExecution": {
+    "count": 1,
+    "started": "2026-10-11T11:53:44.899Z",
+    "finished": "2026-10-11T11:53:49.075Z",
+    "exitCode": 0,
+    "signal": null,
+    "error": null,
+    "earlyNativeFailures": 0,
+    "buildCommands": 3,
+    "buildCommandsFailed": 0
+  },
+  "rpc": {
+    "requests": 9,
+    "accepted": 1,
+    "refused": 8,
+    "payloadBytes": 16,
+    "limitBytes": 64,
+    "rpcFileReads": 1,
+    "cases": [
+      {
+        "case": "wrong-session",
+        "sequence": 1,
+        "error": 5,
+        "count": 0,
+        "reason": "identity"
+      },
+      {
+        "case": "wrong-generation",
+        "sequence": 2,
+        "error": 5,
+        "count": 0,
+        "reason": "identity"
+      },
+      {
+        "case": "wrong-registration",
+        "sequence": 3,
+        "error": 5,
+        "count": 0,
+        "reason": "identity"
+      },
+      {
+        "case": "unknown-operation",
+        "sequence": 4,
+        "error": 50,
+        "count": 0,
+        "reason": "operation"
+      },
+      {
+        "case": "oversized-limit",
+        "sequence": 5,
+        "error": 87,
+        "count": 0,
+        "reason": "limit"
+      },
+      {
+        "case": "wrong-sequence",
+        "sequence": 7,
+        "error": 13,
+        "count": 0,
+        "reason": "sequence"
+      },
+      {
+        "case": "legal-read",
+        "sequence": 6,
+        "error": 0,
+        "count": 16,
+        "reason": "accepted"
+      },
+      {
+        "case": "replay",
+        "sequence": 6,
+        "error": 13,
+        "count": 0,
+        "reason": "sequence"
+      },
+      {
+        "case": "second-read",
+        "sequence": 7,
+        "error": 5023,
+        "count": 0,
+        "reason": "already-used"
+      }
+    ]
+  },
+  "acl": {
+    "exactPriorOwnerOnlyContractPreserved": true,
+    "hostSetupWriteHandlesClosed": true,
+    "hostReadHandlesNonInheritable": true,
+    "targetHandlesSentToActor": 0,
+    "rootInheritedHandles": 9,
+    "actorDirectOperationsDenied": 6,
+    "actorDirectError": 5
+  },
+  "cleanup": {
+    "originalRootHandleWait": 0,
+    "originalRootHandleExit": 0,
+    "jobActiveProcesses": 0,
+    "profileDeleted": true,
+    "hostMapUnchanged": true,
+    "loopbackExemptionAbsent": true,
+    "channelsClosed": true,
+    "objectsClosed": true,
+    "postExitDisposition": "channel-closed-no-server-rejection-receipt-fabricated",
+    "capsuleFilesDeleted": false
+  },
+  "verificationResult": {
+    "passed": 25,
+    "tamperCases": 21,
+    "bindings": 51,
+    "newNativeRuns": 0,
+    "newAclMutations": 0
+  },
+  "compiler": {
+    "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+    "bytes": 13824,
+    "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe",
+    "headers": "C:/Users/longfa/AppData/Local/node-gyp/Cache/22.22.2/include/node",
+    "compilerClosureVerified": false,
+    "note": "Compiler executable, commands, source, outputs and produced binaries are hash-bound; transitive compiler/header/library closure is not captured as hermetic."
+  },
+  "binaryBindings": [
+    {
+      "path": ".work/owner-canary-rpc-20261011-a/broker.exe",
+      "bytes": 961536,
+      "sha256": "d7069b1c92e867018655c93f56117bd7920535c7328ead3b6a406763973466eb",
+      "archived": false
+    },
+    {
+      "path": ".work/owner-canary-rpc-20261011-a/esbuild-private-shim.dll",
+      "bytes": 54784,
+      "sha256": "5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+      "archived": false
+    },
+    {
+      "path": ".work/owner-canary-rpc-20261011-a/windows-node-private-v4.node",
+      "bytes": 840704,
+      "sha256": "5092446658f64ca95bdcd96ffa381389664fcfb904ce0e61e25a3ecd036290ca",
+      "archived": false
+    }
+  ],
+  "runtimeAndCopies": [
+    {
+      "source": {
+        "path": "C:\\nvm4w\\nodejs\\node.exe",
+        "bytes": 87074816,
+        "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\control\\node.exe",
+        "bytes": 87074816,
+        "digest": "sha256:ae1a50511be58e987483fdbc12125407443926d2d394669ade2352776e920dd3"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\owner-canary-rpc-20261011-a\\check.cjs",
+        "bytes": 1270,
+        "digest": "sha256:a2436582b3557c70e82b7893536cea311e09b82c2e2348757d03cd6f9393bab1"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\control\\check.cjs",
+        "bytes": 1270,
+        "digest": "sha256:a2436582b3557c70e82b7893536cea311e09b82c2e2348757d03cd6f9393bab1"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\owner-canary-rpc-20261011-a\\windows-node-private-v4.node",
+        "bytes": 840704,
+        "digest": "sha256:5092446658f64ca95bdcd96ffa381389664fcfb904ce0e61e25a3ecd036290ca"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\workspace\\adapter\\windows-node-private-v4.node",
+        "bytes": 840704,
+        "digest": "sha256:5092446658f64ca95bdcd96ffa381389664fcfb904ce0e61e25a3ecd036290ca"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\owner-canary-rpc-20261011-a\\esbuild-private-shim.dll",
+        "bytes": 54784,
+        "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\workspace\\adapter\\esbuild-private-shim.dll",
+        "bytes": 54784,
+        "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\owner-canary-rpc-20261011-a\\source\\windows-node-private-v4-preload.cjs",
+        "bytes": 8947,
+        "digest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\workspace\\adapter\\windows-node-private-v4-preload.cjs",
+        "bytes": 8947,
+        "digest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\owner-canary-rpc-20261011-a\\source\\windows-node-private-v4-identity.cjs",
+        "bytes": 13925,
+        "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\workspace\\adapter\\windows-node-private-v4-identity.cjs",
+        "bytes": 13925,
+        "digest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    },
+    {
+      "source": {
+        "path": "C:\\code\\chainlesschain\\.work\\native-toolchain-prepare-2026-10-08-canonical-pairs\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+        "bytes": 11670528,
+        "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+      },
+      "destination": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-owner-canary-rpc-PFSYh6\\workspace\\tree\\node_modules\\@esbuild\\win32-x64\\esbuild.exe",
+        "bytes": 11670528,
+        "digest": "sha256:ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3"
+      },
+      "sourceAndCopyDigestMatch": true,
+      "binaryArchived": false
+    }
+  ],
+  "entries": [
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/acl-probe.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/000.gz",
+      "rawBytes": 5743,
+      "rawSha256": "4e50b605a3e38e26954a9404f66b00b9407431398b9ddfcaa54de667dae4eb95",
+      "gzipBytes": 2311,
+      "gzipSha256": "6808651bc0c2cf570470cd906eb9e8b0d59b803c35c8ff6b6828d1da0047cc30"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/adapter.diff",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/001.gz",
+      "rawBytes": 2170,
+      "rawSha256": "0721298c0c900bb6e9f2d9c0ef006ea415ae33356b5677db4bbb06bb563ad080",
+      "gzipBytes": 790,
+      "gzipSha256": "78153102100ed0c636d052360a4784126c3426d56e2b5a8f2ac491a0d63cb50e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/binaries.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/002.gz",
+      "rawBytes": 652,
+      "rawSha256": "6b8f70700e58ec59dbc53b47a246832f95ef38173ab7f0995ba60cebac5b5bdd",
+      "gzipBytes": 326,
+      "gzipSha256": "1d5d47bc876b2cce26f84e5ab5d6546cd53e6590e2c4e149423bb3f5f0ff26b9"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/broker.diff",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/003.gz",
+      "rawBytes": 5414,
+      "rawSha256": "cc1414dbdda39684d9c1b722d4f737e0986a245c6ac1653a198d7038d809007e",
+      "gzipBytes": 2296,
+      "gzipSha256": "8ac7b300a84c21b0ea4804a47ef0b056b193be6110fc7253fb9120b8634abb14"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/broker.exe.build.stderr",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/004.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/broker.exe.build.stdout",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/005.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/build.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/006.gz",
+      "rawBytes": 2493,
+      "rawSha256": "204ccb5f3008dd819944de0ffefee19866a57266daa4192ca0b7f86a4864bc02",
+      "gzipBytes": 630,
+      "gzipSha256": "6d87510bc903474ca2594a41d262e038a54fb31322793c9b2f4b9277efa63949"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/canary-broker.diff",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/007.gz",
+      "rawBytes": 12052,
+      "rawSha256": "d3ce75f3ffdf91edab0dcd9afc37490f51b2322e0c73d424d5f4a08caa3e5d5a",
+      "gzipBytes": 4070,
+      "gzipSha256": "e7ea882a08df48c0aac1e09d9b17486e3868b7ef4f74b32823b2fcbb380505c3"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/canary-rpc-actor.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/008.gz",
+      "rawBytes": 3057,
+      "rawSha256": "c06ff468780e60e4f7dd8194952460f9e7f027a88c2d81cf5a47d13eb51565de",
+      "gzipBytes": 1298,
+      "gzipSha256": "9b83454810cf2605fc9c562234ec41522001fca9b47b4fea3003100d84bfef59"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/canary-rpc-host.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/009.gz",
+      "rawBytes": 9991,
+      "rawSha256": "b42b941fbfeadb1b3b64a72a985668b5a25e4e75c5a8b16958f5a1ef284ec2b5",
+      "gzipBytes": 3166,
+      "gzipSha256": "3f6b59fce0300f7fd022240007fa2f7506fd14790c8aacf7142a59e38a369c4c"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/canary-rpc-patch-source.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/010.gz",
+      "rawBytes": 3289,
+      "rawSha256": "eacefa83d20fc8af6aeba4fe787813584959551a0266d5b3634399ad5a290026",
+      "gzipBytes": 1226,
+      "gzipSha256": "295d42197971b79f31f9ba9318ddd887ddb45f326f52c5b0721cc7852965017e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/canary-rpc-protocol.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/011.gz",
+      "rawBytes": 518,
+      "rawSha256": "2154b59eca72a10d3954384283ba92b5377eaceb97f7fe32ea14ee925b9d7a58",
+      "gzipBytes": 284,
+      "gzipSha256": "2fa66b94222482f53a30c4a08ab09baaf8f0491e3f77f1a3862e3e38b4590644"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/check.cjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/012.gz",
+      "rawBytes": 1270,
+      "rawSha256": "a2436582b3557c70e82b7893536cea311e09b82c2e2348757d03cd6f9393bab1",
+      "gzipBytes": 522,
+      "gzipSha256": "ad022235c5e9a9b8e548584cb50a8c145dca83156a1dfe520883f25e1da7406f"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/esbuild-private-shim.dll.build.stderr",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/013.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/esbuild-private-shim.dll.build.stdout",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/014.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/original-coordinate-driver.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/015.gz",
+      "rawBytes": 7553,
+      "rawSha256": "9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "gzipBytes": 2395,
+      "gzipSha256": "11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/original-tracked-driver.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/016.gz",
+      "rawBytes": 37711,
+      "rawSha256": "26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "gzipBytes": 9728,
+      "gzipSha256": "e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-esbuild-private-map-shim.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/017.gz",
+      "rawBytes": 12342,
+      "rawSha256": "a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipSha256": "3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-esbuild-private-map-supervisor.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/018.gz",
+      "rawBytes": 26434,
+      "rawSha256": "1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipSha256": "65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-adapter.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/019.gz",
+      "rawBytes": 65180,
+      "rawSha256": "ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipSha256": "677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-adapter.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/020.gz",
+      "rawBytes": 28012,
+      "rawSha256": "515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipSha256": "f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-broker.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/021.gz",
+      "rawBytes": 44840,
+      "rawSha256": "ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipSha256": "b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-identity.cjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/022.gz",
+      "rawBytes": 13925,
+      "rawSha256": "bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipSha256": "c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-paired.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/023.gz",
+      "rawBytes": 7924,
+      "rawSha256": "89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipSha256": "47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-preload.cjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/024.gz",
+      "rawBytes": 8947,
+      "rawSha256": "13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipSha256": "2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/frozen/windows-node-private-v4-protocol.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/025.gz",
+      "rawBytes": 1137,
+      "rawSha256": "bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipSha256": "ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/host-owner-setup.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/026.gz",
+      "rawBytes": 7383,
+      "rawSha256": "071a2d9cdef7ce83b2957799c65b073d0a02ffb79bbfacf7271b086677830c37",
+      "gzipBytes": 2545,
+      "gzipSha256": "3cf77ed045224841cae2f16fdc7a45ba2f93702dfac70318486fbf2ec1e8d770"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/original-c-verify.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/027.gz",
+      "rawBytes": 5831,
+      "rawSha256": "4e9da1d0bf5b94cc23e96076f65ce599df79433b5d59ece4c38e5a3abd4eb95d",
+      "gzipBytes": 1948,
+      "gzipSha256": "8d43a07c4a21e304eab44bca431eed201dc07b1660f47c6aecaa334a259aee82"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/origins.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/028.gz",
+      "rawBytes": 3817,
+      "rawSha256": "cd686b551f77f559a85c5cbf894150d288dc111fa50613199b4748330b2c24d8",
+      "gzipBytes": 829,
+      "gzipSha256": "83d27d0f4ab69c11649dfc831f181ad3d3f375edd780de15e25f42b1260cf013"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/preparation-source.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/029.gz",
+      "rawBytes": 4060,
+      "rawSha256": "6c215ce780be66b244980c7e39099091207467f879be5fd8b872cc5db69d54b2",
+      "gzipBytes": 1322,
+      "gzipSha256": "3c9079651c63f89489f736a5725fd6299ecb2a07fed8a62675bda22bf93dcdc8"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/acl-probe.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/030.gz",
+      "rawBytes": 16634,
+      "rawSha256": "5b906766f2b751327657bb8a6ac2b7573a27e1bb49a4dc4ddeb4a2a3a1483d2d",
+      "gzipBytes": 2553,
+      "gzipSha256": "1b855c249c493400a0ca8b4fcb6bc9a43f3bc8602d1e11775193a0ec3df954c4"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/actor.stderr",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/031.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/actor.stdout",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/032.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/canary-rpc-host.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/033.gz",
+      "rawBytes": 6617,
+      "rawSha256": "6ba48b531d2b393eac0f3fe44bc022ca3df36ac1dabe324833533b4ea6c38321",
+      "gzipBytes": 1088,
+      "gzipSha256": "51cd32d336c1a419403b30debdbb23d6b7dc8bff14b11ef0bcc8acfe7de7a617"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/host-owner-acl-after.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/034.gz",
+      "rawBytes": 1406,
+      "rawSha256": "23ff1542da9277549a4c5fff5e0c7057d05d80359cc8968fc2331ce5d304f87a",
+      "gzipBytes": 531,
+      "gzipSha256": "146bc7920704c2c3c9bc3c1fbf596fd9df8aaec751c8ce29a00edb505295f9c3"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/host-owner-acl-before.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/035.gz",
+      "rawBytes": 4314,
+      "rawSha256": "ac8afff732d3590cf24907de8ea37da229b77b63491ef3b9339f30dc8d2c9dcf",
+      "gzipBytes": 799,
+      "gzipSha256": "a7b32b21ab66d11f56ecc573becf5e8ee42259c85f3f6ce28686a49575f35ff2"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/host.stderr",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/036.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/host.stdout",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/037.gz",
+      "rawBytes": 1578,
+      "rawSha256": "a97ec44ed8b365ffd2db5795dfc1edaa1138d514d2af9f360e557a40f25819f2",
+      "gzipBytes": 787,
+      "gzipSha256": "d308f46d58c228ff1b46ca1857a0c4cc1a78f68fc60f2f551e322c645dd89785"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/manifest.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/038.gz",
+      "rawBytes": 1382,
+      "rawSha256": "db4e9bef392219444ceaefedb2be4d0f7318abef0876b7bba0af63df9bbaea2d",
+      "gzipBytes": 769,
+      "gzipSha256": "4b3777a1778ce444c562283532c2c6878ffba5ae33e125f38d6cba8938d7b525"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/private-v4-28060-exit.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/039.gz",
+      "rawBytes": 4694,
+      "rawSha256": "68841a3dc206bdae18467bbf696e485b7eaa2e6fa6d42221443a933223d1e83a",
+      "gzipBytes": 1545,
+      "gzipSha256": "6229d7c985409e6e2ec74bc0931e81f3963ca58ba11307969cd371081d494949"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/private-v4-28060-installed.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/040.gz",
+      "rawBytes": 4646,
+      "rawSha256": "62e757c7d42bb5998b56435308a49feb01b96f81ba911ccc093767b2a472ec58",
+      "gzipBytes": 1516,
+      "gzipSha256": "12b229a10fa90bd2a636be013acd10cd48b6320730299607d43d8a6512e6cf3f"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run/report.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/041.gz",
+      "rawBytes": 62452,
+      "rawSha256": "8cd703f0d9f52b43f64eab84ea450daaa671ed45191e3e627475a8df4f4d0d57",
+      "gzipBytes": 6668,
+      "gzipSha256": "29521eff25a5203a4dbb8c4dd0581c1dae99cde4d3b6050e51e7887218ac830b"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/run.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/042.gz",
+      "rawBytes": 12540,
+      "rawSha256": "95056130ec2ae1c443e13cecad3e6ce256c6924539f5771caa764b6b1e941c6b",
+      "gzipBytes": 3695,
+      "gzipSha256": "e29a98c282a15db85b1a951d549aba502af61f1f8c513cb0ce633e2da4255b79"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/acl-probe.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/043.gz",
+      "rawBytes": 5743,
+      "rawSha256": "4e50b605a3e38e26954a9404f66b00b9407431398b9ddfcaa54de667dae4eb95",
+      "gzipBytes": 2311,
+      "gzipSha256": "6808651bc0c2cf570470cd906eb9e8b0d59b803c35c8ff6b6828d1da0047cc30"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/canary-rpc-actor.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/044.gz",
+      "rawBytes": 3057,
+      "rawSha256": "c06ff468780e60e4f7dd8194952460f9e7f027a88c2d81cf5a47d13eb51565de",
+      "gzipBytes": 1298,
+      "gzipSha256": "9b83454810cf2605fc9c562234ec41522001fca9b47b4fea3003100d84bfef59"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/canary-rpc-host.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/045.gz",
+      "rawBytes": 9991,
+      "rawSha256": "b42b941fbfeadb1b3b64a72a985668b5a25e4e75c5a8b16958f5a1ef284ec2b5",
+      "gzipBytes": 3166,
+      "gzipSha256": "3f6b59fce0300f7fd022240007fa2f7506fd14790c8aacf7142a59e38a369c4c"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/canary-rpc-protocol.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/046.gz",
+      "rawBytes": 518,
+      "rawSha256": "2154b59eca72a10d3954384283ba92b5377eaceb97f7fe32ea14ee925b9d7a58",
+      "gzipBytes": 284,
+      "gzipSha256": "2fa66b94222482f53a30c4a08ab09baaf8f0491e3f77f1a3862e3e38b4590644"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/host-owner-setup.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/047.gz",
+      "rawBytes": 7383,
+      "rawSha256": "071a2d9cdef7ce83b2957799c65b073d0a02ffb79bbfacf7271b086677830c37",
+      "gzipBytes": 2545,
+      "gzipSha256": "3cf77ed045224841cae2f16fdc7a45ba2f93702dfac70318486fbf2ec1e8d770"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-esbuild-private-map-shim.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/048.gz",
+      "rawBytes": 12342,
+      "rawSha256": "a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipSha256": "3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-esbuild-private-map-supervisor.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/049.gz",
+      "rawBytes": 26434,
+      "rawSha256": "1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipSha256": "65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-adapter.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/050.gz",
+      "rawBytes": 65715,
+      "rawSha256": "6c494dbed78a91fe1dc5ab77cd82477dccd3001036ebe79f50f5e9f97e35dd67",
+      "gzipBytes": 16883,
+      "gzipSha256": "aa36fb40557552548d9fd7c561569ff48aa76adb0bb1527504dd3eafe50d28b6"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-adapter.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/051.gz",
+      "rawBytes": 28012,
+      "rawSha256": "515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipSha256": "f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-broker.cpp",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/052.gz",
+      "rawBytes": 46534,
+      "rawSha256": "1dd3b0285221516813f61a8c81485498180657c493f528b375ebee9796073089",
+      "gzipBytes": 13715,
+      "gzipSha256": "ea17705b94026e72887e9ca73da632ae2000c4af59d6ef25289cc501dbedb39a"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-identity.cjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/053.gz",
+      "rawBytes": 13925,
+      "rawSha256": "bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipSha256": "c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-paired.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/054.gz",
+      "rawBytes": 7924,
+      "rawSha256": "89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipSha256": "47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-preload.cjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/055.gz",
+      "rawBytes": 8947,
+      "rawSha256": "13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipSha256": "2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/source/windows-node-private-v4-protocol.h",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/056.gz",
+      "rawBytes": 1137,
+      "rawSha256": "bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipSha256": "ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/sources.json",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/057.gz",
+      "rawBytes": 5337,
+      "rawSha256": "490cf7f436c2c1ad270a72a8bb789e7299bea2959abcd2bc7f8197359736884e",
+      "gzipBytes": 1163,
+      "gzipSha256": "46a1ab82fccc80fbdcdb581bfde350132c0745d3194bd2951fcd0cb9352b1546"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/verify.mjs",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/058.gz",
+      "rawBytes": 4084,
+      "rawSha256": "e34e8f58d1788785cfbd639f5ecf9adad7be1d17163b622d4c81380b8271b7b6",
+      "gzipBytes": 1410,
+      "gzipSha256": "bccfea7b17c79d1b3f7020122acac488a07bb016e508a8027303c999d82355ef"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/windows-node-private-v4.node.build.stderr",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/059.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-20261011-a/windows-node-private-v4.node.build.stdout",
+      "role": "single-native-run-source-build-and-raw-evidence",
+      "artifact": "objects/060.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/owner-canary-rpc-readback-2026-10-11T11-56-07.129Z-LKDxow/verification.json",
+      "role": "independent-readback-and-tamper-controls",
+      "artifact": "objects/061.gz",
+      "rawBytes": 14608,
+      "rawSha256": "b7c06f1d7a217b8778c75d378a027e4f6ec5e8822ad8dad481e658b568331020",
+      "gzipBytes": 2621,
+      "gzipSha256": "9f1c8bc72a6d8df469d8f5d1e0530be9f24d7a87538ca91a5e25063b3813c50b"
+    },
+    {
+      "source": ".work/owner-canary-rpc-readback-2026-10-11T11-56-07.129Z-LKDxow/verify-source.mjs",
+      "role": "independent-readback-and-tamper-controls",
+      "artifact": "objects/062.gz",
+      "rawBytes": 12198,
+      "rawSha256": "d0ec4fcdf12e21b9d8272a7ed83ea28cdacbd6f56ae73d204d52a9dc9218f631",
+      "gzipBytes": 3854,
+      "gzipSha256": "07339d7b66a0a20483eff7b9062a16f0b2b941e71a61dd87f21c6eddff05ab4d"
+    },
+    {
+      "source": ".work/prepare-canary-rpc-20261011.mjs",
+      "role": "preparation-helper",
+      "artifact": "objects/063.gz",
+      "rawBytes": 4060,
+      "rawSha256": "6c215ce780be66b244980c7e39099091207467f879be5fd8b872cc5db69d54b2",
+      "gzipBytes": 1322,
+      "gzipSha256": "3c9079651c63f89489f736a5725fd6299ecb2a07fed8a62675bda22bf93dcdc8"
+    },
+    {
+      "source": ".work/verify-owner-canary-rpc-20261011.mjs",
+      "role": "independent-static-verifier",
+      "artifact": "objects/064.gz",
+      "rawBytes": 12198,
+      "rawSha256": "d0ec4fcdf12e21b9d8272a7ed83ea28cdacbd6f56ae73d204d52a9dc9218f631",
+      "gzipBytes": 3854,
+      "gzipSha256": "07339d7b66a0a20483eff7b9062a16f0b2b941e71a61dd87f21c6eddff05ab4d"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\archive-owner-canary-rpc-20261011.mjs",
+      "role": "archive-helper",
+      "artifact": "objects/065.gz",
+      "rawBytes": 10301,
+      "rawSha256": "3a90c9ddc00c1ecfbfaab0d41d8dca514b5d8aeb6fb3c2fadf045def91610122",
+      "gzipBytes": 5358,
+      "gzipSha256": "53b6512bef9749508f585536a5b598461b3903b89f515d2f3a437aa6cb61ffff"
+    }
+  ]
+}

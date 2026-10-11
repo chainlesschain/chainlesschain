@@ -3,7 +3,6 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import net from "node:net";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
@@ -32,6 +31,10 @@ import {
   readColdBoundaryEvidence,
 } from "../../../scripts/lib/verify01-cold-evidence.mjs";
 import { execFileSync } from "node:child_process";
+import {
+  assertPortFree,
+  waitForPortFree,
+} from "../../../scripts/lib/verify01-diagnostic-port.mjs";
 
 const pkg = path.resolve(import.meta.dirname, "..");
 const robotUrl = "http://127.0.0.1:8082";
@@ -65,17 +68,6 @@ async function robotReady() {
   } catch {
     return false;
   }
-}
-
-async function assertPortFree() {
-  const server = net.createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(8082, "127.0.0.1", resolve);
-  });
-  await new Promise((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
-  );
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -149,6 +141,7 @@ export async function main(argv = process.argv.slice(2)) {
           "tests/fixtures/ide-roadmap",
           "scripts/lib/verify01-cold-evidence.mjs",
           "scripts/lib/verify01-diagnostic-process.mjs",
+          "scripts/lib/verify01-diagnostic-port.mjs",
           "scripts/lib/verify01-diagnostic-command-drain.mjs",
         ],
         {
@@ -172,6 +165,7 @@ export async function main(argv = process.argv.slice(2)) {
         "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
         "scripts/lib/verify01-cold-evidence.mjs",
         "scripts/lib/verify01-diagnostic-process.mjs",
+        "scripts/lib/verify01-diagnostic-port.mjs",
       ].map((file) => [
         file,
         `sha256:${createHash("sha256")
@@ -220,7 +214,7 @@ export async function main(argv = process.argv.slice(2)) {
   let result = { ...scope, passed: false };
   console.log(`Diagnostic evidence: ${root}`);
   try {
-    await assertPortFree();
+    await assertPortFree({ port: 8082 });
     await requireSuccess(
       launch(["buildPlugin", "compileUiTestJava", ...base], "prepare"),
       Date.now() + 30 * 60 * 1000,
@@ -306,12 +300,7 @@ export async function main(argv = process.argv.slice(2)) {
         active = null;
       }
       const shutdown = Math.min(deadline, Date.now() + 30000);
-      while (await robotReady()) {
-        if (Date.now() >= shutdown)
-          throw new Error("Robot endpoint did not stop");
-        await delay(250);
-      }
-      await assertPortFree();
+      await waitForPortFree({ port: 8082, deadline: shutdown });
     }
     result.capture =
       values.journey === "cold"

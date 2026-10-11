@@ -1172,3 +1172,21 @@ SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐�
 准确 d62 的 Kernel Windows 已通过迁移/恢复 25/25，SDK 82pass/1fail 于首轮 result；原 CI 无错误正文。原 SDK 在真实 8.3 TEMP 同点复现 authority directory resolves elsewhere，规范 TEMP 下完整 E2E 1/1。共享 Windows CI 仅导出规范 TEMP/TMP，应用原 action Node 片段后九文件 83/83；SDK 整树、生产 guard、180 秒期限及断言未改。本机无 pwsh，最终 shell 仍须 Actions。修复提交 7f681d 的 helper 27/27，后台断线重连补准确检出，Kernel/Index 补共享 action 触发；新准确发行提交须完整七门 71/5/19/10/3/3/3。 原始失败、junction 更早拒绝、首次短路径探针驱动失败及外部 120 秒中断均保留；只把诊断外层预算改到 240 秒。新的准确候选不继承旧 SHA 通过状态。修复源码绑定 `7f681d660da1f446e5e0c540c5ef10ea529d5a2e`，117 份 gzip 双摘要及完整 API/进程/旁录见[第三轮修复证据](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair3/README.md)。
 
 历史 [第二次独立准备](./cli/evidence/gap-2026-10-05/release-0.166.98/retest-ready2/README.md) 绑定 f53477ad/d62，Windows/Linux 各 43/43、准备 run skipped/零步骤。其源码与身份不能转移为新候选或后续付费 run；CLI 公开回读成功后需要新的显式 marker 提交，实际触及 paths 内文件，并按实际 execution SHA/run/attempt 采集。公开回读已使用唯一尝试目录，不覆盖失败原件。两条 d62 duplicate 检查未被取消。新版本、付费复测与合并均未执行；正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，独立人工、账单/硬额度、实际 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。
+
+### 20.43 2026-10-11 固定 owner-only 宿主读取原型
+
+在冻结 53ad9df 的独立 Windows 普通非管理员实验中，固定 owner-only 文件的宿主只读 RPC 完成一次实际运行：**9 请求 = 1 成功 / 8 拒绝**，合法读取真实返回 16 字节；actor 六项直接路径操作仍全部 Win32 5，目标 HANDLE 不继承。原 HANDLE/Job/profile/通道完成结算；身份与对象前后快照只证明检查时点，未建立连续 authority 或 atomic fencing。独立静态回读 **25/25 = 4 原件检查 + 21 篡改拒绝**，并非 25 次 RPC。
+
+此前 [ACL 契约 A/B/C](./cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md) 已实际尝试 LowBox WRITE_DAC 与宿主预设 protected 唯一用户 ACL，不能再按早期只读 ACL 观察推断尚未尝试设置。本次在独立新胶囊上进一步验证固定对象宿主代理，未改变生产/发行源码、原 owner-only 合同或六个 IAT slots。请求 152 字节、响应 96 字节、载荷上限 64 字节；拒绝分支不返回载荷也不执行 RPC 文件读取，验证用的额外宿主只读检查另计。错 session/generation/注册身份、未知操作、65 字节请求、错误序号、重放和二次读全部拒绝。目标 HANDLE 不继承，actor 原精确继承列表仍 9 项；ACL 设置 HANDLE 在 actor 启动前关闭。对象 ACL/FileId/路径/摘要前后匹配不证明其间连续稳定。root 退出后仅记录真实 channel closed，没有伪造退出后 server 拒绝请求。胶囊保留，未递归删除。
+
+[66 份 gzip 原件与独立核验入口](./cli/evidence/gap-2026-10-05/owner-canary-rpc-2026-10-11/README.md) 绑定 10 个冻结 Git 对象及三份本机实验二进制；不宣称编译工具链 hermetic。根代理和 Astra 分别只读核验，未重跑原生实验或修改 ACL。写入/CAS、flush/崩溃恢复、防回滚、服务自身保护和长期运行仍未实现，保持 **NOT_ADMITTED / durable=false**；正式 **36+9 / NOT_RUN / observed=0 / $99**、冻结窗口及其余人工/账单/GUI/辅助技术/长时验收不变，本轮零付费调用。
+
+### 20.44 2026-10-11 第四轮 CI 夹具与端口修复
+
+821c63e 的发行检查发现安装测试误取新增的 Windows 准备步骤，以及三个 CLI 测试仍假设最后一条消息是 user；实际请求末尾为可信临时预算 system。安装测试改为唯一命名 Bash 步骤，保留原重试和 15000ms 期限；CLI 测试严格检查原历史及唯一 49 次剩余请求预算，E2E 回调异常即时返回 500 并传回主断言，保留原成功断言及 90000ms/210000ms 期限。
+
+安装夹具 Windows/Linux 修前各 3/3 失败、修后各 6/6，既有合同各 56/56；最终 Windows CI integrity 两文件实际 60/60。CLI 两文件双平台修前各 2fail/9pass、修后各 11/11；完整 E2E 双平台各 1/1，无 retry，独立坏请求负例产生 HTTP500 与主断言失败，无 90 秒等待或 unhandled error。生产 agent、SDK 整树、共享 action 与安全 guard 均未改。
+
+JetBrains macOS 原件显示初始 UI 和 canonical drain 成功，进程组结算后端口 8082 仍占用；原件不能区分退出瞬态与逃离进程组。诊断改为在原 30 秒截止内等待实际 bind+close，仅重试 EADDRINUSE，有限期限/正轮询校验及探测前后截止检查接入原宿主合同。Windows 端口 6/6；本机 Ubuntu 为 WSL1，端口 4pass/2fail，独立探针证明该环境允许同一 loopback 端口双 listener。失败完整保留，未跳过断言；原生 Linux/macOS 仍待新提交 Actions。
+
+PR Tests 的实际合并检出与 head 来源已逐字节核对；40054pass/194skip/2fail 仅两项已定位旧契约。完整 518 个原件、Git 绑定、日志和拒绝记录见[第四轮修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair4/README.md)。旧 821 的六门通过不能转移给新提交。新发行候选须自己的七门 71/5/19/10/3/3/3，以及 Full Test、PR Tests 和 Host Diagnostics 修复验证；用户已授权通过后按 Actions OIDC 子包 → CLI → IDE 发布并公开回读，当前未新增发行、付费复跑或合并。正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，人工预审、账单/硬额度、目标 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。
