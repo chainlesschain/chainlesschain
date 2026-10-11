@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.142] - Pair with live-task delivery and cost fixes (2026-10-11)
+
+- Recommend CLI `0.166.98` after its public npm release and the final source
+  CLI, IDE and ARM64 validation gates pass.
+- Align Doctor and upgrade guidance with the paired CLI's task scope, budget
+  recovery, authentication usage and first-run diagnostic fixes.
+- Retain the bridge compatibility floor and separate experimental native
+  recovery and formal evaluation from this paired release.
+
 ## [0.37.141] - Pair with retained CLI diagnostic evidence (2026-10-10)
 
 - Recommend CLI `0.166.97` after its public npm release and this extension's

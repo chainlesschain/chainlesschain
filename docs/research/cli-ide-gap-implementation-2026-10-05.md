@@ -573,3 +573,10 @@ Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同
 实际发现落实为每dispatch的有限预算/交付提示，planner跳过尾system-policy保护当前user并保持旧host信任，iteration-budget-exhausted分类和缺候选断言的明确诊断。Astra指出的goal/hook后缀保护问题已修复；新增默认planner正常/tight context、Infinity、历史/信任边界及json/stream-json pause→write真实集成回归。Windows所有者22.22.2和Linux固定22.12.0各521/521、Node合同各39/39，零skip。Windows沙箱497/519失败和同身份C:\Users\longfa native realpath EPERM探针、旧PATH/夹具失败同时归档，不放宽guard。新优化尚未付费复跑，不能将本地通过回填模型成功。
 
 完整164制品、原API/job/ZIP与八源码blob、失败和最终reporter见[实测与优化归档](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结计划与窗口不变。独立人工/外部锁、invoice/硬额度、目标GUI/辅助技术、durable/owner-only/native及8h/24h/SLO仍开放；准确优化提交须自身CI，不合并或发行。
+
+
+## 40. 2026-10-11 缓存前缀修正与 CLI 0.166.98 配对准备
+
+本轮将有限预算提示尾附并绑定可信system index，火山兼容HTTP序列化回归保持稳定conversation/tool schema前缀；Anthropic合并system的限制保留，不声称实际省费。修正旧hook测试末尾user假定而保留展开功能断言，更新安全producer摘要；Windows/Linux最终九套各522/522。VS新增单fixture失败清理，不放宽生产期限/断言，owner3/3和完整260/260；Java17缺toolchain失败后显式JDK21测试955项与buildPlugin成功。两次无reporter超时、521pass/1fail、初始VS259/1及受控残留进程回执保留；初始TAP/Gradle完整stdout缺失范围明确。
+
+SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐元数据一致。用户已授权成功后发布，须最终准确SHA的CLI CI/Strict/IDE/ARM64完整门，通过后既有OIDC子包→CLI→IDE并公开回读；当前未发布或合并。见[159份新增原件与优化](./cli/evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结指纹与旧窗口不变；优化未付费复跑，人工/账单/GUI/durable/native/长时验收仍开放。

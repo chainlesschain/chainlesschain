@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-11 CLI 0.166.98 / 配对 IDE 候选**：真实任务优化后继续修复预算计数打断火山兼容稳定消息前缀的问题；新增序列化回归，无新付费调用。九套最终 Windows/Linux各**522/522**，VS完整单位**260/260**，JetBrains显式JDK21 **955 tests、0failures/0errors/3skip**及打包成功。保留旧521/1、无reporter超时、VS259/1和Java17启动失败。Session Core**0.3.19** → CLI**0.166.98** → VS**0.37.142** / JB**0.4.160**已对齐；用户已授权测试成功后发布，最终准确提交Actions门与公开回读仍待完成，未新发行或合并。[共享优化与候选原件](../cli/evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。 正式**36+9/NOT_RUN/observed=0/$99**保持，模型交付优化未付费复跑，其余人工/账单/GUI/durable/native/长时项仍开放。以下历史记录不改写。
+
 > **2026-10-11 火山首次旅程实测与优化**：安装、配置、认证通过；原冻结工具任务20轮耗尽，无write/edit、候选0字节，整体失败；已有baseline22/22与四项semantic无法建立均完整保留。工具估算约**$0.03607**，认证/总旅程/invoice未知。已落实预算与交付提示、默认planner任务保护、预算耗尽分类及空候选语义诊断；Windows/Linux最终各**521/521**、离线合同各**39/39**，Astra发现已修复。优化未再次付费实跑，见[实际原件与共享优化](../cli/evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式**36+9 / NOT_RUN / observed=0 / $99**保持；其余人工/账单/目标宿主、durable/native与长时验收仍开放。以下记录保留各自历史时点。
 
 > **2026-10-11 首次旅程干净启动修复**：首次Actions在离线阶段发现semver间接依赖，公开安装和模型均未执行，零新费用。已抽取共享workspace助手，保留边界和旧API；仓库外无依赖clone的Windows/Linux各**23/23**，真实keyless prepare通过，执行/采集回归各**127/127**。原失败及Astra发现的抽取常量回归已修复归档；新源码火山实际旅程接续验证，见[启动原件与优化](../cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。正式**36+9 / NOT_RUN / observed=0 / $99**保持；不合并或发行。

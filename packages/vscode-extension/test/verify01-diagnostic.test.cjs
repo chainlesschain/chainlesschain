@@ -5,6 +5,37 @@ const {
   settleDiagnosticLauncher,
 } = require("./extension-host/verify01-diagnostic.cjs");
 
+const fixtures = new Set();
+test.afterEach(async () => {
+  for (const handle of fixtures) {
+    // A failed cleanup assertion must not leave this controlled, single-process
+    // fixture holding the test worker open. Keep the original assertion failure;
+    // this root-only teardown does not establish production tree cleanup.
+    if (!handle.closed) handle.child.kill("SIGKILL");
+    let timer;
+    try {
+      await Promise.race([
+        handle.done,
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("test fixture did not close after SIGKILL")),
+            5000,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+      fixtures.delete(handle);
+      if (!handle.closed) {
+        // Release only this fixture's IPC/process references so an unconfirmed
+        // exit cannot hang the worker; the rejected teardown remains a failure.
+        if (handle.child.connected) handle.child.disconnect();
+        handle.child.unref();
+      }
+    }
+  }
+});
+
 function launch(program) {
   const child = spawn(process.execPath, ["-e", program], {
     detached: process.platform !== "win32",
@@ -20,6 +51,7 @@ function launch(program) {
     });
   });
   handle.done.catch(() => {});
+  fixtures.add(handle);
   return handle;
 }
 

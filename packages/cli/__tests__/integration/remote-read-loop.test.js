@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentLoop, runAgentHeadless } from "../helpers/test-model-egress.js";
+import {
+  agentLoop,
+  chatWithTools,
+  runAgentHeadless,
+} from "../helpers/test-model-egress.js";
 import { webFetch } from "../../src/lib/web-fetch.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
@@ -117,7 +121,7 @@ describe("remote read recovery in the agent runtime", () => {
           expect(context.at(-1).content).toBe(
             "Goal progress: deliver the requested tests",
           );
-        else expect(context.at(-1)).toEqual({ role: "user", content: task });
+        else expect(context.at(-1).content).toMatch(/^Execution budget:/);
         expect(
           context.filter((message) =>
             message.content?.startsWith("Execution budget:"),
@@ -319,6 +323,78 @@ describe("remote read recovery in the agent runtime", () => {
       kind: "system-policy",
       trust: "untrusted",
     });
+  });
+
+  it("keeps the stable Volcengine request prefix before the changing budget hint", async () => {
+    writeFileSync(join(cwd, "fix.js"), "export const fixed = false;");
+    const requests = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, init) => {
+        requests.push(JSON.parse(init.body));
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message:
+                  requests.length === 1
+                    ? mockToolCallMessage(
+                        "read_file",
+                        { path: "fix.js" },
+                        "prefix-read",
+                      )
+                    : mockTextMessage("Observed the file"),
+              },
+            ],
+            usage: { prompt_tokens: 10, completion_tokens: 2 },
+          }),
+        };
+      }),
+    );
+    try {
+      await drain(
+        agentLoop(
+          [
+            { role: "system", content: "Stable host policy" },
+            { role: "user", content: "Inspect fix.js" },
+          ],
+          {
+            ...base,
+            iterationBudget: IterationBudget.forRun({ maxTurns: 2 }),
+            chatFn: (messages, options) =>
+              chatWithTools(messages, {
+                ...options,
+                contextMemorySkipPlanning: true,
+                provider: "volcengine",
+                model: "deepseek-v4-flash-ga-260731",
+                apiKey: "test-only-prefix-key",
+                baseUrl: "https://cache-prefix.invalid/api/v3",
+              }),
+          },
+        ),
+      );
+      expect(requests).toHaveLength(2);
+      const first = requests[0].messages;
+      const second = requests[1].messages;
+      expect(second.slice(0, first.length - 1)).toEqual(first.slice(0, -1));
+      expect(requests[1].tools).toEqual(requests[0].tools);
+      expect(first.at(-1).content).toContain("plus 1 further model requests");
+      expect(second.at(-1).content).toContain("plus 0 further model requests");
+      expect(
+        second.filter((message) =>
+          message.content?.startsWith("Execution budget:"),
+        ),
+      ).toHaveLength(1);
+      expect(
+        second.some(
+          (message) =>
+            message.role === "tool" && message.tool_call_id === "prefix-read",
+        ),
+      ).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("finishes a fixed-issue status answer from retained evidence after repeated metadata reads", async () => {

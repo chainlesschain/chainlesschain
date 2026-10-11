@@ -1,0 +1,1480 @@
+{
+  "schema": "chainlesschain.release-preparation/v1",
+  "capturedAt": "2026-10-11T08:59:03.235Z",
+  "parentCommit": "b015687d2bf79e9fe986792914dba841a04319c1",
+  "versions": {
+    "cli": "0.166.98",
+    "sessionCore": "0.3.19",
+    "vscode": "0.37.142",
+    "jetbrains": "0.4.160"
+  },
+  "formalSample": false,
+  "observationsProduced": 0,
+  "formalStatus": "NOT_RUN",
+  "optimizationLiveRetestPerformed": false,
+  "paidProviderCalls": 0,
+  "releaseAuthorizedAfterExactShaGates": true,
+  "released": false,
+  "validation": {
+    "win32": {
+      "node": "v22.22.2",
+      "passed": 522,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux": {
+      "node": "v22.12.0",
+      "passed": 522,
+      "failed": 0,
+      "skipped": 0
+    },
+    "vscode": {
+      "node": "v22.22.2",
+      "passed": 260,
+      "failed": 0,
+      "skipped": 0
+    },
+    "jetbrains": {
+      "suites": 113,
+      "tests": 955,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "checks": 7
+  },
+  "entries": [
+    {
+      "originalPath": "CHANGELOG.md",
+      "sourceNormalized": true,
+      "path": "objects/e000.gz",
+      "rawBytes": 657573,
+      "rawSha256": "sha256:31a437427afaf374a5c50ad4a6e3087b44f8980c1416a6976bded81051db145e",
+      "bytes": 265867,
+      "sha256": "sha256:ed7f99ed65f3786b3c2397c65ee9baf8138833b07b52d915180db71abf64f64d"
+    },
+    {
+      "originalPath": "package-lock.json",
+      "sourceNormalized": true,
+      "path": "objects/e001.gz",
+      "rawBytes": 1352184,
+      "rawSha256": "sha256:fb0d387c8b9752dae2e768f34f5ade3098f2a77c9083ea90ffc2533bf10f4ab7",
+      "bytes": 296335,
+      "sha256": "sha256:c9d07a93b81ca185ce8226525907bda22e2396d629c5ee2254e539d06763e862"
+    },
+    {
+      "originalPath": "packages/cli/__tests__/integration/remote-read-loop.test.js",
+      "sourceNormalized": true,
+      "path": "objects/e002.gz",
+      "rawBytes": 55459,
+      "rawSha256": "sha256:d636ce296844bb1027e02cd285e9e509f0e95894e657bc90853d3fed843a199e",
+      "bytes": 11202,
+      "sha256": "sha256:1ddef330ec859e6544ab04d436321e08f167870d12bfc4536e72af4d92d4d6d0"
+    },
+    {
+      "originalPath": "packages/cli/__tests__/unit/headless-runner.test.js",
+      "sourceNormalized": true,
+      "path": "objects/e003.gz",
+      "rawBytes": 90489,
+      "rawSha256": "sha256:ef9863938476f8772c089fac9122553ba123b3b24b03eef67da476df1be2484a",
+      "bytes": 18807,
+      "sha256": "sha256:dacb6f46f12d35d9c83e1a2603fba425fed3e819e8364d1ac72f73395a0e13a9"
+    },
+    {
+      "originalPath": "packages/cli/package.json",
+      "sourceNormalized": true,
+      "path": "objects/e004.gz",
+      "rawBytes": 7356,
+      "rawSha256": "sha256:2e90502970e3e3bb2488533592f1e2b256bae9adc931ec80e136300b28b8f9f1",
+      "bytes": 2101,
+      "sha256": "sha256:0551f306483c8cb0de321d93363116c05a003de48299a5d18a0ce68c12904699"
+    },
+    {
+      "originalPath": "packages/cli/src/assets/web-panel/index.html",
+      "sourceNormalized": true,
+      "path": "objects/e005.gz",
+      "rawBytes": 661,
+      "rawSha256": "sha256:36c1c470bf5d83c9faca839ab69a222ed17a0978a63e925a472d68e3548ea1f3",
+      "bytes": 391,
+      "sha256": "sha256:7505e5d2e862c05da7fbf7e4f8f93318defd8abe53bf4fe28f74666ebe2333ad"
+    },
+    {
+      "originalPath": "packages/cli/src/data/changelog.json",
+      "sourceNormalized": true,
+      "path": "objects/e006.gz",
+      "rawBytes": 331338,
+      "rawSha256": "sha256:79bb4ef5f1815bd5f454a5f87d34686b853c46cab7a80d2686620dbe3b16222f",
+      "bytes": 115390,
+      "sha256": "sha256:6eed9b1ba2fd034b4b99b858a3c0949b7477bb3081d7751f7a02c38527742792"
+    },
+    {
+      "originalPath": "packages/cli/src/runtime/agent-core.js",
+      "sourceNormalized": true,
+      "path": "objects/e007.gz",
+      "rawBytes": 635168,
+      "rawSha256": "sha256:bbf754d6d43dfa4988e03b36e57d63942d041b45788eb98844e723778e3750e2",
+      "bytes": 160893,
+      "sha256": "sha256:7a70db1aaca8638fc7343736305360a6906e770bcb674859e4fff1a13861be66"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/CHANGELOG.md",
+      "sourceNormalized": true,
+      "path": "objects/e008.gz",
+      "rawBytes": 141127,
+      "rawSha256": "sha256:700839137c9884a19643cf48643f0cbb7b488a94f836d033bf2eb157d5fd940a",
+      "bytes": 50809,
+      "sha256": "sha256:087ac2f079234206b1f036720602caa4c8e4b2009a5a02f94ddbb98f3e796ebe"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/README.md",
+      "sourceNormalized": true,
+      "path": "objects/e009.gz",
+      "rawBytes": 28955,
+      "rawSha256": "sha256:0fb05d3294c1612fe3b6e49f4e0f2d0baeb05533d77625ce20fd01206277e0a6",
+      "bytes": 11647,
+      "sha256": "sha256:8788239b3522aac03ad2d7a4645a9a5469c98c2b030cba528c8374bfaa2b8968"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build.gradle.kts",
+      "sourceNormalized": true,
+      "path": "objects/e010.gz",
+      "rawBytes": 23698,
+      "rawSha256": "sha256:b02e91fdad8cc028e3ef779bd0180b0c5212774e6b2c385b1b108cfa7a3a42b7",
+      "bytes": 8234,
+      "sha256": "sha256:6728692add03ecf82b3eb14a9e451680315558cb6ade265fa5a05fe0a130ef3a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/gradle.properties",
+      "sourceNormalized": true,
+      "path": "objects/e011.gz",
+      "rawBytes": 170,
+      "rawSha256": "sha256:fdf05577e50fe0f01a0ce1dc04baade595c7f5d7b28281223f2aa98066567bc3",
+      "bytes": 145,
+      "sha256": "sha256:ba436ec0c404db45a65a276ec76162e05df063a5f174a1c4d9f1c6ab0a6ed20b"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "sourceNormalized": true,
+      "path": "objects/e012.gz",
+      "rawBytes": 4099,
+      "rawSha256": "sha256:ef520ad86d2ce1bd5c5b9e80bf548f1b20f32401da7dc8bf6df4ca5241dfdbd4",
+      "bytes": 1616,
+      "sha256": "sha256:f4c1f816b836a0901c5e72df4da9572e7905e1796d128dcab37931022793bba7"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "sourceNormalized": true,
+      "path": "objects/e013.gz",
+      "rawBytes": 27473,
+      "rawSha256": "sha256:f2a009ce89ef845685f46ac3239b7a7904c0ca495ab7aa2d0b99e9f3311eb131",
+      "bytes": 7131,
+      "sha256": "sha256:86feb74b6696c4e3e9f7c0f0c60980a145800802f6ed8157368f8825ce210b51"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "sourceNormalized": true,
+      "path": "objects/e014.gz",
+      "rawBytes": 2782,
+      "rawSha256": "sha256:d8465d73e45b8c872eaea56141e4aa44ee2ea3c4fd460d23a67c7339c2d76a81",
+      "bytes": 813,
+      "sha256": "sha256:66ad2967cf9ba947f2c909dd4df96c4000c035d510d377d534d11013325c47e6"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+      "sourceNormalized": true,
+      "path": "objects/e015.gz",
+      "rawBytes": 3159,
+      "rawSha256": "sha256:15683976561c656f4756932b3154faaabc8e6173a2eab419dc3957525f3a6128",
+      "bytes": 1025,
+      "sha256": "sha256:05cc8ac2a135789c3c2fa1667afdd3c656e2f25a58fb4fd13d4cf3b0ff30d0b0"
+    },
+    {
+      "originalPath": "packages/session-core/package.json",
+      "sourceNormalized": true,
+      "path": "objects/e016.gz",
+      "rawBytes": 4913,
+      "rawSha256": "sha256:9df662772cc5529e9e5707e7c2442c7d7394040c5f6022e872470825dd1da544",
+      "bytes": 1184,
+      "sha256": "sha256:906186e52ccfc188d5d40c3103b5807aa303bb5c07bd804df3d8759bac9a0765"
+    },
+    {
+      "originalPath": "packages/vscode-extension/CHANGELOG.md",
+      "sourceNormalized": true,
+      "path": "objects/e017.gz",
+      "rawBytes": 159542,
+      "rawSha256": "sha256:9bcc15364fff320fceec50c33aa367439ecd1624e4ca14a709b2a5384cfdf608",
+      "bytes": 56038,
+      "sha256": "sha256:0933accf231dffd58833dede2d2b092a49c32b85932ff448b1eaaa80d3f49048"
+    },
+    {
+      "originalPath": "packages/vscode-extension/README.md",
+      "sourceNormalized": true,
+      "path": "objects/e018.gz",
+      "rawBytes": 39555,
+      "rawSha256": "sha256:6481df98590665a1716d5a1e580197d544826e4ea15b8dc53ee3f7525286b42d",
+      "bytes": 14315,
+      "sha256": "sha256:b6f7336d7a58b38e613d40a7bacd6906cfa33bc6c1c2dc75d7f4d07d0afbb387"
+    },
+    {
+      "originalPath": "packages/vscode-extension/package.json",
+      "sourceNormalized": true,
+      "path": "objects/e019.gz",
+      "rawBytes": 24538,
+      "rawSha256": "sha256:f571d28279b9c44f7089b786e6ba11f10835134bbb9a0b53424d4f3b3e1915aa",
+      "bytes": 3657,
+      "sha256": "sha256:2886ca5453e697a9d91cc772ee24331777883a6ff9f82d61b27e4f4981622a15"
+    },
+    {
+      "originalPath": "packages/vscode-extension/test/verify01-diagnostic.test.cjs",
+      "sourceNormalized": true,
+      "path": "objects/e020.gz",
+      "rawBytes": 3182,
+      "rawSha256": "sha256:a98eba1fdf3082c59a53f7a06a28dfbae038d2dda66ad20f93653c47b62d04f9",
+      "bytes": 1206,
+      "sha256": "sha256:e6d486697f5cfd6097baff7bafe55f34cb434d1605c1d0bef3f86dd7dcd33847"
+    },
+    {
+      "originalPath": "packages/web-panel/dist/index.html",
+      "sourceNormalized": true,
+      "path": "objects/e021.gz",
+      "rawBytes": 661,
+      "rawSha256": "sha256:36c1c470bf5d83c9faca839ab69a222ed17a0978a63e925a472d68e3548ea1f3",
+      "bytes": 391,
+      "sha256": "sha256:7505e5d2e862c05da7fbf7e4f8f93318defd8abe53bf4fe28f74666ebe2333ad"
+    },
+    {
+      "originalPath": "tests/fixtures/claude-2.1.221-238-security-map.json",
+      "sourceNormalized": true,
+      "path": "objects/e022.gz",
+      "rawBytes": 23375,
+      "rawSha256": "sha256:389edb8edc36ee7c92b6fdd61129835b87db337901e41f8aca5ee9b0b1b00bdf",
+      "bytes": 4486,
+      "sha256": "sha256:36677d84bd57b754cca7bb5b884ab9b001d98623cef8e485b767c661c17b46b6"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-prefix-final-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e023.gz",
+      "rawBytes": 994,
+      "rawSha256": "sha256:405a32f24812659c06b561858367e36bc3f155fc4f4b8f3a6979453895a32fb3",
+      "bytes": 470,
+      "sha256": "sha256:778146ace2a0460b840955acb2b4794d448956961de262eeafd450d640700728"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-prefix-final-linux-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e024.gz",
+      "rawBytes": 1097,
+      "rawSha256": "sha256:0bdab3545ddc2efdc74a6874085c87a1d8722f0a40f40ac0cd88afc4cea3f489",
+      "bytes": 477,
+      "sha256": "sha256:75507fa176e0a0676be9b1be2cd60b14eaa2f1890a28cf99084f55fdd53d7809"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-candidate-win32-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e025.gz",
+      "rawBytes": 176531,
+      "rawSha256": "sha256:4db25554a5a10efffb5fdafeffc6f8bbf3b32f1b5cbbaa9ca894751bbda0e5bf",
+      "bytes": 22362,
+      "sha256": "sha256:74c72d53ac35d41716f47bb448e9aa6e4638bdb093737a8a55962525da5d2e87"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-candidate-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e026.gz",
+      "rawBytes": 1060,
+      "rawSha256": "sha256:e36c1ef3923a39ddd26ad58bc35465fb272c48a9e55e69de6ff6dbe569b1c988",
+      "bytes": 472,
+      "sha256": "sha256:beb3286a56307d968966cbe4d838ba6ddb28bcf356d3fdc1f5c352c13b92d2f7"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-final-win32-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e027.gz",
+      "rawBytes": 176161,
+      "rawSha256": "sha256:954b734219f8fb5c6cc92647c6b31179a483ac63d7002a1836fdddbd723cc340",
+      "bytes": 22238,
+      "sha256": "sha256:ce92cde31d873038751f64b07d3c724b9032f590f4c71fd12b39a94acdc6cc17"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-final-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e028.gz",
+      "rawBytes": 1052,
+      "rawSha256": "sha256:56edf5441c155dddbad5df2ba8f2d86ba77f5f5bfb573422be7e4dc8f6a2053b",
+      "bytes": 470,
+      "sha256": "sha256:8f73da259a1142af514c88dd3818c09cb10d296c2b5b6f585a984583a64b23e6"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-final-linux-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e029.gz",
+      "rawBytes": 176246,
+      "rawSha256": "sha256:d0eb84b71ef1cc57d80dc9b0da660d8a92c3cb6e7f1f9e7ee1b81fc9abf18751",
+      "bytes": 22274,
+      "sha256": "sha256:4f34e51218a0df569714cdf04dbc59deb684eee4b2699da59e7385481555e81a"
+    },
+    {
+      "originalPath": ".work/first-run-optimization-release-final-linux-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e030.gz",
+      "rawBytes": 1110,
+      "rawSha256": "sha256:f2a91371e94c8b67cf6141f2ce567342e966ed2dd2993e07bd5825ee72113c26",
+      "bytes": 469,
+      "sha256": "sha256:cdc5e522dfacec6103ac4b29d3fccc7e120c568e4fdc65b0060417fd25163dcb"
+    },
+    {
+      "originalPath": ".work/release-016698-focused-owner-win32-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e031.gz",
+      "rawBytes": 14997,
+      "rawSha256": "sha256:e5deba451a71e37d413d9d2704a29e9d3c3b529679c7477be72b4bbe1b6963d8",
+      "bytes": 2063,
+      "sha256": "sha256:28914de63b51964d482c9c966f1127d1433fe65c03c747ab1b94f3329101ea9f"
+    },
+    {
+      "originalPath": ".work/release-016698-focused-owner-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e032.gz",
+      "rawBytes": 1628,
+      "rawSha256": "sha256:02fff18e2741000c925f9a6aebb78cb7a849986acf83546e75b20c0f2eb725e3",
+      "bytes": 781,
+      "sha256": "sha256:ddfbc0e2e2986c5371d5a878689377c5bc03be1ae36c957e689718621cb6474b"
+    },
+    {
+      "originalPath": ".work/release-016698-focused-owner-linux-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e033.gz",
+      "rawBytes": 15007,
+      "rawSha256": "sha256:eb906736c2b7be02ed2e6ff0aaac34489584b87791b109e0791bd233d609a610",
+      "bytes": 2050,
+      "sha256": "sha256:7130eb5ad01cd92290018e9ae7881bead1bd51be110fb68e08c9c19a3ef3b316"
+    },
+    {
+      "originalPath": ".work/release-016698-focused-owner-linux-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e034.gz",
+      "rawBytes": 2073,
+      "rawSha256": "sha256:bfb2bbb9dde513929cecef4253edf28fb9b9f52d5e743fe4038c6ad308a91557",
+      "bytes": 762,
+      "sha256": "sha256:ff5a3c60f7a37ac103977a71ff08893422641d5d2af5fe281f95b0151e635f6a"
+    },
+    {
+      "originalPath": ".work/release-016698-vscode-diagnostic-owner-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e035.gz",
+      "rawBytes": 1140,
+      "rawSha256": "sha256:77b5a9a2839742729c2b8550416dc8f4a1cd3407f49b7e81ddd2f9e23c7a9bd0",
+      "bytes": 531,
+      "sha256": "sha256:362068236b84fa1c875279d7e9b8dbca414471442849ad55082b38091ebd2239"
+    },
+    {
+      "originalPath": ".work/release-016698-vscode-diagnostic-final-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e036.gz",
+      "rawBytes": 1139,
+      "rawSha256": "sha256:7ba8214e203c7bc70fcce98cf93f6631e955cf7ad3c34f181a31e2d1d6eaea92",
+      "bytes": 531,
+      "sha256": "sha256:4c7f04ea14e9bb9b5ffcfd3bc113ff1b72add6742b2abbbbccee720aea4ada8b"
+    },
+    {
+      "originalPath": ".work/release-016698-vscode-final-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e037.gz",
+      "rawBytes": 57832,
+      "rawSha256": "sha256:b5f8915f846ae3a876e0cb2e8d747b53c6f56fc5cd31965a8fd9a4dd359b3f40",
+      "bytes": 11647,
+      "sha256": "sha256:fcc1ccb5b6156830c5481fbc850845418ac142a951d56e0d8011746e401bea81"
+    },
+    {
+      "originalPath": ".work/release-016698-local-vscode-cleanup-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e038.gz",
+      "rawBytes": 348,
+      "rawSha256": "sha256:56ac9760478fb58393fe133b4fe734618ada60cdf8af859ffb3d0ddc4acef2a2",
+      "bytes": 262,
+      "sha256": "sha256:0de542dc49d266b6fdd63c9b80eb0b19a8c005087577d9e82a0e2112ba233412"
+    },
+    {
+      "originalPath": ".work/release-016698-initial-observations-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e039.gz",
+      "rawBytes": 1513,
+      "rawSha256": "sha256:38a768c07aa2ee7bbe5a9e90818ac6ba20f5dee7ce5bf87077d7af4d865918b0",
+      "bytes": 808,
+      "sha256": "sha256:7de9668d040438cbfbe0148ac3d8d47d440ad614a59e78c3755b9626b39196cd"
+    },
+    {
+      "originalPath": ".work/release-016698-jetbrains-jdk21-win32-20261011-process.json",
+      "sourceNormalized": false,
+      "path": "objects/e040.gz",
+      "rawBytes": 15432,
+      "rawSha256": "sha256:7f8fef86af757366d67be1db03be005ea5090b5606393be0f403dd988bc1ac1b",
+      "bytes": 5672,
+      "sha256": "sha256:9f177ba553e50b20d8c1a73f997dfd013130febcd7acecaaa487c795a38cf956"
+    },
+    {
+      "originalPath": ".work/release-016698-checks-win32-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/e041.gz",
+      "rawBytes": 5822,
+      "rawSha256": "sha256:215e4b1149e8e96b399c33cfaedad715803b0bbfd4a43da19bf402713539fa79",
+      "bytes": 1337,
+      "sha256": "sha256:f0f3fd23c394bf08d43f5293a1d7c9b32f3ea2c9d4d20f30025d5a6069cc2829"
+    },
+    {
+      "originalPath": ".work/run-release-candidate-local-016698.mjs",
+      "sourceNormalized": false,
+      "path": "objects/e042.gz",
+      "rawBytes": 1670,
+      "rawSha256": "sha256:bb659ad78261ff8aa4bd722d3e334f0ce3160e93777f75ed55cab7fc277105ec",
+      "bytes": 862,
+      "sha256": "sha256:116f979b1052a9edf38c5d9634e83f1f31409e643246d1b464f458e4af8e229a"
+    },
+    {
+      "originalPath": ".work/run-release-016698-jdk21.mjs",
+      "sourceNormalized": false,
+      "path": "objects/e043.gz",
+      "rawBytes": 1352,
+      "rawSha256": "sha256:2567bc52f94fb1d431be538d22b2bb9a604ff22978156d56ecdaa0cd34aca3fd",
+      "bytes": 748,
+      "sha256": "sha256:6af9ba00adc4f76a157938502bcd489bdc9d631c2d4256545fe2c6c73a26bf48"
+    },
+    {
+      "originalPath": ".work/run-release-016698-checks.mjs",
+      "sourceNormalized": false,
+      "path": "objects/e044.gz",
+      "rawBytes": 1774,
+      "rawSha256": "sha256:7506d7a3d254e85bf6894a2430356669279b9ccaf2c29e6b2ecd6c0b1850b001",
+      "bytes": 762,
+      "sha256": "sha256:ae7784369022b59481f23a945eb0894154de7ec6537e46dacbea2dd8b1590899"
+    },
+    {
+      "originalPath": ".work/read-release-016698-gates.mjs",
+      "sourceNormalized": false,
+      "path": "objects/e045.gz",
+      "rawBytes": 3556,
+      "rawSha256": "sha256:c7b660721fc4b02c4b83f5bea9475188def7128b6ad4127f72e0de6890712f0d",
+      "bytes": 1637,
+      "sha256": "sha256:dd6c05824098048b8ee62003d8aafec0af6f5ccc1eb2c64391a4ab12d851ea1e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ActivityLogTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e046.gz",
+      "rawBytes": 1228,
+      "rawSha256": "sha256:5aca9355eb1c203ef2706f2ad7fdcbb380ab04c2cc0fd53277f0a41b57364f05",
+      "bytes": 476,
+      "sha256": "sha256:180fe08c4ea0e1f9fbf1af6f0b9892ca1b62e95ba8b1b35d6d1244b1bcf432d0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e047.gz",
+      "rawBytes": 2270,
+      "rawSha256": "sha256:44201c8b0e4eb4e3d1eed5b7d9fefdd973143a796d69f15b2c3a96e08c0efc66",
+      "bytes": 701,
+      "sha256": "sha256:475e39ce7fa9be4745057f2acb95652c776715885dcf75f0a90eb451be34a363"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.AgentTerminationTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e048.gz",
+      "rawBytes": 962,
+      "rawSha256": "sha256:a827311a7e5d01db66ccd94196bc8394af637c3d41b884f3dae91ecfaef463d0",
+      "bytes": 424,
+      "sha256": "sha256:f7f9b7864efda0abb9bdd0201e4c6e12b18c2274be883548bfe03967f2e86abe"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ApprovalGrantsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e049.gz",
+      "rawBytes": 598,
+      "rawSha256": "sha256:ef25178904ea6f36e405697c181db2e9795aa104fad385be95d08f5499789c9a",
+      "bytes": 339,
+      "sha256": "sha256:1c5879e9fde28fb1672b32cb2ba67a961cf9dd5a8ad8ea5019364bd34269da58"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ApprovalResponsesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e050.gz",
+      "rawBytes": 1068,
+      "rawSha256": "sha256:88c85895692077d1f66ef6c1a652b585d05c9c5b7c5dd90fc98ac53e6d276a92",
+      "bytes": 451,
+      "sha256": "sha256:d65c0a392465a09aca39463a4cb4667c21f1f7ff61c23c25ed4960e0989c3db5"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ApprovalSettlementRegistryTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e051.gz",
+      "rawBytes": 799,
+      "rawSha256": "sha256:7f1809ce6d384e1956f6e981524c433dcfd638b73ecab45d3fed126e8dff8908",
+      "bytes": 392,
+      "sha256": "sha256:a8251bc2873a4ef1226c879e3aa4ecbb320c04a869a9ca87c7425aa33e79ce49"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ArtifactsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e052.gz",
+      "rawBytes": 1623,
+      "rawSha256": "sha256:4ccdaa54e35b9d900d8ee80c0fbc0ebf01341c7bd78d76bf0d3bc4ba88cbcf52",
+      "bytes": 534,
+      "sha256": "sha256:46aeda8f6f29c0daed478e280beceea507a700a8dd75ff783004d1ef56149f9f"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.AutoExecGuardTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e053.gz",
+      "rawBytes": 1049,
+      "rawSha256": "sha256:2549828a358f9ad02c8d90d617b6bd51cc8e6370cce8915f58a3b161399ceb31",
+      "bytes": 411,
+      "sha256": "sha256:4a779d1bab55ffff7e6fb1e1f307f20c919f8fcbef62c16546914c2983728392"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.AutomationCenterTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e054.gz",
+      "rawBytes": 1390,
+      "rawSha256": "sha256:65eef599536d9ef6e981d905d63caf26985ea433d9b6f664265f054f739c4456",
+      "bytes": 483,
+      "sha256": "sha256:3d120e8986999b7e437b81b5f26ccd9f96b24f21ac05febffda06cd0c492982a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.BackgroundAgentsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e055.gz",
+      "rawBytes": 1779,
+      "rawSha256": "sha256:dfc572960847c7b87ffe62e1853992a14180ba9f2250983b8eb7cd09985230b4",
+      "bytes": 585,
+      "sha256": "sha256:fc230b44717799227ba0041757dfdeda40f0146abecfabc08047479337858db1"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.BridgeSecurityPolicyTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e056.gz",
+      "rawBytes": 917,
+      "rawSha256": "sha256:04da2afd9611d81bd715cd51f3918630ad7dbe1ca5e43fddfdb7e3d5cbd70fc3",
+      "bytes": 403,
+      "sha256": "sha256:471aaddb419aec005e54d53b59c22fc022b19cdc352ec852917f1d3ef7d59a21"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.CapabilityNegotiationTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e057.gz",
+      "rawBytes": 2054,
+      "rawSha256": "sha256:be2b4c2589bc7fda489e5f187cfdce01a69b12e093f77d97873a232d12e5b1a7",
+      "bytes": 605,
+      "sha256": "sha256:ecaf123919277c564e6f99bf4dcd0e0591fd7680aeb006610e34922d05d53f2d"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.CcAutomaticCompletionPolicyTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e058.gz",
+      "rawBytes": 1387,
+      "rawSha256": "sha256:cab22ac4f1862e1ef070d57229c761f9ef742253164dc8e22f073b6d811dbcb8",
+      "bytes": 523,
+      "sha256": "sha256:887a9b6d7cb5dd023de5010e507cb59ffdf0c492576f000d61d5a3ece4d6d817"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.CcCompletionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e059.gz",
+      "rawBytes": 2003,
+      "rawSha256": "sha256:ad3422723f45b23a64362cd7eef61c0082c87a12b360f6be01802ef2ce30e9cf",
+      "bytes": 550,
+      "sha256": "sha256:edfb3607a0a2ab877e4152b713ffdf99df508a53e51bcc1be2bd84f662d9e2e0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ChatDraftStoreTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e060.gz",
+      "rawBytes": 1409,
+      "rawSha256": "sha256:adcd6aa57fa01b7010a5f2c3459a68708426a5bc25170db6159586f375e75131",
+      "bytes": 563,
+      "sha256": "sha256:2db1e71bb52cced712e95bfa7aebe100cd1d3aff42fbdfc26523d42abfeab557"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ChatEventsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e061.gz",
+      "rawBytes": 4322,
+      "rawSha256": "sha256:5cb75e98a0cc8c093f79d96e6a61ac2676492415c77d34fa9448c30f4ccd5eaf",
+      "bytes": 970,
+      "sha256": "sha256:aba6d2abcd2549fa90e6296504f210115ddc188e4373c0c5b018291a7b69577b"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ChromeConnectorTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e062.gz",
+      "rawBytes": 660,
+      "rawSha256": "sha256:f906c3667295b610259c6c6e3fcc92a1101b306197cac0ecb1e85de917bf6666",
+      "bytes": 319,
+      "sha256": "sha256:5b70436bc4becec713264e79690285dafc868ba8cf2b565a5b1f810c153378c0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.CliIdentityProbeTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e063.gz",
+      "rawBytes": 630,
+      "rawSha256": "sha256:69f0f309ac736ceb040e5c2724e2942b993eafb04f3e52f442ea464d07bddccb",
+      "bytes": 365,
+      "sha256": "sha256:61ebc42d47c3c3dba149085673328e87783b6a5cb4dc692830ff77b269b42a78"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.CliVersionCheckTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e064.gz",
+      "rawBytes": 1350,
+      "rawSha256": "sha256:6062d9a8394cc209aa99b03e1f97c2e1e554027508cd03b566f8643cf0b462a8",
+      "bytes": 465,
+      "sha256": "sha256:3dfad8a34a2e28982fb27bc339df84360638103e555723dac06782939900afb7"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ContextCenterTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e065.gz",
+      "rawBytes": 968,
+      "rawSha256": "sha256:1aaf5ed64658bbac331b3dc3365bd976968d650f7fddf72cfbb664e86edfb0a2",
+      "bytes": 415,
+      "sha256": "sha256:81aa4118297a9666d7215da7778bbb36331f8f28084ab7f0ffa0ae30074404fa"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ContextExternalSourcesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e066.gz",
+      "rawBytes": 615,
+      "rawSha256": "sha256:0dac2f3861386c858900fc5b0ccd9c4e567290ae2db7dcce74f240ef837f80df",
+      "bytes": 339,
+      "sha256": "sha256:0cd320c930fd79afec27a21d924864ccfedf498246856f363067e8ce9c2e1f34"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ContextMemoryAuthorityTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e067.gz",
+      "rawBytes": 633,
+      "rawSha256": "sha256:bdc280698537e590069997ce78db4cf682e7a8c5ea8b0c900d059066b3f2bebf",
+      "bytes": 350,
+      "sha256": "sha256:068b08c580525d416ae36900856bccac201349d709da4b0757f69c844303b15d"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ContextMemoryProjectionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e068.gz",
+      "rawBytes": 635,
+      "rawSha256": "sha256:42a71824c31c891b52947cd01d4f4128fe0bf91702d3dae072dd96d6a494e36d",
+      "bytes": 340,
+      "sha256": "sha256:0188773627e7cfd9e67d72f154bba2eb73d94dc3c3451be32fd2b3198090981c"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ContextStatusTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e069.gz",
+      "rawBytes": 814,
+      "rawSha256": "sha256:d5186266a9bb4d3d8f9828f19d07f534c2861d9d85431bdb71c961fc473ac371",
+      "bytes": 368,
+      "sha256": "sha256:01f86eeb8cd9431467ec0769441c32cbb5768b7aadc8de9b142c03f8b6d068b4"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ConversationManagerTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e070.gz",
+      "rawBytes": 2280,
+      "rawSha256": "sha256:42c9e80e89bf770d968c9801cace5e4154d82e0a2618c04001e36aedb7ffe54d",
+      "bytes": 630,
+      "sha256": "sha256:86af08bb2d6b32ee159805690b72c7de719bcaa0950da4c42589fb58a1ba6147"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DashboardHtmlTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e071.gz",
+      "rawBytes": 1206,
+      "rawSha256": "sha256:9b0ff2e38e05d5dd01df6c95dc5d6905a10d5275691aa7f86bf71d9933e0d91e",
+      "bytes": 456,
+      "sha256": "sha256:1968e754026b896920e409d337d2aed934be32eda8311e62ea5683072d1541f9"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DeepLinkTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e072.gz",
+      "rawBytes": 1617,
+      "rawSha256": "sha256:f04ee3afea19302cdbd7d34c39e65328cf823eb8cdac81c30a9996c419b39eb7",
+      "bytes": 529,
+      "sha256": "sha256:c0e8067d7020633e223639ce8fcaa072ff6f5b12eeb7b140926c13836948ccb1"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DeliveryWorkflowTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e073.gz",
+      "rawBytes": 1184,
+      "rawSha256": "sha256:30c5bb9c3f1372cbc9de4f8bae4025b3d709565a57d4abb04fe0994f1e17f316",
+      "bytes": 485,
+      "sha256": "sha256:de9e81b8b8c303f3d841fb4a1c5fb118ee2d9196346cd3f844468e97d8d2d8c3"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DiagnosticBundleExportTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e074.gz",
+      "rawBytes": 610,
+      "rawSha256": "sha256:2f46bacb3a2c8c7199222faadc80941092d595ab93d83d5f7d4b7f03ad924bae",
+      "bytes": 330,
+      "sha256": "sha256:de789ad480c7cf75231e48cf955bf2bfe98c17c13631bace7894eaf4cf8f43c9"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DiagnosticsSnapshotSchedulerTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e075.gz",
+      "rawBytes": 1265,
+      "rawSha256": "sha256:1fa344a25e2c02204cc8870c4161a25c86df8d73a0942f558c23398103b7d0be",
+      "bytes": 483,
+      "sha256": "sha256:9dccc38e39a1e0528d553d865c22e9e72c5ee393264e82a7b7ece45a0435cdea"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DiffApplyGuardTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e076.gz",
+      "rawBytes": 2076,
+      "rawSha256": "sha256:ac363018884414dd9bd5631d7665c3c775094ea6a0300f67c424faa1f49e7529",
+      "bytes": 604,
+      "sha256": "sha256:4170f47c0c4cbcdfebe11eeb79c047eca130fd1e48462267601c7826fc32502e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DiffHunksTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e077.gz",
+      "rawBytes": 1203,
+      "rawSha256": "sha256:5b8750dc76e8085a529c9c466ceb33bd72b57132d441799ce3a7eb44d6a8dc9e",
+      "bytes": 463,
+      "sha256": "sha256:a897a9cfc51409621675f65d52af8db946844b34b8fbcc5144c985c515c41319"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.DiffReviewAuditTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e078.gz",
+      "rawBytes": 879,
+      "rawSha256": "sha256:7c515775e0714993fd09d807d014d1b47f346c5b3a961bfb744fccc39e221e52",
+      "bytes": 406,
+      "sha256": "sha256:6da48afd6c16f71e7dbfb1786632f208633690dcc4ef09927ff35f335c8b093f"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ElicitationSchemaTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e079.gz",
+      "rawBytes": 757,
+      "rawSha256": "sha256:65c4ed7ff71212bb095488523682cf616e1edea813a5306b8be332faf8d2d178",
+      "bytes": 379,
+      "sha256": "sha256:0a77db077b4e4e7f918537988cedf4fa60474b1b807391648beac0c11d398cd4"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.EvolutionDeploymentConfigTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e080.gz",
+      "rawBytes": 928,
+      "rawSha256": "sha256:ad652ecefb8889937392c1d91ccfa148d0defe97dae32f5b615d26301ca988ec",
+      "bytes": 408,
+      "sha256": "sha256:9f08617230170ee8fb5485dbfe42cd3ea010a9ea545435269c2134ad1c0f4f11"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.EvolutionWorkbenchSessionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e081.gz",
+      "rawBytes": 802,
+      "rawSha256": "sha256:4185f194dbb694560d67d13f92e9451d0b747fe923cd4781ac8b2f193c8635d6",
+      "bytes": 396,
+      "sha256": "sha256:d50235b4c3309c820d88e5916354848f1661cafd448200ebd5cd1486da6c3534"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.EvolutionWorkbenchTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e082.gz",
+      "rawBytes": 1870,
+      "rawSha256": "sha256:3e5f77b0918f0c872d7331fd035c0cb7c5a7b4b74d8be0b5b7435b3baf16fd42",
+      "bytes": 621,
+      "sha256": "sha256:a9faac37e3f8e88a2ddc47599662f4afc6e295fbf23530dbd94e7070e255beea"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.FixWithCcTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e083.gz",
+      "rawBytes": 1111,
+      "rawSha256": "sha256:136c2c39f61c3c1a9729a678d3c494bd406364beb4d0da1c8dc5650a07415103",
+      "bytes": 434,
+      "sha256": "sha256:ccbf4dcff2cfe52c85c17efeb90645d40c063ba18b6470ca3bbe977630046435"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeCapabilitiesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e084.gz",
+      "rawBytes": 575,
+      "rawSha256": "sha256:b79aee31cb2144fc987de2256e3e2d1e8b0e374faa33f959d2bb2fbbde217e2a",
+      "bytes": 321,
+      "sha256": "sha256:ce3d807b5e7ff65334ca094d2a3ce7a24f7c9fee6effc49eeca70bcebabd5e3c"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeContextV2Test.xml",
+      "sourceNormalized": false,
+      "path": "objects/e085.gz",
+      "rawBytes": 1260,
+      "rawSha256": "sha256:fae41390dba181d01e17a34b78c7928315fc3151218c042b113e61aeb8daeb31",
+      "bytes": 480,
+      "sha256": "sha256:1e7ed876dcb5c56a9a4e0040acd90a5383da3da427a0bf564455f308dd143fe8"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeDoctorTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e086.gz",
+      "rawBytes": 1050,
+      "rawSha256": "sha256:947cb0ecdd13ce4c79a816eabf246cb4519bfeeb582e92dc4d2fc933df5b0fb1",
+      "bytes": 416,
+      "sha256": "sha256:ce41505e6e92ea626a58220d5189e51468777f5a368fda5b845ab891da8b52ff"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdePathGuardTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e087.gz",
+      "rawBytes": 2863,
+      "rawSha256": "sha256:0b0d895c4efe2c5815d319e84d0a446a2ed696fa78fd39299210833db3f71538",
+      "bytes": 758,
+      "sha256": "sha256:9956a1f853e7664fcae5b6654f6418569935cbc86908d5c6b777f5ce50749c5e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeQualityToolsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e088.gz",
+      "rawBytes": 584,
+      "rawSha256": "sha256:171dd62a79cee1c7ff9b547c8212727ed048547f1af9a25d78038382e267c4ad",
+      "bytes": 324,
+      "sha256": "sha256:fa0b72ca47dc6efcbaf2da4ee8dbc5273498d0cdba11515a2c9489ac12e7eead"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeSessionIndexTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e089.gz",
+      "rawBytes": 1638,
+      "rawSha256": "sha256:d2a644e7f126ac88d442fbeaef4e78e04c122c032b50baf1ee2c06cb41a84089",
+      "bytes": 554,
+      "sha256": "sha256:baf50c696364bc707bfce4c5bc54101eec51a5ab37b4b8d1778ebd1f3ad0c6c5"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeToolAdmissionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e090.gz",
+      "rawBytes": 482,
+      "rawSha256": "sha256:45f10dd53787be535d5a56c4ba837ee6868c1ef822fec7a12d5be2c64735b1f4",
+      "bytes": 312,
+      "sha256": "sha256:d6121a8539fdc3cc29714f5b2fbfdf701bddb96abf5e724fac87ea03b81ae6be"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeToolsPreviewTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e091.gz",
+      "rawBytes": 741,
+      "rawSha256": "sha256:b57ed8e3cad091c4b1964ff5e4201256eaa00737658f10800c69e6d6dd685890",
+      "bytes": 371,
+      "sha256": "sha256:9ededafdeabfba558573dd553b7c55d8a0536f2f0f1677f1bd3e07805eb4c285"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IdeToolsTerminalTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e092.gz",
+      "rawBytes": 853,
+      "rawSha256": "sha256:2b94e48804437a812c465f2c5128e8f89150e68ac7335e803e83e0f256ab0531",
+      "bytes": 383,
+      "sha256": "sha256:365b2501c9112eb8a18e20068ee314f74fb6711fd15d8f2cd4221c74da64dd4d"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ImageAttachmentsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e093.gz",
+      "rawBytes": 1431,
+      "rawSha256": "sha256:b6e6bb700fd9bcfa56750f2fd576f3111b976735768934c2538bccbb8dbfae20",
+      "bytes": 492,
+      "sha256": "sha256:6f5e50ef456047497a96af07fdb79f9e200088fd016343b7a081f5f40c4300ab"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ImageFileSnapshotTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e094.gz",
+      "rawBytes": 937,
+      "rawSha256": "sha256:1e07a3f6f9872ac1f8aa3405d2dd36eb42b956b22357e5f4e637882a4a095c85",
+      "bytes": 438,
+      "sha256": "sha256:ab499e3df77b1986ad35e83c39d7b584ca3be904232b6b99ca9e111e485f925c"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.InputDispatchTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e095.gz",
+      "rawBytes": 1768,
+      "rawSha256": "sha256:c8b6db35dc2189be3e729d77b1e30bfb9c01c9b527a20115d22c6737267fc932",
+      "bytes": 635,
+      "sha256": "sha256:587cf6bf1bbe27babc21482670f0539bf109ac2a413b3744f4b8e3c1e34274ae"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.IntrospectArgsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e096.gz",
+      "rawBytes": 1243,
+      "rawSha256": "sha256:3a5f4664150fe21b601922d6fe170c1e6fdf72767d1ab8d5432a41bdb64d94e0",
+      "bytes": 420,
+      "sha256": "sha256:d96015f2692e5a63e0d99f40da9ae672e7847bf01b892e96d9e28c1facc50aab"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.LlmConfigTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e097.gz",
+      "rawBytes": 3418,
+      "rawSha256": "sha256:45e1789a7d4abd6e0212b1b46ec3fea75b57e2af6b966564585f4f312913b13b",
+      "bytes": 912,
+      "sha256": "sha256:40c239a1899e2073b10724b4f41fc159efd345299435a5a4a92fe1f803556d75"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.LlmConnectionPanelTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e098.gz",
+      "rawBytes": 799,
+      "rawSha256": "sha256:3a6fe4d0c9dfddc6ecc52c6838cf14287bbc3d9a79f414adab6cbad168532a9a",
+      "bytes": 413,
+      "sha256": "sha256:dec4e9f2e377bc18dc4ee947bb9eee45e4743e36bfcd7630ba59f69618f5ccb0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.LockfileAclTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e099.gz",
+      "rawBytes": 2384,
+      "rawSha256": "sha256:8b649cf9ead9517d7e5bcf2da3ba9bc62be78de48879b5133635bb33a9c35acb",
+      "bytes": 840,
+      "sha256": "sha256:7e587cef7abcd7963cafdc50f196be92a4fa245e22ad0f3de40e5e21b89a60ca"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ManagedCliTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e100.gz",
+      "rawBytes": 9868,
+      "rawSha256": "sha256:bc2c85078a1a63a98d3d8d9e9b90020a5ef8793a5b33f889d4e55c25c2a347a2",
+      "bytes": 1966,
+      "sha256": "sha256:554e672994c059168e726a89f4ae968838e1944081f3dfae5203c2133751576d"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.MarkdownLiteTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e101.gz",
+      "rawBytes": 1245,
+      "rawSha256": "sha256:1a4c957f3c1435ad05840accbfbe22f9d45203aa5d7364be19b15ba5ed7802a9",
+      "bytes": 418,
+      "sha256": "sha256:425ba1e817ab251fabe813952ff655ada7953c4dd47a1cce7ea6016d2801df9a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.MentionsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e102.gz",
+      "rawBytes": 2131,
+      "rawSha256": "sha256:358b57a80db41339467803e2d30a2b8964c1e7ada2816a64d412d30ea1d35bab",
+      "bytes": 604,
+      "sha256": "sha256:61a336d88a86008e9efcf953cc25d5d3d076011d1badc10dc6368a8e72de9d33"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.MiniJsonTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e103.gz",
+      "rawBytes": 1655,
+      "rawSha256": "sha256:fc3e7c629a8c3836967cfb2a6c848e3ff12769a662c801e7ebbcf12d2d3ef570",
+      "bytes": 523,
+      "sha256": "sha256:8f7b529d60b9616309342bfb81b7910a0f6076167a898ba173f04f4c28a16d16"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.MultiDiffTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e104.gz",
+      "rawBytes": 2506,
+      "rawSha256": "sha256:022d9d05d44075c40c705cec95258cfe2ae04abfb4ae92c24784673cd15cd660",
+      "bytes": 709,
+      "sha256": "sha256:c06701260231fff9910690082bbf255b5ce57c5231e71d316ae567474177693c"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.NdjsonLineBufferTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e105.gz",
+      "rawBytes": 969,
+      "rawSha256": "sha256:17b0cb76bb866ed5fd977bc52c303abdd1f0f3af3fbe18f40aa032c204b190af",
+      "bytes": 403,
+      "sha256": "sha256:954b4fc348087c6ea7e6560821680b85c37bf8fb97eb5b579e7f0e38704a4fcb"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PermissionModeStateTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e106.gz",
+      "rawBytes": 969,
+      "rawSha256": "sha256:949424d1e6d1f5589e39bd1202e7988c45b8c930b79a49d97b3a63039c03f60b",
+      "bytes": 451,
+      "sha256": "sha256:993e7d3f4d254e98005db9628b3e58b34063d50edc7504d0299c14b7d3afa1d8"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PlanReviewTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e107.gz",
+      "rawBytes": 1389,
+      "rawSha256": "sha256:5e26156510534dba7ec14446edf25a75ae6065df6df6bce15ea9efb9c4cf6fec",
+      "bytes": 513,
+      "sha256": "sha256:2b032353500410bd38c0b3210121198caca7f29e8735e68c88b50e1969340af7"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PluginManagerTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e108.gz",
+      "rawBytes": 1074,
+      "rawSha256": "sha256:216d76345320074f82745e3e4953d4af13556cd5f34515dc4ed7ff68361a1536",
+      "bytes": 422,
+      "sha256": "sha256:b9528909315426290c809debb602f125a25946dbc0d110d44f37d10befa1a8a7"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PluginQualityTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e109.gz",
+      "rawBytes": 3380,
+      "rawSha256": "sha256:8a6b6beec5a52cb9a8e3c07ce7ce09bb96729e3816e46e8a17a1ff3be104def5",
+      "bytes": 790,
+      "sha256": "sha256:b630a1175ed915aaaef8e59e07e4ed60f131e8cf7a820739d3a9a56d5e8592ae"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PolicyViewerTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e110.gz",
+      "rawBytes": 2101,
+      "rawSha256": "sha256:0702114f5e93ef5cdd63864b99452fee9188d82fa7b5f5fde9af09f603212605",
+      "bytes": 586,
+      "sha256": "sha256:635689463f361331989e1f9cfa889ac46cfedfd265674dba513f012eecdb9bee"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PrStatusTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e111.gz",
+      "rawBytes": 663,
+      "rawSha256": "sha256:6d62581b151df4e1000561aaa15021f949e07dd5770559ddb0d862d52435d347",
+      "bytes": 331,
+      "sha256": "sha256:e07be96a9bbca7088e9f6f2681892241e2c0e82f9bdc0542821e86d0c72953aa"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PreviewDetectTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e112.gz",
+      "rawBytes": 1746,
+      "rawSha256": "sha256:4a78f8e2bc90f4b88724540049324cf290959e2f54f2a10dd724f31369968c17",
+      "bytes": 485,
+      "sha256": "sha256:093f6622c0c99d3775f1e69177edc374463ce8e23b13c7888cf5bc82120b7c4b"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ProcessTreeTerminationTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e113.gz",
+      "rawBytes": 807,
+      "rawSha256": "sha256:854e3184406d9d38d84e105f41d6e595f967672d7a995a89edadbc14cfffa0ef",
+      "bytes": 404,
+      "sha256": "sha256:37247a31287d589d59690a36713a8524167f96e511d0e27b6bdb11708ffcb1bc"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ProjectMemoryTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e114.gz",
+      "rawBytes": 1120,
+      "rawSha256": "sha256:e00aee33f2b818f3c498dc1685cf9fca651b1ce90c03de2dca7c6b9bd43e6e23",
+      "bytes": 377,
+      "sha256": "sha256:3df3c30fd2e9698f2fbec3e53c0fa255fe59ac2b1f4f7ca5329acc7da24c5e62"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ProtocolFixturesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e115.gz",
+      "rawBytes": 1434,
+      "rawSha256": "sha256:7816269797260861a2812fe371dc94adb705b29bdc6320eae36e156e234bf2fd",
+      "bytes": 456,
+      "sha256": "sha256:481284e098f003ff19fd12d76dc62dc6eb81cad09effe9ac07ca3877563fa37f"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.QrCodeTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e116.gz",
+      "rawBytes": 945,
+      "rawSha256": "sha256:b80704688066a16ed1cb27eea5dd2afc4eb761c248b06eb4b99cfc3fa235eb11",
+      "bytes": 407,
+      "sha256": "sha256:aeaccc693611133593414a2f4edf6cb4c948139f8520a553a182facfa0704c86"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.QuestionDraftContractTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e117.gz",
+      "rawBytes": 1413,
+      "rawSha256": "sha256:92c031c0bf633ed13eb420eccd4341337a32f49a5c1b96c06eaf9d0965a6e8a1",
+      "bytes": 551,
+      "sha256": "sha256:76ebd65b783a847a2eb59769625d4e7963d80fa9ef1a4ad419f1a641f644ad1a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.QuestionDraftRegistryTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e118.gz",
+      "rawBytes": 1840,
+      "rawSha256": "sha256:39cc80ade4be95e86ab8683b0f8b75157f9e7f2e6c2aba6232ca5fd94f9c817c",
+      "bytes": 686,
+      "sha256": "sha256:f8ef11d63f02d23d0fed04bab80900003f98a1ce7d68923e0bec4f2a59b70396"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.QuestionDraftStoreTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e119.gz",
+      "rawBytes": 961,
+      "rawSha256": "sha256:5f4d9aed19cd7ef45956e0779c068789506e9c16740eb5d442fa7c9bfad5a9ae",
+      "bytes": 448,
+      "sha256": "sha256:c29bb6ce93e21c961da8d8f82e8bbadd40ad0f2edba5585670f2db142e8e08ca"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RemoteDoctorFixesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e120.gz",
+      "rawBytes": 2484,
+      "rawSha256": "sha256:14296ab5782235b1be2749bdc4020b7fdcb91a4c5abdb6959cf7a7db7ba232d9",
+      "bytes": 693,
+      "sha256": "sha256:b43ebda8ab33c9d8a372370e44e78576a850182704ee0132ef878e4588087a32"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RemoteDoctorTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e121.gz",
+      "rawBytes": 1156,
+      "rawSha256": "sha256:25defb0ecb7a32493baba78e48f699af0d6b12eb2d09fe38f21549c607033a8c",
+      "bytes": 432,
+      "sha256": "sha256:300b45d43bcc835226e0a6dd8586dcc7a63685528481736d20019c96a470c523"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RemoteHandoffTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e122.gz",
+      "rawBytes": 1726,
+      "rawSha256": "sha256:6a19c552f66480fd5ad3fe29465609c678634aa4fd311423687296ccbd8f6997",
+      "bytes": 549,
+      "sha256": "sha256:239a4a44eebda8b09b7ee5e22654da7780e4d7502f329a1db299439c2e2167b6"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.ReviewNoteTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e123.gz",
+      "rawBytes": 1590,
+      "rawSha256": "sha256:e87cfec82444d67ccad84e2aa895581a4e956b170052262d867b3f7edf95ffb3",
+      "bytes": 485,
+      "sha256": "sha256:9180be62ced3c39c40e29e38942809f5de7e98b179fdd5268e82fb603287ed19"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RewindCommandsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e124.gz",
+      "rawBytes": 2530,
+      "rawSha256": "sha256:e41707c455644d19bf52fd2a4f3ae4730e8aee7c43f7ba1e91f3fad916ed0e1c",
+      "bytes": 673,
+      "sha256": "sha256:767c2a93f01778c626bf3a9ddba396f72939ee78bae65da73cf26ea5b22ea394"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RuntimeCompatibilityTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e125.gz",
+      "rawBytes": 2001,
+      "rawSha256": "sha256:85a130a8342521378db9b91a32f081d3696ae719c73f4712d6c9d7a124d43445",
+      "bytes": 540,
+      "sha256": "sha256:e932c2162c08798267bcc00bdbd88b090b2e32b5f7f33501a3dfbe06628db03a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.RuntimeEnvironmentTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e126.gz",
+      "rawBytes": 721,
+      "rawSha256": "sha256:3e954e7d838712c0a58bb0c125900a70795373508fb29ae5bbfc9a0b365ad030",
+      "bytes": 354,
+      "sha256": "sha256:65ba25e1c3618f5313c772a856825d129a27593492f3ccca18178ab9af72bb14"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SemanticToolsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e127.gz",
+      "rawBytes": 4139,
+      "rawSha256": "sha256:a119ed047265dfe3dbb513575f773d1f3ef67d1a02e1deb8cffbb6830a5c2f54",
+      "bytes": 934,
+      "sha256": "sha256:fa948348b2fb2f92049132aa71d6c3c2771b8e638129ea9fef6ff9649382adc0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionArgsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e128.gz",
+      "rawBytes": 1750,
+      "rawSha256": "sha256:46ed82e4350c21dcdc49d7825988571791f89aabda1b6c038d5175b2897ed8a9",
+      "bytes": 533,
+      "sha256": "sha256:a7e5b49c4b9aa06bb7709ef176c8d6c8106016241fe3ccacf36218e9aef1e944"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionHistoryReaderTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e129.gz",
+      "rawBytes": 1096,
+      "rawSha256": "sha256:77517668f299525e5aae47194cd15ec0a074ee39b6cd8fe6bcf33275cb5eb625",
+      "bytes": 490,
+      "sha256": "sha256:4be2bb2cd85a4e94ae8ae72e718520cd0cf10450da48ed7951fd1b217efe96a2"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionListTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e130.gz",
+      "rawBytes": 1172,
+      "rawSha256": "sha256:b45dbc897496bf4caeace5c6afca942ab676a0d720d51968beb76414ba2e2e2a",
+      "bytes": 429,
+      "sha256": "sha256:d829e7e9bde0bc88815c2428b15dbdb632891ddf18d59e58f51819679a148e99"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionProjectionTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e131.gz",
+      "rawBytes": 1220,
+      "rawSha256": "sha256:a1958128ed7fc109711ab240f45fb3e4f4f0b71a6916717d6de238a93725163c",
+      "bytes": 500,
+      "sha256": "sha256:beec14a1d9eab8c1c36a4397752969615b9be0f35fd532b1ce9a35446f995022"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionTranscriptChangesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e132.gz",
+      "rawBytes": 798,
+      "rawSha256": "sha256:341a31be9206b465dc55734202197ec5b693cf0603b1256eba5009a67c8b26f0",
+      "bytes": 396,
+      "sha256": "sha256:faa42b1976116685e323a569c72eac8a89ad348127b06218ffe3378ed96daccd"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionTranscriptPageTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e133.gz",
+      "rawBytes": 932,
+      "rawSha256": "sha256:e0c4e5443770964bbd5f52b3924f14224d26aabb80bd96fbce6a7d6b37881168",
+      "bytes": 425,
+      "sha256": "sha256:c336886d191a0e9578080453774d04082e09458ca967d6d4a70135974c242671"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SessionsWorkbenchTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e134.gz",
+      "rawBytes": 2373,
+      "rawSha256": "sha256:fd4dddeeeb36b463207d6f3fc35e6558cb99ff1c855e15cdbfacd3b658db1941",
+      "bytes": 638,
+      "sha256": "sha256:c4f406027a8c2731acf4eba9d5228a5baf39604c3704878b1e9db43aa330a54a"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SkillRetrievalTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e135.gz",
+      "rawBytes": 1154,
+      "rawSha256": "sha256:683d851e1a71b1d3b8d2c67008fa60699e4e29ade8a0c54453c5e04920012bec",
+      "bytes": 471,
+      "sha256": "sha256:79f9c1cbce7318acefc2957db2c4eb2d9c3e82f895cde8c8f9ef306bd9443c5f"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.SlashCommandsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e136.gz",
+      "rawBytes": 2055,
+      "rawSha256": "sha256:e2a519e0f0e744d07bd8c3073e5e09fdf2b0ceff5aff4ee02a420894938885e9",
+      "bytes": 605,
+      "sha256": "sha256:dcfca5c257671fde2cf6e60aafcab57de4a3cced9c8c110b04c812b726e64eff"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.StatusBarTextTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e137.gz",
+      "rawBytes": 1250,
+      "rawSha256": "sha256:e03dffee0fda04b709d5db95902b3a122b54422f5b2bb2ce62d2070bb8b354d7",
+      "bytes": 462,
+      "sha256": "sha256:871257049051c99c6b8a33b6f94e995bf7f8319cd5a034f04cd7f9f08d4c1228"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.TeamControlTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e138.gz",
+      "rawBytes": 2762,
+      "rawSha256": "sha256:2eceb0905fe688d0aa86b8d3b35d80f59bb11b79fb0c1a4d3063e3482f348062",
+      "bytes": 810,
+      "sha256": "sha256:7760a407958a0b3012004f10b300a115bce96f9bf88400d4d38b406d159e5174"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.TeamMonitorTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e139.gz",
+      "rawBytes": 1513,
+      "rawSha256": "sha256:e5a626b79022b7c29d52ed2b21b693a6933e1428530527df5c587fa98bd57e25",
+      "bytes": 531,
+      "sha256": "sha256:0dd6e411cd241d7d613eebcf93e1310c67d81ef4a25baa63863f7d112c6f0230"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.TranscriptCapTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e140.gz",
+      "rawBytes": 1475,
+      "rawSha256": "sha256:9c45dab241dd77a160d9c87e6f67c01889ba1a7bc499179dcd8914794c62b9f4",
+      "bytes": 512,
+      "sha256": "sha256:9a22ae99ce15d23b94ead4fdb50f6b014ae7f01577a4b80f103ee1cdc6a847b0"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.TranscriptReferencesTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e141.gz",
+      "rawBytes": 612,
+      "rawSha256": "sha256:40f481b58fc9bbc006191d660908578b4ca24eb929dbc2b9d1025555efc9e405",
+      "bytes": 337,
+      "sha256": "sha256:ff58eae9811665452d2a04325f2ecf2f24fbc4bf6ea141eba9ddf25f7e7f754e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e142.gz",
+      "rawBytes": 920,
+      "rawSha256": "sha256:158bd9d904726f2d756e4683a49281a6e5a0de4faf4bdf4e75a63e926d946f59",
+      "bytes": 420,
+      "sha256": "sha256:0501f92dab7cd8894b1584d69d1053b811b368d79dfa9ddf2cb92a7deb437db5"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.UsageReportTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e143.gz",
+      "rawBytes": 2200,
+      "rawSha256": "sha256:8e5646a4c2e6bb228afd66915f91f2c61c7e2ef54832bcd03d8c2eedf4ebe9a2",
+      "bytes": 593,
+      "sha256": "sha256:ee382f8df5c6157767e610b8a76746f904f032e79c42a1bbc84df94c08b95c2d"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.Verify01ProtocolCaptureTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e144.gz",
+      "rawBytes": 797,
+      "rawSha256": "sha256:04454573df15f8549352722197664ba325d23a020ce02d7efd47f8468e8668cd",
+      "bytes": 406,
+      "sha256": "sha256:473f0c23098e797e0568731dab12a5318d74b8d7e2912be973ffa942ee2a2904"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.WhatsNewTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e145.gz",
+      "rawBytes": 1301,
+      "rawSha256": "sha256:8a538196dbfe8c07ee6a280bf5c72a4c4c27fa2bdb685c3d91e970eca699ab18",
+      "bytes": 449,
+      "sha256": "sha256:812555c1237251c4561d55a9641d2360c7673df12d872dc4576e14b24cc5dd8e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.WindowsOwnerOnlyAclTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e146.gz",
+      "rawBytes": 908,
+      "rawSha256": "sha256:6d4e3efe8a7a4fa4a49f70f930daca27fafc9782aa1e7e7e6c322ceb667ea507",
+      "bytes": 404,
+      "sha256": "sha256:1d3a1ff3f0a541a7340e375d9048f15e58c63f933c5c81f2d481c4e07618d89c"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.WorkspaceMentionIndexPerformanceTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e147.gz",
+      "rawBytes": 493,
+      "rawSha256": "sha256:9dd3d4a691e98528d32c772520c58d2f0305017aaa12b262bc17b622faf217d9",
+      "bytes": 312,
+      "sha256": "sha256:a2fec5688cdf8330c8bd5f7377a9101fd0d15ec8cdc77bb71a5fb0b960c9dc53"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.WorkspaceMentionIndexTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e148.gz",
+      "rawBytes": 795,
+      "rawSha256": "sha256:9d7c0ca88db85c1a4f1e33f410e6fdba0ad93dd79a65dfa996433c1ac2e15f45",
+      "bytes": 379,
+      "sha256": "sha256:0ae26d7753e8193a31fe72093e7ea4971e77dbe5b062c092b896ff781895c63e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.WorktreeTasksTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e149.gz",
+      "rawBytes": 1401,
+      "rawSha256": "sha256:7123a6164d3e3b3f5c4d14866e623d76cbfcf09c647f594bb17097526837933a",
+      "bytes": 511,
+      "sha256": "sha256:732d18aa4786403e924297851d7fcbe357a5d3f0e06d247f4af19a4e466ba571"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.AccessibilityPerformanceEvidenceTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e150.gz",
+      "rawBytes": 543,
+      "rawSha256": "sha256:82c719c151aa62bfe4aead6a92415af9d07fcd1cb938afa98b3aaff8ef2c8b88",
+      "bytes": 336,
+      "sha256": "sha256:2f9430536e43657590c949d50591f0ce6c2561c4f9096f1d1c34f45359e3af6f"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatCardsLayoutTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e151.gz",
+      "rawBytes": 639,
+      "rawSha256": "sha256:cd5125dd93d994e62fe9ad159a8e5ea5523f778a61f4d9bd96a2ff0b218f811d",
+      "bytes": 356,
+      "sha256": "sha256:d1fadcfdc7cd50ae47666ef36d808db039b99bba13786b1d083588aa2794cb91"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e152.gz",
+      "rawBytes": 1012,
+      "rawSha256": "sha256:6ec99e4fc5226ab8fba5f04562f74a7954fc4dcd9b8cee92a1de4e13f5d5217e",
+      "bytes": 460,
+      "sha256": "sha256:00d6a7bfbe728521a595d34ed6de38f7e8dcd8471a1d04f557efe64e3c7f14c6"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatHistorySyncTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e153.gz",
+      "rawBytes": 1150,
+      "rawSha256": "sha256:d7e51a63c2d02b30b81f219ed352d5302ab55ec815b4732f24beebebe0195453",
+      "bytes": 503,
+      "sha256": "sha256:f3e4e05705667d3971b58524480a4f5d9803b151dd3b0424656b3d8c16f8c17e"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e154.gz",
+      "rawBytes": 1786,
+      "rawSha256": "sha256:615758f287558e998cf96e1c28d73c19dd0aeab191c496e5555e8af4dcd60d0d",
+      "bytes": 648,
+      "sha256": "sha256:1fbfdde3ba468170a65f31f9f8b4dc26b634f8e7883c435de94c0ed578e43c07"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e155.gz",
+      "rawBytes": 1837,
+      "rawSha256": "sha256:3f13ec91dd74d66d48b82911e7aa5face930bd2d4eda31cffc8b24f1e4c6a378",
+      "bytes": 657,
+      "sha256": "sha256:d8300a7465f134f30b638f33cacbc349f280d736b8fd4bc1da24e68873a3e0ac"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.ChatTranscriptTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e156.gz",
+      "rawBytes": 1548,
+      "rawSha256": "sha256:98bc97473e594032e27393892c148ef79ee489eb547e184fab248279a9804cd4",
+      "bytes": 562,
+      "sha256": "sha256:db780f67d5c2aa71a387d6d3faa04f1ed658a3b4a0f9ea0e0b3a17eaafb6ccd6"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.QuestionFormViewTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e157.gz",
+      "rawBytes": 1452,
+      "rawSha256": "sha256:bae7efd3ff2a6fe0676f39e4324aab4a60fdaa2f7a86ceb1d2d2e41422502f78",
+      "bytes": 577,
+      "sha256": "sha256:49085c7119fa44e426fae86ef7f66d546137dd60dc348c470bbf39f44fdbb6a9"
+    },
+    {
+      "originalPath": "packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.intellij.SessionUxEvidenceTest.xml",
+      "sourceNormalized": false,
+      "path": "objects/e158.gz",
+      "rawBytes": 491,
+      "rawSha256": "sha256:121a6a3e25b09265c2cee756dbd22c39418e5339934f2f855dff0dcb03cd06fc",
+      "bytes": 313,
+      "sha256": "sha256:dae1c680c010155be3ade5bc7b228862f9ed13af754ff1c3e300a30aeb8fe4d8"
+    }
+  ],
+  "sourceTreeDigest": "sha256:56ff44af1a6e08cbcf6ba5e6a59d697c3a9853f3d27d4822428713a6d3fed4b9"
+}

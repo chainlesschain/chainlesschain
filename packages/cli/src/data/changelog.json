@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.98",
+      "cliVersions": ["0.166.98"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.98: apply real-task findings and preserve task delivery",
+          "body": "- Bind formal task file scope and tool allowlists to isolated per-task configuration;\n  preserve rejected call identities and strict trace acceptance.\n- Keep authentication usage on failed answers, redact credentials before truncation,\n  and separate tool estimates from unknown authentication or whole-journey costs.\n- Bootstrap first-run diagnostics without development dependencies and retain the\n  actual failed journey, empty candidate, and unexecuted semantic outcomes.\n- Give finite-budget runs fresh delivery guidance without placing the changing\n  counter before the stable OpenAI-compatible conversation prefix. Preserve the\n  current user task across host and goal/hook suffixes in the canonical planner.\n- Publish changed Session Core 0.3.19 before CLI 0.166.98; retain unchanged child\n  versions only after exact-source, registry-byte and provenance verification.\n- Pair VS Code 0.37.142 and JetBrains 0.4.160 after the final source gates pass\n  and CLI 0.166.98 is publicly available. Formal 36+9 evaluation and native\n  durable authority acceptance remain open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.97",
       "cliVersions": ["0.166.97"],
       "date": null,

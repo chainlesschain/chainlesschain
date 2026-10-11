@@ -1080,9 +1080,12 @@ describe("headless-runner — output formats", () => {
 
   it("applies one UserPromptExpansion result before the model loop", async () => {
     const chatFn = vi.fn(async (messages) => {
-      expect(messages.at(-1)?.content).toContain("expanded prompt");
-      expect(messages.at(-1)?.content).toContain("[hook context]");
-      expect(messages.at(-1)?.content).toContain("policy note");
+      const userMessage = [...messages]
+        .reverse()
+        .find(({ role }) => role === "user");
+      expect(userMessage?.content).toContain("expanded prompt");
+      expect(userMessage?.content).toContain("[hook context]");
+      expect(userMessage?.content).toContain("policy note");
       return {
         message: { role: "assistant", content: "done" },
         usage: {},

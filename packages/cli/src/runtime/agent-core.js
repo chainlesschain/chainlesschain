@@ -15410,11 +15410,11 @@ export async function* agentLoop(messages, options) {
       // act even when no further provider request remains. Rebuild this hint
       // after compaction and rejection-only turns; do not persist it in history.
       const furtherRequests = budget.remaining();
-      // Preserve the first host policy and the final conversational turn:
-      // the canonical planner protects the current user request at the tail.
-      const budgetContextIndex = callMessages[0]?.role === "system" ? 1 : 0;
+      // Keep the stable conversation prefix ahead of this changing counter.
+      // The canonical planner protects the last conversational user bundle
+      // even when trusted ephemeral system guidance follows it.
       callMessages = [
-        ...callMessages.slice(0, budgetContextIndex),
+        ...callMessages,
         {
           role: "system",
           content:
@@ -15423,9 +15423,8 @@ export async function* agentLoop(messages, options) {
             "Reading or an existing passing baseline does not deliver requested changes. " +
             "For research or monitoring, use the remaining requests for evidence and the requested answer; do not create files just to show activity.",
         },
-        ...callMessages.slice(budgetContextIndex),
       ];
-      contextMemoryTrustedSystemIndexes.push(budgetContextIndex);
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
     }
     if (prActionTask && !prInvestigationExhausted) {
       callMessages = [
