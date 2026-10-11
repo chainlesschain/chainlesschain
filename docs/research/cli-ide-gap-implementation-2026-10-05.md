@@ -559,3 +559,8 @@ Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同
 最终Windows系统Node22.22.2与Linux固定Node22.12.0各**201/201**，五阶段/公开安装离线合同各**17/17**，零skip；ESLint/格式/diff与生成文件检查通过。沙箱账户Git dubious ownership的16/17失败原件与owner17/17复验同时保留，未修改safe.directory。18份双摘要原件、13个normalized源码snapshot及指纹见[实际原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/README.md)。
 
 正式36+9/NOT_RUN/observed=0/$99及计划指纹保持；准确源码CI须单独验收，不继承旧SHA。独立人工/外部review锁、可靠账单/硬额度、目标宿主/辅助技术、8h/24h/SLO及Windows/macOS durable/owner-only/native review仍开放。未合并或发行。
+
+
+## 38. 2026-10-11 首次旅程 fresh checkout 启动修复
+
+首次Actions在无账户验证阶段发现共享执行器间接引入semver，模型步骤均skipped，零新费用。抽取workspace助手并保留旧API和原文件边界；Astra发现的EMPTY_DELIVERABLE_DIGEST遗漏已恢复。仓库外无依赖clone、Node hooks清除、真实冻结Git对象和keyless prepare：Windows22.22.2/Linux22.12各23/23；执行器/host capture/import85/85、collection42/42，各127/127，零skip。原Actions失败、夹具与WSL环境失败同时归档，新源码显式付费旅程待验证。正式36+9/NOT_RUN/observed=0/$99保持，未合并或发行。详见[21份原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。

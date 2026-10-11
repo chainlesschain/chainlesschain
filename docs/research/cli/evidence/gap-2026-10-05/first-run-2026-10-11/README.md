@@ -18,3 +18,5 @@
 实际诊断限制：Ubuntu24.04 x64 / Node22.12、public CLI0.166.97、volcengine/deepseek-v4-flash-ga-260731；全旅程30分钟，工具8分钟、20轮、$0.25估算停止线。公开 `.97` 认证 usage/总费用与 invoice 仍未知；该停止线不能冒充 provider 硬额度。未发布费用修复不会装入公开 `.97` 后再宣称发行版本通过。
 
 正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0 / $99** 保持，冻结计划 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0` 未改。独立人工预审与 review 外部锁、真实账单/硬额度、目标 GUI/辅助技术、8h/24h/SLO、Windows/macOS durable/owner-only 及完整 native review 仍待完成；不发布或合并。
+
+后续首次Actions发现fresh checkout的semver间接依赖，模型阶段未执行。已完成抽取与无依赖回归，完整失败和修复见[启动delta归档](./bootstrap/README.md)，不覆盖以上历史合同。

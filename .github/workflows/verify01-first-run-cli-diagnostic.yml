@@ -45,6 +45,7 @@ jobs:
           node --test
           packages/cli/test-node/verify01-first-run-cli-diagnostic.node-test.mjs
           packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-workspace.node-test.mjs
       - name: Pin checker image before starting the journey clock
         run: |
           docker pull node:22.12.0-bookworm

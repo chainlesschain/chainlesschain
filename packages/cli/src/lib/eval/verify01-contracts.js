@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import { requireValue, relativeFile, readBytes } from "./verify01-workspace.js";
 import {
   LLM_PROBE_SCHEMA,
   llmProbeReceipt,
@@ -16,11 +16,6 @@ import {
   validateOutcomePlan,
 } from "./outcomes.js";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
-const MAX_BYTES = 16 * 1024 * 1024;
-function requireValue(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
 /** Task terminals only cover the tool stage; authentication is a separate call. */
 export function createVerify01FirstRunCost({
   authentication,
@@ -121,52 +116,6 @@ function index(rows, key, label) {
     result.set(row[key], row);
   }
   return result;
-}
-function relativeFile(value) {
-  requireValue(
-    typeof value === "string" &&
-      value.length > 0 &&
-      !value.includes("\0") &&
-      !/[\\:*?<>|"]/u.test(value) &&
-      !value.startsWith("/") &&
-      value.split("/").every((part) => part && !/[. ]$/u.test(part)),
-    "review paths must be exact relative files",
-  );
-  return value;
-}
-function readBytes(file) {
-  const descriptor = fs.openSync(file, "r");
-  try {
-    const before = fs.fstatSync(descriptor, { bigint: true });
-    requireValue(
-      before.isFile() && before.size <= BigInt(MAX_BYTES),
-      "input must be a regular file within 16 MiB",
-    );
-    const bytes = Buffer.alloc(Number(before.size) + 1);
-    let count = 0;
-    while (count < bytes.length) {
-      const size = fs.readSync(
-        descriptor,
-        bytes,
-        count,
-        bytes.length - count,
-        null,
-      );
-      if (!size) break;
-      count += size;
-    }
-    const after = fs.fstatSync(descriptor, { bigint: true });
-    requireValue(
-      count === Number(before.size) &&
-        ["dev", "ino", "size", "mtimeNs", "ctimeNs"].every(
-          (key) => before[key] === after[key],
-        ),
-      "input changed during read",
-    );
-    return bytes.subarray(0, count);
-  } finally {
-    fs.closeSync(descriptor);
-  }
 }
 const readJson = (file) => JSON.parse(readBytes(file).toString("utf8"));
 

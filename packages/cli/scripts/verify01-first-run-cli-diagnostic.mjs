@@ -28,7 +28,7 @@ import {
   snapshotVerify01Workspace,
   diffVerify01Workspace,
   seedVerify01Deliverables,
-} from "../src/lib/eval/verify01-execution.js";
+} from "../src/lib/eval/verify01-workspace.js";
 
 const SELF = fileURLToPath(import.meta.url);
 const REPOSITORY = path.resolve(path.dirname(SELF), "../../..");

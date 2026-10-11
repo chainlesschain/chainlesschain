@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-11 首次旅程干净启动修复**：首次Actions在离线阶段发现semver间接依赖，公开安装和模型均未执行，零新费用。已抽取共享workspace助手，保留边界和旧API；仓库外无依赖clone的Windows/Linux各**23/23**，真实keyless prepare通过，执行/采集回归各**127/127**。原失败及Astra发现的抽取常量回归已修复归档；新源码火山实际旅程接续验证，见[启动原件与优化](../cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。正式**36+9 / NOT_RUN / observed=0 / $99**保持；不合并或发行。
+
 > **2026-10-11 首次旅程接线与费用修复**：Linux CLI正常公开安装、配置、认证、冻结工具任务及独立产物检查的五阶段诊断已接通。已补认证usage与完整旅程费用归集；旧认证/缺费用/早停工具调用均保持未知，并修复provider错误截断后可能残留密钥前缀。最终回归Windows/Linux各**201/201**、五阶段合同各**17/17**；Astra两项发现已修复复核，AI不替代独立人工。见[原件与优化](../cli/evidence/gap-2026-10-05/first-run-2026-10-11/README.md)。一次火山实际首次旅程待完成；正式**36+9 / NOT_RUN / observed=0**及$99保持，完整CI、人工/账单/目标宿主与长时验收仍开放。
 
 > **2026-10-11 验收优化续做**：准确fcee60的费用语义校准与正常公开SQLite安装两项Actions均通过。原费用候选对四项计费错误全部漏检；工程六例全部检出，分别6/4/4/3项断言失败。public CLI.97的core-db native-cipher11.10.0与CLI SQLite12.11.1真实写入/新进程重开通过，无WASM；本机WSL安装前git超时保留。合同Windows/Linux各12/12、125份双摘要原件及六源码blob核对，见[实际结果与优化](../cli/evidence/gap-2026-10-05/semantic-install-2026-10-11/README.md)。CLI/Strict/完整Docker矩阵待完成；正式36+9/NOT_RUN/observed=0保持，整体任务尚未结案，本轮无新付费调用。
