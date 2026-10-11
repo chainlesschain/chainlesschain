@@ -1039,3 +1039,25 @@ Open VSX `0.37.141` 已公开可下载，内容与标签 VSIX 一致；JetBrains
 root PID28452、thread24784；前后有效primary token、无impersonation、capability0、FileId/卷号/NT路径一致，仅单次观察，不构成连续稳定证明。仅root启动，launchRequests0；原HANDLE wait0/exit0、Job0、profile删除、host map未变。14source、3binary、7copy前后绑定并独立复核；实验adapter仅三处接线，另八份原native/CJS源逐字节匹配22ef。没有工程源码改动，也没有进入已发行CLI/IDE；compiler closure非hermetic，本机Windows10/Node22.22.2不冒充正式目标宿主。
 
 [46份gzip原件索引](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/manifest.json)与[独立回读](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/archive-validation.json)保存完整header/actor/driver/verifier、源码diff、构建原件和运行结算；大二进制保留本机 `.work`，附摘要绑定。归档双摘要/原始字节及verifier重算FAIL全部通过，未再次实跑。没有PowerShell调用，所以旧spawn拒绝仍未定位；未执行完整冻结journal/review。其余owner-only实际实现、junction、protected journal/durable服务、自身恢复/WFP、正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99/observations、旧211=194/16/1及6/4/4、新211=208/2/1、账单/独立人工/辅助技术/8h/24h/SLO仍保持原状态，无付费调用。
+
+### 20.32 2026-10-11 ACL 契约冲突、启动诊断与 Memory 目录坐标
+
+本轮在原基线 53ad9df8c4 之后完成八文件工程增量，[回归索引](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/manifest.json)保存四个实际 JSON reporter、八份源码、source diff、lint/格式原输出。15 份 gzip 均双摘要/字节 roundtrip 通过；源码在本地执行后捕获，不能升级为不可变 CI 源码门。
+
+| 实际运行                                          | 结果                               | 证明范围                                                                                                      |
+| ------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Windows 10 x64 / Node 22.22.2：ACL/位置诊断三文件 | 151 pass / 0 fail / 0 skip         | 单路径/批处理启动错误、同步 throw、部分 stdout 拒绝、限定字段/marker、两种 target 失败传播及已有真实 ACL 回归 |
+| Windows：Memory 两文件                            | 32 pass / 0 fail / 1 POSIX skip    | 坐标不同与 EPERM/EACCES 时零 mkdir，既有 query/index、真实 symlink/junction 回归                              |
+| WSL Linux x64 / Node 22.12.0：前三文件            | 146 pass / 0 fail / 5 Windows skip | 共享分类/位置传播及 POSIX 既有路径                                                                            |
+| WSL：Memory 两文件                                | 30 pass / 0 fail / 3 Windows skip  | POSIX 目录合同与分片/索引回归                                                                                 |
+| 定向 lint / Prettier / diff whitespace            | passed                             | 八文件本地静态验证                                                                                            |
+
+共 184 个不同用例，重复系统运行不累加。首轮 149 pass/1 fail 是旧测试要求透传原始 timeout message，改为固定 marker 后保留全部预算/零写入断言，另加 throw 用例，最终 151/151。WSL 前两次只在启动阶段失败（命令 PATH 引用及缺 Linux Rollup optional），没有运行测试；准确 optional 包装入独立 .work 目录后最终实跑成功，没有删除项目依赖或改变 lockfile。细节与复验命令见[README](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md)。
+
+独立 [ACL 原生实验](./cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md)保留三轮边界：A 受限宿主在 host-token 拒绝、actor 未启动；B actor 对固定自己创建的 scratch 目录取 0x60080（WRITE_DAC/READ_CONTROL/READ_ATTRIBUTES）HANDLE 返回 Win32 5，SetSecurityInfo 未调用；C 宿主在不同独立副本设置 protected/唯一当前用户 FullControl ACE、目录 OI|CI/文件无继承，再关闭所有设置句柄并仅保留不可继承元数据句柄。C actor 没有目标句柄，六项真实路径 I/O 全部 Win32 5。宿主前后身份、原始 ACL 与旧文件摘要未变；B/C 原 HANDLE exit0、Job0、profile删除确认。140份gzip、9个本机保留二进制摘要、39项独立回读与64个来源/copy绑定已保存。
+
+上述结果确认本机现合同下 LowBox 直接路径读写不兼容，不证明 actor 成功实施了 ACL SET，也不推断所有 Windows 版本的行为。要继续提供此运行边界内的 owner-only 存储，需要宿主 broker/版本化合同工程；不能扩大 AC ACE 或让宿主代开目标后声称原 actor 能力通过。生产诊断补充只定位今后的 spawn 失败，不回填旧 windows-acl:spawn 的根因。
+
+当前生产 Memory 目录函数的独立[原生切片观察](./cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md)使用原九份 native/CJS 来源字节、原六槽，精准摘录当前 functions 与原 corruptStore 到固定 actor。plain realpath.native 坐标一致且 nested 创建成功；真实 junction lstat 为 directory=true/symbolicLink=false，但 native canonical 指向 target，实际属性 0x410/tag 0xA0000003/FSCTL 与 Global C substitute 另有原件。新函数报 CONTEXT_MEMORY_STORE_CORRUPT，junction分支 mkdir调用0、target前后为空，原 HANDLE/Job/profile结算确认。它证明当前反例的函数切片拒绝，不是冻结完整module/review成功，也不是所有 reparse 或持续 race fencing 证明。
+
+旧冻结 Windows 211=194/16/1、mutants6/4/4、新fixture211=208/2/1仍不改写，完整 native review 继续 NOT_ADMITTED。正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99、observations保持；Windows/macOS durable服务/受保护journal/自身恢复/网络撤销、macOS checker与冻结平台冲突仍有工程任务，官方账号/usage/账单、目标宿主、独立人工/辅助技术、8h/24h/SLO仍开放。本轮未发布或调用付费模型，新准确提交 CI 另验。

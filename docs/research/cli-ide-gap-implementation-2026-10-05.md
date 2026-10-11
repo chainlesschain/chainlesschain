@@ -1,5 +1,7 @@
 # CLI / IDE 2026-10-05 差距实施状态
 
+> **2026-10-11 当前续做**：ACL 启动诊断与 Memory 原生坐标拒绝已完成，Windows 183 pass/1 skip、WSL 176 pass/8 skip；两组共184个不同用例。Astra 独立实验确认现 owner-only 合同与本机 LowBox 路径读写冲突，具体来源和下一步工程条件见第33节与[验证20.32](./cli-ide-gap-validation-2026-10-05.md#2032-2026-10-11-acl-契约冲突启动诊断与-memory-目录坐标)。完整 native review、durable 后端、正式36+9、账单、人工与长时条件仍未结案；未升版或发行。
+
 > **2026-10-10 增量：公开发行与诊断工程分开验收**：四版本 Agent SDK `0.2.14`、CLI `0.166.96`、Open VSX `0.37.140`、JetBrains `0.4.158` 已发行；Marketplace update `1190815` 已 approved 且公开可下载，PR #425 已合并为 `2650447476d6358254368b73ddc52b5319982608`。本轮补 Scheduler 已退出 replacement 的有界失败快照及 JetBrains capture 分阶段元数据，未升版、新发布或改生产 runtime。原失租和 trace 缺失根因仍未知，局部复验与新 SHA 矩阵待完成，见第 24 节及[验证 20.23](./cli-ide-gap-validation-2026-10-05.md#2023-四版本公开发行后的诊断增量)。以下保留旧时点；正式 36+9/$99/`NOT_RUN`、冻结反例和 `NOT_ADMITTED` 及平台/官方 usage/人工长时开放项不变。
 
 > **2026-10-10 发行完成、合并待门校验**：准确发行源码 `da91e730d802b7c9dcdc075b222ecc257021e552` 的 CLI CI **71/71**、Strict **5/5**、IDE Extensions **18 success / 1 非标签后验证 skip**、ARM64 **10/10** 及其余完整测试门全部通过。既有 GitHub Actions OIDC 已先发布并核验 Agent SDK `0.2.14`，再发布 CLI `0.166.96`；公开包与不可变制品的摘要、SRI、来源证明和十个直接子包安装/精确版本均匹配。随后发布 Open VSX `0.37.140`，公开可下载内容与标签制品一致。JetBrains `0.4.158` 的标签发布已成功提交 Marketplace，当前仍 `pending`，等待公开审批，不能声称已公开可安装。 见[验证 20.22](./cli-ide-gap-validation-2026-10-05.md#2022-cli-016696-与双-ide-发行回读)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 `NOT_RUN`；冻结 Windows **211 = 194 pass / 16 fail / 1 skip**、**6 检出 / 4 存活 / 4 未运行**与完整 native review 保持 `NOT_ADMITTED`。Windows/macOS durable authority、受保护 journal、服务自身恢复/WFP、官方账单、独立人工/辅助技术及 8h/24h/SLO 继续开放；本轮无新增付费 provider 调用。
@@ -466,3 +468,25 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 在冻结22ef独立副本增加无参数、固定actor新建scratch目录的同LowBox只读GetSecurityInfo入口，只记录实际owner/DACL/control/完整ACE和同HANDLE的FileId/token前后观察。默认六槽不变，未增加可执行授权、宿主代开、WRITE_DAC或namespace修改，工程及已发行产物未改变。一次真实读取成功，但未protected、三条继承ALLOW ACE的默认DACL不满足原owner-only合同，结果FAIL/NOT_ADMITTED；原HANDLE/Job/profile清理和14source/3binary/7copy绑定确认。未设置ACL、未尝试PowerShell，旧spawn拒绝和owner-only实现仍开放。
 
 详见[独立实验原件](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/README.md)及[验证20.31](./cli-ide-gap-validation-2026-10-05.md#2031-2026-10-11-lowbox-scratch-acl-实际读取与兼容缺口)。本机Windows10/Node22.22.2、compiler closure非hermetic；没有把诊断完成计入正式36+9或改写冻结矩阵、$99、observations、durable/账单/人工/长时状态，无付费调用。
+
+## 33. 2026-10-11 ACL 契约实证与当前 Memory 拒绝路径
+
+本轮八文件工程增量在 feature/cli-ide-gap-20261011 分支交付；未升版、发布、调用模型或填正式 observations。原状态表保留各轮时点，当前分项如下。
+
+| 子项                      | 本轮实际结果                                                                                                                              | 仍需完成                                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Windows ACL 启动诊断      | 单路径/批处理 spawn、timeout、同步 throw 的固定枚举字段与 execution-location 两条失败回传完成；错误优先于成功 stdout，保留单次预算/零重试 | 新准确提交完整 CI；非启动的旧 PowerShell 业务异常处理不在本轮范围                                      |
+| Memory 错误目录坐标       | Windows 逐组件原生规范路径检查已落地；不同坐标或解析拒绝在 mkdir 前报 corrupt；原 lstat 保留                                              | 全 reparse 类型/持续不可替换证明和完整原生 review 不由此关闭                                           |
+| owner-only 与 LowBox      | 实际自行 WRITE_DAC 被拒；独立宿主设置精确唯一用户 ACE 后，actor 六项路径 I/O 全部 Win32 5                                                 | 需要真正宿主存储 broker 或版本化存储/运行边界；不能附加 AC ACE 后仍称原合同通过                        |
+| PLATFORM-02 / NET-02      | 保留已有 Linux authority 与 Windows Job 原语                                                                                              | Windows/macOS 持久服务、受保护 journal、服务自身恢复与网络撤销仍须工程实现，不是仅缺账号验收           |
+| VERIFY-02 / VERIFY-IDE-02 | 新诊断与旧失败独立保留；原 36+9 固定分母不变                                                                                              | 完整 native review、macOS checker/冻结 verify-17 平台冲突、独立签核、正式机器与 provider/账单/人工长时 |
+
+共享 private-storage 的启动诊断只携带固定 operation/stage/code/errno/syscall；不复制 message/path/argv 或任意 stderr。批处理初始化/遍历/lookup/verify 阶段已有固定标记；所有未知字段保持未知。execution-location 的 transport error 和非零 target exit 分支均保留同一结构化分类，兼容旧 marker，没有修改 retry、权限或执行期限。
+
+Segmented Memory 原目录检查仅依赖 lstat/isSymbolicLink，实际 LowBox junction 曾被误报为普通目录而 query 返回空数组。本轮在 Windows 加原生规范坐标检查，遇到重定向/EPERM/EACCES 保守拒绝。准确生产函数切片的实际 LowBox 观察见[原生坐标实验](./cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md)：plain 路径创建成功，真实 junction 的 lstat 仍假阴性，native 路径指向 target，新代码在 mkdir 前拒绝、目标仍为空。不是完整生产模块/冻结测试包实跑，也不证明 canonical 相等时不存在任何 reparse 或 check/use 竞态。
+
+独立 [ACL 契约实验](./cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md)没有更改工程 adapter、六槽或冻结源码。B 轮 actor 未能取 WRITE_DAC，所以没有调用 SetSecurityInfo；C 轮由宿主仅预设本次固定子目录与文件，关闭设置 HANDLE、不传目标对象 HANDLE，actor 自行尝试重开/读/写/创建/删除均被拒。两个事实必须分别报告，不能写成 LowBox 已设置后通过。
+
+Windows Node 22.22.2 两组 151/151 与 32 pass/1 POSIX skip；WSL Linux Node 22.12.0 为 146 pass/5 Windows skip 与 30 pass/3 Windows skip。lint/格式通过，Astra 独立复核八文件未发现权限放宽；[工程源码与实际 reporter](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md)按字节保存。本地测试不替代新准确提交 CLI/Strict/IDE 全矩阵。
+
+完整 native review 继续 NOT_ADMITTED；旧 211=194/16/1、6/4/4、新 fixture 211=208/2/1、正式 36+9/NOT_RUN/$99/observations 均保留。官方新模型 usage/账单、目标宿主/hooks、真人辅助技术、8h/24h/SLO/维护工时仍待独立验收；不把本轮两个修复及诊断结论称为两份报告全部完成。

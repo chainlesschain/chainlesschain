@@ -759,6 +759,130 @@ describe("owner-only filesystem helpers", () => {
     });
   });
 
+  it.each(["inspect", "repair"])(
+    "preserves native launch facts for a failed %s without private fields",
+    (operation) => {
+      const secret = "private-launch-message-credential";
+      const spawnSync = vi.fn(() => ({
+        status: null,
+        error: Object.assign(new Error(secret), {
+          code: "EACCES",
+          errno: -4092,
+          syscall: "spawnSync powershell.exe",
+          path: secret,
+          spawnargs: [secret],
+        }),
+        stderr: `${secret}\nCC_WINDOWS_ACL_STAGE=initialize\nCC_WINDOWS_ACL_STAGE=lookup\nCC_WINDOWS_ACL_STAGE=${secret}\n`,
+      }));
+      const options = {
+        platform: "win32",
+        deps: { fs: fakeFs(0o700, true), spawnSync, platform: () => "win32" },
+      };
+      if (operation === "inspect") {
+        const result = inspectPrivatePath("C:\\private", options);
+        expect(result).toMatchObject({
+          ok: false,
+          launchFailure: {
+            operation,
+            failureStage: "spawn",
+            progressStage: "lookup",
+            code: "EACCES",
+            errno: -4092,
+            syscall: "spawnSync",
+          },
+        });
+        expect(JSON.stringify(result)).not.toContain(secret);
+      } else {
+        expect(() => repairPrivatePath("C:\\private", options)).toThrow(
+          "[windows-acl-launch:repair:spawn:lookup:EACCES:-4092:spawnSync]",
+        );
+      }
+      expect(spawnSync).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("keeps a partial ACL batch failed and never emits spawn error content", () => {
+    const targets = ["C:\\private", "C:\\private\\file.json"];
+    const secret = "private-batch-launch-credential";
+    const spawnSync = vi.fn(() => ({
+      error: Object.assign(new Error(secret), {
+        code: "ETIMEDOUT",
+        errno: -4039,
+        syscall: "spawnSync powershell.exe",
+      }),
+      status: 0,
+      stdout: JSON.stringify(targets.map((target) => ({ target, ok: true }))),
+      stderr: `CC_WINDOWS_ACL_STAGE=repair-write\n${secret}`,
+    }));
+    const results = inspectPrivatePaths(targets, {
+      platform: "win32",
+      deps: { spawnSync, platform: () => "win32" },
+    });
+    expect(results.map((entry) => entry.ok)).toEqual([false, false]);
+    expect(results[0].launchFailure).toEqual({
+      operation: "inspect",
+      failureStage: "timeout",
+      progressStage: "repair-write",
+      code: "ETIMEDOUT",
+      errno: -4039,
+      syscall: "spawnSync",
+    });
+    expect(JSON.stringify(results)).not.toContain(secret);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("bounds unknown launch fields and ignores late or malformed progress", () => {
+    const spawnSync = vi.fn(() => ({
+      error: Object.assign(new Error("private-secret"), {
+        code: "private-secret",
+        errno: 1e20,
+        syscall: "spawn private-secret",
+      }),
+      stderr: "x".repeat(8192) + "\nCC_WINDOWS_ACL_STAGE=verify\n",
+    }));
+    const result = inspectPrivatePath("C:\\private", {
+      platform: "win32",
+      deps: { spawnSync, platform: () => "win32" },
+    });
+    expect(result.launchFailure).toEqual({
+      operation: "inspect",
+      failureStage: "spawn",
+      progressStage: "startup",
+      code: "UNKNOWN",
+      errno: null,
+      syscall: "unknown",
+    });
+    expect(JSON.stringify(result)).not.toContain("private-secret");
+  });
+
+  it("sanitizes a thrown launch error without retrying or accepting an ACL", () => {
+    const spawnSync = vi.fn(() => {
+      throw Object.assign(new Error("private-thrown-secret"), {
+        code: "EINVAL",
+        errno: -4071,
+        syscall: "spawnSync powershell.exe",
+      });
+    });
+    const options = {
+      platform: "win32",
+      deps: { spawnSync, platform: () => "win32" },
+    };
+    const results = inspectPrivatePaths(["C:\\private"], options);
+    expect(results[0]).toMatchObject({
+      ok: false,
+      launchFailure: {
+        operation: "inspect",
+        failureStage: "spawn",
+        progressStage: "startup",
+        code: "EINVAL",
+        errno: -4071,
+        syscall: "spawnSync",
+      },
+    });
+    expect(JSON.stringify(results)).not.toContain("private-thrown-secret");
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
   it("fails closed on an inconsistent Windows ACL batch exit", () => {
     const target = "C:\\private";
     const spawnSync = vi.fn(() => ({
@@ -1509,7 +1633,9 @@ describe("owner-only filesystem helpers", () => {
         applyWindowsAcl: false,
         deps: { fs, spawnSync, platform: () => "win32" },
       }),
-    ).toThrow(/Could not verify Windows path ancestors.*PowerShell timed out/);
+    ).toThrow(
+      /Could not verify Windows path ancestors.*\[windows-acl:timeout-startup\]/,
+    );
     expect(spawnSync).toHaveBeenCalledOnce();
     expect(mkdirSync).not.toHaveBeenCalled();
   });
