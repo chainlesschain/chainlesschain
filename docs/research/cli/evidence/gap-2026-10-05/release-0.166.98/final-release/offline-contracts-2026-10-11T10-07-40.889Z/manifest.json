@@ -1,0 +1,275 @@
+{
+  "schema": "chainlesschain.release098-stage-evidence/v1",
+  "capturedAt": "2026-10-11T10:07:40.959Z",
+  "stage": "offline-contracts",
+  "releaseCommit": "0b1f0e748299c729f8f28b407e146efb44df78ed",
+  "source": ".work/release098-six-gates-offline-2026-10-11T10-00-41.529Z-97WTgG",
+  "report": "readback.json",
+  "reportSha256": "907dd57294c9abd36235c29877251e2f99451ce1c790553f3be164473d480808",
+  "observations": {
+    "scope": "offline release/readback helper contracts only",
+    "process": {
+      "sourceSha": "0b1f0e748299c729f8f28b407e146efb44df78ed",
+      "startedAt": "2026-10-11T10:00:41.561Z",
+      "finishedAt": "2026-10-11T10:00:44.992Z",
+      "executable": "C:\\nvm4w\\nodejs\\node.exe",
+      "nodeVersion": "v22.22.2",
+      "args": [
+        "--test",
+        "--test-reporter=tap",
+        ".work/release098-workflow-contract.test.mjs",
+        ".work/readback-ide-workflow098.test.mjs",
+        ".work/readback-release098.test.mjs"
+      ],
+      "environmentOverride": {
+        "CC_READBACK_TEST_SHA": "0b1f0e748299c729f8f28b407e146efb44df78ed"
+      },
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdoutSha256": "2e260ce591edada7751d07de230d5c7d95e3f88315af57fbffee4397342bb153",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceSnapshotsUnchanged": true,
+      "offlineOnly": true,
+      "releaseGateEvidence": false
+    }
+  },
+  "entries": [
+    {
+      "sourceRelativePath": "process.json",
+      "role": "raw-evidence",
+      "rawBytes": 838,
+      "rawSha256": "907dd57294c9abd36235c29877251e2f99451ce1c790553f3be164473d480808",
+      "path": "objects/0000.gz",
+      "bytes": 491,
+      "sha256": "3cba7cb0e20cedc918b4fa04315da884c76a59c079bc822ed7eb65360f70afd1"
+    },
+    {
+      "sourceRelativePath": "source-manifest.json",
+      "role": "raw-evidence",
+      "rawBytes": 3693,
+      "rawSha256": "2e332e0b2ab1a3864242678ba8160a3bc24cdefe7af03b9d255b481c37ee5105",
+      "path": "objects/0001.gz",
+      "bytes": 1090,
+      "sha256": "1d311e120de2583c4ddb1e7d0ad4f212889aaa5f751599c9f8131f6305c03824"
+    },
+    {
+      "sourceRelativePath": "sources/.work/jvm-string-constant.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5386,
+      "rawSha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "objects/0002.gz",
+      "bytes": 1851,
+      "sha256": "3bf1c785bd591b89776da451013afa11c49b016fd2c93e7ebffb096c9f112a1c"
+    },
+    {
+      "sourceRelativePath": "sources/.work/read-release-016698-gates.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3391,
+      "rawSha256": "b4347c1fd5a2b11b006722f7d2a3ad9dcb05d3409f7e5f630986a6b99ddf9dbc",
+      "path": "objects/0003.gz",
+      "bytes": 1491,
+      "sha256": "b91ad85ffd9a88e077cd0d1224264a0f3602184eded73d9d9f3f8bc1c94a1525"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-release098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 13157,
+      "rawSha256": "bfb6a4b491d58896e53f082d3cf1b4a7166b80ea0b872e527913df9194997447",
+      "path": "objects/0004.gz",
+      "bytes": 4161,
+      "sha256": "a8e5b070175a2bfc7e1fb6edda4950aaf54b244367d68f6fb5e25ab830d5c2e0"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-workflow098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5950,
+      "rawSha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf",
+      "path": "objects/0005.gz",
+      "bytes": 1778,
+      "sha256": "3a40149bea466b3624b25fa2e932da1e5064085adb72cb185a75d2f95b0a1017"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-workflow098.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3775,
+      "rawSha256": "bad1daf3d1a8d6edd2a1e2bcb4b0606246be5bbbc0892e856ccf1daf760a4412",
+      "path": "objects/0006.gz",
+      "bytes": 1377,
+      "sha256": "d0eab4631ba5e32a4d1a774b8ea3166b42f978c347c45841427cf9b20b8c38e6"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-public-release098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 27239,
+      "rawSha256": "45ef0093f4bfcbcb0693e2c3ebcc224acba90a6b0dcab3c343c01b5beb939a04",
+      "path": "objects/0007.gz",
+      "bytes": 7881,
+      "sha256": "08304a5055f3573bf90bfebc3e575328eadd304b43c7a3dfa90b0c10c199dacf"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-release098.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5355,
+      "rawSha256": "fa3e93e785e4ca87c26a6273f01f27b82764659963780141cdfdb29d69b46556",
+      "path": "objects/0008.gz",
+      "bytes": 1878,
+      "sha256": "51f5a537ab8bab253c7a1bca101563fedd49a3d434ad42814fe66680fc290cfb"
+    },
+    {
+      "sourceRelativePath": "sources/.work/release098-workflow-contract.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 8584,
+      "rawSha256": "c2b0cadc14f9ec7dfb20ed573c586763ffdcf8f923485a613952576439438465",
+      "path": "objects/0009.gz",
+      "bytes": 3087,
+      "sha256": "d1b243275ce26daa89c6c1cc38aed047c9187daea299bd9fb4b322092a63318b"
+    },
+    {
+      "sourceRelativePath": "sources/.work/release098-workflow-contract.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 9358,
+      "rawSha256": "0963d1a0d9536b50312d386731035715d1141bacf49f8ef125a9c0e002bd6460",
+      "path": "objects/0010.gz",
+      "bytes": 2819,
+      "sha256": "0413e5c43ebcdec4fac7cbf30d216109e13021369fb51ae0db2eb855321e78fc"
+    },
+    {
+      "sourceRelativePath": "sources/.work/run-release098-six-gates-offline.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3007,
+      "rawSha256": "f499cf7335d1ab7b74ac7fdd4884967d97f89cacfa585ac95f1d5f4c2244bb64",
+      "path": "objects/0011.gz",
+      "bytes": 1345,
+      "sha256": "422353cd697d7ac6608f448098acdd7418ab6d636f24ba496cf987143fbae266"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/scripts/npm-release-artifact.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 16249,
+      "rawSha256": "f127ad8e3bd5de619b8d57be38c25603248e7852bb4c0f297ffb4187f70ead1b",
+      "path": "objects/0012.gz",
+      "bytes": 4496,
+      "sha256": "9126ad07739621aea87f5578f44b12893a4905252a8e5222a613c8f39c2d2962"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/scripts/verify-cli-registry-install.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 6401,
+      "rawSha256": "c93a84ca4ae4f0856ee5d7db0c5e5562dc4a43eb4f04f44e8826d62cd6da1f12",
+      "path": "objects/0013.gz",
+      "bytes": 2202,
+      "sha256": "c45a58d7af1ee3b701e54512b52f36179484fc35001589629f885fcb84145e88"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+      "role": "raw-evidence",
+      "rawBytes": 4032,
+      "rawSha256": "da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa",
+      "path": "objects/0014.gz",
+      "bytes": 1542,
+      "sha256": "a5d34734a38f3964c222373e270d20e02ad64e136f8559b8649576cf766d0ed5"
+    },
+    {
+      "sourceRelativePath": "sources/packages/vscode-extension/scripts/verify-vsix.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 10476,
+      "rawSha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1",
+      "path": "objects/0015.gz",
+      "bytes": 3529,
+      "sha256": "cd7671d29b52d40de58896fd7e0bf99d52bd6213cbcc158f62ab807750b81e0c"
+    },
+    {
+      "sourceRelativePath": "tests.stderr.txt",
+      "role": "raw-evidence",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "objects/0016.gz",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "sourceRelativePath": "tests.tap",
+      "role": "raw-evidence",
+      "rawBytes": 5177,
+      "rawSha256": "2e260ce591edada7751d07de230d5c7d95e3f88315af57fbffee4397342bb153",
+      "path": "objects/0017.gz",
+      "bytes": 1401,
+      "sha256": "c1a5744c6b91bb6e0b3a1eaa760134701056c92da721930acd4216a53edc5725"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/archive-release098-stage.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 7794,
+      "rawSha256": "7b14f77015006f8db87b94cb083a032fc99dd76727eb3b30e6e7210da64589bd",
+      "path": "objects/0018.gz",
+      "bytes": 2787,
+      "sha256": "3c6c643bc9ac903f9eb4b3e551a5d8aa1b50ce32c87a33bb4372492c59cfb439"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/release098-workflow-contract.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 8584,
+      "rawSha256": "c2b0cadc14f9ec7dfb20ed573c586763ffdcf8f923485a613952576439438465",
+      "path": "objects/0019.gz",
+      "bytes": 3087,
+      "sha256": "d1b243275ce26daa89c6c1cc38aed047c9187daea299bd9fb4b322092a63318b"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-ide-workflow098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 5950,
+      "rawSha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf",
+      "path": "objects/0020.gz",
+      "bytes": 1778,
+      "sha256": "3a40149bea466b3624b25fa2e932da1e5064085adb72cb185a75d2f95b0a1017"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/read-release-016698-gates.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 3391,
+      "rawSha256": "b4347c1fd5a2b11b006722f7d2a3ad9dcb05d3409f7e5f630986a6b99ddf9dbc",
+      "path": "objects/0021.gz",
+      "bytes": 1491,
+      "sha256": "b91ad85ffd9a88e077cd0d1224264a0f3602184eded73d9d9f3f8bc1c94a1525"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-public-release098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 27239,
+      "rawSha256": "45ef0093f4bfcbcb0693e2c3ebcc224acba90a6b0dcab3c343c01b5beb939a04",
+      "path": "objects/0022.gz",
+      "bytes": 7881,
+      "sha256": "08304a5055f3573bf90bfebc3e575328eadd304b43c7a3dfa90b0c10c199dacf"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-ide-release098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 13157,
+      "rawSha256": "bfb6a4b491d58896e53f082d3cf1b4a7166b80ea0b872e527913df9194997447",
+      "path": "objects/0023.gz",
+      "bytes": 4161,
+      "sha256": "a8e5b070175a2bfc7e1fb6edda4950aaf54b244367d68f6fb5e25ab830d5c2e0"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/jvm-string-constant.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 5386,
+      "rawSha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "objects/0024.gz",
+      "bytes": 1851,
+      "sha256": "3bf1c785bd591b89776da451013afa11c49b016fd2c93e7ebffb096c9f112a1c"
+    }
+  ],
+  "omittedBinaryBindings": [],
+  "formalSample": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "boundaries": [
+    "Lossless gzip records bind raw and compressed SHA256 independently.",
+    "Large fetched archives remain local; their byte counts/digests and remote receipts are preserved.",
+    "Offline helper tests and public byte/source checks do not establish native functionality or formal 36+9 admission.",
+    "Collector snapshots are captured at archive time; runtime helper hashes remain in the original invocation receipts.",
+    "A JetBrains pending record never establishes public publication."
+  ]
+}

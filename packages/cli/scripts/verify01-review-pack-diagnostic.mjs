@@ -180,7 +180,7 @@ import { SegmentedMemoryPort } from ${source("packages/cli/src/lib/context-memor
 import { createMemoryCandidate } from "@chainlesschain/context-memory-kernel";
 import { STORE_SCHEMA, stateDigest } from ${source("packages/cli/src/lib/context-memory-kernel/durable-memory-port.js")};
 diagnosticIt("retains every authority directory entry and byte during shadow reads", async () => {
-  const root = diagnosticFs.mkdtempSync(diagnosticPath.join(diagnosticOs.tmpdir(), "cc-shadow-control-"));
+  const root = diagnosticFs.mkdtempSync(diagnosticPath.join(diagnosticFs.realpathSync.native(diagnosticOs.tmpdir()), "cc-shadow-control-"));
   try {
     const filePath = diagnosticPath.join(root, "memory.json");
     const writer = new SegmentedMemoryPort({ filePath });
@@ -384,7 +384,10 @@ export async function runPackDiagnostic({
     "image reference does not match diagnostic pin",
   );
   const scratch = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-review-pack-diagnostic-"),
+    path.join(
+      fs.realpathSync.native(os.tmpdir()),
+      "cc-review-pack-diagnostic-",
+    ),
   );
   const workspace = path.join(scratch, "workspace");
   fs.mkdirSync(workspace);
