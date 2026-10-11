@@ -1,5 +1,7 @@
 # ChainlessChain 对照 Claude Code / Codex 的 IDE、CLI 与 Runtime 增量审计（2026-10-05）
 
+> **2026-10-11 验收优化续做**：新增费用语义校准与正常公开SQLite安装两项无账户诊断：保留第三轮原候选，追加四项实际计费变异并与工程六例对照；Astra协助验证CLI/core-db的实际嵌套驱动、写入和新进程重开，WASM不得算native。合同测试Windows/Linux各12/12，真实Docker重放与公开安装Actions待结果，不能写成通过。详见[诊断实现、原件及边界](../cli/evidence/gap-2026-10-05/semantic-install-2026-10-11/README.md)。正式36+9/NOT_RUN/observed=0保持，本轮无新付费调用。
+
 > **2026-10-11 实际任务反馈与共享优化**：第三轮火山实际编码已完成，两题原整题均未通过：费用候选**6/6**、两反例均检出，但一次绝对路径预拒绝造成15use/16result且没有完整金额断言；Memory候选**3/4**，失败来自fsync mock未恢复即再次读取。原始失败及三轮候选均保留。已落实正式eval每题scope/独立配置/空种子拒绝、六项真实请求费用回归、Windows临时根规范化，以及拒绝事件与调用ID关联修复；工程补强不回填模型成功。既有接线Windows/Linux各73/73、费用Windows28/28和Linux18/18、临时目录21/21、四套本机E2E14/14；5e23准确Strict **5/5**，CLI/Docker全矩阵见[实际结果与优化原件](../cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md)，新事件修复Windows/Linux各171/171、诊断9/9、mapped29/29通过；后续修复须自己的CI。第三轮CLI估算约**$0.05612**，实际账单未知。正式**36+9 / NOT_RUN / observed=0**、$99保持；实际IDE/首次安装、目标宿主、独立人工/账单/长时和native durable仍未完成，整体任务尚未结案。
 
 > **2026-10-11 火山真实调用与工具收窄修复**：按用户明确授权，在 Linux Node 22.12.0 独立安装公开 CLI 0.166.97 完成写入/完整读回诊断；3 次模型调用、6496 input / 357 output，估算 $0.0010094，实际账单未知。首轮文件前置拒绝保留；公开 .97 虽指定两项 allowed-tools，实际模型 schema 仍暴露六项，已在未发行源码修复显式/空白名单与 plan 交集。正确夹具修复前 5 个反例全部失败，修复后 Windows/Linux 各 **113/113**；Astra 审查无阻塞，见[完整诊断与优化依据](../cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/README.md)。用户要求 GitHub Actions 验证和实际任务后的优化总结；新准确提交的 CLI/Strict 与真实 Docker 验收分别触发，结果另验。两项冻结题目火山实跑按独立诊断推进，不能将本次标记文件诊断计入正式 **36+9 / NOT_RUN**；目标宿主、独立人工预审、账单及长时观察仍需完成。以下条目保留各自历史时点。
