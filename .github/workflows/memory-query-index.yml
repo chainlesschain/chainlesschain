@@ -5,11 +5,13 @@ on:
   push:
     branches: [main, "feature/**"]
     paths:
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
       - ".github/workflows/memory-query-index.yml"
   pull_request:
     paths:
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/cli/src/lib/context-memory-kernel/**"
       - "packages/cli/scripts/memory-query-index-benchmark.mjs"
       - ".github/workflows/memory-query-index.yml"

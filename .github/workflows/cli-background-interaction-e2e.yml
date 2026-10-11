@@ -63,6 +63,9 @@ on:
       - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
 
+env:
+  CC_BACKGROUND_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -78,6 +81,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_BACKGROUND_CANDIDATE_SHA }}
+      - name: Verify exact candidate checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CC_BACKGROUND_CANDIDATE_SHA"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
