@@ -50,7 +50,7 @@ jobs:
         run: |
           docker pull node:22.12.0-bookworm
           echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
-      - name: Run five actual first-run stages on public CLI 0.166.97
+      - name: Run five actual first-run stages on public CLI 0.166.98
         env:
           VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}

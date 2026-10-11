@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.live-retest-preparation/v1",
+  "sourceBase": "a21913df8be0f7f4d06f9dd95d1a63f7bd978312",
+  "publicVersion": "0.166.98",
+  "paidProviderCalls": 0,
+  "formalSample": false,
+  "observationsProduced": 0,
+  "node": "v22.22.2",
+  "passed": 39,
+  "failed": 0,
+  "skipped": 0,
+  "archive": "preparation-contracts.json.gz",
+  "bytes": 9689,
+  "sha256": "sha256:65be1eb0e0c19d38e83534cfc7760f96f5ed8f58b99d35393cddea931c34952a",
+  "archiveBytes": 2447,
+  "archiveSha256": "sha256:4cfe78029257cbfd457e9d8382581297b28f19dea62a198e41310c424482e27f"
+}
