@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-11 迁移与准确源码门修复**：准确Kernel PR在Windows迁移/恢复25项中11pass/14fail，writer已通过；API head0b1f而实际执行7f5bfca5合并源码。16个Node夹具和capacity/review诊断入口已规范TEMP，生产guard不变；同短junction原源码9/16，修后25/25，文件symlink断言EPERM未执行仍保留。capacity定向alias前拒绝/后完成并清理，相关单位21/21。工作流新增准确HEAD检出与比较，探针/制品同一SHA。旧准备和失败不覆盖，新候选须自身六门，未发行或付费复跑。 [原件与限制](./evidence/gap-2026-10-05/release-0.166.98/ci-repair2/README.md)。正式**36+9/NOT_RUN/observed=0/$99**和其余人工/账单/宿主/durable/native/长时项保持。以下历史时点保留。
+
 > **2026-10-11 候选CI失败修复**：准确a219的Windows benchmark/writer probe被native canonical guard拒绝；已在夹具入口规范TEMP，保留原失败。真实junction benchmark前拒绝/后1000条四模式一致；干净993805writer exit0与fences通过，初始driver全临时根空断言被独立logger目录触发，静态回读仅确认writer夹具清理，原件保留。Memory32pass/1skip、Kernel112/112；Kernel候选升0.1.9，CLI依赖/lock对齐。独立复测认证接入JSON估算，Windows/Linux各43/43，不回填账单或正式样本。新准确提交须完整四门和相关失败门；未发行。见[原件与修复](./evidence/gap-2026-10-05/release-0.166.98/ci-repair/README.md)。正式**36+9/NOT_RUN/observed=0/$99**及其余人工/账单/宿主/durable/native/长时开放项保持。以下历史时点保留。
 
 > **2026-10-11 CLI 0.166.98 / 配对 IDE 候选**：真实任务优化后继续修复预算计数打断火山兼容稳定消息前缀的问题；新增序列化回归，无新付费调用。九套最终 Windows/Linux各**522/522**，VS完整单位**260/260**，JetBrains显式JDK21 **955 tests、0failures/0errors/3skip**及打包成功。保留旧521/1、无reporter超时、VS259/1和Java17启动失败。Session Core**0.3.19** → CLI**0.166.98** → VS**0.37.142** / JB**0.4.160**已对齐；用户已授权测试成功后发布，最终准确提交Actions门与公开回读仍待完成，未新发行或合并。[优化与候选原件](./evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。 正式**36+9/NOT_RUN/observed=0/$99**保持，模型交付优化未付费复跑，其余人工/账单/GUI/durable/native/长时项仍开放。以下历史记录不改写。

@@ -1,0 +1,25 @@
+{
+  "sourceSha": "0b1f0e748299c729f8f28b407e146efb44df78ed",
+  "startedAt": "2026-10-11T10:00:41.561Z",
+  "finishedAt": "2026-10-11T10:00:44.992Z",
+  "executable": "C:\\nvm4w\\nodejs\\node.exe",
+  "nodeVersion": "v22.22.2",
+  "args": [
+    "--test",
+    "--test-reporter=tap",
+    ".work/release098-workflow-contract.test.mjs",
+    ".work/readback-ide-workflow098.test.mjs",
+    ".work/readback-release098.test.mjs"
+  ],
+  "environmentOverride": {
+    "CC_READBACK_TEST_SHA": "0b1f0e748299c729f8f28b407e146efb44df78ed"
+  },
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "stdoutSha256": "2e260ce591edada7751d07de230d5c7d95e3f88315af57fbffee4397342bb153",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceSnapshotsUnchanged": true,
+  "offlineOnly": true,
+  "releaseGateEvidence": false
+}
