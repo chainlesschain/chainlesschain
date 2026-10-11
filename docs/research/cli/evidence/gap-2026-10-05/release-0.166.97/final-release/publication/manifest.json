@@ -1,0 +1,363 @@
+{
+  "schema": "chainlesschain.tag-publication-workflows/v1",
+  "capturedAt": "2026-10-11T00:32:35.255Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "immutableRemoteTagsVerified": true,
+  "workflows": [
+    {
+      "kind": "npm",
+      "id": 38094605922,
+      "tag": "v-npm-0-166-97",
+      "workflow": "npm-publish.yml",
+      "success": 5,
+      "skipped": 2,
+      "counts": {
+        "success": 5,
+        "skipped": 2
+      },
+      "status": "completed",
+      "conclusion": "success",
+      "postVerificationPending": false,
+      "jobs": [
+        {
+          "id": 114337826550,
+          "name": "exact-sha-gate",
+          "conclusion": "success"
+        },
+        {
+          "id": 114337827729,
+          "name": "test",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114337827753,
+          "name": "dry-run",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114337914590,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114337914607,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114338048786,
+          "name": "package-cli",
+          "conclusion": "success"
+        },
+        {
+          "id": 114338482694,
+          "name": "publish",
+          "conclusion": "success"
+        }
+      ],
+      "artifactCount": 7,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38094605922"
+    },
+    {
+      "kind": "vscode",
+      "id": 38095423362,
+      "tag": "ide-vscode-v0.37.141",
+      "workflow": "ide-extensions.yml",
+      "success": 11,
+      "skipped": 3,
+      "counts": {
+        "success": 11,
+        "skipped": 3
+      },
+      "status": "completed",
+      "conclusion": "success",
+      "postVerificationPending": false,
+      "jobs": [
+        {
+          "id": 114340206157,
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340296949,
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340296966,
+          "name": "Browser evidence (windows)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340296967,
+          "name": "Browser evidence (macos)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340297003,
+          "name": "Browser evidence (linux)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340297605,
+          "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340419361,
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340419374,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340419432,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340631207,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114341254106,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114342497117,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114342497350,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114343093297,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success"
+        }
+      ],
+      "artifactCount": 17,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423362"
+    },
+    {
+      "kind": "jetbrains",
+      "id": 38095423253,
+      "tag": "ide-jetbrains-v0.4.159",
+      "workflow": "ide-extensions.yml",
+      "success": 13,
+      "skipped": 6,
+      "counts": {
+        "success": 12,
+        "skipped": 6,
+        "queued": 1
+      },
+      "status": "queued",
+      "conclusion": null,
+      "postVerificationPending": true,
+      "jobs": [
+        {
+          "id": 114340205686,
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285832,
+          "name": "Browser evidence (linux)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285836,
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285870,
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285872,
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285881,
+          "name": "Browser evidence (macos)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285882,
+          "name": "Browser evidence (windows)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285893,
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285913,
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340285931,
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114340286721,
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340286797,
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340286966,
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340286990,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340287011,
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114340913243,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114342311299,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "skipped"
+        },
+        {
+          "id": 114343630979,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success"
+        },
+        {
+          "id": 114346040465,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": null
+        }
+      ],
+      "artifactCount": 18,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253"
+    }
+  ],
+  "entries": [
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\jetbrains-artifacts.json",
+      "path": "p001.gz",
+      "bytes": 13684,
+      "sha256": "sha256:b7601ae5aa9a9695e2b931bbc3771903958247edbf46d0e02a5fe6325aeb4785",
+      "archiveBytes": 1991,
+      "archiveSha256": "sha256:454d82cd0dd16f1389d8b6a9f6f2e1d54aaa5ef5161daabb6ffd7f68b2e861a2"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\jetbrains-jobs-1.json",
+      "path": "p002.gz",
+      "bytes": 52530,
+      "sha256": "sha256:6ff5105797e0879fe9bd540b4dbd566524263c8b215dc7d51ec5ebb2bff7760f",
+      "archiveBytes": 3953,
+      "archiveSha256": "sha256:a0384beb26e0ee6fe1e7f01f6b345092c9a76179b88f8c0d763df3dcbca9f07d"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\jetbrains-run.json",
+      "path": "p003.gz",
+      "bytes": 13195,
+      "sha256": "sha256:19c1c171f8c3c9ddc4cec017a875e4a829bd6ef665279a68254622b48dda6c3c",
+      "archiveBytes": 1527,
+      "archiveSha256": "sha256:6acdc4b879a88d87c07cb52c0d6d9e6fa0f4dddad0eaeed1e11fc48901717f69"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\npm-artifacts.json",
+      "path": "p004.gz",
+      "bytes": 5350,
+      "sha256": "sha256:18a4cb83e9bf38b8f4a99f224ef60108dcf5241f2de90f4977b0f6498925f4d3",
+      "archiveBytes": 994,
+      "archiveSha256": "sha256:0be7316d7bf26058f853b9c848ee4a2ed1948d49b95ec99b4474bc2f7d28c992"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\npm-jobs-1.json",
+      "path": "p005.gz",
+      "bytes": 20458,
+      "sha256": "sha256:fed2877c5cfb302fc0dd8d746398683111cdc89b66ddfbdb7498f7f9e0b31a25",
+      "archiveBytes": 2354,
+      "archiveSha256": "sha256:0681b098999bcdf2cce90531f38a7880a6214e961305def353917b54e546dca1"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\npm-run.json",
+      "path": "p006.gz",
+      "bytes": 13409,
+      "sha256": "sha256:5aef04e06593a6fee55dd800dc1c0731661bfdc56ffd142f9b8ae054c8f9b1b8",
+      "archiveBytes": 1579,
+      "archiveSha256": "sha256:7e48b78265eb06f5192b819fb1d2ac15ac881771b551c4141dfcfc4c614e7915"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\remote-tags.txt",
+      "path": "p007.gz",
+      "bytes": 212,
+      "sha256": "sha256:7208384c0a3a53c51d9e9e1be5bb04c6a7f71f18c99acd7374003393bee94008",
+      "archiveBytes": 117,
+      "archiveSha256": "sha256:c82b09a2b21575d6224cd6bb0ad829a6e5e88a47e3b565788df0fb5c6656f47e"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\summary.json",
+      "path": "p008.gz",
+      "bytes": 7436,
+      "sha256": "sha256:3ccde75944f4beffac6569b86e9ba8b4be495dff6e9731e2b1aba05a263955e6",
+      "archiveBytes": 1260,
+      "archiveSha256": "sha256:4e1b3d387cc71dc419e6e1fd8fa42f63288ff78ca22bf87687320b8e2cdb3236"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\vscode-artifacts.json",
+      "path": "p009.gz",
+      "bytes": 12872,
+      "sha256": "sha256:2439a926b598a848af2467a14ab2be98a94febb85d0df2f0e885696336e6362d",
+      "archiveBytes": 1914,
+      "archiveSha256": "sha256:2d6939cad2d158f77b5d2d83790ad0bfc180d19206d83dc9d0b8f716eed01cf9"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\vscode-jobs-1.json",
+      "path": "p010.gz",
+      "bytes": 41367,
+      "sha256": "sha256:7a3c4f5d430f844d92471b5a8ce00b43da8150d7cee210cb10318647d14f631d",
+      "archiveBytes": 3865,
+      "archiveSha256": "sha256:6e6fea6c11385a267252415418ec602ff337e5f46ce00097e1bdf5aeb26bf2bb"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-preflight-0.166.97\\publication-final-2026-10-11T00-32-35.255Z\\vscode-run.json",
+      "path": "p011.gz",
+      "bytes": 13201,
+      "sha256": "sha256:de8988d6d54e1301139a7dc169740d4974db22429fb3a7d0397a720f4e66d245",
+      "archiveBytes": 1527,
+      "archiveSha256": "sha256:38bb24326d59db6ae28d21c8c00c2ac769229024894062a723f073a07790e456"
+    }
+  ],
+  "formalSample": false,
+  "admissionEligible": false,
+  "boundaries": [
+    "Workflow success is separate from actual public package/listing readback.",
+    "The skips are immutable-workflow tag conditions, not successful test execution.",
+    "Only the JetBrains supplementary post-publish verification may be unfinished; its successful publisher and all mandatory gates remain required. A queued supplementary job does not count as workflow success."
+  ]
+}

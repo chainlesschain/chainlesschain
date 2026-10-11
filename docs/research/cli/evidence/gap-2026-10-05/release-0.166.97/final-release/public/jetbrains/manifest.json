@@ -1,0 +1,306 @@
+{
+  "schema": "chainlesschain.release-public-evidence/v1",
+  "capturedAt": "2026-10-11T00:35:40.105Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "kind": "jetbrains",
+  "status": "ready",
+  "version": "0.4.159",
+  "source": ".work/release-readback-0.166.97/jetbrains-upload-38095423253/observed-2026-10-11T00-31-06.309Z",
+  "report": "readback.json",
+  "reportSha256": "sha256:cc3835ab5991deb296f830c17e0b8d271e1f2b1a490077850dbd56e0390a204b",
+  "entries": [
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\CliVersionCheck.class",
+      "sourceRelativePath": "CliVersionCheck.class",
+      "bytes": 3568,
+      "sha256": "sha256:af8303fa5041e4165beac08b064c8f8c82da5e6159d105d9fc8e3de1e317e7a9",
+      "path": "e001.gz",
+      "archiveBytes": 1900,
+      "archiveSha256": "sha256:46265e7f2715296efb8bbe948f42d99984af117e06efb725d0494e34b47ec292"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\artifact-readback.json",
+      "sourceRelativePath": "artifact-readback.json",
+      "bytes": 1166,
+      "sha256": "sha256:dbeadd78de3cfb5001c260889ef2fea1ba88ac40d5b81fd16bd0f168e62aaafc",
+      "path": "e002.gz",
+      "archiveBytes": 574,
+      "archiveSha256": "sha256:52e28c78ca46911e5b2b96dbbe4716791887475338e2653cef688a25e6797b5c"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\artifacts.raw.json",
+      "sourceRelativePath": "artifacts.raw.json",
+      "bytes": 13684,
+      "sha256": "sha256:b7601ae5aa9a9695e2b931bbc3771903958247edbf46d0e02a5fe6325aeb4785",
+      "path": "e003.gz",
+      "archiveBytes": 1991,
+      "archiveSha256": "sha256:454d82cd0dd16f1389d8b6a9f6f2e1d54aaa5ef5161daabb6ffd7f68b2e861a2"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\ide-cli-prerequisite-jetbrains-1\\receipt.json",
+      "sourceRelativePath": "ide-cli-prerequisite-jetbrains-1/receipt.json",
+      "bytes": 3505,
+      "sha256": "sha256:f5f509eb464f08758204252574d77dcb1b0d8b1f1b66ea8b2f821d00c79b3334",
+      "path": "e004.gz",
+      "archiveBytes": 1301,
+      "archiveSha256": "sha256:d652bd9dc6a6b114644a3af60cc96d4e9a58602dca5a104fff6e3c6eb99f5922"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\independent-validation.json",
+      "sourceRelativePath": "independent-validation.json",
+      "bytes": 5586,
+      "sha256": "sha256:b0fd85f78866ff4f997e9bba8317bb12f2c09f8ce720af0d3bbc7006e47c9425",
+      "path": "e005.gz",
+      "archiveBytes": 2004,
+      "archiveSha256": "sha256:67069723d0add92f09e40af165ba23f3ba363035b299e40e39efde3d7136a32a"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\invocation.json",
+      "sourceRelativePath": "invocation.json",
+      "bytes": 278,
+      "sha256": "sha256:ef6e46ecf79672c4f393c177cba923a220c235f189ade9b5780c79186acce90f",
+      "path": "e006.gz",
+      "archiveBytes": 224,
+      "archiveSha256": "sha256:92bb11ea9bf193389afb0141bfd71195a668cacd122aca7fb6f96d4ec523f8b4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\jetbrains-updates.raw.json",
+      "sourceRelativePath": "jetbrains-updates.raw.json",
+      "bytes": 80638,
+      "sha256": "sha256:a0ab42f1a06a69f36fc13d17c99c99079371b9770af67eeb7bb3c6a36c699120",
+      "path": "e007.gz",
+      "archiveBytes": 6858,
+      "archiveSha256": "sha256:94d4e300deb08d463d438a509f7fbbc74b33d92bb697ae4cdf9ed2b916b4162b"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\jetbrains-updates.raw.json.http.json",
+      "sourceRelativePath": "jetbrains-updates.raw.json.http.json",
+      "bytes": 208,
+      "sha256": "sha256:f8bef76e9423f25389147c3ed08b222137229d7b4cdf4b7e0f7e8972ed1ba727",
+      "path": "e008.gz",
+      "archiveBytes": 145,
+      "archiveSha256": "sha256:c13cf55dd0a070f4d48458da1884300473a323cec621c39f392751b0b55bbfe2"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\jobs-before-market.raw.json",
+      "sourceRelativePath": "jobs-before-market.raw.json",
+      "bytes": 52530,
+      "sha256": "sha256:6ff5105797e0879fe9bd540b4dbd566524263c8b215dc7d51ec5ebb2bff7760f",
+      "path": "e009.gz",
+      "archiveBytes": 3953,
+      "archiveSha256": "sha256:a0384beb26e0ee6fe1e7f01f6b345092c9a76179b88f8c0d763df3dcbca9f07d"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\jobs.raw.json",
+      "sourceRelativePath": "jobs.raw.json",
+      "bytes": 52530,
+      "sha256": "sha256:6ff5105797e0879fe9bd540b4dbd566524263c8b215dc7d51ec5ebb2bff7760f",
+      "path": "e010.gz",
+      "archiveBytes": 3953,
+      "archiveSha256": "sha256:a0384beb26e0ee6fe1e7f01f6b345092c9a76179b88f8c0d763df3dcbca9f07d"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\marketplace-invocation.json",
+      "sourceRelativePath": "marketplace-invocation.json",
+      "bytes": 427,
+      "sha256": "sha256:d9503fde2f01737a1ff29f7892f8c983f166d27aabc92b452c0a0495b9965168",
+      "path": "e011.gz",
+      "archiveBytes": 314,
+      "archiveSha256": "sha256:ad8364ef0f46658ec2e9261ab6e4902c3f38baa62060d619ae9f57a1e316da39"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\marketplace-verifier.stderr",
+      "sourceRelativePath": "marketplace-verifier.stderr",
+      "bytes": 0,
+      "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "e012.gz",
+      "archiveBytes": 20,
+      "archiveSha256": "sha256:9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\marketplace-verifier.stdout",
+      "sourceRelativePath": "marketplace-verifier.stdout",
+      "bytes": 174,
+      "sha256": "sha256:e99bc297dd343d460163d7117aaa3d7e762700ec5f830f01b04bfcd5e5fa1e2d",
+      "path": "e013.gz",
+      "archiveBytes": 147,
+      "archiveSha256": "sha256:aacec6b0637b39b749bfeb8420ce9576f6dedd8bd07d310fab1e27f168c5435e"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\metadata-summary.json",
+      "sourceRelativePath": "metadata-summary.json",
+      "bytes": 64425,
+      "sha256": "sha256:217ca7ce87e23ba101067071df32bccadf9e493f59b6b9cd3cf093407786fdf2",
+      "path": "e014.gz",
+      "archiveBytes": 4731,
+      "archiveSha256": "sha256:9b3f801169cbedca761e94a9577cd300b6219315258bb2cc48fe8809010e1984"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\plugin.xml",
+      "sourceRelativePath": "plugin.xml",
+      "bytes": 19661,
+      "sha256": "sha256:84a4f40427359947be8f4ca72220d22c5e2613c86f8b855e5e1a83a6126431e9",
+      "path": "e015.gz",
+      "archiveBytes": 4925,
+      "archiveSha256": "sha256:e033f3604a471dbade1272dd4a67d680ffbbd3abf1ce608ea7d7f2ffff2d6cb5"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\public-readback.json",
+      "sourceRelativePath": "public-readback.json",
+      "bytes": 14310,
+      "sha256": "sha256:cc3835ab5991deb296f830c17e0b8d271e1f2b1a490077850dbd56e0390a204b",
+      "path": "e016.gz",
+      "archiveBytes": 4780,
+      "archiveSha256": "sha256:658e62fa0e897a1498f5280387989e26b386bedf53d18bad40c121fc98fcf5eb"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\public.zip.http.json",
+      "sourceRelativePath": "public.zip.http.json",
+      "bytes": 318,
+      "sha256": "sha256:67460c42933f53bf2f962d0fe75e9b0c23acbf6290fb2a7f8b8a7a4e5ff50675",
+      "path": "e017.gz",
+      "archiveBytes": 239,
+      "archiveSha256": "sha256:467e5a3f3a9f2efdbd7fadf038db186e94c5f98453e57c4e42db51593c2fc6e4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\run-before-market.raw.json",
+      "sourceRelativePath": "run-before-market.raw.json",
+      "bytes": 13195,
+      "sha256": "sha256:19c1c171f8c3c9ddc4cec017a875e4a829bd6ef665279a68254622b48dda6c3c",
+      "path": "e018.gz",
+      "archiveBytes": 1527,
+      "archiveSha256": "sha256:6acdc4b879a88d87c07cb52c0d6d9e6fa0f4dddad0eaeed1e11fc48901717f69"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\run.raw.json",
+      "sourceRelativePath": "run.raw.json",
+      "bytes": 13195,
+      "sha256": "sha256:19c1c171f8c3c9ddc4cec017a875e4a829bd6ef665279a68254622b48dda6c3c",
+      "path": "e019.gz",
+      "archiveBytes": 1527,
+      "archiveSha256": "sha256:6acdc4b879a88d87c07cb52c0d6d9e6fa0f4dddad0eaeed1e11fc48901717f69"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-jvm-string-constant.mjs",
+      "sourceRelativePath": "source-jvm-string-constant.mjs",
+      "bytes": 5386,
+      "sha256": "sha256:77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "e020.gz",
+      "archiveBytes": 1852,
+      "archiveSha256": "sha256:f0eb8332ce6d949b84444ee47664fe22d5bb08583f4422eb381d54fc08e4c56a"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-readback-jetbrains-upload097-download.mjs",
+      "sourceRelativePath": "source-readback-jetbrains-upload097-download.mjs",
+      "bytes": 6846,
+      "sha256": "sha256:e80bf2166aac9282853424e22688559da378c315ff58d566694ad968140856b2",
+      "path": "e021.gz",
+      "archiveBytes": 2428,
+      "archiveSha256": "sha256:46ba08a505651e0cc09fca6fee4ef7dcaa7b58ecf25918664696ac3f1eb662fb"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-readback-jetbrains-upload097-market.mjs",
+      "sourceRelativePath": "source-readback-jetbrains-upload097-market.mjs",
+      "bytes": 8083,
+      "sha256": "sha256:54f632acd7602c5e415bbc0fd6d7cf402262dd8ba1ffeb2e16044835dce159f7",
+      "path": "e022.gz",
+      "archiveBytes": 2969,
+      "archiveSha256": "sha256:5d4168174d7c42335245a5f10c02df7b38519956ca537238d3dad4242f0a7204"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-readback-jetbrains-upload097.mjs",
+      "sourceRelativePath": "source-readback-jetbrains-upload097.mjs",
+      "bytes": 2768,
+      "sha256": "sha256:31e55c767c75ce206e9af6313eaa457c303b85bf00d9a0a0124aed7681106fdf",
+      "path": "e023.gz",
+      "archiveBytes": 1251,
+      "archiveSha256": "sha256:f8c3aac6fece0bd7d88d82b9cf2743cb3fe2aa98b1ec3d07a1968cc4c5fedbb4"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-verify-ide-marketplace.mjs",
+      "sourceRelativePath": "source-verify-ide-marketplace.mjs",
+      "bytes": 24370,
+      "sha256": "sha256:62ad21b29d994e214a6a46d332e76a1656c8d20f6ad4661a6406d3e6cf18df1b",
+      "path": "e024.gz",
+      "archiveBytes": 5843,
+      "archiveSha256": "sha256:a5f4c9c0d66fe3155c133f565bf8e6070ba21e42929e8a5d1c6ffbe308765436"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-verify-jetbrains-upload097-readback.mjs",
+      "sourceRelativePath": "source-verify-jetbrains-upload097-readback.mjs",
+      "bytes": 4277,
+      "sha256": "sha256:00d2d38298f33da49ff73bf6caefbb73c8ddf15c1ac30c6b1103b708e26bafdd",
+      "path": "e025.gz",
+      "archiveBytes": 1722,
+      "archiveSha256": "sha256:c1550964f6a877a7e83bc826d067c4c03380a2ce1dbe6e6eb191df741ac265f9"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\source-verify-vsix.mjs",
+      "sourceRelativePath": "source-verify-vsix.mjs",
+      "bytes": 10476,
+      "sha256": "sha256:3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1",
+      "path": "e026.gz",
+      "archiveBytes": 3528,
+      "archiveSha256": "sha256:3caa45d7d13ae9de1e7699ff9ad6da039ab0a63402971f87e377c3643b8041b2"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\upload-readback.json",
+      "sourceRelativePath": "upload-readback.json",
+      "bytes": 7995,
+      "sha256": "sha256:29b5ca3b31c621043f813773fdda5a17e9f929ee147ab9566481b9fdbf7cf25c",
+      "path": "e027.gz",
+      "archiveBytes": 2705,
+      "archiveSha256": "sha256:794ad58025d2498287245b2c088db0c8647581c27b61e2284e92a997b24e1218"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\readback-jetbrains-upload097-market.mjs",
+      "sourceRelativePath": "readback-helper.mjs",
+      "bytes": 8083,
+      "sha256": "sha256:54f632acd7602c5e415bbc0fd6d7cf402262dd8ba1ffeb2e16044835dce159f7",
+      "path": "e028.gz",
+      "archiveBytes": 2969,
+      "archiveSha256": "sha256:5d4168174d7c42335245a5f10c02df7b38519956ca537238d3dad4242f0a7204"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\jvm-string-constant.mjs",
+      "sourceRelativePath": "class-pin-parser.mjs",
+      "bytes": 5386,
+      "sha256": "sha256:77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "e029.gz",
+      "archiveBytes": 1852,
+      "archiveSha256": "sha256:f0eb8332ce6d949b84444ee47664fe22d5bb08583f4422eb381d54fc08e4c56a"
+    }
+  ],
+  "omittedBinaryBindings": [
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\chainlesschain-ide-jetbrains-1\\chainlesschain-ide-bridge-0.4.159.zip",
+      "sourceRelativePath": "chainlesschain-ide-jetbrains-1/chainlesschain-ide-bridge-0.4.159.zip",
+      "bytes": 1520189,
+      "sha256": "sha256:e73496417f23f89e7fd83f5ca5c2c18c13fad132325f6e5d796c7c2e06cd12fd"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\chainlesschain-ide-jetbrains-1.zip",
+      "sourceRelativePath": "chainlesschain-ide-jetbrains-1.zip",
+      "bytes": 1520403,
+      "sha256": "sha256:1e47f97d6558763b7eddfe0b51884d379fb28cbede8f831fb94bec97e1536785"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\ide-cli-prerequisite-jetbrains-1.zip",
+      "sourceRelativePath": "ide-cli-prerequisite-jetbrains-1.zip",
+      "bytes": 1421,
+      "sha256": "sha256:3ee06790524fb35e85a116b86f07d2f99925e65bc337fcaddc988bbb68951dcc"
+    },
+    {
+      "source": "C:\\code\\chainlesschain\\.work\\release-readback-0.166.97\\jetbrains-upload-38095423253\\observed-2026-10-11T00-31-06.309Z\\public.zip",
+      "sourceRelativePath": "public.zip",
+      "bytes": 1525849,
+      "sha256": "sha256:fae4d37b4c311960d77a7aa7e19343e638890bf04f4bee91801a107c58d34ddf"
+    }
+  ],
+  "boundaries": [
+    "Captured JSON, receipts, source/lock metadata and command outputs preserved as lossless gzip with two digests.",
+    "Downloaded binary archives remain in the local readback directory; this archive binds their hashes and remote artifact receipts but does not embed those large files.",
+    "Public install used ignore-scripts; no native functionality or formal 36+9 admission is claimed.",
+    "JetBrains pending remains upload-only until approved, listed and publicly downloadable."
+  ]
+}

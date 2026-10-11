@@ -457,7 +457,7 @@ root/helper 的启动和退出回执、worker 的启动回执及正常退出回�
 
 ## 31. 2026-10-11 CLI 0.166.97 发行与准确来源回读
 
-源码 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5` 已完成自身CLI/Strict/IDE/ARM64与相关失败门，按既有OIDC发布CLI `0.166.97`，再独立核验公共tarball、准确provenance、13个子包和registry安装来源。SDK `0.2.14` 与所有子包复用的整个Git subtree及公共字节一致，没有新子包发布。CLI 公开回读后才推送两端 IDE 的不可变标签；Open VSX `0.37.141`（run `38095423362`）与 JetBrains `0.4.159`（run `38095423253`）发布矩阵正在运行，尚未确认市场上传或公开安装。
+源码 `22ef588c1bb8f71c45feaa115df1d75d5ca505c5` 已完成自身CLI/Strict/IDE/ARM64与相关失败门，按既有OIDC发布CLI `0.166.97`，再独立核验公共tarball、准确provenance、13个子包和registry安装来源。SDK `0.2.14` 与所有子包复用的整个Git subtree及公共字节一致，没有新子包发布。Open VSX `0.37.141` 已公开可下载，内容与标签 VSIX 一致；JetBrains `0.4.159` update `1191159` 已 approved/listed、公开可下载，ZIP 全部 entry 字节与标签制品一致。 JetBrains 标签 workflow `38095423253` 的后台市场后验证现已成功，最终 completed/success（13 success / 6 条件 skip）；追加 completion 归档绑定这一后续状态，保留早期市场回读时 queued/conclusion=null 的原件。 标签制品中 JetBrains 推荐 CLI 的 class 字段 ConstantValue 已直接核验为 `.97`（未执行 JVM），VSIX 的动态 package.json 来源与准确 Git blob 已核验；回读解析器另有 11/11 离线合同及摘要绑定。
 
 [CI归档](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/ci/manifest.json)、[CLI回读](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/public/npm/readback.json)及[发行索引](./cli/evidence/gap-2026-10-05/release-0.166.97/final-release/manifest.json)保存原始字节与绑定摘要；详细门及局部限制见[验证20.30](./cli-ide-gap-validation-2026-10-05.md#2030-2026-10-11-cli-016697-最终门与公开发行回读)。正式 36 tasks + 9 firstRuns、$99 和 observations 保持 NOT_RUN/INSUFFICIENT_EVIDENCE；旧 Windows 211=194/16/1、mutants 6/4/4 以及新 fixture 211=208/2/1 均未改写，完整 native review 继续 NOT_ADMITTED。Windows/macOS durable、受保护 journal、服务自身恢复/WFP、正式目标宿主、官方 usage/账单、独立人工/辅助技术与 8h/24h/SLO 仍开放。本轮无付费 provider 调用，草稿 PR #428 未合并。
 

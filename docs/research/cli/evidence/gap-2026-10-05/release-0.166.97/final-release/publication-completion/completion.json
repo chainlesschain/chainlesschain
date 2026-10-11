@@ -1,0 +1,51 @@
+{
+  "schema": "chainlesschain.jetbrains-post-publish-completion/v1",
+  "capturedAt": "2026-10-11T00-37-09.822Z",
+  "archivedAt": "2026-10-11T00:38:48.528Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "tagWorkflow": {
+    "id": 38095423253,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253"
+  },
+  "postVerificationPending": false,
+  "workflowSucceeded": true,
+  "counts": {
+    "success": 13,
+    "skipped": 6
+  },
+  "postVerificationJob": {
+    "id": 114346040465,
+    "name": "JetBrains Marketplace (post-publish verification)",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-10-11T00:36:40Z",
+    "completedAt": "2026-10-11T00:37:08Z",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253/job/114346040465",
+    "listingStep": {
+      "name": "Verify JetBrains Marketplace listing",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-11T00:37:05Z",
+      "completed_at": "2026-10-11T00:37:05Z"
+    }
+  },
+  "unchangedOtherJobs": 18,
+  "priorReadback": {
+    "path": "public/jetbrains/readback.json",
+    "sha256": "sha256:cc3835ab5991deb296f830c17e0b8d271e1f2b1a490077850dbd56e0390a204b",
+    "workflowStatus": "queued",
+    "workflowConclusion": null,
+    "postVerificationPending": true
+  },
+  "formalSample": false,
+  "admissionEligible": false,
+  "boundaries": [
+    "Preserves the original queued/null marketplace observation; only this later GitHub observation records workflow completion.",
+    "The marketplace step allows pending status. Public approval/listing and ZIP payload verification come from the separately bound public readback, not the successful step alone.",
+    "Six job skips are retained as conditional skips, not successful test execution. No publication, rerun, tag mutation, or paid provider call was performed."
+  ]
+}

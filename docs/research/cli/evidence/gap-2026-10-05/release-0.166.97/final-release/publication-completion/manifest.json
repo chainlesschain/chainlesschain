@@ -1,0 +1,53 @@
+{
+  "schema": "chainlesschain.jetbrains-post-publish-completion-archive/v1",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "capturedAt": "2026-10-11T00-37-09.822Z",
+  "workflowSucceeded": true,
+  "postVerificationPending": false,
+  "report": "completion.json",
+  "reportSha256": "sha256:7aa39c2a3c093c42ce53e81f60d8337228a2c0e7c5e72400dd5ebb996b9c8fd6",
+  "entries": [
+    {
+      "source": ".work/release-preflight-0.166.97/publication-monitor/2026-10-11T00-37-09.822Z/jetbrains-runs.json",
+      "path": "c001.gz",
+      "bytes": 13239,
+      "sha256": "sha256:630cb174c0cdfe75afbdbbbcced4d7ac7ca8934e603960251ffdc9627814768c",
+      "archiveBytes": 1550,
+      "archiveSha256": "sha256:fb13a6f1e6799714e5a345309b28f9a79cdfe1a2d8fba769963498b8a46ba4fe"
+    },
+    {
+      "source": ".work/release-preflight-0.166.97/publication-monitor/2026-10-11T00-37-09.822Z/jetbrains-jobs-1.json",
+      "path": "c002.gz",
+      "bytes": 53754,
+      "sha256": "sha256:7fcf83bdaa6fe95370807524613fbe3d8016365144cf99f4f2894d4cbcb97f51",
+      "archiveBytes": 4028,
+      "archiveSha256": "sha256:30d8dbeb98721ce406501b5f2c6eecbf3f056cf5b3fbdb707e3a81f88473e30a"
+    },
+    {
+      "source": ".work/release-preflight-0.166.97/publication-monitor/2026-10-11T00-37-09.822Z/summary.json",
+      "path": "c003.gz",
+      "bytes": 490,
+      "sha256": "sha256:fd793a40221059d191bcfedfb38ce54d4866e4a197dacbc6151401e3698ac7d9",
+      "archiveBytes": 271,
+      "archiveSha256": "sha256:91d6899a573c32e32034a66a1708a5427b183a2d4edd7a5e9e793c2642078624"
+    },
+    {
+      "source": ".work/release-preflight-0.166.97/publication-monitor/2026-10-11T00-37-09.822Z/post-completion.json",
+      "path": "c004.gz",
+      "bytes": 2004,
+      "sha256": "sha256:7aa39c2a3c093c42ce53e81f60d8337228a2c0e7c5e72400dd5ebb996b9c8fd6",
+      "archiveBytes": 884,
+      "archiveSha256": "sha256:e13816b1bf77fb6d1c1bea4d6cebad7e02af8547c7d5b76e5907ddbfc29556a5"
+    },
+    {
+      "source": ".work/archive097-post-completion.mjs",
+      "path": "c005.gz",
+      "bytes": 5847,
+      "sha256": "sha256:3dd4e94564762d17a047b671231f3862efb6b0a7b82ca33c8557e3195ea3458a",
+      "archiveBytes": 2044,
+      "archiveSha256": "sha256:0d3ab57be6d2ee9faf738abc75ab3dc4a1389eb80baf81549530825617a6e794"
+    }
+  ],
+  "formalSample": false,
+  "admissionEligible": false
+}

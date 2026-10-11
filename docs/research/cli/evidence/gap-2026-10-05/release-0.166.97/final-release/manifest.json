@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.paired-release-evidence/v1",
-  "capturedAt": "2026-10-10T23:34:49.598Z",
-  "status": "IDE_TAG_WORKFLOWS_IN_PROGRESS",
+  "capturedAt": "2026-10-11T00:38:50.722Z",
+  "status": "ALL_THREE_PUBLIC_AND_VERIFIED",
   "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
   "versions": {
     "cli": "0.166.97",
@@ -11,13 +11,21 @@
   },
   "cli": "published-and-verified",
   "agentSdk": "trusted-reuse-unchanged-source-tree",
-  "openVsx": "tag-workflow-running",
-  "jetbrains": "tag-workflow-running",
+  "openVsx": "ready",
+  "jetbrains": "ready",
   "npmRunId": "38094605922",
   "ideRunIds": {
     "vscode": 38095423362,
     "jetbrains": 38095423253
   },
+  "jetbrainsTagWorkflow": {
+    "id": 38095423253,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253"
+  },
+  "jetbrainsPostVerificationPending": false,
   "immutableTags": {
     "cli": "v-npm-0-166-97",
     "vscode": "ide-vscode-v0.37.141",
@@ -92,6 +100,54 @@
       "path": "public/npm/readback.json",
       "bytes": 22889,
       "sha256": "sha256:5d10466322ea61cc520abbcf5095fe1102d7376309efd992463a56fbf81db1a0"
+    },
+    {
+      "path": "public/vscode/manifest.json",
+      "bytes": 6535,
+      "sha256": "sha256:3411cbb08921509febc709a6c13680246b074bf9e6651daf23c0ac7607af7cbe"
+    },
+    {
+      "path": "public/vscode/readback.json",
+      "bytes": 1767,
+      "sha256": "sha256:6fb3b0ad82a1ddcb542de2906fa8e856d97da2277d94b28de3d8508cbe2b94dd"
+    },
+    {
+      "path": "public/jetbrains/manifest.json",
+      "bytes": 17009,
+      "sha256": "sha256:8fd30e82e739f1db07ce5fdc259d8a67cec2d5e746cf36a2f4c5df9ad59205eb"
+    },
+    {
+      "path": "public/jetbrains/readback.json",
+      "bytes": 14310,
+      "sha256": "sha256:cc3835ab5991deb296f830c17e0b8d271e1f2b1a490077850dbd56e0390a204b"
+    },
+    {
+      "path": "tool-validation/manifest.json",
+      "bytes": 1760,
+      "sha256": "sha256:2d22cd3b75d4a616d01df6300ea4b13203290c6a6a05c793e1e60bdff6084baa"
+    },
+    {
+      "path": "publication/manifest.json",
+      "bytes": 12512,
+      "sha256": "sha256:8b85be6362ca78c47ad3c2ab136ee62e2a1378e623c1254ad92bae3b4258c4c3"
+    },
+    {
+      "path": "publication-completion/manifest.json",
+      "bytes": 2341,
+      "sha256": "sha256:ae9e0152277c3c43b25ca1f1de7082d31ac5818577f63af47a5de3570c476ee5"
+    },
+    {
+      "path": "publication-completion/completion.json",
+      "bytes": 2004,
+      "sha256": "sha256:7aa39c2a3c093c42ce53e81f60d8337228a2c0e7c5e72400dd5ebb996b9c8fd6"
     }
-  ]
+  ],
+  "jetbrainsMarketplaceObservationWorkflow": {
+    "id": 38095423253,
+    "attempt": 1,
+    "status": "queued",
+    "conclusion": null,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253"
+  },
+  "jetbrainsWorkflowCompletionEvidence": "publication-completion/completion.json"
 }

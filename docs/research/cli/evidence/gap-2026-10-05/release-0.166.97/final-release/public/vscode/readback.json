@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-10-11T00:26:19.695Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "tag": "ide-vscode-v0.37.141",
+  "cliVersion": "0.166.97",
+  "version": "0.37.141",
+  "tagWorkflow": {
+    "id": 38095423362,
+    "attempt": 1,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423362"
+  },
+  "artifact": {
+    "name": "chainlesschain-ide-vscode-candidate",
+    "file": "chainlesschain-ide.vsix",
+    "zipDigest": "sha256:51ad4660b0c05b8235017e05ccd753491eb0d9e0ff18ee09fa88aee95271ddaf",
+    "bytes": 715012,
+    "sha256": "054f912a205ddbd5a0b2eef1ded99d09a342a6a996ffb6de82172d8b9c1603c9"
+  },
+  "packagedPlugin": {
+    "version": "0.37.141",
+    "pairedCliVersion": "0.166.97",
+    "tagArtifactSha256": "054f912a205ddbd5a0b2eef1ded99d09a342a6a996ffb6de82172d8b9c1603c9",
+    "versionCheckSourceMatchesReleaseBlob": true
+  },
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "latest": "0.37.141",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "054f912a205ddbd5a0b2eef1ded99d09a342a6a996ffb6de82172d8b9c1603c9",
+  "localArchiveSha256": "054f912a205ddbd5a0b2eef1ded99d09a342a6a996ffb6de82172d8b9c1603c9",
+  "contentSha256": "c592466ca17479e64b92b4220f96fc6681d15556db197f07494f41e2d0c1113f",
+  "publicPackage": {
+    "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.141/file/chainlesschain.chainlesschain-ide-0.37.141.vsix",
+    "sha256": "054f912a205ddbd5a0b2eef1ded99d09a342a6a996ffb6de82172d8b9c1603c9",
+    "bytes": 715012,
+    "canonicalContentSha256": "c592466ca17479e64b92b4220f96fc6681d15556db197f07494f41e2d0c1113f",
+    "archiveExactMatch": true
+  }
+}

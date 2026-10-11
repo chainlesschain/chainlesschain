@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.release-readback-tool-validation/v1",
+  "capturedAt": "2026-10-11T00:02:10.569Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "testStatus": "11/11 passed, zero skipped",
+  "formalSample": false,
+  "admissionEligible": false,
+  "scope": "Only class field ConstantValue validated; no claim of all consuming bytecode or IDE runtime behavior.",
+  "entries": [
+    {
+      "source": ".work/jvm-string-constant.mjs",
+      "path": "t001.gz",
+      "bytes": 5386,
+      "sha256": "sha256:77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "archiveBytes": 1852,
+      "archiveSha256": "sha256:f0eb8332ce6d949b84444ee47664fe22d5bb08583f4422eb381d54fc08e4c56a"
+    },
+    {
+      "source": ".work/jvm-string-constant.test.mjs",
+      "path": "t002.gz",
+      "bytes": 3545,
+      "sha256": "sha256:0ce4243969063cf61adcf653f6260fe5c7b9b274be4b10f3b3a550e502910f61",
+      "archiveBytes": 1124,
+      "archiveSha256": "sha256:e638563a67ddfafaa3657ef97834c0fedd0f4142c022afd0a02d99b77ffdf862"
+    },
+    {
+      "source": ".work/jvm-string-constant-offline-20261011/report.json",
+      "path": "t003.gz",
+      "bytes": 3497,
+      "sha256": "sha256:0dfa5532fd41051f783e480aa0f8f5fc89bbd6f58273536282924ef6cf4a2ef4",
+      "archiveBytes": 1018,
+      "archiveSha256": "sha256:e5d0da59abc49180566eed69e3419849e14ea86a6179820a729b588897e1ac54"
+    },
+    {
+      "source": ".work/jvm-string-constant-offline-20261011/stdout.tap",
+      "path": "t004.gz",
+      "bytes": 1847,
+      "sha256": "sha256:d35094369bbef2aa9088a3dc04ab77e82b00a4810d4e2eb496cb79e740d4c8da",
+      "archiveBytes": 547,
+      "archiveSha256": "sha256:c743a3e9c2dec5710470d85f4421c1b9cc1b0d7b2d1a0d4952f8bc03f3b72bd0"
+    }
+  ]
+}

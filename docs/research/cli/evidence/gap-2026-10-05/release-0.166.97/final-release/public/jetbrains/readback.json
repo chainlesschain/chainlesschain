@@ -1,0 +1,299 @@
+{
+  "schema": "chainlesschain.jetbrains-upload-independent-readback/v1",
+  "observedAt": "2026-10-11T00:33:22.343Z",
+  "sourceCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "cliVersion": "0.166.97",
+  "version": "0.4.159",
+  "tag": "ide-jetbrains-v0.4.159",
+  "tagWorkflow": {
+    "id": 38095423253,
+    "attempt": 1,
+    "status": "queued",
+    "conclusion": null,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253"
+  },
+  "workflowSucceeded": false,
+  "publisherJobSuccessful": true,
+  "publisherJob": {
+    "id": 114343630979,
+    "name": "JetBrains plugin (build + publish)",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253/job/114343630979",
+    "requiredSteps": [
+      {
+        "name": "Build plugin",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-10-11T00:05:29Z",
+        "completed_at": "2026-10-11T00:05:59Z"
+      },
+      {
+        "name": "Upload plugin artifact",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-10-11T00:07:32Z",
+        "completed_at": "2026-10-11T00:07:33Z"
+      },
+      {
+        "name": "Require published CLI before JetBrains release",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 14,
+        "started_at": "2026-10-11T00:07:33Z",
+        "completed_at": "2026-10-11T00:07:54Z"
+      },
+      {
+        "name": "Publish to JetBrains Marketplace",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-10-11T00:07:54Z",
+        "completed_at": "2026-10-11T00:08:15Z"
+      }
+    ]
+  },
+  "postVerificationPending": true,
+  "postVerificationJob": {
+    "id": 114346040465,
+    "name": "JetBrains Marketplace (post-publish verification)",
+    "status": "queued",
+    "conclusion": null,
+    "runnerId": 0,
+    "runnerName": "",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38095423253/job/114346040465"
+  },
+  "jobCounts": {
+    "success": 12,
+    "skipped": 6,
+    "unfinished": 1
+  },
+  "npmGateReplaced": false,
+  "localPublicationPerformed": false,
+  "marketplaceReadbackReplacesWorkflowConclusion": false,
+  "packagedPlugin": {
+    "version": "0.4.159",
+    "pairedCliVersion": "0.166.97",
+    "classSha256": "af8303fa5041e4165beac08b064c8f8c82da5e6159d105d9fc8e3de1e317e7a9",
+    "classPin": {
+      "className": "com/chainlesschain/ide/CliVersionCheck",
+      "fieldName": "RECOMMENDED_CLI_VERSION",
+      "descriptor": "Ljava/lang/String;",
+      "value": "0.166.97",
+      "majorVersion": 65,
+      "minorVersion": 0,
+      "classAccess": 49,
+      "fieldAccess": 25,
+      "constantPoolIndex": 9,
+      "utf8PoolIndex": 10,
+      "fieldAccessOffset": 2218,
+      "constantValueIndexOffset": 2232,
+      "constantValueLengthOffset": 2228,
+      "constantPoolEntryOffset": 101,
+      "evidence": "field-ConstantValue-CONSTANT_String-CONSTANT_Utf8",
+      "bytecodeExecuted": false
+    },
+    "tagArtifactSha256": "e73496417f23f89e7fd83f5ca5c2c18c13fad132325f6e5d796c7c2e06cd12fd"
+  },
+  "helperBindings": [
+    {
+      "file": ".work/readback-jetbrains-upload097.mjs",
+      "savedAs": "source-readback-jetbrains-upload097.mjs",
+      "sha256": "31e55c767c75ce206e9af6313eaa457c303b85bf00d9a0a0124aed7681106fdf"
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\readback-jetbrains-upload097-download.mjs",
+      "savedAs": "source-readback-jetbrains-upload097-download.mjs",
+      "sha256": "e80bf2166aac9282853424e22688559da378c315ff58d566694ad968140856b2"
+    },
+    {
+      "file": ".work/jvm-string-constant.mjs",
+      "savedAs": "source-jvm-string-constant.mjs",
+      "sha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e"
+    },
+    {
+      "file": "packages/vscode-extension/scripts/verify-vsix.mjs",
+      "savedAs": "source-verify-vsix.mjs",
+      "sha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1"
+    },
+    {
+      "file": "scripts/verify-ide-marketplace.mjs",
+      "savedAs": "source-verify-ide-marketplace.mjs",
+      "sha256": "62ad21b29d994e214a6a46d332e76a1656c8d20f6ad4661a6406d3e6cf18df1b"
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\readback-jetbrains-upload097-market.mjs",
+      "savedAs": "source-readback-jetbrains-upload097-market.mjs",
+      "sha256": "54f632acd7602c5e415bbc0fd6d7cf402262dd8ba1ffeb2e16044835dce159f7"
+    }
+  ],
+  "cliPrerequisite": {
+    "schema": "chainlesschain.ide-cli-publication-prerequisite/v1",
+    "package": "chainlesschain",
+    "version": "0.166.97",
+    "cliSource": "https://registry.npmjs.org",
+    "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.97.tgz",
+    "integrity": "sha512-wZHBegElD6AWAUZ24fJv3YXvnc/lGGHyaDF3bh/SJZeSX9DAOjmVsjcxcv2xD3RcrDWC8RgLepPUZzwb9PO3ig==",
+    "children": [
+      {
+        "name": "@chainlesschain/context-memory-kernel",
+        "version": "0.1.8",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.8.tgz",
+        "integrity": "sha512-feZpA7f7bwrfR26cmBHexAaGHQJ+4zlsW+jDW5LlxiMp8Eyf7wTFNKK2rjR8jtJSySftJaDUe492Hu2JpRESuA=="
+      },
+      {
+        "name": "@chainlesschain/core-config",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+        "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+      },
+      {
+        "name": "@chainlesschain/core-db",
+        "version": "0.1.5",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+        "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+      },
+      {
+        "name": "@chainlesschain/core-env",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+        "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+      },
+      {
+        "name": "@chainlesschain/core-infra",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+        "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+      },
+      {
+        "name": "@chainlesschain/core-mtc",
+        "version": "0.2.3",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+        "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+      },
+      {
+        "name": "@chainlesschain/core-multisig",
+        "version": "0.1.4",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+        "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+      },
+      {
+        "name": "@chainlesschain/personal-data-hub",
+        "version": "0.4.64",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+        "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q=="
+      },
+      {
+        "name": "@chainlesschain/session-core",
+        "version": "0.3.18",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.18.tgz",
+        "integrity": "sha512-n9AJI/pGGTtAAPtjGj1DjitylVhwPLeoskSZXeBTtDQkHeDIkVLU8/6Aw0uwF7UI/4kwwtWiA7I9B+bOMlDWOw=="
+      },
+      {
+        "name": "@chainlesschain/shared-logger",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+        "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+      }
+    ],
+    "protocolVersion": 1,
+    "verifiedAt": "2026-10-11T00:07:53.457Z"
+  },
+  "marketplaceVerifier": {
+    "channel": "jetbrains",
+    "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+    "status": "ready",
+    "version": "0.4.159",
+    "approve": true,
+    "listed": true,
+    "hidden": false
+  },
+  "status": "ready",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "marketplaceObservedAt": "2026-10-11T00:33:18.246Z",
+  "publicUpdate": {
+    "id": 1191159,
+    "link": "/plugin/32208-chainlesschain-ide-bridge/versions/stable/1191159",
+    "version": "0.4.159",
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "recalculateCompatibilityAllowed": true,
+    "cdate": "1791677295000",
+    "file": "32208/1191159/chainlesschain-ide-bridge-0.4.159.zip",
+    "notes": "<b>[0.4.159] - Pair with retained CLI diagnostic evidence (2026-10-10)</b><br><ul><li>Recommend CLI <code>0.166.97</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Align Doctor, upgrade prompts, and incremental-build version metadata with the paired CLI while retaining the bridge compatibility floor.</li><li>Keep experimental native-review and formal-evaluation acceptance separate from this paired release.</li></ul><br><b>[0.4.158] - Pair with CLI model review and diagnostic evidence (2026-10-09)</b><br><ul><li>Recommend CLI <code>0.166.96</code> after its public npm release and this extension's exact-commit release gates pass.</li><li>Keep Doctor and upgrade prompts aligned with the paired CLI recommendation.</li><li>Retain the compatibility floor and runtime capability diagnostics; experimental native review and durable Windows/macOS recovery remain outside release acceptance.</li></ul><br><b>[0.4.157] - Pair with strict settings write fairness (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.94</code> after its public npm release and this plugin's exact-commit release gates pass.</li><li>Keep Doctor and the upgrade prompt on the same current CLI recommendation, including artifacts produced by incremental builds.</li><li>Refresh the compiled recommendation and upgrade guidance for concurrent permission-rule writes while retaining the compatibility floor and live capability diagnostics.</li></ul><br><b>[0.4.156] - Pair with bounded investigation recovery (2026-10-08)</b><br><ul><li>Recommend CLI <code>0.166.93</code>, Session Core <code>0.3.18</code>, and Context Memory Kernel <code>0.1.8</code> after their public npm release and the plugin's exact-commit release gates pass.</li><li>Refresh the compiled CLI upgrade recommendation and paired release guidance for bounded evidence investigations and organization goal services.</li><li>Repair the dependency setup used to aggregate three-platform accessibility and performance evidence without changing producer requirements.</li></ul><br><b>[0.4.155] - Candidate runtime and restart validation fixes (2026-10-07)</b><br><ul><li>Recommend CLI <code>0.166.92</code> after its public npm release and the plugin's exact-commit release gates pass; this entry does not establish publication.</li><li>Pair with Session Core <code>0.3.17</code> and Context/Memory Kernel <code>0.1.7</code> for current runtime and packaging fixes, and refresh paired upgrade guidance.</li><li>Disable development automatic plugin reload in the installed-ZIP UI test host, preventing Windows 2025.2 restart tests from unloading Robot server and ChainlessChain mid-journey. This changes the test host; full IDE restart validation remains required.</li></ul>",
+    "since": "242.0",
+    "until": "",
+    "sinceUntil": "242.0+",
+    "channel": "",
+    "size": 1525849,
+    "downloads": 0,
+    "pluginId": 32208,
+    "compatibleVersions": {
+      "PHPSTORM": "2024.2+",
+      "PYCHARM": "2024.2+",
+      "JBCLIENT": "1.0+",
+      "PYCHARM_COMMUNITY": "2024.2+",
+      "WEBSTORM": "2024.2+",
+      "GATEWAY": "2024.2+",
+      "IDEA": "2024.2+",
+      "CLION": "2024.2+",
+      "GOLAND": "2024.2+",
+      "ANDROID_STUDIO": "Ladybug | 2024.2.1+",
+      "RUBYMINE": "2024.2+",
+      "RIDER": "2024.2+",
+      "IDEA_COMMUNITY": "2024.2+",
+      "RUST": "2024.2+",
+      "DATASPELL": "2024.2+",
+      "DBE": "2024.2+",
+      "CWMGUEST": "1.0+",
+      "MPS": "2024.3+"
+    },
+    "author": {
+      "id": "ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "name": "chainlesschain",
+      "link": "/author/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "hubLogin": "chainlesschain",
+      "icon": "https://hub.jetbrains.com/api/rest/avatar/ab6e3386-40b7-4738-a053-8d7fdc69e1f5",
+      "showMarketoCheckbox": false
+    },
+    "modules": []
+  },
+  "publicPackage": {
+    "url": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1191159",
+    "sha256": "fae4d37b4c311960d77a7aa7e19343e638890bf04f4bee91801a107c58d34ddf",
+    "bytes": 1525849,
+    "archiveExactMatch": false,
+    "allEntryBytesMatch": true,
+    "entries": [
+      {
+        "name": "chainlesschain-ide-bridge/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.159.jar",
+        "bytes": 1613892,
+        "sha256": "e838bc6eb5601ee45725446f85c7c00b06113522e0fd3692560e85f35c4d7879"
+      },
+      {
+        "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.159-searchableOptions.jar",
+        "bytes": 1263,
+        "sha256": "8a2180ec54b5fed033610838fbd63db921ea4d7e468617e6bf061edbbb7d1c1e"
+      }
+    ]
+  },
+  "publiclyDownloadable": true,
+  "limitations": [
+    "Workflow post-publish job remains unfinished in captured GitHub state; no workflow-success claim or CI replacement.",
+    "Class validation proves RECOMMENDED_CLI_VERSION ConstantValue only; no IDE runtime or consuming-bytecode behavior claim.",
+    "One marketplace verifier invocation; no publication, tag mutation, or retry."
+  ]
+}
