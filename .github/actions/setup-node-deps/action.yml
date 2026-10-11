@@ -30,6 +30,15 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Canonicalize Windows system temporary directory
+      if: runner.os == 'Windows'
+      shell: pwsh
+      # Hosted Windows TEMP can contain an 8.3 alias. Native authority stores
+      # require a canonical physical coordinate; configure the trusted system
+      # scratch root before tools create fixtures, without repairing user paths.
+      run: |
+        node --input-type=module -e 'import { appendFileSync, realpathSync } from "node:fs"; import { tmpdir } from "node:os"; const root = realpathSync.native(tmpdir()); if (/[\r\n]/u.test(root)) throw new Error("Invalid system temporary directory"); appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);'
+
     - name: Install npm dependencies (3-attempt retry, transient ECONNRESET hardening)
       shell: bash
       working-directory: ${{ inputs.working-directory }}

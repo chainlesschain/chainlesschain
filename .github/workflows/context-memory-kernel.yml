@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - ".github/workflows/context-memory-*.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/**"
@@ -24,6 +25,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/context-memory-*.yml"
+      - ".github/actions/setup-node-deps/action.yml"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - "packages/agent-sdk/**"

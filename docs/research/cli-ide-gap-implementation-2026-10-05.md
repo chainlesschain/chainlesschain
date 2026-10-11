@@ -584,3 +584,9 @@ SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐�
 ## 42. 2026-10-11 剩余迁移夹具与准确源码门
 
 准确Kernel PR在Windows迁移/恢复25项中11pass/14fail，writer已通过；API head0b1f而实际执行7f5bfca5合并源码。16个Node夹具和capacity/review诊断入口已规范TEMP，生产guard不变；同短junction原源码9/16，修后25/25，文件symlink断言EPERM未执行仍保留。capacity定向alias前拒绝/后完成并清理，相关单位21/21。工作流新增准确HEAD检出与比较，探针/制品同一SHA。旧准备和失败不覆盖，新候选须自身六门，未发行或付费复跑。 完整原件和限制见[修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair2/README.md)。
+
+## 43. 2026-10-11 Windows SDK 短路径复现与共享 CI 修复
+
+准确 d62 的 Kernel Windows 已通过迁移/恢复 25/25，SDK 82pass/1fail 于首轮 result；原 CI 无错误正文。原 SDK 在真实 8.3 TEMP 同点复现 authority directory resolves elsewhere，规范 TEMP 下完整 E2E 1/1。共享 Windows CI 仅导出规范 TEMP/TMP，应用原 action Node 片段后九文件 83/83；SDK 整树、生产 guard、180 秒期限及断言未改。本机无 pwsh，最终 shell 仍须 Actions。修复提交 7f681d 的 helper 27/27，后台断线重连补准确检出，Kernel/Index 补共享 action 触发；新准确发行提交须完整七门 71/5/19/10/3/3/3。 原始失败、junction 更早拒绝、首次短路径探针驱动失败及外部 120 秒中断均保留；只把诊断外层预算改到 240 秒。新的准确候选不继承旧 SHA 通过状态。修复源码绑定 `7f681d660da1f446e5e0c540c5ef10ea529d5a2e`，117 份 gzip 双摘要及完整 API/进程/旁录见[第三轮修复证据](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair3/README.md)。
+
+历史 [第二次独立准备](./cli/evidence/gap-2026-10-05/release-0.166.98/retest-ready2/README.md) 绑定 f53477ad/d62，Windows/Linux 各 43/43、准备 run skipped/零步骤。其源码与身份不能转移为新候选或后续付费 run；CLI 公开回读成功后需要新的显式 marker 提交，实际触及 paths 内文件，并按实际 execution SHA/run/attempt 采集。公开回读已使用唯一尝试目录，不覆盖失败原件。两条 d62 duplicate 检查未被取消。新版本、付费复测与合并均未执行；正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，独立人工、账单/硬额度、实际 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。
