@@ -64,8 +64,16 @@ jobs:
             platform: windows
           - os: macos-latest
             platform: macos
+    env:
+      CONTEXT_MEMORY_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}
+
+      - name: Verify exact candidate checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CONTEXT_MEMORY_CANDIDATE_SHA"
 
       - uses: actions/setup-node@v5
         with:
@@ -90,7 +98,7 @@ jobs:
       - name: Probe canonical and fenced runtime writers
         run: >-
           node packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs
-          --candidate-sha "${{ github.sha }}"
+          --candidate-sha "${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}"
           --output "${{ runner.temp }}/context-memory-writer-probe-${{ matrix.platform }}.json"
 
       - name: Verify CLI migration, shadow, provider, purge, and crash recovery
@@ -131,14 +139,14 @@ jobs:
         run: ./gradlew test --tests com.chainlesschain.ide.ContextMemoryProjectionTest --no-daemon
 
       - name: Run bounded quick soak
-        run: node packages/context-memory-kernel/scripts/context-memory-soak.mjs --profile quick --candidate-sha "${{ github.sha }}" --output "${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json"
+        run: node packages/context-memory-kernel/scripts/context-memory-soak.mjs --profile quick --candidate-sha "${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}" --output "${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json"
 
       - name: Run full capacity benchmark (Linux)
         if: runner.os == 'Linux'
         run: >-
           node packages/context-memory-kernel/scripts/context-memory-benchmark.mjs
           --profile release
-          --candidate-sha "${{ github.sha }}"
+          --candidate-sha "${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}"
           --output "${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json"
 
       - name: Run bounded capacity benchmark (Windows/macOS)
@@ -146,12 +154,12 @@ jobs:
         run: >-
           node packages/context-memory-kernel/scripts/context-memory-benchmark.mjs
           --profile quick
-          --candidate-sha "${{ github.sha }}"
+          --candidate-sha "${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}"
           --output "${{ runner.temp }}/context-memory-benchmark-${{ matrix.platform }}.json"
 
       - uses: actions/upload-artifact@v6
         with:
-          name: context-memory-${{ matrix.platform }}-${{ github.sha }}-${{ github.run_attempt }}
+          name: context-memory-${{ matrix.platform }}-${{ env.CONTEXT_MEMORY_CANDIDATE_SHA }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/context-memory-soak-${{ matrix.platform }}.json
             ${{ runner.temp }}/context-memory-writer-probe-${{ matrix.platform }}.json
