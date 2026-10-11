@@ -15,8 +15,12 @@ import { fileURLToPath } from "url";
 import { runEvalSuite } from "../lib/eval/runner.js";
 import { getSuite } from "../lib/eval/tasks.js";
 import { verifyAgentTerminal } from "../lib/eval/stream-terminal.js";
-import { persistVerify01Receipts } from "../lib/eval/verify01-execution.js";
+import {
+  captureVerify01AgentBinding,
+  persistVerify01Receipts,
+} from "../lib/eval/verify01-execution.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 import {
   TelemetryRecorder,
   formatTelemetry,
@@ -93,7 +97,68 @@ function killAgentTree(child) {
  * workspace. acceptEdits lets it write files without an interactive prompt.
  */
 function makeHeadlessRunAgent(opts = {}) {
-  return function runAgent({ prompt, cwd, timeoutMs, costBudgetUsd }) {
+  return function runAgent({
+    prompt,
+    cwd,
+    timeoutMs,
+    costBudgetUsd,
+    verify01Binding,
+  }) {
+    const binding =
+      verify01Binding === undefined
+        ? null
+        : captureVerify01AgentBinding(verify01Binding, cwd);
+    if (opts.requireVerify01Binding && !binding)
+      throw new Error("frozen suite requires a task-specific agent binding");
+    if (
+      binding &&
+      (binding.provider !== opts.provider || binding.model !== opts.model)
+    )
+      throw new Error(
+        "VERIFY01 provider/model binding differs from the launcher",
+      );
+    const inherited = { ...process.env, ...(opts.env || {}) };
+    const environmentValue = (name) => {
+      if (process.platform !== "win32") return inherited[name];
+      // Windows environment keys are case-insensitive, but spreading env into
+      // a plain object loses that lookup behavior (PATH is usually Path).
+      const key = Object.keys(inherited)
+        .reverse()
+        .find((candidate) => candidate.toLowerCase() === name.toLowerCase());
+      return key === undefined ? undefined : inherited[key];
+    };
+    const providerKey = BUILT_IN_PROVIDERS[binding?.provider]?.apiKeyEnv;
+    // Formal children retain platform plumbing and only the selected provider's
+    // credential (or the explicitly selected generic CC_API_KEY). Hooks,
+    // fallback configuration, NODE_OPTIONS and unrelated account tokens are
+    // excluded. Normal, non-formal Eval retains its existing environment.
+    const childEnvironment = binding
+      ? {
+          ...Object.fromEntries(
+            [
+              "PATH",
+              "SystemRoot",
+              "WINDIR",
+              "ComSpec",
+              "PATHEXT",
+              "TEMP",
+              "TMP",
+              "TMPDIR",
+              "LANG",
+              "LC_ALL",
+              "LC_CTYPE",
+              "CC_API_KEY",
+              ...(providerKey ? [providerKey] : []),
+            ]
+              .map((key) => [key, environmentValue(key)])
+              .filter(([, value]) => value !== undefined),
+          ),
+          ...binding.environment,
+          CC_MAX_RETRIES: "0",
+          CLAUDE_CODE_MAX_RETRIES: "0",
+          CLAUDECODE: "1",
+        }
+      : { ...inherited, CLAUDECODE: "1" };
     return new Promise((resolve) => {
       let args;
       if (opts._argv) {
@@ -115,12 +180,22 @@ function makeHeadlessRunAgent(opts = {}) {
         if (opts.provider) args.push("--provider", opts.provider);
         if (opts.ephemeral === true) args.push("--ephemeral");
         if (opts.sandboxMode) args.push("--sandbox-mode", opts.sandboxMode);
+        if (binding)
+          args.push(
+            "--no-project-memory",
+            "--no-file-refs",
+            "--no-slash-macros",
+            "--no-mcp",
+            "--no-ide",
+            "--no-pdh",
+            "--no-jetbrains",
+          );
         if (Number.isFinite(costBudgetUsd) && costBudgetUsd >= 0)
           args.push("--max-budget-usd", String(costBudgetUsd));
       }
       const child = _deps.spawn(process.execPath, args, {
         cwd,
-        env: { ...process.env, ...(opts.env || {}), CLAUDECODE: "1" },
+        env: childEnvironment,
         windowsHide: true,
         // Own process group on POSIX so a timeout can reap the whole tree.
         detached: _deps.platform !== "win32",
@@ -417,6 +492,7 @@ export function registerEvalCommand(program, { logger } = {}) {
               ? {
                   ephemeral: true,
                   sandboxMode: tasks.verification.requiredSandboxMode,
+                  requireVerify01Binding: true,
                 }
               : {}),
           });

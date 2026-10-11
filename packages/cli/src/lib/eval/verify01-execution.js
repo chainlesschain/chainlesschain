@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { createHash } from "node:crypto";
 import executionBroker from "../process-execution-broker/index.js";
 import { evalDigest, createEvalComparison } from "./evidence.js";
@@ -18,6 +19,161 @@ export const VERIFY01_SUITES = [
 ];
 const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
 const MAX_DIFF_BYTES = 32 * 1024 * 1024;
+const agentBindings = new WeakSet();
+const EMPTY_DELIVERABLE_DIGEST = evalDigest(Buffer.alloc(0));
+
+function canonicalDirectory(directory) {
+  const absolute = path.resolve(directory);
+  const canonical = (fs.realpathSync.native || fs.realpathSync)(absolute);
+  const same =
+    process.platform === "win32"
+      ? canonical.toLowerCase() === absolute.toLowerCase()
+      : canonical === absolute;
+  const stat = fs.lstatSync(absolute);
+  requireValue(
+    same && stat.isDirectory() && !stat.isSymbolicLink(),
+    "task directory must be canonical and unaliased",
+  );
+  return canonical;
+}
+
+/** Trusted preparation only: a seed contains no answer and never overwrites
+ * a project file. Existing source paths are not passed to this helper. */
+export function seedVerify01Deliverables(directory, expectedFiles, budget) {
+  const root = canonicalDirectory(directory);
+  requireValue(
+    Array.isArray(expectedFiles) &&
+      expectedFiles.length > 0 &&
+      new Set(expectedFiles).size === expectedFiles.length,
+    "deliverable paths must be distinct",
+  );
+  expectedFiles.forEach(relativeFile);
+  const seeds = [];
+  for (const relative of expectedFiles) {
+    budget.remainingMs("deliverable-preparation");
+    let current = root;
+    for (const part of relative.split("/").slice(0, -1)) {
+      current = path.join(current, part);
+      within(root, current);
+      try {
+        fs.mkdirSync(current, { mode: 0o700 });
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+      }
+      canonicalDirectory(current);
+    }
+    const target = path.join(root, relative);
+    within(root, target);
+    const fd = fs.openSync(
+      target,
+      fs.constants.O_WRONLY |
+        fs.constants.O_CREAT |
+        fs.constants.O_EXCL |
+        (fs.constants.O_NOFOLLOW || 0),
+      0o600,
+    );
+    try {
+      const stat = fs.fstatSync(fd);
+      requireValue(
+        stat.isFile() && stat.nlink === 1 && stat.size === 0,
+        "seed must be an empty unaliased regular file",
+      );
+      regularPath(root, relative);
+      const named = fs.lstatSync(target);
+      requireValue(
+        named.dev === stat.dev && named.ino === stat.ino,
+        "seed path changed identity during preparation",
+      );
+      canonicalDirectory(path.dirname(target));
+      seeds.push(
+        Object.freeze({
+          path: relative,
+          before: null,
+          origin: "trusted-empty-deliverable-preparation",
+          digest: EMPTY_DELIVERABLE_DIGEST,
+          bytes: 0,
+          requestedMode: 0o600,
+          mode: stat.mode & 0o777,
+          preparedAt: new Date().toISOString(),
+        }),
+      );
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+  return Object.freeze(seeds);
+}
+
+function createAgentBinding(directory, allowedPaths, provider, model) {
+  const workspace = canonicalDirectory(directory);
+  for (const relative of allowedPaths) {
+    const file = regularPath(workspace, relative);
+    requireValue(
+      fs.statSync(file).nlink === 1,
+      "allowed task files must not have hard-link aliases",
+    );
+  }
+  const temporaryRoot = (fs.realpathSync.native || fs.realpathSync)(
+    os.tmpdir(),
+  );
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "cc-verify01-agent-"));
+  const userHome = path.join(root, "user-home");
+  const configHome = path.join(root, "chainlesschain-home");
+  for (const dir of [userHome, configHome]) fs.mkdirSync(dir, { mode: 0o700 });
+  const environment = Object.freeze({
+    // Keep downstream temp-root containment checks on the same canonical root.
+    TMPDIR: temporaryRoot,
+    TEMP: temporaryRoot,
+    TMP: temporaryRoot,
+    HOME: userHome,
+    USERPROFILE: userHome,
+    APPDATA: path.join(userHome, "app-data"),
+    LOCALAPPDATA: path.join(userHome, "local-app-data"),
+    XDG_CONFIG_HOME: path.join(userHome, "xdg-config"),
+    XDG_CACHE_HOME: path.join(userHome, "xdg-cache"),
+    XDG_DATA_HOME: path.join(userHome, "xdg-data"),
+    CHAINLESSCHAIN_HOME: configHome,
+    CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+    CC_FORMAL_QUALITY_EVAL_PROVIDER: provider,
+    CC_FORMAL_QUALITY_EVAL_ISOLATION_ROOT: root,
+    CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES: JSON.stringify(allowedPaths),
+    ...(process.platform === "win32"
+      ? { HOMEDRIVE: userHome.slice(0, 2), HOMEPATH: userHome.slice(2) }
+      : {}),
+  });
+  const binding = Object.freeze({
+    workspace,
+    root,
+    provider,
+    model,
+    allowedPaths: Object.freeze([...allowedPaths]),
+    environment,
+  });
+  agentBindings.add(binding);
+  return binding;
+}
+
+/** Only suite-created immutable authority can narrow a formal child. The
+ * prompt, generic task metadata and inherited environment cannot mint it. */
+export function captureVerify01AgentBinding(binding, directory) {
+  requireValue(
+    agentBindings.has(binding),
+    "unrecognized VERIFY01 agent binding",
+  );
+  requireValue(
+    canonicalDirectory(directory) === binding.workspace,
+    "VERIFY01 agent binding belongs to another workspace",
+  );
+  canonicalDirectory(binding.root);
+  for (const relative of binding.allowedPaths) {
+    const file = regularPath(binding.workspace, relative);
+    requireValue(
+      fs.statSync(file).nlink === 1,
+      "allowed task file acquired a hard-link alias",
+    );
+  }
+  return binding;
+}
 
 // Host drivers use the same checkout, complete scan, dependency boundary and
 // pinned evaluator processes as the CLI executor; no second diff contract.
@@ -350,6 +506,21 @@ function reviewedProcess(bytes, directory, reviewRoot, kind, timeout) {
       timeout,
       maxBuffer: 8 * 1024 * 1024,
       windowsHide: true,
+      // Operator checks never receive model/account credentials, NODE_OPTIONS
+      // or ambient provider configuration. Docker may still need its context.
+      env: Object.fromEntries(
+        [
+          "PATH",
+          "SystemRoot",
+          "WINDIR",
+          "TEMP",
+          "TMP",
+          "DOCKER_HOST",
+          "DOCKER_CONTEXT",
+        ]
+          .filter((key) => process.env[key])
+          .map((key) => [key, process.env[key]]),
+      ),
       origin: `eval:verify01-${kind}`,
       policy: "allow",
       scope: "eval",
@@ -454,7 +625,7 @@ export function loadVerify01Suite(options = {}) {
   const tasks = samples.map((sample) => {
     const task = validated.tasks.get(sample.taskId),
       reviewed = validated.reviewed.get(sample.taskId);
-    let baseline, after;
+    let baseline, after, agentBinding;
     const receipt = {
       sampleId: sample.id,
       taskId: task.id,
@@ -469,6 +640,9 @@ export function loadVerify01Suite(options = {}) {
       check: null,
       diff: null,
       execution: null,
+      deliverablePreparation: [],
+      agentDiff: null,
+      agentBinding: null,
     };
     receipts.push(receipt);
     return {
@@ -500,6 +674,38 @@ export function loadVerify01Suite(options = {}) {
             !receipt.setup.error,
           "reviewed setup failed",
         );
+        receipt.deliverablePreparation = seedVerify01Deliverables(
+          directory,
+          task.expectedFiles,
+          budget,
+        );
+        agentBinding = createAgentBinding(
+          directory,
+          reviewed.allowedChangedPaths,
+          options.provider,
+          options.model,
+        );
+        receipt.agentBinding = {
+          workspace: agentBinding.workspace,
+          isolationRoot: agentBinding.root,
+          userHome: agentBinding.environment.HOME,
+          configHome: agentBinding.environment.CHAINLESSCHAIN_HOME,
+          allowedChangedPaths: agentBinding.allowedPaths,
+          provider: agentBinding.provider,
+          model: agentBinding.model,
+          productionAttested: false,
+        };
+      },
+      agentLaunchBinding(directory) {
+        return captureVerify01AgentBinding(agentBinding, directory);
+      },
+      cleanup() {
+        if (!agentBinding) return;
+        canonicalDirectory(agentBinding.root);
+        fs.rmSync(agentBinding.root, { recursive: true, force: true });
+        agentBindings.delete(agentBinding);
+        receipt.agentBinding.profileRemoved = true;
+        agentBinding = null;
       },
       snapshotWorkspace(directory, budget, stage) {
         const captured = snapshot(directory, budget, stage);
@@ -530,7 +736,13 @@ export function loadVerify01Suite(options = {}) {
         };
       },
       check(directory, agentResult, budget) {
-        receipt.diff = diff(baseline, after);
+        receipt.agentDiff = diff(baseline, after);
+        // The agent baseline contains empty seeds. Preserve that view, while
+        // the task-origin diff still describes absent -> candidate additions.
+        const originalBaseline = new Map(baseline);
+        for (const seed of receipt.deliverablePreparation)
+          originalBaseline.delete(seed.path);
+        receipt.diff = diff(originalBaseline, after);
         baseline = null;
         requireValue(
           receipt.diff.every(
@@ -543,8 +755,12 @@ export function loadVerify01Suite(options = {}) {
           "task modified a path outside independent review or introduced a deliverable link",
         );
         requireValue(
-          task.expectedFiles.every((file) => after.get(file)?.type === "file"),
-          "task did not produce all expected regular-file deliverables",
+          task.expectedFiles.every(
+            (file) =>
+              after.get(file)?.type === "file" &&
+              after.get(file)?.digest !== EMPTY_DELIVERABLE_DIGEST,
+          ),
+          "task did not replace all empty seeds with regular-file deliverables",
         );
         after = null;
         receipt.check = reviewedProcess(

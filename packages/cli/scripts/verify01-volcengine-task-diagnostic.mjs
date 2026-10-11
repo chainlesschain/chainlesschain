@@ -93,6 +93,8 @@ export function modelEnvironment({
 export function taskPrompt(task, spec) {
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.
 Read the frozen source and existing tests before writing your own regression tests.
+Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
+Keep the patch focused: at most six behavioral cases and roughly 150 lines. Confirm argument names and result fields from source before asserting them. Spend the first six turns reading, then write, read back the deliverable once, and finish. Do not add unrelated validation cases.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
@@ -201,6 +203,16 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
         event.provider === DIAGNOSTIC.provider &&
         event.model === DIAGNOSTIC.model,
     );
+  const observedUsage = usageEvents.reduce((sum, event) => {
+    for (const [name, value] of Object.entries(event.usage || {})) {
+      if (Number.isSafeInteger(value) && value >= 0)
+        sum[name] = (sum[name] || 0) + value;
+    }
+    return sum;
+  }, {});
+  const errorResult = events.find(
+    (event) => event.type === "result" && event.is_error === true,
+  );
   return {
     pass:
       terminal.terminalVerified &&
@@ -222,6 +234,15 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
     toolResults: results,
     usageEvents,
     unknownUsageEvents,
+    observedUsage,
+    usageComplete: terminal.terminalVerified,
+    failureCategory: errorResult
+      ? errorResult.error === "fetch failed"
+        ? "provider-fetch-failed"
+        : "agent-error"
+      : terminal.terminalVerified
+        ? null
+        : "missing-terminal",
     modelUsageRecordCount: usageEvents.length,
     // This is the CLI estimate, never a provider invoice or a hard quota.
     estimatedCostUSD: terminal.totalCostUsd,
@@ -742,6 +763,9 @@ export async function runTaskDiagnostic({
         });
         row.model = {
           processPassed: result.ok,
+          timedOut: result.timedOut,
+          signal: result.signal,
+          exitCode: result.exitCode,
           ...inspectModelTrace(result.stdout, task.expectedFiles, workspace),
         };
         row.estimatedCostUSD = row.model.estimatedCostUSD;

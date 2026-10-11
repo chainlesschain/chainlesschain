@@ -112,6 +112,34 @@ test("rejects malformed or duplicate terminal output and preserves unknown cost"
   assert.equal(parsed.estimatedCostUSD, null);
 });
 
+test("partial usage survives timeout or provider failure without a complete-cost claim", () => {
+  const partial = transcript().slice(0, -1);
+  partial.push({
+    type: "token_usage",
+    provider: DIAGNOSTIC.provider,
+    model: DIAGNOSTIC.model,
+    usage: { input_tokens: 7, output_tokens: 2, cache_read_input_tokens: 5 },
+  });
+  const timeout = inspect(partial);
+  assert.equal(timeout.pass, false);
+  assert.equal(timeout.usageComplete, false);
+  assert.deepEqual(timeout.observedUsage, {
+    input_tokens: 19,
+    output_tokens: 6,
+    cache_read_input_tokens: 5,
+  });
+  assert.equal(timeout.failureCategory, "missing-terminal");
+  assert.equal(timeout.estimatedCostUSD, null);
+  assert.equal(timeout.actualBilledCostUSD, null);
+  const failed = inspect([
+    transcript()[0],
+    { type: "result", subtype: "error", is_error: true, error: "fetch failed" },
+  ]);
+  assert.deepEqual(failed.observedUsage, {});
+  assert.equal(failed.failureCategory, "provider-fetch-failed");
+  assert.equal(failed.estimatedCostUSD, null);
+});
+
 test("the model child receives only its credential, fixed provider and exact write scope", () => {
   const env = modelEnvironment({
     root: "/tmp/task",
