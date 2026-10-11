@@ -1,0 +1,79 @@
+{
+  "sourceCommit": "5e23ef5ce0a487e775aa305bb03ba63ab76a8d9e",
+  "formalSample": false,
+  "entries": [
+    {
+      "path": "objects/000001-ba29a7076288.gz",
+      "bytes": 3309,
+      "sha256": "ba29a7076288569054d95c262f20257ad10ad2e8cb8628d44b26296e181db343",
+      "rawBytes": 11237,
+      "rawSha256": "3133471e1796859f1c946fe671aca10810e51627f838e5f68c474bad5bdf60d8",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/e2e/chat-panel-e2e.test.js.gz"
+    },
+    {
+      "path": "objects/000002-742b34aca439.gz",
+      "bytes": 2161,
+      "sha256": "742b34aca439b4c079c1120f79ed7f604382eeb12348d0ba21324b1c98de2425",
+      "rawBytes": 6502,
+      "rawSha256": "3a5170ee5429c3f5847d3f736bb7837d552ee8563ce277fa88f35616134520c9",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/e2e/interactive-approvals-e2e.test.js.gz"
+    },
+    {
+      "path": "objects/000003-27bf433dd12c.gz",
+      "bytes": 2617,
+      "sha256": "27bf433dd12cd26f6d8a5bfa249e0185467a0363f4d2789a7bc421b902cbda03",
+      "rawBytes": 7073,
+      "rawSha256": "64650a134052c882c177b5e6eb24b0b079bbc5a64f6a72b4a3a355f3bfa79178",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/e2e/ide-context-e2e.test.js.gz"
+    },
+    {
+      "path": "objects/000004-c591e100db50.gz",
+      "bytes": 1254,
+      "sha256": "c591e100db50e52cd28e3c5e30a177c17e604e6a04d7e45a1474825e97150a8e",
+      "rawBytes": 3699,
+      "rawSha256": "124ccafac6bd03cfcfbd37fa7fffa31f85ccb4351a02f74037c6acd560ac41d4",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/e2e/managed-agents-commands.test.js.gz"
+    },
+    {
+      "path": "objects/000005-7ba5280a9969.gz",
+      "bytes": 2135,
+      "sha256": "7ba5280a9969e325e9c68aea5bedd549ecd88f4990680037f55348e2e7494a3d",
+      "rawBytes": 4704,
+      "rawSha256": "ca499e620ef87787b0b1a25ab687a607bde7bbfdc69c77f0499d8e4ae88c4f69",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/e2e/_helpers/cli-e2e.js.gz"
+    },
+    {
+      "path": "objects/000006-b5ba652ef13d.gz",
+      "bytes": 624,
+      "sha256": "b5ba652ef13df62cd00fbe80a48ec0eacf972e947bd36f0102a85ceb5e9ebad1",
+      "rawBytes": 1196,
+      "rawSha256": "2311e6ab568beba98b3390fa7596902f400fb6cdcbb9c4c0e6ffdca5a05b1ec2",
+      "artifactOriginalPath": "sources/packages/cli/test/helpers/canonical-windows-test-temp.js.gz"
+    },
+    {
+      "path": "objects/000007-2d51b34e08fb.gz",
+      "bytes": 389,
+      "sha256": "2d51b34e08fbd2f927854aad48c8bf63c453a555ba94bac7e515c12e6d85e157",
+      "rawBytes": 846,
+      "rawSha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1",
+      "artifactOriginalPath": "sources/packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js.gz"
+    },
+    {
+      "path": "objects/000008-fc426ec2db9f.gz",
+      "bytes": 1258,
+      "sha256": "fc426ec2db9f359626741f29136563606f3e5288741be7d8f0425f543da7e702",
+      "rawBytes": 5767,
+      "rawSha256": "17c0dc874bdc9bb002368cea3163e6c5df31caddbf882dc8635d375747999e39",
+      "artifactOriginalPath": "report.json.gz"
+    },
+    {
+      "path": "objects/000009-5b474a0c6d91.gz",
+      "bytes": 217,
+      "sha256": "5b474a0c6d9196625be10353ffeae33708e0ecb9dd6516a0cc666bc5c950e7db",
+      "rawBytes": 284,
+      "rawSha256": "f6159d0a86b7f1c5b3ea404df0623b815c84d2945410fa6141bf188a652df37b",
+      "artifactOriginalPath": "run.json.gz"
+    }
+  ],
+  "storageLayout": "portable objects directory; artifactOriginalPath preserves source/artifact names; gzip bytes, digests and original verdicts unchanged"
+}

@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "dc9226b577da15cb87b61fe35560808cf4c0d489",
+  "failedRun": 38112676404,
+  "job": 114391309151,
+  "logsDownload": "REST job logs returned HTTP 403 despite repo admin permissions; preserved annotations and exact local stale-digest reproduction instead. No CI test reporter was generated.",
+  "fixedCommit": "bee3f0f3979c2bd37d35a2c6b5e9b48080a84795",
+  "localAfter": {
+    "pass": 29,
+    "fail": 0,
+    "unselected": 937
+  },
+  "entries": [
+    {
+      "path": "objects/000001-1bcdd89c1242.gz",
+      "bytes": 4528,
+      "sha256": "1bcdd89c1242387878f1b05b06607ee97f84da91901a698d297862ddf7010f6c",
+      "rawBytes": 23375,
+      "rawSha256": "796bd2ad72dcece40db7cad6a75115e48c5331eda475f4931fd62e17515a4b65",
+      "artifactOriginalPath": "stale-map/old-map.json.gz"
+    },
+    {
+      "path": "objects/000002-1513109f7e64.gz",
+      "bytes": 619,
+      "sha256": "1513109f7e64ccf797c851a621eff169179548800c1fee54461d619634b8beec",
+      "rawBytes": 1350,
+      "rawSha256": "30411ecba4a7b148ab1d44edb5f19f46d1c0ee57aafe08d3326007e662c7b554",
+      "artifactOriginalPath": "stale-map/reproduction.stderr.gz"
+    },
+    {
+      "path": "objects/000003-c877b7b3d20f.gz",
+      "bytes": 1064,
+      "sha256": "c877b7b3d20fb0a918b64c5fc5c67f7c8a01c46520fcb55eb0b821150f732871",
+      "rawBytes": 4914,
+      "rawSha256": "4e91d963a240f184fe62992a29deb434a0d881eaf81ad9e300c4c7171ada5ea8",
+      "artifactOriginalPath": "stale-map/job.json.gz"
+    },
+    {
+      "path": "objects/000004-fac0702e4430.gz",
+      "bytes": 391,
+      "sha256": "fac0702e44307173f6fcf3f227fabefbe3ca8fd85529ea32f57227bea6d6535e",
+      "rawBytes": 907,
+      "rawSha256": "8539671bc9b2e8c6421d31dfbcaa4c8a39609aee75c3020006446629a21c8900",
+      "artifactOriginalPath": "stale-map/annotations.json.gz"
+    },
+    {
+      "path": "objects/000005-2ec4efa00dbd.gz",
+      "bytes": 29848,
+      "sha256": "2ec4efa00dbda9387958b533e177a92c988a0e28798a58abcc5b431501cdad69",
+      "rawBytes": 301055,
+      "rawSha256": "3052f00871f7de2e52de5263a0d6c44c570a6a5de104bb73bad27e5847c9a7b0",
+      "artifactOriginalPath": "stale-map/after-tests.json.gz"
+    }
+  ],
+  "storageLayout": "portable objects directory; artifactOriginalPath preserves source/artifact names; gzip bytes, digests and original verdicts unchanged"
+}

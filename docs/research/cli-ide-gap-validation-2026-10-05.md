@@ -1071,3 +1071,35 @@ root PID28452、thread24784；前后有效primary token、无impersonation、cap
 公开.97传两工具allowlist却在init/context plan暴露六文件工具；实际仅执行两项不能代表工具暴露合同通过。源码修复只调整集合收窄，显式空集合、plan只读、外部工具排除和默认六项分别覆盖。真实agentLoop/chatWithTools的mock fetch捕获最终body.tools，旧源码5fail，新源码5pass；完整四文件Windows22.22.2与Linux22.12.0各113/113，无skip。早期测试夹具失败分别因cwd、错误观察chatFn参数、provider/baseUrl未绑定，已单独保留，不据此判产品失败。生产源码未发行；4个既有lint warning未清除。
 
 [42份原件/快照索引](./cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/manifest.json)逐字节及gzip双摘要通过，driver是诊断后的最终本地快照。loaded_sources标签保留，hermetic并非OS网络隔离。预检根部WSL解码损失/沙箱拒绝与批准后的原字节重跑分开存储。用户另要求Actions验收和实际编码任务后优化，准确提交CI、Docker pack与两题实际火山诊断仍另验，不沿用旧CI或本地结果。正式36+9/$99/observations、目标宿主/人工/官方账单/长时与native NOT_ADMITTED均未改写。
+
+### 20.34 2026-10-11 两项实际火山任务与工程优化
+
+[结果与优化依据](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md)保留三轮完整原件131/137/137件、工程41件、postfix-E2E9件、stale-map5件及旧Docker603件，共**1063份**gzip原始/压缩字节绑定文件，后续审计和新修复另存19份，共1082份，双摘要均已独立校验。模型源码冻结b2aa、public CLI.97发行来源22ef、准确运行器來源分别bee3/c420/5e23；ignore-scripts不证明native安装。Docker checker无账号/网络，provider零retry/no fallback。
+
+第三轮 [38114586541](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586541) 已 completed/failure，保留公开 CLI .97 原始结果：
+
+- **verify-04**：exit0、terminal success、12条usage、无timeout/fallback；基线22/22，候选**6/6**，两种变异分别**5pass/1fail**，Docker结构gate通过。但15个tool_use/16个tool_result导致原model审计settled=false/pass=false，原整题passed=false。额外结果是 `call_l7sb16yy86s4b0m2ems607rt` 的绝对路径write_file，exact scope在执行前正确拒绝；随后相对路径写入成功。无重复use ID，不能归因于ID复用，也不能伪造工具执行。候选未调用priceRollup或断言金额，“同总量”样本的400000 input与271000/273000 requestInput不自洽，缺少272000/+1及各缓存类型边界/逐费用分量求和，故不能声称完整费用合同通过。
+- **verify-22**：exit0、terminal success、14条usage，model审计通过；基线19/19，候选**3pass/1fail**，未执行mutants，原整题passed=false。第181行在恢复fsync spy前调用exportSnapshot，loadManifest→collect→syncDirectory再次触发注入错误，导致第183行restore及后续reopen未执行。第二例固定directory-sync-completed、第四例未skip也不适用于Windows的目录同步unsupported分支。这是候选故障生命周期错误，没有证明生产Memory缺陷。
+
+第三轮verify-04的input/output/cacheRead为134170/22742/45312，CLI估算 **$0.025785928**；verify-22为125873/40463/98816，估算 **$0.030335284000000004**；合计 **$0.056121212000000004**（显示约$0.05612），实际invoice均null。第二轮04已观察153363/40225/91904，但无terminal完整估算；第二轮22无usage不代表未收费。不能补零或把第三轮金额当作全部尝试累计账单。
+
+工程接线Windows/Linux各73/73，真实headless写交付/拒绝越scope及原字节保持。费用Windows28/28、Linux首次27/28（Windows SQLite invalid ELF header）保留，随后独立费用+session18/18；两隔离变异6/6和4/6失败，未宣称Linux SQLite成功。Windows临时入口由原c420 E2E XML确认RUNNER~1，可信fixture规范化三套21/21、四套CLI E2E14/14；生产guard未放宽，旧chat/IDE/审批独立根因未知。mapped29pass/937未选中/0fail、诊断新9/9。
+
+执行前拒绝不产生tool-executing，这是原authority gate的正确行为。后续工程为该拒绝增加execution_started:false，并修复single/stream headless遇到显式未知tool_use_id时回退上一调用的问题：保留原ID、不污染旧调用/计划或产生副作用STARTED。诊断仅分类preExecutionDenials与tool-settlement-unverified，原1:1 settled验收未放宽；第三轮原verdict及候选不回写。prompt补充所有mutation必须使用repo-relative path，不传具体题目答案。
+
+旧dc9226 Docker全部6shards成功、36tasks/72setup-check/42mutants，摘要和receipt核对，agentExecuted/providerAssessed/independentHumanReview均false；不作模型任务或新SHA门。
+
+准确工程源码 `5e23ef5ce0a487e775aa305bb03ba63ab76a8d9e` 的 Actions 回读时点为 **2026-10-11T05:56:08.391Z**。该提交 Strict 已完成；其余状态如下。后续事件关联修复将产生新提交，必须使用自己的准确 SHA 验证，不能继承此门。
+
+| 工作流                                                                                                                         | 状态 / 结论         | job 计数                            |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------- | ----------------------------------- |
+| [CLI CI / 38114590109](https://github.com/chainlesschain/chainlesschain/actions/runs/38114590109)                              | queued / null       | queued=54，success=8，in_progress=3 |
+| [CLI Strict Sandbox / 38114589983](https://github.com/chainlesschain/chainlesschain/actions/runs/38114589983)                  | completed / success | success=5                           |
+| [VERIFY01 Docker Review Pack / 38114586545](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586545)         | queued / null       | success=4，queued=1，in_progress=1  |
+| [VERIFY01 Volcengine Task Diagnostic / 38114586541](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586541) | completed / failure | failure=1                           |
+
+重复的同 SHA PR Docker run 38114589944 在六个 job 全部 queued 时取消，保留 push run 38114586545；取消只表示去重。
+
+后续事件修复新增七项回归，Windows两个完整headless套件 **171/171**；真实loop确认成功read→绝对write拒绝（原字节未改）→相对write成功。single/stream覆盖显式未知ID、已完成/待完成调用、plan/compact记录和sideeffect只started→committed，未新增被拒参数内容留存。新源码及raw reporter见[后续修复原件](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/third-task-followup/manifest.json)，按工作树原字节和normalized Git blob保存，需与最终提交核对。Linux Node22.12两个完整套件同样171/171（与Windows是相同171项，不累加），首次缺Rollup解析路径的真实启动失败原件保留，仅用NODE_PATH指向已有optional后通过，未安装依赖或更换SQLite；刷新producer digest后的mapped29pass/940未选中/0fail，诊断9/9、lint/格式/diff通过，后续准确提交CI见[草稿PR #429](https://github.com/chainlesschain/chainlesschain/pull/429)，不能继承旧SHA的Strict成功。
+
+正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划digest/冻结窗口及observations均保持。当前新启动无法取得旧窗口内完整24h观察，延长须保留旧版并新建计划版本。目标宿主、独立人工预审/辅助技术、真实invoice、IDE首次安装和8h/24h/SLO仍待完成；Astra的AI审查和GitHub Docker checker不替代独立人工。Windows/macOS durable、owner-only/LowBox合同与完整native review的NOT_ADMITTED仍开放。本轮没有新发行或合并。

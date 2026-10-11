@@ -112,6 +112,65 @@ test("rejects malformed or duplicate terminal output and preserves unknown cost"
   assert.equal(parsed.estimatedCostUSD, null);
 });
 
+test("identifies pre-execution scope denials without admitting result-only traces", () => {
+  const decision = {
+    version: 1,
+    id: "denied-write:perm:exact-file-mutation-scope",
+    tool: "write_file",
+    decision: "deny",
+    via: "exact-file-mutation-scope",
+    reason: "non-canonical-path",
+  };
+  const denied = {
+    type: "tool_result",
+    id: "denied-write",
+    tool: "write_file",
+    is_error: true,
+    error: "absolute mutation path refused",
+    result: { error: "absolute mutation path refused", policy: decision },
+    permission_decision_id: decision.id,
+    permission_decision: decision,
+  };
+  const inspectDenial = (denial) => {
+    const events = transcript();
+    events.splice(2, 0, denial);
+    return inspect(events);
+  };
+  const legacy = inspectDenial(denied);
+  assert.equal(legacy.pass, false);
+  assert.equal(legacy.settled, false);
+  assert.equal(legacy.failureCategory, "tool-settlement-unverified");
+  assert.deepEqual(legacy.preExecutionDenials, [
+    {
+      id: "denied-write",
+      tool: "write_file",
+      reason: "non-canonical-path",
+      executionStarted: null,
+    },
+  ]);
+  const explicit = inspectDenial({ ...denied, execution_started: false });
+  assert.equal(explicit.pass, false);
+  assert.equal(explicit.delivered, true); // Only the later successful write counts.
+  assert.equal(explicit.preExecutionDenials[0].executionStarted, false);
+  assert.deepEqual(
+    inspectDenial({ ...denied, permission_decision_id: "unrelated" })
+      .preExecutionDenials,
+    [],
+  );
+  assert.deepEqual(
+    inspectDenial({ ...denied, is_error: false }).preExecutionDenials,
+    [],
+  );
+  assert.deepEqual(
+    inspectDenial({ ...denied, id: "write-1" }).preExecutionDenials,
+    [],
+  );
+  assert.deepEqual(
+    inspectDenial({ ...denied, execution_started: true }).preExecutionDenials,
+    [],
+  );
+});
+
 test("partial usage survives timeout or provider failure without a complete-cost claim", () => {
   const partial = transcript().slice(0, -1);
   partial.push({
@@ -196,6 +255,7 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /Frozen task/u);
   assert.match(prompt, /do not claim that tests passed/u);
   assert.match(prompt, /implementation defect/u);
+  assert.match(prompt, /repository-relative paths for every mutation/u);
   assert.match(prompt, /at most 20 model turns/u);
 });
 

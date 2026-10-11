@@ -498,3 +498,26 @@ Windows Node 22.22.2 两组 151/151 与 32 pass/1 POSIX skip；WSL Linux Node 22
 公开CLI .97的Linux独立安装完成真实write/read诊断，3模型调用、6496/357 tokens、估算$0.0010094，账单null；首轮exact scope目标不存在失败保留。实测发现formal hermetic分支忽略显式allowed-tools与plan：模型仍见六工具。源码现先resolve请求/只读，再与固定六项交集；空allowlist保持空，非formal路径不变。五反例在正确夹具旧实现全部失败，新实现Windows/Linux相关四文件各113/113；Astra只读审查无阻塞，lint零error/4既有warning，格式通过。新修复未发行。
 
 用户要求实际任务后总结优化，故额外推进火山verify-04费用分布、verify-22发布后故障的真实编码诊断，并用GitHub Actions取得Docker独立验收；使用冻结题目与精确模型，保留非正式身份，不改变计划或observations。Actions已有CC_LLM_API_KEY，但模型变量是旧型号；该诊断固定deepseek-v4-flash-ga-260731，不修改仓库全局变量。源码CI与实际任务分别归档；只有真实补丁、断言/反例与usage回读后才评价任务成功。详见[实测原件与改进依据](./cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/README.md)及[验证20.33](./cli-ide-gap-validation-2026-10-05.md#2033-2026-10-11-火山-linux-公开调用与工具白名单)。
+
+## 35. 2026-10-11 实际编码结果驱动的评测接线与费用覆盖
+
+三轮实际结果、原件和优化已归档到[任务总结](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md)。首轮HOME/config冲突前置拒绝；次轮费用候选12/14且8min SIGKILL无终态，Memory首次fetch failed无有效补丁。
+
+第三轮 [38114586541](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586541) 已 completed/failure，保留公开 CLI .97 原始结果：
+
+- **verify-04**：exit0、terminal success、12条usage、无timeout/fallback；基线22/22，候选**6/6**，两种变异分别**5pass/1fail**，Docker结构gate通过。但15个tool_use/16个tool_result导致原model审计settled=false/pass=false，原整题passed=false。额外结果是 `call_l7sb16yy86s4b0m2ems607rt` 的绝对路径write_file，exact scope在执行前正确拒绝；随后相对路径写入成功。无重复use ID，不能归因于ID复用，也不能伪造工具执行。候选未调用priceRollup或断言金额，“同总量”样本的400000 input与271000/273000 requestInput不自洽，缺少272000/+1及各缓存类型边界/逐费用分量求和，故不能声称完整费用合同通过。
+- **verify-22**：exit0、terminal success、14条usage，model审计通过；基线19/19，候选**3pass/1fail**，未执行mutants，原整题passed=false。第181行在恢复fsync spy前调用exportSnapshot，loadManifest→collect→syncDirectory再次触发注入错误，导致第183行restore及后续reopen未执行。第二例固定directory-sync-completed、第四例未skip也不适用于Windows的目录同步unsupported分支。这是候选故障生命周期错误，没有证明生产Memory缺陷。
+
+工程5e23ef5ce0补齐正式eval真实launcher接线：审核setup后排他创建零字节expectedFiles、每题不可伪造冻结scope/provider/model/独立HOME与config、无共享env；保留absent→candidate与seed→candidate diff，拒绝no-op，审核允许source可改。child剥离其他账号、fallback/NODE_OPTIONS，0retry，checker无账户，Windows Path及macOSalias规范化。新六项费用回归经真实merge→priceRollup，覆盖同420000tokens费用$5/$8.25、三种缓存/非缓存272000/+1及逐费用分量求和；隔离变异触发6/6、4/6失败，不回填04模型成功。Windows共享fixture先规范化可信TEMP/TMP/TMPDIR，正常/失败恢复；真实junction正向与显式redirect拒绝均保留，生产authority guard不放宽。
+
+执行前拒绝不产生tool-executing，这是原authority gate的正确行为。后续工程为该拒绝增加execution_started:false，并修复single/stream headless遇到显式未知tool_use_id时回退上一调用的问题：保留原ID、不污染旧调用/计划或产生副作用STARTED。诊断仅分类preExecutionDenials与tool-settlement-unverified，原1:1 settled验收未放宽；第三轮原verdict及候选不回写。prompt补充所有mutation必须使用repo-relative path，不传具体题目答案。
+
+既有补充：接线Windows/Linux各73/73，费用Windows28/28；Linux首次27/28唯一失败为Windows SQLite binary，随后费用+session18/18，不声称Linux SQLite通过；临时根三套21/21，四套真实CLI E2E14/14，mapped29pass/937未选中/0fail。诊断新9/9合同保留拒绝，prompt约束精确读取/最多六例/相对写路径，期限预算不变。Memory既有fsync/gc/postrename/reopen/revision/stale-CAS覆盖足够，候选错误不作产品缺陷。
+
+第三轮verify-04的input/output/cacheRead为134170/22742/45312，CLI估算 **$0.025785928**；verify-22为125873/40463/98816，估算 **$0.030335284000000004**；合计 **$0.056121212000000004**（显示约$0.05612），实际invoice均null。第二轮04已观察153363/40225/91904，但无terminal完整估算；第二轮22无usage不代表未收费。不能补零或把第三轮金额当作全部尝试累计账单。
+
+5e23的Strict5/5；其他准确CI状态与旧dc9226的36题/72阶段/42mutants完整回读见[验证20.34](./cli-ide-gap-validation-2026-10-05.md#2034-2026-10-11-两项实际火山任务与工程优化)。旧Docker确定性controls不是模型正式样本，新事件修复需自己的准确SHA矩阵。
+
+后续事件修复新增七项回归，Windows两个完整headless套件 **171/171**；真实loop确认成功read→绝对write拒绝（原字节未改）→相对write成功。single/stream覆盖显式未知ID、已完成/待完成调用、plan/compact记录和sideeffect只started→committed，未新增被拒参数内容留存。新源码及raw reporter见[后续修复原件](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/third-task-followup/manifest.json)，按工作树原字节和normalized Git blob保存，需与最终提交核对。Linux Node22.12两个完整套件同样171/171（与Windows是相同171项，不累加），首次缺Rollup解析路径的真实启动失败原件保留，仅用NODE_PATH指向已有optional后通过，未安装依赖或更换SQLite；刷新producer digest后的mapped29pass/940未选中/0fail，诊断9/9、lint/格式/diff通过，后续准确提交CI见[草稿PR #429](https://github.com/chainlesschain/chainlesschain/pull/429)，不能继承旧SHA的Strict成功。
+
+正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划digest/冻结窗口及observations均保持。当前新启动无法取得旧窗口内完整24h观察，延长须保留旧版并新建计划版本。目标宿主、独立人工预审/辅助技术、真实invoice、IDE首次安装和8h/24h/SLO仍待完成；Astra的AI审查和GitHub Docker checker不替代独立人工。Windows/macOS durable、owner-only/LowBox合同与完整native review的NOT_ADMITTED仍开放。本轮没有新发行或合并。

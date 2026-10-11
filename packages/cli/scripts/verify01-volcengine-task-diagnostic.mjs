@@ -98,6 +98,7 @@ Keep the patch focused: at most six behavioral cases and roughly 150 lines. Conf
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
+Use repository-relative paths for every mutation. Absolute paths are rejected even when they name an allowed deliverable.
 Each deliverable currently contains a non-answer placeholder; replace it with complete runnable Vitest tests.
 Import paths are relative to each deliverable's location. Use explicit behavioral assertions and positive/negative cases; do not merely import an existing test suite or inspect source text.
 Source implementation and existing tests are read-only in this diagnostic. If you discover an implementation defect, describe it in your final response instead of modifying source.
@@ -181,6 +182,45 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
         matches.length === 1 && events.indexOf(matches[0]) > events.indexOf(use)
       );
     });
+  // Authority can refuse a request before tool-executing. Keep these denials
+  // visible without treating a result-only trace as a verified invocation.
+  const preExecutionDenials = results
+    .filter((result) => {
+      const policy = result.result?.policy;
+      const decision = result.permission_decision;
+      return (
+        !uses.some((use) => use.id === result.id) &&
+        typeof result.id === "string" &&
+        result.id.length > 0 &&
+        result.is_error === true &&
+        typeof result.error === "string" &&
+        result.error.length > 0 &&
+        result.execution_started !== true &&
+        writeTools.has(result.tool) &&
+        policy?.decision === "deny" &&
+        policy.via === "exact-file-mutation-scope" &&
+        decision?.decision === policy.decision &&
+        decision.version === 1 &&
+        decision.via === policy.via &&
+        decision.tool === result.tool &&
+        decision.reason === policy.reason &&
+        decision.id === result.permission_decision_id &&
+        decision.id === `${result.id}:perm:exact-file-mutation-scope` &&
+        [
+          "invalid-scope",
+          "invalid-path",
+          "non-canonical-path",
+          "path-not-allowed",
+          "path-identity-changed",
+        ].includes(policy.reason)
+      );
+    })
+    .map((result) => ({
+      id: result.id,
+      tool: result.tool,
+      reason: result.result.policy.reason,
+      executionStarted: result.execution_started === false ? false : null,
+    }));
   const delivered = expectedFiles.every((file) =>
     uses.some(
       (use) =>
@@ -228,6 +268,7 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
     plannedTools,
     scoped,
     settled,
+    preExecutionDenials,
     delivered,
     init,
     tools: uses,
@@ -240,9 +281,15 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
       ? errorResult.error === "fetch failed"
         ? "provider-fetch-failed"
         : "agent-error"
-      : terminal.terminalVerified
-        ? null
-        : "missing-terminal",
+      : !terminal.terminalVerified
+        ? "missing-terminal"
+        : !settled
+          ? "tool-settlement-unverified"
+          : !scoped
+            ? "tool-scope-unverified"
+            : !delivered
+              ? "deliverable-unverified"
+              : null,
     modelUsageRecordCount: usageEvents.length,
     // This is the CLI estimate, never a provider invoice or a hard quota.
     estimatedCostUSD: terminal.totalCostUsd,

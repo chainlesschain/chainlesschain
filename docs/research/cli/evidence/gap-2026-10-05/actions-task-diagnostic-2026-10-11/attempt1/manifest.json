@@ -1,0 +1,1057 @@
+{
+  "attempt": "attempt1",
+  "runId": 38112972900,
+  "formalSample": false,
+  "actualBilledCostUSD": null,
+  "entries": [
+    {
+      "path": "objects/000001-afb0a634329d.gz",
+      "bytes": 1647,
+      "sha256": "afb0a634329d96da754a4e08789d79a1a1711605a1ec913553d53c9141300e79",
+      "rawBytes": 3906,
+      "rawSha256": "7650e8155beae3856d657343d38fb6743afcb731842d9006e85260816f69024e",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/.github/workflows/verify01-volcengine-task-diagnostic.yml.gz"
+    },
+    {
+      "path": "objects/000002-922f034aae99.gz",
+      "bytes": 3141,
+      "sha256": "922f034aae99ea5a920d7ca0378d679b2019d3b95fa9f4f3dbf574cbcd9ba9a3",
+      "rawBytes": 8864,
+      "rawSha256": "04c0ff408c57724151fe9c06398a6aa5f1da9126ce8bb738e78a0bbc9e29d88a",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/packages/cli/scripts/verify01-review-pack.mjs.gz"
+    },
+    {
+      "path": "objects/000003-b5260a221056.gz",
+      "bytes": 6401,
+      "sha256": "b5260a2210561f0fd43d88f718c8620289d0fd7e863f2cfb82e8eab0b2b6706f",
+      "rawBytes": 19522,
+      "rawSha256": "39a0825c4c738a5a944e7350919997b75840187a6df50d6fc5ff4e3389b4179a",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/packages/cli/scripts/verify01-review-runtime.mjs.gz"
+    },
+    {
+      "path": "objects/000004-0f372fe3f2c5.gz",
+      "bytes": 4258,
+      "sha256": "0f372fe3f2c59215bc0da55015c40a59410fc63439af353dd5f32ff73141fb6f",
+      "rawBytes": 18732,
+      "rawSha256": "25e77b0c812727ca15ec3a7d46c5eb264e458be2d2d0c6efd0449a54c463b237",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/packages/cli/scripts/verify01-review-specs.mjs.gz"
+    },
+    {
+      "path": "objects/000005-46cfe4015acd.gz",
+      "bytes": 9272,
+      "sha256": "46cfe4015acd660df5b123f70c0ccc5f5c46d258e604eee6faaf854d26ebdaa5",
+      "rawBytes": 29184,
+      "rawSha256": "354fa58ea576fd34fb324560d4bae431ab7a46c073437756d05c9a5cfed20c90",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs.gz"
+    },
+    {
+      "path": "objects/000006-9354e3dc3749.gz",
+      "bytes": 621,
+      "sha256": "9354e3dc3749e09737e6034080a445b228a58541c388f7e3c1a7c04a1ccce5da",
+      "rawBytes": 1653,
+      "rawSha256": "2392b4d90ebc807f3394bf3d177ce0d78148e7c6d6ae149da5c3ea01e9c23933",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/execution-source/packages/cli/src/lib/eval/stream-terminal.js.gz"
+    },
+    {
+      "path": "objects/000007-758fbddf561a.gz",
+      "bytes": 1993,
+      "sha256": "758fbddf561aa47009a69af62e33177e440f0d6dd3298a043e99c4a95769f374",
+      "rawBytes": 10549,
+      "rawSha256": "c57303e2c566b8999be8aa9d447794549b0a6aaade1402a612610e0dd7562e70",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/acceptance-evidence/verify-04-check-f7beacd9-7a77-4889-b2ad-9782b43c96d4.json.gz"
+    },
+    {
+      "path": "objects/000008-669863bb528a.gz",
+      "bytes": 3842,
+      "sha256": "669863bb528a50362f53266a1a0b67a83230148d93e40b831d5622d7609ee6b6",
+      "rawBytes": 18827,
+      "rawSha256": "22a55a4f075d5a70589f91caa49df7ffb3f55dd93b29e927c70b4119dc86812f",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/acceptance-evidence/verify-04-setup-d4ef78ce-aadb-440d-b82a-ebf300a2ac46.json.gz"
+    },
+    {
+      "path": "objects/000009-3b09a1cae363.gz",
+      "bytes": 1986,
+      "sha256": "3b09a1cae363f1da3cb92fb365f20ac4a18352260cc21b011f48e25a6be9a34c",
+      "rawBytes": 10056,
+      "rawSha256": "316f1c0840e00ac358452fd6e2e39cae29927c34da94a8d8eb39f8b907ddcf6e",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/acceptance-evidence/verify-22-check-a1513c1b-0c8f-4487-a758-259dab91d002.json.gz"
+    },
+    {
+      "path": "objects/000010-022335cdc86b.gz",
+      "bytes": 3837,
+      "sha256": "022335cdc86bcab4eff3a07d514e81ce0fd211cca39157fcbd596b69d36b2d8e",
+      "rawBytes": 18333,
+      "rawSha256": "ace2b2c010d5bd09960215618345083fffb4ff997633f0c702edb19750ab4e26",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/acceptance-evidence/verify-22-setup-72efbaae-3b1a-418b-904b-9c8d2c61b089.json.gz"
+    },
+    {
+      "path": "objects/000011-013753f5aa1a.gz",
+      "bytes": 521,
+      "sha256": "013753f5aa1a6af47e76271a555b2cfc3d00f670d04e68200415f6c1adddce47",
+      "rawBytes": 856,
+      "rawSha256": "0d65b20b12a50521a3a29461ebf99751904eba1ec28e0ce0bc14c06492e06553",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/pack.json.gz"
+    },
+    {
+      "path": "objects/000012-d89a79f8fb48.gz",
+      "bytes": 4142,
+      "sha256": "d89a79f8fb4824a6f5cf3d3f78994c4a0b22e98ed2044cad26b2eb84aba95814",
+      "rawBytes": 18679,
+      "rawSha256": "df4c041ca48775a1089cdfb48a51d1a9e7324280d8cf0c7efd7d18753fbe771f",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/review.json.gz"
+    },
+    {
+      "path": "objects/000013-02e17571347c.gz",
+      "bytes": 79,
+      "sha256": "02e17571347c035b707938b0f57b24ca32c3339fb164abf63af9ec388ff6d79e",
+      "rawBytes": 72,
+      "rawSha256": "1ace802d2477c01e503e13529edb9d2dfd44ef249f245808eec29f96ad813925",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/review.sha256.gz"
+    },
+    {
+      "path": "objects/000014-b8e96395b1c4.gz",
+      "bytes": 7212,
+      "sha256": "b8e96395b1c4d3dd61dc6a94e553df9ef3cb5c80c6465030b2be6a153d7b3d82",
+      "rawBytes": 21384,
+      "rawSha256": "5db56055f4907be7c7a8a2afb8ffde82d655b72b1fa7b4c7a7cde37da206adde",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-01-check.mjs.gz"
+    },
+    {
+      "path": "objects/000015-042ed2095cb3.gz",
+      "bytes": 7229,
+      "sha256": "042ed2095cb36df386ad75eef93146d4cae1925b5f4482783514a1ca523e410e",
+      "rawBytes": 21422,
+      "rawSha256": "e55bf63a9eb291afb9a2b60f9adc9d524cecba2bf4454dbc6f9a802646441d3c",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-01-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000016-3dfc45dce687.gz",
+      "bytes": 7191,
+      "sha256": "3dfc45dce6878df90bc035dab55e4ccbf82ea772d566cc4f4b8078c2b9fff66f",
+      "rawBytes": 21385,
+      "rawSha256": "c6d970a5e24be56a5715c3671ea056e132ee61563100d7c77de286c43ab96554",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-02-check.mjs.gz"
+    },
+    {
+      "path": "objects/000017-7bde2569774c.gz",
+      "bytes": 7206,
+      "sha256": "7bde2569774cf61e48acc45e3f38e470143f53aa68300493eab34a4fbfd85efd",
+      "rawBytes": 21423,
+      "rawSha256": "c14f04bf35a3b4e45e602495c1f9748ce95ccd616d5d97ed09eb458cef4353d3",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-02-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000018-abd9ee19d833.gz",
+      "bytes": 7125,
+      "sha256": "abd9ee19d8338c07938bec84e11b581fa862a7e367b6361ec3f586088bd55521",
+      "rawBytes": 21183,
+      "rawSha256": "e7bc26dfc9a4be231883e0c6b5008dd60dea47776222ca34cb112fba46892ae2",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-03-check.mjs.gz"
+    },
+    {
+      "path": "objects/000019-6770240611a6.gz",
+      "bytes": 7141,
+      "sha256": "6770240611a6312abe457a2ec6701b98080449043325a39d25bb71fea0c45af6",
+      "rawBytes": 21221,
+      "rawSha256": "c6140689c43b6b8873a55a1bc068361cc689992f486675dfb476d1e211ec1649",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-03-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000020-d91b7de435d9.gz",
+      "bytes": 7220,
+      "sha256": "d91b7de435d94f448971f9a54cd1ece1951abb353c89646948718250c8fc51b8",
+      "rawBytes": 21405,
+      "rawSha256": "613f26a561550c405303c0e555a5c55e33c8560b477b4fb34b5b190f9c937342",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-04-check.mjs.gz"
+    },
+    {
+      "path": "objects/000021-485dbd362341.gz",
+      "bytes": 7235,
+      "sha256": "485dbd362341a1cfecb88a70b793b88b8989eb750fee354b945ba5a901222cb0",
+      "rawBytes": 21443,
+      "rawSha256": "a4b881472b9fc3af245d1d5dc98ce4cf1159308dc554e4401585cf8d84e7bc33",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-04-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000022-a2f00f68649c.gz",
+      "bytes": 7119,
+      "sha256": "a2f00f68649c5661d8c85f5d3ba796df7a5c21021b73181aa795b509a0aa0f78",
+      "rawBytes": 21197,
+      "rawSha256": "cfa2657032909ca563e3fef06b0853105ccdc57af97c3a16599525724c5bf927",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-05-check.mjs.gz"
+    },
+    {
+      "path": "objects/000023-d251ca3e0c6f.gz",
+      "bytes": 7134,
+      "sha256": "d251ca3e0c6f2ff8762aa0082e128bb23f984e13dfc8694cbb170b7e3f695a7a",
+      "rawBytes": 21235,
+      "rawSha256": "c74429a6c2e131bbb3ab701547fcd76b5d0e652f77c533bff28c8969484f6d0a",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-05-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000024-13437dbe7f26.gz",
+      "bytes": 7180,
+      "sha256": "13437dbe7f263a2d7e076f9045f3afd020092013f5e7e383feae9760bd964f65",
+      "rawBytes": 21258,
+      "rawSha256": "4a25936ba17f786f629ca7766f819d91425e65c6473f386f3104fa8eea82e7b5",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-06-check.mjs.gz"
+    },
+    {
+      "path": "objects/000025-bc356b316023.gz",
+      "bytes": 7195,
+      "sha256": "bc356b316023b0e817c06573f7d2564abfac8c1e9030210750e3c4d033ab6c27",
+      "rawBytes": 21296,
+      "rawSha256": "40e0f9910b8fd4279199bd27160bc4e7301c927645349e4b7a13de8acf57eb8d",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-06-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000026-542f7a345407.gz",
+      "bytes": 7153,
+      "sha256": "542f7a345407d65d4932163b8385d734931b03722613233b90dfd8b461234050",
+      "rawBytes": 21348,
+      "rawSha256": "e2c85c32847c7e413175ec71f504bb97b142e0e7cf9cee19f4f8a003ac9fcf53",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-07-check.mjs.gz"
+    },
+    {
+      "path": "objects/000027-288e4907aa1c.gz",
+      "bytes": 7169,
+      "sha256": "288e4907aa1cb379c6b81ad567a563736ae1ef1bb482365a05f2e3853da42906",
+      "rawBytes": 21386,
+      "rawSha256": "7e8f03737db44a6f41b6ea805211c6c211b779ae3c62cf86e2b719b094178663",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-07-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000028-cb1c2eac9b5d.gz",
+      "bytes": 7117,
+      "sha256": "cb1c2eac9b5d238717e32009f7bb3216d3676af55427241f5fd51cd9972ee216",
+      "rawBytes": 21186,
+      "rawSha256": "545afef2fc2f56645aef64370242fcdf85b0fa6ce10b67ae139a012b51a0c2e9",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-08-check.mjs.gz"
+    },
+    {
+      "path": "objects/000029-11b17d16fde1.gz",
+      "bytes": 7132,
+      "sha256": "11b17d16fde10d4f15d561872cfad14df46705b32d5552418e3dab16dc995105",
+      "rawBytes": 21224,
+      "rawSha256": "8ae193a562a2a174b3ad197c3d48a7be0935ed48593f34a8c409b2e32b5e3245",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-08-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000030-b9b2821b67eb.gz",
+      "bytes": 7105,
+      "sha256": "b9b2821b67eb5c2b7aa271d5339d3f21555896037d6f2b84bf744006c334704c",
+      "rawBytes": 21136,
+      "rawSha256": "2e840358577fb1c43bb53daec2a1dc0c5bb6f45f9857ef75852fbcc381090044",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-09-check.mjs.gz"
+    },
+    {
+      "path": "objects/000031-bd3cc8f3de91.gz",
+      "bytes": 7120,
+      "sha256": "bd3cc8f3de9114fc1f42f4d58e076cd6a7fe89be694c30a2d8e39304a87ea4f1",
+      "rawBytes": 21174,
+      "rawSha256": "984232c9af3336ee318327c3f0773737b01017a76adb40e6dc33921e2f16afa8",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-09-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000032-d16df37f0ce0.gz",
+      "bytes": 7109,
+      "sha256": "d16df37f0ce02ae8efcc0191e423bec08b7dd5c1c7b0cd02822ee3b2bc1fe6b3",
+      "rawBytes": 21129,
+      "rawSha256": "dd781f3739a3abb5921a9a70ad35e361c1755fc739a3c430734435007db95d11",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-10-check.mjs.gz"
+    },
+    {
+      "path": "objects/000033-5952d59370d0.gz",
+      "bytes": 7125,
+      "sha256": "5952d59370d00c7417de6329225d5492556a21c4198072662cf39f2d5daad6a7",
+      "rawBytes": 21167,
+      "rawSha256": "38e4bb2dc27e8e527f0cbcaee23721facc6d46b47ae5314fab3d6d790eb6b277",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-10-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000034-f4121fa023ac.gz",
+      "bytes": 7198,
+      "sha256": "f4121fa023ac21a9da67f2e7a350688eb6683754c94c1e83c5e26981443d7804",
+      "rawBytes": 21366,
+      "rawSha256": "ce94344258c10fb704caff081ed3305ae1f8d36f2af0394fe4f20ed4ea25b1f5",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-11-check.mjs.gz"
+    },
+    {
+      "path": "objects/000035-6a0e4adb3f9d.gz",
+      "bytes": 7214,
+      "sha256": "6a0e4adb3f9d09d2727393e20f62ec3e0d618780253c001de5a275c98f485c9f",
+      "rawBytes": 21404,
+      "rawSha256": "9307d8a25b21c496c599bbc22b6b99b2a1f98c0be54aa2af6a7c4a8113255689",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-11-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000036-f5ee2eb3321e.gz",
+      "bytes": 7128,
+      "sha256": "f5ee2eb3321eadd2eb24a4b223bbfc435a996c9895bb695de5948f258e60faf1",
+      "rawBytes": 21170,
+      "rawSha256": "3f1fb674dadfd21e23424190dc79e6633695d9efd138e66abc6df9f8699106ac",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-12-check.mjs.gz"
+    },
+    {
+      "path": "objects/000037-1af2084ed296.gz",
+      "bytes": 7144,
+      "sha256": "1af2084ed29610acb8818ad606c5f507d97653f0548dfd9d33141896f4acf632",
+      "rawBytes": 21208,
+      "rawSha256": "d044feeb163707b14ed4961c414b3475a92dd5d33003896816e133870a63b0c6",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-12-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000038-972c1d8c9f8b.gz",
+      "bytes": 7171,
+      "sha256": "972c1d8c9f8bd431fac3859ddccec2b25209ae969dce51c2776fb639bb99534d",
+      "rawBytes": 21263,
+      "rawSha256": "666e113e5d2da785ae33ec97161414f49fc563fb48cdd2dce8b9c9919f496a2c",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-13-check.mjs.gz"
+    },
+    {
+      "path": "objects/000039-07c481f52363.gz",
+      "bytes": 7186,
+      "sha256": "07c481f52363d20163a0311314e3ec17b8e4251c375411dea74b199f90b6a997",
+      "rawBytes": 21301,
+      "rawSha256": "01be2a1949d59c52d46c57838afac3683f97eae6f4bbffd49d93586e9eaec1d0",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-13-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000040-b083b8b896da.gz",
+      "bytes": 7122,
+      "sha256": "b083b8b896da3cf243a09958125009b03aafe990e667ea0e0dee4350d30d518c",
+      "rawBytes": 21245,
+      "rawSha256": "0ff0b433d6eb095cac0c07601180bf857884688b3256fea19079f5cf729d20d7",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-14-check.mjs.gz"
+    },
+    {
+      "path": "objects/000041-50596c2ad684.gz",
+      "bytes": 7138,
+      "sha256": "50596c2ad684fed2dbd5f0063466dcd403f3983c583bb2f55c53ebb67c93c9b7",
+      "rawBytes": 21283,
+      "rawSha256": "6b9762c17c76f450832b72c18c94ed487f9abe66cbb31dc95524bb6e8d2fa7de",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-14-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000042-ed1e9b7ef40e.gz",
+      "bytes": 7187,
+      "sha256": "ed1e9b7ef40ee705f6b98aabfe45b948537904e570a6213e9a6821c8a2cf211e",
+      "rawBytes": 21301,
+      "rawSha256": "2fbe2204b7895bb2b353e49abcd9d3e45f5e3e4724ddd154304797c796595c4c",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-15-check.mjs.gz"
+    },
+    {
+      "path": "objects/000043-cb9f4763e983.gz",
+      "bytes": 7203,
+      "sha256": "cb9f4763e9838f21e59679f7992e7783722d4dac1c0f4d96175b1f25efa811a3",
+      "rawBytes": 21339,
+      "rawSha256": "f7647c17e31bfce39d0d0d77e7b1f80c9d7d6f258f287d7670b07b3fb7c7f1db",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-15-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000044-330d552dd978.gz",
+      "bytes": 7095,
+      "sha256": "330d552dd9789399105ab4c8299aaea14460ff8a99463a958119d312087ac3a6",
+      "rawBytes": 21114,
+      "rawSha256": "df0cb0971004fbd174ff4e6fad139b526d266ce61ed5bc2394501afcdc995fb9",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-16-check.mjs.gz"
+    },
+    {
+      "path": "objects/000045-f6c98f7d7b06.gz",
+      "bytes": 7111,
+      "sha256": "f6c98f7d7b061ce175aa02d391088852935b70f44eac8df75c5ee904f0e86aa0",
+      "rawBytes": 21152,
+      "rawSha256": "d7222fa63bbe13ac6d875ac922b0ab7a9dd60f68feef663e4c86360077baf1a5",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-16-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000046-18cb1cd97e9e.gz",
+      "bytes": 7167,
+      "sha256": "18cb1cd97e9eda9d1fdfd2c764b2a56fbbc347ca45377158b20de27859a25203",
+      "rawBytes": 21290,
+      "rawSha256": "425f44b4cbe581c8a0d7caab0753be3992a3528b586e905ab4d24bc726def7e8",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-17-check.mjs.gz"
+    },
+    {
+      "path": "objects/000047-c95921561d2b.gz",
+      "bytes": 7182,
+      "sha256": "c95921561d2ba37a13ba3bcc6ce83be14f2198e7abbba00e6479e498c3df5eb5",
+      "rawBytes": 21328,
+      "rawSha256": "2969c904638d815687b719bd534d024563179c8337e406f525daa24cab5b9142",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-17-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000048-ba8ec7333294.gz",
+      "bytes": 7109,
+      "sha256": "ba8ec7333294e22f3c1bbfd574cb636e085f4e1d0fdc92a1b4bab1e6ae28379d",
+      "rawBytes": 21150,
+      "rawSha256": "0ab2d8f8489816eddf1b73b1b172e553280dbf8b914f8f5f57238839c03da4c5",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-18-check.mjs.gz"
+    },
+    {
+      "path": "objects/000049-a10450a68396.gz",
+      "bytes": 7125,
+      "sha256": "a10450a68396ffb633b83427a097305631b0088d787edd08878650d90e9dc51a",
+      "rawBytes": 21188,
+      "rawSha256": "ffb9f0420c73921f8691c2ddd9c16694c0c789335cd1b9ef2d7de0e186b49548",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-18-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000050-75e884fb2bda.gz",
+      "bytes": 7166,
+      "sha256": "75e884fb2bdaf0561b0590494e55ea0f7693754de5e5953f8bffbcdb5b43b088",
+      "rawBytes": 21302,
+      "rawSha256": "23af9ec16aabb2a9dfdfb3fa78938fb90605ee4ed55cb8bf8cdaa0f9eb8dddb0",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-19-check.mjs.gz"
+    },
+    {
+      "path": "objects/000051-8fe321f34130.gz",
+      "bytes": 7181,
+      "sha256": "8fe321f3413029aaab733f0e00bffd25f25c8767347a52036cec742e2e6adf32",
+      "rawBytes": 21340,
+      "rawSha256": "be3c8c45c5182e0d2b7401999d7d378a1f05cecf1e0e259e2631372e0c002b58",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-19-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000052-85f13e5f2b0c.gz",
+      "bytes": 7105,
+      "sha256": "85f13e5f2b0c4639c6b60c26312881d53b8dbe6dcbf9be66f8a00677bf980d3b",
+      "rawBytes": 21171,
+      "rawSha256": "7d01776ac23d1b644dddab24d3efc7d60d6dfa1d269e5b7d77479928cc793df2",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-20-check.mjs.gz"
+    },
+    {
+      "path": "objects/000053-8948a9960e58.gz",
+      "bytes": 7120,
+      "sha256": "8948a9960e58d53aa53e5268d18273698e88bc3d284c92aadad3cb4df62215a2",
+      "rawBytes": 21209,
+      "rawSha256": "7a944911783ef5e13cbda9cac9ab421130015a2327befe1013fa0671aadc4f37",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-20-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000054-48277b9a76c1.gz",
+      "bytes": 7125,
+      "sha256": "48277b9a76c1772bfcb0114a512f2ceaae7fd353c162547c63ad8aa5f48d02f7",
+      "rawBytes": 21160,
+      "rawSha256": "f8cd0067e10322b40d7e4d6159a5a53691e316772f3bc668bc6166e057173e28",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-21-check.mjs.gz"
+    },
+    {
+      "path": "objects/000055-f3167a869f7b.gz",
+      "bytes": 7141,
+      "sha256": "f3167a869f7b12f57db58157391ac234d31857d70548c833a7b98ce105d28209",
+      "rawBytes": 21198,
+      "rawSha256": "9993b8b418123aa84d97a98bdaed774a7498a4615cabfb61ebc37829d433b16b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-21-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000056-0607c5ea92e8.gz",
+      "bytes": 7146,
+      "sha256": "0607c5ea92e8395a10f3073049f1b6204bea43a645619c9624e886ae1fc441e2",
+      "rawBytes": 21237,
+      "rawSha256": "81e6fc8080240ad7d66983fc90bc4384a4401d4c442566e4f565a9524be2411f",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-22-check.mjs.gz"
+    },
+    {
+      "path": "objects/000057-2e8450d7a5bb.gz",
+      "bytes": 7161,
+      "sha256": "2e8450d7a5bb8ae93a8b348d529e9fd21c325d1f1f7266058b8e265765e4d4d9",
+      "rawBytes": 21275,
+      "rawSha256": "e875c431960938511ac99efe805fa9a6ad24cb99d13867c9753c7cfff8dbfcc4",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-22-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000058-c9998febca11.gz",
+      "bytes": 7161,
+      "sha256": "c9998febca1185661a4f3424225bb9a4e755bb2bddd8c5ba0ae3161e0dfc82ea",
+      "rawBytes": 21372,
+      "rawSha256": "4477a96b8b215a2914e4eeda9ece2cc83886a9bfd93713cd233ea4692d7ef6f7",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-23-check.mjs.gz"
+    },
+    {
+      "path": "objects/000059-94e5393e35d3.gz",
+      "bytes": 7177,
+      "sha256": "94e5393e35d3a30678402d5804f2ee8f91edcc95e9ba2245ed13b08ef43f7e32",
+      "rawBytes": 21410,
+      "rawSha256": "f94d5b335f9613e261e5f88509e61071e0fded24c41205cee53f515fad4a319e",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-23-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000060-a481db9e9792.gz",
+      "bytes": 7113,
+      "sha256": "a481db9e9792a892266388102e438886b4e7b0389d3d8f11fc67650e6db7d3cd",
+      "rawBytes": 21136,
+      "rawSha256": "32bc4285d56af6821e628bcf60a9c7e0207d07db9742987827638a800cd438e6",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-24-check.mjs.gz"
+    },
+    {
+      "path": "objects/000061-834a907d0195.gz",
+      "bytes": 7128,
+      "sha256": "834a907d0195d5887a933764c17575adf5241984e6c5b0eadc7c0967f71e97e3",
+      "rawBytes": 21174,
+      "rawSha256": "6182f803794a4b7381980034612e28da38e9e526fd57015b45504af6271bdb3e",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-24-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000062-42f0666b31d0.gz",
+      "bytes": 7172,
+      "sha256": "42f0666b31d00d7e8b34a49bb70528574023719f69525a15c3c0a8015e61a5a2",
+      "rawBytes": 21331,
+      "rawSha256": "b287b2e012092dd7fc23464a81e55f06d92b1c18c8379b3265c26de6b5007c0a",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-25-check.mjs.gz"
+    },
+    {
+      "path": "objects/000063-7213a20796be.gz",
+      "bytes": 7187,
+      "sha256": "7213a20796be20c09ef18d93dff14549a1476d6c5a1a1b03b6d97713b4eb6aa0",
+      "rawBytes": 21369,
+      "rawSha256": "33e9b74a94acc7af7017411f5b25dc48d13188151ba9c9853aa4a5bf3ec30b1d",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-25-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000064-630cdb250e02.gz",
+      "bytes": 7204,
+      "sha256": "630cdb250e02484b16966c268c8896ea43ea34e439d63cd984b2bab4114fd4be",
+      "rawBytes": 21360,
+      "rawSha256": "339e460913c414da4131735a5d7f32aa4d26770408a32740571c007a598aa91b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-26-check.mjs.gz"
+    },
+    {
+      "path": "objects/000065-44304825f71c.gz",
+      "bytes": 7219,
+      "sha256": "44304825f71ca43adaf02aa8b541209ef8fd7641e6d90554f6936a1ca515b45e",
+      "rawBytes": 21398,
+      "rawSha256": "ec922e94ec1aa99534b9f1b64b5687ba6d785e3010bace5515c074e4fc5211a9",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-26-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000066-8f0d0870b403.gz",
+      "bytes": 7139,
+      "sha256": "8f0d0870b403d6bc0bfd6eea292da5a5b970195e9cb8e95e825a9711d024de97",
+      "rawBytes": 21215,
+      "rawSha256": "adc5bc96022b285730463fcd5923c7766a6b28116b954c1061cfc9bf735b16b4",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-27-check.mjs.gz"
+    },
+    {
+      "path": "objects/000067-ae920dd3b462.gz",
+      "bytes": 7154,
+      "sha256": "ae920dd3b4625a777f3709acd2de4a3b1a5102fdb72a6a7aee8d83b1d0f0dd77",
+      "rawBytes": 21253,
+      "rawSha256": "6fd6b739acbd642dd8043ab843211e08e577eeba0a97a939c69aff1ec6ef08db",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-27-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000068-a29ba2bbffb9.gz",
+      "bytes": 7141,
+      "sha256": "a29ba2bbffb900fcca16258f0488af0fa258b3dcaff7ecb399ce0f8c822fe657",
+      "rawBytes": 21212,
+      "rawSha256": "7a81e13c247cac3eb6cfb325c035daf8921856527ae96d6918e3c1964d8c6344",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-28-check.mjs.gz"
+    },
+    {
+      "path": "objects/000069-bb8307e757f2.gz",
+      "bytes": 7157,
+      "sha256": "bb8307e757f2952fb6c7ca69999a3b2f6b496fd8f2fffdd74403217d4fc6a2a6",
+      "rawBytes": 21250,
+      "rawSha256": "9c107b914b8afeb12f5d28057591f3a1e1c5cf89a44e90aa091001ad3ec35b6b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-28-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000070-37d825938f69.gz",
+      "bytes": 7121,
+      "sha256": "37d825938f69c37b4ce78ea815ce5d4478719eb9adb4eeb68bc21bf0fd35c50c",
+      "rawBytes": 21132,
+      "rawSha256": "074cebbebe347c51ee9bf600f7185590f131976a471169c516f78968c97fe9ba",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-29-check.mjs.gz"
+    },
+    {
+      "path": "objects/000071-162a8b253008.gz",
+      "bytes": 7136,
+      "sha256": "162a8b25300880555e1a48cc2b2f14acb8c7549067f25836ef84638a32a5dd32",
+      "rawBytes": 21170,
+      "rawSha256": "4c220bc45411ecae45e142a386f548004f3db5cc2ff011fcdc84fe96614a5eda",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-29-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000072-ccd32eda827d.gz",
+      "bytes": 7188,
+      "sha256": "ccd32eda827d7a9b985344ef6c667a34692cafbc3e2d77bd1390d54a67bb1a2b",
+      "rawBytes": 21273,
+      "rawSha256": "24b95c6230066f561f61f156fed171df153fb5eb4cba29f67baca1f7ad518b7d",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-30-check.mjs.gz"
+    },
+    {
+      "path": "objects/000073-622c0ae9c792.gz",
+      "bytes": 7204,
+      "sha256": "622c0ae9c792d1cac492a04aa1c32730fe383739ce66a3091373549e917fc23a",
+      "rawBytes": 21311,
+      "rawSha256": "1af8d1b03ee21a316ae2141f7d1ee27582e64b2726991989a5ec697ef27732b9",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-30-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000074-efdbc378b722.gz",
+      "bytes": 7133,
+      "sha256": "efdbc378b722e4f481b3271932548ec1286b8359db88880a65ee2cf9e86d9b53",
+      "rawBytes": 21189,
+      "rawSha256": "a469038f4bc95c3bab1312225785c69456e0340d27918762d9d47878b9901bc2",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-31-check.mjs.gz"
+    },
+    {
+      "path": "objects/000075-dfb4a970bd43.gz",
+      "bytes": 7148,
+      "sha256": "dfb4a970bd43b2cd6315f75a4f53646c7d68b7dcda640f7846e9b265ec68cbff",
+      "rawBytes": 21227,
+      "rawSha256": "776765793587c4696bd92b4143944ac74c4f36f365f10c2909435b90681c111b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-31-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000076-d2530bfe4690.gz",
+      "bytes": 7139,
+      "sha256": "d2530bfe4690a13d208b3c016360c34ee4640ec263b33992ec762e36319c7a9d",
+      "rawBytes": 21194,
+      "rawSha256": "870fcad7086ba1d2f14178d7bbaf8272cee47f04dd8b704b9c7f66b5c7499c12",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-32-check.mjs.gz"
+    },
+    {
+      "path": "objects/000077-3920cc6497ce.gz",
+      "bytes": 7154,
+      "sha256": "3920cc6497ce39aa33de10a737b2efa60162e6f80a9d5aad1c2716605c2cef8f",
+      "rawBytes": 21232,
+      "rawSha256": "6b4d9fe2a34884b3ce6c87b6965fbcd107da6adb36afdcc068aa3ffbcc117f58",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-32-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000078-9e640c8c443c.gz",
+      "bytes": 7122,
+      "sha256": "9e640c8c443c1788a35f0a82027da0ae18574a59cdd8b0c0f37273d74f74b11b",
+      "rawBytes": 21178,
+      "rawSha256": "aa8d2b966f5e08e9d3ba073bb1407d38fd0e4e1d0fa0e03f2d83c4a1a8cfc980",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-33-check.mjs.gz"
+    },
+    {
+      "path": "objects/000079-265217660631.gz",
+      "bytes": 7137,
+      "sha256": "265217660631f1d596e56bc2e941225ad5b0c9a62c5570f12e51cdc79a778c52",
+      "rawBytes": 21216,
+      "rawSha256": "1b017692f83279965ed832045af0bb851e904bbf34148d2284e4c52720599bb0",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-33-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000080-6b3833b89c8c.gz",
+      "bytes": 8858,
+      "sha256": "6b3833b89c8cc43204fb598def74e0da36a9967e79080fd99f5efd314e75b6fd",
+      "rawBytes": 31708,
+      "rawSha256": "b6ef1ef99adc420e42a2167005241d434d6ed6a9117ace33dc0a50aea0f80f82",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-34-check.mjs.gz"
+    },
+    {
+      "path": "objects/000081-ee7a453d53bd.gz",
+      "bytes": 8875,
+      "sha256": "ee7a453d53bd149cf95cdc44a30f4969a543ef7ae8141a2f9dd18fd39ac04a79",
+      "rawBytes": 31746,
+      "rawSha256": "dd2ae54e64f03a213eda2703fe7db78b82bed7e93cf4d05ff4c722946e3defb6",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-34-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000082-73f492bd6565.gz",
+      "bytes": 7168,
+      "sha256": "73f492bd6565bc48be8ee1e72aa031bcf963053c47da9a92f01411794b581c98",
+      "rawBytes": 21202,
+      "rawSha256": "bd986ef8bf065ad40fdcba4249bc2227a4f7011875404fbe722e1d01e163c76d",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-35-check.mjs.gz"
+    },
+    {
+      "path": "objects/000083-4cd141c04bf4.gz",
+      "bytes": 7183,
+      "sha256": "4cd141c04bf486c5993fd898858d2e3ceab6527b0a01cfb18b38f82aa3221abd",
+      "rawBytes": 21240,
+      "rawSha256": "ae2c21cf17883fc87a6208c548482f01fefa3a656f501faeb19674e02d1dc140",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-35-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000084-a5f4d19b976f.gz",
+      "bytes": 7126,
+      "sha256": "a5f4d19b976f80998f0d5abc1cba81bae42cdeeed4d8c0f13ce4856f048943ae",
+      "rawBytes": 21189,
+      "rawSha256": "c6d8d0816d69c07605c8d4f07a2396d3cca7d10772c842004436ff79d2acd7a3",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-36-check.mjs.gz"
+    },
+    {
+      "path": "objects/000085-e78ada90d352.gz",
+      "bytes": 7142,
+      "sha256": "e78ada90d3524cd9f07db1343eb796e8cdea84527ead87b778f54137f1c5e2c9",
+      "rawBytes": 21227,
+      "rawSha256": "23212a2e9c0ecb0ed46ee2efd4ad416410e6a9da42769f7c5feee153efb8d1c4",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/pack/verify-36-setup.mjs.gz"
+    },
+    {
+      "path": "objects/000086-4a3425b97687.gz",
+      "bytes": 1176,
+      "sha256": "4a3425b976876ebcedcb69b06dd84e7b532d80768568bfbcaf1d2b141b5c75d9",
+      "rawBytes": 2831,
+      "rawSha256": "915b8e84878ca7c7487f6993e2c91360701476c42154c99bcd7a0a9071a671d2",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/public-install-binding.json.gz"
+    },
+    {
+      "path": "objects/000087-b3b1fee2f0ae.gz",
+      "bytes": 546,
+      "sha256": "b3b1fee2f0aeedf3e34548e3ca3845b3ba5a43f827b3ec6e98a3fdeda4b94443",
+      "rawBytes": 1008,
+      "rawSha256": "d75617774a3e90a366365e1ce50545885fbe129c515754307af3770ec42ae6c1",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/public-install.process.json.gz"
+    },
+    {
+      "path": "objects/000088-8047d7cae705.gz",
+      "bytes": 289,
+      "sha256": "8047d7cae705273e3e934be93472f0f90bc8fb048d9f8e7f2b1e3d9e7b9a9c25",
+      "rawBytes": 451,
+      "rawSha256": "518da133924bf614309cd4535db9ea8485b8f81e2c6267080422364d94f90b8e",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/public-install.stderr.gz"
+    },
+    {
+      "path": "objects/000089-7e1a7db0b80f.gz",
+      "bytes": 47,
+      "sha256": "7e1a7db0b80f196d0e218f66bb17bb78efaa8eb719f4187e8d18851644265645",
+      "rawBytes": 27,
+      "rawSha256": "6318349bd03e1e65e40747fd2de2e5ef7c2680fa89c26d8a0e7ff31d558134b4",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/public-install.stdout.gz"
+    },
+    {
+      "path": "objects/000090-dcc0e1b45d20.gz",
+      "bytes": 43140,
+      "sha256": "dcc0e1b45d205d58f05b2e889081306b37ee4673cb498ae29f47a1c317f88a27",
+      "rawBytes": 209474,
+      "rawSha256": "3123cc3ee80f85433655f7b6d479c38009be2a2bb88f9e39cca3114252de0d2c",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/public-package-lock.json.gz"
+    },
+    {
+      "path": "objects/000091-bf92741f7949.gz",
+      "bytes": 2839,
+      "sha256": "bf92741f7949a881e14cc2c68406a0830d4ed35416d5ba0dde649fd5c4b4d3c3",
+      "rawBytes": 9958,
+      "rawSha256": "5f06d639ecda37e41c0b3eace43d4c591825228c95d56ecc6e8dec900b4c9d27",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/summary.json.gz"
+    },
+    {
+      "path": "objects/000092-083326b07f83.gz",
+      "bytes": 1034224,
+      "sha256": "083326b07f8380cd4512a333716a5a25a764594209c2acf09a259f60debed0b6",
+      "rawBytes": 4263566,
+      "rawSha256": "c608cd1ec5ee4b72e648b6b475cb0a4b711ec843a529688bd929b3db17181a98",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/after-model-tree.json.gz"
+    },
+    {
+      "path": "objects/000093-684f8bbb9b2d.gz",
+      "bytes": 1034170,
+      "sha256": "684f8bbb9b2d796e15b27135a56c8c3041ab13f5505301e9c3859ea9ee76f50c",
+      "rawBytes": 4263371,
+      "rawSha256": "2d0c30f576d5b5682db6bf5c1816a51b9d752bf880150f83c94e6624466f7dfb",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/before-model-tree.json.gz"
+    },
+    {
+      "path": "objects/000094-bdf93a101695.gz",
+      "bytes": 88,
+      "sha256": "bdf93a1016954a22bf53e8e97548b5936959bf244944a89d53c4018934012c65",
+      "rawBytes": 75,
+      "rawSha256": "a2dfd9c66e46b38a4b38be92569fdb1c1f70d0576c7a5087f91228c432dfff19",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/candidate/packages/cli/__tests__/verify-04.test.js.gz"
+    },
+    {
+      "path": "objects/000095-af4afc5e433c.gz",
+      "bytes": 7736,
+      "sha256": "af4afc5e433c8e8feeea6b1ed55b0fa375b8ff8c7bb0d9796c9d6d807dca4e62",
+      "rawBytes": 23348,
+      "rawSha256": "5fd7feb3f743a461aa1f154ffb749546bc8e99215990517d6f0b7fa03c614e5b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/check.process.json.gz"
+    },
+    {
+      "path": "objects/000096-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/check.stderr.gz"
+    },
+    {
+      "path": "objects/000097-23f1762f5fae.gz",
+      "bytes": 192,
+      "sha256": "23f1762f5faea350a2ba043d0c02b6a7bb489d55985741810528dab60d429ffc",
+      "rawBytes": 226,
+      "rawSha256": "d9179a79c48be5320ff01e9d3a506f8a1adeec058f8c0faa0bb0989febd0ba53",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/check.stdout.gz"
+    },
+    {
+      "path": "objects/000098-a4a61de47afb.gz",
+      "bytes": 408,
+      "sha256": "a4a61de47afbfb711e3a61c250ebba77adb7ffd7ad15534d5f5d414cfa9eb953",
+      "rawBytes": 770,
+      "rawSha256": "7de39e9d50aaa2518778f9ed7bef3d5fcd336936b47c6061f77b69020a4d1197",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/diff-verify-04.test.js.process.json.gz"
+    },
+    {
+      "path": "objects/000099-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/diff-verify-04.test.js.stderr.gz"
+    },
+    {
+      "path": "objects/000100-d7f14d8bdb51.gz",
+      "bytes": 189,
+      "sha256": "d7f14d8bdb51223af481ff48d936f70e302b5d0d45ca5a075f534bcc638d2447",
+      "rawBytes": 292,
+      "rawSha256": "e1efd1dd6d0e1707a08fa30e549304e4811c4cd85661f0d25b053315e9b48d55",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/diff-verify-04.test.js.stdout.gz"
+    },
+    {
+      "path": "objects/000101-a6df634b24b4.gz",
+      "bytes": 1913,
+      "sha256": "a6df634b24b409f47d32f000c1d0d29b79bff9da19c1787c01580dd38d7204a3",
+      "rawBytes": 3368,
+      "rawSha256": "f85146f2047d623d3b0b4813f686c1bdf3caeb8d0daf19d7df147e501f00cf8b",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/model.process.json.gz"
+    },
+    {
+      "path": "objects/000102-d47e40f2526d.gz",
+      "bytes": 176,
+      "sha256": "d47e40f2526d9cefe6faf0511dd34e83dee67d4d4b8902162a15b93c2e780c99",
+      "rawBytes": 183,
+      "rawSha256": "3254ba0d2a122d774c38ec2360908643e6dceda14cd349e82bf615792e342528",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/model.stderr.gz"
+    },
+    {
+      "path": "objects/000103-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/model.stdout.gz"
+    },
+    {
+      "path": "objects/000104-08229ef78b2f.gz",
+      "bytes": 1224,
+      "sha256": "08229ef78b2fa313244ced28b1f72e2a1c92e4380cc561adacb0fdf4f19138ec",
+      "rawBytes": 1992,
+      "rawSha256": "47bfa63e23d344703e44967f7d650e024e0b693dc9b147dff67c32d25f28b7ae",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/prompt.txt.gz"
+    },
+    {
+      "path": "objects/000105-8d8780a6b8e2.gz",
+      "bytes": 1007,
+      "sha256": "8d8780a6b8e294b0864e5c878138ddfe6acac5e8aa2e6f684a599008b4246fd0",
+      "rawBytes": 2674,
+      "rawSha256": "5a6fce78207f0e292b672fecd34fb957ca5c6ae74b9e0810e16b194ff7bd71f2",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/result.json.gz"
+    },
+    {
+      "path": "objects/000106-c71ff36d8e0f.gz",
+      "bytes": 7756,
+      "sha256": "c71ff36d8e0f805112e342b380878d6189b4c3acfa13e428eb33e817162b6706",
+      "rawBytes": 23387,
+      "rawSha256": "946b77130c0452cb4078e836f804503717d60a06fa945ab6c5f0a70e98b675b0",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/setup.process.json.gz"
+    },
+    {
+      "path": "objects/000107-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/setup.stderr.gz"
+    },
+    {
+      "path": "objects/000108-edf5d3da6917.gz",
+      "bytes": 222,
+      "sha256": "edf5d3da69177f3c3882aca6734be12d0d0a2f167eeecf09eba9696b6102d515",
+      "rawBytes": 268,
+      "rawSha256": "5712cc78d98a94b8fcf6896a37421d75b90aa4481d49834e70fb5ef79de8d9cf",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/setup.stdout.gz"
+    },
+    {
+      "path": "objects/000109-e4d1eb8d1d71.gz",
+      "bytes": 720,
+      "sha256": "e4d1eb8d1d71775cea943945ef21dd7be14b6098fdae5106b3852e7d4693f506",
+      "rawBytes": 1090,
+      "rawSha256": "776baaedce7cf5335e4092986f5df63c5cab19ee319a4df1764631ca71a8a921",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-04/task.json.gz"
+    },
+    {
+      "path": "objects/000110-710dcf0d33f8.gz",
+      "bytes": 1034222,
+      "sha256": "710dcf0d33f80f843331235639720ce7cc206db3e5d7b667ccb63ff67b27155e",
+      "rawBytes": 4263566,
+      "rawSha256": "89b12d46bdf1e1f7b33136dab80bc3e6e36ef644dbb6dbca71941076735714ee",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/after-model-tree.json.gz"
+    },
+    {
+      "path": "objects/000111-684f8bbb9b2d.gz",
+      "bytes": 1034170,
+      "sha256": "684f8bbb9b2d796e15b27135a56c8c3041ab13f5505301e9c3859ea9ee76f50c",
+      "rawBytes": 4263371,
+      "rawSha256": "2d0c30f576d5b5682db6bf5c1816a51b9d752bf880150f83c94e6624466f7dfb",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/before-model-tree.json.gz"
+    },
+    {
+      "path": "objects/000112-bdf93a101695.gz",
+      "bytes": 88,
+      "sha256": "bdf93a1016954a22bf53e8e97548b5936959bf244944a89d53c4018934012c65",
+      "rawBytes": 75,
+      "rawSha256": "a2dfd9c66e46b38a4b38be92569fdb1c1f70d0576c7a5087f91228c432dfff19",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/candidate/packages/cli/__tests__/verify-22.test.js.gz"
+    },
+    {
+      "path": "objects/000113-31e5f22abf12.gz",
+      "bytes": 7658,
+      "sha256": "31e5f22abf12821b730a74ef0752fa0baca79a2707ac649479ac980644707f13",
+      "rawBytes": 23173,
+      "rawSha256": "42cf99a67f02b152cedf1ed371c10b565e3631e30fa158e97cd51b8de0580644",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/check.process.json.gz"
+    },
+    {
+      "path": "objects/000114-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/check.stderr.gz"
+    },
+    {
+      "path": "objects/000115-dcaf8da631f1.gz",
+      "bytes": 192,
+      "sha256": "dcaf8da631f1ffc846468bfb6bce8e633e378a82b838a174dfa1e523388fcf0d",
+      "rawBytes": 226,
+      "rawSha256": "0e084f14fab02f9c1e2a1af033c03f77b62148d697085ea06bc85019429e2a74",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/check.stdout.gz"
+    },
+    {
+      "path": "objects/000116-203d3b4a3f92.gz",
+      "bytes": 410,
+      "sha256": "203d3b4a3f92647ede581d112243e79ccc74a878cd1d82d16b2f7af52920cf51",
+      "rawBytes": 770,
+      "rawSha256": "f5ce13cfb0020a7ef9ad2796f345dffee1a1b2fb3bb2cb803f34c27f3e397a02",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/diff-verify-22.test.js.process.json.gz"
+    },
+    {
+      "path": "objects/000117-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/diff-verify-22.test.js.stderr.gz"
+    },
+    {
+      "path": "objects/000118-7b3895919730.gz",
+      "bytes": 189,
+      "sha256": "7b3895919730d13b912118faece766830017a4513c622cba41e1a09e6644a804",
+      "rawBytes": 292,
+      "rawSha256": "948bbfb2008a673a042a7ffaa9cfa70fc1373bcfca18ba429081f68db1007e13",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/diff-verify-22.test.js.stdout.gz"
+    },
+    {
+      "path": "objects/000119-1a3ef7c0b719.gz",
+      "bytes": 1892,
+      "sha256": "1a3ef7c0b7193534e0f243e4a54f8229b9eb4fc035c6f13d0c0f81a08844bdc3",
+      "rawBytes": 3355,
+      "rawSha256": "8e25e404704cb5863ef458ffefad7187b84a2d465ad467a80c39af8fda890b5f",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/model.process.json.gz"
+    },
+    {
+      "path": "objects/000120-98c2909f764c.gz",
+      "bytes": 175,
+      "sha256": "98c2909f764cc38de9ebaacb4a65a0ac1f9e13b00204f17cc559e4e11d9979b8",
+      "rawBytes": 183,
+      "rawSha256": "b3914c5393746f28a35b752cb53414fa02c05801165b50660e2e73540a4a8e14",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/model.stderr.gz"
+    },
+    {
+      "path": "objects/000121-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/model.stdout.gz"
+    },
+    {
+      "path": "objects/000122-bdb92fcd19aa.gz",
+      "bytes": 1204,
+      "sha256": "bdb92fcd19aa603dfdc4f481a44cf5ceb7074e56c6f78c0e586db91c3f98a340",
+      "rawBytes": 1979,
+      "rawSha256": "db5929b0c82f0ea8e9a99b20bad5f54cd0bb38c48fc9ddec903d5f8b4758c2ab",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/prompt.txt.gz"
+    },
+    {
+      "path": "objects/000123-153d732fda3c.gz",
+      "bytes": 1007,
+      "sha256": "153d732fda3c5c77d64b61f719d8ff32f0ac1ff6e7f98398ebc439992cbad8b4",
+      "rawBytes": 2674,
+      "rawSha256": "dac22537aee271575d5a8292b41cbf7df7b864b9da454f36dd1c020744c793d7",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/result.json.gz"
+    },
+    {
+      "path": "objects/000124-34ac2822a3e4.gz",
+      "bytes": 7678,
+      "sha256": "34ac2822a3e4028256cd0c68825da149376b075ddf2748fb48bebdc5c0f5d729",
+      "rawBytes": 23212,
+      "rawSha256": "bf39892af66c82ad464266b6cb10dafd07d3b6f3c0f05f8f6b66d1651c7be160",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/setup.process.json.gz"
+    },
+    {
+      "path": "objects/000125-9e72928e7a01.gz",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/setup.stderr.gz"
+    },
+    {
+      "path": "objects/000126-4a1e81a3500f.gz",
+      "bytes": 223,
+      "sha256": "4a1e81a3500f1da1de04e2a2d690c63e7f32be29b250e4f1610a23fbb8d36fca",
+      "rawBytes": 268,
+      "rawSha256": "be25be940954adc9738c1155f94c96f3e5b2d1ffaa7b177aef78536764c5805c",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/setup.stdout.gz"
+    },
+    {
+      "path": "objects/000127-3d4d6cf08615.gz",
+      "bytes": 728,
+      "sha256": "3d4d6cf086154d4c1afb15e811b9e47d39fc5f4eec11802d894ba61f13bc2058",
+      "rawBytes": 1123,
+      "rawSha256": "e55b66271bece891925c9ffe8dd536ad5ec6f95c7b122cdaba6e8b997b49defb",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic/verify-22/task.json.gz"
+    },
+    {
+      "path": "objects/000128-285eab3edc69.gz",
+      "bytes": 175,
+      "sha256": "285eab3edc69ba242f257658156e3b91ff9acde77609aff67677144cbcb3e2b6",
+      "rawBytes": 214,
+      "rawSha256": "0a43524ed35ea46a6148d1b5e29c2b2449910c70f726123d851628875bd15468",
+      "artifactOriginalPath": "verify01-volcengine-task-diagnostic-bee3f0f3979c2bd37d35a2c6b5e9b48080a84795-1/verify01-volcengine-task-diagnostic-workflow/workflow.json.gz"
+    },
+    {
+      "path": "objects/000129-4112d0f33fd3.gz",
+      "bytes": 1687,
+      "sha256": "4112d0f33fd3ba3b1851fed490c070cf9766269fb43b686e157a5650d0cca987",
+      "rawBytes": 13784,
+      "rawSha256": "b3e5eb12f3da4bc9c434501f1f4e1f8fd063e784472e8e32d5c5ffa7436bdf0f",
+      "artifactOriginalPath": "run.json.gz"
+    },
+    {
+      "path": "objects/000130-827b1aa68180.gz",
+      "bytes": 823,
+      "sha256": "827b1aa68180148da1b0218d1a970ea8a1d3094d995692efbdc38c5d76f62af7",
+      "rawBytes": 2952,
+      "rawSha256": "55b3b852547baa3feaa8f79305f72dc5683b90cbae26d25f36e6bb74931132df",
+      "artifactOriginalPath": "jobs.json.gz"
+    },
+    {
+      "path": "objects/000131-86dcf1014c1b.gz",
+      "bytes": 461,
+      "sha256": "86dcf1014c1b2068629c3ae6159f937aa9bab8887a60719bbb76720222556e6b",
+      "rawBytes": 821,
+      "rawSha256": "f05bc58bd034d6d5845503562705dabb639e427e43473b34a5cdd1a8e7f886c6",
+      "artifactOriginalPath": "artifacts.json.gz"
+    }
+  ],
+  "storageLayout": "portable objects directory; artifactOriginalPath preserves source/artifact names; gzip bytes, digests and original verdicts unchanged"
+}

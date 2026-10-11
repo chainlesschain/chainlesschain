@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
@@ -93,6 +99,142 @@ const replyText = (content) =>
     message: { role: "assistant", content },
     usage: { input_tokens: 7, output_tokens: 3 },
   }));
+
+describe("headless pre-execution denial correlation", () => {
+  it("retains a real absolute-path rejection between a successful read and relative write", async () => {
+    const directory = mkdtempSync(
+      join(
+        (realpathSync.native || realpathSync)(tmpdir()),
+        "cc-headless-denial-",
+      ),
+    );
+    const target = join(directory, "allowed.txt");
+    writeFileSync(target, "before");
+    let turn = 0;
+    const chatFn = vi.fn(async () => {
+      turn++;
+      if (turn === 3) expect(readFileSync(target, "utf8")).toBe("before");
+      const calls = [
+        ["read-ok", "read_file", { path: "allowed.txt" }],
+        [
+          "write-denied",
+          "write_file",
+          { path: target, content: "must not write" },
+        ],
+        ["write-ok", "write_file", { path: "allowed.txt", content: "after" }],
+      ];
+      const call = calls[turn - 1];
+      return {
+        message: call
+          ? {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                {
+                  id: call[0],
+                  type: "function",
+                  function: {
+                    name: call[1],
+                    arguments: JSON.stringify(call[2]),
+                  },
+                },
+              ],
+            }
+          : { role: "assistant", content: "done" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    });
+    const { deps, out } = makeDeps(chatFn);
+    try {
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "perform the bounded file edit",
+          cwd: directory,
+          outputFormat: "stream-json",
+          ephemeral: true,
+          permissionMode: "acceptEdits",
+          hermeticExecution: true,
+          exactToolNames: true,
+          allowedTools: ["read_file", "write_file"],
+          fileMutationScope: {
+            exact: true,
+            worktreeRoot: directory,
+            allowedPaths: ["allowed.txt"],
+          },
+        },
+        deps,
+      );
+      expect(outcome.exitCode).toBe(0);
+      expect(chatFn).toHaveBeenCalledTimes(4);
+      expect(readFileSync(target, "utf8")).toBe("after");
+      const events = out.join("").trim().split("\n").map(JSON.parse);
+      expect(
+        events
+          .filter((event) => event.type === "tool_use")
+          .map((event) => event.id),
+      ).toEqual(["read-ok", "write-ok"]);
+      const results = events.filter((event) => event.type === "tool_result");
+      expect(results.map((event) => event.id)).toEqual([
+        "read-ok",
+        "write-denied",
+        "write-ok",
+      ]);
+      expect(results[1]).toMatchObject({
+        execution_started: false,
+        is_error: true,
+        permission_decision: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: "non-canonical-path",
+        },
+      });
+      expect(results[1]).not.toHaveProperty("attempted_args");
+      expect(results[0].is_error).toBe(false);
+      expect(results[2].is_error).toBe(false);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it.each([false, undefined])(
+    "does not settle a pending call for an unmatched explicit result ID (started=%s)",
+    async (started) => {
+      const { deps, out } = makeDeps(null);
+      deps.agentLoop = async function* () {
+        yield {
+          type: "tool-executing",
+          tool: "read_file",
+          tool_use_id: "pending-read",
+          args: { path: "a" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "unmatched",
+          ...(started === false ? { execution_started: false } : {}),
+          error: "denied",
+          result: { error: "denied" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "pending-read",
+          result: { content: "ok" },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      };
+      await runAgentHeadless(
+        { prompt: "go", ephemeral: true, outputFormat: "json" },
+        deps,
+      );
+      const result = JSON.parse(out.join(""));
+      expect(result.tool_calls).toEqual([
+        expect.objectContaining({ id: "pending-read", is_error: false }),
+      ]);
+    },
+  );
+});
 
 function verifiedEventChain(events) {
   let previousHash = null;

@@ -16304,6 +16304,7 @@ export async function* agentLoop(messages, options) {
           tool: toolName,
           result: earlyAuthorityDenial,
           error: earlyAuthorityDenial.error,
+          execution_started: false,
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
           permission_decision_id: decision?.id || null,
