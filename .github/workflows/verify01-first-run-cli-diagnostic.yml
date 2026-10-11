@@ -4,7 +4,7 @@ name: VERIFY01 First Run CLI Diagnostic
 # Ordinary PRs, schedules, pushes and workflow completion never call a provider.
 on:
   push:
-    branches: [feature/cli-ide-gap-20261011]
+    branches: [feature/cli-first-run-retest-016698]
     paths:
       - "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs"
       - ".github/workflows/verify01-first-run-cli-diagnostic.yml"
@@ -27,7 +27,7 @@ jobs:
   diagnostic:
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-ide-gap-20261011' &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-first-run-retest-016698' &&
       contains(github.event.head_commit.message, '[volcengine-first-run-diagnostic]'))
     runs-on: ubuntu-24.04
     timeout-minutes: 40
