@@ -1,0 +1,339 @@
+{
+  "schema": "chainlesschain.release098-stage-evidence/v1",
+  "capturedAt": "2026-10-11T11:17:21.789Z",
+  "stage": "offline-contracts",
+  "releaseCommit": "821c63eff2698c8625a7be596f935d658ce095cf",
+  "source": ".work/release098-six-gates-offline-2026-10-11T11-16-44.751Z-Ewi6ED",
+  "report": "readback.json",
+  "reportSha256": "fee24259d8254d33219dd580d29b384adabea2e547d7fb95954817c1fcae051a",
+  "observations": {
+    "scope": "offline release/readback helper contracts only",
+    "process": {
+      "sourceSha": "821c63eff2698c8625a7be596f935d658ce095cf",
+      "startedAt": "2026-10-11T11:16:45.269Z",
+      "finishedAt": "2026-10-11T11:16:48.580Z",
+      "executable": "C:\\nvm4w\\nodejs\\node.exe",
+      "nodeVersion": "v22.22.2",
+      "args": [
+        "--test",
+        "--test-reporter=tap",
+        ".work/release098-workflow-contract.test.mjs",
+        ".work/readback-ide-workflow098.test.mjs",
+        ".work/readback-release098.test.mjs"
+      ],
+      "environmentOverride": {
+        "CC_READBACK_TEST_SHA": "821c63eff2698c8625a7be596f935d658ce095cf",
+        "CC_READBACK_WORKFLOW_WORKTREE": "0"
+      },
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdoutSha256": "2b23f768a7ab923b5bc7e9a05e6db306e85b6b25a97f98719a14412ff799904d",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceSnapshotsUnchanged": true,
+      "offlineOnly": true,
+      "releaseGateEvidence": false
+    }
+  },
+  "entries": [
+    {
+      "sourceRelativePath": "immutable-workflows/cli-background-interaction-e2e.yml",
+      "role": "raw-evidence",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "path": "objects/0000.gz",
+      "bytes": 1148,
+      "sha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/cli-ci.yml",
+      "role": "raw-evidence",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "path": "objects/0001.gz",
+      "bytes": 4512,
+      "sha256": "a3c5b48fe7c3cfdeecc8a16197d9bf29c20ea406751dd31780c8c00fab557566"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/cli-strict-sandbox.yml",
+      "role": "raw-evidence",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "path": "objects/0002.gz",
+      "bytes": 5631,
+      "sha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/context-memory-kernel.yml",
+      "role": "raw-evidence",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "path": "objects/0003.gz",
+      "bytes": 1787,
+      "sha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/ide-arm64-validation.yml",
+      "role": "raw-evidence",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "path": "objects/0004.gz",
+      "bytes": 5746,
+      "sha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/ide-extensions.yml",
+      "role": "raw-evidence",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "path": "objects/0005.gz",
+      "bytes": 8742,
+      "sha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87"
+    },
+    {
+      "sourceRelativePath": "immutable-workflows/memory-query-index.yml",
+      "role": "raw-evidence",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "path": "objects/0006.gz",
+      "bytes": 860,
+      "sha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90"
+    },
+    {
+      "sourceRelativePath": "process.json",
+      "role": "raw-evidence",
+      "rawBytes": 880,
+      "rawSha256": "fee24259d8254d33219dd580d29b384adabea2e547d7fb95954817c1fcae051a",
+      "path": "objects/0007.gz",
+      "bytes": 512,
+      "sha256": "15127d79583820e6f6c0849805de9cec73130c8a2ee7dc899b89f4cebe9caf5c"
+    },
+    {
+      "sourceRelativePath": "source-manifest.json",
+      "role": "raw-evidence",
+      "rawBytes": 5821,
+      "rawSha256": "427b4feaf84656b20201e3c1bb4949ee7c53b7a58936be150c8b6ea085267a2e",
+      "path": "objects/0008.gz",
+      "bytes": 1566,
+      "sha256": "a495afb0b186802559429ae37cea8b91f91b4392743a6d197f84a636c7301f65"
+    },
+    {
+      "sourceRelativePath": "sources/.work/jvm-string-constant.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5386,
+      "rawSha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "objects/0009.gz",
+      "bytes": 1851,
+      "sha256": "3bf1c785bd591b89776da451013afa11c49b016fd2c93e7ebffb096c9f112a1c"
+    },
+    {
+      "sourceRelativePath": "sources/.work/read-release-016698-gates.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3623,
+      "rawSha256": "4677ed1fd67b4f594f35c924bc01534aa4663c4551fbf782aae0c32ef6046edd",
+      "path": "objects/0010.gz",
+      "bytes": 1562,
+      "sha256": "d6b3e35a93e2046af9edd5144a76dd98c9c5b0a483408b7c091f6a7bb23e045d"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-release098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 13386,
+      "rawSha256": "dc879d4c308f4173d1c6425846df74063d19c80e202b6877bba49d27355d1d97",
+      "path": "objects/0011.gz",
+      "bytes": 4205,
+      "sha256": "1bccf5d2cd504eaea13a4d669ec9e6e321e6aa0672e7e5a24d92ff4f53690bea"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-workflow098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5950,
+      "rawSha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf",
+      "path": "objects/0012.gz",
+      "bytes": 1778,
+      "sha256": "3a40149bea466b3624b25fa2e932da1e5064085adb72cb185a75d2f95b0a1017"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-ide-workflow098.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3775,
+      "rawSha256": "bad1daf3d1a8d6edd2a1e2bcb4b0606246be5bbbc0892e856ccf1daf760a4412",
+      "path": "objects/0013.gz",
+      "bytes": 1377,
+      "sha256": "d0eab4631ba5e32a4d1a774b8ea3166b42f978c347c45841427cf9b20b8c38e6"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-public-release098.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 27318,
+      "rawSha256": "011ce0de479449480b90a4fbbb89f109e27441419adc59a0efc719fc19f752bf",
+      "path": "objects/0014.gz",
+      "bytes": 7907,
+      "sha256": "80d99a9147b14d801d08fa6196b84e8aa0ab74f1127023f51782cd1a5b2b7790"
+    },
+    {
+      "sourceRelativePath": "sources/.work/readback-release098.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 5355,
+      "rawSha256": "fa3e93e785e4ca87c26a6273f01f27b82764659963780141cdfdb29d69b46556",
+      "path": "objects/0015.gz",
+      "bytes": 1878,
+      "sha256": "51f5a537ab8bab253c7a1bca101563fedd49a3d434ad42814fe66680fc290cfb"
+    },
+    {
+      "sourceRelativePath": "sources/.work/release098-workflow-contract.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 11998,
+      "rawSha256": "b48692ca3a90a653bdf5ecc755ba45a7f8f581dff596cc4e1b13babd0d96bede",
+      "path": "objects/0016.gz",
+      "bytes": 3982,
+      "sha256": "671340c5b2aa73948c776c20a1b2c06c07058adcfe09abd29acb745aae4cdb6f"
+    },
+    {
+      "sourceRelativePath": "sources/.work/release098-workflow-contract.test.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 13594,
+      "rawSha256": "483466ae416dc8e849c413b6d0543d4e673ad329d94cfe7d8218974c7ae0ccd3",
+      "path": "objects/0017.gz",
+      "bytes": 3690,
+      "sha256": "d35ad840ba2b20d101b72a4608d9de9bbc4f896857ab36f0e85b09e1aecf6bc0"
+    },
+    {
+      "sourceRelativePath": "sources/.work/run-release098-six-gates-offline.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 3586,
+      "rawSha256": "6cceb6ea8a68c5985fdc7e94462aff5501f3d6ecc13f69c63b5a2e96c5134313",
+      "path": "objects/0018.gz",
+      "bytes": 1502,
+      "sha256": "177de02f29deda165e48e7b527dddff19df4e9255c267033b437aab3c6963960"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/scripts/npm-release-artifact.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 16249,
+      "rawSha256": "f127ad8e3bd5de619b8d57be38c25603248e7852bb4c0f297ffb4187f70ead1b",
+      "path": "objects/0019.gz",
+      "bytes": 4496,
+      "sha256": "9126ad07739621aea87f5578f44b12893a4905252a8e5222a613c8f39c2d2962"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/scripts/verify-cli-registry-install.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 6401,
+      "rawSha256": "c93a84ca4ae4f0856ee5d7db0c5e5562dc4a43eb4f04f44e8826d62cd6da1f12",
+      "path": "objects/0020.gz",
+      "bytes": 2202,
+      "sha256": "c45a58d7af1ee3b701e54512b52f36179484fc35001589629f885fcb84145e88"
+    },
+    {
+      "sourceRelativePath": "sources/packages/cli/src/lib/process-execution-broker/linux-subreaper-artifact.js",
+      "role": "raw-evidence",
+      "rawBytes": 4032,
+      "rawSha256": "da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa",
+      "path": "objects/0021.gz",
+      "bytes": 1542,
+      "sha256": "a5d34734a38f3964c222373e270d20e02ad64e136f8559b8649576cf766d0ed5"
+    },
+    {
+      "sourceRelativePath": "sources/packages/vscode-extension/scripts/verify-vsix.mjs",
+      "role": "raw-evidence",
+      "rawBytes": 10476,
+      "rawSha256": "3920b12085f0deaa1487a82b71e1a24b579b4f468247ce03a70b7329d86af7e1",
+      "path": "objects/0022.gz",
+      "bytes": 3529,
+      "sha256": "cd7671d29b52d40de58896fd7e0bf99d52bd6213cbcc158f62ab807750b81e0c"
+    },
+    {
+      "sourceRelativePath": "tests.stderr.txt",
+      "role": "raw-evidence",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "objects/0023.gz",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "sourceRelativePath": "tests.tap",
+      "role": "raw-evidence",
+      "rawBytes": 6126,
+      "rawSha256": "2b23f768a7ab923b5bc7e9a05e6db306e85b6b25a97f98719a14412ff799904d",
+      "path": "objects/0024.gz",
+      "bytes": 1581,
+      "sha256": "3a22c58591fbeb2a43b539ea4d1435679bdd4d4d71d6518269d864e58a814660"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/archive-release098-stage.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 8418,
+      "rawSha256": "6454b86d6ea6fbc3977eaef9dc448b9b04d870ac7ae5696eb92f098fb6854eb6",
+      "path": "objects/0025.gz",
+      "bytes": 2995,
+      "sha256": "296f539c6ab1e0c28745b7fde76af274a8fcad1062e5a7d47b00035abdea8b58"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/release098-workflow-contract.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 11998,
+      "rawSha256": "b48692ca3a90a653bdf5ecc755ba45a7f8f581dff596cc4e1b13babd0d96bede",
+      "path": "objects/0026.gz",
+      "bytes": 3982,
+      "sha256": "671340c5b2aa73948c776c20a1b2c06c07058adcfe09abd29acb745aae4cdb6f"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-ide-workflow098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 5950,
+      "rawSha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf",
+      "path": "objects/0027.gz",
+      "bytes": 1778,
+      "sha256": "3a40149bea466b3624b25fa2e932da1e5064085adb72cb185a75d2f95b0a1017"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/read-release-016698-gates.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 3623,
+      "rawSha256": "4677ed1fd67b4f594f35c924bc01534aa4663c4551fbf782aae0c32ef6046edd",
+      "path": "objects/0028.gz",
+      "bytes": 1562,
+      "sha256": "d6b3e35a93e2046af9edd5144a76dd98c9c5b0a483408b7c091f6a7bb23e045d"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-public-release098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 27318,
+      "rawSha256": "011ce0de479449480b90a4fbbb89f109e27441419adc59a0efc719fc19f752bf",
+      "path": "objects/0029.gz",
+      "bytes": 7907,
+      "sha256": "80d99a9147b14d801d08fa6196b84e8aa0ab74f1127023f51782cd1a5b2b7790"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/readback-ide-release098.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 13386,
+      "rawSha256": "dc879d4c308f4173d1c6425846df74063d19c80e202b6877bba49d27355d1d97",
+      "path": "objects/0030.gz",
+      "bytes": 4205,
+      "sha256": "1bccf5d2cd504eaea13a4d669ec9e6e321e6aa0672e7e5a24d92ff4f53690bea"
+    },
+    {
+      "sourceRelativePath": "collector-snapshots/jvm-string-constant.mjs",
+      "role": "collector-snapshot-at-archive-time",
+      "rawBytes": 5386,
+      "rawSha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "path": "objects/0031.gz",
+      "bytes": 1851,
+      "sha256": "3bf1c785bd591b89776da451013afa11c49b016fd2c93e7ebffb096c9f112a1c"
+    }
+  ],
+  "omittedBinaryBindings": [],
+  "formalSample": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "boundaries": [
+    "Lossless gzip records bind raw and compressed SHA256 independently.",
+    "Large fetched archives remain local; their byte counts/digests and remote receipts are preserved.",
+    "Offline helper tests and public byte/source checks do not establish native functionality or formal 36+9 admission.",
+    "Collector snapshots are captured at archive time; runtime helper hashes remain in the original invocation receipts.",
+    "A JetBrains pending record never establishes public publication."
+  ]
+}

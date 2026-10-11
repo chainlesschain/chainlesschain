@@ -41,25 +41,33 @@ describe("agent-core — prepareCall turn injection", () => {
     expect(messages.some((m) => m.content === "TURN=1")).toBe(false);
   });
 
-  it("skips injection when prepareCall returns null", async () => {
+  it("skips prepareCall injection while retaining the transient execution budget when it returns null", async () => {
     const capturedMessages = [];
     const chatFn = vi.fn(async (msgs) => {
-      capturedMessages.push(msgs.length);
+      capturedMessages.push(structuredClone(msgs));
       return { message: { role: "assistant", content: "ok" } };
     });
     const prepareCall = vi.fn(async () => null);
 
-    await drain(
-      agentLoop(
-        [
-          { role: "system", content: "s" },
-          { role: "user", content: "u" },
-        ],
-        { chatFn, prepareCall },
-      ),
-    );
+    const messages = [
+      { role: "system", content: "s" },
+      { role: "user", content: "u" },
+    ];
+    const originalMessages = structuredClone(messages);
+    await drain(agentLoop(messages, { chatFn, prepareCall }));
 
-    expect(capturedMessages[0]).toBe(2);
+    expect(prepareCall).toHaveBeenCalledTimes(1);
+    expect(capturedMessages).toHaveLength(1);
+    expect(capturedMessages[0]).toEqual([
+      ...originalMessages,
+      {
+        role: "system",
+        content: expect.stringMatching(
+          /^Execution budget: this request plus 49 further model requests\. /u,
+        ),
+      },
+    ]);
+    expect(messages).toEqual(originalMessages);
   });
 
   it("keeps asynchronous userContext at user authority", async () => {
