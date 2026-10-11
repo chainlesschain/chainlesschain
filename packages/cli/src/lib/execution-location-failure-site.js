@@ -27,6 +27,24 @@ export function readExecutionLocationStorageFailure(stderr) {
   return match ? `${match[1]}${match[2] || ""}` : null;
 }
 
+export function readExecutionLocationStorageLaunchFailure(stderr) {
+  const match = String(stderr || "")
+    .slice(0, MAX_DIAGNOSTIC_CHARS)
+    .match(
+      /\[windows-acl-launch:(inspect|repair|preflight):(spawn|timeout):(startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify):(EACCES|EPERM|ENOENT|ETIMEDOUT|EINVAL|ENOSYS|ENOMEM|EMFILE|ENFILE|ENOBUFS|EBUSY|UNKNOWN):(unknown|-?(?:0|[1-9][0-9]{0,4})):(spawnSync|spawn|unknown)\]/u,
+    );
+  if (!match) return null;
+  const [, operation, failureStage, progressStage, code, rawErrno, syscall] =
+    match;
+  const errno = rawErrno === "unknown" ? null : Number(rawErrno);
+  if (
+    (errno !== null && Math.abs(errno) > 65535) ||
+    (failureStage === "timeout") !== (code === "ETIMEDOUT")
+  )
+    return null;
+  return { operation, failureStage, progressStage, code, errno, syscall };
+}
+
 export function executionLocationFailureSite(error) {
   const stack = String(error?.stack || "").slice(0, MAX_DIAGNOSTIC_CHARS);
   for (const frame of stack.split(/\r?\n/u).slice(1)) {

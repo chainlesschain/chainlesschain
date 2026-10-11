@@ -7,6 +7,7 @@ import { TextDecoder } from "node:util";
 import {
   readExecutionLocationFailureSite,
   readExecutionLocationStorageFailure,
+  readExecutionLocationStorageLaunchFailure,
 } from "./execution-location-failure-site.js";
 import {
   EXECUTION_LOCATION_TARGET_ATTESTATION_SCHEMA,
@@ -1039,6 +1040,10 @@ function targetProcessFailure(result) {
   error.failureCategory = failureCategory;
   if (failureSite) error.failureSite = failureSite;
   if (storageFailure) error.storageFailure = storageFailure;
+  const storageLaunchFailure = readExecutionLocationStorageLaunchFailure(
+    result.stderr,
+  );
+  if (storageLaunchFailure) error.storageLaunchFailure = storageLaunchFailure;
   return error;
 }
 
@@ -1108,6 +1113,11 @@ function runTargetCommand(profile, cliArgs, deps = {}, options = {}) {
       error.failureCategory = failureCategory;
       if (failureSite) error.failureSite = failureSite;
       if (storageFailure) error.storageFailure = storageFailure;
+      const storageLaunchFailure = readExecutionLocationStorageLaunchFailure(
+        result?.stderr,
+      );
+      if (storageLaunchFailure)
+        error.storageLaunchFailure = storageLaunchFailure;
       throw error;
     }
     return options.interactive ? null : result.stdout;

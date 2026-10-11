@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.canonical-path-archive-validation/v1",
+  "entries": 49,
+  "rawBytes": 616262,
+  "doubleDigestsVerified": true,
+  "originalBytesMatched": true,
+  "manifestDigest": "sha256:3d0daf006566aaf164e152a6f321f67ff3b1f2c568863eeb25d176df4e2edf21",
+  "independentDiagnosticValidation": {
+    "schema": "chainlesschain.canonical-path-independent-validation/v1",
+    "passed": 22,
+    "inputBindingsChecked": 32,
+    "unchangedNativeInputs": 9,
+    "exactFunctionSlices": 4,
+    "checks": [
+      "actual-function-slice-result",
+      "native-inputs-unchanged",
+      "actor-functions-exact-source-bytes",
+      "original-handle-lifecycle",
+      "rejected-admission",
+      "rejected-schema",
+      "rejected-slots",
+      "rejected-identity",
+      "rejected-plain-failed",
+      "rejected-plain-canonical",
+      "rejected-plain-mkdir",
+      "rejected-junction-mkdir",
+      "rejected-target-mutated",
+      "rejected-rejection",
+      "rejected-real-canonical",
+      "rejected-fake-lstat",
+      "rejected-fake-tag",
+      "rejected-fake-attributes",
+      "rejected-read-failure",
+      "rejected-fake-substitute",
+      "rejected-fake-length",
+      "rejected-wrong-path"
+    ],
+    "status": "NOT_ADMITTED",
+    "admissionEligible": false
+  },
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false
+}

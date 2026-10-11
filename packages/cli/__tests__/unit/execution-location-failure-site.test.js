@@ -4,6 +4,7 @@ import {
   formatExecutionLocationFailureSite,
   readExecutionLocationFailureSite,
   readExecutionLocationStorageFailure,
+  readExecutionLocationStorageLaunchFailure,
 } from "../../src/lib/execution-location-failure-site.js";
 import { prepareSessionReplicaHandoff } from "../../src/commands/session-location.js";
 
@@ -90,4 +91,53 @@ it("bounds scanning of untrusted diagnostics", () => {
         "\nCC_EXECUTION_LOCATION_FAILURE_SITE=session-store:123\n",
     ),
   ).toBeNull();
+});
+
+it.each(["inspect", "repair", "preflight"])(
+  "retains a sanitized ACL %s launch failure",
+  (operation) => {
+    expect(
+      readExecutionLocationStorageLaunchFailure(
+        `private-text [windows-acl-launch:${operation}:spawn:startup:EACCES:-4092:spawnSync] private-text`,
+      ),
+    ).toEqual({
+      operation,
+      failureStage: "spawn",
+      progressStage: "startup",
+      code: "EACCES",
+      errno: -4092,
+      syscall: "spawnSync",
+    });
+  },
+);
+
+it.each([
+  "repair:spawn:startup:private-code:-4092:spawnSync",
+  "repair:spawn:private-stage:EACCES:-4092:spawnSync",
+  "repair:spawn:startup:EACCES:-65536:spawnSync",
+  "repair:spawn:startup:EACCES:1.5:spawnSync",
+  "repair:timeout:verify:ENOENT:unknown:unknown",
+  "repair:spawn:verify:ETIMEDOUT:unknown:unknown",
+  "repair:spawn:startup:EACCES:unknown:private-syscall",
+  "private-operation:spawn:startup:EACCES:unknown:unknown",
+])("rejects untrusted or contradictory launch facts: %s", (value) => {
+  expect(
+    readExecutionLocationStorageLaunchFailure(`[windows-acl-launch:${value}]`),
+  ).toBeNull();
+});
+
+it("bounds launch marker scanning and retains unknown fields explicitly", () => {
+  const marker =
+    "[windows-acl-launch:repair:timeout:lookup:ETIMEDOUT:unknown:unknown]";
+  expect(
+    readExecutionLocationStorageLaunchFailure("x".repeat(8192) + marker),
+  ).toBeNull();
+  expect(readExecutionLocationStorageLaunchFailure(marker)).toEqual({
+    operation: "repair",
+    failureStage: "timeout",
+    progressStage: "lookup",
+    code: "ETIMEDOUT",
+    errno: null,
+    syscall: "unknown",
+  });
 });

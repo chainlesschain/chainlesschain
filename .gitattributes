@@ -133,3 +133,11 @@ docs/research/cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/** -text !
 docs/research/cli/evidence/gap-2026-10-05/root-coordinates-2026-10-10/README.md -linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.97/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.97/README.md -linguist-generated
+
+# Native contract probes and continuation reports preserve captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md -linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md -linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-11/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md -linguist-generated

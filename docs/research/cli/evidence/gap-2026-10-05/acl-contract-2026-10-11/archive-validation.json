@@ -1,0 +1,214 @@
+{
+  "schema": "chainlesschain.acl-contract-archive-validation/v1",
+  "entries": 140,
+  "rawBytes": 1725982,
+  "doubleDigestsVerified": true,
+  "originalBytesMatched": true,
+  "manifestDigest": "sha256:5c87d6cdd35d8c46170fc91cff75a1e36f07995ec0566860dc3d4cad87f49b6e",
+  "independentDiagnosticValidation": {
+    "schema": "chainlesschain.acl-contract-independent-validation/v1",
+    "status": "NOT_ADMITTED",
+    "admissionEligible": false,
+    "passed": 39,
+    "inputBindingsChecked": 64,
+    "checks": [
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "actual-report-and-inputs",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-schema",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-admission",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-scope",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-capability",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-thread",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-impersonation",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-pid",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-arguments",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-patches",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-fake-set",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-fake-writedac",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-fake-after-acl",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-b",
+        "kind": "rejected-unexpected-io",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "actual-report-and-inputs",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-schema",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-admission",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-scope",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-capability",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-thread",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-impersonation",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-pid",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-arguments",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-patches",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-missing-operation",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-fake-denied-error",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-fake-io",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-fake-access",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-owner",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-inherited-handle",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-metadata-inheritable",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-write-open",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-acl-protection",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-file-bytes",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-host-root-identity",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-final-owner",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-final-bytes",
+        "passed": true
+      },
+      {
+        "name": "acl-host-owner-only-20261011-a",
+        "kind": "rejected-final-id",
+        "passed": true
+      },
+      {
+        "name": "acl-owner-only-20261011-a",
+        "kind": "blocked-host-no-actor",
+        "passed": true
+      }
+    ]
+  },
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false
+}
