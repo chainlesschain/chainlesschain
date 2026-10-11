@@ -91,6 +91,10 @@ export function classifyPricingReceipt(receipt, mutant) {
   assert.equal(receipt.stage, "check");
   assert.equal(receipt.providerAssessed, false);
   assert.equal(receipt.productionAttested, false);
+  assert.ok(
+    receipt.tests?.some((test) => test.kind === "candidate" && test.total > 0),
+    "candidate assertions were not executed; semantic outcome cannot be established",
+  );
   assert.deepEqual(
     receipt.tests.map((test) => test.kind),
     ["baseline", "candidate"],

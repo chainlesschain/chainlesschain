@@ -1,6 +1,6 @@
 # Linux CLI 首次旅程、认证 usage 与整段费用修复（2026-10-11）
 
-本轮接通公开 CLI 的 install → configure → authenticate → tool → artifact 五阶段独立诊断，并修复认证费用丢失、整旅程漏算和错误消息截断后的部分密钥残留。源码与离线原件见 [合同归档](./contracts/manifest.json)。火山实际旅程尚待执行，不把离线合同或 AI 复核计入正式样本。
+本轮接通公开 CLI 的 install → configure → authenticate → tool → artifact 五阶段独立诊断，并修复认证费用丢失、整旅程漏算和错误消息截断后的部分密钥残留。源码与离线原件见 [合同归档](./contracts/manifest.json)。火山实际旅程已执行并失败：安装/配置/认证通过，工具20轮耗尽、无写入且候选为空；完整原件与新增优化见[实测总结](./live-postmortem/README.md)。下文201项/17项为历史接线验证，最终新增优化521项/39项另列，不计入正式样本。
 
 已落实的优化：
 

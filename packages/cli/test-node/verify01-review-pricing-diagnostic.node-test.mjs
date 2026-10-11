@@ -91,6 +91,25 @@ test("classifies a reviewed assertion rejection separately from survival", () =>
   assert.equal(classifyPricingReceipt(receipt, mutant).outcome, "killed");
 });
 
+test("an empty candidate with a passing baseline cannot establish any semantic outcome", () => {
+  for (const semanticMutant of PRICING_SEMANTIC_MUTANTS) {
+    const receipt = survivor();
+    receipt.detail = "acceptance requires executed test cases";
+    receipt.tests = [{ kind: "baseline", total: 22, passed: 22, failed: 0 }];
+    receipt.executions[0].exitCode = 1;
+    receipt.executions[0].stdout = JSON.stringify({
+      success: false,
+      numTotalTests: 0,
+      numFailedTests: 0,
+      testResults: [{ assertionResults: [], message: "No test suite found" }],
+    });
+    assert.throws(
+      () => classifyPricingReceipt(receipt, semanticMutant),
+      /candidate assertions were not executed; semantic outcome cannot be established/u,
+    );
+  }
+});
+
 test("does not turn infrastructure failures or incomplete tests into expected survival", () => {
   for (const adjust of [
     (r) => {

@@ -278,9 +278,11 @@ export function inspectModelTrace(stdout, expectedFiles, workspace) {
     observedUsage,
     usageComplete: terminal.terminalVerified,
     failureCategory: errorResult
-      ? errorResult.error === "fetch failed"
-        ? "provider-fetch-failed"
-        : "agent-error"
+      ? errorResult.subtype === "error_max_turns"
+        ? "iteration-budget-exhausted"
+        : errorResult.error === "fetch failed"
+          ? "provider-fetch-failed"
+          : "agent-error"
       : !terminal.terminalVerified
         ? "missing-terminal"
         : !settled

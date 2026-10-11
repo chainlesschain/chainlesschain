@@ -564,3 +564,12 @@ Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同
 ## 38. 2026-10-11 首次旅程 fresh checkout 启动修复
 
 首次Actions在无账户验证阶段发现共享执行器间接引入semver，模型步骤均skipped，零新费用。抽取workspace助手并保留旧API和原文件边界；Astra发现的EMPTY_DELIVERABLE_DIGEST遗漏已恢复。仓库外无依赖clone、Node hooks清除、真实冻结Git对象和keyless prepare：Windows22.22.2/Linux22.12各23/23；执行器/host capture/import85/85、collection42/42，各127/127，零skip。原Actions失败、夹具与WSL环境失败同时归档，新源码显式付费旅程待验证。正式36+9/NOT_RUN/observed=0/$99保持，未合并或发行。详见[21份原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。
+
+
+## 39. 2026-10-11 火山首次旅程实际失败与交付优化
+
+真实Linux五阶段旅程Actions38121388190、诊断源码76ad42e278完成failure：install/configure/authenticate通过；工具20轮耗尽exit3，无write/edit，候选0字节。39use/44result的额外5条为旧public.97未标execution_started:false的paused reads；baseline22/22而无candidate suite，冻结失败、四项semantic均not-established。工具估算$0.036069908，认证/总旅程/实际账单未知。原题prompt及原失败不修改，宿主不执行候选。
+
+实际发现落实为每dispatch的有限预算/交付提示，planner跳过尾system-policy保护当前user并保持旧host信任，iteration-budget-exhausted分类和缺候选断言的明确诊断。Astra指出的goal/hook后缀保护问题已修复；新增默认planner正常/tight context、Infinity、历史/信任边界及json/stream-json pause→write真实集成回归。Windows所有者22.22.2和Linux固定22.12.0各521/521、Node合同各39/39，零skip。Windows沙箱497/519失败和同身份C:\Users\longfa native realpath EPERM探针、旧PATH/夹具失败同时归档，不放宽guard。新优化尚未付费复跑，不能将本地通过回填模型成功。
+
+完整164制品、原API/job/ZIP与八源码blob、失败和最终reporter见[实测与优化归档](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结计划与窗口不变。独立人工/外部锁、invoice/硬额度、目标GUI/辅助技术、durable/owner-only/native及8h/24h/SLO仍开放；准确优化提交须自身CI，不合并或发行。

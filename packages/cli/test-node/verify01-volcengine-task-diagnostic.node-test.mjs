@@ -81,6 +81,24 @@ test("retains known estimates but never treats missing cost as zero", () => {
   assert.equal(unknown.actualBilledCostUSD, null);
 });
 
+test("iteration exhaustion preserves paid usage while remaining a failed trace", () => {
+  const events = transcript({ cost: 0.036069908 });
+  events[events.length - 1] = {
+    ...events.at(-1),
+    subtype: "error_max_turns",
+    is_error: true,
+    num_turns: 20,
+    result: "Iteration budget exhausted",
+  };
+  const result = inspect(events);
+  assert.equal(result.pass, false);
+  assert.equal(result.terminal.terminalVerified, false);
+  assert.equal(result.failureCategory, "iteration-budget-exhausted");
+  assert.equal(result.modelUsageRecordCount, 1);
+  assert.equal(result.estimatedCostUSD, 0.036069908);
+  assert.equal(result.actualBilledCostUSD, null);
+});
+
 test("rejects shell tools, out-of-scope writes, incorrect IDs and fallback identity", () => {
   assert.equal(inspect(transcript({ tool: "run_shell" })).pass, false);
   assert.equal(
