@@ -9,7 +9,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { generateReviewPack } from "./verify01-review-pack.mjs";
 import { reviewEnvironment, REVIEW_IMAGE } from "./verify01-review-runtime.mjs";
@@ -76,7 +76,7 @@ export function modelEnvironment({
   // NODE_OPTIONS, OTLP endpoints or inherited shell hooks enter this child.
   return {
     PATH: input.PATH || "",
-    HOME: profile,
+    HOME: path.join(root, "user-home"),
     TMPDIR: os.tmpdir(),
     LANG: "C.UTF-8",
     CHAINLESSCHAIN_HOME: profile,
@@ -592,6 +592,7 @@ export async function runTaskDiagnostic({
         profile = path.join(taskRoot, "profile");
       fs.mkdirSync(workspace, { recursive: true, mode: 0o700 });
       fs.mkdirSync(profile, { mode: 0o700 });
+      fs.mkdirSync(path.join(taskRoot, "user-home"), { mode: 0o700 });
       command("tar", ["-xf", archive, "-C", workspace]);
       const deadline = Date.now() + DIAGNOSTIC.taskTimeoutMs;
       const row = {
@@ -666,6 +667,34 @@ export async function runTaskDiagnostic({
             { flag: "wx", mode: 0o600 },
           );
         }
+        const taskEnvironment = modelEnvironment({
+          root: taskRoot,
+          profile,
+          expectedFiles: task.expectedFiles,
+          key,
+        });
+        // Exercise the installed product's directory guards before a model call.
+        const configPreflight = await run(
+          `${taskId}/config-preflight`,
+          process.execPath,
+          [
+            "--input-type=module",
+            "--eval",
+            "const {loadConfig}=await import(process.argv[1]);loadConfig({failIfUnavailable:true});console.log(JSON.stringify({loaded:true}));",
+            pathToFileURL(path.join(packageDir, "src/lib/config-manager.js"))
+              .href,
+          ],
+          {
+            cwd: workspace,
+            env: taskEnvironment,
+            timeoutMs: Math.min(30000, deadline - Date.now()),
+          },
+        );
+        row.configPreflight = { passed: configPreflight.ok, modelCalls: 0 };
+        assert.ok(
+          configPreflight.ok,
+          "installed config directory preflight failed",
+        );
         const prompt = taskPrompt(task, spec);
         save(`${taskId}/prompt.txt`, prompt);
         const modelTimeout = Math.min(
@@ -709,12 +738,7 @@ export async function runTaskDiagnostic({
         const result = await run(`${taskId}/model`, process.execPath, args, {
           cwd: workspace,
           timeoutMs: modelTimeout,
-          env: modelEnvironment({
-            root: taskRoot,
-            profile,
-            expectedFiles: task.expectedFiles,
-            key,
-          }),
+          env: taskEnvironment,
         });
         row.model = {
           processPassed: result.ok,

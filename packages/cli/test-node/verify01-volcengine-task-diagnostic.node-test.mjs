@@ -128,6 +128,8 @@ test("the model child receives only its credential, fixed provider and exact wri
     },
   });
   assert.equal(env.VOLCENGINE_API_KEY, "test-key");
+  assert.equal(env.HOME, path.join("/tmp/task", "user-home"));
+  assert.notEqual(env.HOME, env.CHAINLESSCHAIN_HOME);
   assert.equal(env.CC_MAX_RETRIES, "0");
   assert.deepEqual(
     JSON.parse(env.CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES),
