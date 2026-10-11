@@ -1,0 +1,91 @@
+{
+  "scope": "verify01-priority-read-only-preflight",
+  "formalSample": false,
+  "files": [
+    {
+      "file": "frozen-project-object.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "frozen-project-object.stdout",
+      "bytes": 7,
+      "sha256": "50836eee574ecff79dea3b4fd40673d7d000f7a5f177d8a6a3000b59c78383b8"
+    },
+    {
+      "file": "linux-architecture.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "linux-architecture.stdout",
+      "bytes": 7,
+      "sha256": "aaf631698ae5160ceb04a97681a14887fdcab47cd6e0f163c87485b3b1340b62"
+    },
+    {
+      "file": "linux-docker.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "linux-docker.stdout",
+      "bytes": 263,
+      "sha256": "a62f6962e24a608be9d17486042c4b6e568ea92b72ab6c5496aacd9f5791f7b6"
+    },
+    {
+      "file": "linux-kernel.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "linux-kernel.stdout",
+      "bytes": 22,
+      "sha256": "d03b2447c186e72079ef26159a5a4b3543835094237500f2288a2b14b403fd46"
+    },
+    {
+      "file": "linux-node.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "linux-node.stdout",
+      "bytes": 9,
+      "sha256": "982a3f2042b45aaa560e4cb8d6ffeca7e9d28dc60c6d545fd716dd4b813053fd"
+    },
+    {
+      "file": "linux-release.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "linux-release.stdout",
+      "bytes": 400,
+      "sha256": "3e5851448bae5b36f351becde037a8b13b77307279f484eda808f8177d9a4293"
+    },
+    {
+      "file": "plan-validation.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "plan-validation.stdout",
+      "bytes": 207,
+      "sha256": "d0091fc7f3e725af6b7e06947b9f48ad976d0f4442626775d6386a161f11d606"
+    },
+    {
+      "file": "readiness.json",
+      "bytes": 16533,
+      "sha256": "0b4d35e2cfb745411a3793d6ee39343da7b5b29a808df69058991b798b301c47"
+    },
+    {
+      "file": "review-collection.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "review-collection.stdout",
+      "bytes": 41144,
+      "sha256": "a1bccc7fc9b89d90f0c290070fd3cc8aca9432eda5002f727cac630ad9bf2543"
+    }
+  ]
+}

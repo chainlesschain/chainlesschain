@@ -511,6 +511,46 @@ describe("execution location target launch and resume", () => {
     expect(spawnSync).toHaveBeenCalledTimes(1);
   });
 
+  it.each([false, true])(
+    "retains ACL launch facts through target failure (transport failure: %s)",
+    (transportFailure) => {
+      const secret = "private-acl-process-credential";
+      const spawnSync = vi.fn(() => ({
+        status: transportFailure ? null : 1,
+        ...(transportFailure
+          ? {
+              error: Object.assign(new Error(secret), { code: "EACCES" }),
+            }
+          : {}),
+        stdout: secret,
+        stderr: `${secret}\n[windows-acl:spawn] [windows-acl-launch:repair:spawn:startup:EPERM:-4048:spawnSync]\n`,
+      }));
+      let failure;
+      try {
+        attestExecutionLocationTarget(
+          { profile: rawProfile(), handoff: handoff() },
+          { spawnSync },
+        );
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toMatchObject({
+        storageFailure: "spawn",
+        storageLaunchFailure: {
+          operation: "repair",
+          failureStage: "spawn",
+          progressStage: "startup",
+          code: "EPERM",
+          errno: -4048,
+          syscall: "spawnSync",
+        },
+      });
+      expect(failure.stack).not.toContain(secret);
+      expect(JSON.stringify(failure)).not.toContain(secret);
+      expect(spawnSync).toHaveBeenCalledOnce();
+    },
+  );
+
   it("attests a fixed Docker target command and exposes stable facts separately from time", () => {
     const spawnSync = vi.fn(() =>
       success(JSON.stringify(currentProjection("container"))),

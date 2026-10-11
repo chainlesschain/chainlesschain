@@ -1061,9 +1061,17 @@ async function runTurn(
       }
       case "tool-result": {
         const err = event.error || event.result?.error || null;
+        // No invocation started for a preflight denial. For actual results,
+        // retain the adjacency fallback only for legacy events without IDs.
+        const lastCall =
+          event.execution_started === false
+            ? null
+            : event.tool_use_id
+              ? toolCalls.find((call) => call.id === event.tool_use_id) || null
+              : toolCalls.at(-1) || null;
         // P0-2: settle the in-flight side-effect (commit on success, fail on
         // a clean error) and persist the updated ledger snapshot.
-        if (sideEffects && currentSideEffectOpId) {
+        if (sideEffects && currentSideEffectOpId && lastCall) {
           if (event.permission_decision) {
             sideEffects.ledger.annotate(currentSideEffectOpId, {
               permissionDecision: event.permission_decision,
@@ -1085,14 +1093,6 @@ async function runTurn(
           sideEffects.persist();
           currentSideEffectOpId = null;
         }
-        // The loop runs tools serially, so this result settles the most
-        // recent tool_use (same adjacency rule the is_error attribution
-        // below has always used).
-        const lastCall =
-          (event.tool_use_id
-            ? toolCalls.find((call) => call.id === event.tool_use_id)
-            : null) ||
-          (toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null);
         if (lastCall) {
           lastCall.is_error = Boolean(err);
           lastCall.durationMs =
@@ -1117,13 +1117,18 @@ async function runTurn(
           : null;
         emit({
           type: "tool_result",
-          ...(lastCall?.id ? { id: lastCall.id } : {}),
+          ...(event.tool_use_id || lastCall?.id
+            ? { id: event.tool_use_id || lastCall.id }
+            : {}),
           ...(lastCall?.planItemId
             ? { plan_item_id: lastCall.planItemId }
             : {}),
           ...(settledItem?.turn ? { turn: settledItem.turn } : {}),
           tool: event.tool,
           is_error: Boolean(err),
+          ...(event.execution_started === false
+            ? { execution_started: false }
+            : {}),
           error: err,
           result: event.result,
           ...(event.permission_decision_id

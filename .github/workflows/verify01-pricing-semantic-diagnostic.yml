@@ -1,0 +1,48 @@
+name: VERIFY01 Pricing Semantic Diagnostic
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/cli/scripts/verify01-review-pricing-diagnostic.mjs"
+      - "packages/cli/test-node/verify01-review-pricing-diagnostic.node-test.mjs"
+      - "packages/cli/__tests__/unit/usage-pricing-context.test.js"
+      - ".github/workflows/verify01-pricing-semantic-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate candidate pinning and failure classification
+        run: node --test packages/cli/test-node/verify01-review-pricing-diagnostic.node-test.mjs
+      - name: Pin the checker image
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Replay the unchanged model candidate and engineering control
+        run: >-
+          node packages/cli/scripts/verify01-review-pricing-diagnostic.mjs
+          --source-sha '${{ github.event.pull_request.head.sha || github.sha }}'
+          --image-id "$REVIEW_IMAGE_ID"
+          --output-dir "$RUNNER_TEMP/verify01-pricing-semantic"
+      - name: Preserve every baseline, candidate and semantic mutant reporter
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-pricing-semantic-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/verify01-pricing-semantic/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

@@ -20,6 +20,8 @@ import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
+import { getPlanModeManager } from "../../src/lib/plan-mode.js";
+import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
 import {
   inputSubmissionDigest,
   appendSessionInputWithReceipt,
@@ -970,6 +972,8 @@ describe("runAgentHeadlessStream", () => {
         JSON.stringify({ type: "user", text: `${secret}-second` }),
       ].join("\n") + "\n";
     }
+    // This cancellation-only fixture aborts before producing any agent event.
+    // eslint-disable-next-line require-yield
     const agentLoop = vi.fn(async function* (_messages, loopOptions) {
       releaseFlood();
       await new Promise((resolve) => {
@@ -1712,6 +1716,128 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
       "provider-call-9",
     );
   });
+
+  it.each([
+    { started: false, pending: false },
+    { started: undefined, pending: false },
+    { started: false, pending: true },
+    { started: undefined, pending: true },
+  ])(
+    "does not attribute an unmatched explicit result to another call (started=$started, pending=$pending)",
+    async ({ started, pending }) => {
+      const compactCalls = [];
+      const ledgerEvents = [];
+      const effectSnapshots = [];
+      const effects = new SideEffectLedger();
+      const manager = getPlanModeManager();
+      const startPlan = vi
+        .spyOn(manager, "startPlanItemForTool")
+        .mockImplementation((_tool, context) => ({
+          id: `plan-${context.toolUseId}`,
+          turn: 1,
+        }));
+      const settlePlan = vi
+        .spyOn(manager, "settlePlanItem")
+        .mockReturnValue({ turn: 1 });
+      const agentLoop = async function* () {
+        const writeStart = {
+          type: "tool-executing",
+          tool: "write_file",
+          tool_use_id: "write-next",
+          args: { path: "b", content: "after" },
+        };
+        yield {
+          type: "tool-executing",
+          tool: "read_file",
+          tool_use_id: "read-ok",
+          args: { path: "a" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "read-ok",
+          result: { content: "before" },
+        };
+        if (pending) yield writeStart;
+        yield {
+          type: "tool-result",
+          tool: "write_file",
+          tool_use_id: "write-denied",
+          ...(started === false ? { execution_started: false } : {}),
+          error: "blocked",
+          result: { error: "blocked" },
+        };
+        if (!pending) yield writeStart;
+        yield {
+          type: "tool-result",
+          tool: "write_file",
+          tool_use_id: "write-next",
+          result: { content: "after" },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      };
+      const deps = baseDeps({
+        agentLoop,
+        input: input({ type: "user", text: "go" }),
+        sessionExists: () => false,
+        startSession: () => {},
+        appendUserMessage: () => {},
+        appendAssistantMessage: () => {},
+        appendToolCallCompact: (_sessionId, record) =>
+          compactCalls.push(record),
+        appendEvent: (_sessionId, type, data) =>
+          ledgerEvents.push({ type, data }),
+        readEvents: () => [],
+        rebuildMessages: () => [],
+        loadSideEffectLedger: () => effects,
+        persistSideEffectLedger: (_sessionId, ledger) =>
+          effectSnapshots.push(structuredClone(ledger.toJSON())),
+      });
+      try {
+        await runAgentHeadlessStream(
+          { sessionId: "stream-denied-correlation", expandFileRefs: false },
+          deps,
+        );
+        const events = parseEmitted(deps._lines);
+        expect(
+          events
+            .filter((event) => event.type === "tool_use")
+            .map((event) => event.id),
+        ).toEqual(["read-ok", "write-next"]);
+        const results = events.filter((event) => event.type === "tool_result");
+        expect(results.map((event) => event.id)).toEqual([
+          "read-ok",
+          "write-denied",
+          "write-next",
+        ]);
+        expect(results[1]).not.toHaveProperty("plan_item_id");
+        if (started === false)
+          expect(results[1]).toHaveProperty("execution_started", false);
+        expect(compactCalls).toEqual([
+          expect.objectContaining({ id: "read-ok", isError: false }),
+          expect.objectContaining({ id: "write-next", isError: false }),
+        ]);
+        expect(
+          ledgerEvents
+            .filter((event) => event.type === "tool_call_started")
+            .map((event) => event.data.id),
+        ).toEqual(["read-ok", "write-next"]);
+        expect(
+          settlePlan.mock.calls.map(([id, outcome]) => [id, outcome.success]),
+        ).toEqual([
+          ["plan-read-ok", true],
+          ["plan-write-next", true],
+        ]);
+        expect(
+          effectSnapshots.map((snapshot) => snapshot.ops.map((op) => op.state)),
+        ).toEqual([["started"], ["committed"]]);
+      } finally {
+        startPlan.mockRestore();
+        settlePlan.mockRestore();
+      }
+    },
+  );
 
   it("persists the settled run_skill invocation receipt", async () => {
     const compactCalls = [];

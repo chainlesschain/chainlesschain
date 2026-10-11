@@ -470,6 +470,7 @@ export class TaskProgressTracker {
       guidance:
         message +
         " For an implementation task, make the smallest justified, authorized change and validate it. " +
+        "If the user requested new or updated tests, actual test changes and focused validation remain required; reading tests or passing an existing baseline does not fulfill that request. Name the concrete missing fact before another read. " +
         "For a bug fix, state the observed failure, your leading root-cause hypothesis and the smallest test that can disprove it. Run that focused reproduction or diagnostic next; use its actual output to choose the next step. Do not keep reading adjacent files without naming the specific missing fact. A timeout alone does not establish that increasing the timeout is the fix. " +
         DIAGNOSTIC_WORKFLOW_GUIDANCE +
         " " +

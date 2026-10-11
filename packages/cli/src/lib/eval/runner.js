@@ -152,7 +152,13 @@ export async function runEvalSuite(tasks, opts = {}) {
       if (typeof task.check !== "function") {
         throw new Error(`task "${rec.id}": check() is required`);
       }
-      dir = _deps.mkdtempSync(path.join(base, `cc-eval-${task.id}-`));
+      // Resolve the OS temporary directory first (macOS commonly aliases
+      // /var to /private/var), then create formal workspaces at canonical paths.
+      const taskBase =
+        typeof task.agentLaunchBinding === "function"
+          ? (fs.realpathSync.native || fs.realpathSync)(base)
+          : base;
+      dir = _deps.mkdtempSync(path.join(taskBase, `cc-eval-${task.id}-`));
       if (typeof task.setup === "function") {
         await task.setup(dir, budget);
       }
@@ -169,6 +175,9 @@ export async function runEvalSuite(tasks, opts = {}) {
           prompt: task.prompt,
           cwd: dir,
           timeoutMs: budget.remainingMs(),
+          ...(typeof task.agentLaunchBinding === "function"
+            ? { verify01Binding: task.agentLaunchBinding(dir) }
+            : {}),
           ...(task.costBudgetUsd === undefined
             ? {}
             : { costBudgetUsd: task.costBudgetUsd }),
@@ -234,6 +243,18 @@ export async function runEvalSuite(tasks, opts = {}) {
       });
       rec.pass = false;
     } finally {
+      try {
+        await task?.cleanup?.();
+      } catch (error) {
+        rec.pass = false;
+        rec.error ||= `task cleanup failed: ${error.message}`;
+        rec.failurePhase = "cleanup";
+        task.recordFailure?.({
+          phase: "cleanup",
+          code: error.code || null,
+          error: error.message,
+        });
+      }
       rec.ms = _deps.now() - started;
       if (span) {
         span.setAttribute("pass", rec.pass);

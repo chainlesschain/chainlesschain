@@ -1,0 +1,283 @@
+{
+  "schema": "chainlesschain.gap-continuation-evidence/v1",
+  "capturedAt": "2026-10-11T04:01:55.062Z",
+  "baseCommit": "53ad9df8c46269d725d2f3cde77185a5806e86da",
+  "branch": "feature/cli-ide-gap-20261011",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "osRelease": "10.0.19045",
+    "nodeVersion": "v22.22.2"
+  },
+  "sourceCaptureTiming": "after local test executions; supplementary, not an immutable CI gate",
+  "formalSample": false,
+  "independentHumanReview": false,
+  "productionAttested": false,
+  "fullNativeReviewAdmitted": false,
+  "releasePerformed": false,
+  "providerCalls": 0,
+  "sourceBindings": [
+    {
+      "path": "packages/session-core/lib/private-storage.js",
+      "bytes": 48338,
+      "sha256": "c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf"
+    },
+    {
+      "path": "packages/cli/src/lib/execution-location-failure-site.js",
+      "bytes": 3701,
+      "sha256": "be94e41c92ced09fe1612b25d51f06a07add8e7f30f78d08f215af787975ea21"
+    },
+    {
+      "path": "packages/cli/src/lib/execution-location-target.js",
+      "bytes": 66479,
+      "sha256": "435a2f738ad324df33b0b959d601c3668e02e2688d40bbe11be51d5fe27f4296"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "bytes": 32171,
+      "sha256": "35322d76f8638bd82257160f31df8925909f9fccc2ded65d52b0300c051bfe3c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/config-security.test.js",
+      "bytes": 54633,
+      "sha256": "f70f8b248881f8ba1b8a60943fc31aa6c7cfd661dc6cd04373a50613ac031dbe"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/execution-location-failure-site.test.js",
+      "bytes": 4880,
+      "sha256": "dd618ebe315687fe5c73e0d4d849fcab212d2a0ea20c16e79b357cd417f9b016"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/execution-location-target.test.js",
+      "bytes": 45639,
+      "sha256": "0f7a9bf04c06eea866da25a4d15e2a8cd4d1f956ea8aa5eb161f8b4b6507eb45"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+      "bytes": 17325,
+      "sha256": "c5623c335f735c16204ec4c021fe0f6f0708fd0341ca02c7fa95f96c89c54b62"
+    }
+  ],
+  "testRuns": [
+    {
+      "artifact": "acl-win.gz",
+      "platform": "win32",
+      "nodeVersion": "v22.22.2",
+      "success": true,
+      "passed": 151,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        {
+          "path": "C:/code/chainlesschain/packages/cli/__tests__/unit/config-security.test.js",
+          "tests": 69,
+          "status": "passed"
+        },
+        {
+          "path": "C:/code/chainlesschain/packages/cli/__tests__/unit/execution-location-failure-site.test.js",
+          "tests": 35,
+          "status": "passed"
+        },
+        {
+          "path": "C:/code/chainlesschain/packages/cli/__tests__/unit/execution-location-target.test.js",
+          "tests": 47,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "artifact": "acl-linux.gz",
+      "platform": "linux-wsl",
+      "nodeVersion": "v22.12.0",
+      "success": true,
+      "passed": 146,
+      "failed": 0,
+      "skipped": 5,
+      "files": [
+        {
+          "path": "/mnt/c/code/chainlesschain/packages/cli/__tests__/unit/config-security.test.js",
+          "tests": 69,
+          "status": "passed"
+        },
+        {
+          "path": "/mnt/c/code/chainlesschain/packages/cli/__tests__/unit/execution-location-failure-site.test.js",
+          "tests": 35,
+          "status": "passed"
+        },
+        {
+          "path": "/mnt/c/code/chainlesschain/packages/cli/__tests__/unit/execution-location-target.test.js",
+          "tests": 47,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "artifact": "memory-win.gz",
+      "platform": "win32",
+      "nodeVersion": "v22.22.2",
+      "success": true,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 1,
+      "files": [
+        {
+          "path": "C:/code/chainlesschain/packages/cli/__tests__/unit/memory-query-index.test.js",
+          "tests": 11,
+          "status": "passed"
+        },
+        {
+          "path": "C:/code/chainlesschain/packages/cli/__tests__/unit/segmented-memory-port.test.js",
+          "tests": 22,
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "artifact": "memory-linux.gz",
+      "platform": "linux-wsl",
+      "nodeVersion": "v22.12.0",
+      "success": true,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 3,
+      "files": [
+        {
+          "path": "/mnt/c/code/chainlesschain/packages/cli/__tests__/unit/memory-query-index.test.js",
+          "tests": 11,
+          "status": "passed"
+        },
+        {
+          "path": "/mnt/c/code/chainlesschain/packages/cli/__tests__/unit/segmented-memory-port.test.js",
+          "tests": 22,
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "lint": "passed",
+    "format": "passed"
+  },
+  "artifacts": [
+    {
+      "path": "s1.gz",
+      "origin": "packages/session-core/lib/private-storage.js",
+      "bytes": 48338,
+      "sha256": "c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf",
+      "gzipBytes": 11423,
+      "gzipSha256": "565b873b671a615fdd2dfdb89abaad055e05333ef7deff26459986c403be4cbb"
+    },
+    {
+      "path": "s2.gz",
+      "origin": "packages/cli/src/lib/execution-location-failure-site.js",
+      "bytes": 3701,
+      "sha256": "be94e41c92ced09fe1612b25d51f06a07add8e7f30f78d08f215af787975ea21",
+      "gzipBytes": 1532,
+      "gzipSha256": "213147218dcec4d749a1c553626f314c61a21f0e4f826ae91b0c14438a795dcb"
+    },
+    {
+      "path": "s3.gz",
+      "origin": "packages/cli/src/lib/execution-location-target.js",
+      "bytes": 66479,
+      "sha256": "435a2f738ad324df33b0b959d601c3668e02e2688d40bbe11be51d5fe27f4296",
+      "gzipBytes": 14584,
+      "gzipSha256": "9d312ef9f055d4570b85523aaca305dc9b56c754cf670a56651daf1ed27c659f"
+    },
+    {
+      "path": "s4.gz",
+      "origin": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "bytes": 32171,
+      "sha256": "35322d76f8638bd82257160f31df8925909f9fccc2ded65d52b0300c051bfe3c",
+      "gzipBytes": 8355,
+      "gzipSha256": "5fd7fe61693cff5f6dc7f7b55e0938d4848ddf1b631b6ebd6d6c401d38c05af2"
+    },
+    {
+      "path": "s5.gz",
+      "origin": "packages/cli/__tests__/unit/config-security.test.js",
+      "bytes": 54633,
+      "sha256": "f70f8b248881f8ba1b8a60943fc31aa6c7cfd661dc6cd04373a50613ac031dbe",
+      "gzipBytes": 9841,
+      "gzipSha256": "b6b5cfcb7fd8eeb8205d4a4c12f1919246af6f74383b30a075080cc6c6b53a27"
+    },
+    {
+      "path": "s6.gz",
+      "origin": "packages/cli/__tests__/unit/execution-location-failure-site.test.js",
+      "bytes": 4880,
+      "sha256": "dd618ebe315687fe5c73e0d4d849fcab212d2a0ea20c16e79b357cd417f9b016",
+      "gzipBytes": 1498,
+      "gzipSha256": "505a8b16842dd0b97368b9744061995e06c9835ad213080eaf0a98055ad47b1a"
+    },
+    {
+      "path": "s7.gz",
+      "origin": "packages/cli/__tests__/unit/execution-location-target.test.js",
+      "bytes": 45639,
+      "sha256": "0f7a9bf04c06eea866da25a4d15e2a8cd4d1f956ea8aa5eb161f8b4b6507eb45",
+      "gzipBytes": 8983,
+      "gzipSha256": "a70ee7addb0662fbc2adeab91c8b3edda2f2a7ec60a1ff40dbe33e3eb37764e6"
+    },
+    {
+      "path": "s8.gz",
+      "origin": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+      "bytes": 17325,
+      "sha256": "c5623c335f735c16204ec4c021fe0f6f0708fd0341ca02c7fa95f96c89c54b62",
+      "gzipBytes": 4013,
+      "gzipSha256": "c84e4051c60a7ddf00f645f63b82ba705fe5274d770acfb28585f244a8ba00fe"
+    },
+    {
+      "path": "acl-win.gz",
+      "origin": ".work/acl-launch-windows-20261011.json",
+      "bytes": 50761,
+      "sha256": "228ea8ba3b7a6bb484d49f2985c0f3dc855ee7f0220ce590b6a482a89d049296",
+      "gzipBytes": 6107,
+      "gzipSha256": "045e2fca52e8d6c37b6bfa3f8e53c47782691ec31a3000c5b647e8d6044e60c9"
+    },
+    {
+      "path": "acl-linux.gz",
+      "origin": ".work/acl-launch-linux-20261011.json",
+      "bytes": 50664,
+      "sha256": "c96c82dc2f666891aeb9844b235c8fc22ee00c76b3b6e41763e3a326403af8ed",
+      "gzipBytes": 6059,
+      "gzipSha256": "62f2c9c26865140cea68971ec390ac1e107027074163fa5cc6310adb75c25f19"
+    },
+    {
+      "path": "memory-win.gz",
+      "origin": ".work/memory-path-windows-20261011.json",
+      "bytes": 12588,
+      "sha256": "22a41846489f0f4bfa8dc129e958695c5a9953e2402da8789a9691bf0853eace",
+      "gzipBytes": 2150,
+      "gzipSha256": "1cb4d316df4c59b4ad918d4ea12b842e82f11e534816c778ef9cb07a28dbfed4"
+    },
+    {
+      "path": "memory-linux.gz",
+      "origin": ".work/memory-path-linux-20261011.json",
+      "bytes": 12561,
+      "sha256": "f5c646e23afdf98920eae0afd2b27e5294df73c5d50374a9fda30ec41aee8ae3",
+      "gzipBytes": 2125,
+      "gzipSha256": "22eef1960951a768126051cf6cefc052b0df41e19dade53d46366f697cdf778d"
+    },
+    {
+      "path": "lint.gz",
+      "origin": "actual local verification output",
+      "bytes": 1142,
+      "sha256": "6037d4192e5a02fa19f09697ab3e44dcb630108340ef692c880e0e4ae4d4a0bc",
+      "gzipBytes": 554,
+      "gzipSha256": "933f69df7d5135ae3bef14f1db050e03b82c6cb5eea45788dab735c534d79676"
+    },
+    {
+      "path": "format.gz",
+      "origin": "actual local verification output",
+      "bytes": 777,
+      "sha256": "dca0bce14ccd1d2ada5780711aaede2ddfbac54e2f4f332b45bc19ad9d8ab14e",
+      "gzipBytes": 327,
+      "gzipSha256": "3517b228d25a0bbbea8fe797c382dc76480c1b1b2d3aa406cc0746c7a61b07a4"
+    },
+    {
+      "path": "source-diff.gz",
+      "origin": "git diff of the eight changed source/test files",
+      "bytes": 22963,
+      "sha256": "f928104bca6465b0a89006660ee908329619acae65ea619db408dcf195f02b70",
+      "gzipBytes": 6224,
+      "gzipSha256": "8a6a2dd7e545f7b3406570439f9b0b2996f4aa9ff721b52ba064cfaa50b31878"
+    }
+  ]
+}

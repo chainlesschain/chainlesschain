@@ -3,6 +3,8 @@ import fs from "node:fs";
 import { evalDigest } from "../../src/lib/eval/evidence.js";
 import { outcomeDigest } from "../../src/lib/eval/outcomes.js";
 import { verifyAgentTerminal } from "../../src/lib/eval/stream-terminal.js";
+import { llmProbeReceipt } from "../../src/lib/llm-connection-probe.js";
+import { validateVerify01Collection } from "../../src/lib/eval/verify01-contracts.js";
 import {
   inspectIdeProtocol,
   importVerify01HostCapture,
@@ -214,6 +216,105 @@ function fixture(entry = "vscode") {
     pin,
     importCapture,
   };
+}
+
+function completedCliFirstRunFixture() {
+  const f = fixture();
+  const sample = f.bundle.plan.samples.find(
+    (row) => row.kind === "first-run" && row.stratum === "win32-cli-volcengine",
+  );
+  const task = f.bundle.catalog.tasks.find((row) => row.id === sample.taskId);
+  const comparison = f.bundle.bindings.comparisons[sample.stratum];
+  const target = f.bundle.bindings.matrix.find((row) => row.id === "win32-cli");
+  const startedAt = f.raw[0].at;
+  Object.assign(f.manifest, {
+    sampleId: sample.id,
+    entry: "cli",
+    host: target.host,
+    firstRun: {
+      cleanEnvironment: true,
+      stages: Object.fromEntries(
+        ["install", "configure", "authenticate", "tool", "artifact"].map(
+          (stage) => [
+            stage,
+            {
+              passed: true,
+              receipt: f.pin(`${stage}.json`, { testOnly: true, stage }),
+            },
+          ],
+        ),
+      ),
+    },
+  });
+  delete f.manifest.protocol;
+  delete f.manifest.ui;
+  const authentication = llmProbeReceipt(comparison, {
+    ok: true,
+    usage: {
+      input_tokens: 10,
+      output_tokens: 35,
+      cache_read_input_tokens: 2,
+      cache_creation_input_tokens: 0,
+    },
+  });
+  f.manifest.firstRun.stages.authenticate.receipt = f.pin(
+    "authenticate.json",
+    authentication,
+  );
+  const invocation = {
+    taskId: task.id,
+    prompt: task.prompt,
+    provider: comparison.provider,
+    model: comparison.model,
+    permissionMode: "acceptEdits",
+    projectCommit: f.bundle.catalog.projectCommit,
+    sourceCommit: f.manifest.sourceCommit,
+    startedAt,
+  };
+  f.manifest.invocation = f.pin("invocation.json", invocation);
+  const raw = [
+    {
+      type: "system",
+      subtype: "init",
+      model: comparison.model,
+      provider: comparison.provider,
+      permission_mode: "acceptEdits",
+      session_id: "cli-first-run",
+    },
+    { ...f.raw[3].event, session_id: "cli-first-run" },
+  ]
+    .map(JSON.stringify)
+    .join("\n");
+  const streamBytes = Buffer.from(raw);
+  f.artifacts.set("stream.jsonl", streamBytes);
+  f.manifest.stream = {
+    path: "stream.jsonl",
+    digest: evalDigest(streamBytes),
+  };
+  f.manifest.exit = f.pin("exit.json", {
+    code: 0,
+    signal: null,
+    finishedAt: f.raw[4].at,
+  });
+  f.check.taskId = task.id;
+  f.check.changedFiles = [...task.expectedFiles];
+  f.manifest.check = f.pin("check.json", f.check);
+  f.manifest.diff = f.pin(
+    "diff.json",
+    task.expectedFiles.map((file) => ({
+      path: file,
+      before: null,
+      after: {
+        type: "file",
+        mode: 0o644,
+        dependency: false,
+        digest: evalDigest(Buffer.from("test-only artifact")),
+        bytes: Buffer.byteLength("test-only artifact"),
+        bytesBase64: Buffer.from("test-only artifact").toString("base64"),
+      },
+    })),
+  );
+  return { ...f, invocation, authentication };
 }
 
 describe("existing actual-host evidence adapter (all records here are test fixtures)", () => {
@@ -717,91 +818,8 @@ describe("existing actual-host evidence adapter (all records here are test fixtu
     expect(f.importCapture).toThrow();
   });
   it("binds a completed CLI first-install to its own invocation, stdout, exit and full diff", () => {
-    const f = fixture();
-    const sample = f.bundle.plan.samples.find(
-      (row) =>
-        row.kind === "first-run" && row.stratum === "win32-cli-volcengine",
-    );
-    const task = f.bundle.catalog.tasks.find((row) => row.id === sample.taskId);
-    const comparison = f.bundle.bindings.comparisons[sample.stratum];
-    const target = f.bundle.bindings.matrix.find(
-      (row) => row.id === "win32-cli",
-    );
-    const startedAt = f.raw[0].at;
-    Object.assign(f.manifest, {
-      sampleId: sample.id,
-      entry: "cli",
-      host: target.host,
-      firstRun: {
-        cleanEnvironment: true,
-        stages: Object.fromEntries(
-          ["install", "configure", "authenticate", "tool", "artifact"].map(
-            (stage) => [
-              stage,
-              {
-                passed: true,
-                receipt: f.pin(`${stage}.json`, { testOnly: true, stage }),
-              },
-            ],
-          ),
-        ),
-      },
-    });
-    delete f.manifest.protocol;
-    delete f.manifest.ui;
-    const invocation = {
-      taskId: task.id,
-      prompt: task.prompt,
-      provider: comparison.provider,
-      model: comparison.model,
-      permissionMode: "acceptEdits",
-      projectCommit: f.bundle.catalog.projectCommit,
-      sourceCommit: f.manifest.sourceCommit,
-      startedAt,
-    };
-    f.manifest.invocation = f.pin("invocation.json", invocation);
-    const raw = [
-      {
-        type: "system",
-        subtype: "init",
-        model: comparison.model,
-        provider: comparison.provider,
-        permission_mode: "acceptEdits",
-        session_id: "cli-first-run",
-      },
-      { ...f.raw[3].event, session_id: "cli-first-run" },
-    ]
-      .map(JSON.stringify)
-      .join("\n");
-    const streamBytes = Buffer.from(raw);
-    f.artifacts.set("stream.jsonl", streamBytes);
-    f.manifest.stream = {
-      path: "stream.jsonl",
-      digest: evalDigest(streamBytes),
-    };
-    f.manifest.exit = f.pin("exit.json", {
-      code: 0,
-      signal: null,
-      finishedAt: f.raw[4].at,
-    });
-    f.check.taskId = task.id;
-    f.check.changedFiles = [...task.expectedFiles];
-    f.manifest.check = f.pin("check.json", f.check);
-    f.manifest.diff = f.pin(
-      "diff.json",
-      task.expectedFiles.map((file) => ({
-        path: file,
-        before: null,
-        after: {
-          type: "file",
-          mode: 0o644,
-          dependency: false,
-          digest: evalDigest(Buffer.from("test-only artifact")),
-          bytes: Buffer.byteLength("test-only artifact"),
-          bytesBase64: Buffer.from("test-only artifact").toString("base64"),
-        },
-      })),
-    );
+    const f = completedCliFirstRunFixture();
+    const { invocation } = f;
     const result = f.importCapture();
     expect(result.report.firstRun).toMatchObject({
       observed: 1,
@@ -810,8 +828,174 @@ describe("existing actual-host evidence adapter (all records here are test fixtu
     });
     expect(result.report.task.observed).toBe(0);
     expect(result.installationVerified).toBe(false);
+    expect(result.history.runs[0].results[0].totalCostUsd).toBe(0.1);
+    expect(result.observations[0].cost).toBe(
+      0.1 + f.authentication.totalCostUsd,
+    );
+    expect(result.observations[0].firstRun.costAccounting).toMatchObject({
+      toolCostUsd: 0.1,
+      authentication: {
+        usage: f.authentication.usage,
+        totalCostUsd: f.authentication.totalCostUsd,
+      },
+    });
     invocation.prompt = "different first-install task";
     f.manifest.invocation = f.pin("invocation.json", invocation);
     expect(f.importCapture).toThrow(/invocation/);
+  });
+
+  it.each(["legacy", "missing-auth-usage", "missing-tool-cost"])(
+    "keeps the whole first-run cost unknown with %s",
+    (kind) => {
+      const f = completedCliFirstRunFixture();
+      if (kind === "legacy")
+        f.manifest.firstRun.stages.authenticate.receipt = f.pin(
+          "authenticate.json",
+          { connected: true },
+        );
+      if (kind === "missing-auth-usage")
+        f.manifest.firstRun.stages.authenticate.receipt = f.pin(
+          "authenticate.json",
+          { ...f.authentication, usage: null, totalCostUsd: null },
+        );
+      if (kind === "missing-tool-cost") {
+        const events = f.artifacts
+          .get("stream.jsonl")
+          .toString("utf8")
+          .split("\n")
+          .map(JSON.parse);
+        delete events.at(-1).total_cost_usd;
+        const bytes = Buffer.from(events.map(JSON.stringify).join("\n"));
+        f.artifacts.set("stream.jsonl", bytes);
+        f.manifest.stream.digest = evalDigest(bytes);
+      }
+      const result = f.importCapture();
+      expect(result.observations[0].cost).toBeNull();
+      expect(result.report.firstRun).toMatchObject({
+        observed: 1,
+        succeeded: 0,
+        totalCost: null,
+      });
+      if (kind !== "missing-tool-cost")
+        expect(result.history.runs[0].results[0].totalCostUsd).toBe(0.1);
+    },
+  );
+
+  it.each([
+    [
+      "wrong provider",
+      (receipt) => {
+        receipt.provider = "openai";
+      },
+    ],
+    [
+      "wrong model",
+      (receipt) => {
+        receipt.model = "other";
+      },
+    ],
+    [
+      "invented free call",
+      (receipt) => {
+        receipt.totalCostUsd = 0;
+      },
+    ],
+    [
+      "invalid tokens",
+      (receipt) => {
+        receipt.usage.input_tokens = -1;
+      },
+    ],
+    [
+      "failed prerequisite",
+      (receipt) => {
+        receipt.ok = false;
+      },
+    ],
+    [
+      "billing claim",
+      (receipt) => {
+        receipt.billingVerified = true;
+      },
+    ],
+  ])("rejects authentication %s", (_name, mutate) => {
+    const f = completedCliFirstRunFixture();
+    mutate(f.authentication);
+    f.manifest.firstRun.stages.authenticate.receipt = f.pin(
+      "authenticate.json",
+      f.authentication,
+    );
+    expect(f.importCapture).toThrow(/authentication/);
+  });
+
+  it.each(["omitted-auth", "double-counted", "wrong-receipt"])(
+    "rejects %s journey cost at collection",
+    (kind) => {
+      const f = completedCliFirstRunFixture();
+      const result = f.importCapture();
+      const observation = result.observations[0];
+      if (kind === "omitted-auth") observation.cost = 0.1;
+      if (kind === "double-counted")
+        observation.cost += f.authentication.totalCostUsd;
+      if (kind === "wrong-receipt")
+        observation.firstRun.costAccounting.authenticationReceipt = `sha256:${"f".repeat(64)}`;
+      expect(() =>
+        validateVerify01Collection(f.bundle, f.preparation, {
+          sampleIds: [f.manifest.sampleId],
+          history: result.history,
+          observations: result.observations,
+          sourceCommit: f.manifest.sourceCommit,
+          now: Date.parse(f.bundle.plan.window.end) + 1000,
+        }),
+      ).toThrow(/journey cost/);
+    },
+  );
+
+  it("accounts for a billed authentication failure without inventing a task run", () => {
+    const f = completedCliFirstRunFixture();
+    f.authentication.ok = false;
+    for (const stage of ["authenticate", "tool", "artifact"])
+      f.manifest.firstRun.stages[stage].passed = false;
+    f.manifest.firstRun.stages.authenticate.receipt = f.pin(
+      "authenticate.json",
+      f.authentication,
+    );
+    f.manifest.cost = null;
+    f.manifest.failureCause = "model-protocol";
+    for (const field of ["stream", "exit", "invocation", "check", "diff"])
+      delete f.manifest[field];
+    const result = f.importCapture();
+    expect(result.history.runs).toEqual([]);
+    expect(result.observations[0]).toMatchObject({
+      runId: null,
+      cost: null,
+    });
+    expect(
+      result.observations[0].firstRun.costAccounting.toolCostUsd,
+    ).toBeNull();
+    expect(
+      result.observations[0].firstRun.costAccounting.authentication
+        .totalCostUsd,
+    ).toBe(f.authentication.totalCostUsd);
+    expect(result.report.firstRun.succeeded).toBe(0);
+  });
+
+  it("does not treat a failed tool stage as an unbilled skipped call", () => {
+    const f = completedCliFirstRunFixture();
+    for (const stage of ["tool", "artifact"])
+      f.manifest.firstRun.stages[stage].passed = false;
+    f.manifest.cost = null;
+    f.manifest.failureCause = "model-protocol";
+    for (const field of ["stream", "exit", "invocation", "check", "diff"])
+      delete f.manifest[field];
+    const result = f.importCapture();
+    expect(result.observations[0].cost).toBeNull();
+    expect(result.observations[0].firstRun.costAccounting).toMatchObject({
+      toolCostUsd: null,
+      totalCostUsd: null,
+      authentication: { totalCostUsd: f.authentication.totalCostUsd },
+    });
+    f.manifest.cost = f.authentication.totalCostUsd;
+    expect(f.importCapture).toThrow(/early-stop cost/);
   });
 });

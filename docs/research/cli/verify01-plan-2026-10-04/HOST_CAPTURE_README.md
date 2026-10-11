@@ -102,9 +102,15 @@ manifest 的规范化 JSON 摘要使用既有 `outcomeDigest(manifest)`，附件
 
 first-run 样本必须另有 `firstRun:{cleanEnvironment:boolean,stages:{...}}`。stages 恰当记录 `install/configure/authenticate/tool/artifact` 的 `{passed:boolean,receipt:{path,digest}}`；五份非空原始回执都要保存，失败后各阶段不能申报成功。回执应包含真实公开下载/安装日志、空 profile、配置/授权结果及未运行原因，隐藏密钥。导入器核对字节及关系，**不认证公开安装或账号**。
 
-`tool.passed:false` 早停时不得提供 protocol/stream/invocation/exit/check/ui/diff，不生成 Eval run；保留有效 `failureCause`、总耗时/重试/人工修复、显式 `cost:null` 或已有非负实际费用。即使没有运行任务，也保留已观察的安装失败，其余样本不删分母。
+`tool.passed:false` 早停时不得提供 protocol/stream/invocation/exit/check/ui/diff，不生成 Eval run；保留有效 `failureCause`、总耗时/重试/人工修复和费用未知值。已有费用必须与认证回执中的 token 估算一致，不能将缺失的认证费用声明为零。即使没有运行任务，也保留已观察的安装失败，其余样本不删分母。
 
 已进入工具阶段的 IDE 首次旅程仍需上述完整协议、UI、check 和 diff。CLI 首次旅程使用 `stream`（真实 stream-json stdout）、`exit`（含 code/signal/finishedAt）、`invocation` 代替 protocol/UI；这三者都是 byte-pinned 附件。invocation 包含实际 `taskId/prompt/provider/model/permissionMode/projectCommit/sourceCommit/startedAt`，精确绑定首次旅程所属任务，stream 必须含真实唯一 init，provider/model/mode/session 与冻结身份一致。CLI 完整旅程同样需 check/diff 和五阶段回执；普通 CLI 任务继续走冻结 suite 执行器。
+
+认证会实际调用模型。新版 `cc llm test --json` 输出 `chainlesschain.llm-connection-probe/v1` 回执，保存经过校验的四项 usage、provider/model、成功状态、USD token 估算与 `billingVerified:false`，不输出密钥或模型思考文本。将 stdout 原始 JSON 字节作为 authenticate 阶段的摘要锁定回执；有 usage 的输出耗尽失败也保留已消费 token 的估算。普通终端调用保持现有文字输出。
+
+首次旅程导入器核对认证回执身份、成功状态和 usage 对应的估算，并在 `observation.firstRun.costAccounting` 分列认证与工具费用。Eval result 的 `totalCostUsd` 仍表示工具任务费用；observation 的 `cost` 才是认证加工具的整旅程估算，两部分只各加一次。认证或工具费用任一未知时整旅程保持 null；旧版公开 `.97` 的文字认证回执不能补造 usage。早停保留已知认证 usage/费用，但 `tool.passed:false` 无法证明工具未调用或未收费，因此工具及整旅程费用仍未知，不生成 Eval run。token 估算不能替代 provider 账单或可验证硬额度。
+
+独立 Linux 公开 CLI 五阶段诊断入口为 `packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs`，对应 GitHub Actions `VERIFY01 First Run CLI Diagnostic`。它仅在显式付费标记或 dispatch opt-in 时执行安装、配置、认证、冻结 verify-04 工具任务与 Docker 产物检查，不输出正式 observations。它保持公开 `.97` 原始行为及费用未知值，不把未发布源码修复装入公开 CLI 后再宣称发行版本通过。
 
 ## 只读导入命令
 

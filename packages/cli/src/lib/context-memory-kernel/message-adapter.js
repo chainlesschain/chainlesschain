@@ -68,8 +68,7 @@ function trustForBundle(messages) {
   if (
     messages.every(
       (message) =>
-        message.role === "system" &&
-        getDurableSystemMessageProvenance(message),
+        message.role === "system" && getDurableSystemMessageProvenance(message),
     )
   ) {
     return "verified";
@@ -135,12 +134,16 @@ function createItem({
       observedAt: new Date(sequence).toISOString(),
     },
     trust:
-      trustedSystemPolicy && messages.every((message) => message.role === "system")
+      trustedSystemPolicy &&
+      messages.every((message) => message.role === "system")
         ? "host"
         : trustForBundle(messages),
     sensitivity: "personal",
     allowedSinks: allowedSinks || DEFAULT_ALLOWED_SINKS,
-    tokenEstimate: Math.max(1, Math.ceil(Buffer.byteLength(content, "utf8") / 4)),
+    tokenEstimate: Math.max(
+      1,
+      Math.ceil(Buffer.byteLength(content, "utf8") / 4),
+    ),
     priority: priorityForBundle(messages, sequence, pendingTool),
     pinned: false,
     createdAt: new Date(sequence).toISOString(),
@@ -195,7 +198,8 @@ export function messagesToContextItems(messagesInput, options = {}) {
         seen.add(resultId);
         cursor += 1;
       }
-      const pending = ids.length !== calls.length || seen.size !== expected.size;
+      const pending =
+        ids.length !== calls.length || seen.size !== expected.size;
       const groupDigest = canonicalDigest(
         { sessionId, index, ids: [...expected].sort() },
         "chainlesschain.cli-tool-group/v1",
@@ -245,7 +249,14 @@ export function messagesToContextItems(messagesInput, options = {}) {
     );
   }
 
-  const last = items.at(-1);
+  // Ephemeral host guidance and hook suffixes can follow the current user
+  // request. They must not turn that request into optional conversation.
+  // Stop at the last conversational/tool bundle, so completed historical
+  // user turns are not promoted over a newer assistant or tool result.
+  const lastIndex = items.findLastIndex(
+    (item) => item.kind !== "system-policy",
+  );
+  const last = items[lastIndex];
   if (last) {
     const payload = JSON.parse(last.content);
     if (payload.messages.at(-1)?.role === "user") {
@@ -257,7 +268,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
         taskState: "waiting",
         requiredForRecovery: true,
       };
-      items[items.length - 1] = normalizeContextItem(protectedItem);
+      items[lastIndex] = normalizeContextItem(protectedItem);
     }
   }
   return items;
@@ -317,7 +328,9 @@ export function memoryRecordsToContextItems(recordsInput, options = {}) {
 
 function decodeBundle(item) {
   if (typeof item?.content !== "string") {
-    throw new TypeError(`ContextItem ${item?.itemId || "unknown"} has no inline content`);
+    throw new TypeError(
+      `ContextItem ${item?.itemId || "unknown"} has no inline content`,
+    );
   }
   const payload = JSON.parse(item.content);
   if (
@@ -327,17 +340,19 @@ function decodeBundle(item) {
     !Array.isArray(payload.durableSystemKinds) ||
     payload.durableSystemKinds.length !== payload.messages.length
   ) {
-    throw new TypeError(`ContextItem ${item.itemId} is not a CLI message bundle`);
+    throw new TypeError(
+      `ContextItem ${item.itemId} is not a CLI message bundle`,
+    );
   }
   return payload.messages.map((message, index) => {
     if (!message || typeof message !== "object" || Array.isArray(message)) {
-      throw new TypeError(`ContextItem ${item.itemId} contains an invalid message`);
+      throw new TypeError(
+        `ContextItem ${item.itemId} contains an invalid message`,
+      );
     }
     const copy = structuredClone(message);
     const durableKind = payload.durableSystemKinds[index];
-    return durableKind
-      ? markDurableSystemMessage(copy, durableKind)
-      : copy;
+    return durableKind ? markDurableSystemMessage(copy, durableKind) : copy;
   });
 }
 
@@ -376,7 +391,9 @@ export function createSummaryContextItem({
   if (parents.length === 0) throw new TypeError("summary parents are required");
   const scope = parents[0].scope;
   const scopeId = parents[0].scopeId;
-  if (parents.some((item) => item.scope !== scope || item.scopeId !== scopeId)) {
+  if (
+    parents.some((item) => item.scope !== scope || item.scopeId !== scopeId)
+  ) {
     throw new TypeError("summary parents must share one scope");
   }
   const summaryMessages = safeMessages(messages).map((message) =>
@@ -398,16 +415,16 @@ export function createSummaryContextItem({
     { operationId, parentDigests, content },
     "chainlesschain.cli-context-summary/v1",
   );
-  const trust = TRUST_ORDER[
-    Math.max(...parents.map((item) => TRUST_ORDER.indexOf(item.trust)))
-  ];
-  const sensitivity = SENSITIVITY_ORDER[
-    Math.max(
-      ...parents.map((item) =>
-        SENSITIVITY_ORDER.indexOf(item.sensitivity),
-      ),
-    )
-  ];
+  const trust =
+    TRUST_ORDER[
+      Math.max(...parents.map((item) => TRUST_ORDER.indexOf(item.trust)))
+    ];
+  const sensitivity =
+    SENSITIVITY_ORDER[
+      Math.max(
+        ...parents.map((item) => SENSITIVITY_ORDER.indexOf(item.sensitivity)),
+      )
+    ];
   const allowedSinks = [...intersectAllowedSinks(parents)].sort();
   if (allowedSinks.length === 0) {
     throw new TypeError("summary parents have no common allowed sink");

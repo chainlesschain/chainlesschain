@@ -1,0 +1,174 @@
+{
+  "capturedAt": "2026-10-11T05:58:59.921Z",
+  "sourceParentCommit": "5e23ef5ce0a487e775aa305bb03ba63ab76a8d9e",
+  "testedSourceBlobs": {
+    "packages/cli/src/runtime/agent-core.js": "284b1f46f8c0138d5aa6a1b164980df718d43b83",
+    "packages/cli/src/runtime/headless-runner.js": "aace6d6bcdbdfc1d1690c56ea02df066d492907a",
+    "packages/cli/src/runtime/headless-stream.js": "ff9a360729c820c62b50ba8ed0e8e29d875b64f6",
+    "packages/cli/__tests__/unit/agent-core-tool-capability-fence.test.js": "69e35c048bf2d2ddcd9475f0bc4ac52ffe67c7ab",
+    "packages/cli/__tests__/unit/headless-runner.test.js": "5e2dc680173cd66b5db5bc5ce679b1a118169806",
+    "packages/cli/__tests__/unit/headless-stream.test.js": "989f73d9c9d05ead90b21565ca027acca56c2add",
+    "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs": "05ea83be43b41cf74f2377a520574aacc7d255bf",
+    "packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs": "797db491d6c4d6ff4e52a1eb6b03858f0ca63042",
+    "tests/fixtures/claude-2.1.221-238-security-map.json": "7dd6cc91619308ad50b772391cfce78b0b02ee7e"
+  },
+  "sourceBinding": "working-tree snapshots; normalized Git blobs must match the resulting commit; exact-commit Actions remains required",
+  "formalSample": false,
+  "originalTaskVerdictsChanged": false,
+  "actualBilledCostUSD": null,
+  "entries": [
+    {
+      "path": "objects/000001-8195811cade2.gz",
+      "bytes": 161196,
+      "sha256": "8195811cade20693f86a0304f566575ea946de50d2eab2301e1b237e8a3c1981",
+      "rawBytes": 633931,
+      "rawSha256": "b7dc4ff621d356501c13ae808c4de43ad06d49269adb455a810ac9492f0345be",
+      "artifactOriginalPath": "sources/packages/cli/src/runtime/agent-core.js.gz"
+    },
+    {
+      "path": "objects/000002-e2daa0f94d96.gz",
+      "bytes": 45306,
+      "sha256": "e2daa0f94d961ae877706fc616d8e166c439b1d7f932dcb8288869d09cbdf0e1",
+      "rawBytes": 165750,
+      "rawSha256": "95539c21e6aca3bc5923afc613f90d45c4d51ce318807d2aaa34e80ca3576c80",
+      "artifactOriginalPath": "sources/packages/cli/src/runtime/headless-runner.js.gz"
+    },
+    {
+      "path": "objects/000003-35e77634f09c.gz",
+      "bytes": 55274,
+      "sha256": "35e77634f09c7a5e14cf7aced1904e3ed3f0ee742baf145beead606c16352e96",
+      "rawBytes": 202222,
+      "rawSha256": "ace8e8c0d8b08a26d43c3e1be8bd5ed71b4da1e3db6cc07fa5382b452bd43195",
+      "artifactOriginalPath": "sources/packages/cli/src/runtime/headless-stream.js.gz"
+    },
+    {
+      "path": "objects/000004-5ea39cc674d6.gz",
+      "bytes": 2157,
+      "sha256": "5ea39cc674d6148030f1b7afd34d337b68542666cc3f99318299184a347b2f31",
+      "rawBytes": 9530,
+      "rawSha256": "0b691493516ecbef350c314bbe2c0238ea0c03638486f0d21a579b6a10070cb8",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/unit/agent-core-tool-capability-fence.test.js.gz"
+    },
+    {
+      "path": "objects/000005-6515ad68d82d.gz",
+      "bytes": 18943,
+      "sha256": "6515ad68d82de660cbf9679393b19eed72eb48fe06f94d60b34250fae9901107",
+      "rawBytes": 90396,
+      "rawSha256": "dacbb6ba8bea48e9b77577a4662cff4ae506688a69020eb699761be6c4041fba",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/unit/headless-runner.test.js.gz"
+    },
+    {
+      "path": "objects/000006-4416a1df2b36.gz",
+      "bytes": 13699,
+      "sha256": "4416a1df2b36f45d8830a0ee5daa06d3ab8d71364ec5f5e710bf74557ec6f3d9",
+      "rawBytes": 69671,
+      "rawSha256": "396a74f0886c95d98b33ac31a6ce1e507d8c790201ad4a42d9bf272d41f344c4",
+      "artifactOriginalPath": "sources/packages/cli/__tests__/unit/headless-stream.test.js.gz"
+    },
+    {
+      "path": "objects/000007-a449d45bdcd2.gz",
+      "bytes": 10444,
+      "sha256": "a449d45bdcd2c2a5f397a8ed6c9ea8dbf5f57bc460437ec717c8de298f223c4c",
+      "rawBytes": 33264,
+      "rawSha256": "d22baab6dd2b7925908d208f81cb57bcf1baec0d3f6ca8eff55c224378bc133c",
+      "artifactOriginalPath": "sources/packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs.gz"
+    },
+    {
+      "path": "objects/000008-e1c9f6444764.gz",
+      "bytes": 3000,
+      "sha256": "e1c9f6444764d7858851c693d9f84647c1967cb14ee276fd19f853be0adeb891",
+      "rawBytes": 9068,
+      "rawSha256": "de144b6713e80e485ac67af38e553ced6f4dc931c85dc66ca72d1496f97f5e93",
+      "artifactOriginalPath": "sources/packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs.gz"
+    },
+    {
+      "path": "objects/000009-dde137151946.gz",
+      "bytes": 4525,
+      "sha256": "dde1371519468739f71e1c8d364ab9d92d9d0052e41a1153cf7e18c2e39043b8",
+      "rawBytes": 23375,
+      "rawSha256": "3ea528081f3440e69f53aec97dcadeeca185e86577cd2c9e5927fada8fb8c11a",
+      "artifactOriginalPath": "sources/tests/fixtures/claude-2.1.221-238-security-map.json.gz"
+    },
+    {
+      "path": "objects/000010-36fa4f1b22e8.gz",
+      "bytes": 1758,
+      "sha256": "36fa4f1b22e8e69db857a369cd2e2507c7e2290adfc99d1ccf64a474e9880a4f",
+      "rawBytes": 5273,
+      "rawSha256": "3f76bdc0e6a276e65e62cc39c56416a19ad09b257564154fb9d493fc0ecbf103",
+      "artifactOriginalPath": "third-task-review.json.gz"
+    },
+    {
+      "path": "objects/000011-8b18b679e913.gz",
+      "bytes": 1267,
+      "sha256": "8b18b679e9136beca31c6575102aa8531c3d93b66d6b4afabc903e582c2c5e92",
+      "rawBytes": 2517,
+      "rawSha256": "b7e36b19e5d519cea5b4bddc0a944853a25517a9140ef1c1625a9bc44dd7375c",
+      "artifactOriginalPath": "review-script.mjs.gz"
+    },
+    {
+      "path": "objects/000012-1036302b5c8e.gz",
+      "bytes": 6896,
+      "sha256": "1036302b5c8e44280ace2fb0e5494b620fe8dd5af533ffc571a12d4b05a6c703",
+      "rawBytes": 24936,
+      "rawSha256": "051390bde4a9bb1f923ec6a01e25c18cf06b7efd1dba375d5e23ca55317c9f9e",
+      "artifactOriginalPath": "source.diff.gz"
+    },
+    {
+      "path": "objects/000013-24dfbd1261af.gz",
+      "bytes": 15458,
+      "sha256": "24dfbd1261afe7399bbcb6315d775878f414c84f2ba03901229cb1bead4a174b",
+      "rawBytes": 273825,
+      "rawSha256": "fd56928465eb3752087b94061efca04614e2aa08e64fdec4bf7ba898cbc45b06",
+      "artifactOriginalPath": "source-parent-actions.json.gz"
+    },
+    {
+      "path": "objects/000014-f412df7f8576.gz",
+      "bytes": 686,
+      "sha256": "f412df7f8576a98d37d7b6432db79b5fc90c0911e2ce016210ee4f6317405608",
+      "rawBytes": 2149,
+      "rawSha256": "55ccadbb89f42a7a21c0f080e1fcb66b97239c9b072795e450ad215953986d00",
+      "artifactOriginalPath": "diagnostic-node-tests.tap.gz"
+    },
+    {
+      "path": "objects/000015-2559662fc220.gz",
+      "bytes": 8217,
+      "sha256": "2559662fc2203eae0cd677e86835caddedf71f46e1710cb960b572bc5eabc7a0",
+      "rawBytes": 59473,
+      "rawSha256": "912680527c9fcb6cca500df006d2f8f0d1e6020ba4cf4454d0be8165a66aaaa2",
+      "artifactOriginalPath": "reports/pre-execution-denial-headless-suites.json.gz"
+    },
+    {
+      "path": "objects/000016-5520f3798e81.gz",
+      "bytes": 8293,
+      "sha256": "5520f3798e81f8151a3b375a8391b102318b5ee8d2622b8e1e7f69ce1420e806",
+      "rawBytes": 59522,
+      "rawSha256": "b901e1a8a127a9bfc8b56faac51d00fc5e1b9cd2515ecd317fadf2ed739ae7dc",
+      "artifactOriginalPath": "reports/pre-execution-denial-headless-linux.json.gz"
+    },
+    {
+      "path": "objects/000017-aa6948a56a5b.gz",
+      "bytes": 699,
+      "sha256": "aa6948a56a5be1729d47acaa989281bad6b7afec3d798e0f22122867058ed708",
+      "rawBytes": 2092,
+      "rawSha256": "dc7ebe5d8ddff496d5b48b167282f16b58ea46eddaca5b5214a7b3e27b8e705f",
+      "artifactOriginalPath": "reports/pre-execution-denial-headless-linux-startup-failure.txt.gz"
+    },
+    {
+      "path": "objects/000018-c9564337b7ec.gz",
+      "bytes": 6267,
+      "sha256": "c9564337b7ecd404aae70ada11a9ab6e7be49f84809b765e515999702f58ec91",
+      "rawBytes": 53882,
+      "rawSha256": "a390ad23918c118ec732af45668a709f2bb5dd6b9afd7a165729f9f9bf9d6246",
+      "artifactOriginalPath": "reports/pre-execution-denial-targeted.json.gz"
+    },
+    {
+      "path": "objects/000019-fd785f4a7daf.gz",
+      "bytes": 30034,
+      "sha256": "fd785f4a7dafd661f9bf9b4f060edf3db92fa7f6a710bb1b0be40f5ee2a283cf",
+      "rawBytes": 302129,
+      "rawSha256": "5aa78bd00558c3eaa173483cfddf5c0016378914e8397c29e46d298c45411d6a",
+      "artifactOriginalPath": "reports/volcengine-third-followup-security-map-20261011.json.gz"
+    }
+  ],
+  "storageLayout": "portable objects directory; artifactOriginalPath preserves source/artifact names; gzip bytes, digests and original verdicts unchanged"
+}

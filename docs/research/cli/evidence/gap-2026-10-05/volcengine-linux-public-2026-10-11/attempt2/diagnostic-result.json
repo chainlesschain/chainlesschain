@@ -1,0 +1,73 @@
+{
+  "scope": "public-linux-cli-volcengine-diagnostic",
+  "formalSample": false,
+  "productionAttested": false,
+  "passed": true,
+  "runtime": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v22.12.0",
+    "osRelease": "4.4.0-19041-Microsoft",
+    "osReleaseFile": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n"
+  },
+  "version": "0.166.97",
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "initIdentity": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "permissionMode": "acceptEdits"
+  },
+  "terminal": {
+    "terminalVerified": true,
+    "observedFallback": false,
+    "usage": {
+      "inputTokens": 6496,
+      "outputTokens": 357,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0
+    },
+    "totalCostUsd": 0.0010094000000000001
+  },
+  "resultSubtype": "success",
+  "tools": [
+    {
+      "id": "call_ty9ygdoyfat489m6kqp6zql0",
+      "name": "write_file",
+      "input": {
+        "path": "probe.txt",
+        "content": "PUBLIC_LINUX_VOLCENGINE_OK\n"
+      }
+    },
+    {
+      "id": "call_a2v5qi19ukdgq3uxldxqk6e3",
+      "name": "read_file",
+      "input": {
+        "path": "probe.txt"
+      }
+    }
+  ],
+  "toolsSettledSuccessfully": true,
+  "readResultHasMarker": true,
+  "artifact": {
+    "path": "probe.txt",
+    "present": true,
+    "matches": true,
+    "bytes": 27,
+    "sha256": "74ce6345545df783b25057046f80c3efc97c011687de5c64e35c3068dc430f97"
+  },
+  "workspaceFiles": [
+    "probe.txt"
+  ],
+  "usage": {
+    "inputTokens": 6496,
+    "outputTokens": 357,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0
+  },
+  "estimatedCostUSD": 0.0010094000000000001,
+  "knownUsageEstimatedSubtotalUSD": 0.0010094000000000001,
+  "actualBilledCostUSD": null,
+  "providerAccountAttested": false,
+  "formal36Observed": 0,
+  "formal9Observed": 0
+}

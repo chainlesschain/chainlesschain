@@ -1,7 +1,13 @@
 import { strict as assert } from "node:assert";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -97,7 +103,7 @@ const {
   MemorySyncService,
 } = require("../../../desktop-app-vue/src/main/memory/memory-sync-service.js");
 const directory = mkdtempSync(
-  join(tmpdir(), "cc-context-memory-writer-probe-"),
+  join(realpathSync.native(tmpdir()), "cc-context-memory-writer-probe-"),
 );
 const previousStage = process.env.CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE;
 const previousDesktopStage =

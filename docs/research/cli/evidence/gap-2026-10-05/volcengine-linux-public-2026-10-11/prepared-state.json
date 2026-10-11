@@ -1,0 +1,24 @@
+{
+  "scope": "public-linux-cli-volcengine-diagnostic",
+  "formalSample": false,
+  "productionAttested": false,
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "version": "0.166.97",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+  "temporaryRoot": "/tmp/cc-volcengine-public-20261011-oA33AZ",
+  "install": "/tmp/cc-volcengine-public-20261011-oA33AZ/install",
+  "profile": "/tmp/cc-volcengine-public-20261011-oA33AZ/profile",
+  "workspace": "/tmp/cc-volcengine-public-20261011-oA33AZ/workspace",
+  "runtime": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v22.12.0",
+    "osRelease": "4.4.0-19041-Microsoft",
+    "osReleaseFile": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n"
+  },
+  "preparedAt": "2026-10-11T04:24:31.934Z",
+  "cleanProfileAtStart": true,
+  "cleanWorkspaceAtStart": true
+}

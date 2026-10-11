@@ -1,0 +1,42 @@
+{
+  "version": "0.166.97",
+  "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.97.tgz",
+  "integrity": "sha512-wZHBegElD6AWAUZ24fJv3YXvnc/lGGHyaDF3bh/SJZeSX9DAOjmVsjcxcv2xD3RcrDWC8RgLepPUZzwb9PO3ig==",
+  "packageLockSha256": "0503f1e5b2d35459a5e6b65e43e45c75d0c7e3642b847a217a69f630d9e963e3",
+  "lifecycleScriptsEnabled": false,
+  "packageDirectory": "/tmp/cc-volcengine-public-20261011-oA33AZ/install/node_modules/chainlesschain",
+  "sourceBindings": [
+    {
+      "file": "bin/chainlesschain.js",
+      "bytes": 1023,
+      "sha256": "32339064da330222d3f1129c201a5e9473441ed3d12b4758193696d3c3565547",
+      "matchesReleaseGitBlob": true
+    },
+    {
+      "file": "src/commands/agent.js",
+      "bytes": 155428,
+      "sha256": "9700866386cbf704de72bedd0db32d4759f71f3e2d83ec0a4db99ca0c4e039bd",
+      "matchesReleaseGitBlob": true
+    },
+    {
+      "file": "src/runtime/headless-runner.js",
+      "bytes": 165098,
+      "sha256": "49757e029bc8c669aef045ca678415dd54abc36d8e223f8a930249f0554262df",
+      "matchesReleaseGitBlob": true
+    },
+    {
+      "file": "src/runtime/agent-core.js",
+      "bytes": 633895,
+      "sha256": "0414d1ec30908060fa65bc5ea7f610e6d07e1ae06300ee74dbaae46998ddd369",
+      "matchesReleaseGitBlob": true
+    },
+    {
+      "file": "src/lib/formal-quality-eval-runtime.js",
+      "bytes": 6105,
+      "sha256": "3f7952c8baca95d3fc8337f31e48c5301c971471d898db53ee1bd7373d05f200",
+      "matchesReleaseGitBlob": true
+    }
+  ],
+  "nativeSqliteAssessed": false,
+  "formalSample": false
+}

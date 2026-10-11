@@ -1039,3 +1039,154 @@ Open VSX `0.37.141` 已公开可下载，内容与标签 VSIX 一致；JetBrains
 root PID28452、thread24784；前后有效primary token、无impersonation、capability0、FileId/卷号/NT路径一致，仅单次观察，不构成连续稳定证明。仅root启动，launchRequests0；原HANDLE wait0/exit0、Job0、profile删除、host map未变。14source、3binary、7copy前后绑定并独立复核；实验adapter仅三处接线，另八份原native/CJS源逐字节匹配22ef。没有工程源码改动，也没有进入已发行CLI/IDE；compiler closure非hermetic，本机Windows10/Node22.22.2不冒充正式目标宿主。
 
 [46份gzip原件索引](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/manifest.json)与[独立回读](./cli/evidence/gap-2026-10-05/acl-observation-2026-10-11/archive-validation.json)保存完整header/actor/driver/verifier、源码diff、构建原件和运行结算；大二进制保留本机 `.work`，附摘要绑定。归档双摘要/原始字节及verifier重算FAIL全部通过，未再次实跑。没有PowerShell调用，所以旧spawn拒绝仍未定位；未执行完整冻结journal/review。其余owner-only实际实现、junction、protected journal/durable服务、自身恢复/WFP、正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99/observations、旧211=194/16/1及6/4/4、新211=208/2/1、账单/独立人工/辅助技术/8h/24h/SLO仍保持原状态，无付费调用。
+
+### 20.32 2026-10-11 ACL 契约冲突、启动诊断与 Memory 目录坐标
+
+本轮在原基线 53ad9df8c4 之后完成八文件工程增量，[回归索引](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/manifest.json)保存四个实际 JSON reporter、八份源码、source diff、lint/格式原输出。15 份 gzip 均双摘要/字节 roundtrip 通过；源码在本地执行后捕获，不能升级为不可变 CI 源码门。
+
+| 实际运行                                          | 结果                               | 证明范围                                                                                                      |
+| ------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Windows 10 x64 / Node 22.22.2：ACL/位置诊断三文件 | 151 pass / 0 fail / 0 skip         | 单路径/批处理启动错误、同步 throw、部分 stdout 拒绝、限定字段/marker、两种 target 失败传播及已有真实 ACL 回归 |
+| Windows：Memory 两文件                            | 32 pass / 0 fail / 1 POSIX skip    | 坐标不同与 EPERM/EACCES 时零 mkdir，既有 query/index、真实 symlink/junction 回归                              |
+| WSL Linux x64 / Node 22.12.0：前三文件            | 146 pass / 0 fail / 5 Windows skip | 共享分类/位置传播及 POSIX 既有路径                                                                            |
+| WSL：Memory 两文件                                | 30 pass / 0 fail / 3 Windows skip  | POSIX 目录合同与分片/索引回归                                                                                 |
+| 定向 lint / Prettier / diff whitespace            | passed                             | 八文件本地静态验证                                                                                            |
+
+共 184 个不同用例，重复系统运行不累加。首轮 149 pass/1 fail 是旧测试要求透传原始 timeout message，改为固定 marker 后保留全部预算/零写入断言，另加 throw 用例，最终 151/151。WSL 前两次只在启动阶段失败（命令 PATH 引用及缺 Linux Rollup optional），没有运行测试；准确 optional 包装入独立 .work 目录后最终实跑成功，没有删除项目依赖或改变 lockfile。细节与复验命令见[README](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md)。
+
+独立 [ACL 原生实验](./cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md)保留三轮边界：A 受限宿主在 host-token 拒绝、actor 未启动；B actor 对固定自己创建的 scratch 目录取 0x60080（WRITE_DAC/READ_CONTROL/READ_ATTRIBUTES）HANDLE 返回 Win32 5，SetSecurityInfo 未调用；C 宿主在不同独立副本设置 protected/唯一当前用户 FullControl ACE、目录 OI|CI/文件无继承，再关闭所有设置句柄并仅保留不可继承元数据句柄。C actor 没有目标句柄，六项真实路径 I/O 全部 Win32 5。宿主前后身份、原始 ACL 与旧文件摘要未变；B/C 原 HANDLE exit0、Job0、profile删除确认。140份gzip、9个本机保留二进制摘要、39项独立回读与64个来源/copy绑定已保存。
+
+上述结果确认本机现合同下 LowBox 直接路径读写不兼容，不证明 actor 成功实施了 ACL SET，也不推断所有 Windows 版本的行为。要继续提供此运行边界内的 owner-only 存储，需要宿主 broker/版本化合同工程；不能扩大 AC ACE 或让宿主代开目标后声称原 actor 能力通过。生产诊断补充只定位今后的 spawn 失败，不回填旧 windows-acl:spawn 的根因。
+
+当前生产 Memory 目录函数的独立[原生切片观察](./cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md)使用原九份 native/CJS 来源字节、原六槽，精准摘录当前 functions 与原 corruptStore 到固定 actor。plain realpath.native 坐标一致且 nested 创建成功；真实 junction lstat 为 directory=true/symbolicLink=false，但 native canonical 指向 target，实际属性 0x410/tag 0xA0000003/FSCTL 与 Global C substitute 另有原件。新函数报 CONTEXT_MEMORY_STORE_CORRUPT，junction分支 mkdir调用0、target前后为空，原 HANDLE/Job/profile结算确认。它证明当前反例的函数切片拒绝，不是冻结完整module/review成功，也不是所有 reparse 或持续 race fencing 证明。
+
+旧冻结 Windows 211=194/16/1、mutants6/4/4、新fixture211=208/2/1仍不改写，完整 native review 继续 NOT_ADMITTED。正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99、observations保持；Windows/macOS durable服务/受保护journal/自身恢复/网络撤销、macOS checker与冻结平台冲突仍有工程任务，官方账号/usage/账单、目标宿主、独立人工/辅助技术、8h/24h/SLO仍开放。本轮未发布或调用付费模型，新准确提交 CI 另验。
+
+### 20.33 2026-10-11 火山 Linux 公开调用与工具白名单
+
+按用户授权，用内置Ark endpoint/deepseek-v4-flash-ga-260731，在Ubuntu24.04.3 x64/WSL1、Node22.12.0独立registry安装公开CLI0.166.97。五文件release blob匹配、lock来源保留；ignore-scripts且未测SQLite native，不声称完整安装旅程。新profile/workspace无开发软链接，凭据仅内存WSLENV，不写argv/文件。根部首次exact mutation目标不存在的stderr/空stdout与未知费用保留；attempt2新占位仅使目标存在，模型仍须覆盖和读回。
+
+真实14条NDJSON，write_file/read_file使用ID唯一、结果匹配、顺序正确，参数/完整读回/产物均为27字节PUBLIC_LINUX_VOLCENGINE_OK加LF，SHA25674ce6345545df783b25057046f80c3efc97c011687de5c64e35c3068dc430f97。3条usage分别1722/169、2128/176、2646/12，合计6496/357；terminal success/exit0，无fallback、signal或timeout。CLI估算$0.0010094，实际账单null；估算stop$0.05不是provider硬额度。Astra独立回读通过。
+
+公开.97传两工具allowlist却在init/context plan暴露六文件工具；实际仅执行两项不能代表工具暴露合同通过。源码修复只调整集合收窄，显式空集合、plan只读、外部工具排除和默认六项分别覆盖。真实agentLoop/chatWithTools的mock fetch捕获最终body.tools，旧源码5fail，新源码5pass；完整四文件Windows22.22.2与Linux22.12.0各113/113，无skip。早期测试夹具失败分别因cwd、错误观察chatFn参数、provider/baseUrl未绑定，已单独保留，不据此判产品失败。生产源码未发行；4个既有lint warning未清除。
+
+[42份原件/快照索引](./cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/manifest.json)逐字节及gzip双摘要通过，driver是诊断后的最终本地快照。loaded_sources标签保留，hermetic并非OS网络隔离。预检根部WSL解码损失/沙箱拒绝与批准后的原字节重跑分开存储。用户另要求Actions验收和实际编码任务后优化，准确提交CI、Docker pack与两题实际火山诊断仍另验，不沿用旧CI或本地结果。正式36+9/$99/observations、目标宿主/人工/官方账单/长时与native NOT_ADMITTED均未改写。
+
+### 20.34 2026-10-11 两项实际火山任务与工程优化
+
+[结果与优化依据](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md)保留三轮完整原件131/137/137件、工程41件、postfix-E2E9件、stale-map5件及旧Docker603件，共**1063份**gzip原始/压缩字节绑定文件，后续审计和新修复另存19份，共1082份，双摘要均已独立校验。模型源码冻结b2aa、public CLI.97发行来源22ef、准确运行器來源分别bee3/c420/5e23；ignore-scripts不证明native安装。Docker checker无账号/网络，provider零retry/no fallback。
+
+第三轮 [38114586541](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586541) 已 completed/failure，保留公开 CLI .97 原始结果：
+
+- **verify-04**：exit0、terminal success、12条usage、无timeout/fallback；基线22/22，候选**6/6**，两种变异分别**5pass/1fail**，Docker结构gate通过。但15个tool_use/16个tool_result导致原model审计settled=false/pass=false，原整题passed=false。额外结果是 `call_l7sb16yy86s4b0m2ems607rt` 的绝对路径write_file，exact scope在执行前正确拒绝；随后相对路径写入成功。无重复use ID，不能归因于ID复用，也不能伪造工具执行。候选未调用priceRollup或断言金额，“同总量”样本的400000 input与271000/273000 requestInput不自洽，缺少272000/+1及各缓存类型边界/逐费用分量求和，故不能声称完整费用合同通过。
+- **verify-22**：exit0、terminal success、14条usage，model审计通过；基线19/19，候选**3pass/1fail**，未执行mutants，原整题passed=false。第181行在恢复fsync spy前调用exportSnapshot，loadManifest→collect→syncDirectory再次触发注入错误，导致第183行restore及后续reopen未执行。第二例固定directory-sync-completed、第四例未skip也不适用于Windows的目录同步unsupported分支。这是候选故障生命周期错误，没有证明生产Memory缺陷。
+
+第三轮verify-04的input/output/cacheRead为134170/22742/45312，CLI估算 **$0.025785928**；verify-22为125873/40463/98816，估算 **$0.030335284000000004**；合计 **$0.056121212000000004**（显示约$0.05612），实际invoice均null。第二轮04已观察153363/40225/91904，但无terminal完整估算；第二轮22无usage不代表未收费。不能补零或把第三轮金额当作全部尝试累计账单。
+
+工程接线Windows/Linux各73/73，真实headless写交付/拒绝越scope及原字节保持。费用Windows28/28、Linux首次27/28（Windows SQLite invalid ELF header）保留，随后独立费用+session18/18；两隔离变异6/6和4/6失败，未宣称Linux SQLite成功。Windows临时入口由原c420 E2E XML确认RUNNER~1，可信fixture规范化三套21/21、四套CLI E2E14/14；生产guard未放宽，旧chat/IDE/审批独立根因未知。mapped29pass/937未选中/0fail、诊断新9/9。
+
+执行前拒绝不产生tool-executing，这是原authority gate的正确行为。后续工程为该拒绝增加execution_started:false，并修复single/stream headless遇到显式未知tool_use_id时回退上一调用的问题：保留原ID、不污染旧调用/计划或产生副作用STARTED。诊断仅分类preExecutionDenials与tool-settlement-unverified，原1:1 settled验收未放宽；第三轮原verdict及候选不回写。prompt补充所有mutation必须使用repo-relative path，不传具体题目答案。
+
+旧dc9226 Docker全部6shards成功、36tasks/72setup-check/42mutants，摘要和receipt核对，agentExecuted/providerAssessed/independentHumanReview均false；不作模型任务或新SHA门。
+
+准确工程源码 `5e23ef5ce0a487e775aa305bb03ba63ab76a8d9e` 的 Actions 回读时点为 **2026-10-11T05:56:08.391Z**。该提交 Strict 已完成；其余状态如下。后续事件关联修复将产生新提交，必须使用自己的准确 SHA 验证，不能继承此门。
+
+| 工作流                                                                                                                         | 状态 / 结论         | job 计数                            |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------- | ----------------------------------- |
+| [CLI CI / 38114590109](https://github.com/chainlesschain/chainlesschain/actions/runs/38114590109)                              | queued / null       | queued=54，success=8，in_progress=3 |
+| [CLI Strict Sandbox / 38114589983](https://github.com/chainlesschain/chainlesschain/actions/runs/38114589983)                  | completed / success | success=5                           |
+| [VERIFY01 Docker Review Pack / 38114586545](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586545)         | queued / null       | success=4，queued=1，in_progress=1  |
+| [VERIFY01 Volcengine Task Diagnostic / 38114586541](https://github.com/chainlesschain/chainlesschain/actions/runs/38114586541) | completed / failure | failure=1                           |
+
+重复的同 SHA PR Docker run 38114589944 在六个 job 全部 queued 时取消，保留 push run 38114586545；取消只表示去重。
+
+后续事件修复新增七项回归，Windows两个完整headless套件 **171/171**；真实loop确认成功read→绝对write拒绝（原字节未改）→相对write成功。single/stream覆盖显式未知ID、已完成/待完成调用、plan/compact记录和sideeffect只started→committed，未新增被拒参数内容留存。新源码及raw reporter见[后续修复原件](./cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/third-task-followup/manifest.json)，按工作树原字节和normalized Git blob保存，需与最终提交核对。Linux Node22.12两个完整套件同样171/171（与Windows是相同171项，不累加），首次缺Rollup解析路径的真实启动失败原件保留，仅用NODE_PATH指向已有optional后通过，未安装依赖或更换SQLite；刷新producer digest后的mapped29pass/940未选中/0fail，诊断9/9、lint/格式/diff通过，后续准确提交CI见[草稿PR #429](https://github.com/chainlesschain/chainlesschain/pull/429)，不能继承旧SHA的Strict成功。
+
+正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划digest/冻结窗口及observations均保持。当前新启动无法取得旧窗口内完整24h观察，延长须保留旧版并新建计划版本。目标宿主、独立人工预审/辅助技术、真实invoice、IDE首次安装和8h/24h/SLO仍待完成；Astra的AI审查和GitHub Docker checker不替代独立人工。Windows/macOS durable、owner-only/LowBox合同与完整native review的NOT_ADMITTED仍开放。本轮没有新发行或合并。
+
+### 20.35 2026-10-11 费用语义与公开 SQLite 安装诊断
+
+[实现及125份原件](./cli/evidence/gap-2026-10-05/semantic-install-2026-10-11/README.md)。
+
+准确诊断源码 **`fcee60cd4cc29cc524f561264e8d9f2b26032894`** 的两项新增Actions均completed/success；本次零模型调用，没有第四轮付费采样。
+
+- [费用语义校准 / 38117931229](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931229)：在冻结b2aa项目、Node22.12.0、无账户/断网/只读Docker中，第三轮原候选对四项实际计费错误均为**6pass/0fail**（全部survived）；工程六例正常**6/6**，四项错误分别造成**6、4、4、3项断言失败**（全部killed）。每轮基线**22/22**、源码恢复摘要一致。`calibrationPassed:true`、`candidateSemanticAccepted:false`、`engineeringControlAccepted:true`；校准成功不能回填模型题成功。忽略请求桶会使多调用进入unpriced分支、金额不计入，而非必然按合并总量计费。
+- [公开安装 / 38117931353](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931353)：Ubuntu24.04 x64 / Node22.12.0、独立空HOME/profile/npm-cache，正常lifecycle安装public CLI**0.166.97**，发行源码**22ef588**八项字节匹配；registry metadata、npm install、cc db init、write、reopen五命令均exit0。core-db实际**native-cipher / better-sqlite3-multiple-ciphers 11.10.0**，CLI vault实际**better-sqlite3 12.11.1**，两者真实写入、关闭及新进程**PID2508→2519**重开/更新均通过，无WASM fallback。两个已加载.node分别2623080/2118144字节，摘要见原始probe。此结果只补齐该Linux公开安装诊断，不代表正式五阶段首次旅程、其它OS/GUI、签名provenance或人工验收。
+
+另一本机WSL运行在安装前`git status`只读清洁检查的30秒期限内超时，`commands:[]`，没有开始npm/provider；原失败和os-release单独保留，不能归因于SQLite或用Actions成功覆盖。原Windows二进制在Linux报invalid ELF的早期基线也未改写。
+
+合同测试Windows Node22.22.2与WSL Node22.12.0各**12/12**，零skip（相同12项不累加）；ESLint/Prettier/diff通过。原件共**125份gzip双摘要**：14份合同/源码、21份公开安装/WSL/API、90份费用reporter/候选/receipt/生成pack/API。六个normalized源码blob与fcee60准确提交一致，原候选4924字节SHA256仍为7f3b5c7f744e2829b226ea2eecf15b522beb5ca6c67b29bb57f9b34eed4ecdba。Astra只读复核未发现阻塞；AI复核不代替独立人工。
+
+准确fcee60的Actions回读时点为**2026-10-11T06:30:12.939Z**；CLI/Strict/完整36题Docker尚未全矩阵完成，不借用旧SHA的成功。
+
+| 工作流                                                                                                                          | 状态 / 结论         | job计数             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------- |
+| [CLI Strict Sandbox / 38117931218](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931218)                   | queued / null       | success=3，queued=2 |
+| [VERIFY01 Docker Review Pack / 38117931299](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931299)          | queued / null       | queued=6            |
+| [CLI CI / 38117931406](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931406)                               | queued / null       | queued=65           |
+| [VERIFY01 Public Install Diagnostic / 38117931353](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931353)   | completed / success | success=1           |
+| [VERIFY01 Pricing Semantic Diagnostic / 38117931229](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931229) | completed / success | success=1           |
+
+同SHA重复push Docker run38117926343在六job均queued时取消，保留PR run38117931299；这只是去重。后续纯文档提交不把该矩阵转移到新SHA。
+
+正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划指纹和截止窗口保持。独立人工预审/外部review锁、可靠账单或硬额度、目标GUI/辅助技术、8h/24h/SLO、Windows/macOS durable/owner-only及完整native review仍开放；原模型verdict与候选未重写。本轮没有合并或发行。
+
+### 20.36 2026-10-11 首次旅程接线与费用修复
+
+Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同一隔离profile，实际configure/authenticate后执行原冻结verify-04 prompt，保存候选及冻结/四项费用语义检查。密钥仅在认证/model子进程环境，无重试或fallback；30分钟总deadline、8分钟工具deadline、20轮及$0.25估算停止线不能替代provider硬额度。实际火山结果待完成，不产正式observations。
+
+认证探针增加兼容的JSON usage回执，错误耗尽仍保留已消费tokens。首次旅程认证和tool费用各计一次；Eval result仍为tool费用，observation.cost才是旅程总额。缺任一费用或旧.97认证无usage均保持null。Astra发现的earlyStop误补tool零及provider错误先截断再脱敏两项问题均修复并复核：失败不证明未收费，已知key先脱敏后截断。AI复核不替代人工。
+
+最终Windows系统Node22.22.2与Linux固定Node22.12.0各**201/201**，五阶段/公开安装离线合同各**17/17**，零skip；ESLint/格式/diff与生成文件检查通过。沙箱账户Git dubious ownership的16/17失败原件与owner17/17复验同时保留，未修改safe.directory。18份双摘要原件、13个normalized源码snapshot及指纹见[实际原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/README.md)。
+
+正式36+9/NOT_RUN/observed=0/$99及计划指纹保持；准确源码CI须单独验收，不继承旧SHA。独立人工/外部review锁、可靠账单/硬额度、目标宿主/辅助技术、8h/24h/SLO及Windows/macOS durable/owner-only/native review仍开放。未合并或发行。
+
+### 20.37 2026-10-11 首次旅程 fresh checkout 启动修复
+
+首次Actions在无账户验证阶段发现共享执行器间接引入semver，模型步骤均skipped，零新费用。抽取workspace助手并保留旧API和原文件边界；Astra发现的EMPTY_DELIVERABLE_DIGEST遗漏已恢复。仓库外无依赖clone、Node hooks清除、真实冻结Git对象和keyless prepare：Windows22.22.2/Linux22.12各23/23；执行器/host capture/import85/85、collection42/42，各127/127，零skip。原Actions失败、夹具与WSL环境失败同时归档，新源码显式付费旅程待验证。正式36+9/NOT_RUN/observed=0/$99保持，未合并或发行。详见[21份原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。
+
+### 20.38 2026-10-11 火山首次旅程实际失败与交付优化
+
+真实Linux五阶段旅程Actions38121388190、诊断源码76ad42e278完成failure：install/configure/authenticate通过；工具20轮耗尽exit3，无write/edit，候选0字节。39use/44result的额外5条为旧public.97未标execution_started:false的paused reads；baseline22/22而无candidate suite，冻结失败、四项semantic均not-established。工具估算$0.036069908，认证/总旅程/实际账单未知。原题prompt及原失败不修改，宿主不执行候选。
+
+实际发现落实为每dispatch的有限预算/交付提示，planner跳过尾system-policy保护当前user并保持旧host信任，iteration-budget-exhausted分类和缺候选断言的明确诊断。Astra指出的goal/hook后缀保护问题已修复；新增默认planner正常/tight context、Infinity、历史/信任边界及json/stream-json pause→write真实集成回归。Windows所有者22.22.2和Linux固定22.12.0各521/521、Node合同各39/39，零skip。Windows沙箱497/519失败和同身份C:\Users\longfa native realpath EPERM探针、旧PATH/夹具失败同时归档，不放宽guard。新优化尚未付费复跑，不能将本地通过回填模型成功。
+
+完整164制品、原API/job/ZIP与八源码blob、失败和最终reporter见[实测与优化归档](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结计划与窗口不变。独立人工/外部锁、invoice/硬额度、目标GUI/辅助技术、durable/owner-only/native及8h/24h/SLO仍开放；准确优化提交须自身CI，不合并或发行。
+
+### 20.39 2026-10-11 CLI 0.166.98 最终本机回归与候选准备
+
+本轮将有限预算提示尾附并绑定可信system index，火山兼容HTTP序列化回归保持稳定conversation/tool schema前缀；Anthropic合并system的限制保留，不声称实际省费。修正旧hook测试末尾user假定而保留展开功能断言，更新安全producer摘要；Windows/Linux最终九套各522/522。VS新增单fixture失败清理，不放宽生产期限/断言，owner3/3和完整260/260；Java17缺toolchain失败后显式JDK21测试955项与buildPlugin成功。两次无reporter超时、521pass/1fail、初始VS259/1及受控残留进程回执保留；初始TAP/Gradle完整stdout缺失范围明确。
+
+SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐元数据一致。用户已授权成功后发布，须最终准确SHA的CLI CI/Strict/IDE/ARM64完整门，通过后既有OIDC子包→CLI→IDE并公开回读；当前未发布或合并。见[159份新增原件与优化](./cli/evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结指纹与旧窗口不变；优化未付费复跑，人工/账单/GUI/durable/native/长时验收仍开放。
+
+### 20.40 2026-10-11 发行候选临时目录失败修复
+
+准确a219的Windows benchmark/writer probe被native canonical guard拒绝；已在夹具入口规范TEMP，保留原失败。真实junction benchmark前拒绝/后1000条四模式一致；干净993805writer exit0与fences通过，初始driver全临时根空断言被独立logger目录触发，静态回读仅确认writer夹具清理，原件保留。Memory32pass/1skip、Kernel112/112；Kernel候选升0.1.9，CLI依赖/lock对齐。独立复测认证接入JSON估算，Windows/Linux各43/43，不回填账单或正式样本。新准确提交须完整四门和相关失败门；未发行。完整原件、双摘要与限制见[修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair/README.md)。
+
+### 20.41 2026-10-11 剩余迁移夹具与准确源码门
+
+准确Kernel PR在Windows迁移/恢复25项中11pass/14fail，writer已通过；API head0b1f而实际执行7f5bfca5合并源码。16个Node夹具和capacity/review诊断入口已规范TEMP，生产guard不变；同短junction原源码9/16，修后25/25，文件symlink断言EPERM未执行仍保留。capacity定向alias前拒绝/后完成并清理，相关单位21/21。工作流新增准确HEAD检出与比较，探针/制品同一SHA。旧准备和失败不覆盖，新候选须自身六门，未发行或付费复跑。 完整原件和限制见[修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair2/README.md)。
+
+### 20.42 2026-10-11 Windows SDK 短路径复现与共享 CI 修复
+
+准确 d62 的 Kernel Windows 已通过迁移/恢复 25/25，SDK 82pass/1fail 于首轮 result；原 CI 无错误正文。原 SDK 在真实 8.3 TEMP 同点复现 authority directory resolves elsewhere，规范 TEMP 下完整 E2E 1/1。共享 Windows CI 仅导出规范 TEMP/TMP，应用原 action Node 片段后九文件 83/83；SDK 整树、生产 guard、180 秒期限及断言未改。本机无 pwsh，最终 shell 仍须 Actions。修复提交 7f681d 的 helper 27/27，后台断线重连补准确检出，Kernel/Index 补共享 action 触发；新准确发行提交须完整七门 71/5/19/10/3/3/3。 原始失败、junction 更早拒绝、首次短路径探针驱动失败及外部 120 秒中断均保留；只把诊断外层预算改到 240 秒。新的准确候选不继承旧 SHA 通过状态。修复源码绑定 `7f681d660da1f446e5e0c540c5ef10ea529d5a2e`，117 份 gzip 双摘要及完整 API/进程/旁录见[第三轮修复证据](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair3/README.md)。
+
+历史 [第二次独立准备](./cli/evidence/gap-2026-10-05/release-0.166.98/retest-ready2/README.md) 绑定 f53477ad/d62，Windows/Linux 各 43/43、准备 run skipped/零步骤。其源码与身份不能转移为新候选或后续付费 run；CLI 公开回读成功后需要新的显式 marker 提交，实际触及 paths 内文件，并按实际 execution SHA/run/attempt 采集。公开回读已使用唯一尝试目录，不覆盖失败原件。两条 d62 duplicate 检查未被取消。新版本、付费复测与合并均未执行；正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，独立人工、账单/硬额度、实际 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。
+
+### 20.43 2026-10-11 固定 owner-only 宿主读取原型
+
+在冻结 53ad9df 的独立 Windows 普通非管理员实验中，固定 owner-only 文件的宿主只读 RPC 完成一次实际运行：**9 请求 = 1 成功 / 8 拒绝**，合法读取真实返回 16 字节；actor 六项直接路径操作仍全部 Win32 5，目标 HANDLE 不继承。原 HANDLE/Job/profile/通道完成结算；身份与对象前后快照只证明检查时点，未建立连续 authority 或 atomic fencing。独立静态回读 **25/25 = 4 原件检查 + 21 篡改拒绝**，并非 25 次 RPC。
+
+此前 [ACL 契约 A/B/C](./cli/evidence/gap-2026-10-05/acl-contract-2026-10-11/README.md) 已实际尝试 LowBox WRITE_DAC 与宿主预设 protected 唯一用户 ACL，不能再按早期只读 ACL 观察推断尚未尝试设置。本次在独立新胶囊上进一步验证固定对象宿主代理，未改变生产/发行源码、原 owner-only 合同或六个 IAT slots。请求 152 字节、响应 96 字节、载荷上限 64 字节；拒绝分支不返回载荷也不执行 RPC 文件读取，验证用的额外宿主只读检查另计。错 session/generation/注册身份、未知操作、65 字节请求、错误序号、重放和二次读全部拒绝。目标 HANDLE 不继承，actor 原精确继承列表仍 9 项；ACL 设置 HANDLE 在 actor 启动前关闭。对象 ACL/FileId/路径/摘要前后匹配不证明其间连续稳定。root 退出后仅记录真实 channel closed，没有伪造退出后 server 拒绝请求。胶囊保留，未递归删除。
+
+[66 份 gzip 原件与独立核验入口](./cli/evidence/gap-2026-10-05/owner-canary-rpc-2026-10-11/README.md) 绑定 10 个冻结 Git 对象及三份本机实验二进制；不宣称编译工具链 hermetic。根代理和 Astra 分别只读核验，未重跑原生实验或修改 ACL。写入/CAS、flush/崩溃恢复、防回滚、服务自身保护和长期运行仍未实现，保持 **NOT_ADMITTED / durable=false**；正式 **36+9 / NOT_RUN / observed=0 / $99**、冻结窗口及其余人工/账单/GUI/辅助技术/长时验收不变，本轮零付费调用。
+
+### 20.44 2026-10-11 第四轮 CI 夹具与端口修复
+
+821c63e 的发行检查发现安装测试误取新增的 Windows 准备步骤，以及三个 CLI 测试仍假设最后一条消息是 user；实际请求末尾为可信临时预算 system。安装测试改为唯一命名 Bash 步骤，保留原重试和 15000ms 期限；CLI 测试严格检查原历史及唯一 49 次剩余请求预算，E2E 回调异常即时返回 500 并传回主断言，保留原成功断言及 90000ms/210000ms 期限。
+
+安装夹具 Windows/Linux 修前各 3/3 失败、修后各 6/6，既有合同各 56/56；最终 Windows CI integrity 两文件实际 60/60。CLI 两文件双平台修前各 2fail/9pass、修后各 11/11；完整 E2E 双平台各 1/1，无 retry，独立坏请求负例产生 HTTP500 与主断言失败，无 90 秒等待或 unhandled error。生产 agent、SDK 整树、共享 action 与安全 guard 均未改。
+
+JetBrains macOS 原件显示初始 UI 和 canonical drain 成功，进程组结算后端口 8082 仍占用；原件不能区分退出瞬态与逃离进程组。诊断改为在原 30 秒截止内等待实际 bind+close，仅重试 EADDRINUSE，有限期限/正轮询校验及探测前后截止检查接入原宿主合同。Windows 端口 6/6；本机 Ubuntu 为 WSL1，端口 4pass/2fail，独立探针证明该环境允许同一 loopback 端口双 listener。失败完整保留，未跳过断言；原生 Linux/macOS 仍待新提交 Actions。
+
+PR Tests 的实际合并检出与 head 来源已逐字节核对；40054pass/194skip/2fail 仅两项已定位旧契约。完整 518 个原件、Git 绑定、日志和拒绝记录见[第四轮修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair4/README.md)。旧 821 的六门通过不能转移给新提交。新发行候选须自己的七门 71/5/19/10/3/3/3，以及 Full Test、PR Tests 和 Host Diagnostics 修复验证；用户已授权通过后按 Actions OIDC 子包 → CLI → IDE 发布并公开回读，当前未新增发行、付费复跑或合并。正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，人工预审、账单/硬额度、目标 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。

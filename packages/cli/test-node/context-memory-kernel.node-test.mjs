@@ -7,6 +7,7 @@ import {
   existsSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -61,9 +62,14 @@ import {
 
 const AT = "2026-08-29T00:00:00.000Z";
 const CLOCK = () => Date.parse(AT);
+// Windows runner TEMP may use a short name or junction; fixture authority
+// paths must start from the native canonical directory, as production requires.
+const TEMPORARY_ROOT = realpathSync.native(tmpdir());
 
 function exactDeleteService(t) {
-  const directory = mkdtempSync(join(tmpdir(), "cc-memory-exact-delete-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-memory-exact-delete-"),
+  );
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return new CliCanonicalMemoryService({
     env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
@@ -337,7 +343,7 @@ test("ordinary persisted system text cannot become a trusted policy", () => {
 });
 
 test("durable CLI memory survives restart, deletion, and idempotent reconciliation", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-context-memory-"));
   const filePath = join(directory, "kernel-v1.json");
   try {
     const firstPort = new DurableJsonMemoryPort({ filePath });
@@ -402,7 +408,9 @@ test("durable CLI memory survives restart, deletion, and idempotent reconciliati
 });
 
 test("durable CLI memory rejects digest tampering", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-corrupt-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-memory-corrupt-"),
+  );
   const filePath = join(directory, "kernel-v1.json");
   try {
     const port = new DurableJsonMemoryPort({ filePath });
@@ -470,7 +478,7 @@ test("CLI cutover decisions keep shadow write-free and fence legacy after cutove
 });
 
 test("shadow Kernel produces the canonical plan but cannot create authority state", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-shadow-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-context-shadow-"));
   const filePath = join(directory, "shadow-memory.json");
   try {
     const runtime = createCliContextMemoryRuntime({
@@ -534,7 +542,7 @@ test("canonical production fences direct legacy CLI memory APIs", () => {
 });
 
 test("canonical CLI Chinese lexical recall survives durable restart and preserves admission fences", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-han-memory-recall-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-han-memory-recall-"));
   const memoryFilePath = join(directory, "kernel-v1.json");
   const serviceOptions = {
     env: { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" },
@@ -624,7 +632,9 @@ test("canonical CLI Chinese lexical recall survives durable restart and preserve
 });
 
 test("canonical provider context recalls Chinese substrings as data within scope and sink fences", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-han-provider-context-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-han-provider-context-"),
+  );
   const memoryFilePath = join(directory, "kernel-v1.json");
   const env = { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" };
   const content = "偏好使用确定性测试";
@@ -745,7 +755,7 @@ test("canonical provider context recalls Chinese substrings as data within scope
 });
 
 test("every canonical provider request binds recalled memory to a ContextPlan", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-provider-context-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-provider-context-"));
   const memoryFilePath = join(directory, "kernel-v1.json");
   const env = { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" };
   try {
@@ -824,7 +834,7 @@ test("every canonical provider request binds recalled memory to a ContextPlan", 
 
 test("canonical provider planning lets protected current-turn state consume recovery reserve", async () => {
   const directory = mkdtempSync(
-    join(tmpdir(), "cc-provider-protected-budget-"),
+    join(TEMPORARY_ROOT, "cc-provider-protected-budget-"),
   );
   try {
     const prepared = await prepareCanonicalProviderContext(
@@ -853,7 +863,9 @@ test("canonical provider planning lets protected current-turn state consume reco
 });
 
 test("canonical CLI memory migrates legacy rows once and becomes the only writer", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-migrate-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-memory-migrate-"),
+  );
   const filePath = join(directory, "kernel-v1.json");
   try {
     const runtime = createCliContextMemoryRuntime({
@@ -960,7 +972,9 @@ test("canonical CLI memory migrates legacy rows once and becomes the only writer
 });
 
 test("tombstone survives a killed process and restart reconciliation purges legacy SQLite", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-memory-crash-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-memory-crash-"),
+  );
   const filePath = join(directory, "kernel-v1.json");
   const childPath = fileURLToPath(
     new URL("./fixtures/context-memory-crash-child.mjs", import.meta.url),
@@ -1020,7 +1034,9 @@ test("tombstone survives a killed process and restart reconciliation purges lega
 });
 
 test("canonical scoped memory migrates session-core rows and preserves scope fences", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-scoped-memory-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-scoped-memory-"),
+  );
   const filePath = join(directory, "kernel-v1.json");
   const legacyMemoryStorePath = join(directory, "memory-store.json");
   try {
@@ -1146,7 +1162,9 @@ test("canonical scoped memory migrates session-core rows and preserves scope fen
 });
 
 test("legacy privacy purge fails closed for corrupt, oversized, and symlink projections", async (t) => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-privacy-purge-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-privacy-purge-"),
+  );
   const projectionPath = join(directory, "memory-store.json");
   const request = {
     memoryId: "memory-privacy-1",
@@ -1201,7 +1219,9 @@ test("legacy privacy purge fails closed for corrupt, oversized, and symlink proj
 });
 
 test("canonical live compaction owns selection and commits through its compatibility port", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-live-compaction-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-live-compaction-"),
+  );
   const commits = [];
   try {
     const messages = [
@@ -1257,7 +1277,7 @@ test("canonical live compaction owns selection and commits through its compatibi
 });
 
 test("canonical live callback receipts bind the verified physical JSONL heads", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-live-head-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-context-live-head-"));
   const previousHome = process.env.CHAINLESSCHAIN_HOME;
   const previousAnchor = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(directory, "home");
@@ -1322,7 +1342,7 @@ test("canonical live callback receipts bind the verified physical JSONL heads", 
 });
 
 test("JSONL SessionContextPort commits one canonical compact event with restart idempotency", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-jsonl-"));
+  const directory = mkdtempSync(join(TEMPORARY_ROOT, "cc-context-jsonl-"));
   const previousHome = process.env.CHAINLESSCHAIN_HOME;
   const previousAnchor = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(directory, "home");
@@ -1394,7 +1414,9 @@ test("JSONL SessionContextPort commits one canonical compact event with restart 
 });
 
 test("JSONL SessionContextPort reconciles a semantic compaction crash by operation id", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "cc-context-jsonl-reconcile-"));
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-context-jsonl-reconcile-"),
+  );
   const previousHome = process.env.CHAINLESSCHAIN_HOME;
   const previousAnchor = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(directory, "home");

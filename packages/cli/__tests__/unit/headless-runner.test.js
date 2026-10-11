@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const TEST_EVOLUTION_INGRESS = vi.hoisted(() =>
@@ -28,6 +34,7 @@ vi.mock("../../src/runtime/fallback-model.js", () => ({
 
 import {
   runAgentHeadless as runAgentHeadlessWithIngress,
+  chatWithTools,
   normalizePermissionMode,
   resolvePermissionMode,
   resolveEnabledTools,
@@ -92,6 +99,142 @@ const replyText = (content) =>
     message: { role: "assistant", content },
     usage: { input_tokens: 7, output_tokens: 3 },
   }));
+
+describe("headless pre-execution denial correlation", () => {
+  it("retains a real absolute-path rejection between a successful read and relative write", async () => {
+    const directory = mkdtempSync(
+      join(
+        (realpathSync.native || realpathSync)(tmpdir()),
+        "cc-headless-denial-",
+      ),
+    );
+    const target = join(directory, "allowed.txt");
+    writeFileSync(target, "before");
+    let turn = 0;
+    const chatFn = vi.fn(async () => {
+      turn++;
+      if (turn === 3) expect(readFileSync(target, "utf8")).toBe("before");
+      const calls = [
+        ["read-ok", "read_file", { path: "allowed.txt" }],
+        [
+          "write-denied",
+          "write_file",
+          { path: target, content: "must not write" },
+        ],
+        ["write-ok", "write_file", { path: "allowed.txt", content: "after" }],
+      ];
+      const call = calls[turn - 1];
+      return {
+        message: call
+          ? {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                {
+                  id: call[0],
+                  type: "function",
+                  function: {
+                    name: call[1],
+                    arguments: JSON.stringify(call[2]),
+                  },
+                },
+              ],
+            }
+          : { role: "assistant", content: "done" },
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    });
+    const { deps, out } = makeDeps(chatFn);
+    try {
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "perform the bounded file edit",
+          cwd: directory,
+          outputFormat: "stream-json",
+          ephemeral: true,
+          permissionMode: "acceptEdits",
+          hermeticExecution: true,
+          exactToolNames: true,
+          allowedTools: ["read_file", "write_file"],
+          fileMutationScope: {
+            exact: true,
+            worktreeRoot: directory,
+            allowedPaths: ["allowed.txt"],
+          },
+        },
+        deps,
+      );
+      expect(outcome.exitCode).toBe(0);
+      expect(chatFn).toHaveBeenCalledTimes(4);
+      expect(readFileSync(target, "utf8")).toBe("after");
+      const events = out.join("").trim().split("\n").map(JSON.parse);
+      expect(
+        events
+          .filter((event) => event.type === "tool_use")
+          .map((event) => event.id),
+      ).toEqual(["read-ok", "write-ok"]);
+      const results = events.filter((event) => event.type === "tool_result");
+      expect(results.map((event) => event.id)).toEqual([
+        "read-ok",
+        "write-denied",
+        "write-ok",
+      ]);
+      expect(results[1]).toMatchObject({
+        execution_started: false,
+        is_error: true,
+        permission_decision: {
+          decision: "deny",
+          via: "exact-file-mutation-scope",
+          reason: "non-canonical-path",
+        },
+      });
+      expect(results[1]).not.toHaveProperty("attempted_args");
+      expect(results[0].is_error).toBe(false);
+      expect(results[2].is_error).toBe(false);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it.each([false, undefined])(
+    "does not settle a pending call for an unmatched explicit result ID (started=%s)",
+    async (started) => {
+      const { deps, out } = makeDeps(null);
+      deps.agentLoop = async function* () {
+        yield {
+          type: "tool-executing",
+          tool: "read_file",
+          tool_use_id: "pending-read",
+          args: { path: "a" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "unmatched",
+          ...(started === false ? { execution_started: false } : {}),
+          error: "denied",
+          result: { error: "denied" },
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "pending-read",
+          result: { content: "ok" },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      };
+      await runAgentHeadless(
+        { prompt: "go", ephemeral: true, outputFormat: "json" },
+        deps,
+      );
+      const result = JSON.parse(out.join(""));
+      expect(result.tool_calls).toEqual([
+        expect.objectContaining({ id: "pending-read", is_error: false }),
+      ]);
+    },
+  );
+});
 
 function verifiedEventChain(events) {
   let previousHash = null;
@@ -314,6 +457,120 @@ describe("headless-runner — team message tools", () => {
 });
 
 describe("headless-runner — exact delivery fixer authority", () => {
+  it.each([
+    {
+      label: "an explicit write/read allowlist",
+      allowedTools: ["write_file", "read_file"],
+      permissionMode: "acceptEdits",
+      expected: ["write_file", "read_file"],
+    },
+    {
+      label: "an empty allowlist",
+      allowedTools: [],
+      permissionMode: "acceptEdits",
+      expected: [],
+    },
+    {
+      label: "tools outside the hermetic file ceiling",
+      allowedTools: ["read_file", "run_shell", "mcp__remote__read", "run_code"],
+      permissionMode: "acceptEdits",
+      expected: ["read_file"],
+    },
+    {
+      label: "plan mode with requested writes",
+      allowedTools: ["read_file", "write_file", "edit_file"],
+      permissionMode: "plan",
+      expected: ["read_file"],
+    },
+    {
+      label: "plan mode without an explicit allowlist",
+      allowedTools: undefined,
+      permissionMode: "plan",
+      expected: ["read_file", "search_files", "list_dir"],
+    },
+  ])("narrows advertised and model tools for $label", async (testCase) => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-headless-formal-tool-ceiling-"));
+    const prior = {
+      marker: process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC,
+      provider: process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER,
+      home: process.env.CHAINLESSCHAIN_HOME,
+    };
+    const modelTools = [];
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (_url, request) => {
+        const body = JSON.parse(request.body);
+        modelTools.push((body.tools || []).map((tool) => tool.function.name));
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: { role: "assistant", content: "done" },
+                finish_reason: "stop",
+              },
+            ],
+            usage: { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      });
+    const { deps, out, err } = makeDeps((messages, options) =>
+      chatWithTools(messages, {
+        ...options,
+        apiKey: "unit-test-only",
+        onToken: undefined,
+      }),
+    );
+    deps.bootstrap = vi.fn(async () => ({ db: null }));
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = "volcengine";
+    process.env.CHAINLESSCHAIN_HOME = dir;
+    try {
+      const result = await runAgentHeadless(
+        {
+          prompt: "finish without calling a tool",
+          cwd: dir,
+          provider: "volcengine",
+          model: "deepseek-v4-flash-ga-260731",
+          baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+          outputFormat: "stream-json",
+          ephemeral: true,
+          exactToolNames: true,
+          permissionMode: testCase.permissionMode,
+          ...(testCase.allowedTools === undefined
+            ? {}
+            : { allowedTools: Object.freeze([...testCase.allowedTools]) }),
+        },
+        deps,
+      );
+      expect(result, JSON.stringify({ result, err, out })).toMatchObject({
+        exitCode: 0,
+      });
+      const init = out
+        .join("")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+        .find((event) => event.type === "system" && event.subtype === "init");
+      expect(init.tools).toEqual(testCase.expected);
+      expect(modelTools.map((names) => [...names].sort())).toEqual([
+        [...testCase.expected].sort(),
+      ]);
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+      for (const [name, value] of [
+        ["CC_FORMAL_QUALITY_EVAL_HERMETIC", prior.marker],
+        ["CC_FORMAL_QUALITY_EVAL_PROVIDER", prior.provider],
+        ["CHAINLESSCHAIN_HOME", prior.home],
+      ]) {
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("adopts the isolated formal quality hermetic boundary from launch env", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-headless-formal-quality-"));
     const prior = {
@@ -823,9 +1080,12 @@ describe("headless-runner — output formats", () => {
 
   it("applies one UserPromptExpansion result before the model loop", async () => {
     const chatFn = vi.fn(async (messages) => {
-      expect(messages.at(-1)?.content).toContain("expanded prompt");
-      expect(messages.at(-1)?.content).toContain("[hook context]");
-      expect(messages.at(-1)?.content).toContain("policy note");
+      const userMessage = [...messages]
+        .reverse()
+        .find(({ role }) => role === "user");
+      expect(userMessage?.content).toContain("expanded prompt");
+      expect(userMessage?.content).toContain("[hook context]");
+      expect(userMessage?.content).toContain("policy note");
       return {
         message: { role: "assistant", content: "done" },
         usage: {},

@@ -115,6 +115,24 @@ function directories(directory) {
       realpathSync(current) === `/private${current}`;
     if (!systemAlias && (!stat.isDirectory() || stat.isSymbolicLink()))
       throw corruptStore(current, "authority directory is unsafe");
+    if (process.platform === "win32") {
+      // Some Windows runtime adapters report an ordinary directory for a
+      // junction whose target cannot be decoded in their DOS namespace. Keep
+      // the lstat guard and independently reject a different native canonical
+      // coordinate before mkdir or lock acquisition. This is an additional
+      // consistency check, not a proof against every reparse tag or a race.
+      let canonical;
+      try {
+        canonical = realpathSync.native(current);
+      } catch {
+        throw corruptStore(current, "authority directory cannot be resolved");
+      }
+      if (
+        typeof canonical !== "string" ||
+        resolve(canonical).toLowerCase() !== current.toLowerCase()
+      )
+        throw corruptStore(current, "authority directory resolves elsewhere");
+    }
     const parent = dirname(current);
     if (parent === current) break;
     current = parent;

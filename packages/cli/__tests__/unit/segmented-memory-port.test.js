@@ -126,6 +126,59 @@ describe("segmented memory authority", () => {
     });
     expect(readdirSync(target)).toEqual([]);
   });
+  it.runIf(process.platform === "win32")(
+    "rejects native redirection even when lstat classifies the ancestor as a plain directory",
+    async () => {
+      const filePath = location();
+      const root = join(filePath, "..");
+      const original = fs.realpathSync.native;
+      const native = vi
+        .spyOn(fs.realpathSync, "native")
+        .mockImplementation((candidate, ...args) =>
+          candidate === root
+            ? join(root, "redirected")
+            : original(candidate, ...args),
+        );
+      expect(fs.lstatSync(root).isDirectory()).toBe(true);
+      expect(fs.lstatSync(root).isSymbolicLink()).toBe(false);
+      const mkdir = vi.spyOn(fs, "mkdirSync");
+      syncBuiltinESMExports();
+      const port = new SegmentedMemoryPort({
+        filePath: join(root, "nested", "authority.json"),
+      });
+      await expect(port.query()).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      expect(native).toHaveBeenCalledWith(root);
+      expect(mkdir).not.toHaveBeenCalled();
+      expect(readdirSync(root)).toEqual([]);
+    },
+  );
+  it.runIf(process.platform === "win32").each(["EPERM", "EACCES"])(
+    "rejects unavailable native canonical metadata (%s) before creating authority directories",
+    async (code) => {
+      const filePath = location();
+      const root = join(filePath, "..");
+      const native = vi
+        .spyOn(fs.realpathSync, "native")
+        .mockImplementation(() => {
+          throw Object.assign(new Error("native resolution unavailable"), {
+            code,
+          });
+        });
+      const mkdir = vi.spyOn(fs, "mkdirSync");
+      syncBuiltinESMExports();
+      const port = new SegmentedMemoryPort({
+        filePath: join(root, "nested", "authority.json"),
+      });
+      await expect(port.query()).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      expect(native).toHaveBeenCalledWith(root);
+      expect(mkdir).not.toHaveBeenCalled();
+      expect(readdirSync(root)).toEqual([]);
+    },
+  );
   it("never confuses inherited object keys with stored record or reconciliation entries", async () => {
     const port = new SegmentedMemoryPort({ filePath: location() });
     expect(await port.read("constructor")).toBeNull();

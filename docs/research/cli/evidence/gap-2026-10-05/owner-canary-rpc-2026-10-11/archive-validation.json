@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-11T11:58:19.903Z",
+  "directory": "C:\\code\\chainlesschain\\docs\\research\\cli\\evidence\\gap-2026-10-05\\owner-canary-rpc-2026-10-11",
+  "manifestSha256": "fc684b91b471a94e03d68eed1939807d64f6efdee78e4d06b98b0f1e01773dd1",
+  "archiveEntriesVerified": 66,
+  "originalFilesCompared": 66,
+  "frozenGitBindings": 10,
+  "localBinaryPathsVerified": [
+    ".work/owner-canary-rpc-20261011-a/broker.exe",
+    ".work/owner-canary-rpc-20261011-a/esbuild-private-shim.dll",
+    ".work/owner-canary-rpc-20261011-a/windows-node-private-v4.node"
+  ],
+  "semanticReadbackPassed": true,
+  "newNativeRuns": 0,
+  "newAclMutations": 0,
+  "command": [
+    "node",
+    "docs/research/cli/evidence/gap-2026-10-05/owner-canary-rpc-2026-10-11/verify-archive.mjs",
+    "docs/research/cli/evidence/gap-2026-10-05/owner-canary-rpc-2026-10-11"
+  ],
+  "verifierSha256": "de8dc7edd2d11456dc24619099e93a8ae9cae35fcda63e889c1d65cc0ec5151e"
+}

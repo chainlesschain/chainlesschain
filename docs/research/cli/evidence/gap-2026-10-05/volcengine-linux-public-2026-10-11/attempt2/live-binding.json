@@ -1,0 +1,23 @@
+{
+  "formalSample": false,
+  "scope": "public-linux-cli-volcengine-diagnostic",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "version": "0.166.97",
+  "prompt": "Complete this small file-tool check in the current directory. First use write_file to replace probe.txt with exactly \"PUBLIC_LINUX_VOLCENGINE_OK\\n\". Then use read_file to read probe.txt and verify those exact bytes. Finally reply only PUBLIC_LINUX_VOLCENGINE_OK. Use only write_file and read_file, and do not inspect any other path. This is a diagnostic, not a VERIFY01 task.",
+  "expectedArtifact": {
+    "path": "probe.txt",
+    "sha256": "74ce6345545df783b25057046f80c3efc97c011687de5c64e35c3068dc430f97",
+    "bytes": 27
+  },
+  "maxTurns": 4,
+  "automaticRetries": 0,
+  "fallbackModels": [],
+  "estimatedSpendStopUSD": 0.05,
+  "providerHardQuotaVerified": false,
+  "budgetLimitation": "CLI stops following calls after returned usage estimates reach the cap; an in-flight call can exceed it, and billing can remain unknown.",
+  "hermeticRuntimeFlagUsed": true,
+  "hermeticFlagDoesNotAttestFormalAdmission": true
+}

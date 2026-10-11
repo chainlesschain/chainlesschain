@@ -444,6 +444,7 @@ if (-not $ownerOnly) { exit 4 }
 
 const WINDOWS_ACL_BATCH_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
+[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=initialize')
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
@@ -487,7 +488,9 @@ if ($operation -eq 'repair' -or $operation -eq 'preflight') {
   $preflightFailures = @()
   foreach ($target in $targets) {
     try {
+      [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
       Assert-CcNoReparseTraversal $target
+      [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
       $candidate = Get-Item -LiteralPath $target -Force
       $kindMismatch =
         ($expectedKind -eq 'file' -and $candidate.PSIsContainer) -or
@@ -599,7 +602,9 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
 $results = foreach ($target in $targets) {
   $item = $null
   try {
+    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
     Assert-CcNoReparseTraversal $target
+    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
     $item = Get-Item -LiteralPath $target -Force
     $kindMismatch =
       ($expectedKind -eq 'file' -and $item.PSIsContainer) -or
@@ -619,6 +624,7 @@ $results = foreach ($target in $targets) {
       Write-CcOwnerOnlyAcl $item $target
     }
 
+    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=verify')
     $acl = Read-CcAcl $target
     $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
     $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
@@ -764,10 +770,71 @@ function _resolveWindowsAclTimeout(
 // A process that exhausts the budget remains a failure; never start another
 // process with a fresh budget or accept an unverified ACL after a timeout.
 function runWindowsAclCommand(deps, args, options) {
-  return deps.spawnSync("powershell.exe", args, {
-    ...options,
-    timeout: Math.max(1, Math.floor(Number(options?.timeout) || 1)),
-  });
+  try {
+    return deps.spawnSync("powershell.exe", args, {
+      ...options,
+      timeout: Math.max(1, Math.floor(Number(options?.timeout) || 1)),
+    });
+  } catch (error) {
+    return { error, status: null };
+  }
+}
+
+// Keep launch failures useful without copying spawn's message, path, arguments
+// or arbitrary stderr into diagnostics. A progress marker only says that the
+// helper reached a stage; it never confirms an ACL operation succeeded.
+function windowsAclProcessFailure(result, operation) {
+  const progressStage =
+    [
+      ...String(result?.stderr || "")
+        .slice(0, 8192)
+        .matchAll(
+          /^CC_WINDOWS_ACL_STAGE=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify)\r?$/gmu,
+        ),
+    ].at(-1)?.[1] || "startup";
+  const allowedCodes = new Set([
+    "EACCES",
+    "EPERM",
+    "ENOENT",
+    "ETIMEDOUT",
+    "EINVAL",
+    "ENOSYS",
+    "ENOMEM",
+    "EMFILE",
+    "ENFILE",
+    "ENOBUFS",
+    "EBUSY",
+  ]);
+  const code = allowedCodes.has(result?.error?.code)
+    ? result.error.code
+    : "UNKNOWN";
+  const errno = result?.error?.errno;
+  const nativeErrno =
+    Number.isSafeInteger(errno) && Math.abs(errno) <= 65535 ? errno : null;
+  const syscall = ["spawnSync powershell.exe", "spawnSync"].includes(
+    result?.error?.syscall,
+  )
+    ? "spawnSync"
+    : ["spawn powershell.exe", "spawn"].includes(result?.error?.syscall)
+      ? "spawn"
+      : "unknown";
+  const failureStage = code === "ETIMEDOUT" ? "timeout" : "spawn";
+  const diagnostic = {
+    operation,
+    failureStage,
+    progressStage,
+    code,
+    errno: nativeErrno,
+    syscall,
+  };
+  const stage =
+    failureStage === "timeout" ? `timeout-${progressStage}` : "spawn";
+  return {
+    ok: false,
+    platform: "win32",
+    error: `owner-only ACL process failed [windows-acl:${stage}] [windows-acl-launch:${operation}:${failureStage}:${progressStage}:${code}:${nativeErrno ?? "unknown"}:${syscall}]`,
+    launchFailure: diagnostic,
+  };
 }
 
 function repairWindowsAclOnce(target, deps, options) {
@@ -809,21 +876,7 @@ function windowsAcl(target, operation, deps) {
     details = null;
   }
   if (result?.error) {
-    const progress =
-      [
-        ...String(result.stderr || "")
-          .slice(0, 8192)
-          .matchAll(
-            /^CC_WINDOWS_ACL_STAGE=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify)\r?$/gmu,
-          ),
-      ].at(-1)?.[1] || "startup";
-    const stage =
-      result.error.code === "ETIMEDOUT" ? `timeout-${progress}` : "spawn";
-    return {
-      ok: false,
-      platform: "win32",
-      error: `owner-only ACL process failed [windows-acl:${stage}]`,
-    };
+    return windowsAclProcessFailure(result, operation);
   }
   if (result?.status !== 0 || details?.ownerOnly !== true) {
     return {
@@ -894,14 +947,16 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   const anyFailed = details.some((entry) => entry?.ok !== true);
   const statusOk = result?.status === 0 || (result?.status === 4 && anyFailed);
   const uniqueDetailTargets = new Set(details.map((entry) => entry?.target));
+  if (result?.error) {
+    const failure = windowsAclProcessFailure(result, operation);
+    return targets.map((target) => ({ target, ...failure }));
+  }
   if (
-    result?.error ||
     !statusOk ||
     details.length !== targets.length ||
     uniqueDetailTargets.size !== targets.length
   ) {
     const error =
-      result?.error?.message ||
       String(result?.stderr || "").trim() ||
       "owner-only ACL batch verification failed";
     return targets.map((target) => ({

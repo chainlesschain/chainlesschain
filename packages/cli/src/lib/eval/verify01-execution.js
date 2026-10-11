@@ -1,5 +1,16 @@
+import {
+  MAX_SNAPSHOT_BYTES,
+  canonicalDirectory,
+  within,
+  regularPath,
+  seedVerify01Deliverables,
+  snapshotVerify01Workspace as snapshot,
+  diffVerify01Workspace as diff,
+} from "./verify01-workspace.js";
+export { seedVerify01Deliverables } from "./verify01-workspace.js";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { createHash } from "node:crypto";
 import executionBroker from "../process-execution-broker/index.js";
 import { evalDigest, createEvalComparison } from "./evidence.js";
@@ -16,8 +27,79 @@ export const VERIFY01_SUITES = [
   "verify01-plan-2026-10-04",
   "verify01-project-36",
 ];
-const MAX_SNAPSHOT_BYTES = 512 * 1024 * 1024;
-const MAX_DIFF_BYTES = 32 * 1024 * 1024;
+const agentBindings = new WeakSet();
+const EMPTY_DELIVERABLE_DIGEST = evalDigest(Buffer.alloc(0));
+
+function createAgentBinding(directory, allowedPaths, provider, model) {
+  const workspace = canonicalDirectory(directory);
+  for (const relative of allowedPaths) {
+    const file = regularPath(workspace, relative);
+    requireValue(
+      fs.statSync(file).nlink === 1,
+      "allowed task files must not have hard-link aliases",
+    );
+  }
+  const temporaryRoot = (fs.realpathSync.native || fs.realpathSync)(
+    os.tmpdir(),
+  );
+  const root = fs.mkdtempSync(path.join(temporaryRoot, "cc-verify01-agent-"));
+  const userHome = path.join(root, "user-home");
+  const configHome = path.join(root, "chainlesschain-home");
+  for (const dir of [userHome, configHome]) fs.mkdirSync(dir, { mode: 0o700 });
+  const environment = Object.freeze({
+    // Keep downstream temp-root containment checks on the same canonical root.
+    TMPDIR: temporaryRoot,
+    TEMP: temporaryRoot,
+    TMP: temporaryRoot,
+    HOME: userHome,
+    USERPROFILE: userHome,
+    APPDATA: path.join(userHome, "app-data"),
+    LOCALAPPDATA: path.join(userHome, "local-app-data"),
+    XDG_CONFIG_HOME: path.join(userHome, "xdg-config"),
+    XDG_CACHE_HOME: path.join(userHome, "xdg-cache"),
+    XDG_DATA_HOME: path.join(userHome, "xdg-data"),
+    CHAINLESSCHAIN_HOME: configHome,
+    CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
+    CC_FORMAL_QUALITY_EVAL_PROVIDER: provider,
+    CC_FORMAL_QUALITY_EVAL_ISOLATION_ROOT: root,
+    CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES: JSON.stringify(allowedPaths),
+    ...(process.platform === "win32"
+      ? { HOMEDRIVE: userHome.slice(0, 2), HOMEPATH: userHome.slice(2) }
+      : {}),
+  });
+  const binding = Object.freeze({
+    workspace,
+    root,
+    provider,
+    model,
+    allowedPaths: Object.freeze([...allowedPaths]),
+    environment,
+  });
+  agentBindings.add(binding);
+  return binding;
+}
+
+/** Only suite-created immutable authority can narrow a formal child. The
+ * prompt, generic task metadata and inherited environment cannot mint it. */
+export function captureVerify01AgentBinding(binding, directory) {
+  requireValue(
+    agentBindings.has(binding),
+    "unrecognized VERIFY01 agent binding",
+  );
+  requireValue(
+    canonicalDirectory(directory) === binding.workspace,
+    "VERIFY01 agent binding belongs to another workspace",
+  );
+  canonicalDirectory(binding.root);
+  for (const relative of binding.allowedPaths) {
+    const file = regularPath(binding.workspace, relative);
+    requireValue(
+      fs.statSync(file).nlink === 1,
+      "allowed task file acquired a hard-link alias",
+    );
+  }
+  return binding;
+}
 
 // Host drivers use the same checkout, complete scan, dependency boundary and
 // pinned evaluator processes as the CLI executor; no second diff contract.
@@ -40,36 +122,6 @@ function git(directory, args, options = {}) {
     shell: false,
     ...options,
   });
-}
-
-function within(root, file) {
-  const relative = path.relative(root, file);
-  requireValue(
-    relative &&
-      relative !== ".." &&
-      !relative.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(relative),
-    "path escapes its declared root",
-  );
-}
-
-function regularPath(root, relative) {
-  relativeFile(relative);
-  const file = path.join(root, relative);
-  within(root, file);
-  let current = root;
-  for (const segment of relative.split("/")) {
-    current = path.join(current, segment);
-    requireValue(
-      !fs.lstatSync(current).isSymbolicLink(),
-      "review/project paths must not traverse links",
-    );
-  }
-  requireValue(
-    fs.lstatSync(file).isFile(),
-    "review/project artifact must be a regular file",
-  );
-  return file;
 }
 
 /** Copy only committed blobs, checking their actual Git object identities.
@@ -201,136 +253,6 @@ async function materializeCheckout(projectRoot, commit, destination, budget) {
   return { commit, files: entries.length, bytes: total };
 }
 
-function snapshot(directory, budget, stage) {
-  const files = new Map();
-  let total = 0;
-  let dependencyBytes = 0;
-  let dependencyFiles = 0;
-  const dependencyHash = createHash("sha256");
-  const buffer = Buffer.alloc(64 * 1024);
-  const visit = (current) => {
-    for (const entry of fs
-      .readdirSync(current, { withFileTypes: true })
-      .sort((a, b) => a.name.localeCompare(b.name, "en"))) {
-      budget.remainingMs(stage);
-      const full = path.join(current, entry.name);
-      const relative = path.relative(directory, full).split(path.sep).join("/");
-      if (entry.isDirectory()) visit(full);
-      else {
-        requireValue(
-          entry.isFile() || entry.isSymbolicLink(),
-          "task snapshot contains an unsupported filesystem object",
-        );
-        // Preserve link identities without following them into another root.
-        const dependency = relative.split("/").includes("node_modules");
-        if (dependency && entry.isSymbolicLink()) {
-          // A dependency linked outside the isolated workspace cannot be
-          // fingerprinted by this capture contract; never silently omit it.
-          within(directory, fs.realpathSync(full));
-        }
-        let bytes = entry.isSymbolicLink()
-          ? Buffer.from(fs.readlinkSync(full))
-          : dependency
-            ? null
-            : readBytes(full);
-        let digest, size;
-        if (dependency && bytes === null) {
-          const hash = createHash("sha256");
-          const fd = fs.openSync(full, "r");
-          size = 0;
-          try {
-            let count;
-            while (
-              (count = fs.readSync(fd, buffer, 0, buffer.length, null)) > 0
-            ) {
-              budget.remainingMs(stage);
-              size += count;
-              requireValue(
-                dependencyBytes + size <= 16 * 1024 ** 3,
-                "dependency fingerprint exceeds 16 GiB",
-              );
-              hash.update(buffer.subarray(0, count));
-            }
-          } finally {
-            fs.closeSync(fd);
-          }
-          digest = `sha256:${hash.digest("hex")}`;
-        } else {
-          size = bytes.length;
-          digest = evalDigest(bytes);
-        }
-        if (dependency) {
-          dependencyBytes += size;
-          dependencyFiles++;
-          bytes = null;
-        } else total += size;
-        requireValue(
-          total <= MAX_SNAPSHOT_BYTES &&
-            files.size - dependencyFiles < 100000 &&
-            dependencyFiles <= 1000000,
-          "task snapshot exceeds its capture bound",
-        );
-        const value = {
-          type: entry.isSymbolicLink() ? "link" : "file",
-          mode: fs.lstatSync(full).mode & 0o777,
-          bytes,
-          size,
-          digest,
-          dependency,
-        };
-        files.set(relative, value);
-        if (dependency)
-          dependencyHash.update(
-            JSON.stringify([relative, value.type, value.mode, size, digest]) +
-              "\n",
-          );
-      }
-    }
-  };
-  visit(directory);
-  files.dependencyBoundary = {
-    contract:
-      "all node_modules files and link identities streamed with SHA-256; links never followed; dependency bodies omitted; every change rejected",
-    files: dependencyFiles,
-    bytes: dependencyBytes,
-    digest: `sha256:${dependencyHash.digest("hex")}`,
-  };
-  return files;
-}
-
-function diff(before, after) {
-  const result = [];
-  let total = 0;
-  for (const file of [...new Set([...before.keys(), ...after.keys()])].sort()) {
-    const old = before.get(file),
-      next = after.get(file);
-    if (
-      old?.digest === next?.digest &&
-      old?.type === next?.type &&
-      old?.mode === next?.mode
-    )
-      continue;
-    total += (old?.bytes?.length || 0) + (next?.bytes?.length || 0);
-    requireValue(
-      total <= MAX_DIFF_BYTES,
-      "task diff exceeds 32 MiB; preserve workspace for independent inspection",
-    );
-    const describe = (value) =>
-      value
-        ? {
-            type: value.type,
-            mode: value.mode,
-            digest: value.digest,
-            bytes: value.size,
-            dependency: value.dependency,
-            bytesBase64: value.bytes?.toString("base64") ?? null,
-          }
-        : null;
-    result.push({ path: file, before: describe(old), after: describe(next) });
-  }
-  return result;
-}
-
 function reviewedProcess(bytes, directory, reviewRoot, kind, timeout) {
   // Execute the captured bytes, not a path that task code could replace between
   // digest verification and process startup. Evaluators are explicitly trusted
@@ -350,6 +272,21 @@ function reviewedProcess(bytes, directory, reviewRoot, kind, timeout) {
       timeout,
       maxBuffer: 8 * 1024 * 1024,
       windowsHide: true,
+      // Operator checks never receive model/account credentials, NODE_OPTIONS
+      // or ambient provider configuration. Docker may still need its context.
+      env: Object.fromEntries(
+        [
+          "PATH",
+          "SystemRoot",
+          "WINDIR",
+          "TEMP",
+          "TMP",
+          "DOCKER_HOST",
+          "DOCKER_CONTEXT",
+        ]
+          .filter((key) => process.env[key])
+          .map((key) => [key, process.env[key]]),
+      ),
       origin: `eval:verify01-${kind}`,
       policy: "allow",
       scope: "eval",
@@ -454,7 +391,7 @@ export function loadVerify01Suite(options = {}) {
   const tasks = samples.map((sample) => {
     const task = validated.tasks.get(sample.taskId),
       reviewed = validated.reviewed.get(sample.taskId);
-    let baseline, after;
+    let baseline, after, agentBinding;
     const receipt = {
       sampleId: sample.id,
       taskId: task.id,
@@ -469,6 +406,9 @@ export function loadVerify01Suite(options = {}) {
       check: null,
       diff: null,
       execution: null,
+      deliverablePreparation: [],
+      agentDiff: null,
+      agentBinding: null,
     };
     receipts.push(receipt);
     return {
@@ -500,6 +440,38 @@ export function loadVerify01Suite(options = {}) {
             !receipt.setup.error,
           "reviewed setup failed",
         );
+        receipt.deliverablePreparation = seedVerify01Deliverables(
+          directory,
+          task.expectedFiles,
+          budget,
+        );
+        agentBinding = createAgentBinding(
+          directory,
+          reviewed.allowedChangedPaths,
+          options.provider,
+          options.model,
+        );
+        receipt.agentBinding = {
+          workspace: agentBinding.workspace,
+          isolationRoot: agentBinding.root,
+          userHome: agentBinding.environment.HOME,
+          configHome: agentBinding.environment.CHAINLESSCHAIN_HOME,
+          allowedChangedPaths: agentBinding.allowedPaths,
+          provider: agentBinding.provider,
+          model: agentBinding.model,
+          productionAttested: false,
+        };
+      },
+      agentLaunchBinding(directory) {
+        return captureVerify01AgentBinding(agentBinding, directory);
+      },
+      cleanup() {
+        if (!agentBinding) return;
+        canonicalDirectory(agentBinding.root);
+        fs.rmSync(agentBinding.root, { recursive: true, force: true });
+        agentBindings.delete(agentBinding);
+        receipt.agentBinding.profileRemoved = true;
+        agentBinding = null;
       },
       snapshotWorkspace(directory, budget, stage) {
         const captured = snapshot(directory, budget, stage);
@@ -530,7 +502,13 @@ export function loadVerify01Suite(options = {}) {
         };
       },
       check(directory, agentResult, budget) {
-        receipt.diff = diff(baseline, after);
+        receipt.agentDiff = diff(baseline, after);
+        // The agent baseline contains empty seeds. Preserve that view, while
+        // the task-origin diff still describes absent -> candidate additions.
+        const originalBaseline = new Map(baseline);
+        for (const seed of receipt.deliverablePreparation)
+          originalBaseline.delete(seed.path);
+        receipt.diff = diff(originalBaseline, after);
         baseline = null;
         requireValue(
           receipt.diff.every(
@@ -543,8 +521,12 @@ export function loadVerify01Suite(options = {}) {
           "task modified a path outside independent review or introduced a deliverable link",
         );
         requireValue(
-          task.expectedFiles.every((file) => after.get(file)?.type === "file"),
-          "task did not produce all expected regular-file deliverables",
+          task.expectedFiles.every(
+            (file) =>
+              after.get(file)?.type === "file" &&
+              after.get(file)?.digest !== EMPTY_DELIVERABLE_DIGEST,
+          ),
+          "task did not replace all empty seeds with regular-file deliverables",
         );
         after = null;
         receipt.check = reviewedProcess(

@@ -1,0 +1,11 @@
+{
+  "name": "cli-version",
+  "command": "/mnt/c/code/chainlesschain/.work/release-20261008/node-v22.12.0-linux-x64/bin/node",
+  "args": [
+    "/tmp/cc-volcengine-public-20261011-oA33AZ/install/node_modules/chainlesschain/bin/chainlesschain.js",
+    "--version"
+  ],
+  "beganAt": "2026-10-11T04:25:55.484Z",
+  "timeoutMs": 180000,
+  "pid": 41
+}

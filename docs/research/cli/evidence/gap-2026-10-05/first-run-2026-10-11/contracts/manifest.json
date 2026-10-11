@@ -1,0 +1,178 @@
+{
+  "schema": "chainlesschain.first-run-contract-archive/v1",
+  "capturedAt": "2026-10-11T07:09:04.238Z",
+  "priorCommit": "78630875667c1a80f47b109b8a9d3fb1d6006924",
+  "runtime": {
+    "windows": "v22.22.2",
+    "windowsExecutable": "C:\\nvm4w\\nodejs\\node.exe",
+    "linux": "v22.12.0",
+    "windowsDiagnosticLogRuntimePinned": false
+  },
+  "formalSample": false,
+  "observationsProduced": 0,
+  "entries": [
+    {
+      "originalPath": ".github/workflows/verify01-first-run-cli-diagnostic.yml",
+      "sourceNormalized": true,
+      "path": "objects/000-verify01-first-run-cli-diagnostic.yml.gz",
+      "rawBytes": 3869,
+      "rawSha256": "0b963ddbabc805e0ca3604fdf91cff8d030fc53734b3ec51c8be9e4d5a56dd47",
+      "bytes": 1598,
+      "sha256": "25113ff7e68e98f6ad3acf6805fdfaa7d0c7f9f3335fbaecb721c743b34f74c7"
+    },
+    {
+      "originalPath": "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
+      "sourceNormalized": true,
+      "path": "objects/001-verify01-first-run-cli-diagnostic.mjs.gz",
+      "rawBytes": 26888,
+      "rawSha256": "ff9aa3650adb079ea02be1953a8fdd34d5bf8033cb7789e30af4786f4b2b5186",
+      "bytes": 7729,
+      "sha256": "fa5373df5ab1ec31c00e82362b739cb6da55c1428af3ea5311ec53674b17b719"
+    },
+    {
+      "originalPath": "packages/cli/scripts/verify01-public-install-diagnostic.mjs",
+      "sourceNormalized": true,
+      "path": "objects/002-verify01-public-install-diagnostic.mjs.gz",
+      "rawBytes": 18999,
+      "rawSha256": "074c09bbb1b62c1308a35f82e2f4f38dcf4d11d86fdfe9bf3264b4e6a16dd98d",
+      "bytes": 6118,
+      "sha256": "3142ece75db851621fb9d2691c6d65a13c140cd2f34ea367ab84f0fe024dc4af"
+    },
+    {
+      "originalPath": "packages/cli/test-node/verify01-first-run-cli-diagnostic.node-test.mjs",
+      "sourceNormalized": true,
+      "path": "objects/003-verify01-first-run-cli-diagnostic.node-test.mjs.gz",
+      "rawBytes": 9369,
+      "rawSha256": "59194f3b0730ef4a5296443cf3b4170993e6a07fc806c8d2821a64498fef7a1c",
+      "bytes": 3057,
+      "sha256": "d2978a589475eed4c86b015f9172a98b43b7b2465a27187a657850d308bebc2b"
+    },
+    {
+      "originalPath": "packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs",
+      "sourceNormalized": true,
+      "path": "objects/004-verify01-public-install-diagnostic.node-test.mjs.gz",
+      "rawBytes": 8876,
+      "rawSha256": "03f7fe0fb83d680a5f753d07a8b3c5bb669f27979a6b425648318c7703ca0368",
+      "bytes": 2941,
+      "sha256": "29efd26568b89ba8231fbb763b0fe27754ee85b12c6d0947eea63ea05cdd0c9d"
+    },
+    {
+      "originalPath": "packages/cli/src/lib/llm-connection-probe.js",
+      "sourceNormalized": true,
+      "path": "objects/005-llm-connection-probe.js.gz",
+      "rawBytes": 8060,
+      "rawSha256": "30d6b198304257c0fbc31f7aec5d210dd68942a68941906e7243510e0efb6f47",
+      "bytes": 2489,
+      "sha256": "d57a957bc2efc442652e79239938296ef8507d6921b67b9c8fcef729f8e3f1f3"
+    },
+    {
+      "originalPath": "packages/cli/src/lib/provider-http-error.js",
+      "sourceNormalized": true,
+      "path": "objects/006-provider-http-error.js.gz",
+      "rawBytes": 3554,
+      "rawSha256": "3a5c3d99a2438a7295d6e75f58639b02bbeb3b13989fa8eafdfa7b4025f0c1e3",
+      "bytes": 1409,
+      "sha256": "2d969e9f34e88fc4e014f517c68ddaf1ebbf224ac900a59d5c197c4e55e77294"
+    },
+    {
+      "originalPath": "packages/cli/src/commands/llm.js",
+      "sourceNormalized": true,
+      "path": "objects/007-llm.js.gz",
+      "rawBytes": 36322,
+      "rawSha256": "68d5633ecd318ae0107cc137e26a1de0f40122cfc1766a032c868db9d2dcc961",
+      "bytes": 7118,
+      "sha256": "9785f6a04248c9adfa187e480984762ecca2635547b8bdf8376db43f5a737c0e"
+    },
+    {
+      "originalPath": "packages/cli/src/lib/eval/verify01-contracts.js",
+      "sourceNormalized": true,
+      "path": "objects/008-verify01-contracts.js.gz",
+      "rawBytes": 14597,
+      "rawSha256": "df51d12eda97d523eaeea146b487937d21dea6eadfb0cbdc3473a8e588091af1",
+      "bytes": 4338,
+      "sha256": "6c4fdc3f41712098937f88d13673b1aea347158d80562a5f952e884f51a4b9ba"
+    },
+    {
+      "originalPath": "packages/cli/src/lib/eval/verify01-host-evidence.js",
+      "sourceNormalized": true,
+      "path": "objects/009-verify01-host-evidence.js.gz",
+      "rawBytes": 23653,
+      "rawSha256": "5b8413dadce2a23b9ca9a10f5bcfdc1480c77183ac58c5e9b9f56f59e996ad36",
+      "bytes": 6279,
+      "sha256": "54d20094e191195b517a77334fdd5f668eacf60de3731356daa5a64fe58a9972"
+    },
+    {
+      "originalPath": "packages/cli/__tests__/unit/llm-connection-probe.test.js",
+      "sourceNormalized": true,
+      "path": "objects/010-llm-connection-probe.test.js.gz",
+      "rawBytes": 10654,
+      "rawSha256": "75ab68694bf719e651ddde073dd534fe339f2b36a42e5fd95516b3fd959f2a82",
+      "bytes": 2681,
+      "sha256": "4045d5d86b66182a9c0659730c3c4204f19afd54f2ed259d43796b181f539f70"
+    },
+    {
+      "originalPath": "packages/cli/__tests__/unit/verify01-host-evidence.test.js",
+      "sourceNormalized": true,
+      "path": "objects/011-verify01-host-evidence.test.js.gz",
+      "rawBytes": 30508,
+      "rawSha256": "4c68f824d48cfdbf687f755e90d2368b533fc3f10ec9399e5f14d5f0a7eec52e",
+      "bytes": 6771,
+      "sha256": "b3499b83bd638dfcd941c2a8763625b1a38da13f70c2c46f4cb20aad74689715"
+    },
+    {
+      "originalPath": "packages/cli/__tests__/integration/llm-connection-config.test.js",
+      "sourceNormalized": true,
+      "path": "objects/012-llm-connection-config.test.js.gz",
+      "rawBytes": 8696,
+      "rawSha256": "275b850986ceeb7453907ca30492d05c4cbe43cf6e6a967d119508def5c5af2a",
+      "bytes": 2584,
+      "sha256": "c7ef89c5a1e7b22605f582d25ab4e1319796fdbd5534595e05632fb5f4e64b22"
+    },
+    {
+      "originalPath": ".work/first-run-auth-admitted-windows-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/013-first-run-auth-admitted-windows-20261011.json.gz",
+      "rawBytes": 71948,
+      "rawSha256": "4ea5774cb75465463acc69f9086ad6488e5aeec0504586ca9401a2feaf40c9a9",
+      "bytes": 7768,
+      "sha256": "d9aa4426452b63430b3ac513cb6a8726d91344798f3b4e55e07f80e5bfda4197"
+    },
+    {
+      "originalPath": ".work/first-run-auth-admitted-linux-20261011.json",
+      "sourceNormalized": false,
+      "path": "objects/014-first-run-auth-admitted-linux-20261011.json.gz",
+      "rawBytes": 71929,
+      "rawSha256": "921ecc671003410e2902b0943d4d4634a98e71ff38d82cbe59f70ed8b91d1f8f",
+      "bytes": 7769,
+      "sha256": "ab611f0ca169a7e92fcb65093d04364ba29f046a7ebd9ef7a4d67b434356cdea"
+    },
+    {
+      "originalPath": ".work/first-run-offline-windows-owner-20261011.log",
+      "sourceNormalized": false,
+      "path": "objects/015-first-run-offline-windows-owner-20261011.log.gz",
+      "rawBytes": 3927,
+      "rawSha256": "cfa13eaec0cb83aa952b753ca54e40533c2356ffb5bd30d932bf69f883eb1a80",
+      "bytes": 1099,
+      "sha256": "8d6c52f95b1f80e0ecd0b1f7c216be3422d6d782bc1bf54ab504800f677dd41a"
+    },
+    {
+      "originalPath": ".work/first-run-offline-linux-20261011.log",
+      "sourceNormalized": false,
+      "path": "objects/016-first-run-offline-linux-20261011.log.gz",
+      "rawBytes": 3671,
+      "rawSha256": "18a00d0375fdfb2d779e39e886206f85fd90f8276759a34fa0077c81687c464f",
+      "bytes": 1075,
+      "sha256": "7be4393b9a60c02456ce8e137d5d2efe1a51497d9d4c8cd9008569c56f92e9e6"
+    },
+    {
+      "originalPath": ".work/first-run-offline-windows-20261011.log",
+      "sourceNormalized": false,
+      "path": "objects/017-first-run-offline-windows-20261011.log.gz",
+      "rawBytes": 11608,
+      "rawSha256": "895d6bc4b6a5b4dd9ec607889b3e98fa3281fb8badd74e306eb3d338405eaf7b",
+      "bytes": 2175,
+      "sha256": "46b854ba44212198dc70904e39e3b7abb242609e7fae4eade9c8268c29166c22"
+    }
+  ],
+  "sourceTreeDigest": "sha256:a5dfda44af8bd73d7fa08b411fe3d46094bb392f940c6cf04991912753b7503b"
+}

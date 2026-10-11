@@ -1,0 +1,424 @@
+{
+  "schema": "chainlesschain.canonical-path-evidence/v1",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "compatibilityConfirmed": false,
+  "frozenNativeBaseCommit": "53ad9df8c46269d725d2f3cde77185a5806e86da",
+  "sourceSliceOnly": true,
+  "compilerClosureVerified": false,
+  "formalSample": false,
+  "binaries": [
+    {
+      "path": ".work/junction-canonical-20261011-a/broker.exe",
+      "bytes": 908288,
+      "digest": "sha256:160d3d99bcb96b7bde9f50139490d9e34270603842cf5be90967db01bb6c7e9b",
+      "archived": false
+    },
+    {
+      "path": ".work/junction-canonical-20261011-a/esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+      "archived": false
+    },
+    {
+      "path": ".work/junction-canonical-20261011-a/windows-node-private-v4.node",
+      "bytes": 815104,
+      "digest": "sha256:874d856557f53c63bae81a9404709c6dbbade81eb2564414e8a81d352ab04182",
+      "archived": false
+    }
+  ],
+  "entries": [
+    {
+      "source": ".work/junction-canonical-20261011-a/binaries.json",
+      "artifact": "a/binaries.json.gz",
+      "rawBytes": 658,
+      "rawDigest": "sha256:91cc064f2be8f5bf1fe46600c022e2f3c8367f07a24ef5f2ac68b9a9eca8526a",
+      "gzipBytes": 329,
+      "gzipDigest": "sha256:07fa95c12b1d26b4a493bb07093df04109708fa92ba0e178c45ae9a5ff1e3a9a"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/broker.exe.build.stderr",
+      "artifact": "a/broker.exe.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/broker.exe.build.stdout",
+      "artifact": "a/broker.exe.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/build.json",
+      "artifact": "a/build.json.gz",
+      "rawBytes": 2505,
+      "rawDigest": "sha256:cde9bdb3cb4e1f8189fdb868c26930aac09e9e508725a519d6cd64a974428673",
+      "gzipBytes": 633,
+      "gzipDigest": "sha256:0310dd34c12a4ffacff71a3dd75cb518891fe868da6bc9f423b22279194c8b74"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/check.cjs",
+      "artifact": "a/check.cjs.gz",
+      "rawBytes": 4636,
+      "rawDigest": "sha256:247624e0385a18fee669d0c161626887b7669e53aa3f0f4a4893e16f6e1724f2",
+      "gzipBytes": 1807,
+      "gzipDigest": "sha256:58ed5dc5068122f07fa6de7eec88ed3fdc95f5ad0b6e9c3f6603c946be5b181e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/durable-memory-port.js",
+      "artifact": "a/durable-memory-port.js.gz",
+      "rawBytes": 12113,
+      "rawDigest": "sha256:bad9e207f9498a46e731d78158ad790e64f58910ca52679010cadb4b8bafa5b5",
+      "gzipBytes": 3512,
+      "gzipDigest": "sha256:f088509ab34e9116b4398928179422b9480084194ef6cbb1633e497de0e32642"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/esbuild-private-shim.dll.build.stderr",
+      "artifact": "a/esbuild-private-shim.dll.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/esbuild-private-shim.dll.build.stdout",
+      "artifact": "a/esbuild-private-shim.dll.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/extraction.json",
+      "artifact": "a/extraction.json.gz",
+      "rawBytes": 1105,
+      "rawDigest": "sha256:09e1bfbb716de0e7900cafce4fd8566642d5903a35efb74bf119419b465486b3",
+      "gzipBytes": 565,
+      "gzipDigest": "sha256:b807f502fe734a48a9ce25d04e197552d42ae4335c2729e1f571cf17064d7130"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/original-coordinate-driver.mjs",
+      "artifact": "a/frozen/original-coordinate-driver.mjs.gz",
+      "rawBytes": 7553,
+      "rawDigest": "sha256:9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "gzipBytes": 2395,
+      "gzipDigest": "sha256:11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/original-tracked-driver.mjs",
+      "artifact": "a/frozen/original-tracked-driver.mjs.gz",
+      "rawBytes": 37711,
+      "rawDigest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "gzipBytes": 9728,
+      "gzipDigest": "sha256:e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-esbuild-private-map-shim.cpp",
+      "artifact": "a/frozen/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "a/frozen/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-adapter.cpp",
+      "artifact": "a/frozen/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65180,
+      "rawDigest": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipDigest": "sha256:677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-adapter.h",
+      "artifact": "a/frozen/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-broker.cpp",
+      "artifact": "a/frozen/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-identity.cjs",
+      "artifact": "a/frozen/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-paired.h",
+      "artifact": "a/frozen/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-preload.cjs",
+      "artifact": "a/frozen/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/frozen/windows-node-private-v4-protocol.h",
+      "artifact": "a/frozen/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/origins.json",
+      "artifact": "a/origins.json.gz",
+      "rawBytes": 3537,
+      "rawDigest": "sha256:1ff58ef7f64af30210d760036bcbf8ddaf02f109840088e2b2e309770bfa14ea",
+      "gzipBytes": 811,
+      "gzipDigest": "sha256:15a9e7e28d4ea8f888d46cae816e2689688d7965d965ac1a0e6c325e641a7a4c"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/actor.stderr",
+      "artifact": "a/run/actor.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/actor.stdout",
+      "artifact": "a/run/actor.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/canonical-probe.json",
+      "artifact": "a/run/canonical-probe.json.gz",
+      "rawBytes": 15184,
+      "rawDigest": "sha256:7cf779ce1b4fc4e66e62b5e1e4b238bd2045eac6a9a3ce349f1bf7a1dce48ee1",
+      "gzipBytes": 2409,
+      "gzipDigest": "sha256:72a509d4f6c0635ab3a3fd325aadf1fba3b3c8395d7b8b7608a7d5ae2b061d89"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/host.stderr",
+      "artifact": "a/run/host.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/host.stdout",
+      "artifact": "a/run/host.stdout.gz",
+      "rawBytes": 1578,
+      "rawDigest": "sha256:e207b9c138b9d25a125e4dbd9acbdbceb61c66f4ad2df6ec8e2f5052ab273ff0",
+      "gzipBytes": 790,
+      "gzipDigest": "sha256:3f6c3b48d435cc4a9310f19f2f16c7c99bc5949416210f07b124b6e4806166e8"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/manifest.json",
+      "artifact": "a/run/manifest.json.gz",
+      "rawBytes": 1390,
+      "rawDigest": "sha256:4913696c6aac6872f79074da278bf7926e7f74e8bcb749c6e3f6a3b2b07beec1",
+      "gzipBytes": 769,
+      "gzipDigest": "sha256:9c51d1f5d681e616c104febaa12eda0056d47ce5cc37e3f16ee6980ee0609c7d"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/private-v4-26400-exit.json",
+      "artifact": "a/run/private-v4-26400-exit.json.gz",
+      "rawBytes": 4729,
+      "rawDigest": "sha256:0428889840940a897c79a1676998619906504f3ad3a697bcd345690ad1a0b245",
+      "gzipBytes": 1548,
+      "gzipDigest": "sha256:19138aca4e379e6ebcef941fa25e285d0319a201063b34bb0020dda28c9ffb2a"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/private-v4-26400-installed.json",
+      "artifact": "a/run/private-v4-26400-installed.json.gz",
+      "rawBytes": 4678,
+      "rawDigest": "sha256:324814c91424311ff829dab4c4627bb0818d6edb244df6fe1f8f6a005096df3e",
+      "gzipBytes": 1514,
+      "gzipDigest": "sha256:4d1c17d046004b7866af9e31a8a28451bb66e5187bc3b9df8246b0473664843d"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run/report.json",
+      "artifact": "a/run/report.json.gz",
+      "rawBytes": 40682,
+      "rawDigest": "sha256:bf27ea63aeb4ec2e29ce2a33251ad315756e1237627e5a2a6801ed6562e822ee",
+      "gzipBytes": 4971,
+      "gzipDigest": "sha256:77f43990b4a76eb4e8cd33d9017f27f263eaeb7640243db8b681f165128d1c86"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/run.mjs",
+      "artifact": "a/run.mjs.gz",
+      "rawBytes": 8539,
+      "rawDigest": "sha256:74b0b4258e4f26e9683197824e050fa604fe7f5c079abc41089573bc4df19705",
+      "gzipBytes": 2763,
+      "gzipDigest": "sha256:4d84b4a59d6267613b0dee9ce5be539706541d042afa6e5b81078586c52172e2"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/segmented-memory-port.js",
+      "artifact": "a/segmented-memory-port.js.gz",
+      "rawBytes": 32171,
+      "rawDigest": "sha256:35322d76f8638bd82257160f31df8925909f9fccc2ded65d52b0300c051bfe3c",
+      "gzipBytes": 8355,
+      "gzipDigest": "sha256:5fd7fe61693cff5f6dc7f7b55e0938d4848ddf1b631b6ebd6d6c401d38c05af2"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-esbuild-private-map-shim.cpp",
+      "artifact": "a/source/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "a/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-adapter.cpp",
+      "artifact": "a/source/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65180,
+      "rawDigest": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipDigest": "sha256:677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-adapter.h",
+      "artifact": "a/source/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-broker.cpp",
+      "artifact": "a/source/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-identity.cjs",
+      "artifact": "a/source/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-paired.h",
+      "artifact": "a/source/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-preload.cjs",
+      "artifact": "a/source/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/source/windows-node-private-v4-protocol.h",
+      "artifact": "a/source/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/sources.json",
+      "artifact": "a/sources.json.gz",
+      "rawBytes": 3427,
+      "rawDigest": "sha256:4144d812cad9d17c26564f2ec813adc8288980023cbccccd3be967f83a48d249",
+      "gzipBytes": 953,
+      "gzipDigest": "sha256:75be13748b738ede716a010594442dd37199f53e081d8af713c94daf8a9f8be2"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/verify.mjs",
+      "artifact": "a/verify.mjs.gz",
+      "rawBytes": 2145,
+      "rawDigest": "sha256:9b65992cea105e3b80b0afc75bd55e87b2394328dea4974c2888e025ea30ba67",
+      "gzipBytes": 825,
+      "gzipDigest": "sha256:66cfe1a5c73d9e2deaf32208ee521dc886a75833e93bdf576e20f2bfc33a5b0c"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/windows-node-private-v4.node.build.stderr",
+      "artifact": "a/windows-node-private-v4.node.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/junction-canonical-20261011-a/windows-node-private-v4.node.build.stdout",
+      "artifact": "a/windows-node-private-v4.node.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/prepare-junction-canonical-20261011.mjs",
+      "artifact": "checks/prepare-junction-canonical-20261011.mjs.gz",
+      "rawBytes": 4818,
+      "rawDigest": "sha256:4791c8740fcd805507501bb5a784aa7d004e73da23e9ff79dbd9046c9771c587",
+      "gzipBytes": 1777,
+      "gzipDigest": "sha256:cd3246594632689f84a7128f1952185f3a953b3d0a1ab8cb1805bb8dfef93f56"
+    },
+    {
+      "source": ".work/canonical-path-verify-20261011.mjs",
+      "artifact": "checks/canonical-path-verify-20261011.mjs.gz",
+      "rawBytes": 5735,
+      "rawDigest": "sha256:45c3e67bb248d05e64e3e24fe05e5efd86e98227b5e86c382656ddd420066271",
+      "gzipBytes": 2095,
+      "gzipDigest": "sha256:4b37205c839acae9d1dd61146f962988109d5605de9629d6ee193d663dfff4bb"
+    },
+    {
+      "source": ".work/canonical-path-independent-validation-20261011.json",
+      "artifact": "checks/canonical-path-independent-validation-20261011.json.gz",
+      "rawBytes": 900,
+      "rawDigest": "sha256:12dce3f79d5f452db27b21299f3f21177273ff0afa0c573def233e766a28c167",
+      "gzipBytes": 397,
+      "gzipDigest": "sha256:ccb4fe770175640b423e41a30ab68b7951338482625cd6d67c6ceaf3b0303c3a"
+    },
+    {
+      "source": ".work/archive-canonical-path-20261011.mjs",
+      "artifact": "checks/archive-canonical-path-20261011.mjs.gz",
+      "rawBytes": 2986,
+      "rawDigest": "sha256:0cf3d72c307ea6f9b1dc326e0d5cef13b683227318e359735dacdd547f222b9a",
+      "gzipBytes": 1229,
+      "gzipDigest": "sha256:69979bd7ef93e6982ff8b0024307e45e1ff21736e3ca7f4901861d5a5667f56b"
+    }
+  ]
+}

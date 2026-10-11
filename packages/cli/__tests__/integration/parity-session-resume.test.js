@@ -117,14 +117,21 @@ describe("Phase 7 parity: JSONL session resume round-trip", () => {
 
     // Feed rebuilt history into agentLoop — the mock LLM continues
     // from where the session left off. The history must reach the
-    // provider verbatim for parity to hold.
+    // provider verbatim, ahead of the transient execution budget.
+    const originalHistory = structuredClone(rebuilt);
     const mock = createMockLLMProvider([
       {
         expect: (messages) => {
-          // Verify the LLM sees the full replayed history plus any
-          // appended items the test added (none here).
-          const roles = messages.map((m) => m.role).join(",");
-          return roles === "user,assistant,user";
+          expect(messages).toEqual([
+            ...originalHistory,
+            {
+              role: "system",
+              content: expect.stringMatching(
+                /^Execution budget: this request plus 49 further model requests\. /u,
+              ),
+            },
+          ]);
+          return true;
         },
         response: { message: mockTextMessage("6") },
       },
@@ -142,12 +149,15 @@ describe("Phase 7 parity: JSONL session resume round-trip", () => {
 
     expect(events).toEqual([{ type: "response-complete", content: "6" }]);
     mock.assertDrained();
+    expect(rebuilt).toEqual(originalHistory);
 
     // Persist the continuation and verify it round-trips
     appendAssistantMessage(id, "6");
     const rebuilt2 = rebuildMessages(id);
-    expect(rebuilt2).toHaveLength(4);
-    expect(rebuilt2[3]).toEqual({ role: "assistant", content: "6" });
+    expect(rebuilt2).toEqual([
+      ...originalHistory,
+      { role: "assistant", content: "6" },
+    ]);
   });
 
   it("compact boundary: messages before last compact are replaced by the compact payload", async () => {

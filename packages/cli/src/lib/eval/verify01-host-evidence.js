@@ -5,11 +5,13 @@ import {
 } from "./evidence.js";
 import { outcomeDigest } from "./outcomes.js";
 import { verifyAgentTerminal } from "./stream-terminal.js";
+import { LLM_PROBE_SCHEMA } from "../llm-connection-probe.js";
 import {
   relativeFile,
   requireValue,
   validateVerify01Review,
   validateVerify01Collection,
+  createVerify01FirstRunCost,
 } from "./verify01-contracts.js";
 
 const HOST_SCHEMA = "chainlesschain.verify01-host-capture/v1";
@@ -385,6 +387,7 @@ export function importVerify01HostCapture(
     failureCause: manifest.failureCause ?? "unknown",
   };
   const receiptDigests = [];
+  let authentication = null;
   if (sample.kind === "first-run") {
     requireValue(
       typeof manifest.firstRun?.cleanEnvironment === "boolean",
@@ -412,6 +415,15 @@ export function importVerify01HostCapture(
         receipt: entry.receipt.digest,
       };
       receiptDigests.push(entry.receipt.digest);
+      if (stage === "authenticate") {
+        let receipt;
+        try {
+          receipt = JSON.parse(bytes.toString("utf8"));
+        } catch {
+          /* Legacy receipts cannot establish authentication cost. */
+        }
+        if (receipt?.schema === LLM_PROBE_SCHEMA) authentication = receipt;
+      }
       stopped ||= !entry.passed;
     }
   }
@@ -435,7 +447,18 @@ export function importVerify01HostCapture(
         (Number.isFinite(manifest.cost) && manifest.cost >= 0),
       "invalid early-stop cost declaration",
     );
-    observation.cost = manifest.cost;
+    observation.firstRun.costAccounting = createVerify01FirstRunCost({
+      authentication,
+      authenticationReceipt: observation.firstRun.stages.authenticate.receipt,
+      authenticated: observation.firstRun.stages.authenticate.passed,
+      comparison,
+      toolCostUsd: null,
+    });
+    observation.cost = observation.firstRun.costAccounting.totalCostUsd;
+    requireValue(
+      manifest.cost === null || manifest.cost === observation.cost,
+      "early-stop cost differs from authentication accounting",
+    );
   } else {
     requireValue(
       typeof manifest.runId === "string" && manifest.runId.trim().length > 0,
@@ -611,7 +634,16 @@ export function importVerify01HostCapture(
       },
     );
     observation.runId = run.runId;
-    observation.cost = protocol.totalCostUsd;
+    if (sample.kind === "first-run") {
+      observation.firstRun.costAccounting = createVerify01FirstRunCost({
+        authentication,
+        authenticationReceipt: observation.firstRun.stages.authenticate.receipt,
+        authenticated: observation.firstRun.stages.authenticate.passed,
+        comparison,
+        toolCostUsd: protocol.totalCostUsd,
+      });
+      observation.cost = observation.firstRun.costAccounting.totalCostUsd;
+    } else observation.cost = protocol.totalCostUsd;
   }
   const history = { runs: run ? [run] : [], issues: [] };
   const observations = [observation];

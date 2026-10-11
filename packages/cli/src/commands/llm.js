@@ -47,7 +47,10 @@ import {
   readLlmConnectionInput,
   saveLlmConnection,
 } from "../lib/llm-connection-config.js";
-import { probeLlmConnection } from "../lib/llm-connection-probe.js";
+import {
+  probeLlmConnection,
+  llmProbeReceipt,
+} from "../lib/llm-connection-probe.js";
 import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
 
 /**
@@ -313,6 +316,10 @@ export function registerLlmCommand(program) {
     .option("--model <model>", "Model to test (default: configured)")
     .option("--base-url <url>", "API base URL (default: configured/provider)")
     .option("--api-key <key>", "API key (default: configured)")
+    .option(
+      "--json",
+      "Output connection result and token cost estimate as JSON",
+    )
     .action(async (options) => {
       const config = loadConfig();
       const target = resolveLlmTestTarget(
@@ -321,18 +328,46 @@ export function registerLlmCommand(program) {
         BUILT_IN_PROVIDERS,
         process.env,
       );
-      const spinner = ora(`Testing ${target.provider}...`).start();
+      const spinner = options.json
+        ? null
+        : ora(`Testing ${target.provider}...`).start();
+      const safe = (text) =>
+        target.apiKey
+          ? String(text).replaceAll(target.apiKey, "[REDACTED]")
+          : String(text);
       try {
         const start = Date.now();
 
-        const reply = await probeLlmConnection(target);
+        const reply = await probeLlmConnection(target, {
+          includeUsage: !!options.json,
+        });
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              ...reply,
+              reply: safe(reply.reply),
+              elapsedMs: Date.now() - start,
+            }),
+          );
+          return;
+        }
         spinner.succeed(
           `${chalk.green("Connected")} to ${target.label} (${target.model}) in ${Date.now() - start}ms`,
         );
         logger.log(`  Response: ${chalk.gray(reply)}`);
       } catch (err) {
-        spinner.fail(`Test failed: ${err.message}`);
-        process.exit(1);
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              ...(err.probe || llmProbeReceipt(target)),
+              error: safe(err.message),
+            }),
+          );
+          process.exitCode = 1;
+        } else {
+          spinner.fail(`Test failed: ${err.message}`);
+          process.exit(1);
+        }
       }
     });
 

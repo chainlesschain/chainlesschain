@@ -1,0 +1,179 @@
+{
+  "scope": "public-install-actions",
+  "runId": 38117931353,
+  "harnessCommit": "fcee60cd4cc29cc524f561264e8d9f2b26032894",
+  "recordedAt": "2026-10-11T06:27:10.308Z",
+  "formalSample": false,
+  "modelCalls": 0,
+  "independentHumanReview": false,
+  "entries": [
+    {
+      "path": "objects/000001-7fd9ceed1811.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/cli-db-init.log",
+      "bytes": 236,
+      "sha256": "7fd9ceed1811bb9f2c3511659b38d55807c35db005a8208a601444e9f64f3ce2",
+      "rawBytes": 419,
+      "rawSha256": "1fa7226614445d191f69678750e9f19f61c5bee1b71df12bee79616216c4d1a7"
+    },
+    {
+      "path": "objects/000002-1aa220f8b709.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/cli-db-init.log.cleanup.json",
+      "bytes": 141,
+      "sha256": "1aa220f8b709327844e25fc1a638931d45aab869974b96d6eb37e4f7f5ba67b5",
+      "rawBytes": 162,
+      "rawSha256": "63355101d5d58de47507494f8eaed3464abd6cc048a1a3cb3395bea6a15d9f04"
+    },
+    {
+      "path": "objects/000003-1235017a681e.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-reopen.json",
+      "bytes": 1012,
+      "sha256": "1235017a681e8a9ded0ff7725a3db82e560ba904c117624335af25f4b1f7bf4b",
+      "rawBytes": 2517,
+      "rawSha256": "12edbcc9569092142c69963ded4d48079feb505dd0dbaa6147def0b0cc761e11"
+    },
+    {
+      "path": "objects/000004-fa55d9951057.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-reopen.log",
+      "bytes": 163,
+      "sha256": "fa55d99510578f0aa587329c7e97f0df8d73980155596ea328c27b3dd66e96ce",
+      "rawBytes": 222,
+      "rawSha256": "04599f9f10b6cdedb156e0c4d16f778a4e2b039adf7b94345e2df771f50ee61d"
+    },
+    {
+      "path": "objects/000005-924a48e9615f.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-reopen.log.cleanup.json",
+      "bytes": 141,
+      "sha256": "924a48e9615f14ec5abe9d1902aba445b7f342b191d187cce2106eb1b2e717dd",
+      "rawBytes": 162,
+      "rawSha256": "2f9cfb34cf274f72430774161cc8c09a3721df90e16492c1d395c8c3f1dae761"
+    },
+    {
+      "path": "objects/000006-73a16614c932.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-write.json",
+      "bytes": 1009,
+      "sha256": "73a16614c93291f7b1df397816cb95ba7b6557adfcb57204b573762d5437a85e",
+      "rawBytes": 2514,
+      "rawSha256": "bf58ea2a209fcacc18d6a2b376047da374e9bb292a73427f01387a892b22291b"
+    },
+    {
+      "path": "objects/000007-fa55d9951057.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-write.log",
+      "bytes": 163,
+      "sha256": "fa55d99510578f0aa587329c7e97f0df8d73980155596ea328c27b3dd66e96ce",
+      "rawBytes": 222,
+      "rawSha256": "04599f9f10b6cdedb156e0c4d16f778a4e2b039adf7b94345e2df771f50ee61d"
+    },
+    {
+      "path": "objects/000008-4562292bfaf9.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/database-write.log.cleanup.json",
+      "bytes": 141,
+      "sha256": "4562292bfaf9f83e8697c1596350a08c8a777d25fc032434102d7ac9fbaf4323",
+      "rawBytes": 162,
+      "rawSha256": "3d7796c8cbdebffb997cb88a7e6e5ebd0dc30e75a6ea02dbd520ade2bdede99c"
+    },
+    {
+      "path": "objects/000009-674978e1b9c6.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/npm-install.log",
+      "bytes": 1101,
+      "sha256": "674978e1b9c68b25acdac31760aa3df6e9e6ba87fda352df3915aa5c428e3636",
+      "rawBytes": 3598,
+      "rawSha256": "608b4303fc8f36fd71c26879b9ff5aa6c2ce333d04d22e1c5bb4bc05ec2907f4"
+    },
+    {
+      "path": "objects/000010-fc02c6a0b2ae.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/npm-install.log.cleanup.json",
+      "bytes": 141,
+      "sha256": "fc02c6a0b2aedef7233c3fa68ce0d9758f770e1a37e76eb5d1773a5e02dfc237",
+      "rawBytes": 162,
+      "rawSha256": "e85c12ce50866ce56821fc0f8d930742fb5fae06700d7dddd01bbca5231c67dc"
+    },
+    {
+      "path": "objects/000011-7a123a7eee75.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/os-release.txt",
+      "bytes": 260,
+      "sha256": "7a123a7eee7555c9b4cfa6b9005916fd81363bc918708442719ded39a6ca4976",
+      "rawBytes": 400,
+      "rawSha256": "87458b3b1f1ca0e5c693ade771de7007c3783bdc692fa6b39eb6414bf2af2763"
+    },
+    {
+      "path": "objects/000012-bd8afeab874c.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/public-package-lock.json",
+      "bytes": 43135,
+      "sha256": "bd8afeab874c0310e02b9e5c8d9fb4ec6f7f5937f5bd16f37f3507a54f03694a",
+      "rawBytes": 209471,
+      "rawSha256": "0503f1e5b2d35459a5e6b65e43e45c75d0c7e3642b847a217a69f630d9e963e3"
+    },
+    {
+      "path": "objects/000013-017addc2d607.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/registry-metadata.log",
+      "bytes": 8275,
+      "sha256": "017addc2d607f5da54fd7d5ee16071e4ffbe97b743be15d094ac98bcf14dc029",
+      "rawBytes": 31027,
+      "rawSha256": "e1d902543e3ff973895b2f0ef873fd3f226cd0739afb262228dfc44b4b00f42b"
+    },
+    {
+      "path": "objects/000014-4173db10db1a.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/registry-metadata.log.cleanup.json",
+      "bytes": 141,
+      "sha256": "4173db10db1a473a055b9bbcf6b1b23c7a6025af481f465332eab2c9357324ff",
+      "rawBytes": 162,
+      "rawSha256": "50ed116bfa177488791fcc36b82ba8ddc7661bcdd93bee059b7942e871512093"
+    },
+    {
+      "path": "objects/000015-da53121adcc0.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-diagnostic/summary.json",
+      "bytes": 2809,
+      "sha256": "da53121adcc05066bdc16883016cfbb394685c6cc5b03cc3206ed7afa1d88ba3",
+      "rawBytes": 9206,
+      "rawSha256": "4db4c90c50adc82fd9579572903112c44ccf364d3b6f6740a4d591bba4692d56"
+    },
+    {
+      "path": "objects/000016-b6c5186d585f.gz",
+      "artifactOriginalPath": "artifact/verify01-public-install-fcee60cd4cc29cc524f561264e8d9f2b26032894-1/verify01-public-install-workflow/workflow.json",
+      "bytes": 189,
+      "sha256": "b6c5186d585fa44004a8debd0129d17af03c55419940691d420f86289368e512",
+      "rawBytes": 241,
+      "rawSha256": "90a36a673cfae1bf07f83332e83c450b3e944e47813b29c8b84cf7850e57d526"
+    },
+    {
+      "path": "objects/000017-d8c9adfafae2.gz",
+      "artifactOriginalPath": "api/run.json",
+      "bytes": 1682,
+      "sha256": "d8c9adfafae28c88f06f919c3dad400e9a7200a8519fce37ceb201cea035665b",
+      "rawBytes": 13759,
+      "rawSha256": "22b8c47f6c5a28a6f38e8ca34db81e9a9f4917e7b173f9b4e21c1ca89b472364"
+    },
+    {
+      "path": "objects/000018-43a40a4feb51.gz",
+      "artifactOriginalPath": "api/jobs.json",
+      "bytes": 747,
+      "sha256": "43a40a4feb51efbe691d19792e37b03391168b8021420db88b86b83d7992dac3",
+      "rawBytes": 2759,
+      "rawSha256": "abab9816857fb26b9400a0ddd409bb1d4401d327c967c875b4751a4cc03eb0a5"
+    },
+    {
+      "path": "objects/000019-a196ed10695d.gz",
+      "artifactOriginalPath": "api/artifacts.json",
+      "bytes": 451,
+      "sha256": "a196ed10695db503f0058fbc0d1ad5362f06429972ff3a035c2e06d99bf2f0b3",
+      "rawBytes": 807,
+      "rawSha256": "8a0a0493386fec543ab7d21cf8d08f3014ca3ba556f4493f1c244917ed0be049"
+    },
+    {
+      "path": "objects/000020-85d6029b517a.gz",
+      "artifactOriginalPath": "wsl-local/summary.json",
+      "bytes": 447,
+      "sha256": "85d6029b517adab3dfd7e27957cc80468c92f0c396771a44cdad6d21a09337fb",
+      "rawBytes": 728,
+      "rawSha256": "e08b0a295ed7e931525b2fdb3d95921c43dec3eeeacfc7bfa576b38b1b761474"
+    },
+    {
+      "path": "objects/000021-f982c48103d4.gz",
+      "artifactOriginalPath": "analysis/public-install-projection.json",
+      "bytes": 862,
+      "sha256": "f982c48103d47734dcfe0c82c65ecc81802f34c8e465ad53f41ce548e1bba01b",
+      "rawBytes": 2477,
+      "rawSha256": "d73ff56453b89b34860ae55a81deaca5b43e5c7decc1bc3cd33b3772a4a200d7"
+    }
+  ]
+}

@@ -15405,6 +15405,27 @@ export async function* agentLoop(messages, options) {
       }
     }
     const contextMemoryTrustedSystemIndexes = [];
+    if (Number.isFinite(budget.limit)) {
+      // consume() already charged this dispatch. The current request may still
+      // act even when no further provider request remains. Rebuild this hint
+      // after compaction and rejection-only turns; do not persist it in history.
+      const furtherRequests = budget.remaining();
+      // Keep the stable conversation prefix ahead of this changing counter.
+      // The canonical planner protects the last conversational user bundle
+      // even when trusted ephemeral system guidance follows it.
+      callMessages = [
+        ...callMessages,
+        {
+          role: "system",
+          content:
+            `Execution budget: this request plus ${furtherRequests} further model requests. ` +
+            "For requested changes, reserve requests for implementation, focused validation, and repair or an accurate unfinished-work report. " +
+            "Reading or an existing passing baseline does not deliver requested changes. " +
+            "For research or monitoring, use the remaining requests for evidence and the requested answer; do not create files just to show activity.",
+        },
+      ];
+      contextMemoryTrustedSystemIndexes.push(callMessages.length - 1);
+    }
     if (prActionTask && !prInvestigationExhausted) {
       callMessages = [
         ...callMessages,
@@ -16304,6 +16325,7 @@ export async function* agentLoop(messages, options) {
           tool: toolName,
           result: earlyAuthorityDenial,
           error: earlyAuthorityDenial.error,
+          execution_started: false,
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
           permission_decision_id: decision?.id || null,

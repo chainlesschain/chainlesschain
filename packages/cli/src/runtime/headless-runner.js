@@ -1368,14 +1368,19 @@ async function runAgentHeadlessInWorkspace(
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
+  const requestedToolNames = resolveEnabledTools({
+    // An explicit --allowed-tools wins; otherwise a matched command's
+    // `allowed-tools:` frontmatter scopes the run (null when neither applies).
+    allowedTools: options.allowedTools || macroAllowedTools,
+    readOnly: perm.readOnly,
+  });
+  // The formal file-only ceiling must also honor narrower caller permissions,
+  // including an empty allowlist and plan mode's read-only intersection.
   const enabledToolNames = formalQualityHermetic
-    ? [...FORMAL_QUALITY_FILE_TOOLS]
-    : resolveEnabledTools({
-        // An explicit --allowed-tools wins; otherwise a matched command's
-        // `allowed-tools:` frontmatter scopes the run (null when neither applies).
-        allowedTools: options.allowedTools || macroAllowedTools,
-        readOnly: perm.readOnly,
-      });
+    ? (requestedToolNames ?? FORMAL_QUALITY_FILE_TOOLS).filter((name) =>
+        FORMAL_QUALITY_FILE_TOOLS.includes(name),
+      )
+    : requestedToolNames;
   const disabledTools = options.disallowedTools || [];
 
   // ── Best-effort runtime bootstrap (DB optional, like startAgentRepl) ───
@@ -3300,9 +3305,23 @@ async function runAgentHeadlessInWorkspace(
           }
           case "tool-result": {
             const err = event.error || event.result?.error || null;
+            // A denied request has no invocation to settle. Explicit provider
+            // IDs must never fall back to a different pending invocation.
+            const settledCall =
+              event.execution_started === false
+                ? null
+                : event.tool_use_id
+                  ? activeToolCalls.get(event.tool_use_id) || null
+                  : [...toolCalls]
+                      .reverse()
+                      .find(
+                        (call) =>
+                          !call._runtimeSettled &&
+                          (!event.tool || call.tool === event.tool),
+                      ) || null;
             // P0-2: settle the in-flight side-effect (commit on success, fail on
             // a clean error) and persist the updated ledger snapshot.
-            if (persist && currentSideEffectOpId) {
+            if (persist && currentSideEffectOpId && settledCall) {
               if (event.permission_decision) {
                 sideEffectLedger.annotate(currentSideEffectOpId, {
                   permissionDecision: event.permission_decision,
@@ -3330,6 +3349,9 @@ async function runAgentHeadlessInWorkspace(
               ...(event.tool_use_id ? { id: event.tool_use_id } : {}),
               tool: event.tool,
               is_error: Boolean(err),
+              ...(event.execution_started === false
+                ? { execution_started: false }
+                : {}),
               error: err,
               result: event.result,
               ...(event.permission_decision_id
@@ -3347,18 +3369,6 @@ async function runAgentHeadlessInWorkspace(
               });
               if (policyEvent) emitStream(policyEvent);
             }
-            const settledCall =
-              (event.tool_use_id
-                ? activeToolCalls.get(event.tool_use_id)
-                : null) ||
-              [...toolCalls]
-                .reverse()
-                .find(
-                  (call) =>
-                    !call._runtimeSettled &&
-                    (!event.tool || call.tool === event.tool),
-                ) ||
-              null;
             if (settledCall) {
               settledCall.is_error = Boolean(err);
               settledCall.durationMs =

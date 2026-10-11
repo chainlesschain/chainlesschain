@@ -1,0 +1,45 @@
+{
+  "scope": "public-linux-cli-volcengine-diagnostic",
+  "formalSample": false,
+  "productionAttested": false,
+  "passed": false,
+  "runtime": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v22.12.0",
+    "osRelease": "4.4.0-19041-Microsoft",
+    "osReleaseFile": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n"
+  },
+  "version": "0.166.97",
+  "releaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "initIdentity": {
+    "provider": null,
+    "model": null,
+    "permissionMode": null
+  },
+  "terminal": {
+    "terminalVerified": false,
+    "observedFallback": false,
+    "usage": null,
+    "totalCostUsd": null
+  },
+  "resultSubtype": null,
+  "tools": [],
+  "toolsSettledSuccessfully": false,
+  "readResultHasMarker": false,
+  "artifact": {
+    "path": "probe.txt",
+    "present": false,
+    "matches": false,
+    "bytes": null,
+    "sha256": null
+  },
+  "workspaceFiles": [],
+  "usage": null,
+  "estimatedCostUSD": null,
+  "knownUsageEstimatedSubtotalUSD": null,
+  "actualBilledCostUSD": null,
+  "providerAccountAttested": false,
+  "formal36Observed": 0,
+  "formal9Observed": 0
+}

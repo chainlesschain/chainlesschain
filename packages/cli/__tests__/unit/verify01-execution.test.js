@@ -1,9 +1,20 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadVerify01Suite } from "../../src/lib/eval/verify01-execution.js";
+import {
+  captureVerify01AgentBinding,
+  loadVerify01Suite,
+  runVerify01ReviewedProcess,
+  seedVerify01Deliverables,
+} from "../../src/lib/eval/verify01-execution.js";
+import { runAgentHeadless } from "../helpers/test-model-egress.js";
+import {
+  makeHeadlessRunAgent,
+  _deps as commandDeps,
+} from "../../src/commands/eval.js";
+import { EventEmitter } from "node:events";
 import { getSuite } from "../../src/lib/eval/tasks.js";
 import {
   runEvalSuite,
@@ -25,7 +36,12 @@ const frozen = new URL(
 const json = (name) =>
   JSON.parse(fs.readFileSync(new URL(name, frozen), "utf8"));
 function location() {
-  const root = fs.mkdtempSync(join(tmpdir(), "cc-verify01-execution-"));
+  const root = fs.mkdtempSync(
+    join(
+      (fs.realpathSync.native || fs.realpathSync)(tmpdir()),
+      "cc-verify01-execution-",
+    ),
+  );
   roots.push(root);
   return root;
 }
@@ -133,7 +149,7 @@ async function runFixture(tasks, edit = () => {}) {
     keepWorkspaces: true,
     runAgent: async ({ cwd, costBudgetUsd }) => {
       expect(costBudgetUsd).toBe(2);
-      fs.mkdirSync(join(cwd, "result"));
+      fs.mkdirSync(join(cwd, "result"), { recursive: true });
       fs.writeFileSync(join(cwd, "result", `${tasks[0].id}.txt`), "accepted");
       edit(cwd);
       return {
@@ -152,10 +168,339 @@ async function runFixture(tasks, edit = () => {}) {
   });
 }
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   while (roots.length) fs.rmSync(roots.pop(), { recursive: true, force: true });
 });
 
 describe("review-gated frozen eval execution", () => {
+  it("keeps account credentials and Node hooks out of the independent checker", () => {
+    vi.stubEnv("CC_API_KEY", "fixture-only-key");
+    vi.stubEnv("GITHUB_TOKEN", "fixture-only-token");
+    vi.stubEnv("NODE_OPTIONS", "--invalid-option");
+    const root = location();
+    const result = runVerify01ReviewedProcess(
+      Buffer.from(
+        "console.log(JSON.stringify({account:process.env.CC_API_KEY,github:process.env.GITHUB_TOKEN,options:process.env.NODE_OPTIONS}));",
+      ),
+      root,
+      root,
+      "check",
+      10000,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual({});
+  });
+
+  it("prepares only new empty regular deliverables and rejects existing, linked and escaping paths", () => {
+    const directory = location(),
+      budget = { remainingMs: () => 10000 };
+    fs.writeFileSync(join(directory, "source.js"), "source");
+    const seed = seedVerify01Deliverables(
+      directory,
+      ["nested/answer.test.js"],
+      budget,
+    );
+    expect(seed).toMatchObject([
+      {
+        path: "nested/answer.test.js",
+        before: null,
+        bytes: 0,
+        digest: evalDigest(Buffer.alloc(0)),
+        requestedMode: 0o600,
+      },
+    ]);
+    expect(
+      fs.readFileSync(join(directory, "nested/answer.test.js")),
+    ).toHaveLength(0);
+    if (process.platform !== "win32")
+      expect(
+        fs.statSync(join(directory, "nested/answer.test.js")).mode & 0o777,
+      ).toBe(0o600);
+    expect(() =>
+      seedVerify01Deliverables(directory, ["source.js"], budget),
+    ).toThrow();
+    expect(() =>
+      seedVerify01Deliverables(directory, ["../outside.test.js"], budget),
+    ).toThrow();
+    const outside = location();
+    fs.symlinkSync(
+      outside,
+      join(directory, "alias"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    expect(() =>
+      seedVerify01Deliverables(directory, ["alias/answer.test.js"], budget),
+    ).toThrow(/canonical|unaliased|link/);
+    expect(fs.readdirSync(outside)).toEqual([]);
+    expect(fs.readFileSync(join(directory, "source.js"), "utf8")).toBe(
+      "source",
+    );
+  });
+
+  it("does not seed or launch after reviewed setup failure", async () => {
+    const f = fixture();
+    const bytes = Buffer.from("throw new Error('setup failed before model');");
+    fs.writeFileSync(
+      join(f.options.reviewRoot, f.review.tasks[0].setup.path),
+      bytes,
+    );
+    f.review.tasks[0].setup.digest = evalDigest(bytes);
+    writeJson(f.options.reviewFile, f.review);
+    f.options.reviewDigest = outcomeDigest(f.review);
+    const tasks = loadVerify01Suite(f.options),
+      agent = vi.fn();
+    const result = await runEvalSuite(tasks, {
+      cwdBase: location(),
+      keepWorkspaces: true,
+      runAgent: agent,
+    });
+    expect(result.passed).toBe(0);
+    expect(agent).not.toHaveBeenCalled();
+    expect(tasks.verification.receipts[0].deliverablePreparation).toEqual([]);
+    expect(
+      fs.existsSync(
+        join(tasks.verification.receipts[0].workspace, "result/verify-01.txt"),
+      ),
+    ).toBe(false);
+  });
+
+  it("binds sequential tasks to independent immutable scopes and distinct user/config homes", async () => {
+    const f = fixture();
+    f.options.sampleIds = f.plan.samples
+      .filter(
+        (sample) =>
+          sample.kind === "task" && sample.stratum === f.sample.stratum,
+      )
+      .slice(0, 2)
+      .map((sample) => sample.id);
+    const tasks = loadVerify01Suite(f.options),
+      bindings = [];
+    const canonicalBase = location(),
+      aliasedBase = join(location(), "temporary-root");
+    fs.symlinkSync(
+      canonicalBase,
+      aliasedBase,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const result = await runEvalSuite(tasks, {
+      cwdBase: aliasedBase,
+      keepWorkspaces: true,
+      runAgent: async ({ cwd, verify01Binding }) => {
+        const binding = captureVerify01AgentBinding(verify01Binding, cwd);
+        bindings.push(binding);
+        expect(Object.isFrozen(binding)).toBe(true);
+        expect(Object.isFrozen(binding.allowedPaths)).toBe(true);
+        expect(Object.isFrozen(binding.environment)).toBe(true);
+        expect(binding.environment.HOME).not.toBe(
+          binding.environment.CHAINLESSCHAIN_HOME,
+        );
+        expect(
+          JSON.parse(binding.environment.CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES),
+        ).toEqual(binding.allowedPaths);
+        expect(() => captureVerify01AgentBinding({ ...binding }, cwd)).toThrow(
+          /unrecognized/,
+        );
+        expect(() => captureVerify01AgentBinding(binding, location())).toThrow(
+          /workspace/,
+        );
+        fs.writeFileSync(join(cwd, binding.allowedPaths[0]), "accepted");
+        return { ok: true, output: "synthetic task only" };
+      },
+    });
+    expect(result.passed).toBe(2);
+    expect(bindings[0].root).not.toBe(bindings[1].root);
+    expect(bindings[0].allowedPaths).not.toEqual(bindings[1].allowedPaths);
+    expect(process.env.CHAINLESSCHAIN_HOME).toBe(previousHome);
+    for (const binding of bindings)
+      expect(fs.existsSync(binding.root)).toBe(false);
+    for (const receipt of tasks.verification.receipts) {
+      expect(receipt.diff[0].before).toBeNull();
+      expect(receipt.agentDiff[0].before.bytes).toBe(0);
+      expect(receipt.agentBinding.profileRemoved).toBe(true);
+    }
+  });
+
+  it("retains reviewed source edits without replacing source files with seeds", async () => {
+    const f = fixture();
+    f.review.tasks[0].allowedChangedPaths = [
+      "result/verify-01.txt",
+      "source.js",
+    ];
+    writeJson(f.options.reviewFile, f.review);
+    f.options.reviewDigest = outcomeDigest(f.review);
+    const tasks = loadVerify01Suite(f.options);
+    const result = await runEvalSuite(tasks, {
+      cwdBase: location(),
+      keepWorkspaces: true,
+      runAgent: async ({ cwd, verify01Binding }) => {
+        expect(verify01Binding.allowedPaths).toContain("source.js");
+        expect(fs.readFileSync(join(cwd, "source.js"), "utf8")).toContain(
+          "committed",
+        );
+        fs.writeFileSync(
+          join(cwd, "source.js"),
+          "export const baseline = 'reviewed edit';\n",
+        );
+        fs.writeFileSync(join(cwd, "result/verify-01.txt"), "accepted");
+        return { ok: true, output: "reviewed source edit" };
+      },
+    });
+    expect(result.passed).toBe(1);
+    const receipt = tasks.verification.receipts[0];
+    expect(receipt.deliverablePreparation.map((seed) => seed.path)).toEqual([
+      "result/verify-01.txt",
+    ]);
+    expect(
+      receipt.diff.find((change) => change.path === "source.js").before,
+    ).not.toBeNull();
+  });
+
+  it("passes the immutable task environment to the actual command child without changing the parent", async () => {
+    const f = fixture(),
+      tasks = loadVerify01Suite(f.options);
+    const spawn = vi.spyOn(commandDeps, "spawn").mockImplementation(() => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      child.pid = 1234;
+      queueMicrotask(() => child.emit("close", 1, null));
+      return child;
+    });
+    await runEvalSuite(tasks, {
+      cwdBase: location(),
+      keepWorkspaces: true,
+      runAgent: makeHeadlessRunAgent({
+        provider: f.options.provider,
+        model: f.options.model,
+        requireVerify01Binding: true,
+        env: {
+          CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES: '["wrong.txt"]',
+          CHAINLESSCHAIN_HOME: "wrong-home",
+          CC_API_KEY: "fixture-only-key",
+          NODE_OPTIONS: "--invalid-option",
+          GITHUB_TOKEN: "unrelated",
+          CC_FALLBACK_MODEL: "unreviewed",
+          NPM_TOKEN: "unrelated",
+          ...(process.platform === "win32" ? { Path: "fixture-path" } : {}),
+        },
+      }),
+    });
+    expect(spawn).toHaveBeenCalledTimes(1);
+    const [, args, options] = spawn.mock.calls[0];
+    expect(args).toContain("--no-mcp");
+    expect(options.env.CHAINLESSCHAIN_HOME).toBe(
+      tasks.verification.receipts[0].agentBinding.configHome,
+    );
+    expect(
+      JSON.parse(options.env.CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES),
+    ).toEqual(["result/verify-01.txt"]);
+    expect(options.env.CC_API_KEY).toBe("fixture-only-key");
+    expect(options.env.CC_MAX_RETRIES).toBe("0");
+    if (process.platform === "win32")
+      expect(options.env.PATH).toBe("fixture-path");
+    for (const name of [
+      "NODE_OPTIONS",
+      "GITHUB_TOKEN",
+      "CC_FALLBACK_MODEL",
+      "NPM_TOKEN",
+    ])
+      expect(options.env[name]).toBeUndefined();
+    expect(() =>
+      makeHeadlessRunAgent({ requireVerify01Binding: true })({
+        cwd: location(),
+        prompt: "unbound",
+      }),
+    ).toThrow(/task-specific/);
+  });
+
+  it("starts real headless on a new seeded deliverable and still blocks out-of-scope writes", async () => {
+    const f = fixture(),
+      tasks = loadVerify01Suite(f.options),
+      emitted = [];
+    const result = await runEvalSuite(tasks, {
+      cwdBase: location(),
+      keepWorkspaces: true,
+      runAgent: async ({ cwd, verify01Binding }) => {
+        const binding = captureVerify01AgentBinding(verify01Binding, cwd);
+        let call = 0;
+        const headless = await runAgentHeadless(
+          {
+            prompt:
+              "Offline fixture: write accepted to the authorized deliverable",
+            cwd,
+            provider: f.options.provider,
+            model: f.options.model,
+            outputFormat: "stream-json",
+            ephemeral: true,
+            permissionMode: "acceptEdits",
+            hermeticExecution: true,
+            exactToolNames: true,
+            allowedTools: ["write_file", "read_file"],
+            maxTurns: 4,
+            fileMutationScope: {
+              exact: true,
+              worktreeRoot: binding.workspace,
+              allowedPaths: binding.allowedPaths,
+            },
+          },
+          {
+            writeOut: (line) => emitted.push(line),
+            writeErr: () => {},
+            chatFn: async () => {
+              call++;
+              return {
+                message:
+                  call <= 2
+                    ? {
+                        role: "assistant",
+                        content: "",
+                        tool_calls: [
+                          {
+                            id: `fixture-${call}`,
+                            type: "function",
+                            function: {
+                              name: "write_file",
+                              arguments: JSON.stringify({
+                                path:
+                                  call === 1
+                                    ? binding.allowedPaths[0]
+                                    : "source.js",
+                                content:
+                                  call === 1 ? "accepted" : "must not write",
+                              }),
+                            },
+                          },
+                        ],
+                      }
+                    : { role: "assistant", content: "done" },
+                usage: { input_tokens: 7, output_tokens: 3 },
+              };
+            },
+          },
+        );
+        expect(call).toBe(3);
+        expect(headless.exitCode).toBe(0);
+        expect(fs.readFileSync(join(cwd, "source.js"), "utf8")).toContain(
+          "committed",
+        );
+        return { ok: headless.exitCode === 0, output: emitted.join("") };
+      },
+    });
+    expect(result.passed, JSON.stringify(result.results)).toBe(1);
+    const events = emitted.join("").trim().split("\n").map(JSON.parse);
+    expect(
+      events.find(
+        (event) => event.type === "tool_result" && event.id === "fixture-1",
+      ).is_error,
+    ).toBe(false);
+    expect(
+      events.find(
+        (event) => event.type === "tool_result" && event.id === "fixture-2",
+      ).is_error,
+    ).toBe(true);
+  }, 30000);
   it("fingerprints dependency bodies separately, captures changes without base64 copies, and refuses dependency edits", async () => {
     const f = fixture();
     const setup = Buffer.from(
@@ -377,5 +722,11 @@ describe("review-gated frozen eval execution", () => {
     expect(summary.results[0].executionEvidence).toBeNull();
     expect(summary.results[0].totalCostUsd).toBeNull();
     expect(tasks.verification.receipts[0].execution.evidence).toBeNull();
+    expect(summary.results[0].error).toMatch(/empty seeds/);
+    expect(tasks.verification.receipts[0].check).toBeNull();
+    expect(tasks.verification.receipts[0].diff[0]).toMatchObject({
+      before: null,
+      after: { bytes: 0 },
+    });
   });
 });

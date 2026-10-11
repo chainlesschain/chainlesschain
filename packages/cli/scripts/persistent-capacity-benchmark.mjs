@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -807,7 +808,8 @@ export async function runPersistentCapacityBenchmark({
     throw new Error("storage must be json or segmented");
   const checkout = checkoutEvidence(profileName, argv);
   const benchmarkRoot =
-    root || mkdtempSync(join(tmpdir(), "cc-persistent-capacity-"));
+    root ||
+    mkdtempSync(join(realpathSync.native(tmpdir()), "cc-persistent-capacity-"));
   const ownsRoot = !root;
   const startedAt = new Date().toISOString();
   const started = performance.now();

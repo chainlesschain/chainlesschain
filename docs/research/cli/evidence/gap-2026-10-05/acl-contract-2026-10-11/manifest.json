@@ -1,0 +1,1202 @@
+{
+  "schema": "chainlesschain.acl-contract-evidence/v1",
+  "status": "NOT_ADMITTED",
+  "admissionEligible": false,
+  "compatibilityConfirmed": false,
+  "frozenBaseCommit": "53ad9df8c46269d725d2f3cde77185a5806e86da",
+  "rounds": {
+    "a": "restricted host rejected at host-token; no actor",
+    "b": "actor WRITE_DAC open denied; no SetSecurityInfo or subsequent I/O",
+    "c": "host fixed objects owner-only; six native LowBox operations denied"
+  },
+  "compilerClosureVerified": false,
+  "productionSourcesChangedByExperiment": false,
+  "formalSample": false,
+  "largeBinaries": [
+    {
+      "round": "a",
+      "path": ".work/acl-owner-only-20261011-a/broker.exe",
+      "bytes": 908288,
+      "digest": "sha256:160d3d99bcb96b7bde9f50139490d9e34270603842cf5be90967db01bb6c7e9b",
+      "archived": false
+    },
+    {
+      "round": "a",
+      "path": ".work/acl-owner-only-20261011-a/esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+      "archived": false
+    },
+    {
+      "round": "a",
+      "path": ".work/acl-owner-only-20261011-a/windows-node-private-v4.node",
+      "bytes": 844800,
+      "digest": "sha256:48aba4115f3ea0c95454ca63155a32ef12038da2ddc896f56959b8b9faa6efd8",
+      "archived": false
+    },
+    {
+      "round": "b",
+      "path": ".work/acl-owner-only-20261011-b/broker.exe",
+      "bytes": 908288,
+      "digest": "sha256:160d3d99bcb96b7bde9f50139490d9e34270603842cf5be90967db01bb6c7e9b",
+      "archived": false
+    },
+    {
+      "round": "b",
+      "path": ".work/acl-owner-only-20261011-b/esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+      "archived": false
+    },
+    {
+      "round": "b",
+      "path": ".work/acl-owner-only-20261011-b/windows-node-private-v4.node",
+      "bytes": 844800,
+      "digest": "sha256:48aba4115f3ea0c95454ca63155a32ef12038da2ddc896f56959b8b9faa6efd8",
+      "archived": false
+    },
+    {
+      "round": "c",
+      "path": ".work/acl-host-owner-only-20261011-a/broker.exe",
+      "bytes": 934912,
+      "digest": "sha256:5944d82f9726f8dbfbb9d627971ba582dba066aa36815d2157d5c73338f26df8",
+      "archived": false
+    },
+    {
+      "round": "c",
+      "path": ".work/acl-host-owner-only-20261011-a/esbuild-private-shim.dll",
+      "bytes": 54784,
+      "digest": "sha256:5718bbbe4e08dbf43978c82b10a703d97b8ef8f0b39614edeb71b6da407274a2",
+      "archived": false
+    },
+    {
+      "round": "c",
+      "path": ".work/acl-host-owner-only-20261011-a/windows-node-private-v4.node",
+      "bytes": 832000,
+      "digest": "sha256:49af5a09e0ce9ef073e989d16b34130447cb110fdf7779c49c971f850aca8ed6",
+      "archived": false
+    }
+  ],
+  "entries": [
+    {
+      "source": ".work/acl-owner-only-20261011-a/acl-probe.h",
+      "artifact": "a/acl-probe.h.gz",
+      "rawBytes": 10296,
+      "rawDigest": "sha256:9b07d4cc432859a46c97d87e56e696e98507244d5533375d38502e8ceb8f3c2b",
+      "gzipBytes": 3498,
+      "gzipDigest": "sha256:f21a40a9511a548da43f2dd967e57f070d6282635672c7c188ac42991842350a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/adapter.diff",
+      "artifact": "a/adapter.diff.gz",
+      "rawBytes": 1902,
+      "rawDigest": "sha256:63eef0b6e407119d0d0053b0118eb314e74c580bde58fb7c5c2db697593320b8",
+      "gzipBytes": 756,
+      "gzipDigest": "sha256:bc35c9b2c8b4474c68f2b7fe3fa4f9a74ae6e1e9f554f7ac6bfc91d0bb2f5b80"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/binaries.json",
+      "artifact": "a/binaries.json.gz",
+      "rawBytes": 646,
+      "rawDigest": "sha256:996d827b7221ccf635164716bdc42ae1c27a00c4e3f6b0225e627b1affa33012",
+      "gzipBytes": 326,
+      "gzipDigest": "sha256:aff35b837bac55bd87edc0660365e5354d796e6b42301693032a04d836cae6db"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/broker.exe.build.stderr",
+      "artifact": "a/broker.exe.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/broker.exe.build.stdout",
+      "artifact": "a/broker.exe.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/build.json",
+      "artifact": "a/build.json.gz",
+      "rawBytes": 2481,
+      "rawDigest": "sha256:2dffa9f103733c065a0dd72b81ee31ff08b2b05072995f36c26f1c7c1d2ad046",
+      "gzipBytes": 629,
+      "gzipDigest": "sha256:af19a5467030f643791b6a13eb5dc52b219bd6d06daa334a4b687ac21087f0e3"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/check.cjs",
+      "artifact": "a/check.cjs.gz",
+      "rawBytes": 1030,
+      "rawDigest": "sha256:fb81601e00a1d431b8815d8c975c2ee308386716f0611ea1d24aed4442c3a6fd",
+      "gzipBytes": 478,
+      "gzipDigest": "sha256:dbb4263cfc88a0c3ba70797d9a22a93c51f62e03c3b3cc9a5dc463b1ed27de4a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/esbuild-private-shim.dll.build.stderr",
+      "artifact": "a/esbuild-private-shim.dll.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/esbuild-private-shim.dll.build.stdout",
+      "artifact": "a/esbuild-private-shim.dll.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/original-coordinate-driver.mjs",
+      "artifact": "a/frozen/original-coordinate-driver.mjs.gz",
+      "rawBytes": 7553,
+      "rawDigest": "sha256:9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "gzipBytes": 2395,
+      "gzipDigest": "sha256:11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/original-tracked-driver.mjs",
+      "artifact": "a/frozen/original-tracked-driver.mjs.gz",
+      "rawBytes": 37711,
+      "rawDigest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "gzipBytes": 9728,
+      "gzipDigest": "sha256:e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-esbuild-private-map-shim.cpp",
+      "artifact": "a/frozen/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "a/frozen/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-adapter.cpp",
+      "artifact": "a/frozen/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65180,
+      "rawDigest": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipDigest": "sha256:677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-adapter.h",
+      "artifact": "a/frozen/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-broker.cpp",
+      "artifact": "a/frozen/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-identity.cjs",
+      "artifact": "a/frozen/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-paired.h",
+      "artifact": "a/frozen/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-preload.cjs",
+      "artifact": "a/frozen/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/frozen/windows-node-private-v4-protocol.h",
+      "artifact": "a/frozen/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/origins.json",
+      "artifact": "a/origins.json.gz",
+      "rawBytes": 3497,
+      "rawDigest": "sha256:9f6b57ff534502b0f7db4848bb60109343f861b73d776f0f67f88b95dd528859",
+      "gzipBytes": 807,
+      "gzipDigest": "sha256:ccc42157bb6c939da3bec665ad1772c2fd47816fc99df584263c3aeac0e99414"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/run/host.stderr",
+      "artifact": "a/run/host.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/run/host.stdout",
+      "artifact": "a/run/host.stdout.gz",
+      "rawBytes": 797,
+      "rawDigest": "sha256:b94d19d02e08955289a391119c8298550039347d4c28f9640b0a2373aa67954f",
+      "gzipBytes": 468,
+      "gzipDigest": "sha256:ae569ea1f5b179693ed366dfbca3c77daf8d8b077f1205ea805eb3ea9d6ef064"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/run/report.json",
+      "artifact": "a/run/report.json.gz",
+      "rawBytes": 9944,
+      "rawDigest": "sha256:18c7fad3ccdff9a1bee4cae496ec6cdd9549b68ff8e4d40390df10bf9a067547",
+      "gzipBytes": 2303,
+      "gzipDigest": "sha256:628a7ed14ce69bbb4acf0e37d2bdf11728a10fac3a1b67c805b1fa4c48c9f6be"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/run.mjs",
+      "artifact": "a/run.mjs.gz",
+      "rawBytes": 9735,
+      "rawDigest": "sha256:c78608105c5a5066a6a27bf0b08dcaca41cef25171c43a9e37d6d667deee4968",
+      "gzipBytes": 3097,
+      "gzipDigest": "sha256:798465f1e5044f5a49f39db872afe3bfa41824b29df2f71d932fc8dde4a56a59"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/acl-probe.h",
+      "artifact": "a/source/acl-probe.h.gz",
+      "rawBytes": 10296,
+      "rawDigest": "sha256:9b07d4cc432859a46c97d87e56e696e98507244d5533375d38502e8ceb8f3c2b",
+      "gzipBytes": 3498,
+      "gzipDigest": "sha256:f21a40a9511a548da43f2dd967e57f070d6282635672c7c188ac42991842350a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-esbuild-private-map-shim.cpp",
+      "artifact": "a/source/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "a/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-adapter.cpp",
+      "artifact": "a/source/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65459,
+      "rawDigest": "sha256:28171646c9bf60b5ddcccd31b2bc9b2d8eef5e5e986cfd355562321c7f699979",
+      "gzipBytes": 16846,
+      "gzipDigest": "sha256:d130c8c463b636822ade81e27cd80fe90376e16b57d6a0aef671b9bb87cda9c1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-adapter.h",
+      "artifact": "a/source/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-broker.cpp",
+      "artifact": "a/source/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-identity.cjs",
+      "artifact": "a/source/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-paired.h",
+      "artifact": "a/source/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-preload.cjs",
+      "artifact": "a/source/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/source/windows-node-private-v4-protocol.h",
+      "artifact": "a/source/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/sources.json",
+      "artifact": "a/sources.json.gz",
+      "rawBytes": 3144,
+      "rawDigest": "sha256:56c3a86a56ad7d7216c771db05c9e64cf4aef2af18cf2a884f2a437528071b74",
+      "gzipBytes": 840,
+      "gzipDigest": "sha256:7c0880cd8f05b7e8deafe57bdd2cb80c1b533e513594aa11ad02fdd7c6f4a4ea"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/verify.mjs",
+      "artifact": "a/verify.mjs.gz",
+      "rawBytes": 5434,
+      "rawDigest": "sha256:852e63dced2b0c5148a268c57fe60c7a2d14bf6368d9192f9fb2615417866702",
+      "gzipBytes": 1889,
+      "gzipDigest": "sha256:c139a0b2016f2e17a10fa3db342fa2b68bbe103c7897da9ca25abdaac0cc3f7d"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/windows-node-private-v4.node.build.stderr",
+      "artifact": "a/windows-node-private-v4.node.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-a/windows-node-private-v4.node.build.stdout",
+      "artifact": "a/windows-node-private-v4.node.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/acl-probe.h",
+      "artifact": "b/acl-probe.h.gz",
+      "rawBytes": 10296,
+      "rawDigest": "sha256:9b07d4cc432859a46c97d87e56e696e98507244d5533375d38502e8ceb8f3c2b",
+      "gzipBytes": 3498,
+      "gzipDigest": "sha256:f21a40a9511a548da43f2dd967e57f070d6282635672c7c188ac42991842350a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/adapter.diff",
+      "artifact": "b/adapter.diff.gz",
+      "rawBytes": 1902,
+      "rawDigest": "sha256:159045b383dd53a9efe1508da654ed33e9bb1efe2a574cf7aac07692f073d7a1",
+      "gzipBytes": 757,
+      "gzipDigest": "sha256:1ed835cd1aba8228701bfe2dacb8406ce974fb8a994d7e6c38d0e53fba634955"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/binaries.json",
+      "artifact": "b/binaries.json.gz",
+      "rawBytes": 646,
+      "rawDigest": "sha256:26aafa8d9de43cf4af2df0f6ba797d39c2876085f37f3d947f35f3510e07b785",
+      "gzipBytes": 326,
+      "gzipDigest": "sha256:536d92af601bdceb0721f9be4042d168e7f252a50609c0fc1ffae0a785f3bd95"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/broker.exe.build.stderr",
+      "artifact": "b/broker.exe.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/broker.exe.build.stdout",
+      "artifact": "b/broker.exe.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/build.json",
+      "artifact": "b/build.json.gz",
+      "rawBytes": 2481,
+      "rawDigest": "sha256:c9ef0e94b5818b47d5a7d688a574d5d29ee28a6fd41306e6ed6a10361deb083b",
+      "gzipBytes": 630,
+      "gzipDigest": "sha256:732d9aaafe5d756d5e28b8257dde903a24e3b0a1dcfa85dadf2d15411c13e5d9"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/check.cjs",
+      "artifact": "b/check.cjs.gz",
+      "rawBytes": 1030,
+      "rawDigest": "sha256:fb81601e00a1d431b8815d8c975c2ee308386716f0611ea1d24aed4442c3a6fd",
+      "gzipBytes": 478,
+      "gzipDigest": "sha256:dbb4263cfc88a0c3ba70797d9a22a93c51f62e03c3b3cc9a5dc463b1ed27de4a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/esbuild-private-shim.dll.build.stderr",
+      "artifact": "b/esbuild-private-shim.dll.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/esbuild-private-shim.dll.build.stdout",
+      "artifact": "b/esbuild-private-shim.dll.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/original-coordinate-driver.mjs",
+      "artifact": "b/frozen/original-coordinate-driver.mjs.gz",
+      "rawBytes": 7553,
+      "rawDigest": "sha256:9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "gzipBytes": 2395,
+      "gzipDigest": "sha256:11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/original-tracked-driver.mjs",
+      "artifact": "b/frozen/original-tracked-driver.mjs.gz",
+      "rawBytes": 37711,
+      "rawDigest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "gzipBytes": 9728,
+      "gzipDigest": "sha256:e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-esbuild-private-map-shim.cpp",
+      "artifact": "b/frozen/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "b/frozen/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-adapter.cpp",
+      "artifact": "b/frozen/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65180,
+      "rawDigest": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipDigest": "sha256:677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-adapter.h",
+      "artifact": "b/frozen/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-broker.cpp",
+      "artifact": "b/frozen/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-identity.cjs",
+      "artifact": "b/frozen/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-paired.h",
+      "artifact": "b/frozen/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-preload.cjs",
+      "artifact": "b/frozen/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/frozen/windows-node-private-v4-protocol.h",
+      "artifact": "b/frozen/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/origins.json",
+      "artifact": "b/origins.json.gz",
+      "rawBytes": 3497,
+      "rawDigest": "sha256:bbe3405d9d3a43138a072ac21158d847d752a23992e235cea359637d034e99c5",
+      "gzipBytes": 807,
+      "gzipDigest": "sha256:80b7a1be0043fd4543055e153d13610d9cde5c0d9330006e60a4bf9681748741"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/acl-probe.json",
+      "artifact": "b/run/acl-probe.json.gz",
+      "rawBytes": 14362,
+      "rawDigest": "sha256:fb9518377a6d397dd5920ffc4e03c6bf4d75f64c86d41323cbc7c0cb3f61c1c3",
+      "gzipBytes": 2501,
+      "gzipDigest": "sha256:99e4990d2a745c00dde29849d045e62e3b88c4796d9ebf8b54b8a488551f700f"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/actor.stderr",
+      "artifact": "b/run/actor.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/actor.stdout",
+      "artifact": "b/run/actor.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/host.stderr",
+      "artifact": "b/run/host.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/host.stdout",
+      "artifact": "b/run/host.stdout.gz",
+      "rawBytes": 1576,
+      "rawDigest": "sha256:d044f9a8df32b733b4239c0891a472218cb0f7855232b13058a62b61af9ac74e",
+      "gzipBytes": 786,
+      "gzipDigest": "sha256:334290136e24f7002570d2cab1f5aff579599839c02cc5d2fb63098badfe8acd"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/manifest.json",
+      "artifact": "b/run/manifest.json.gz",
+      "rawBytes": 1389,
+      "rawDigest": "sha256:776efa47dc085399b7c052281863ddd2446bbcc73283eb1ba633e59669477729",
+      "gzipBytes": 768,
+      "gzipDigest": "sha256:8124e504d5c33089793d3bdc3f2d2cceb37aa0dc7b0d672bd1afd3e8b3642138"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/private-v4-11848-exit.json",
+      "artifact": "b/run/private-v4-11848-exit.json.gz",
+      "rawBytes": 4723,
+      "rawDigest": "sha256:0bcd0a883edce7403b1450d5a38ae78cda9c7a271ee040b28d97891d7df878ae",
+      "gzipBytes": 1542,
+      "gzipDigest": "sha256:8de992a532f51fa2a6612b14eac7b3eb58b088a9429d80fc14fddb065e6b5a41"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/private-v4-11848-installed.json",
+      "artifact": "b/run/private-v4-11848-installed.json.gz",
+      "rawBytes": 4675,
+      "rawDigest": "sha256:a59dd38a684c020def8386668066ec6b1db877e0305dbf99a103f66e396229b0",
+      "gzipBytes": 1512,
+      "gzipDigest": "sha256:540f885f6806fb8a43ee081428d4857aa6a31f3a5298f2a49b6e4b55013838de"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run/report.json",
+      "artifact": "b/run/report.json.gz",
+      "rawBytes": 40571,
+      "rawDigest": "sha256:2e27a8eda7e3605b775423e7d1a2d9068efca128e355e30590573473ae51ee42",
+      "gzipBytes": 4995,
+      "gzipDigest": "sha256:94c45c9aef5080d958211f3495482ec2feaaa5fb307803ad29d541dd6a8ad5d2"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/run.mjs",
+      "artifact": "b/run.mjs.gz",
+      "rawBytes": 9735,
+      "rawDigest": "sha256:c78608105c5a5066a6a27bf0b08dcaca41cef25171c43a9e37d6d667deee4968",
+      "gzipBytes": 3097,
+      "gzipDigest": "sha256:798465f1e5044f5a49f39db872afe3bfa41824b29df2f71d932fc8dde4a56a59"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/acl-probe.h",
+      "artifact": "b/source/acl-probe.h.gz",
+      "rawBytes": 10296,
+      "rawDigest": "sha256:9b07d4cc432859a46c97d87e56e696e98507244d5533375d38502e8ceb8f3c2b",
+      "gzipBytes": 3498,
+      "gzipDigest": "sha256:f21a40a9511a548da43f2dd967e57f070d6282635672c7c188ac42991842350a"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-esbuild-private-map-shim.cpp",
+      "artifact": "b/source/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "b/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-adapter.cpp",
+      "artifact": "b/source/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65459,
+      "rawDigest": "sha256:28171646c9bf60b5ddcccd31b2bc9b2d8eef5e5e986cfd355562321c7f699979",
+      "gzipBytes": 16846,
+      "gzipDigest": "sha256:d130c8c463b636822ade81e27cd80fe90376e16b57d6a0aef671b9bb87cda9c1"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-adapter.h",
+      "artifact": "b/source/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-broker.cpp",
+      "artifact": "b/source/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-identity.cjs",
+      "artifact": "b/source/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-paired.h",
+      "artifact": "b/source/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-preload.cjs",
+      "artifact": "b/source/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/source/windows-node-private-v4-protocol.h",
+      "artifact": "b/source/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/sources.json",
+      "artifact": "b/sources.json.gz",
+      "rawBytes": 3144,
+      "rawDigest": "sha256:3fc48e52d2950f5b759b3d0202610901b1114f9896987375b8695a4b94a1f3f5",
+      "gzipBytes": 840,
+      "gzipDigest": "sha256:a43cdacf91b95e717dc25134bd780eab89e4a71fc5835a8d5def29856307334c"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/verify.mjs",
+      "artifact": "b/verify.mjs.gz",
+      "rawBytes": 5434,
+      "rawDigest": "sha256:852e63dced2b0c5148a268c57fe60c7a2d14bf6368d9192f9fb2615417866702",
+      "gzipBytes": 1889,
+      "gzipDigest": "sha256:c139a0b2016f2e17a10fa3db342fa2b68bbe103c7897da9ca25abdaac0cc3f7d"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/windows-node-private-v4.node.build.stderr",
+      "artifact": "b/windows-node-private-v4.node.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-owner-only-20261011-b/windows-node-private-v4.node.build.stdout",
+      "artifact": "b/windows-node-private-v4.node.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/acl-probe.h",
+      "artifact": "c/acl-probe.h.gz",
+      "rawBytes": 5743,
+      "rawDigest": "sha256:4e50b605a3e38e26954a9404f66b00b9407431398b9ddfcaa54de667dae4eb95",
+      "gzipBytes": 2311,
+      "gzipDigest": "sha256:6808651bc0c2cf570470cd906eb9e8b0d59b803c35c8ff6b6828d1da0047cc30"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/adapter.diff",
+      "artifact": "c/adapter.diff.gz",
+      "rawBytes": 1921,
+      "rawDigest": "sha256:97229f158970b5a675302cc6c8226e44b36b88e45c5cce9a28ffd31aa181c587",
+      "gzipBytes": 758,
+      "gzipDigest": "sha256:7b96ab558237233ab139df3b5e77eb87794af796f283e210755ad95f21c18d9d"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/binaries.json",
+      "artifact": "c/binaries.json.gz",
+      "rawBytes": 661,
+      "rawDigest": "sha256:6b3c7d97ab792b9e7bcc17abe222bf249946526915dea1719899643fa3f9dae2",
+      "gzipBytes": 330,
+      "gzipDigest": "sha256:addcfe410aaa85532567427d9c41aa14b70754f9003259ccb9aa81f7277b3505"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/broker.diff",
+      "artifact": "c/broker.diff.gz",
+      "rawBytes": 5426,
+      "rawDigest": "sha256:c9a52c4160956a101ad0547f1f81d44cecb963c7209ae2fe047233059c7ddfd4",
+      "gzipBytes": 2292,
+      "gzipDigest": "sha256:dfd3c3b62dbff560891e28e1d6d71c1b371970e8b45cbf5f90d880b0d532e4b1"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/broker.exe.build.stderr",
+      "artifact": "c/broker.exe.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/broker.exe.build.stdout",
+      "artifact": "c/broker.exe.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/build.json",
+      "artifact": "c/build.json.gz",
+      "rawBytes": 2511,
+      "rawDigest": "sha256:908bf0b4ef4a9e7c1a4f598fb44d21d68a87bb2e465a99fa69531fb05b469b98",
+      "gzipBytes": 630,
+      "gzipDigest": "sha256:7242393644337f9631b5dd4b97bc33bcd3b0879224570fac0e1ff58059879f2d"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/check.cjs",
+      "artifact": "c/check.cjs.gz",
+      "rawBytes": 880,
+      "rawDigest": "sha256:0df89a99fdc2ca9a0676b24e41b0272c765d2e872f37a42ce6fdeb4103a0f255",
+      "gzipBytes": 437,
+      "gzipDigest": "sha256:9c031a65d17ab576de97987463e9df4329136d6965996d73b69951296240dd77"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/esbuild-private-shim.dll.build.stderr",
+      "artifact": "c/esbuild-private-shim.dll.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/esbuild-private-shim.dll.build.stdout",
+      "artifact": "c/esbuild-private-shim.dll.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/original-coordinate-driver.mjs",
+      "artifact": "c/frozen/original-coordinate-driver.mjs.gz",
+      "rawBytes": 7553,
+      "rawDigest": "sha256:9b670c71df28ec508975585e59d77ea53c93c0bc392d785f9ee632fe129c7249",
+      "gzipBytes": 2395,
+      "gzipDigest": "sha256:11485bbf4054672b31283cc31b729a19af60cc634ad632d2439e612eff03c3c0"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/original-tracked-driver.mjs",
+      "artifact": "c/frozen/original-tracked-driver.mjs.gz",
+      "rawBytes": 37711,
+      "rawDigest": "sha256:26d5c8b33675a8006ebc9757d3d96e895f94b33bf60fa4555f7bba1d3990634d",
+      "gzipBytes": 9728,
+      "gzipDigest": "sha256:e5ced61a7577bf2c530283a8484767cef635acbe49e775b0352553abda7bef21"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-esbuild-private-map-shim.cpp",
+      "artifact": "c/frozen/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "c/frozen/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-adapter.cpp",
+      "artifact": "c/frozen/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65180,
+      "rawDigest": "sha256:ae1054ed8bb347a3de30fc4de0bd6278f24c0fb4166eba65b0151056ad7d2f8a",
+      "gzipBytes": 16797,
+      "gzipDigest": "sha256:677c1bc1b7b4ae3677bf340cc44e21810149e13821fd311f9962d0f414ed7599"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-adapter.h",
+      "artifact": "c/frozen/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-broker.cpp",
+      "artifact": "c/frozen/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 44840,
+      "rawDigest": "sha256:ee4f5e9a3aed8aed2730792b0d37c2ad1f0fb50d40accff0d4d35422e96169f1",
+      "gzipBytes": 13278,
+      "gzipDigest": "sha256:b3deae461e62fc13695bb0afc0462438ae79b5e9c45fc58b0bf414c123f85c1b"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-identity.cjs",
+      "artifact": "c/frozen/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-paired.h",
+      "artifact": "c/frozen/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-preload.cjs",
+      "artifact": "c/frozen/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/frozen/windows-node-private-v4-protocol.h",
+      "artifact": "c/frozen/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/host-owner-setup.h",
+      "artifact": "c/host-owner-setup.h.gz",
+      "rawBytes": 7383,
+      "rawDigest": "sha256:071a2d9cdef7ce83b2957799c65b073d0a02ffb79bbfacf7271b086677830c37",
+      "gzipBytes": 2545,
+      "gzipDigest": "sha256:3cf77ed045224841cae2f16fdc7a45ba2f93702dfac70318486fbf2ec1e8d770"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/origins.json",
+      "artifact": "c/origins.json.gz",
+      "rawBytes": 3547,
+      "rawDigest": "sha256:1b34276fd9c7a30246a4677782104a74c4b595c520f4cf44990ae6656878f875",
+      "gzipBytes": 811,
+      "gzipDigest": "sha256:f96c9d73ef1e3e56bd9657745d1561e675debf8c03bce9ed8572ff187bf7791e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/acl-probe.json",
+      "artifact": "c/run/acl-probe.json.gz",
+      "rawBytes": 13375,
+      "rawDigest": "sha256:54d990f706530d0dfce2e7bafb90ab20783dc3fd80c443ccbdfb9ae8491dbd3d",
+      "gzipBytes": 2274,
+      "gzipDigest": "sha256:f1f8a3aa1c97dbcfb0d24041ca14df2503d9151bbe9c0246833f2b2cdd678ac2"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/actor.stderr",
+      "artifact": "c/run/actor.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/actor.stdout",
+      "artifact": "c/run/actor.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/host-owner-acl-after.json",
+      "artifact": "c/run/host-owner-acl-after.json.gz",
+      "rawBytes": 1414,
+      "rawDigest": "sha256:66b301ec9cea3e92219ca39fe49be61c84a9b93cd28a3d9cf8f7eb6c691913e4",
+      "gzipBytes": 533,
+      "gzipDigest": "sha256:fb2e1405764f77782c49590c837fbc34f7e9c8557e078c9d6af3f4b4a8221ea5"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/host-owner-acl-before.json",
+      "artifact": "c/run/host-owner-acl-before.json.gz",
+      "rawBytes": 4338,
+      "rawDigest": "sha256:1c95557a7305c4fa94fdede37e36e1521d672aa890fdac2833538633aeb82fd9",
+      "gzipBytes": 798,
+      "gzipDigest": "sha256:9d0a6d6d29b8173c4db46c7450b0936713cd6db18fd99afe0831aa7ada6120de"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/host.stderr",
+      "artifact": "c/run/host.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/host.stdout",
+      "artifact": "c/run/host.stdout.gz",
+      "rawBytes": 1576,
+      "rawDigest": "sha256:d57936ae8c34e868ade59ca2e29eb7b921bf08131f3efb9a9eb488c10a8f718b",
+      "gzipBytes": 789,
+      "gzipDigest": "sha256:eb86dc93572d421f74bee468bfc6fe2bc523a3e63f5fe2b2a37920dc9ad83342"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/manifest.json",
+      "artifact": "c/run/manifest.json.gz",
+      "rawBytes": 1388,
+      "rawDigest": "sha256:5e188d51e70b0834bb6e004453a75fae7aea31d27107c627853ba13d961697a5",
+      "gzipBytes": 767,
+      "gzipDigest": "sha256:f84458052c92b73ac90a38988ea2808ab58cdd7a8d62ec8145c1fd85bfbcf7a6"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/private-v4-11348-exit.json",
+      "artifact": "c/run/private-v4-11348-exit.json.gz",
+      "rawBytes": 4722,
+      "rawDigest": "sha256:f12ca38f735ab92a4d4855c6309f044096a89c051199dd9f7e89ceffb1d9c4b4",
+      "gzipBytes": 1547,
+      "gzipDigest": "sha256:d18bf2646267701e3c804eac4c4601085dd7f9fc754800ba4c9467cf5b1a1228"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/private-v4-11348-installed.json",
+      "artifact": "c/run/private-v4-11348-installed.json.gz",
+      "rawBytes": 4674,
+      "rawDigest": "sha256:81dce93aaf2a94b29832cfd1e25337a91acd7b1208a7de6c2d46568b790a2cdc",
+      "gzipBytes": 1518,
+      "gzipDigest": "sha256:91160802648bdfcbc962e7e4742c78004165349a566bcfb6e85925d9224dae50"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run/report.json",
+      "artifact": "c/run/report.json.gz",
+      "rawBytes": 47569,
+      "rawDigest": "sha256:96ad6b80a574b9e8ab39919540dbe5ef2e7df1f60cb57e63af1d49bacde8206d",
+      "gzipBytes": 5402,
+      "gzipDigest": "sha256:9d57d7e09162e4000330ee5fb357766bf2a342616fd336eeff96be1a00eb68b2"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/run.mjs",
+      "artifact": "c/run.mjs.gz",
+      "rawBytes": 11417,
+      "rawDigest": "sha256:cf6ba9fa853c398a80526a1ae44ff2aeb5240780f7c3c405ac6cb5ebc96eb2c8",
+      "gzipBytes": 3454,
+      "gzipDigest": "sha256:be4f087f7dfea1058e71e768bc1de0b94dd7d09f9dd1a30c31c0c27c2f9284e4"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/acl-probe.h",
+      "artifact": "c/source/acl-probe.h.gz",
+      "rawBytes": 5743,
+      "rawDigest": "sha256:4e50b605a3e38e26954a9404f66b00b9407431398b9ddfcaa54de667dae4eb95",
+      "gzipBytes": 2311,
+      "gzipDigest": "sha256:6808651bc0c2cf570470cd906eb9e8b0d59b803c35c8ff6b6828d1da0047cc30"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/host-owner-setup.h",
+      "artifact": "c/source/host-owner-setup.h.gz",
+      "rawBytes": 7383,
+      "rawDigest": "sha256:071a2d9cdef7ce83b2957799c65b073d0a02ffb79bbfacf7271b086677830c37",
+      "gzipBytes": 2545,
+      "gzipDigest": "sha256:3cf77ed045224841cae2f16fdc7a45ba2f93702dfac70318486fbf2ec1e8d770"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-esbuild-private-map-shim.cpp",
+      "artifact": "c/source/windows-esbuild-private-map-shim.cpp.gz",
+      "rawBytes": 12342,
+      "rawDigest": "sha256:a351db1391bda77d205b2e3b9c193ac020c37ef97201d355449af2818278bb10",
+      "gzipBytes": 4106,
+      "gzipDigest": "sha256:3b100b6d63aeb8e4df997e2b8760c113bab066212c48e9d0eb952f5b86e2c9dc"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-esbuild-private-map-supervisor.cpp",
+      "artifact": "c/source/windows-esbuild-private-map-supervisor.cpp.gz",
+      "rawBytes": 26434,
+      "rawDigest": "sha256:1a7e141388da651be7a434a1d8596b16f79a784cd3770737e4a5667206491e80",
+      "gzipBytes": 9037,
+      "gzipDigest": "sha256:65a31067fdbef29785f7be79ff142ed82b33fef29db313a552c5d7b81dc976f1"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-adapter.cpp",
+      "artifact": "c/source/windows-node-private-v4-adapter.cpp.gz",
+      "rawBytes": 65458,
+      "rawDigest": "sha256:38c26e2345c6b0e7b5cb5f2ff8645d39ae1e4fbddb9b9d2fc00cb30ac108409c",
+      "gzipBytes": 16845,
+      "gzipDigest": "sha256:eee1ff5fb100cdbedac8740f0fe261691e441e0d621a605c1ac37eef9bd1dada"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-adapter.h",
+      "artifact": "c/source/windows-node-private-v4-adapter.h.gz",
+      "rawBytes": 28012,
+      "rawDigest": "sha256:515edb250ee58aeda3d287991438e492b3a693eceec88d7afc96a6af37502788",
+      "gzipBytes": 8150,
+      "gzipDigest": "sha256:f4710900555ddeae0df2f1c83665e74f56064e842757d350e8630ab652b52da3"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-broker.cpp",
+      "artifact": "c/source/windows-node-private-v4-broker.cpp.gz",
+      "rawBytes": 45059,
+      "rawDigest": "sha256:7f67fbbfd6d9d38d94fe351687fc8e051c67766747e7757affc6004f0881697d",
+      "gzipBytes": 13347,
+      "gzipDigest": "sha256:4f33405e2b78faae6fb1fb47d3bfa63d9928c9ebaa7e476e639d774771b57f53"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-identity.cjs",
+      "artifact": "c/source/windows-node-private-v4-identity.cjs.gz",
+      "rawBytes": 13925,
+      "rawDigest": "sha256:bcf35f44becedeb66c1b5ad70ff7da827108f10a21b03e09f0820bb67e5c60b5",
+      "gzipBytes": 4363,
+      "gzipDigest": "sha256:c21a3051c5c606920c116060ec58185db1569856024548c2d9f04b167063ea01"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-paired.h",
+      "artifact": "c/source/windows-node-private-v4-paired.h.gz",
+      "rawBytes": 7924,
+      "rawDigest": "sha256:89dd8e9de97aa144cfbcc067b1ac4ccf26d3cf85bf670f587b4d36597c823273",
+      "gzipBytes": 2790,
+      "gzipDigest": "sha256:47eafea3c2dce60a8f19031274aa72883ca84dd278bf652e3708f31119933ef2"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-preload.cjs",
+      "artifact": "c/source/windows-node-private-v4-preload.cjs.gz",
+      "rawBytes": 8947,
+      "rawDigest": "sha256:13477f9168e547a417a559055ac07e923259ab991253f84460e2f99fd18e8566",
+      "gzipBytes": 3125,
+      "gzipDigest": "sha256:2c7339e6b7645586b02d22550e094951b183a491002614eee3d180112deba243"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/source/windows-node-private-v4-protocol.h",
+      "artifact": "c/source/windows-node-private-v4-protocol.h.gz",
+      "rawBytes": 1137,
+      "rawDigest": "sha256:bae7c49f52b03c0a004208f3c3452da9714b63c74b01c8308cc647a5109e3652",
+      "gzipBytes": 516,
+      "gzipDigest": "sha256:ce497c54b7b5a6d292773cf3c818e52f8fcaf355321b115957c002a6405289f0"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/sources.json",
+      "artifact": "c/sources.json.gz",
+      "rawBytes": 3650,
+      "rawDigest": "sha256:ef6a69de5db4120bb56128bde17f1fe1a7de406f79534a7dacd181da4b10cafd",
+      "gzipBytes": 899,
+      "gzipDigest": "sha256:f7e50ab5e8265dd9e533590007f4be134df14ef0e32f07330845d0cb49c6b682"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/verify.mjs",
+      "artifact": "c/verify.mjs.gz",
+      "rawBytes": 5831,
+      "rawDigest": "sha256:4e9da1d0bf5b94cc23e96076f65ce599df79433b5d59ece4c38e5a3abd4eb95d",
+      "gzipBytes": 1948,
+      "gzipDigest": "sha256:8d43a07c4a21e304eab44bca431eed201dc07b1660f47c6aecaa334a259aee82"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/windows-node-private-v4.node.build.stderr",
+      "artifact": "c/windows-node-private-v4.node.build.stderr.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-host-owner-only-20261011-a/windows-node-private-v4.node.build.stdout",
+      "artifact": "c/windows-node-private-v4.node.build.stdout.gz",
+      "rawBytes": 0,
+      "rawDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzipBytes": 20,
+      "gzipDigest": "sha256:46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/acl-contract-verify-tests.mjs",
+      "artifact": "checks/acl-contract-verify-tests.mjs.gz",
+      "rawBytes": 5496,
+      "rawDigest": "sha256:48ad81849b6cfba2f881f601f4d6d9a48b16d2e5a858227726c1a6fd41677655",
+      "gzipBytes": 1906,
+      "gzipDigest": "sha256:463a1c6481394a242c252769cc6d0c1ba757bb7624d52c0e50580b94bfdc0be4"
+    },
+    {
+      "source": ".work/acl-contract-independent-validation-20261011.json",
+      "artifact": "checks/acl-contract-independent-validation-20261011.json.gz",
+      "rawBytes": 4801,
+      "rawDigest": "sha256:db5d4ce2a210e2783d891dcbfcb1698d55d91af23443fd8d1d57a9d6fcb9eba7",
+      "gzipBytes": 522,
+      "gzipDigest": "sha256:67d63416b2f6630c9311ecdd6e8553a2f79a4c280eb52b1dfaec466ae0655550"
+    },
+    {
+      "source": ".work/prepare-owner-acl-probe.mjs",
+      "artifact": "checks/prepare-owner-acl-probe.mjs.gz",
+      "rawBytes": 1698,
+      "rawDigest": "sha256:082370ee94b873a9026e1d9c421a437f80130132fe660d3f4319b9de40d2925f",
+      "gzipBytes": 733,
+      "gzipDigest": "sha256:e38a5717dad7b26c48695fffb4c6cd77bcaa07122883ae22c842166447e60b75"
+    },
+    {
+      "source": ".work/prepare-host-owner-acl-probe.mjs",
+      "artifact": "checks/prepare-host-owner-acl-probe.mjs.gz",
+      "rawBytes": 3014,
+      "rawDigest": "sha256:ba99b77aa1092b175769bae6fc3f9214ce38696e5f6a14c31d4bd4906c26f2f8",
+      "gzipBytes": 997,
+      "gzipDigest": "sha256:38e30acb0ec48009905be89d9a8ed5cbf3adc6b58ae88c52fb2a483a2d8c59bc"
+    },
+    {
+      "source": ".work/finish-host-owner-acl-probe.mjs",
+      "artifact": "checks/finish-host-owner-acl-probe.mjs.gz",
+      "rawBytes": 1875,
+      "rawDigest": "sha256:2b210f3407a023d78f6ecd1abf7f825499746a689530d5583c574d51bbfdceba",
+      "gzipBytes": 928,
+      "gzipDigest": "sha256:464fbc0ff74eac8654d5196483d16bd7ae1933a487ad89ebc1997c61e6f891cc"
+    },
+    {
+      "source": ".work/archive-acl-contract-20261011.mjs",
+      "artifact": "checks/archive-acl-contract-20261011.mjs.gz",
+      "rawBytes": 3694,
+      "rawDigest": "sha256:64c86f075afffd1dc4a439c5e04b286c5c6303145b007f33d5da51819a324852",
+      "gzipBytes": 1537,
+      "gzipDigest": "sha256:3bdc7624986569c69ae93df00dd1ccbf1bcc4948b709f4765983662b1640f65e"
+    }
+  ]
+}

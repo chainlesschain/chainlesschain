@@ -1,0 +1,9 @@
+
+The command 'docker' could not be found in this WSL 1 distro.
+We recommend to convert this distro to WSL 2 and activate
+the WSL integration in Docker Desktop settings.
+
+For details about using Docker Desktop with WSL 2, visit:
+
+https://docs.docker.com/go/wsl2/
+

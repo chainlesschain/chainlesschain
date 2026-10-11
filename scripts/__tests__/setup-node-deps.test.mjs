@@ -5,15 +5,119 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-const action = fs.readFileSync(
-  new URL("../../.github/actions/setup-node-deps/action.yml", import.meta.url),
-  "utf8",
+const action = fs
+  .readFileSync(
+    new URL(
+      "../../.github/actions/setup-node-deps/action.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  )
+  .replace(/\r\n/g, "\n");
+const installStepName =
+  "Install npm dependencies (3-attempt retry, transient ECONNRESET hardening)";
+
+function extractInstallScript(source) {
+  // Scope every check to the named composite step: earlier run blocks may use
+  // another shell, and later Bash steps install different dependencies.
+  const steps = source.replace(/\r\n/g, "\n").split(/^ {4}- /m);
+  const matches = steps.filter((step) =>
+    step.startsWith(`name: ${installStepName}\n`),
+  );
+  assert.equal(
+    matches.length,
+    1,
+    "Expected exactly one npm dependency install step",
+  );
+  const step = matches[0];
+  assert.match(
+    step,
+    /^ {6}shell: bash$/m,
+    "The npm install step must use Bash",
+  );
+  assert.match(
+    step,
+    /^ {6}working-directory: \$\{\{ inputs\.working-directory \}\}$/m,
+    "The npm install step must use the requested working directory",
+  );
+  const run = step.match(
+    /^ {6}run: \|\n((?:(?: {8}[^\n]*)?\n| {8}[^\n]+$)+)/m,
+  )?.[1];
+  assert.ok(run, "The named npm install step must have a literal run script");
+  const script = run.replace(/^ {8}/gm, "");
+  assert.equal(
+    script.split("${{ inputs.install-command }}").length - 1,
+    1,
+    "The npm install script must reference install-command exactly once",
+  );
+  return script;
+}
+
+const installScript = extractInstallScript(action).replace(
+  "${{ inputs.install-command }}",
+  "node install-fixture.cjs",
 );
-const firstRun = action.match(/      run: \|\r?\n((?:        .*\r?\n)+)/)?.[1];
-assert.ok(firstRun, "The shared dependency action must have an install script");
-const installScript = firstRun
-  .replace(/^        /gm, "")
-  .replace("${{ inputs.install-command }}", "node install-fixture.cjs");
+
+test("dependency fixture selects the named Bash install after unrelated run blocks", () => {
+  const decoy = `    - name: Unrelated Bash preparation
+      shell: bash
+      run: |
+        echo unrelated-preparation
+        INSTALL_CMD="\${{ inputs.install-command }}"
+`;
+  const withDecoy = action.replace(
+    `    - name: ${installStepName}`,
+    `${decoy}    - name: ${installStepName}`,
+  );
+  const script = extractInstallScript(withDecoy);
+  assert.equal(script, extractInstallScript(action));
+  assert.match(script, /^INSTALL_CMD="\$\{\{ inputs\.install-command \}\}"/);
+  assert.match(script, /cleanup_partial_install\(\)/);
+  assert.doesNotMatch(script, /GITHUB_ENV|unrelated-preparation|RUNNER_OS/);
+  assert.equal(
+    extractInstallScript(withDecoy.replace(/\r?\n/g, "\r\n")),
+    script,
+  );
+});
+
+test("dependency fixture rejects missing, duplicate, or non-Bash install steps", () => {
+  assert.throws(
+    () =>
+      extractInstallScript(
+        action.replace(installStepName, "Unrelated install"),
+      ),
+    /exactly one npm dependency install step/,
+  );
+  assert.throws(
+    () => extractInstallScript(`${action}\n    - name: ${installStepName}\n`),
+    /exactly one npm dependency install step/,
+  );
+  assert.throws(
+    () =>
+      extractInstallScript(
+        action.replace(
+          `name: ${installStepName}\n      shell: bash`,
+          `name: ${installStepName}\n      shell: pwsh`,
+        ),
+      ),
+    /must use Bash/,
+  );
+});
+
+test("dependency fixture cannot borrow the script from a following Bash step", () => {
+  assert.throws(
+    () =>
+      extractInstallScript(`    - name: ${installStepName}
+      shell: bash
+      working-directory: \${{ inputs.working-directory }}
+    - name: A different installer
+      shell: bash
+      run: |
+        INSTALL_CMD="\${{ inputs.install-command }}"
+`),
+    /named npm install step must have a literal run script/,
+  );
+});
 
 function runInstall(t, { lock = "transient", failEveryInstall = false } = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-npm-retry-"));
@@ -87,6 +191,12 @@ timers.setTimeout = (fn, delay, ...args) => setTimeout(fn, Math.min(delay, 1), .
     },
   );
   assert.ifError(result.error);
+  for (const artifact of ["attempts", "sleeps", "cleanup-attempts"]) {
+    assert.ok(
+      fs.existsSync(path.join(directory, artifact)),
+      `Install fixture did not produce ${artifact}; status=${result.status}, signal=${result.signal}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+    );
+  }
   assert.equal(
     fs.readFileSync(path.join(directory, "keep.txt"), "utf8"),
     "outside node_modules",

@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentLoop } from "../helpers/test-model-egress.js";
+import {
+  agentLoop,
+  chatWithTools,
+  runAgentHeadless,
+} from "../helpers/test-model-egress.js";
 import { webFetch } from "../../src/lib/web-fetch.js";
 import broker from "../../src/lib/process-execution-broker/index.js";
 import { TaskProgressTracker } from "../../src/lib/task-progress-tracker.js";
+import { IterationBudget } from "../../src/lib/iteration-budget.js";
+import { messagesToContextItems } from "../../src/lib/context-memory-kernel/message-adapter.js";
 import {
   mockToolCallMessage,
   mockTextMessage,
@@ -89,6 +95,306 @@ describe("remote read recovery in the agent runtime", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
+    "protects the exact task and finite-budget guidance in the canonical planner (host policy: %s, hook suffix: %s)",
+    async (withHostPolicy, withHookSuffix) => {
+      const task =
+        "Add regression tests for request-price boundaries and validate them";
+      const policy = "Host policy: preserve the requested deliverable";
+      const messages = [
+        ...(withHostPolicy ? [{ role: "system", content: policy }] : []),
+        { role: "user", content: task },
+      ];
+      const chatFn = vi.fn(async (context) => {
+        expect(context.findLast((message) => message.role === "user")).toEqual({
+          role: "user",
+          content: task,
+        });
+        if (withHookSuffix)
+          expect(context.at(-1).content).toBe(
+            "Goal progress: deliver the requested tests",
+          );
+        else expect(context.at(-1).content).toMatch(/^Execution budget:/);
+        expect(
+          context.filter((message) =>
+            message.content?.startsWith("Execution budget:"),
+          ),
+        ).toHaveLength(1);
+        expect(JSON.stringify(context)).toContain(
+          "this request plus 0 further model requests",
+        );
+        if (withHostPolicy)
+          expect(context[0]).toEqual({ role: "system", content: policy });
+        return done();
+      });
+      const events = await drain(
+        agentLoop(messages, {
+          ...base,
+          contextMemorySkipPlanning: false,
+          contextMemoryEnv: {
+            CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+          },
+          contextMemoryFilePath: join(cwd, "planner-memory.jsonl"),
+          contextMemoryModelWindowTokens: 32768,
+          iterationBudget: IterationBudget.forRun({ maxTurns: 1 }),
+          ...(withHookSuffix
+            ? {
+                prepareCall: async () => ({
+                  systemSuffix: "Goal progress: deliver the requested tests",
+                }),
+              }
+            : {}),
+          chatFn,
+        }),
+      );
+      const plan = events.find(
+        (event) => event.type === "context.plan.created",
+      )?.plan;
+      expect(plan).toBeTruthy();
+      const taskItem = plan.selected.find((item) =>
+        JSON.parse(item.content).messages?.some(
+          (message) => message.content === task,
+        ),
+      );
+      expect(taskItem).toMatchObject({
+        kind: "task-state",
+        binding: { requiredForRecovery: true },
+      });
+      const policies = plan.selected.filter(
+        (item) => item.kind === "system-policy",
+      );
+      expect(policies).toHaveLength(
+        1 + Number(withHostPolicy) + Number(withHookSuffix),
+      );
+      expect(policies.every((item) => item.trust === "host")).toBe(true);
+      expect(chatFn).toHaveBeenCalledTimes(1);
+      expect(
+        messages.some((message) =>
+          message.content?.startsWith("Execution budget:"),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
+    "rejects a canonical context that cannot fit the protected task before dispatch (host policy: %s, hook suffix: %s)",
+    async (withHostPolicy, withHookSuffix) => {
+      const chatFn = vi.fn(async () => done());
+      await expect(
+        drain(
+          agentLoop(
+            [
+              ...(withHostPolicy
+                ? [{ role: "system", content: "Host policy" }]
+                : []),
+              {
+                role: "user",
+                content: "requested regression detail ".repeat(1024),
+              },
+            ],
+            {
+              ...base,
+              contextMemorySkipPlanning: false,
+              contextMemoryEnv: {
+                CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default",
+              },
+              contextMemoryFilePath: join(cwd, "planner-memory.jsonl"),
+              contextMemoryModelWindowTokens: 1024,
+              maxOutputTokens: 256,
+              iterationBudget: IterationBudget.forRun({ maxTurns: 1 }),
+              ...(withHookSuffix
+                ? {
+                    prepareCall: async () => ({
+                      systemSuffix:
+                        "Goal progress: deliver the requested tests",
+                    }),
+                  }
+                : {}),
+              chatFn,
+            },
+          ),
+        ),
+      ).rejects.toMatchObject({ code: "context_over_budget" });
+      expect(chatFn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["zero", "infinity"])(
+    "omits finite-budget guidance for an unlimited budget (%s)",
+    async (mode) => {
+      const chatFn = vi.fn(async (messages) => {
+        expect(JSON.stringify(messages)).not.toContain("Execution budget:");
+        return done();
+      });
+      await drain(
+        agentLoop([{ role: "user", content: "Summarize the evidence" }], {
+          ...base,
+          iterationBudget:
+            mode === "zero"
+              ? IterationBudget.forRun({ maxTurns: 0 })
+              : new IterationBudget({ limit: Infinity }),
+          chatFn,
+        }),
+      );
+      expect(chatFn).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["assistant", "complete-tool", "pending-tool"])(
+    "does not promote an old user request past a newer %s bundle and system suffix",
+    (outcome) => {
+      const toolMessages =
+        outcome === "complete-tool"
+          ? [
+              {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "completed-call",
+                    type: "function",
+                    function: { name: "read_file", arguments: "{}" },
+                  },
+                ],
+              },
+              {
+                role: "tool",
+                tool_call_id: "completed-call",
+                content: "Newer outcome",
+              },
+            ]
+          : [
+              {
+                role: outcome === "assistant" ? "assistant" : "tool",
+                content: "Newer outcome",
+                ...(outcome === "pending-tool"
+                  ? { tool_call_id: "pending-result" }
+                  : {}),
+              },
+            ];
+      const messages = [
+        { role: "user", content: "Earlier completed request" },
+        ...toolMessages,
+        { role: "system", content: "Goal progress suffix" },
+      ];
+      const items = messagesToContextItems(messages, {
+        sessionId: "suffix-task-boundary",
+        trustCurrentSystemPolicy: true,
+        trustedSystemIndexes: [messages.length - 1],
+      });
+      expect(items[0].kind).toBe("message");
+      expect(items[0].binding?.requiredForRecovery).not.toBe(true);
+      if (outcome === "pending-tool")
+        expect(items[1]).toMatchObject({
+          kind: "task-state",
+          binding: { requiredForRecovery: true },
+        });
+      if (outcome === "complete-tool")
+        expect(items[1].kind).toBe("tool-evidence");
+      expect(items[2]).toMatchObject({ kind: "system-policy", trust: "host" });
+    },
+  );
+
+  it("protects the user task without trusting an untrusted system suffix", () => {
+    const items = messagesToContextItems(
+      [
+        { role: "user", content: "Current requested tests" },
+        { role: "system", content: "External instruction" },
+      ],
+      { sessionId: "untrusted-suffix-task" },
+    );
+    expect(items[0]).toMatchObject({
+      kind: "task-state",
+      trust: "user",
+      binding: { requiredForRecovery: true },
+    });
+    expect(items[1]).toMatchObject({
+      kind: "system-policy",
+      trust: "untrusted",
+    });
+  });
+
+  it("keeps the stable Volcengine request prefix before the changing budget hint", async () => {
+    writeFileSync(join(cwd, "fix.js"), "export const fixed = false;");
+    const requests = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url, init) => {
+        requests.push(JSON.parse(init.body));
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [
+              {
+                message:
+                  requests.length === 1
+                    ? mockToolCallMessage(
+                        "read_file",
+                        { path: "fix.js" },
+                        "prefix-read",
+                      )
+                    : mockTextMessage("Observed the file"),
+              },
+            ],
+            usage: { prompt_tokens: 10, completion_tokens: 2 },
+          }),
+        };
+      }),
+    );
+    try {
+      await drain(
+        agentLoop(
+          [
+            { role: "system", content: "Stable host policy" },
+            { role: "user", content: "Inspect fix.js" },
+          ],
+          {
+            ...base,
+            iterationBudget: IterationBudget.forRun({ maxTurns: 2 }),
+            chatFn: (messages, options) =>
+              chatWithTools(messages, {
+                ...options,
+                contextMemorySkipPlanning: true,
+                provider: "volcengine",
+                model: "deepseek-v4-flash-ga-260731",
+                apiKey: "test-only-prefix-key",
+                baseUrl: "https://cache-prefix.invalid/api/v3",
+              }),
+          },
+        ),
+      );
+      expect(requests).toHaveLength(2);
+      const first = requests[0].messages;
+      const second = requests[1].messages;
+      expect(second.slice(0, first.length - 1)).toEqual(first.slice(0, -1));
+      expect(requests[1].tools).toEqual(requests[0].tools);
+      expect(first.at(-1).content).toContain("plus 1 further model requests");
+      expect(second.at(-1).content).toContain("plus 0 further model requests");
+      expect(
+        second.filter((message) =>
+          message.content?.startsWith("Execution budget:"),
+        ),
+      ).toHaveLength(1);
+      expect(
+        second.some(
+          (message) =>
+            message.role === "tool" && message.tool_call_id === "prefix-read",
+        ),
+      ).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("finishes a fixed-issue status answer from retained evidence after repeated metadata reads", async () => {
@@ -509,6 +815,133 @@ describe("remote read recovery in the agent runtime", () => {
     ).toBe(false);
     expect(readFileSync(join(cwd, "fix.js"), "utf8")).toContain("fixed = true");
   });
+
+  it.each(["json", "stream-json"])(
+    "preserves paused-read IDs and fresh dispatch guidance through compaction (%s)",
+    async (outputFormat) => {
+      const tracker = new TaskProgressTracker();
+      for (let i = 0; i < 24; i++)
+        tracker.record("search_files", { matches: [] });
+      writeFileSync(join(cwd, "fix.js"), "export const fixed = false;");
+      const out = [];
+      let calls = 0;
+      let compactions = 0;
+      const chatFn = async (messages) => {
+        calls++;
+        const guidance = messages.filter(
+          (message) =>
+            message.role === "system" &&
+            message.content?.startsWith("Execution budget:"),
+        );
+        expect(guidance).toHaveLength(1);
+        expect(guidance[0].content).toContain(
+          `this request plus ${4 - calls} further model requests`,
+        );
+        expect(guidance[0].content).not.toContain("Returning work summary");
+        if (calls < 4)
+          expect(
+            messages.some(
+              (message) =>
+                message.role === "system" &&
+                message.content?.includes(
+                  "actual test changes and focused validation remain required",
+                ),
+            ),
+          ).toBe(true);
+        if (calls === 1)
+          return tool(
+            "read_file",
+            { path: "fix.js", offset: 1, limit: 40 },
+            "read-ok",
+          );
+        if (calls === 2)
+          return {
+            message: {
+              role: "assistant",
+              tool_calls: ["paused-1", "paused-2"].map(
+                (id) =>
+                  mockToolCallMessage("read_file", { path: "fix.js" }, id)
+                    .tool_calls[0],
+              ),
+            },
+          };
+        if (calls === 3) {
+          expect(readFileSync(join(cwd, "fix.js"), "utf8")).toContain(
+            "fixed = false",
+          );
+          return tool(
+            "write_file",
+            { path: "fix.js", content: "export const fixed = true;" },
+            "write-ok",
+          );
+        }
+        return done();
+      };
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "Add the requested regression tests and validate the change",
+          cwd,
+          outputFormat,
+          ephemeral: true,
+          maxTurns: 4,
+        },
+        {
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => base.approvalGate,
+          writeOut: (text) => out.push(text),
+          writeErr: () => {},
+          agentLoop: (messages, options) =>
+            agentLoop(messages, {
+              ...options,
+              ...base,
+              taskProgressTracker: tracker,
+              chatFn,
+              onCompaction: () => {
+                compactions++;
+              },
+            }),
+        },
+      );
+      expect(outcome.exitCode).toBe(0);
+      expect(calls).toBe(4);
+      expect(compactions).toBeGreaterThan(0);
+      expect(readFileSync(join(cwd, "fix.js"), "utf8")).toContain(
+        "fixed = true",
+      );
+      if (outputFormat === "stream-json") {
+        const events = out.join("").trim().split("\n").map(JSON.parse);
+        expect(
+          events
+            .filter((event) => event.type === "tool_use")
+            .map((event) => event.id),
+        ).toEqual(["call-read-ok", "call-write-ok"]);
+        const results = events.filter((event) => event.type === "tool_result");
+        expect(results.map((event) => event.id)).toEqual([
+          "call-read-ok",
+          "paused-1",
+          "paused-2",
+          "call-write-ok",
+        ]);
+        expect(results[0].is_error).toBe(false);
+        expect(results[3].is_error).toBe(false);
+        for (const paused of results.slice(1, 3))
+          expect(paused).toMatchObject({
+            execution_started: false,
+            is_error: true,
+            result: { code: "CC_TOOL_RECOVERY_PAUSED" },
+          });
+      } else {
+        const result = JSON.parse(out.join(""));
+        expect(result.tool_calls.map((call) => call.id)).toEqual([
+          "call-read-ok",
+          "call-write-ok",
+        ]);
+        expect(result.tool_calls.every((call) => call.is_error === false)).toBe(
+          true,
+        );
+      }
+    },
+  );
 
   it("does not cut off explicitly requested status monitoring", async () => {
     const executions = mockGhInspections();

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.98: apply real-task findings and preserve task delivery
+
+- Bind formal task file scope and tool allowlists to isolated per-task configuration;
+  preserve rejected call identities and strict trace acceptance.
+- Keep authentication usage on failed answers, redact credentials before truncation,
+  and separate tool estimates from unknown authentication or whole-journey costs.
+- Bootstrap first-run diagnostics without development dependencies and retain the
+  actual failed journey, empty candidate, and unexecuted semantic outcomes.
+- Give finite-budget runs fresh delivery guidance without placing the changing
+  counter before the stable OpenAI-compatible conversation prefix. Preserve the
+  current user task across host and goal/hook suffixes in the canonical planner.
+- Publish changed Session Core 0.3.19 before CLI 0.166.98; retain unchanged child
+  versions only after exact-source, registry-byte and provenance verification.
+- Pair VS Code 0.37.142 and JetBrains 0.4.160 after the final source gates pass
+  and CLI 0.166.98 is publicly available. Formal 36+9 evaluation and native
+  durable authority acceptance remain open.
+
 ### Fixed - cc CLI 0.166.97: preserve diagnostic evidence and paired release identity
 
 - Preserve scheduler evidence write errors during cleanup and retain retired

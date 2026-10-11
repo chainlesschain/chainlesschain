@@ -1,0 +1,123 @@
+{
+  "scope": "semantic-install-contract-tests",
+  "createdAt": "2026-10-11T06:23:41.660Z",
+  "formalSample": false,
+  "modelCalls": 0,
+  "independentHumanReview": false,
+  "actualPublicInstallExecuted": false,
+  "actualDockerCalibrationExecuted": false,
+  "entries": [
+    {
+      "path": "objects/000001-5163109cc5e9.gz",
+      "artifactOriginalPath": "worktree/.github/workflows/verify01-pricing-semantic-diagnostic.yml",
+      "bytes": 784,
+      "sha256": "5163109cc5e9e03261c1f0f3c71e394a26546eebeff75d59f8d2cd9ed5184bca",
+      "rawBytes": 1904,
+      "rawSha256": "63f59da1c1f0b942e5518bf80eb7e97e9ced807d5f8fbcf014ab1fb80f09af12"
+    },
+    {
+      "path": "objects/000002-5163109cc5e9.gz",
+      "artifactOriginalPath": "git-index/.github/workflows/verify01-pricing-semantic-diagnostic.yml",
+      "bytes": 784,
+      "sha256": "5163109cc5e9e03261c1f0f3c71e394a26546eebeff75d59f8d2cd9ed5184bca",
+      "rawBytes": 1904,
+      "rawSha256": "63f59da1c1f0b942e5518bf80eb7e97e9ced807d5f8fbcf014ab1fb80f09af12"
+    },
+    {
+      "path": "objects/000003-ab44c206d0c6.gz",
+      "artifactOriginalPath": "worktree/.github/workflows/verify01-public-install-diagnostic.yml",
+      "bytes": 1441,
+      "sha256": "ab44c206d0c61b10a4cc2525e1e8ceb8fe6b9c0f52020e47e3a19cf9c85ede3e",
+      "rawBytes": 3647,
+      "rawSha256": "9f39231216a99b52293b2d399d84ce1df23426fca174caf4a8c1c1af3c1e6989"
+    },
+    {
+      "path": "objects/000004-ab44c206d0c6.gz",
+      "artifactOriginalPath": "git-index/.github/workflows/verify01-public-install-diagnostic.yml",
+      "bytes": 1441,
+      "sha256": "ab44c206d0c61b10a4cc2525e1e8ceb8fe6b9c0f52020e47e3a19cf9c85ede3e",
+      "rawBytes": 3647,
+      "rawSha256": "9f39231216a99b52293b2d399d84ce1df23426fca174caf4a8c1c1af3c1e6989"
+    },
+    {
+      "path": "objects/000005-185d7ad95bc5.gz",
+      "artifactOriginalPath": "worktree/packages/cli/scripts/verify01-public-install-diagnostic.mjs",
+      "bytes": 5765,
+      "sha256": "185d7ad95bc5e453d1f8389f7fe6129adf5fc6d5815f9cf37a40c6ed9a5a7521",
+      "rawBytes": 17686,
+      "rawSha256": "d1499db17a0904ea35d49342a86e133671092b632f6fa0f360f4af1e4b3d008a"
+    },
+    {
+      "path": "objects/000006-185d7ad95bc5.gz",
+      "artifactOriginalPath": "git-index/packages/cli/scripts/verify01-public-install-diagnostic.mjs",
+      "bytes": 5765,
+      "sha256": "185d7ad95bc5e453d1f8389f7fe6129adf5fc6d5815f9cf37a40c6ed9a5a7521",
+      "rawBytes": 17686,
+      "rawSha256": "d1499db17a0904ea35d49342a86e133671092b632f6fa0f360f4af1e4b3d008a"
+    },
+    {
+      "path": "objects/000007-e885cea43bc4.gz",
+      "artifactOriginalPath": "worktree/packages/cli/scripts/verify01-review-pricing-diagnostic.mjs",
+      "bytes": 3957,
+      "sha256": "e885cea43bc43dcfd5e7afd760c6d058204647961c72a8e955454a367c9fea4d",
+      "rawBytes": 11623,
+      "rawSha256": "ae449f3de4b13a093c93163f43de782598c8b820942a8893d87073ded82864e9"
+    },
+    {
+      "path": "objects/000008-e885cea43bc4.gz",
+      "artifactOriginalPath": "git-index/packages/cli/scripts/verify01-review-pricing-diagnostic.mjs",
+      "bytes": 3957,
+      "sha256": "e885cea43bc43dcfd5e7afd760c6d058204647961c72a8e955454a367c9fea4d",
+      "rawBytes": 11623,
+      "rawSha256": "ae449f3de4b13a093c93163f43de782598c8b820942a8893d87073ded82864e9"
+    },
+    {
+      "path": "objects/000009-fccc55c466fa.gz",
+      "artifactOriginalPath": "worktree/packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs",
+      "bytes": 2942,
+      "sha256": "fccc55c466fa9bba031375435af208546e5f281e0f721b53c54cb77e3560bff1",
+      "rawBytes": 8876,
+      "rawSha256": "03f7fe0fb83d680a5f753d07a8b3c5bb669f27979a6b425648318c7703ca0368"
+    },
+    {
+      "path": "objects/000010-fccc55c466fa.gz",
+      "artifactOriginalPath": "git-index/packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs",
+      "bytes": 2942,
+      "sha256": "fccc55c466fa9bba031375435af208546e5f281e0f721b53c54cb77e3560bff1",
+      "rawBytes": 8876,
+      "rawSha256": "03f7fe0fb83d680a5f753d07a8b3c5bb669f27979a6b425648318c7703ca0368"
+    },
+    {
+      "path": "objects/000011-9394168b010b.gz",
+      "artifactOriginalPath": "worktree/packages/cli/test-node/verify01-review-pricing-diagnostic.node-test.mjs",
+      "bytes": 1470,
+      "sha256": "9394168b010b3e0b6e1b74ec6b6a98282748574d3041ba90343c360c48d97356",
+      "rawBytes": 3842,
+      "rawSha256": "a5af3b511283a53d2640b0372c04a9fce2f0b08f403af4107f77350518d9d413"
+    },
+    {
+      "path": "objects/000012-9394168b010b.gz",
+      "artifactOriginalPath": "git-index/packages/cli/test-node/verify01-review-pricing-diagnostic.node-test.mjs",
+      "bytes": 1470,
+      "sha256": "9394168b010b3e0b6e1b74ec6b6a98282748574d3041ba90343c360c48d97356",
+      "rawBytes": 3842,
+      "rawSha256": "a5af3b511283a53d2640b0372c04a9fce2f0b08f403af4107f77350518d9d413"
+    },
+    {
+      "path": "objects/000013-f34b640d7dcd.gz",
+      "artifactOriginalPath": "reporters/win32.json",
+      "bytes": 1053,
+      "sha256": "f34b640d7dcd609a357cb26cbf620b9ff8d872bc89008095b9dda2aab07fe25b",
+      "rawBytes": 3326,
+      "rawSha256": "d713b405d5f7a6c23dfcf3d3f7f2fc2e4caf46fdd41529fc5debd65ed9f66551"
+    },
+    {
+      "path": "objects/000014-c5a6f53ff683.gz",
+      "artifactOriginalPath": "reporters/linux.json",
+      "bytes": 1041,
+      "sha256": "c5a6f53ff683b9759f67985b4e0f22ab3224a4f7ce4b4a182c3020b715da9507",
+      "rawBytes": 3132,
+      "rawSha256": "e0bba921edffa6d67c35d9207be524fe2ba17011b7d1c3342ccc709bf38183b2"
+    }
+  ]
+}

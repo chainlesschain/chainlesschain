@@ -142,13 +142,13 @@ Runtime audit: brokered: 217, audited-exemption: 47, non-executable: 49, unrevie
 | `packages/cli/src/lib/execution-location-local-supervisor.mjs` | 4 | `non-executable` | declaration/comment/type/regex lexical match | `import { spawn } from "node:child_process";` |
 | `packages/cli/src/lib/execution-location-local-supervisor.mjs` | 135 | `audited-exemption` | execution-location-target-supervisor-boundary: The supervisor is the target-side resource boundary reached through the brokered execution-location launcher or its fixed remote wrapper; it launches only process.execPath with a validated entry, cwd, resource limits, and literal argv, so routing recursively through the source broker would cross the attested target boundary. | `child = spawn(` |
 | `packages/cli/src/lib/execution-location-result-apply.js` | 29 | `brokered` | call targets ProcessExecutionBroker | `const result = broker.spawnSync("git", args, {` |
-| `packages/cli/src/lib/execution-location-target.js` | 855 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `(deps.spawnSync ? null : prepareLocalTargetState);` |
-| `packages/cli/src/lib/execution-location-target.js` | 1048 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
-| `packages/cli/src/lib/execution-location-target.js` | 1050 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
-| `packages/cli/src/lib/execution-location-target.js` | 1075 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = spawnSync(invocation.file, invocation.args, {` |
-| `packages/cli/src/lib/execution-location-target.js` | 1262 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
-| `packages/cli/src/lib/execution-location-target.js` | 1264 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
-| `packages/cli/src/lib/execution-location-target.js` | 1267 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = spawnSync(invocation.file, invocation.args, {` |
+| `packages/cli/src/lib/execution-location-target.js` | 856 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `(deps.spawnSync ? null : prepareLocalTargetState);` |
+| `packages/cli/src/lib/execution-location-target.js` | 1053 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
+| `packages/cli/src/lib/execution-location-target.js` | 1055 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
+| `packages/cli/src/lib/execution-location-target.js` | 1080 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const result = spawnSync(invocation.file, invocation.args, {` |
+| `packages/cli/src/lib/execution-location-target.js` | 1272 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `deps.spawnSync \|\|` |
+| `packages/cli/src/lib/execution-location-target.js` | 1274 | `brokered` | call targets ProcessExecutionBroker | `executionBroker.spawnSync(file, args, spawnOptions));` |
+| `packages/cli/src/lib/execution-location-target.js` | 1277 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `result = spawnSync(invocation.file, invocation.args, {` |
 | `packages/cli/src/lib/git-integration.js` | 10 | `brokered` | call targets ProcessExecutionBroker | `execSync: (...args) => executionBroker.execSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 11 | `brokered` | call targets ProcessExecutionBroker | `spawnSync: (...args) => executionBroker.spawnSync(...args),` |
 | `packages/cli/src/lib/git-integration.js` | 88 | `brokered` | file default process seam is wired to ProcessExecutionBroker | `const res = _deps.spawnSync("git", args, {` |

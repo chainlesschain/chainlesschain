@@ -1,0 +1,88 @@
+name: VERIFY01 Public Install Diagnostic
+
+# Account-free diagnostic of an already published version. No formal samples,
+# model requests, release permissions or publishing. Source checkout is only
+# the diagnostic implementation; tested CLI code always comes from public npm.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing public CLI version (must have matching v-npm tag)"
+        type: string
+        default: "0.166.97"
+        required: true
+  pull_request:
+    paths:
+      - ".github/workflows/verify01-public-install-diagnostic.yml"
+      - "packages/cli/scripts/verify01-public-install-diagnostic.mjs"
+      - "packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs"
+permissions:
+  contents: read
+
+concurrency:
+  group: verify01-public-install-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-public-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify diagnostic contracts without installing packages
+        run: node --test packages/cli/test-node/verify01-public-install-diagnostic.node-test.mjs
+      - name: Install public CLI with lifecycle scripts and exercise actual databases
+        env:
+          REQUESTED_VERSION: ${{ inputs.version || '0.166.97' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$REQUESTED_VERSION"
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Expected canonical numeric SemVer" >&2
+            exit 1
+          fi
+          RELEASE_SHA=$(git rev-parse "refs/tags/v-npm-${VERSION//./-}^{commit}")
+          node packages/cli/scripts/verify01-public-install-diagnostic.mjs \
+            --version "$VERSION" --release-sha "$RELEASE_SHA" \
+            --output-dir "$RUNNER_TEMP/verify01-public-install-diagnostic"
+      - name: Preserve workflow context
+        if: always()
+        env:
+          DIAGNOSTIC_JOB_STATUS: ${{ job.status }}
+          DIAGNOSTIC_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const root = path.join(process.env.RUNNER_TEMP, 'verify01-public-install-workflow');
+          fs.mkdirSync(root);
+          fs.writeFileSync(path.join(root, 'workflow.json'), JSON.stringify({
+            sourceCommit: process.env.DIAGNOSTIC_SOURCE_SHA,
+            runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            event: process.env.GITHUB_EVENT_NAME,
+            status: process.env.DIAGNOSTIC_JOB_STATUS,
+            formalSample: false,
+            independentHumanReview: false,
+            modelCalls: 0
+          }, null, 2) + '\n');
+          NODE
+      - name: Preserve installation logs and successful or failed probes
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-public-install-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/verify01-public-install-diagnostic/
+            ${{ runner.temp }}/verify01-public-install-workflow/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
