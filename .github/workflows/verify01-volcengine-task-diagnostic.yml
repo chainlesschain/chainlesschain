@@ -1,0 +1,93 @@
+name: VERIFY01 Volcengine Task Diagnostic
+
+# Dispatch is available once this workflow exists on the default branch.
+# Bootstrap from exactly this feature branch requires an explicit paid-run
+# marker in the pushed head commit; normal pushes never run the diagnostic.
+# Deliberately no pull_request, schedule or workflow_run trigger.
+on:
+  push:
+    branches: [feature/cli-ide-gap-20261011]
+    paths:
+      - "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs"
+      - ".github/workflows/verify01-volcengine-task-diagnostic.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Run two paid Volcengine tasks ($0.25 estimated stop each; not a hard quota)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify01-volcengine-task-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-ide-gap-20261011' &&
+      contains(github.event.head_commit.message, '[volcengine-task-diagnostic]'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate the harness without network or model calls
+        run: node --test packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs
+      - name: Pin checker image outside task deadlines
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Run real public CLI tasks and independent Docker checks
+        env:
+          # Repository model variables are intentionally ignored. The script
+          # pins volcengine/deepseek-v4-flash-ga-260731 and the Ark v3 endpoint.
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          EXECUTION_SOURCE_SHA: ${{ github.sha }}
+        run: >-
+          node packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs
+          --confirm-live
+          --source-sha "$EXECUTION_SOURCE_SHA"
+          --image-id "$REVIEW_IMAGE_ID"
+          --output-dir "$RUNNER_TEMP/verify01-volcengine-task-diagnostic"
+      - name: Preserve workflow context even when preflight fails
+        if: always()
+        env:
+          DIAGNOSTIC_JOB_STATUS: ${{ job.status }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const root = path.join(process.env.RUNNER_TEMP, 'verify01-volcengine-task-diagnostic-workflow');
+          fs.mkdirSync(root, { recursive: true });
+          fs.writeFileSync(path.join(root, 'workflow.json'), JSON.stringify({
+            sourceCommit: process.env.GITHUB_SHA,
+            runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            event: process.env.GITHUB_EVENT_NAME,
+            status: process.env.DIAGNOSTIC_JOB_STATUS,
+            formalSample: false,
+            independentHumanReview: false
+          }, null, 2) + '\n');
+          NODE
+      - name: Preserve failures, redacted model events, candidates and checker receipts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-volcengine-task-diagnostic-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/verify01-volcengine-task-diagnostic/
+            ${{ runner.temp }}/verify01-volcengine-task-diagnostic-workflow/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
