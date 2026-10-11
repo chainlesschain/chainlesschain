@@ -1130,3 +1130,14 @@ root PID28452、thread24784；前后有效primary token、无impersonation、cap
 同SHA重复push Docker run38117926343在六job均queued时取消，保留PR run38117931299；这只是去重。后续纯文档提交不把该矩阵转移到新SHA。
 
 正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划指纹和截止窗口保持。独立人工预审/外部review锁、可靠账单或硬额度、目标GUI/辅助技术、8h/24h/SLO、Windows/macOS durable/owner-only及完整native review仍开放；原模型verdict与候选未重写。本轮没有合并或发行。
+
+
+### 20.36 2026-10-11 首次旅程接线与费用修复
+
+Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同一隔离profile，实际configure/authenticate后执行原冻结verify-04 prompt，保存候选及冻结/四项费用语义检查。密钥仅在认证/model子进程环境，无重试或fallback；30分钟总deadline、8分钟工具deadline、20轮及$0.25估算停止线不能替代provider硬额度。实际火山结果待完成，不产正式observations。
+
+认证探针增加兼容的JSON usage回执，错误耗尽仍保留已消费tokens。首次旅程认证和tool费用各计一次；Eval result仍为tool费用，observation.cost才是旅程总额。缺任一费用或旧.97认证无usage均保持null。Astra发现的earlyStop误补tool零及provider错误先截断再脱敏两项问题均修复并复核：失败不证明未收费，已知key先脱敏后截断。AI复核不替代人工。
+
+最终Windows系统Node22.22.2与Linux固定Node22.12.0各**201/201**，五阶段/公开安装离线合同各**17/17**，零skip；ESLint/格式/diff与生成文件检查通过。沙箱账户Git dubious ownership的16/17失败原件与owner17/17复验同时保留，未修改safe.directory。18份双摘要原件、13个normalized源码snapshot及指纹见[实际原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/README.md)。
+
+正式36+9/NOT_RUN/observed=0/$99及计划指纹保持；准确源码CI须单独验收，不继承旧SHA。独立人工/外部review锁、可靠账单/硬额度、目标宿主/辅助技术、8h/24h/SLO及Windows/macOS durable/owner-only/native review仍开放。未合并或发行。

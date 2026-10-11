@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { probeLlmConnection } from "../../src/lib/llm-connection-probe.js";
+import {
+  probeLlmConnection,
+  normalizeLlmProbeUsage,
+  priceLlmProbeUsage,
+} from "../../src/lib/llm-connection-probe.js";
 
 const target = {
   provider: "volcengine",
@@ -9,6 +13,202 @@ const target = {
 };
 
 describe("reasoning model connection probes", () => {
+  it("redacts a provider-echoed credential before truncating error details", async () => {
+    const apiKey = "test-only-sensitive-" + "x".repeat(80);
+    const error = await probeLlmConnection(
+      { ...target, apiKey },
+      {
+        includeUsage: true,
+        fetchImpl: async () => ({
+          ok: false,
+          status: 403,
+          text: async () =>
+            JSON.stringify({ error: { message: "x".repeat(390) + apiKey } }),
+        }),
+      },
+    ).catch((error) => error);
+    expect(error.message).not.toContain("test-only-");
+    expect(error.probe).toMatchObject({
+      ok: false,
+      usage: null,
+      totalCostUsd: null,
+    });
+  });
+  it("redacts an echoed credential before truncating a probe reply", async () => {
+    const apiKey = "test-only-" + "x".repeat(150);
+    const receipt = await probeLlmConnection(
+      { ...target, apiKey },
+      {
+        includeUsage: true,
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => ({
+            choices: [{ message: { content: `${apiKey} Hi` } }],
+          }),
+        }),
+      },
+    );
+    expect(receipt.reply).toBe("[REDACTED] Hi");
+    expect(JSON.stringify(receipt)).not.toContain("test-only-");
+  });
+  it("retains billed reasoning and cached prompt usage without printing either raw payload or credentials", async () => {
+    const receipt = await probeLlmConnection(target, {
+      includeUsage: true,
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: "Hi",
+                reasoning_content: "private reasoning",
+              },
+            },
+          ],
+          usage: {
+            prompt_tokens: 20,
+            completion_tokens: 35,
+            prompt_tokens_details: { cached_tokens: 5 },
+            extra: target.apiKey,
+          },
+        }),
+      }),
+    });
+    expect(receipt).toMatchObject({
+      ok: true,
+      reply: "Hi",
+      currency: "USD",
+      costBasis: "token-estimate",
+      billingVerified: false,
+      usage: {
+        input_tokens: 15,
+        output_tokens: 35,
+        cache_read_input_tokens: 5,
+        cache_creation_input_tokens: 0,
+      },
+    });
+    expect(receipt.totalCostUsd).toBeCloseTo(
+      (15 * 0.14 + 5 * 0.14 * 0.1 + 35 * 0.28) / 1e6,
+      14,
+    );
+    expect(JSON.stringify(receipt)).not.toContain(target.apiKey);
+    expect(JSON.stringify(receipt)).not.toContain("private reasoning");
+  });
+
+  it.each([
+    undefined,
+    {},
+    { prompt_tokens: "20", completion_tokens: 1 },
+    {
+      prompt_tokens: 5,
+      completion_tokens: 1,
+      prompt_tokens_details: { cached_tokens: 6 },
+    },
+    { prompt_tokens: 5, completion_tokens: -1 },
+    { prompt_tokens: 5, completion_tokens: 1, prompt_cache_hit_tokens: -1 },
+    {
+      prompt_tokens: 5,
+      completion_tokens: 1,
+      prompt_tokens_details: { cached_tokens: 1 },
+      prompt_cache_hit_tokens: 2,
+    },
+  ])("keeps absent or invalid provider usage unknown", async (usage) => {
+    const receipt = await probeLlmConnection(target, {
+      includeUsage: true,
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "Hi" } }],
+          usage,
+        }),
+      }),
+    });
+    expect(receipt).toMatchObject({
+      ok: true,
+      usage: null,
+      totalCostUsd: null,
+    });
+  });
+
+  it("retains usage even when billed reasoning exhausts the final answer allowance", async () => {
+    const error = await probeLlmConnection(target, {
+      includeUsage: true,
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [{ finish_reason: "length", message: { content: "" } }],
+          usage: { prompt_tokens: 5, completion_tokens: 1024 },
+        }),
+      }),
+    }).catch((error) => error);
+    expect(error.message).toContain("exhausted");
+    expect(error.probe).toMatchObject({
+      ok: false,
+      reply: null,
+      usage: { input_tokens: 5, output_tokens: 1024 },
+    });
+    expect(error.probe.totalCostUsd).toBeGreaterThan(0);
+  });
+
+  it.each([
+    [
+      "anthropic",
+      {
+        usage: {
+          input_tokens: 3,
+          output_tokens: 2,
+          cache_read_input_tokens: 4,
+          cache_creation_input_tokens: 5,
+        },
+      },
+      [3, 2, 4, 5],
+    ],
+    ["ollama", { prompt_eval_count: 3, eval_count: 2 }, [3, 2, 0, 0]],
+    [
+      "gemini",
+      {
+        usageMetadata: {
+          promptTokenCount: 7,
+          candidatesTokenCount: 2,
+          thoughtsTokenCount: 5,
+          cachedContentTokenCount: 4,
+        },
+      },
+      [3, 7, 4, 0],
+    ],
+    [
+      "deepseek",
+      {
+        usage: {
+          prompt_tokens: 7,
+          completion_tokens: 2,
+          prompt_cache_hit_tokens: 4,
+        },
+      },
+      [3, 2, 4, 0],
+    ],
+  ])(
+    "normalizes %s usage without counting cached inputs twice",
+    (provider, payload, counts) => {
+      expect(Object.values(normalizeLlmProbeUsage(provider, payload))).toEqual(
+        counts,
+      );
+    },
+  );
+
+  it("keeps an unknown model price unknown even with complete usage", () => {
+    expect(
+      priceLlmProbeUsage(
+        { provider: "custom", model: "unknown" },
+        {
+          input_tokens: 10,
+          output_tokens: 2,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      ),
+    ).toBeNull();
+  });
   it("allows a reasoning model to finish before judging the configured connection", async () => {
     const original = structuredClone(target);
     const fetchImpl = vi.fn(async (url, options) => {

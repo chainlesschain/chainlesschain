@@ -48,6 +48,8 @@ it.each(["openai", "volcengine"])(
   async (provider) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-llm-connection-"));
     const requests = [];
+    let finalAnswer = true;
+    let reportUsage = true;
     const server = http.createServer((req, res) => {
       let body = "";
       req.on("data", (b) => {
@@ -60,9 +62,18 @@ it.each(["openai", "volcengine"])(
           body: JSON.parse(body),
         });
         res.setHeader("Content-Type", "application/json");
-        const truncated = JSON.parse(body).max_tokens < 34;
+        const truncated = JSON.parse(body).max_tokens < 34 || !finalAnswer;
         res.end(
           JSON.stringify({
+            ...(reportUsage
+              ? {
+                  usage: {
+                    prompt_tokens: 12,
+                    completion_tokens: 35,
+                    prompt_tokens_details: { cached_tokens: 2 },
+                  },
+                }
+              : {}),
             choices: [
               {
                 finish_reason: truncated ? "length" : "stop",
@@ -139,6 +150,49 @@ it.each(["openai", "volcengine"])(
             max_tokens: 1024,
           },
         });
+      const structured = await run(["llm", "test", "--json"], env, workspace);
+      expect(structured.code, structured.stderr).toBe(0);
+      const receipt = JSON.parse(structured.stdout);
+      expect(receipt).toMatchObject({
+        schema: "chainlesschain.llm-connection-probe/v1",
+        ok: true,
+        provider,
+        model: draft.model,
+        reply: "Hello",
+        billingVerified: false,
+        costBasis: "token-estimate",
+        usage: {
+          input_tokens: 10,
+          output_tokens: 35,
+          cache_read_input_tokens: 2,
+          cache_creation_input_tokens: 0,
+        },
+      });
+      if (provider === "volcengine")
+        expect(receipt.totalCostUsd).toBeGreaterThan(0);
+      else expect(receipt.totalCostUsd).toBeNull();
+      expect(structured.stdout + structured.stderr).not.toContain(draft.apiKey);
+      expect(structured.stdout + structured.stderr).not.toContain(
+        "private reasoning",
+      );
+      finalAnswer = false;
+      const exhausted = await run(["llm", "test", "--json"], env, workspace);
+      expect(exhausted.code).toBe(1);
+      expect(JSON.parse(exhausted.stdout)).toMatchObject({
+        ok: false,
+        reply: null,
+        usage: receipt.usage,
+      });
+      expect(JSON.parse(exhausted.stdout).error).toContain("exhausted");
+      finalAnswer = true;
+      reportUsage = false;
+      const unknown = await run(["llm", "test", "--json"], env, workspace);
+      expect(unknown.code).toBe(0);
+      expect(JSON.parse(unknown.stdout)).toMatchObject({
+        ok: true,
+        usage: null,
+        totalCostUsd: null,
+      });
       const file = path.join(root, "state", "config.json");
       const original = fs.readFileSync(file, "utf8");
       const failed = await run(

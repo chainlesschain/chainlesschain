@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-11 首次旅程接线与费用修复**：Linux CLI正常公开安装、配置、认证、冻结工具任务及独立产物检查的五阶段诊断已接通。已补认证usage与完整旅程费用归集；旧认证/缺费用/早停工具调用均保持未知，并修复provider错误截断后可能残留密钥前缀。最终回归Windows/Linux各**201/201**、五阶段合同各**17/17**；Astra两项发现已修复复核，AI不替代独立人工。见[原件与优化](./evidence/gap-2026-10-05/first-run-2026-10-11/README.md)。一次火山实际首次旅程待完成；正式**36+9 / NOT_RUN / observed=0**及$99保持，完整CI、人工/账单/目标宿主与长时验收仍开放。
+
 > **2026-10-11 验收优化续做**：准确fcee60的费用语义校准与正常公开SQLite安装两项Actions均通过。原费用候选对四项计费错误全部漏检；工程六例全部检出，分别6/4/4/3项断言失败。public CLI.97的core-db native-cipher11.10.0与CLI SQLite12.11.1真实写入/新进程重开通过，无WASM；本机WSL安装前git超时保留。合同Windows/Linux各12/12、125份双摘要原件及六源码blob核对，见[实际结果与优化](./evidence/gap-2026-10-05/semantic-install-2026-10-11/README.md)。CLI/Strict/完整Docker矩阵待完成；正式36+9/NOT_RUN/observed=0保持，整体任务尚未结案，本轮无新付费调用。
 
 > **2026-10-11 实际编码结果与优化落地**：第三轮火山实际编码已完成，两题原整题均未通过：费用候选**6/6**、两反例均检出，但一次绝对路径预拒绝造成15use/16result且没有完整金额断言；Memory候选**3/4**，失败来自fsync mock未恢复即再次读取。原始失败及三轮候选均保留。已落实正式eval每题scope/独立配置/空种子拒绝、六项真实请求费用回归、Windows临时根规范化，以及拒绝事件与调用ID关联修复；工程补强不回填模型成功。既有接线Windows/Linux各73/73、费用Windows28/28和Linux18/18、临时目录21/21、四套本机E2E14/14；5e23准确Strict **5/5**，CLI/Docker全矩阵见[实际结果与优化原件](./evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md)，新事件修复Windows/Linux各171/171、诊断9/9、mapped29/29通过；后续修复须自己的CI。第三轮CLI估算约**$0.05612**，实际账单未知。正式**36+9 / NOT_RUN / observed=0**、$99保持；实际IDE/首次安装、目标宿主、独立人工/账单/长时和native durable仍未完成，整体任务尚未结案。

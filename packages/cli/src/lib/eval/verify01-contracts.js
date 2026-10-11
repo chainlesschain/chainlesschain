@@ -1,5 +1,10 @@
 import fs from "node:fs";
 import {
+  LLM_PROBE_SCHEMA,
+  llmProbeReceipt,
+  priceLlmProbeUsage,
+} from "../llm-connection-probe.js";
+import {
   createEvalComparison,
   EVAL_EXECUTION_PROTOCOL,
   evalDigest,
@@ -14,6 +19,94 @@ const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const MAX_BYTES = 16 * 1024 * 1024;
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+/** Task terminals only cover the tool stage; authentication is a separate call. */
+export function createVerify01FirstRunCost({
+  authentication,
+  authenticationReceipt,
+  authenticated,
+  comparison,
+  toolCostUsd,
+}) {
+  requireValue(
+    DIGEST.test(authenticationReceipt || ""),
+    "first-run authentication receipt digest required",
+  );
+  requireValue(
+    toolCostUsd === null || (Number.isFinite(toolCostUsd) && toolCostUsd >= 0),
+    "invalid first-run tool cost",
+  );
+  let probe = null;
+  if (authentication !== null) {
+    requireValue(
+      authentication?.schema === LLM_PROBE_SCHEMA &&
+        authentication.provider === comparison.provider &&
+        authentication.model === comparison.model &&
+        authentication.ok === authenticated &&
+        authentication.currency === "USD" &&
+        authentication.costBasis === "token-estimate" &&
+        authentication.billingVerified === false,
+      "first-run authentication identity or estimate basis differs",
+    );
+    const usage = authentication.usage;
+    requireValue(
+      usage === null ||
+        (usage &&
+          [
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_input_tokens,
+            usage.cache_creation_input_tokens,
+          ].every((value) => Number.isSafeInteger(value) && value >= 0)),
+      "invalid first-run authentication usage",
+    );
+    const cost = priceLlmProbeUsage(comparison, usage);
+    requireValue(
+      authentication.totalCostUsd === cost,
+      "first-run authentication cost differs from its token estimate",
+    );
+    probe = llmProbeReceipt(comparison, { ok: authenticated, usage });
+  }
+  const authCostUsd = probe?.totalCostUsd ?? null;
+  const totalCostUsd =
+    authCostUsd !== null && toolCostUsd !== null
+      ? authCostUsd + toolCostUsd
+      : null;
+  requireValue(
+    totalCostUsd === null || Number.isFinite(totalCostUsd),
+    "first-run total cost overflow",
+  );
+  return {
+    schema: "chainlesschain.verify01-first-run-cost/v1",
+    authenticationReceipt,
+    authentication: probe,
+    toolCostUsd,
+    totalCostUsd,
+  };
+}
+
+function validateFirstRunCost(observation, comparison, toolCostUsd) {
+  const accounting = observation.firstRun?.costAccounting;
+  if (!accounting) {
+    requireValue(
+      observation.cost === null,
+      "first-run cost without authentication accounting must remain unknown",
+    );
+    return;
+  }
+  const expected = createVerify01FirstRunCost({
+    authentication: accounting.authentication,
+    authenticationReceipt: observation.firstRun.stages.authenticate.receipt,
+    authenticated: observation.firstRun.stages.authenticate.passed,
+    comparison,
+    toolCostUsd,
+  });
+  requireValue(
+    outcomeDigest(accounting) === outcomeDigest(expected) &&
+      observation.cost === expected.totalCostUsd,
+    "first-run journey cost differs from authentication plus tool cost",
+  );
 }
 function index(rows, key, label) {
   requireValue(Array.isArray(rows), `${label} must be an array`);
@@ -33,7 +126,8 @@ function relativeFile(value) {
   requireValue(
     typeof value === "string" &&
       value.length > 0 &&
-      !/[\\:*?<>|"\u0000]/u.test(value) &&
+      !value.includes("\0") &&
+      !/[\\:*?<>|"]/u.test(value) &&
       !value.startsWith("/") &&
       value.split("/").every((part) => part && !/[. ]$/u.test(part)),
     "review paths must be exact relative files",
@@ -278,6 +372,12 @@ export function validateVerify01Collection(
           row.reasons.every((reason) => failureReasons.has(reason)),
         "invalid first-run early-stop evidence",
       );
+      // A failed tool stage does not prove no billable request was attempted.
+      validateFirstRunCost(
+        observation,
+        bundle.bindings.comparisons[sample.stratum],
+        null,
+      );
       continue;
     }
     const run = runs.get(observation.runId);
@@ -309,10 +409,16 @@ export function validateVerify01Collection(
     used.add(key);
     const cost = result.totalCostUsd;
     requireValue(
-      (cost === null || (Number.isFinite(cost) && cost >= 0)) &&
-        observation.cost === cost,
+      cost === null || (Number.isFinite(cost) && cost >= 0),
       "unknown or mismatched cost must not become zero",
     );
+    if (sample.kind === "first-run")
+      validateFirstRunCost(observation, run.comparison, cost);
+    else
+      requireValue(
+        observation.cost === cost,
+        "unknown or mismatched cost must not become zero",
+      );
     requireValue(
       Array.isArray(result.changedFiles) &&
         new Set(result.changedFiles).size === result.changedFiles.length,

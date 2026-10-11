@@ -3,9 +3,14 @@
  * Keep structured provider diagnostics while redacting credential-shaped text.
  */
 
-function safePart(value) {
+function safePart(value, secrets = []) {
   if (value == null) return "";
-  return String(value)
+  let text = String(value);
+  for (const secret of secrets) {
+    if (typeof secret === "string" && secret)
+      text = text.replaceAll(secret, "***");
+  }
+  return text
     .replace(/\s+/g, " ")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/-]+=*\b/gi, "$1***")
     .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/gi, "sk-***")
@@ -13,21 +18,24 @@ function safePart(value) {
     .slice(0, 400);
 }
 
-function errorDetail(payload) {
+function errorDetail(payload, secrets) {
   if (payload == null) return { code: "", message: "" };
   const raw =
     typeof payload === "object" && payload.error != null
       ? payload.error
       : payload;
   if (typeof raw === "string") {
-    return { code: "", message: safePart(raw) };
+    return { code: "", message: safePart(raw, secrets) };
   }
   if (!raw || typeof raw !== "object") {
-    return { code: "", message: safePart(raw) };
+    return { code: "", message: safePart(raw, secrets) };
   }
   return {
-    code: safePart(raw.code || raw.type),
-    message: safePart(raw.message || raw.error_description || raw.detail),
+    code: safePart(raw.code || raw.type, secrets),
+    message: safePart(
+      raw.message || raw.error_description || raw.detail,
+      secrets,
+    ),
   };
 }
 
@@ -36,9 +44,14 @@ function errorDetail(payload) {
  * accounts and model-access denials. Preserve the safe code/message so clients
  * can show the real corrective action.
  */
-export function formatProviderHttpError(provider, status, payload = null) {
+export function formatProviderHttpError(
+  provider,
+  status,
+  payload = null,
+  { secrets = [] } = {},
+) {
   const base = `${provider} API error: HTTP ${status}`;
-  const detail = errorDetail(payload);
+  const detail = errorDetail(payload, secrets);
   const detailText = [detail.code, detail.message].filter(Boolean).join(": ");
   const detailSentence = detailText.replace(/[.!?]+$/, "");
   const classified = `${detail.code} ${detail.message}`.toLowerCase();
@@ -76,7 +89,11 @@ export function formatProviderHttpError(provider, status, payload = null) {
   return detailSentence ? `${base} — ${detailSentence}` : base;
 }
 
-export async function formatProviderResponseError(provider, response) {
+export async function formatProviderResponseError(
+  provider,
+  response,
+  { secrets = [] } = {},
+) {
   let payload = null;
   try {
     const text = await response.text();
@@ -90,5 +107,7 @@ export async function formatProviderResponseError(provider, response) {
   } catch {
     // A broken/empty body still retains the HTTP status diagnosis.
   }
-  return formatProviderHttpError(provider, response.status, payload);
+  return formatProviderHttpError(provider, response.status, payload, {
+    secrets,
+  });
 }

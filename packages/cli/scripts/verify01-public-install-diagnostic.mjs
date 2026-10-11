@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import {
   launchLogged,
   requireSuccess,
+  stopOwned,
 } from "../../../scripts/lib/verify01-diagnostic-process.mjs";
 import { verifyCliRegistryInstall } from "./verify-cli-registry-install.mjs";
 
@@ -267,7 +268,14 @@ export function assessProbes(write, reopen) {
   };
 }
 
-export async function runDiagnostic({ outputDir, version, releaseSha }) {
+export async function runDiagnostic({
+  outputDir,
+  version,
+  releaseSha,
+  deadline: outerDeadline,
+  onVerifiedInstallation,
+  signal,
+}) {
   assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u);
   assert.match(releaseSha, /^[a-f0-9]{40}$/u);
   fs.mkdirSync(outputDir, { mode: 0o700 }); // Existing evidence must not be overwritten.
@@ -298,6 +306,12 @@ export async function runDiagnostic({ outputDir, version, releaseSha }) {
         encoding: "utf8",
         timeout: 30000,
         maxBuffer: 16 * 1024 * 1024,
+        env: {
+          PATH: process.env.PATH,
+          ...(process.env.SystemRoot
+            ? { SystemRoot: process.env.SystemRoot }
+            : {}),
+        },
       });
     summary.harnessCommit = git(["rev-parse", "HEAD"]).trim();
     summary.harnessTrackedWorktreeClean =
@@ -360,8 +374,12 @@ export async function runDiagnostic({ outputDir, version, releaseSha }) {
       "../lib/node_modules/npm/bin/npm-cli.js",
     );
     assert.ok(fs.existsSync(npmCli), "Node distribution's npm CLI is missing");
-    const deadline = Date.now() + 15 * 60 * 1000;
+    const deadline = Math.min(
+      outerDeadline ?? Infinity,
+      Date.now() + 15 * 60 * 1000,
+    );
     const run = async (name, args, timeoutMs = 60000) => {
+      signal?.throwIfAborted();
       const row = {
         name,
         command: process.execPath,
@@ -370,21 +388,29 @@ export async function runDiagnostic({ outputDir, version, releaseSha }) {
         passed: false,
       };
       summary.commands.push(row);
+      const handle = launchLogged(process.execPath, args, {
+        cwd: install,
+        env,
+        logFile: path.join(outputDir, `${name}.log`),
+      });
+      const abort = () => {
+        void stopOwned(handle).catch(() => {});
+      };
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
       try {
         const result = await requireSuccess(
-          launchLogged(process.execPath, args, {
-            cwd: install,
-            env,
-            logFile: path.join(outputDir, `${name}.log`),
-          }),
+          handle,
           Math.min(deadline, Date.now() + timeoutMs),
           name,
         );
+        signal?.throwIfAborted();
         Object.assign(row, result, { passed: true });
       } catch (error) {
         row.error = error.message;
         throw error;
       } finally {
+        signal?.removeEventListener("abort", abort);
         row.finishedAt = new Date().toISOString();
       }
     };
@@ -473,11 +499,28 @@ export async function runDiagnostic({ outputDir, version, releaseSha }) {
     summary.status = summary.nativeSqliteVerified
       ? "native-roundtrip-passed"
       : "wasm-fallback-roundtrip-passed";
-  } catch (error) {
-    summary.error = error.message;
-  } finally {
+    // The optional continuation owns a separate diagnostic receipt. The
+    // installation receipt is finalized before credentials or model calls can
+    // enter that continuation; the same private installation remains alive.
     summary.finishedAt = new Date().toISOString();
     save(path.join(outputDir, "summary.json"), summary);
+    signal?.throwIfAborted();
+    if (onVerifiedInstallation)
+      await onVerifiedInstallation({
+        scratch,
+        installRoot: install,
+        cliRoot,
+        env,
+        summary,
+      });
+  } catch (error) {
+    if (fs.existsSync(path.join(outputDir, "summary.json"))) throw error;
+    summary.error = error.message;
+  } finally {
+    if (!fs.existsSync(path.join(outputDir, "summary.json"))) {
+      summary.finishedAt = new Date().toISOString();
+      save(path.join(outputDir, "summary.json"), summary);
+    }
     // Only this mkdtemp-owned root is removed; all diagnostic receipts survive.
     if (scratch) fs.rmSync(scratch, { recursive: true, force: true });
   }
