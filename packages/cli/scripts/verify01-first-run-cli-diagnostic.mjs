@@ -29,6 +29,11 @@ import {
   diffVerify01Workspace,
   seedVerify01Deliverables,
 } from "../src/lib/eval/verify01-workspace.js";
+import {
+  LLM_PROBE_SCHEMA,
+  llmProbeReceipt,
+  priceLlmProbeUsage,
+} from "../src/lib/llm-connection-probe.js";
 
 const SELF = fileURLToPath(import.meta.url);
 const REPOSITORY = path.resolve(path.dirname(SELF), "../../..");
@@ -207,21 +212,90 @@ export function createStageLedger(outputDir, secret = "") {
   };
 }
 
+/** Invalid or absent authentication accounting remains unknown, never zero. */
+export function inspectAuthenticationProbe(stdout, authenticated) {
+  try {
+    assert.equal(typeof authenticated, "boolean");
+    const probe = JSON.parse(stdout.trim());
+    assert.equal(typeof probe.ok, "boolean");
+    assert.equal(probe.schema, LLM_PROBE_SCHEMA);
+    assert.equal(probe.provider, DIAGNOSTIC.provider);
+    assert.equal(probe.model, DIAGNOSTIC.model);
+    assert.equal(probe.ok, authenticated);
+    assert.equal(probe.currency, "USD");
+    assert.equal(probe.costBasis, "token-estimate");
+    assert.equal(probe.billingVerified, false);
+    const usage = probe.usage;
+    assert.ok(
+      usage === null ||
+        (usage &&
+          [
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cache_read_input_tokens,
+            usage.cache_creation_input_tokens,
+          ].every((value) => Number.isSafeInteger(value) && value >= 0)),
+      "invalid authentication usage",
+    );
+    assert.equal(probe.totalCostUsd, priceLlmProbeUsage(DIAGNOSTIC, usage));
+    return {
+      probe: llmProbeReceipt(DIAGNOSTIC, { ok: authenticated, usage }),
+      accountingIssue: null,
+    };
+  } catch {
+    // Do not copy malformed provider output into errors; the redacted process
+    // receipt preserves the actual stdout without another paid invocation.
+    return {
+      probe: null,
+      accountingIssue:
+        "Authentication JSON identity, usage or estimate was not established.",
+    };
+  }
+}
+
 export function costAccounting(
   toolEstimatedCostUSD = null,
   authenticationExecuted = true,
+  authenticationProbe = null,
 ) {
+  assert.equal(typeof authenticationExecuted, "boolean");
+  assert.ok(
+    toolEstimatedCostUSD === null ||
+      (Number.isFinite(toolEstimatedCostUSD) && toolEstimatedCostUSD >= 0),
+    "invalid tool estimate",
+  );
+  assert.ok(authenticationExecuted || authenticationProbe === null);
+  const validated =
+    authenticationProbe === null
+      ? null
+      : inspectAuthenticationProbe(
+          JSON.stringify(authenticationProbe),
+          authenticationProbe.ok,
+        ).probe;
+  const authenticationEstimatedCostUSD = validated?.totalCostUsd ?? null;
+  const totalJourneyEstimatedCostUSD =
+    authenticationEstimatedCostUSD !== null && toolEstimatedCostUSD !== null
+      ? authenticationEstimatedCostUSD + toolEstimatedCostUSD
+      : null;
+  assert.ok(
+    totalJourneyEstimatedCostUSD === null ||
+      Number.isFinite(totalJourneyEstimatedCostUSD),
+    "journey estimate overflow",
+  );
   return {
     authenticationExecuted,
-    authenticationEstimatedCostUSD: null,
+    authenticationProbe: validated,
+    authenticationEstimatedCostUSD,
     toolEstimatedCostUSD,
-    totalJourneyEstimatedCostUSD: null,
+    totalJourneyEstimatedCostUSD,
     actualBilledCostUSD: null,
     billingVerified: false,
     budgetVerified: false,
     hardQuotaVerified: false,
     reason:
-      "Public CLI 0.166.97 authentication does not report usage; tool estimate is not total journey cost.",
+      totalJourneyEstimatedCostUSD === null
+        ? "Authentication or tool usage is incomplete/unpriced; total journey cost remains unknown."
+        : "Separate authentication and tool token estimates; actual billing and hard quota remain unverified.",
   };
 }
 
@@ -362,6 +436,7 @@ export async function runFirstRunDiagnostic({
     currentExecuted = false,
     toolEstimate = null,
     authenticationExecuted = false;
+  let authenticationProbe = null;
   const run = (
     name,
     command,
@@ -487,7 +562,7 @@ export async function runFirstRunDiagnostic({
         const auth = await run(
           "authenticate",
           process.execPath,
-          [cli, "llm", "test"],
+          [cli, "llm", "test", "--json"],
           {
             ...env,
             CC_MAX_RETRIES: "0",
@@ -497,13 +572,16 @@ export async function runFirstRunDiagnostic({
           installRoot,
           90000,
         );
+        const authAccounting = inspectAuthenticationProbe(auth.stdout, auth.ok);
+        authenticationProbe = authAccounting.probe;
         ledger.record(current, {
           executed: true,
           passed: auth.ok,
           startedAt: currentStarted,
           invocation: "commands/authenticate.process.json",
-          usage: null,
-          estimatedCostUSD: null,
+          usage: authenticationProbe?.usage ?? null,
+          estimatedCostUSD: authenticationProbe?.totalCostUsd ?? null,
+          accountingIssue: authAccounting.accountingIssue,
           billingVerified: false,
         });
         must(auth);
@@ -806,7 +884,11 @@ export async function runFirstRunDiagnostic({
     passed:
       ledger.stages.length === 5 && ledger.stages.every((row) => row.passed),
     stages: ledger.stages,
-    costAccounting: costAccounting(toolEstimate, authenticationExecuted),
+    costAccounting: costAccounting(
+      toolEstimate,
+      authenticationExecuted,
+      authenticationProbe,
+    ),
     limits: {
       overallMs: 30 * 60 * 1000,
       modelMs: 8 * 60 * 1000,
