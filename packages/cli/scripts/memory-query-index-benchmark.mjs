@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -94,7 +95,10 @@ if (option("--worker", null)) {
       (count) => Number.isSafeInteger(count) && count > 0 && count <= 100000,
     ),
   );
-  const root = mkdtempSync(join(tmpdir(), "cc-memory-query-benchmark-"));
+  // Windows may expose TEMP through an 8.3 alias (and other hosts through a
+  // symlink). Match the store's native physical-path authority checks.
+  const temporaryRoot = realpathSync.native(tmpdir());
+  const root = mkdtempSync(join(temporaryRoot, "cc-memory-query-benchmark-"));
   const report = {
     schema: "chainlesschain.memory-query-index-measurement/v1",
     measuredAt: new Date().toISOString(),
@@ -244,7 +248,7 @@ if (option("--worker", null)) {
     else process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } finally {
     if (
-      resolve(root).startsWith(`${resolve(tmpdir())}${sep}`) &&
+      resolve(root).startsWith(`${temporaryRoot}${sep}`) &&
       basename(root).startsWith("cc-memory-query-benchmark-")
     )
       rmSync(root, { recursive: true, force: true });
