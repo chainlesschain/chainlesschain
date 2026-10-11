@@ -141,3 +141,11 @@ docs/research/cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/** -text !eo
 docs/research/cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md -linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-11/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md -linguist-generated
+
+# Formal execution preflight receipts retain the captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/formal-preflight-2026-10-11/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/formal-preflight-2026-10-11/README.md -linguist-generated
+
+# Public Volcengine diagnostic receipts and regression reporters retain exact bytes.
+docs/research/cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/README.md -linguist-generated

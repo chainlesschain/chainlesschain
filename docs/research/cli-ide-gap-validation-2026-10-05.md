@@ -1061,3 +1061,13 @@ root PID28452、thread24784；前后有效primary token、无impersonation、cap
 当前生产 Memory 目录函数的独立[原生切片观察](./cli/evidence/gap-2026-10-05/canonical-path-2026-10-11/README.md)使用原九份 native/CJS 来源字节、原六槽，精准摘录当前 functions 与原 corruptStore 到固定 actor。plain realpath.native 坐标一致且 nested 创建成功；真实 junction lstat 为 directory=true/symbolicLink=false，但 native canonical 指向 target，实际属性 0x410/tag 0xA0000003/FSCTL 与 Global C substitute 另有原件。新函数报 CONTEXT_MEMORY_STORE_CORRUPT，junction分支 mkdir调用0、target前后为空，原 HANDLE/Job/profile结算确认。它证明当前反例的函数切片拒绝，不是冻结完整module/review成功，也不是所有 reparse 或持续 race fencing 证明。
 
 旧冻结 Windows 211=194/16/1、mutants6/4/4、新fixture211=208/2/1仍不改写，完整 native review 继续 NOT_ADMITTED。正式36+9/NOT_RUN/INSUFFICIENT_EVIDENCE、$99、observations保持；Windows/macOS durable服务/受保护journal/自身恢复/网络撤销、macOS checker与冻结平台冲突仍有工程任务，官方账号/usage/账单、目标宿主、独立人工/辅助技术、8h/24h/SLO仍开放。本轮未发布或调用付费模型，新准确提交 CI 另验。
+
+### 20.33 2026-10-11 火山 Linux 公开调用与工具白名单
+
+按用户授权，用内置Ark endpoint/deepseek-v4-flash-ga-260731，在Ubuntu24.04.3 x64/WSL1、Node22.12.0独立registry安装公开CLI0.166.97。五文件release blob匹配、lock来源保留；ignore-scripts且未测SQLite native，不声称完整安装旅程。新profile/workspace无开发软链接，凭据仅内存WSLENV，不写argv/文件。根部首次exact mutation目标不存在的stderr/空stdout与未知费用保留；attempt2新占位仅使目标存在，模型仍须覆盖和读回。
+
+真实14条NDJSON，write_file/read_file使用ID唯一、结果匹配、顺序正确，参数/完整读回/产物均为27字节PUBLIC_LINUX_VOLCENGINE_OK加LF，SHA25674ce6345545df783b25057046f80c3efc97c011687de5c64e35c3068dc430f97。3条usage分别1722/169、2128/176、2646/12，合计6496/357；terminal success/exit0，无fallback、signal或timeout。CLI估算$0.0010094，实际账单null；估算stop$0.05不是provider硬额度。Astra独立回读通过。
+
+公开.97传两工具allowlist却在init/context plan暴露六文件工具；实际仅执行两项不能代表工具暴露合同通过。源码修复只调整集合收窄，显式空集合、plan只读、外部工具排除和默认六项分别覆盖。真实agentLoop/chatWithTools的mock fetch捕获最终body.tools，旧源码5fail，新源码5pass；完整四文件Windows22.22.2与Linux22.12.0各113/113，无skip。早期测试夹具失败分别因cwd、错误观察chatFn参数、provider/baseUrl未绑定，已单独保留，不据此判产品失败。生产源码未发行；4个既有lint warning未清除。
+
+[42份原件/快照索引](./cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/manifest.json)逐字节及gzip双摘要通过，driver是诊断后的最终本地快照。loaded_sources标签保留，hermetic并非OS网络隔离。预检根部WSL解码损失/沙箱拒绝与批准后的原字节重跑分开存储。用户另要求Actions验收和实际编码任务后优化，准确提交CI、Docker pack与两题实际火山诊断仍另验，不沿用旧CI或本地结果。正式36+9/$99/observations、目标宿主/人工/官方账单/长时与native NOT_ADMITTED均未改写。

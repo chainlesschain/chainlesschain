@@ -490,3 +490,11 @@ Segmented Memory 原目录检查仅依赖 lstat/isSymbolicLink，实际 LowBox j
 Windows Node 22.22.2 两组 151/151 与 32 pass/1 POSIX skip；WSL Linux Node 22.12.0 为 146 pass/5 Windows skip 与 30 pass/3 Windows skip。lint/格式通过，Astra 独立复核八文件未发现权限放宽；[工程源码与实际 reporter](./cli/evidence/gap-2026-10-05/continuation-2026-10-11/README.md)按字节保存。本地测试不替代新准确提交 CLI/Strict/IDE 全矩阵。
 
 完整 native review 继续 NOT_ADMITTED；旧 211=194/16/1、6/4/4、新 fixture 211=208/2/1、正式 36+9/NOT_RUN/$99/observations 均保留。官方新模型 usage/账单、目标宿主/hooks、真人辅助技术、8h/24h/SLO/维护工时仍待独立验收；不把本轮两个修复及诊断结论称为两份报告全部完成。
+
+## 34. 2026-10-11 正式预检、火山实际诊断与可验证改进
+
+用户优先正式36+9并明确授权火山引擎测试。冻结计划及36项Linux review摘要核对成功，但本机WSL1无Linux Docker、Windows10不符合冻结Windows11，独立人工预审仍缺；原窗口不足新启动24h观察，正式0/36、0/9与99USD保持。首批4个Linux CLI任务及独立firstRun的映射见[正式预检](./cli/evidence/gap-2026-10-05/formal-preflight-2026-10-11/README.md)。火山账号/模型已在后续诊断中验证可调用，不再列作完全未知。
+
+公开CLI .97的Linux独立安装完成真实write/read诊断，3模型调用、6496/357 tokens、估算$0.0010094，账单null；首轮exact scope目标不存在失败保留。实测发现formal hermetic分支忽略显式allowed-tools与plan：模型仍见六工具。源码现先resolve请求/只读，再与固定六项交集；空allowlist保持空，非formal路径不变。五反例在正确夹具旧实现全部失败，新实现Windows/Linux相关四文件各113/113；Astra只读审查无阻塞，lint零error/4既有warning，格式通过。新修复未发行。
+
+用户要求实际任务后总结优化，故额外推进火山verify-04费用分布、verify-22发布后故障的真实编码诊断，并用GitHub Actions取得Docker独立验收；使用冻结题目与精确模型，保留非正式身份，不改变计划或observations。Actions已有CC_LLM_API_KEY，但模型变量是旧型号；该诊断固定deepseek-v4-flash-ga-260731，不修改仓库全局变量。源码CI与实际任务分别归档；只有真实补丁、断言/反例与usage回读后才评价任务成功。详见[实测原件与改进依据](./cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/README.md)及[验证20.33](./cli-ide-gap-validation-2026-10-05.md#2033-2026-10-11-火山-linux-公开调用与工具白名单)。

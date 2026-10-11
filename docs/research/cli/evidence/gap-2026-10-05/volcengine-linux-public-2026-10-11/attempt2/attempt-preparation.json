@@ -1,0 +1,16 @@
+{
+  "attempt": "attempt2",
+  "at": "2026-10-11T04:32:55.758Z",
+  "workspace": "/tmp/cc-volcengine-public-20261011-oA33AZ/workspace-attempt2",
+  "profile": "/tmp/cc-volcengine-public-20261011-oA33AZ/profile-attempt2",
+  "cleanProfileAtStart": true,
+  "seededFiles": [
+    {
+      "path": "probe.txt",
+      "bytes": 25,
+      "sha256": "cae5553b703ae280b9e5f4925afdb73e23c7e296b2d8dc9443c1a332dde6ef00"
+    }
+  ],
+  "reason": "The exact mutation scope requires a pre-existing file; keep the original pre-model rejection and test overwriting a separate placeholder.",
+  "formalSample": false
+}

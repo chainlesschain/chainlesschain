@@ -1,0 +1,27 @@
+{
+  "name": "npm-install",
+  "command": "/mnt/c/code/chainlesschain/.work/release-20261008/node-v22.12.0-linux-x64/bin/node",
+  "args": [
+    "/mnt/c/code/chainlesschain/.work/release-20261008/node-v22.12.0-linux-x64/lib/node_modules/npm/bin/npm-cli.js",
+    "install",
+    "chainlesschain@0.166.97",
+    "--ignore-scripts",
+    "--omit=dev",
+    "--no-audit",
+    "--no-fund",
+    "--loglevel=error",
+    "--registry=https://registry.npmjs.org",
+    "--cache",
+    "/tmp/cc-volcengine-public-20261011-oA33AZ/npm-cache"
+  ],
+  "beganAt": "2026-10-11T04:24:31.937Z",
+  "timeoutMs": 240000,
+  "pid": 25,
+  "finishedAt": "2026-10-11T04:25:55.209Z",
+  "exitCode": 0,
+  "signal": null,
+  "timedOut": false,
+  "launchError": null,
+  "stdoutSha256": "2ff104267d8beb6d263e8afa4d30fc9e3dc3d1ac04cf8a35f34e15d0d23a04e7",
+  "stderrSha256": "5ca6fd9b19fb38e718c60f907778eda9cdfca6dfdee54fb3f048ff9e77f46a4d"
+}

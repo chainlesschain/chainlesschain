@@ -1,0 +1,608 @@
+{
+  "scope": "verify01-priority-read-only-preflight",
+  "capturedAt": "2026-10-11T04:16:14.955Z",
+  "productionAttested": false,
+  "formalSample": false,
+  "providerAssessed": false,
+  "executionStatus": "NOT_RUN",
+  "planDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "window": {
+    "start": "2026-10-05T00:00:00.000Z",
+    "end": "2026-10-12T00:00:00.000Z"
+  },
+  "totals": {
+    "tasks": 36,
+    "firstRuns": 9,
+    "observedTasks": 0,
+    "observedFirstRuns": 0,
+    "budgetUSD": 99
+  },
+  "localWindows": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "osRelease": "10.0.19045",
+    "matchesFrozenRuntime": false
+  },
+  "localLinux": {
+    "osRelease": "PRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.3 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo",
+    "architecture": "x86_64",
+    "kernel": "4.4.0-19041-Microsoft",
+    "node": "v22.12.0",
+    "acceptanceDockerAvailable": false
+  },
+  "review": {
+    "digest": "sha256:8160d5b7f8989cbd0f4a9d54cb511610d1bce54b9bffe0dbb8b17d6c15b05f28",
+    "declarationAndAllArtifactDigestsValidated": true,
+    "actualProjectCheckoutValidated": false,
+    "independentHumanReview": false,
+    "supportedAcceptancePlatform": "linux",
+    "acceptanceBackend": "docker",
+    "imageId": "sha256:2eaf47036616a95c00604989975f2116ea824b747942532df935c8bbebe79513"
+  },
+  "externalPrerequisites": {
+    "providerAccountAvailability": "NOT_VERIFIED",
+    "officialModelIdentity": "NOT_VERIFIED",
+    "providerHardBudgetOrReliableMetering": "NOT_VERIFIED",
+    "cleanPublicInstallPerSample": "NOT_PERFORMED",
+    "windows11Host": "NOT_VERIFIED",
+    "macos15Host": "NOT_VERIFIED",
+    "independentHumanReview": "NOT_PROVIDED"
+  },
+  "proposedFirstLinuxCliTaskSamples": [
+    "verify-04",
+    "verify-22",
+    "verify-13",
+    "verify-31"
+  ],
+  "proposedFirstLinuxCliFirstRunSample": "first-run-linux-cli",
+  "strata": [
+    {
+      "id": "win32-cli",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-01",
+          "stratum": "win32-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-10",
+          "stratum": "win32-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-19",
+          "stratum": "win32-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-28",
+          "stratum": "win32-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-win32-cli",
+          "taskId": "verify-01",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "win32-vscode",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-02",
+          "stratum": "win32-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-11",
+          "stratum": "win32-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-20",
+          "stratum": "win32-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-29",
+          "stratum": "win32-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-win32-vscode",
+          "taskId": "verify-02",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "win32-jetbrains",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-03",
+          "stratum": "win32-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-12",
+          "stratum": "win32-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-21",
+          "stratum": "win32-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-30",
+          "stratum": "win32-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-win32-jetbrains",
+          "taskId": "verify-03",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "linux-cli",
+      "target": {
+        "id": "linux-cli",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-04",
+          "stratum": "linux-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-13",
+          "stratum": "linux-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-22",
+          "stratum": "linux-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-31",
+          "stratum": "linux-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-linux-cli",
+          "taskId": "verify-04",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "linux-vscode",
+      "target": {
+        "id": "linux-vscode",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-05",
+          "stratum": "linux-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-14",
+          "stratum": "linux-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-23",
+          "stratum": "linux-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-32",
+          "stratum": "linux-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-linux-vscode",
+          "taskId": "verify-05",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "linux-jetbrains",
+      "target": {
+        "id": "linux-jetbrains",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-06",
+          "stratum": "linux-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-15",
+          "stratum": "linux-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-24",
+          "stratum": "linux-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-33",
+          "stratum": "linux-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-linux-jetbrains",
+          "taskId": "verify-06",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "darwin-cli",
+      "target": {
+        "id": "darwin-cli",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-07",
+          "stratum": "darwin-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-16",
+          "stratum": "darwin-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-25",
+          "stratum": "darwin-cli-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-34",
+          "stratum": "darwin-cli-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-darwin-cli",
+          "taskId": "verify-07",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "darwin-vscode",
+      "target": {
+        "id": "darwin-vscode",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-08",
+          "stratum": "darwin-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-17",
+          "stratum": "darwin-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-26",
+          "stratum": "darwin-vscode-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-35",
+          "stratum": "darwin-vscode-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-darwin-vscode",
+          "taskId": "verify-08",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    },
+    {
+      "id": "darwin-jetbrains",
+      "target": {
+        "id": "darwin-jetbrains",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        {
+          "id": "verify-09",
+          "stratum": "darwin-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-18",
+          "stratum": "darwin-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-27",
+          "stratum": "darwin-jetbrains-volcengine",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        },
+        {
+          "id": "verify-36",
+          "stratum": "darwin-jetbrains-openai",
+          "costBudget": 2,
+          "timeBudgetMs": 1200000
+        }
+      ],
+      "firstRunSamples": [
+        {
+          "id": "first-run-darwin-jetbrains",
+          "taskId": "verify-09",
+          "costBudget": 3,
+          "timeBudgetMs": 1800000
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "plan-validation",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "docs/research/cli/verify01-plan-2026-10-04/validate-plan.mjs"
+      ],
+      "startedAt": "2026-10-11T04:16:12.977Z",
+      "finishedAt": "2026-10-11T04:16:13.310Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "review-collection",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "packages/cli/scripts/verify01-collection.mjs",
+        "--plan-dir",
+        "docs/research/cli/verify01-plan-2026-10-04",
+        "--plan-digest",
+        "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+        "--review",
+        ".work/ci-review-pack-feda/shard-1/pack/review.json",
+        "--review-digest",
+        "sha256:8160d5b7f8989cbd0f4a9d54cb511610d1bce54b9bffe0dbb8b17d6c15b05f28",
+        "--review-root",
+        ".work/ci-review-pack-feda/shard-1/pack",
+        "--project-sha",
+        "b2aa3aba082873570e85dce39b00754e5504ff37"
+      ],
+      "startedAt": "2026-10-11T04:16:13.310Z",
+      "finishedAt": "2026-10-11T04:16:13.572Z",
+      "exitCode": 2,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "linux-release",
+      "command": "wsl.exe",
+      "args": [
+        "--",
+        "cat",
+        "/etc/os-release"
+      ],
+      "startedAt": "2026-10-11T04:16:13.573Z",
+      "finishedAt": "2026-10-11T04:16:13.967Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "linux-architecture",
+      "command": "wsl.exe",
+      "args": [
+        "--",
+        "uname",
+        "-m"
+      ],
+      "startedAt": "2026-10-11T04:16:13.967Z",
+      "finishedAt": "2026-10-11T04:16:14.173Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "linux-kernel",
+      "command": "wsl.exe",
+      "args": [
+        "--",
+        "uname",
+        "-r"
+      ],
+      "startedAt": "2026-10-11T04:16:14.173Z",
+      "finishedAt": "2026-10-11T04:16:14.376Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "linux-node",
+      "command": "wsl.exe",
+      "args": [
+        "--",
+        "/mnt/c/code/chainlesschain/.work/release-20261008/node-v22.12.0-linux-x64/bin/node",
+        "--version"
+      ],
+      "startedAt": "2026-10-11T04:16:14.376Z",
+      "finishedAt": "2026-10-11T04:16:14.584Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "linux-docker",
+      "command": "wsl.exe",
+      "args": [
+        "--",
+        "bash",
+        "-lc",
+        "docker info --format '{{.OSType}}'"
+      ],
+      "startedAt": "2026-10-11T04:16:14.584Z",
+      "finishedAt": "2026-10-11T04:16:14.886Z",
+      "exitCode": 1,
+      "signal": null,
+      "launchErrorCode": null
+    },
+    {
+      "name": "frozen-project-object",
+      "command": "git",
+      "args": [
+        "cat-file",
+        "-t",
+        "b2aa3aba082873570e85dce39b00754e5504ff37"
+      ],
+      "startedAt": "2026-10-11T04:16:14.886Z",
+      "finishedAt": "2026-10-11T04:16:14.954Z",
+      "exitCode": 0,
+      "signal": null,
+      "launchErrorCode": null
+    }
+  ]
+}

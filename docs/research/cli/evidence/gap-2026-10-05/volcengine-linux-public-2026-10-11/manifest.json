@@ -1,0 +1,280 @@
+{
+  "scope": "public-linux-volcengine-file-tool-diagnostic-and-source-fix",
+  "formalSample": false,
+  "formal36Observed": 0,
+  "formal9Observed": 0,
+  "actualBilledCostUSD": null,
+  "estimatedCostUSD": 0.0010094000000000001,
+  "publicReleaseCommit": "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  "publicVersion": "0.166.97",
+  "productionFixReleased": false,
+  "sourceSnapshotTiming": "Final local sources and driver after diagnosis; first and intermediate fixtures are retained separately.",
+  "regressions": {
+    "before-final": {
+      "total": 92,
+      "pass": 0,
+      "fail": 5,
+      "skip": 87
+    },
+    "after-ready": {
+      "total": 92,
+      "pass": 5,
+      "fail": 0,
+      "skip": 87
+    },
+    "windows": {
+      "total": 113,
+      "pass": 113,
+      "fail": 0,
+      "skip": 0
+    },
+    "linux": {
+      "total": 113,
+      "pass": 113,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "entries": [
+    {
+      "path": "attempt2/attempt-preparation.json",
+      "bytes": 592,
+      "sha256": "20b0b76f71ee1000fe26b5970667d174499e1fabf0c6d3e41cfeab99825d3d6e"
+    },
+    {
+      "path": "attempt2/diagnostic-result.json",
+      "bytes": 2229,
+      "sha256": "7199832644d2cc9022021a2af7f35e652e917ef24793a93cea0046c9c2dcc2ff"
+    },
+    {
+      "path": "attempt2/live-agent.result.json",
+      "bytes": 1546,
+      "sha256": "e5b22140d6d6172bf85cdf37071c28dd3aa45d0e85bb6bed106c8172daabc2cf"
+    },
+    {
+      "path": "attempt2/live-agent.started.json",
+      "bytes": 1251,
+      "sha256": "99aa7adf3d80889817b8a0a5ef43f70f4b9e160e0aaa35a0fa08a96e0ff1eab3"
+    },
+    {
+      "path": "attempt2/live-agent.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "attempt2/live-agent.stdout",
+      "bytes": 51838,
+      "sha256": "b4fd0c885f178b4a1fd8792abef97dd472e0731f7870c5d3cfabe2a97cf0a72e"
+    },
+    {
+      "path": "attempt2/live-binding.json",
+      "bytes": 1229,
+      "sha256": "a20bf78bc30cf49b8915aa8bb7e923f0ffcf28bf169dc98ed42d0aadcc5316c6"
+    },
+    {
+      "path": "attempt2/probe.txt",
+      "bytes": 27,
+      "sha256": "74ce6345545df783b25057046f80c3efc97c011687de5c64e35c3068dc430f97"
+    },
+    {
+      "path": "cli-version.result.json",
+      "bytes": 639,
+      "sha256": "1af528171d027d932bf333783c0539e6cf25d941e1cda0fe1298d42ba005849b"
+    },
+    {
+      "path": "cli-version.started.json",
+      "bytes": 344,
+      "sha256": "dc30bc006e25e736bc323c606c252e0ea4ddfa62ee2f683432743123aeec9c3f"
+    },
+    {
+      "path": "cli-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "cli-version.stdout",
+      "bytes": 9,
+      "sha256": "2f4f1ef4aaed99d65be54ae44a59df0618fac3570db8a6772b0bb53038cf807f"
+    },
+    {
+      "path": "diagnostic-result.json",
+      "bytes": 1486,
+      "sha256": "3d0f7a348f65996319c3353fff3c8426e7a965edee9f2e39d74b5d5fb391f197"
+    },
+    {
+      "path": "live-agent.result.json",
+      "bytes": 1557,
+      "sha256": "600cdfbf8567ae809c1bc137778cf6226ae753340ca22f01f8a024780e40712e"
+    },
+    {
+      "path": "live-agent.started.json",
+      "bytes": 1262,
+      "sha256": "49094cb4fe3ffe451b95c875fd9419bdd7a52cf91cfb7df2761c09008590f686"
+    },
+    {
+      "path": "live-agent.stderr",
+      "bytes": 59,
+      "sha256": "75aa48c3c3b90d4c7c5ea0b6a04157179cc0dc3499602665b51e9d4fb058529b"
+    },
+    {
+      "path": "live-agent.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "live-binding.json",
+      "bytes": 1240,
+      "sha256": "595ed18790755e98c2c19bbc130a15b407fcd4a3361e3360f965cdd28c724ad3"
+    },
+    {
+      "path": "npm-install.result.json",
+      "bytes": 898,
+      "sha256": "315c2a63dc9dfd8cf9cdb09aa7c6ce536a7528c456640aa00e132408d324f3d4"
+    },
+    {
+      "path": "npm-install.started.json",
+      "bytes": 603,
+      "sha256": "9b841327dbe56a50de4b63c5a653a426953f4c06d482705466cd18da6385a966"
+    },
+    {
+      "path": "npm-install.stderr",
+      "bytes": 208,
+      "sha256": "5ca6fd9b19fb38e718c60f907778eda9cdfca6dfdee54fb3f048ff9e77f46a4d"
+    },
+    {
+      "path": "npm-install.stdout",
+      "bytes": 26,
+      "sha256": "2ff104267d8beb6d263e8afa4d30fc9e3dc3d1ac04cf8a35f34e15d0d23a04e7"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 209471,
+      "sha256": "0503f1e5b2d35459a5e6b65e43e45c75d0c7e3642b847a217a69f630d9e963e3"
+    },
+    {
+      "path": "prepare-complete.json",
+      "bytes": 108,
+      "sha256": "562962200d5c94ed6825ceb5d1fddc3fa206a4546849c52b5e431ef4c104cea9"
+    },
+    {
+      "path": "prepared-state.json",
+      "bytes": 1285,
+      "sha256": "673bf620c2c0586246f211d46fb6b4315b9b4b1ef684682eb5b1e334550cc634"
+    },
+    {
+      "path": "public-install.json",
+      "bytes": 1546,
+      "sha256": "120683df725d5367e15408e81b09bdda53680f25a3b055f399439a34641bc1bd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4869,
+      "sha256": "08a362b6b895c043d8fe6fa9e4e91d3ca7457c901593a3e19019f0dc886c27ef"
+    },
+    {
+      "path": "regression/after-final.json.gz",
+      "bytes": 5202,
+      "sha256": "ebd3e7e0fd316a34c73842ea7bafbe729663f7847b8f2c9a482cd94c099bfdce",
+      "rawBytes": 42636,
+      "rawSha256": "0576698a677eddc7cc29edb0eda25ea0aeb642ae4b1d498b533c881d5d74040b"
+    },
+    {
+      "path": "regression/after-fixture3.json.gz",
+      "bytes": 4265,
+      "sha256": "348caaa5a9fd64f5cf9895c45b1e8dbdb3151fa44263787ef2c99cf52b6d71b1",
+      "rawBytes": 34686,
+      "rawSha256": "24719c6f763e6f9fa70bf6be8e387f97bca23dfc86f89205297251d2fdbf869c"
+    },
+    {
+      "path": "regression/after-ready.json.gz",
+      "bytes": 3892,
+      "sha256": "47fdaa21d56591e83cf7655c364b0968262102c176601ecc9d03ea90e3087ab2",
+      "rawBytes": 30669,
+      "rawSha256": "2211652cd6b82a1e889f2c18b13c8d0bbdd0b0d9114ee4278fc519a707005f22"
+    },
+    {
+      "path": "regression/after.json.gz",
+      "bytes": 4092,
+      "sha256": "5ff380aed2919bdf3d829c7a8ed8ebd1a951d8ebe4c72c6a43333b1b370ebbf9",
+      "rawBytes": 32024,
+      "rawSha256": "b0095ccb2923659b6df06e2c46460f535aab0e4d96eea80afb62b2d4b2c99671"
+    },
+    {
+      "path": "regression/before-final.json.gz",
+      "bytes": 4105,
+      "sha256": "16a8a8763e6ddc8719e09b993bd1c9c4e7e9ddf10ceb43602f24fbc21211af65",
+      "rawBytes": 32504,
+      "rawSha256": "e3f0f5aca1460e708f27406f19c217b7959406da108b2fba85cff4743087f65e"
+    },
+    {
+      "path": "regression/before-fixture2.json.gz",
+      "bytes": 4100,
+      "sha256": "3ad64703b8c4ffafd05fbbac7d328c257070b80fe5d98ec3eccce097a53664fb",
+      "rawBytes": 32503,
+      "rawSha256": "5ed89ba8367734542116a801aa61ef385079d322ac354853ba1039536ecaf53f"
+    },
+    {
+      "path": "regression/before.json.gz",
+      "bytes": 4065,
+      "sha256": "b5325a11c3e2756cdd3a6069a484289eb27c75ba330309ffef7aaaeb8c39038b",
+      "rawBytes": 32286,
+      "rawSha256": "da875861c394805ea4b7ca8e18bc6277ef67b10cf18fabe998690bbba676f863"
+    },
+    {
+      "path": "regression/fixture-debug.json.gz",
+      "bytes": 4590,
+      "sha256": "ee7f76557cff0008dab22176defa6b83422f5c7b4a03730668965c21c50ec150",
+      "rawBytes": 32600,
+      "rawSha256": "880e1bdccb8ae1e72e9ddf02a5230ac65eed8f58963a14442b6aad16061dfb69"
+    },
+    {
+      "path": "regression/linux.json.gz",
+      "bytes": 6079,
+      "sha256": "5af1e8ba8fbe4cea9f245c1f52c531133189f16b07da7d7d2e5f07db6ae544a9",
+      "rawBytes": 40639,
+      "rawSha256": "97886500891780abeb6865ce00d102ba9a581b58c46664151edc73e28b807c8e"
+    },
+    {
+      "path": "regression/windows.json.gz",
+      "bytes": 6051,
+      "sha256": "16d66e3ae73054c1316a7d20899e653446ff9a25cf6b37172391213a4f5d2f55",
+      "rawBytes": 40657,
+      "rawSha256": "8dad531d7d44bf974de3610c04be7c3f99aaa2b5e84d3b4509ccaf83dba3eb38"
+    },
+    {
+      "path": "sources/config-preflight.mjs.gz",
+      "bytes": 647,
+      "sha256": "bf8aadf9740842c4dd7e8edc70a0371df1485dc9c92dc7d34489411be5a77832",
+      "rawBytes": 1423,
+      "rawSha256": "11dada07f9882db182a0137a3b5e061b96499a586b56e21d648656b2c3b365ef"
+    },
+    {
+      "path": "sources/diagnostic-driver.mjs.gz",
+      "bytes": 5137,
+      "sha256": "eebd533223f82fce615294f054a68e9c801885c17f929f1129754383e5d9370f",
+      "rawBytes": 15422,
+      "rawSha256": "ac535fcab10938d1d687f89ab5daca8cfa1b537a9a6a806d39d208071c95e973"
+    },
+    {
+      "path": "sources/headless-runner.js.gz",
+      "bytes": 45225,
+      "sha256": "6ef3e81904bfd3d6195f3c34b81ba7e276640fb009513dd8646ded757eae36ad",
+      "rawBytes": 165374,
+      "rawSha256": "ed556040b9c84dce3ed2637212e42022b6df1cb97af3942b7a59a76317788af9"
+    },
+    {
+      "path": "sources/headless-runner.test.js.gz",
+      "bytes": 18127,
+      "sha256": "2d5c2b6a549842b08b8f7a5109742bc2a5fb1e90cf8ec6113eeef01d7b22395a",
+      "rawBytes": 86007,
+      "rawSha256": "e0680978db1f36d4b1876955cc639edf0211cf27dc4c11996f46ccf6cb19b84c"
+    },
+    {
+      "path": "sources/windows-launch.mjs.gz",
+      "bytes": 936,
+      "sha256": "5bf7e706f8101f9501bc35bc6c8036a325c573d1e7bd00a21ec265153f799de1",
+      "rawBytes": 2056,
+      "rawSha256": "1b155edd75e3317a2ee8ab367d0d2cdd3eb6df2a1756e2d0515b9ac93d79c08b"
+    }
+  ]
+}

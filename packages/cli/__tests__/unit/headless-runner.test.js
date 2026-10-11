@@ -28,6 +28,7 @@ vi.mock("../../src/runtime/fallback-model.js", () => ({
 
 import {
   runAgentHeadless as runAgentHeadlessWithIngress,
+  chatWithTools,
   normalizePermissionMode,
   resolvePermissionMode,
   resolveEnabledTools,
@@ -314,6 +315,120 @@ describe("headless-runner — team message tools", () => {
 });
 
 describe("headless-runner — exact delivery fixer authority", () => {
+  it.each([
+    {
+      label: "an explicit write/read allowlist",
+      allowedTools: ["write_file", "read_file"],
+      permissionMode: "acceptEdits",
+      expected: ["write_file", "read_file"],
+    },
+    {
+      label: "an empty allowlist",
+      allowedTools: [],
+      permissionMode: "acceptEdits",
+      expected: [],
+    },
+    {
+      label: "tools outside the hermetic file ceiling",
+      allowedTools: ["read_file", "run_shell", "mcp__remote__read", "run_code"],
+      permissionMode: "acceptEdits",
+      expected: ["read_file"],
+    },
+    {
+      label: "plan mode with requested writes",
+      allowedTools: ["read_file", "write_file", "edit_file"],
+      permissionMode: "plan",
+      expected: ["read_file"],
+    },
+    {
+      label: "plan mode without an explicit allowlist",
+      allowedTools: undefined,
+      permissionMode: "plan",
+      expected: ["read_file", "search_files", "list_dir"],
+    },
+  ])("narrows advertised and model tools for $label", async (testCase) => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-headless-formal-tool-ceiling-"));
+    const prior = {
+      marker: process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC,
+      provider: process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER,
+      home: process.env.CHAINLESSCHAIN_HOME,
+    };
+    const modelTools = [];
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (_url, request) => {
+        const body = JSON.parse(request.body);
+        modelTools.push((body.tools || []).map((tool) => tool.function.name));
+        return new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: { role: "assistant", content: "done" },
+                finish_reason: "stop",
+              },
+            ],
+            usage: { prompt_tokens: 7, completion_tokens: 3, total_tokens: 10 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      });
+    const { deps, out, err } = makeDeps((messages, options) =>
+      chatWithTools(messages, {
+        ...options,
+        apiKey: "unit-test-only",
+        onToken: undefined,
+      }),
+    );
+    deps.bootstrap = vi.fn(async () => ({ db: null }));
+    process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
+    process.env.CC_FORMAL_QUALITY_EVAL_PROVIDER = "volcengine";
+    process.env.CHAINLESSCHAIN_HOME = dir;
+    try {
+      const result = await runAgentHeadless(
+        {
+          prompt: "finish without calling a tool",
+          cwd: dir,
+          provider: "volcengine",
+          model: "deepseek-v4-flash-ga-260731",
+          baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+          outputFormat: "stream-json",
+          ephemeral: true,
+          exactToolNames: true,
+          permissionMode: testCase.permissionMode,
+          ...(testCase.allowedTools === undefined
+            ? {}
+            : { allowedTools: Object.freeze([...testCase.allowedTools]) }),
+        },
+        deps,
+      );
+      expect(result, JSON.stringify({ result, err, out })).toMatchObject({
+        exitCode: 0,
+      });
+      const init = out
+        .join("")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+        .find((event) => event.type === "system" && event.subtype === "init");
+      expect(init.tools).toEqual(testCase.expected);
+      expect(modelTools.map((names) => [...names].sort())).toEqual([
+        [...testCase.expected].sort(),
+      ]);
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+      for (const [name, value] of [
+        ["CC_FORMAL_QUALITY_EVAL_HERMETIC", prior.marker],
+        ["CC_FORMAL_QUALITY_EVAL_PROVIDER", prior.provider],
+        ["CHAINLESSCHAIN_HOME", prior.home],
+      ]) {
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("adopts the isolated formal quality hermetic boundary from launch env", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cc-headless-formal-quality-"));
     const prior = {

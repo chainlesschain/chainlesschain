@@ -1368,14 +1368,19 @@ async function runAgentHeadlessInWorkspace(
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
+  const requestedToolNames = resolveEnabledTools({
+    // An explicit --allowed-tools wins; otherwise a matched command's
+    // `allowed-tools:` frontmatter scopes the run (null when neither applies).
+    allowedTools: options.allowedTools || macroAllowedTools,
+    readOnly: perm.readOnly,
+  });
+  // The formal file-only ceiling must also honor narrower caller permissions,
+  // including an empty allowlist and plan mode's read-only intersection.
   const enabledToolNames = formalQualityHermetic
-    ? [...FORMAL_QUALITY_FILE_TOOLS]
-    : resolveEnabledTools({
-        // An explicit --allowed-tools wins; otherwise a matched command's
-        // `allowed-tools:` frontmatter scopes the run (null when neither applies).
-        allowedTools: options.allowedTools || macroAllowedTools,
-        readOnly: perm.readOnly,
-      });
+    ? (requestedToolNames ?? FORMAL_QUALITY_FILE_TOOLS).filter((name) =>
+        FORMAL_QUALITY_FILE_TOOLS.includes(name),
+      )
+    : requestedToolNames;
   const disabledTools = options.disallowedTools || [];
 
   // ── Best-effort runtime bootstrap (DB optional, like startAgentRepl) ───
