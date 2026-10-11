@@ -1,5 +1,7 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-11 候选CI失败修复**：准确a219的Windows benchmark/writer probe被native canonical guard拒绝；已在夹具入口规范TEMP，保留原失败。真实junction benchmark前拒绝/后1000条四模式一致；干净993805writer exit0与fences通过，初始driver全临时根空断言被独立logger目录触发，静态回读仅确认writer夹具清理，原件保留。Memory32pass/1skip、Kernel112/112；Kernel候选升0.1.9，CLI依赖/lock对齐。独立复测认证接入JSON估算，Windows/Linux各43/43，不回填账单或正式样本。新准确提交须完整四门和相关失败门；未发行。见[原件与修复](./evidence/gap-2026-10-05/release-0.166.98/ci-repair/README.md)。正式**36+9/NOT_RUN/observed=0/$99**及其余人工/账单/宿主/durable/native/长时开放项保持。以下历史时点保留。
+
 > **2026-10-11 CLI 0.166.98 / 配对 IDE 候选**：真实任务优化后继续修复预算计数打断火山兼容稳定消息前缀的问题；新增序列化回归，无新付费调用。九套最终 Windows/Linux各**522/522**，VS完整单位**260/260**，JetBrains显式JDK21 **955 tests、0failures/0errors/3skip**及打包成功。保留旧521/1、无reporter超时、VS259/1和Java17启动失败。Session Core**0.3.19** → CLI**0.166.98** → VS**0.37.142** / JB**0.4.160**已对齐；用户已授权测试成功后发布，最终准确提交Actions门与公开回读仍待完成，未新发行或合并。[优化与候选原件](./evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。 正式**36+9/NOT_RUN/observed=0/$99**保持，模型交付优化未付费复跑，其余人工/账单/GUI/durable/native/长时项仍开放。以下历史记录不改写。
 
 > **2026-10-11 火山首次旅程实测与优化**：安装、配置、认证通过；原冻结工具任务20轮耗尽，无write/edit、候选0字节，整体失败；已有baseline22/22与四项semantic无法建立均完整保留。工具估算约**$0.03607**，认证/总旅程/invoice未知。已落实预算与交付提示、默认planner任务保护、预算耗尽分类及空候选语义诊断；Windows/Linux最终各**521/521**、离线合同各**39/39**，Astra发现已修复。优化未再次付费实跑，见[实际原件与优化总结](./evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式**36+9 / NOT_RUN / observed=0 / $99**保持；其余人工/账单/目标宿主、durable/native与长时验收仍开放。以下记录保留各自历史时点。

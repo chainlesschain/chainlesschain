@@ -1119,18 +1119,17 @@ root PID28452、thread24784；前后有效primary token、无impersonation、cap
 
 准确fcee60的Actions回读时点为**2026-10-11T06:30:12.939Z**；CLI/Strict/完整36题Docker尚未全矩阵完成，不借用旧SHA的成功。
 
-| 工作流 | 状态 / 结论 | job计数 |
-| --- | --- | --- |
-| [CLI Strict Sandbox / 38117931218](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931218) | queued / null | success=3，queued=2 |
-| [VERIFY01 Docker Review Pack / 38117931299](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931299) | queued / null | queued=6 |
-| [CLI CI / 38117931406](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931406) | queued / null | queued=65 |
-| [VERIFY01 Public Install Diagnostic / 38117931353](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931353) | completed / success | success=1 |
-| [VERIFY01 Pricing Semantic Diagnostic / 38117931229](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931229) | completed / success | success=1 |
+| 工作流                                                                                                                          | 状态 / 结论         | job计数             |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------- |
+| [CLI Strict Sandbox / 38117931218](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931218)                   | queued / null       | success=3，queued=2 |
+| [VERIFY01 Docker Review Pack / 38117931299](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931299)          | queued / null       | queued=6            |
+| [CLI CI / 38117931406](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931406)                               | queued / null       | queued=65           |
+| [VERIFY01 Public Install Diagnostic / 38117931353](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931353)   | completed / success | success=1           |
+| [VERIFY01 Pricing Semantic Diagnostic / 38117931229](https://github.com/chainlesschain/chainlesschain/actions/runs/38117931229) | completed / success | success=1           |
 
 同SHA重复push Docker run38117926343在六job均queued时取消，保留PR run38117931299；这只是去重。后续纯文档提交不把该矩阵转移到新SHA。
 
 正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0**、$99、旧计划指纹和截止窗口保持。独立人工预审/外部review锁、可靠账单或硬额度、目标GUI/辅助技术、8h/24h/SLO、Windows/macOS durable/owner-only及完整native review仍开放；原模型verdict与候选未重写。本轮没有合并或发行。
-
 
 ### 20.36 2026-10-11 首次旅程接线与费用修复
 
@@ -1142,11 +1141,9 @@ Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同
 
 正式36+9/NOT_RUN/observed=0/$99及计划指纹保持；准确源码CI须单独验收，不继承旧SHA。独立人工/外部review锁、可靠账单/硬额度、目标宿主/辅助技术、8h/24h/SLO及Windows/macOS durable/owner-only/native review仍开放。未合并或发行。
 
-
 ### 20.37 2026-10-11 首次旅程 fresh checkout 启动修复
 
 首次Actions在无账户验证阶段发现共享执行器间接引入semver，模型步骤均skipped，零新费用。抽取workspace助手并保留旧API和原文件边界；Astra发现的EMPTY_DELIVERABLE_DIGEST遗漏已恢复。仓库外无依赖clone、Node hooks清除、真实冻结Git对象和keyless prepare：Windows22.22.2/Linux22.12各23/23；执行器/host capture/import85/85、collection42/42，各127/127，零skip。原Actions失败、夹具与WSL环境失败同时归档，新源码显式付费旅程待验证。正式36+9/NOT_RUN/observed=0/$99保持，未合并或发行。详见[21份原件与优化](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/bootstrap/README.md)。
-
 
 ### 20.38 2026-10-11 火山首次旅程实际失败与交付优化
 
@@ -1156,9 +1153,12 @@ Linux CLI五阶段独立诊断复用公开CLI0.166.97正常lifecycle安装与同
 
 完整164制品、原API/job/ZIP与八源码blob、失败和最终reporter见[实测与优化归档](./cli/evidence/gap-2026-10-05/first-run-2026-10-11/live-postmortem/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结计划与窗口不变。独立人工/外部锁、invoice/硬额度、目标GUI/辅助技术、durable/owner-only/native及8h/24h/SLO仍开放；准确优化提交须自身CI，不合并或发行。
 
-
 ### 20.39 2026-10-11 CLI 0.166.98 最终本机回归与候选准备
 
 本轮将有限预算提示尾附并绑定可信system index，火山兼容HTTP序列化回归保持稳定conversation/tool schema前缀；Anthropic合并system的限制保留，不声称实际省费。修正旧hook测试末尾user假定而保留展开功能断言，更新安全producer摘要；Windows/Linux最终九套各522/522。VS新增单fixture失败清理，不放宽生产期限/断言，owner3/3和完整260/260；Java17缺toolchain失败后显式JDK21测试955项与buildPlugin成功。两次无reporter超时、521pass/1fail、初始VS259/1及受控残留进程回执保留；初始TAP/Gradle完整stdout缺失范围明确。
 
 SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐元数据一致。用户已授权成功后发布，须最终准确SHA的CLI CI/Strict/IDE/ARM64完整门，通过后既有OIDC子包→CLI→IDE并公开回读；当前未发布或合并。见[159份新增原件与优化](./cli/evidence/gap-2026-10-05/release-0.166.98/preparation/README.md)。正式36+9/NOT_RUN/observed=0/$99、冻结指纹与旧窗口不变；优化未付费复跑，人工/账单/GUI/durable/native/长时验收仍开放。
+
+### 20.40 2026-10-11 发行候选临时目录失败修复
+
+准确a219的Windows benchmark/writer probe被native canonical guard拒绝；已在夹具入口规范TEMP，保留原失败。真实junction benchmark前拒绝/后1000条四模式一致；干净993805writer exit0与fences通过，初始driver全临时根空断言被独立logger目录触发，静态回读仅确认writer夹具清理，原件保留。Memory32pass/1skip、Kernel112/112；Kernel候选升0.1.9，CLI依赖/lock对齐。独立复测认证接入JSON估算，Windows/Linux各43/43，不回填账单或正式样本。新准确提交须完整四门和相关失败门；未发行。完整原件、双摘要与限制见[修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair/README.md)。
