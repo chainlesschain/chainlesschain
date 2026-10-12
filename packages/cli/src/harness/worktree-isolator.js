@@ -172,9 +172,25 @@ function parseRegisteredWorktrees(output) {
 }
 
 function readRegisteredWorktrees(repoDir) {
-  return parseRegisteredWorktrees(
-    gitExecArgs(["worktree", "list", "--porcelain"], repoDir),
-  );
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return parseRegisteredWorktrees(
+        gitExecArgs(["worktree", "list", "--porcelain"], repoDir),
+      );
+    } catch (error) {
+      // A concurrent `worktree add` can remove its temporary lock marker
+      // between Git's existence check and read. Retry only this read-only
+      // registry snapshot; never replay mutations or accept partial output.
+      if (
+        attempt >= 3 ||
+        !/^fatal: failed to read '[^'\r\n]*[\\/]worktrees[\\/][^'\\/\r\n]+[\\/]locked': No such file or directory$/u.test(
+          error?.message || "",
+        )
+      ) {
+        throw error;
+      }
+    }
+  }
 }
 
 function repositoryManagementContext(repoDir) {
