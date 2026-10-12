@@ -27,7 +27,10 @@ async function listen(server) {
 }
 
 async function closeServer(server) {
-  if (!server.listening) return;
+  if (!server.listening) {
+    return;
+  }
+  server.closeAllConnections();
   await new Promise((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
@@ -38,16 +41,25 @@ describe("BrowserEngine real Chromium download boundary", () => {
   let server = null;
 
   afterEach(async () => {
-    if (engine?.isRunning) await engine.stop().catch(() => {});
-    if (server) await closeServer(server).catch(() => {});
+    if (engine?.isRunning) {
+      await engine.stop().catch(() => {});
+    }
+    if (server) {
+      await closeServer(server).catch(() => {});
+    }
     engine = null;
     server = null;
   });
 
   it("cancels native downloads and closes page-initiated popups", async () => {
-    const payload = Buffer.from("download-boundary-sentinel", "utf8");
+    const payload = Buffer.alloc(
+      64 * 1024,
+      "download-boundary-sentinel",
+      "utf8",
+    );
     let declarativeDownloadRequests = 0;
     let nativeDownloadRequests = 0;
+    let nativeDownloadClosed = false;
     server = createServer((request, response) => {
       if (request.url === "/declarative-file") {
         declarativeDownloadRequests += 1;
@@ -70,6 +82,15 @@ describe("BrowserEngine real Chromium download boundary", () => {
         "content-disposition": 'attachment; filename="sentinel.bin"',
         "content-length": payload.byteLength,
       });
+      if (request.url === "/native-file") {
+        response.once("close", () => {
+          nativeDownloadClosed = true;
+        });
+        // Leave enough bytes for Chromium's response sniffing, but no EOF.
+        // Closing this unfinished transfer proves cancellation occurred.
+        response.write(payload.subarray(0, 4096));
+        return;
+      }
       response.end(payload);
     });
     const origin = await listen(server);
@@ -89,23 +110,26 @@ describe("BrowserEngine real Chromium download boundary", () => {
     });
     expect(declarativeDownloadRequests).toBe(0);
 
-    const downloadBlocked = onceWithTimeout(engine, "tab:download-blocked");
-    const nativeDownload = page.waitForEvent("download");
-    await page.click("#native-download");
-    const download = await nativeDownload;
-    await expect(downloadBlocked).resolves.toEqual({
+    const [downloadBlocked, download] = await Promise.all([
+      onceWithTimeout(engine, "tab:download-blocked"),
+      page.waitForEvent("download", { timeout: 10_000 }),
+      page.click("#native-download", { timeout: 10_000 }),
+    ]);
+    expect(downloadBlocked).toEqual({
       profileName: "download-e2e",
     });
-    await expect
-      .poll(() => download.failure(), { timeout: 5000 })
-      .toMatch(/cancel|acceptDownloads/u);
+    await expect.poll(() => nativeDownloadClosed, { timeout: 5000 }).toBe(true);
+    // The guard also deletes the download artifact. Its failure() channel may
+    // already be disposed, so assert the transfer and file-access boundaries.
     await expect(download.path()).rejects.toThrow();
     expect(nativeDownloadRequests).toBe(1);
     expect(engine.pages.size).toBe(1);
 
-    const popupBlocked = onceWithTimeout(engine, "tab:popup-blocked");
-    await page.click("#popup");
-    await expect(popupBlocked).resolves.toMatchObject({
+    const [popupBlocked] = await Promise.all([
+      onceWithTimeout(engine, "tab:popup-blocked"),
+      page.click("#popup", { timeout: 10_000 }),
+    ]);
+    expect(popupBlocked).toMatchObject({
       profileName: "download-e2e",
       reason: "unattributed-page-navigation",
     });
