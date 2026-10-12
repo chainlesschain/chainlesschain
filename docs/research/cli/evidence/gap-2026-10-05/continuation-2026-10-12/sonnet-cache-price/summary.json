@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-10-12T04:20:36.110Z",
+  "sourceCommit": "bdaf873c68a706ee65b985892d2603cbe0510979",
+  "testParentCommit": "a537486bac13763a90aedffa1a59ef538121afcf",
+  "testedSourcesMatchCommittedBlobs": true,
+  "pricingScope": "Anthropic first-party Sonnet 5.5 standard public list-price estimate; existing input, output and cache-write rates preserved.",
+  "priceBeforeUsdPerMillion": 0.2,
+  "priceAfterUsdPerMillion": 0.1,
+  "cacheReadMultiplier": 0.05,
+  "tests": {
+    "total": 74,
+    "passed": 74,
+    "failed": 0,
+    "pending": 0,
+    "todo": 0,
+    "node": "v22.22.2",
+    "platform": "win32"
+  },
+  "upstreamBaselineAdvanced": false,
+  "upstreamReviewRequired": true,
+  "historicalAmountsRewritten": false,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "published": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0
+}

@@ -1,0 +1,311 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T04:29:02.461Z",
+  "summarySha256": "97cc46172e47a58dd2508a378da4e4510aa65246597a8e2c61aa4023864d9e3d",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818774-jobs.json",
+      "path": "objects/000.gz",
+      "rawBytes": 17559,
+      "rawSha256": "2ce10dcb243b2140b20d1ce6bb777841a4b245ccbb27686debf6f8c3660aa706",
+      "bytes": 1722,
+      "sha256": "e3dcf16fd982e689210c64b9c68ea051581208a5337fd7d5dc63635c50d09041"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818774-run.json",
+      "path": "objects/001.gz",
+      "rawBytes": 13773,
+      "rawSha256": "fc0cf480425c4a2acc89411df9eb138b0467cff99bd7f5edd63d709ac11a5adb",
+      "bytes": 1709,
+      "sha256": "99767503e8d07c8f6a6f180d5e101a7737ec09aabd5e9e1a07e7ead1b3b52d1e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818792-jobs.json",
+      "path": "objects/002.gz",
+      "rawBytes": 17921,
+      "rawSha256": "59ebbd2e4c1a892ce39c3c0898b91776728a306257a4882df3eb3bc5ebbffeb4",
+      "bytes": 1766,
+      "sha256": "13a1409fc6b2ab573854b42999e8d5935209eabf65656f944a2fb3bffce5c0e9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818792-run.json",
+      "path": "objects/003.gz",
+      "rawBytes": 13785,
+      "rawSha256": "5afefc71c2ebfcf8e32913db8ffd33c12c681813109f3a4e328bc17b55cbfdac",
+      "bytes": 1717,
+      "sha256": "9f54e7727d695e9688ee42a74799b09252ebe3443a8bd76dae669dcd8f93ea80"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818820-jobs.json",
+      "path": "objects/004.gz",
+      "rawBytes": 29222,
+      "rawSha256": "c6d233b440029e0dfb4278d0de1833f0ab2f78a0902cda7d7b0d4fd491757077",
+      "bytes": 2463,
+      "sha256": "8ffd787d24c4ff2aa589e95efaa696119e631fd9dd068487495b183f8a583285"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818820-run.json",
+      "path": "objects/005.gz",
+      "rawBytes": 13768,
+      "rawSha256": "cf4a0349bb360440dd4eb6171f50c6ac850222b3b4a678145276c5d455efdc19",
+      "bytes": 1699,
+      "sha256": "01a454636ce09536c6aa920d91f60c90cbe5bb74c8ad4ee3c1dbccea3559e603"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818827-jobs.json",
+      "path": "objects/006.gz",
+      "rawBytes": 21580,
+      "rawSha256": "bdde7d006b7d95a15f8d010268d9ec724b2d760ea1d69a36ee07c6d95398d821",
+      "bytes": 2106,
+      "sha256": "737fed31ba7124049385519c63ac5555066d34d808b80fd54f289fb387b06dc7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818827-run.json",
+      "path": "objects/007.gz",
+      "rawBytes": 13774,
+      "rawSha256": "f36614757effa6a86f43bb9463768365b57b132c73a662ed254713a3fac482ab",
+      "bytes": 1712,
+      "sha256": "2e5c850869f175a5e3a4eff678dc44c2e3d571d408f5e6d3717306056a6fa7fb"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818837-jobs.json",
+      "path": "objects/008.gz",
+      "rawBytes": 37446,
+      "rawSha256": "1e2fa92049b9c3d2e13b3c776882e37ea7f97bd9b310c683c913e5ae7888de3d",
+      "bytes": 2993,
+      "sha256": "2b65453df04dfeab1b328fcdea8ca2eff24c05ab9deb77b6324db153e8adde9d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818837-run.json",
+      "path": "objects/009.gz",
+      "rawBytes": 13752,
+      "rawSha256": "e21b64563e63c97d3d2cc9c721c512cce14872be550fcf38458eabcc3b212cd7",
+      "bytes": 1696,
+      "sha256": "b817f2231835c8628a18e71e1878c67e7730a244dbb34e06d85b3f2b838dc3cb"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818845-jobs.json",
+      "path": "objects/010.gz",
+      "rawBytes": 26836,
+      "rawSha256": "968111703a8c3d5248a4f993a7d52e91c7519f99b965c7186353092ed52df0a8",
+      "bytes": 2218,
+      "sha256": "22efe180c82a3056ed77a5aba67ba9e4ffac06489c8499c2904615231bccb86d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818845-run.json",
+      "path": "objects/011.gz",
+      "rawBytes": 13784,
+      "rawSha256": "5ecbd03461201d3357eff5f06e72d0d506f16156e804a1ec9d4c08c48c779666",
+      "bytes": 1713,
+      "sha256": "31cae1451b2c69d33ea300c9159650cae3f3b50044df7c42ce97428a10dc52bc"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818966-jobs.json",
+      "path": "objects/012.gz",
+      "rawBytes": 83792,
+      "rawSha256": "331e4ff2d29f2f1dd7dca73f97a7c7e37553d1e19d3c2de65334e29fba80363a",
+      "bytes": 3900,
+      "sha256": "38a7752e72abd6144b8818158145569741f0e0f3b530f4153c925c3e6ee4219c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/38201818966-run.json",
+      "path": "objects/013.gz",
+      "rawBytes": 14144,
+      "rawSha256": "29df7376ccc40b2c0763ee20dacf1b90698c67bdac4178a3921f6b7daf43dc71",
+      "bytes": 1779,
+      "sha256": "ef718c88c694c4d1e64507ba6b9815f7599c84014351dc5315034bc1035c921c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-20-37-917Z/summary.json",
+      "path": "objects/014.gz",
+      "rawBytes": 17888,
+      "rawSha256": "8c19e728bed8e938210f6cdce591bdc98537b6c280402270dd3b278720573876",
+      "bytes": 1569,
+      "sha256": "553f2c557c55a1db85002d0281848a6cc656ad7ccaddf26e250129c0b760848f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332384-jobs.json",
+      "path": "objects/015.gz",
+      "rawBytes": 5459,
+      "rawSha256": "9fd954f5fa497aac6f329ba03099e515bf65b2f8853c24ca80290be06fb61a19",
+      "bytes": 643,
+      "sha256": "775f584009c22f42f0c6d62e051058b0b553facb4530eef06cd735fd38522800"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332384-run.json",
+      "path": "objects/016.gz",
+      "rawBytes": 13745,
+      "rawSha256": "9ed3f59e0ff7dd40aac1d132962790a857769b5ec41c201ca797c54d0ffde3bb",
+      "bytes": 1648,
+      "sha256": "7abefc3589c3c63a6c54b3beda68367a8459cf8a7ad63aff800f786d654224b2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332415-jobs.json",
+      "path": "objects/017.gz",
+      "rawBytes": 3375,
+      "rawSha256": "23e21a75adc6b6a400875f28a7496968b373cf6c1e3c9524ee7a88c4ca7b8273",
+      "bytes": 847,
+      "sha256": "2f051a3c486177a6e63ef553d44cd8c42d6f0a7a6a53f41f790affec24e68a35"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332415-run.json",
+      "path": "objects/018.gz",
+      "rawBytes": 13756,
+      "rawSha256": "6579e35313fa6a461c1b0ee4edd8e24ab439e768729fbd37533851e3d0a1227f",
+      "bytes": 1656,
+      "sha256": "fc5f788f85b18c07b0bf2ba4f0da517ed076e9c62855cf25d68f3cdfb0fea337"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332434-jobs.json",
+      "path": "objects/019.gz",
+      "rawBytes": 16324,
+      "rawSha256": "001dcadfb3cb46291829ecc69ec5ca6fe882ff09bc3c32157cd91868c409b82e",
+      "bytes": 1936,
+      "sha256": "51db1d54125e1d6c46a05ff5d2734bce85c7919e29233880e687defb27cbc1af"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332434-run.json",
+      "path": "objects/020.gz",
+      "rawBytes": 13746,
+      "rawSha256": "450ec8b6728986e46bfbdae3c9a4d380153456a00de49854197cf0f102740a2a",
+      "bytes": 1646,
+      "sha256": "bc3861d37a962cb8612f3b1466d07b67ecf7906575b37768d664061b7e935492"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332448-jobs.json",
+      "path": "objects/021.gz",
+      "rawBytes": 13768,
+      "rawSha256": "19a33e117144c0c16ee7ada63797ae6564ef6ff1e2dd9778cc069e5c50d85d00",
+      "bytes": 1548,
+      "sha256": "c3b35c20c4a37d38625268b44fc78695b32605dc58aed391d099a09c514a6d63"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332448-run.json",
+      "path": "objects/022.gz",
+      "rawBytes": 13759,
+      "rawSha256": "c47063536ce6e547fd917982d3fe54e3ecfabdedf3d75b901f1743b4eecadbf2",
+      "bytes": 1662,
+      "sha256": "975c2c15c39ed38ab62186651985e0ff46fec3707731563b5b06edb213564a46"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332502-jobs.json",
+      "path": "objects/023.gz",
+      "rawBytes": 11810,
+      "rawSha256": "2684bbaa28e47093b18063fcc77f7186db27905a88b773f9d97acf741790c825",
+      "bytes": 1558,
+      "sha256": "f51bf667a765c2eda3a00e310b3a52f177113c44c88d40e45013b6732df3d38c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332502-run.json",
+      "path": "objects/024.gz",
+      "rawBytes": 13755,
+      "rawSha256": "992bef499277a6228767685e3fcf1aec8c3f132163b0d945022acb68070d6a05",
+      "bytes": 1653,
+      "sha256": "0ec4e0d2cc749328ae4f2fbd13b0881da9fc44dea9c8142e576f2f843027cf94"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332517-jobs.json",
+      "path": "objects/025.gz",
+      "rawBytes": 12731,
+      "rawSha256": "6c17afa9b3ead9a411afbfe3002c024a2cf7a5b5a0ae4d7111aebb6cc53f727c",
+      "bytes": 938,
+      "sha256": "bace5bce7b8c579957b61c2277cd740f0c2828c0f626617732f50a72a470f0ca"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332517-run.json",
+      "path": "objects/026.gz",
+      "rawBytes": 13722,
+      "rawSha256": "b08933a292e61e32d6b5c01cd76a51e77d173eae9c01953aaf80efb79515f884",
+      "bytes": 1636,
+      "sha256": "bee288a054b18e5d295aa5c899f11f0ef57586f2b5ea59bd1f1372ab9b7c9375"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332522-jobs.json",
+      "path": "objects/027.gz",
+      "rawBytes": 11721,
+      "rawSha256": "6425577c93473d288f551ba8dc4ccad596f6ef49b43b666e0dd81478dfb7464c",
+      "bytes": 1099,
+      "sha256": "b724c3b6d1495561aa190e85648960691d92c661fd1027f66f9423884885dc4b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332522-run.json",
+      "path": "objects/028.gz",
+      "rawBytes": 13738,
+      "rawSha256": "bfe1d9481a203289dcec6f55b50b3f04ea225c20ed72a05cbed274822fe28c77",
+      "bytes": 1640,
+      "sha256": "d33ce6e391ac705ede3680f900823a75a06ed636c516e4d2d368fb90f0177d4c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332622-jobs.json",
+      "path": "objects/029.gz",
+      "rawBytes": 66038,
+      "rawSha256": "c9d3a9afe63616d1b43d79af747f459337363f49f6f94581ed449bdc567e256d",
+      "bytes": 2943,
+      "sha256": "2069da752286142d2e16bbe9ae88e7cf730fd05a3d7cc336ccd8254b535d9d63"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/38203332622-run.json",
+      "path": "objects/030.gz",
+      "rawBytes": 14114,
+      "rawSha256": "eb34e5a20d13f9123e20c62f3ee72ea0fe43278c8ecacba94a5d43718496b308",
+      "bytes": 1724,
+      "sha256": "55ace9180da7a362ca2e995311d024c642581eee20faee393e20f7b4bfe1955d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T04-28-21-094Z/summary.json",
+      "path": "objects/031.gz",
+      "rawBytes": 2369,
+      "rawSha256": "37eb5d48521114c0a5aac3eea74fac61c1666b5e9c04880314862cf905638547",
+      "bytes": 463,
+      "sha256": "73b0d8423b1832066d71be78a406a77b6f45762720360f8ce71686bfbf678441"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/obsolete-runs-before-cancel.json",
+      "path": "objects/032.gz",
+      "rawBytes": 49190,
+      "rawSha256": "131e2e726bc387551f47f15249aab5719ecbc7e55231a00cece62f9faea73e75",
+      "bytes": 2669,
+      "sha256": "ef8cb73cb6ab7c81174b6c46880ad4d059d5de257b13872b752aab4c24cfca0e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/obsolete-run-cancel-results.json",
+      "path": "objects/033.gz",
+      "rawBytes": 486,
+      "rawSha256": "fa6d8111df3cd52ebf5f6435d3d13c151fadba57f5fdf371300e1d1ef536f8a3",
+      "bytes": 228,
+      "sha256": "f2011764d28afd20073db24dffa95e429872bebc762e005b75d83ad64626dbd7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/38203332415-114661294223-log-http-error.json",
+      "path": "objects/034.gz",
+      "rawBytes": 181,
+      "rawSha256": "04647b19e7d7812def296223db8afda3f87efcf5e69d8e12a124a20bc09ccd32",
+      "bytes": 169,
+      "sha256": "72f1b9910f81ee0ff85bc65aaef404d612c1ebd1a87e02f88fe1e5c06168ca59"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/38203332415-full-run.log",
+      "path": "objects/035.gz",
+      "rawBytes": 146772,
+      "rawSha256": "449d683452c2cf710f2760f75cf8f7a877bf57abf51bbb91a9f46b2d54a713e9",
+      "bytes": 13736,
+      "sha256": "55c3e87525d9023680830881bd6958d5fea351581c21f70a5d200fbfec34a9f9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/artifacts-38203332415.json",
+      "path": "objects/036.gz",
+      "rawBytes": 816,
+      "rawSha256": "150fa8e2973b6cf0f0db624af595661d1c79e6e112be7a931899dbd37934773e",
+      "bytes": 471,
+      "sha256": "9cf05132fc748a42f5b56e1e9243490897a937bff157eb495ddb28c1986b77bd"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/jobs-38203332415-terminal.json",
+      "path": "objects/037.gz",
+      "rawBytes": 3380,
+      "rawSha256": "47a9be28acbbce10073cc02d155b50bf5c3c06cf99130692134af3b10d1312ab",
+      "bytes": 862,
+      "sha256": "4a5011ddfcffad464eda51c7d4bd457dc6b24627bb00462da368103924ee44ce"
+    }
+  ]
+}

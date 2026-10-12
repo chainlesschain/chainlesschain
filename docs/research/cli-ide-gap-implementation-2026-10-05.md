@@ -618,3 +618,13 @@ PR Tests 的实际合并检出与 head 来源已逐字节核对；40054pass/194s
 由实际轨迹确认并修复两个工程缺口：search_files 缺 pattern 不再无声执行空搜索，runner-spy 与既有转义/归集共 34/34；暂停 read_file 新增非执行请求声明，与结果同 ID、参数为空，不增加计划/工具执行/副作用记录，三套 209/209。另修复会话跟随测试调度与失败清理 16/16，原生业务配置统一 30 秒功能预算后全套 231/231；Gradle 8.7 仅下载准备阶段的有界网络重试双平台各 6/6。原 848e6e4 新 CI 两项默认 5 秒失败保留。[草稿 PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)含工程提交 848e6e4、861e9bc，新准确源码 Actions 另验，尚未发布这些后续增量。
 
 正式 **36+9 / NOT_RUN / observed=0 / $99**、冻结指纹与旧窗口保留。合规目标宿主、独立人工预审、官方模型/账单/硬额度、真人辅助技术、Windows/macOS native/durable 及 8h/24h/SLO 仍未结案。证据总目录为 [continuation-2026-10-12](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/)。
+
+## 47. 2026-10-12 上游漂移回读与 Sonnet 缓存定价修复
+
+旧准确 08e883 的 [Model Catalog run38201454792](https://github.com/chainlesschain/chainlesschain/actions/runs/38201454792) 本地合同通过，但观察到 Codex CLI 0.162.1 / Claude Code 2.1.296，相对 0.160.0 / 2.1.289 触发 exit 2 漂移告警。7 个冻结 Git blob、review 与两份上游输入均逐字节匹配原 artifact 的摘要；17 份原始 API、日志、输入与报告见[漂移归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/model-catalog-drift/README.md)。完整新 CLI 能力/安全审查仍待完成，不自动推进基线。
+
+Sonnet 5.5 的缓存读取价格经两处官方定价与原 changelog 核对，现为 USD 0.10 / 百万 token；共享目录倍率由 0.1 改为 0.05。四个相关文件 74/74 通过、零失败/跳过，验证 100K 缓存 USD 0.01、混合请求与 CostBudget 均 USD 0.038，并隔离旧型号。测试时 a537 工作区的五份执行源文件与工程提交 **bdaf873c68a706ee65b985892d2603cbe0510979** 的 Git blob 完全一致；原始官方页面、前后源码、报告等 24 份原件见[价格修复](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/sonnet-cache-price/README.md)。历史账单估算及冻结候选未重算，没有实际账单核验。
+
+a537 的 CLI Strict Sandbox run38201818827 为 5/5 成功，Quality run38201818774 为 7 成功/2 条件跳过；旧 CLI/CI Tests/Kernel/IDE 的未完成门在新提交后被替换/取消；旧 Host 的继续运行结果单独保留，未完成矩阵不计通过。bdaf873 的 Model Catalog PR run38203332415 为 completed/success，上游抓取/漂移步骤条件跳过；**其余准确源码 CI 正在执行**，旧成绩不转移为新源码或发行准入。原始 API 与来源见[当前 CI 回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-progress/README.md)。此前 387 份压缩/原文双摘要全部核验成功。新增工程已推送 [草稿 PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)，未公开发布、合并或新增付费请求。
+
+正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0 / $99** 和 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0` 保持。原窗口 2026-10-12 00:00 UTC 已结束，后续延期需要新的计划版本；合规宿主、独立人工、官方账户/账单/硬额度、辅助技术、Windows/macOS native/durable 和 8h/24h/SLO 仍未结案。

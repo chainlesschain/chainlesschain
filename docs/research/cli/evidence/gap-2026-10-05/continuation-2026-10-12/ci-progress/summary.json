@@ -1,0 +1,182 @@
+{
+  "capturedAt": "2026-10-12T04:29:02.461Z",
+  "historicalSource": "a537486bac13763a90aedffa1a59ef538121afcf",
+  "historicalCapturedAt": "2026-10-12T04:20:45.796Z",
+  "currentSource": "bdaf873c68a706ee65b985892d2603cbe0510979",
+  "currentCapturedAt": "2026-10-12T04:28:23.687Z",
+  "historicalRuns": [
+    {
+      "id": "38201818966",
+      "name": "CLI CI",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 7,
+        "cancelled": 62
+      }
+    },
+    {
+      "id": "38201818827",
+      "name": "CLI Strict Sandbox",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 5
+      }
+    },
+    {
+      "id": "38201818837",
+      "name": "CI Tests",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 8,
+        "cancelled": 5,
+        "skipped": 1
+      }
+    },
+    {
+      "id": "38201818845",
+      "name": "VERIFY01 Host Diagnostics",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "in_progress",
+      "conclusion": null,
+      "jobs": {
+        "success": 3,
+        "in_progress": 4
+      }
+    },
+    {
+      "id": "38201818774",
+      "name": "Code Quality & Security",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 7,
+        "skipped": 2
+      }
+    },
+    {
+      "id": "38201818792",
+      "name": "Context Memory Kernel CI",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "cancelled": 1,
+        "success": 2
+      }
+    },
+    {
+      "id": "38201818820",
+      "name": "IDE Extensions",
+      "sha": "a537486bac13763a90aedffa1a59ef538121afcf",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 3,
+        "cancelled": 16
+      }
+    }
+  ],
+  "currentRuns": [
+    {
+      "id": "38203332622",
+      "name": "CLI CI",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "queued": 62,
+        "in_progress": 1,
+        "success": 2
+      }
+    },
+    {
+      "id": "38203332434",
+      "name": "CLI Strict Sandbox",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "in_progress": 2,
+        "success": 2,
+        "queued": 1
+      }
+    },
+    {
+      "id": "38203332517",
+      "name": "CI Tests",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "queued": 13,
+        "skipped": 1
+      }
+    },
+    {
+      "id": "38203332448",
+      "name": "VERIFY01 Host Diagnostics",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "success": 1,
+        "queued": 4,
+        "in_progress": 2
+      }
+    },
+    {
+      "id": "38203332384",
+      "name": "Code Quality & Security",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "queued": 6
+      }
+    },
+    {
+      "id": "38203332502",
+      "name": "Context Memory Kernel CI",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "success": 1,
+        "in_progress": 1,
+        "queued": 1
+      }
+    },
+    {
+      "id": "38203332522",
+      "name": "IDE Extensions",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "queued",
+      "conclusion": null,
+      "jobs": {
+        "success": 1,
+        "queued": 10
+      }
+    },
+    {
+      "id": "38203332415",
+      "name": "Model Catalog Review",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 1
+      }
+    }
+  ],
+  "currentMatricesComplete": false,
+  "releaseAdmitted": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0
+}
