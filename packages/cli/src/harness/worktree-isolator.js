@@ -357,11 +357,7 @@ function assertManagedWorktreePathWithContext(
   return candidatePath;
 }
 
-export function assertManagedWorktreePath(
-  repoDir,
-  worktreePath,
-  options = {},
-) {
+export function assertManagedWorktreePath(repoDir, worktreePath, options = {}) {
   return assertManagedWorktreePathWithContext(
     repoDir,
     worktreePath,
