@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:44:03.564Z",
+  "summarySha256": "bb4f743d3e7bcfcdc8f90127399c787e5dea5c6f727ade832e4bd89c249f55ae",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/38199228810-windows-unit.log",
+      "path": "objects/000.gz",
+      "rawBytes": 225978,
+      "rawSha256": "ebfedac901e408d4ae9ef44a0775fd53a6a680183133e36086eed6d1fa1de9a1",
+      "bytes": 33362,
+      "sha256": "abccdee316a4b4dabd2d5cfbf85f775744ce02238187bbea4321140cf6164243"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/38199228810-jobs.json",
+      "path": "objects/001.gz",
+      "rawBytes": 37239,
+      "rawSha256": "f7fa3e4bbe18ec53af1799d034336ea965726d027f064972add775e5ce820e20",
+      "bytes": 3074,
+      "sha256": "1f571fcea947177fcf12d256672f79ec5c4cdce17af4ae943c93493364673e8d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/business-actions-final-windows.json",
+      "path": "objects/002.gz",
+      "rawBytes": 86940,
+      "rawSha256": "e8f2fc5bbe329c2bfc9fa3e79ac5bfa2dc37314ef00b0d0f56b4abcc7bf1a473",
+      "bytes": 9850,
+      "sha256": "ec6d48625f1ce5dc556e28563ffd09a7ca0723c66546a366ced7acf417723220"
+    },
+    {
+      "source": "desktop-app-vue/vitest.business-actions.config.mjs",
+      "path": "objects/003.gz",
+      "rawBytes": 1036,
+      "rawSha256": "2d34a07d283d13e8bcbd436d903877573c59d3a22142ef0248ede32d461fc29e",
+      "bytes": 430,
+      "sha256": "641bdb52a8a9c29471631c2385d6a779f9cd82ff824461b4164032355faa1963"
+    }
+  ]
+}

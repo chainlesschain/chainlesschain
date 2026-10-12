@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:44:03.527Z",
+  "summarySha256": "0af246df51782662cb31b89a08069b92c9b8edb47fb7639cadf061dc5c98a50a",
+  "entries": [
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\console.log",
+      "path": "objects/000.gz",
+      "rawBytes": 24844,
+      "rawSha256": "ec9f531f36ee58334e813c0c7d136286e64507e2f2ee3c32d6a946c3e130bd12",
+      "bytes": 5248,
+      "sha256": "dcdcc99412c5f88b6d0493f0e0737b364e43bb1286fb05f572eb691aa7678a35"
+    },
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\exit-code.txt",
+      "path": "objects/001.gz",
+      "rawBytes": 6,
+      "rawSha256": "9585fbece5c402088f2d6a2def7e60d1c7ffecc24b16d32d5823a064b008935b",
+      "bytes": 26,
+      "sha256": "5964ab4f0611c2771f6913f0f1eab8364a6b9df68e6096f62fcb8f752dd57718"
+    },
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\results.json",
+      "path": "objects/002.gz",
+      "rawBytes": 74775,
+      "rawSha256": "3e525cc5e6d01f038e149b9aa1d2ebd0401e3aac4a91c3fe07d79998b5e70c70",
+      "bytes": 10003,
+      "sha256": "b69012670cc8ba56fa18026baf01de13534de44c706df407679e7fc4238f7ce8"
+    },
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\source-after.json",
+      "path": "objects/003.gz",
+      "rawBytes": 1762,
+      "rawSha256": "32e6093a2738bd2791c85675743a6be9d43de62dc54db948ec3ae95c28875d20",
+      "bytes": 600,
+      "sha256": "c96794a9ecd7d8f546192888c56ceb2ef2c4a63fa6586c2a3de0ca0fc9616b24"
+    },
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\source-before.json",
+      "path": "objects/004.gz",
+      "rawBytes": 2421,
+      "rawSha256": "6dd6fe9fc8eb5fdfa4e80083bf545f655a5cc799ff109d97327f9e64d0464735",
+      "bytes": 799,
+      "sha256": "b7c7b5b7f689e3fd26ab362facdd90508c4beb45ce41fc1fc4ad74c543eb7772"
+    },
+    {
+      "source": ".work\\ide-gap-continuation-20261012\\paused-tool-protocol-current\\source.patch",
+      "path": "objects/005.gz",
+      "rawBytes": 12441,
+      "rawSha256": "05168fd531bcdff9efa37cc80ab4d32cbdddd360f099574dd7f424c253efbedd",
+      "bytes": 3034,
+      "sha256": "2939a53e121b007e4d020129d808d1fa1a77764890ef459bffa9f442bc375c65"
+    }
+  ]
+}

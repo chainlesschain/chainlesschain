@@ -1,0 +1,117 @@
+{
+  "capturedAt": "2026-10-12T03:33:19.630Z",
+  "runId": 38198687103,
+  "attempt": 1,
+  "executionCommit": "e5b58f18ff826460a268f25127215c9e2d39177c",
+  "releaseCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+  "conclusion": "failure",
+  "passed": false,
+  "stages": [
+    {
+      "stage": "install",
+      "executed": true,
+      "passed": true
+    },
+    {
+      "stage": "configure",
+      "executed": true,
+      "passed": true
+    },
+    {
+      "stage": "authenticate",
+      "executed": true,
+      "passed": true
+    },
+    {
+      "stage": "tool",
+      "executed": true,
+      "passed": false
+    },
+    {
+      "stage": "artifact",
+      "executed": true,
+      "passed": false
+    }
+  ],
+  "costAccounting": {
+    "authenticationExecuted": true,
+    "authenticationProbe": {
+      "schema": "chainlesschain.llm-connection-probe/v1",
+      "ok": true,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "reply": null,
+      "usage": {
+        "input_tokens": 89,
+        "output_tokens": 58,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "totalCostUsd": 0.0000287,
+      "currency": "USD",
+      "costBasis": "token-estimate",
+      "billingVerified": false
+    },
+    "authenticationEstimatedCostUSD": 0.0000287,
+    "toolEstimatedCostUSD": null,
+    "totalJourneyEstimatedCostUSD": null,
+    "actualBilledCostUSD": null,
+    "billingVerified": false,
+    "budgetVerified": false,
+    "hardQuotaVerified": false,
+    "reason": "Authentication or tool usage is incomplete/unpriced; total journey cost remains unknown."
+  },
+  "candidates": [
+    {
+      "file": "packages/cli/__tests__/verify-04.test.js",
+      "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retainedDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "modelProcess": {
+    "command": "/opt/hostedtoolcache/node/22.12.0/x64/bin/node",
+    "args": [
+      "/tmp/cc-verify01-public-install-BwUZXR/install/node_modules/chainlesschain/bin/chainlesschain.js",
+      "agent",
+      "-p",
+      "在固定项目快照中完成「请求级缓存与阶梯费用」。阅读 packages/cli/src/lib/usage-pricing-context.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "--provider",
+      "volcengine",
+      "--model",
+      "deepseek-v4-flash-ga-260731",
+      "--base-url",
+      "https://ark.cn-beijing.volces.com/api/v3",
+      "--permission-mode",
+      "acceptEdits",
+      "--output-format",
+      "stream-json",
+      "--max-turns",
+      "20",
+      "--max-budget-usd",
+      "0.25",
+      "--allowed-tools",
+      "read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed",
+      "--ephemeral",
+      "--no-project-memory",
+      "--no-file-refs",
+      "--no-slash-macros",
+      "--no-mcp",
+      "--no-ide",
+      "--no-pdh",
+      "--no-jetbrains"
+    ],
+    "startedAt": "2026-10-12T03:13:05.093Z",
+    "finishedAt": "2026-10-12T03:21:05.112Z",
+    "exitCode": null,
+    "signal": "SIGKILL",
+    "timedOut": true,
+    "outputLimit": false,
+    "aborted": false,
+    "error": null,
+    "ok": false
+  },
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "billingVerified": false
+}

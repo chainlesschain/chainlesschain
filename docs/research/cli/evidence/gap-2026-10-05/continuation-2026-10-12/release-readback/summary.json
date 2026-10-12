@@ -1,0 +1,325 @@
+{
+  "capturedAt": "2026-10-12T03:10:46.529Z",
+  "startedAt": "2026-10-12T03:10:05.367Z",
+  "sourceCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+  "workspaceHead": "e5b58f18ff826460a268f25127215c9e2d39177c",
+  "status": "ALL_THREE_PUBLIC_AND_VERIFIED",
+  "versions": {
+    "cli": "0.166.98",
+    "vscode": "0.37.142",
+    "jetbrains": "0.4.160"
+  },
+  "gates": [
+    {
+      "name": "CLI CI",
+      "runId": 38141558764,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 71,
+      "passed": true
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 38141558590,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 5,
+      "passed": true
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 38141616625,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 19,
+      "passed": true
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 38141621709,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 10,
+      "passed": true
+    },
+    {
+      "name": "Memory Query Index Measurement",
+      "runId": 38141582124,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 3,
+      "passed": true
+    },
+    {
+      "name": "Context Memory Kernel CI",
+      "runId": 38141577696,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 3,
+      "passed": true
+    },
+    {
+      "name": "CLI Background Interaction E2E",
+      "runId": 38141588605,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobCount": 3,
+      "passed": true
+    }
+  ],
+  "publication": [
+    {
+      "name": "npm",
+      "runId": 38150341893,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "tag": "v-npm-0-166-98",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "exact-sha-gate",
+          "conclusion": "success"
+        },
+        {
+          "name": "test",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "dry-run",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success"
+        },
+        {
+          "name": "package-cli",
+          "conclusion": "success"
+        },
+        {
+          "name": "publish",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "vscode",
+      "runId": 38151479654,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "tag": "ide-vscode-v0.37.142",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "success"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "jetbrains",
+      "runId": 38151479621,
+      "attempt": 1,
+      "sourceSha": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "tag": "ide-jetbrains-v0.4.160",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Public IDE capability manifest (drift gate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (windows)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (linux)",
+          "conclusion": "success"
+        },
+        {
+          "name": "Browser evidence (macos)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (windows-latest, 2024.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains real host (macos-latest, 2025.2)",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (immutable candidate)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (Windows host gate)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "IDE roadmap evidence (trusted scoped aggregate)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code Remote-SSH container (scoped trusted cell)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "success"
+        },
+        {
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "success"
+        },
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "publicDownloads": [
+    {
+      "name": "npm",
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.98.tgz",
+      "bytes": 9362674,
+      "sha256": "d40fbe737184ebe5b8f2bd5f264d57e3dc82f580bc0a84212b51a0821e943367",
+      "matchesHistoricalPublicArchive": true
+    },
+    {
+      "name": "vscode",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.142/file/chainlesschain.chainlesschain-ide-0.37.142.vsix",
+      "bytes": 715135,
+      "sha256": "b7f559794abae3ac4f890e55ac83980c77fcd7494f10bf206fe3c32fa690d83e",
+      "matchesHistoricalPublicArchive": true
+    },
+    {
+      "name": "jetbrains",
+      "url": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1191567",
+      "bytes": 1525593,
+      "sha256": "d263676d96c95e43af25e553464279f1b8de54ce3e6b9589b134b67b756f4a25",
+      "matchesHistoricalPublicArchive": true
+    }
+  ],
+  "jetbrainsUpdate": {
+    "id": 1191567,
+    "approve": true,
+    "listed": true,
+    "hidden": false
+  },
+  "historicalOriginalRoots": {
+    "npm": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z",
+    "vscode": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z",
+    "jetbrains": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z",
+    "gates": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z"
+  },
+  "historicalReadbackDate": "2026-10-11",
+  "paidProviderCalls": 0,
+  "mutationsToGitHub": 0,
+  "formalSample": false,
+  "observationsProduced": 0,
+  "boundaries": [
+    "Current archive verifies existing immutable e0d4 release only; workspace HEAD is separate.",
+    "Historical package/install/provenance reports are preserved at their original observation times.",
+    "Current public package bytes match historical readback; no new registry install or signature audit was run.",
+    "No release, paid model invocation, formal observation, human acceptance or durable/native admission occurred."
+  ]
+}

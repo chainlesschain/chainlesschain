@@ -1,0 +1,17 @@
+{
+  "startedAt": "2026-10-12T03:17:33.814Z",
+  "finishedAt": "2026-10-12T03:17:36.105Z",
+  "executable": "wsl",
+  "args": [
+    "--exec",
+    "bash",
+    "-lc",
+    "cd /mnt/c/code/chainlesschain && .work/node-v22.22.2-linux-x64/bin/node --version && .work/node-v22.22.2-linux-x64/bin/node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "sourceSha256": "4ec1abd7e02fecae5df6692f79953f9069c79af2c935b0d03d8addb6cbd61b71",
+  "testSha256": "0d9a652a325e2af8be3c737dbc0c4f5075a148fb58df032ccfda6a6a87bd898d",
+  "scope": "Supplementary WSL Linux Node22.22.2 contract run, not a frozen formal target or Actions gate"
+}

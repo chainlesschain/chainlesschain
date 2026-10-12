@@ -1190,3 +1190,13 @@ SessionCore0.3.19、CLI0.166.98、VS0.37.142、JB0.4.160与精确依赖/推荐�
 JetBrains macOS 原件显示初始 UI 和 canonical drain 成功，进程组结算后端口 8082 仍占用；原件不能区分退出瞬态与逃离进程组。诊断改为在原 30 秒截止内等待实际 bind+close，仅重试 EADDRINUSE，有限期限/正轮询校验及探测前后截止检查接入原宿主合同。Windows 端口 6/6；本机 Ubuntu 为 WSL1，端口 4pass/2fail，独立探针证明该环境允许同一 loopback 端口双 listener。失败完整保留，未跳过断言；原生 Linux/macOS 仍待新提交 Actions。
 
 PR Tests 的实际合并检出与 head 来源已逐字节核对；40054pass/194skip/2fail 仅两项已定位旧契约。完整 518 个原件、Git 绑定、日志和拒绝记录见[第四轮修复归档](./cli/evidence/gap-2026-10-05/release-0.166.98/ci-repair4/README.md)。旧 821 的六门通过不能转移给新提交。新发行候选须自己的七门 71/5/19/10/3/3/3，以及 Full Test、PR Tests 和 Host Diagnostics 修复验证；用户已授权通过后按 Actions OIDC 子包 → CLI → IDE 发布并公开回读，当前未新增发行、付费复跑或合并。正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，人工预审、账单/硬额度、目标 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。
+
+### 20.45 2026-10-12 发行补档、实际复测与共享工程修复
+
+实时公开回读确认 e0d4e9 的 CLI 0.166.98 / VS Code 0.37.142 / JetBrains 0.4.160 已发行，七门与三个标签 run 成功，PR #429 已合并。三端公开制品本次重下载摘要与历史一致，详见 [发行补档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release-readback/README.md)；不把发行门转移给后续源码。
+
+一次 main/e5b58f 的公开首次旅程 run38198687103 已实际完成：安装、配置、认证通过；工具进程 480 秒后 SIGKILL、候选 0 字节，完整旅程失败。认证 usage 89/58、估算 USD 0.0000287；工具/旅程估算及 invoice 未知。19 条主模型 usage 加 1 条 semantic-compaction 不等于 20 轮耗尽。[178 份原件与范围](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/first-run-retest/README.md)保留失败、基线、四项语义 not-established 与未知费用；本轮未再次付费调用。
+
+由实际轨迹确认并修复两个工程缺口：search_files 缺 pattern 不再无声执行空搜索，runner-spy 与既有转义/归集共 34/34；暂停 read_file 新增非执行请求声明，与结果同 ID、参数为空，不增加计划/工具执行/副作用记录，三套 209/209。另修复会话跟随测试调度与失败清理 16/16，原生业务配置统一 30 秒功能预算后全套 231/231；Gradle 8.7 仅下载准备阶段的有界网络重试双平台各 6/6。原 848e6e4 新 CI 两项默认 5 秒失败保留。[草稿 PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)含工程提交 848e6e4、861e9bc，新准确源码 Actions 另验，尚未发布这些后续增量。
+
+正式 **36+9 / NOT_RUN / observed=0 / $99**、冻结指纹与旧窗口保留。合规目标宿主、独立人工预审、官方模型/账单/硬额度、真人辅助技术、Windows/macOS native/durable 及 8h/24h/SLO 仍未结案。证据总目录为 [continuation-2026-10-12](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/)。

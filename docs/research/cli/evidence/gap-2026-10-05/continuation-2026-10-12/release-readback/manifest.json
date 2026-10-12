@@ -1,0 +1,1661 @@
+{
+  "schema": "chainlesschain.release098-continuation-readback/v1",
+  "sourceCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+  "workspaceHead": "e5b58f18ff826460a268f25127215c9e2d39177c",
+  "startedAt": "2026-10-12T03:10:05.367Z",
+  "completedAt": "2026-10-12T03:10:46.892Z",
+  "summarySha256": "7af3d0e8ab724400e43441534a4bf99c1d7aece5336953f0bc6decaf31cd7953",
+  "archiveVerified": true,
+  "entries": [
+    {
+      "path": "objects/0000.gz",
+      "label": "historical/npm/artifact-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/artifact-readback.json",
+      "rawBytes": 5215,
+      "rawSha256": "81b75cb88c724c073ae53a4e8f55cf1127f51bbf3f8dffce734a7e078fdd513b",
+      "bytes": 1368,
+      "sha256": "f3c2398ce5dca43452b995c20c730b294886e49246b2696f34091ff84e481fff"
+    },
+    {
+      "path": "objects/0001.gz",
+      "label": "historical/npm/artifacts.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/artifacts.raw.json",
+      "rawBytes": 5350,
+      "rawSha256": "93f21bf8a1acf8ce3c346f5898f3a216104aeed0d60d44f600296b86042bc450",
+      "bytes": 1005,
+      "sha256": "402fc9ba54d9d6b8578c7bbc65d3dbb3d9d85272be537973d4d399f516fc5616"
+    },
+    {
+      "path": "objects/0002.gz",
+      "label": "historical/npm/baseline-summary.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/baseline-summary.json",
+      "rawBytes": 10732,
+      "rawSha256": "10f01ce527ba0ee94a8c6f9097fe35435ea2b784e4c0095e4935be56b9bbaa1f",
+      "bytes": 3036,
+      "sha256": "96bd5e090b0f1e17bd90cd8909bcf1c096f54bcbf86bb142abf1b1bf7b129976"
+    },
+    {
+      "path": "objects/0003.gz",
+      "label": "historical/npm/chainlesschain-npm-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/chainlesschain-npm-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "rawBytes": 9444766,
+      "rawSha256": "a870cc8a9e4e5b01d8f33bbfdf4d83da7e3ead92ae3f2f9463e31b0d69bd2b92",
+      "bytes": 9447547,
+      "sha256": "6eebf3436157a4863b0475e9042c93b0ef2670fa59b9a436aa542f50dc06f348"
+    },
+    {
+      "path": "objects/0004.gz",
+      "label": "historical/npm/chainlesschain-npm-readback-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/chainlesschain-npm-readback-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "rawBytes": 302113,
+      "rawSha256": "3742af71aef7d8f11d7be89a18c1432d319851c984c3678d335b3b742fe33c74",
+      "bytes": 301698,
+      "sha256": "033c0ca3494e518c74d7db45e771e3eab00aabda93f8aa2f3ef64b765ebc10ba"
+    },
+    {
+      "path": "objects/0005.gz",
+      "label": "historical/npm/cli-release-gate-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/cli-release-gate-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9.zip",
+      "rawBytes": 479,
+      "rawSha256": "2ecb2ea98c105ed9c92cbca328b1ef5af39afc462f552b06051b54e6d91a9f45",
+      "bytes": 458,
+      "sha256": "51d60eebde7b379f07da601b886897282a2da7ff021cb48c19b064ce7c6207c2"
+    },
+    {
+      "path": "objects/0006.gz",
+      "label": "historical/npm/context-memory-kernel-public-source.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/context-memory-kernel-public-source.json",
+      "rawBytes": 8430,
+      "rawSha256": "375936a7b80a2c45f22110d444e09d980a6552b77c5006ac05c4a00fa8070cde",
+      "bytes": 3203,
+      "sha256": "e7bc1ce87109d8fb0a40e4684dcea199cbd4e8c0fca65ef14e29353a0445d10f"
+    },
+    {
+      "path": "objects/0007.gz",
+      "label": "historical/npm/gate-38141558590-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/gate-38141558590-jobs.json",
+      "rawBytes": 21535,
+      "rawSha256": "cb62f023de4704611324bbe047e864631c8e32e06cbc19371f8c9cd3677fa91f",
+      "bytes": 2206,
+      "sha256": "b09973d850f5388da21d3d05e91b94cf20187076b817e5f7eb3bf63c6f567576"
+    },
+    {
+      "path": "objects/0008.gz",
+      "label": "historical/npm/gate-38141558590-run.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/gate-38141558590-run.json",
+      "rawBytes": 13742,
+      "rawSha256": "440a7bcd72a682ca7c284c015dbb136fb16a17430b0e9e943a191cddfb4fa148",
+      "bytes": 1680,
+      "sha256": "54be3a0c0ad30d0010aeae7b61e8138c1ace276c463256dabf4c8674309c0c7f"
+    },
+    {
+      "path": "objects/0009.gz",
+      "label": "historical/npm/gate-38141558764-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/gate-38141558764-jobs.json",
+      "rawBytes": 203977,
+      "rawSha256": "2f87454f43d57c52eb9e2c17d1af86492b793c756bc01fd3d51982b31aad2909",
+      "bytes": 11878,
+      "sha256": "b69d36efa86dbdd5cd9c591164d47a1a1e4e257517340d771e5b29d683d2de39"
+    },
+    {
+      "path": "objects/0010.gz",
+      "label": "historical/npm/gate-38141558764-run.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/gate-38141558764-run.json",
+      "rawBytes": 14110,
+      "rawSha256": "4ee2207214eebbf2902d8aae4ba3dc2f64f06c72afe5348a0fc7f2d84590b608",
+      "bytes": 1754,
+      "sha256": "82cf1dd0862f5cf2c27eb1bfca23e26f4f908da623c0fe8e4c0b92e18262c7e6"
+    },
+    {
+      "path": "objects/0011.gz",
+      "label": "historical/npm/install-invocation.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/install-invocation.json",
+      "rawBytes": 1091,
+      "rawSha256": "9fb250d50427f48f6cadda14d0a027aae0b83d464966158c40a36317796f8dc2",
+      "bytes": 501,
+      "sha256": "5ea9941d3efd7b5a771ffdd6597078df6cb9f722555085556d84bf5431c7ee26"
+    },
+    {
+      "path": "objects/0012.gz",
+      "label": "historical/npm/install.stderr",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/install.stderr",
+      "rawBytes": 243,
+      "rawSha256": "9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b",
+      "bytes": 188,
+      "sha256": "8fd892a6b6c79787f5330cb4c305ceb36efd4b927a5011f7bdb42dfaf5eba8e9"
+    },
+    {
+      "path": "objects/0013.gz",
+      "label": "historical/npm/install.stdout",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/install.stdout",
+      "rawBytes": 27,
+      "rawSha256": "b490dc94fee4212e7f35b2a753ac88affbdd908aa710be0cee456f609f8e1a80",
+      "bytes": 47,
+      "sha256": "e7ed0f9cb8c3092393ce78881da58c7e5b217ef80b45b1ccf6e7402224dc61c8"
+    },
+    {
+      "path": "objects/0014.gz",
+      "label": "historical/npm/invocation.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/invocation.json",
+      "rawBytes": 236,
+      "rawSha256": "cf53fd849e55f83b52d03fd0a4a8f91b9140b45d96f87a63978b7fce958be0bd",
+      "bytes": 192,
+      "sha256": "05f870ff7e5ad40fca71d3dc8dcebe001181d267963102f085176809d6c866f2"
+    },
+    {
+      "path": "objects/0015.gz",
+      "label": "historical/npm/npm-publish.source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/npm-publish.source.yml",
+      "rawBytes": 51109,
+      "rawSha256": "73119e9a829ead62d68fb70106633b9f3afc5d5b0463f846ef9521b96e4c7b99",
+      "bytes": 9225,
+      "sha256": "006b26d418e2db89500812dbc45de45cfa1dd3c840bbce2964a328053b75682d"
+    },
+    {
+      "path": "objects/0016.gz",
+      "label": "historical/npm/public-authority-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public-authority-readback.json",
+      "rawBytes": 60515,
+      "rawSha256": "254070dd0c8a26a687e866cd8b5736159b2ada6cc3d4611facc4435ddfd281e4",
+      "bytes": 17111,
+      "sha256": "f6bddc634b662ded19d6eae3293eab479f1099224b3b410159a2f8373a5ed2b4"
+    },
+    {
+      "path": "objects/0017.gz",
+      "label": "historical/npm/publication-job-contract.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/publication-job-contract.json",
+      "rawBytes": 278,
+      "rawSha256": "b526a068eb262146d7f9f90c673d49e90417db0eea495bf20a429c3e5042ab0e",
+      "bytes": 230,
+      "sha256": "22027a2a2d6f7f5c4bf09a3ab41261be7cf0877c210c4d92e1fb62a049549497"
+    },
+    {
+      "path": "objects/0018.gz",
+      "label": "historical/npm/publish-jobs.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/publish-jobs.raw.json",
+      "rawBytes": 20458,
+      "rawSha256": "ce53a9f985cb390cfcc206d0262ee178ee10ac46463750de865246807ae3d3c9",
+      "bytes": 2363,
+      "sha256": "a75857169b9f04a5cb631c03ef1ab7d9f41e47d30e61cde461b45dab39c768bf"
+    },
+    {
+      "path": "objects/0019.gz",
+      "label": "historical/npm/release-gates-independent-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/release-gates-independent-readback.json",
+      "rawBytes": 372,
+      "rawSha256": "488a163b0622d81c88d3192ca024de41cf13dcb35952343a1ce11abe802232be",
+      "bytes": 188,
+      "sha256": "14ee92da2c1e7ec24b0901d675804a0a3c6693a715ab4369bb095f138ce5d43a"
+    },
+    {
+      "path": "objects/0020.gz",
+      "label": "historical/npm/run.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/run.raw.json",
+      "rawBytes": 13405,
+      "rawSha256": "b21b9adeeb5c01af7d0c06ffb3f640bce18ecc3f8751efe81d75ea93c7ddb7c3",
+      "bytes": 1574,
+      "sha256": "e548b45f64adf154c74bb56d1b64f21be46d888916434d959ca3e0297cced749"
+    },
+    {
+      "path": "objects/0021.gz",
+      "label": "historical/npm/session-core-candidate-source.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/session-core-candidate-source.json",
+      "rawBytes": 20319,
+      "rawSha256": "fa9b11954ea850af0fcc5d3ff2f2c9b14bb74715773bcb4f72fd31702cc3c9d6",
+      "bytes": 6493,
+      "sha256": "5c368ece454397acba17370a02db45f2ace8f615de6be767bb42a10f37f8fb88"
+    },
+    {
+      "path": "objects/0022.gz",
+      "label": "historical/npm/public/chainlesschain-0.166.98.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-0.166.98.metadata.json",
+      "rawBytes": 7671,
+      "rawSha256": "67d9f8b6ce86f6d59514a0ca635d84ba4e06ff7a1616c6290eb0abfb4dc3700d",
+      "bytes": 2767,
+      "sha256": "d236b21de442c722134fe1d4042be058c638ab9f1b7aba97aeb6d7c9009f04df"
+    },
+    {
+      "path": "objects/0023.gz",
+      "label": "historical/npm/public/chainlesschain-0.166.98.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-0.166.98.tgz",
+      "rawBytes": 9362674,
+      "rawSha256": "d40fbe737184ebe5b8f2bd5f264d57e3dc82f580bc0a84212b51a0821e943367",
+      "bytes": 9362679,
+      "sha256": "11372688268ccf8da0d3a25dd99fc6dc4b3755006b776fc00201b7605396e8c1"
+    },
+    {
+      "path": "objects/0024.gz",
+      "label": "historical/npm/public/chainlesschain-agent-protocol-0.1.12.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-agent-protocol-0.1.12.metadata.json",
+      "rawBytes": 2703,
+      "rawSha256": "23a0edd0e8ed005ea1fd81c6370fa305bafacb6cb684bcca2b03ddd012ee6663",
+      "bytes": 1367,
+      "sha256": "6a5782697293651429aec07008b00769ba5fc6c0a14fa00f94a92d7d6afd3549"
+    },
+    {
+      "path": "objects/0025.gz",
+      "label": "historical/npm/public/chainlesschain-agent-protocol-0.1.12.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-agent-protocol-0.1.12.tgz",
+      "rawBytes": 43144,
+      "rawSha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc",
+      "bytes": 43119,
+      "sha256": "75374ea88ea3075b8b4aa116ae96f2ab724d1ce15d685b06e3cb49d8c0cbb9d7"
+    },
+    {
+      "path": "objects/0026.gz",
+      "label": "historical/npm/public/chainlesschain-agent-sdk-0.2.14.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-agent-sdk-0.2.14.metadata.json",
+      "rawBytes": 2859,
+      "rawSha256": "a3e5ff72ded6620883fcdffbf04b08bd84f56d55f590a393c145557339f5d3a4",
+      "bytes": 1425,
+      "sha256": "4e476b2a25d9cee0dec51f8348a9e8c31fff0d139daafa91e7403a8212a4d806"
+    },
+    {
+      "path": "objects/0027.gz",
+      "label": "historical/npm/public/chainlesschain-agent-sdk-0.2.14.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-agent-sdk-0.2.14.tgz",
+      "rawBytes": 88710,
+      "rawSha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537",
+      "bytes": 88549,
+      "sha256": "baa1585cbaa26093573c31d8c5966e64f4d0da50d6b0c373c4507ae0100fbdde"
+    },
+    {
+      "path": "objects/0028.gz",
+      "label": "historical/npm/public/chainlesschain-context-memory-kernel-0.1.9.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-context-memory-kernel-0.1.9.metadata.json",
+      "rawBytes": 2850,
+      "rawSha256": "4de7d333a7252c775fde8c1a1e098a6dd57a3dd606e09e86e1eeca5f697dd8ed",
+      "bytes": 1381,
+      "sha256": "3382d40983494f5426f0e2dddd5caac055d5aca0f458dfb41d4969a0f33139f7"
+    },
+    {
+      "path": "objects/0029.gz",
+      "label": "historical/npm/public/chainlesschain-context-memory-kernel-0.1.9.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-context-memory-kernel-0.1.9.tgz",
+      "rawBytes": 50055,
+      "rawSha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805",
+      "bytes": 50093,
+      "sha256": "52d81c0c73cbf53fd722b4b64efe06e05de92328237767013b841e84a1e0b3fb"
+    },
+    {
+      "path": "objects/0030.gz",
+      "label": "historical/npm/public/chainlesschain-core-config-0.1.2.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-config-0.1.2.metadata.json",
+      "rawBytes": 1938,
+      "rawSha256": "5ff195df40061e5b02a1198492e2ff88315150e36a8d91b403e1e9b9faeb91a6",
+      "bytes": 1020,
+      "sha256": "6c696f28ad69c6d27fc557d75b5591357d6b0319b44c9fc3c71b96ba7e2f7a96"
+    },
+    {
+      "path": "objects/0031.gz",
+      "label": "historical/npm/public/chainlesschain-core-config-0.1.2.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-config-0.1.2.tgz",
+      "rawBytes": 3991,
+      "rawSha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "bytes": 4014,
+      "sha256": "6032e11f020a889ce25a8a425d2d6b9af104011cfe0f535daabf9cf43b3a778a"
+    },
+    {
+      "path": "objects/0032.gz",
+      "label": "historical/npm/public/chainlesschain-core-db-0.1.5.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-db-0.1.5.metadata.json",
+      "rawBytes": 2586,
+      "rawSha256": "4d92c5647be7c38a0a46f08e560a0d37aa92d49b09283dad9aa689c4bb018f34",
+      "bytes": 1237,
+      "sha256": "e1a062a7e2c8b9752a738a390a53775e70588f2b2ed43deaa33d6230d2ba4609"
+    },
+    {
+      "path": "objects/0033.gz",
+      "label": "historical/npm/public/chainlesschain-core-db-0.1.5.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-db-0.1.5.tgz",
+      "rawBytes": 10302,
+      "rawSha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "bytes": 10325,
+      "sha256": "ad492e8ab2ecdc54ee7a7666fbc6035003acc80c20497a1e270ba4323e7f642c"
+    },
+    {
+      "path": "objects/0034.gz",
+      "label": "historical/npm/public/chainlesschain-core-env-0.1.2.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-env-0.1.2.metadata.json",
+      "rawBytes": 1878,
+      "rawSha256": "aacf0377a6ea0d3a6d05b6f1a745488d3f09cc2ee9b758f5dfde472aa8f9e5fa",
+      "bytes": 1020,
+      "sha256": "30e920c227b7cccb1f26a3c9f2b2a0a05f904b39c275a8a0126ac9e6ed456403"
+    },
+    {
+      "path": "objects/0035.gz",
+      "label": "historical/npm/public/chainlesschain-core-env-0.1.2.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-env-0.1.2.tgz",
+      "rawBytes": 2600,
+      "rawSha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "bytes": 2623,
+      "sha256": "fabc0cd94eb224fa1adb96230b6d005c2a03ea8d8e5c036acfb7b9c5f558cbf4"
+    },
+    {
+      "path": "objects/0036.gz",
+      "label": "historical/npm/public/chainlesschain-core-infra-0.1.1.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-infra-0.1.1.metadata.json",
+      "rawBytes": 1979,
+      "rawSha256": "a89a99a98979c0ac38803c8e0ca458826a61d017924c13df7cb68b00a3e9c964",
+      "bytes": 1043,
+      "sha256": "42ed324e4040de6e14c15aeddebef509cb18ee94ea5e2020577d4fed3146dee5"
+    },
+    {
+      "path": "objects/0037.gz",
+      "label": "historical/npm/public/chainlesschain-core-infra-0.1.1.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-infra-0.1.1.tgz",
+      "rawBytes": 3482,
+      "rawSha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "bytes": 3505,
+      "sha256": "413e9dfd6f07642d53d2c064d759b0b5ad36fbe3c85a25627eb83e024f49fe05"
+    },
+    {
+      "path": "objects/0038.gz",
+      "label": "historical/npm/public/chainlesschain-core-mtc-0.2.3.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-mtc-0.2.3.metadata.json",
+      "rawBytes": 2815,
+      "rawSha256": "03a810e219c23885bbd0b0c42ec9e4dc2c3011192dd5c3aa728c23a1c8b03f61",
+      "bytes": 1374,
+      "sha256": "c7f7b491f4a1c38db25e4ed5a37166f1858314b5ab8e5d43229c1fc8ad439530"
+    },
+    {
+      "path": "objects/0039.gz",
+      "label": "historical/npm/public/chainlesschain-core-mtc-0.2.3.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-mtc-0.2.3.tgz",
+      "rawBytes": 38297,
+      "rawSha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "bytes": 38330,
+      "sha256": "363b298103b22d0b194e62eea7841e96b871f57dca35fefd5a0e26bf2f6bc5bf"
+    },
+    {
+      "path": "objects/0040.gz",
+      "label": "historical/npm/public/chainlesschain-core-multisig-0.1.4.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-multisig-0.1.4.metadata.json",
+      "rawBytes": 2125,
+      "rawSha256": "f0f7de21640db8b934facf7ab9a9dd7214e383fb6d73063359e6078d5bc05cae",
+      "bytes": 1130,
+      "sha256": "b2abe218a2afde94d878b3980b0288e27696489b003cfccf0587c6282b36f0f2"
+    },
+    {
+      "path": "objects/0041.gz",
+      "label": "historical/npm/public/chainlesschain-core-multisig-0.1.4.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-multisig-0.1.4.tgz",
+      "rawBytes": 13952,
+      "rawSha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "bytes": 13975,
+      "sha256": "280b26adaf85b7670ed2144718d77db6d04a49f3f3996adc2c058d1f1fbe3c20"
+    },
+    {
+      "path": "objects/0042.gz",
+      "label": "historical/npm/public/chainlesschain-core-settlement-0.1.2.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-settlement-0.1.2.metadata.json",
+      "rawBytes": 2153,
+      "rawSha256": "169b36c4d5b5ddbb3fd9de85479b1e781ec5cdf10cfc3ed8f8f99544e93dd39e",
+      "bytes": 1214,
+      "sha256": "261b322339f0771a54a9fb9d65ac5042e3a103a22796c64f2a2fda4ff406e9bd"
+    },
+    {
+      "path": "objects/0043.gz",
+      "label": "historical/npm/public/chainlesschain-core-settlement-0.1.2.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-core-settlement-0.1.2.tgz",
+      "rawBytes": 9031,
+      "rawSha256": "cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699",
+      "bytes": 9054,
+      "sha256": "403023f10e59fba5677d1fb21f2225b93461e7be0e52035634486180a7ab99c3"
+    },
+    {
+      "path": "objects/0044.gz",
+      "label": "historical/npm/public/chainlesschain-personal-data-hub-0.4.64.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-personal-data-hub-0.4.64.metadata.json",
+      "rawBytes": 7349,
+      "rawSha256": "ae7da299a445a318f357df0e648e66284003ab97fe163ef29faba20645e00c0c",
+      "bytes": 2282,
+      "sha256": "0d014cac349398acb2e863437759e59b35153158cfcfb9f196ee51b24c742d1e"
+    },
+    {
+      "path": "objects/0045.gz",
+      "label": "historical/npm/public/chainlesschain-personal-data-hub-0.4.64.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-personal-data-hub-0.4.64.tgz",
+      "rawBytes": 890625,
+      "rawSha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "bytes": 890861,
+      "sha256": "d2dcf26f85c0da9c81221e988e8fc7d288dd4c5cb0d2add8929b28eed850c6f6"
+    },
+    {
+      "path": "objects/0046.gz",
+      "label": "historical/npm/public/chainlesschain-session-core-0.3.19.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-session-core-0.3.19.metadata.json",
+      "rawBytes": 6217,
+      "rawSha256": "a512d521a17204c05ffd3a5a52c31167bda580c6532467fa5f0d88db7b37bc19",
+      "bytes": 2056,
+      "sha256": "929a0252172cc08783e620fc5092ba9ac504faaa2db1d1e69a2346477316b1bc"
+    },
+    {
+      "path": "objects/0047.gz",
+      "label": "historical/npm/public/chainlesschain-session-core-0.3.19.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-session-core-0.3.19.tgz",
+      "rawBytes": 286161,
+      "rawSha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4",
+      "bytes": 286259,
+      "sha256": "15e96d536f2aa48e704c0353ecb5988f83e76d55c5afc3776cac0ffebf3b1890"
+    },
+    {
+      "path": "objects/0048.gz",
+      "label": "historical/npm/public/chainlesschain-shared-logger-0.1.1.metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-shared-logger-0.1.1.metadata.json",
+      "rawBytes": 1931,
+      "rawSha256": "289504258ea0cefed545808ef4e831a182f30f5196f8d8854730c6c6f9bc64ea",
+      "bytes": 1025,
+      "sha256": "19b85f36cedeac15ba83a8155f27bb4fc38b73989c9f0309d53ff4bd19a87558"
+    },
+    {
+      "path": "objects/0049.gz",
+      "label": "historical/npm/public/chainlesschain-shared-logger-0.1.1.tgz",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/verified-38150341893-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-26-47.238Z/public/chainlesschain-shared-logger-0.1.1.tgz",
+      "rawBytes": 4058,
+      "rawSha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "bytes": 4081,
+      "sha256": "10401c8c90809f699cc87fa5c427745702439f073689e7efe77ffbdf6d79eda2"
+    },
+    {
+      "path": "objects/0050.gz",
+      "label": "historical/vscode/actions-artifact.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/actions-artifact.zip",
+      "rawBytes": 698704,
+      "rawSha256": "c14bac49936e2ad313fc973940323fffc4db6fd232f2ca8a01df61b48d58290a",
+      "bytes": 698898,
+      "sha256": "2ba13cf447148b1942413d0f6498660e81624a66d3b816ba86f5d3db4628e1ad"
+    },
+    {
+      "path": "objects/0051.gz",
+      "label": "historical/vscode/artifact-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/artifact-readback.json",
+      "rawBytes": 16232,
+      "rawSha256": "8b6958552adf7d0b9c615df7d6d3e27de69a89dfb59cf49a865970783531653e",
+      "bytes": 1999,
+      "sha256": "8e6d06d16563ee592e0d802db107e65e72642c62d0fa48c08f1f5d152e558def"
+    },
+    {
+      "path": "objects/0052.gz",
+      "label": "historical/vscode/artifacts.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/artifacts.raw.json",
+      "rawBytes": 12872,
+      "rawSha256": "278e324960aebb18fa983d42bd2c72ba79f16bb8196a28913b5b05fcd9e2334f",
+      "bytes": 1908,
+      "sha256": "50c5cdf18d6c17141be9a4d428e42963d2efa855b2fc843b2f19a1ae1d20fe3c"
+    },
+    {
+      "path": "objects/0053.gz",
+      "label": "historical/vscode/candidate.vsix",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/candidate.vsix",
+      "rawBytes": 715135,
+      "rawSha256": "b7f559794abae3ac4f890e55ac83980c77fcd7494f10bf206fe3c32fa690d83e",
+      "bytes": 698046,
+      "sha256": "7558baef4ed40f222e730e73bcaf18f5d17453a13e2584ed2b555492d168f808"
+    },
+    {
+      "path": "objects/0054.gz",
+      "label": "historical/vscode/invocation.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/invocation.json",
+      "rawBytes": 501,
+      "rawSha256": "34b97c479e1ae7402139f9b13d58dea72dc97a048154b36fa89ca7a6a581aefd",
+      "bytes": 334,
+      "sha256": "e3832318bfbdee60c7bbe38845d0a1bd092ff33d77ea9512b1e99ec503658750"
+    },
+    {
+      "path": "objects/0055.gz",
+      "label": "historical/vscode/jobs.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/jobs.raw.json",
+      "rawBytes": 41367,
+      "rawSha256": "3e69eb353cd7513257c640d63275d994f19c2c2a50cabe9679aed1813313eca5",
+      "bytes": 3843,
+      "sha256": "40db0d67c7e59bed44273f69e285543916fe22b7ac2406fff697f1125cec536a"
+    },
+    {
+      "path": "objects/0056.gz",
+      "label": "historical/vscode/marketplace-verifier.stderr",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/marketplace-verifier.stderr",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "path": "objects/0057.gz",
+      "label": "historical/vscode/marketplace-verifier.stdout",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/marketplace-verifier.stdout",
+      "rawBytes": 449,
+      "rawSha256": "b0e35cd24801a75a90237b26279131533ae9d10b965bcaee11a48dfddbc01097",
+      "bytes": 269,
+      "sha256": "74a6132fd9be8e0c3bf5eb1c65dff1a2d8056a86dd52440502858c1c8e7b6f7c"
+    },
+    {
+      "path": "objects/0058.gz",
+      "label": "historical/vscode/open-vsx-exact-metadata.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/open-vsx-exact-metadata.json",
+      "rawBytes": 10889,
+      "rawSha256": "bc015b2746cd60e099dfd92933c3c3fd3d4f1f6ca9b8211a994f5e4ad897e717",
+      "bytes": 1555,
+      "sha256": "2b430f54ba20bb085b5d4633d41cd410c1d1a90e61b9e574e91d8c697ef07aa6"
+    },
+    {
+      "path": "objects/0059.gz",
+      "label": "historical/vscode/preflight-cli-background-interaction-e2e.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-background-interaction-e2e.yml-jobs.json",
+      "rawBytes": 8648,
+      "rawSha256": "24857443306ebc973066ed2161a38cffc7c998b23c71164e28512a63c38f3596",
+      "bytes": 1088,
+      "sha256": "0ef86fa4be2fa33f802aeea86139e58ca5e12da659ccee558b69c5b6a36caaa0"
+    },
+    {
+      "path": "objects/0060.gz",
+      "label": "historical/vscode/preflight-cli-background-interaction-e2e.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-background-interaction-e2e.yml-runs.json",
+      "rawBytes": 27526,
+      "rawSha256": "7818a5d8bba2258e65ddfbd6a6170d685d4cd8311760dc8136ec20634a6f9ab2",
+      "bytes": 1981,
+      "sha256": "8946aed4bfefae84d65fce1958c646b10f6f5c4fd7312384dc0aa5545aa45611"
+    },
+    {
+      "path": "objects/0061.gz",
+      "label": "historical/vscode/preflight-cli-background-interaction-e2e.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-background-interaction-e2e.yml-source.yml",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1152,
+      "sha256": "5b2a578495d14e7c2b3d8426e99eea594e0c752640ecd4197dc870a9d7bad1da"
+    },
+    {
+      "path": "objects/0062.gz",
+      "label": "historical/vscode/preflight-cli-ci.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-ci.yml-jobs.json",
+      "rawBytes": 203977,
+      "rawSha256": "2f87454f43d57c52eb9e2c17d1af86492b793c756bc01fd3d51982b31aad2909",
+      "bytes": 11878,
+      "sha256": "b69d36efa86dbdd5cd9c591164d47a1a1e4e257517340d771e5b29d683d2de39"
+    },
+    {
+      "path": "objects/0063.gz",
+      "label": "historical/vscode/preflight-cli-ci.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-ci.yml-runs.json",
+      "rawBytes": 14146,
+      "rawSha256": "dab3942f12b8d687f817b7f08d5a8566b2ce277106b5175c0da2e2542f3892b6",
+      "bytes": 1773,
+      "sha256": "5f9bf31ad726facfba1b16922706fb2636fb491559cb27d9fc1b0b89759221be"
+    },
+    {
+      "path": "objects/0064.gz",
+      "label": "historical/vscode/preflight-cli-ci.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-ci.yml-source.yml",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4562,
+      "sha256": "85b089a4b1f65b7bee9590e0b4e20b6d872058e849d18072fa64e63e8c64b20d"
+    },
+    {
+      "path": "objects/0065.gz",
+      "label": "historical/vscode/preflight-cli-strict-sandbox.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-strict-sandbox.yml-jobs.json",
+      "rawBytes": 21535,
+      "rawSha256": "cb62f023de4704611324bbe047e864631c8e32e06cbc19371f8c9cd3677fa91f",
+      "bytes": 2206,
+      "sha256": "b09973d850f5388da21d3d05e91b94cf20187076b817e5f7eb3bf63c6f567576"
+    },
+    {
+      "path": "objects/0066.gz",
+      "label": "historical/vscode/preflight-cli-strict-sandbox.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-strict-sandbox.yml-runs.json",
+      "rawBytes": 13778,
+      "rawSha256": "ed9d1509ee0de23611c87099875315b6b2a11610deac01fdf63d8dd5571223ef",
+      "bytes": 1699,
+      "sha256": "f980f6a238dd928ae5dd61d4da41ab7217abb6c496165648d7010898b641ebac"
+    },
+    {
+      "path": "objects/0067.gz",
+      "label": "historical/vscode/preflight-cli-strict-sandbox.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-cli-strict-sandbox.yml-source.yml",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5741,
+      "sha256": "92b861177ce48b0a1a9afecf90403238e7bcfa749866730a2f6d0f64f1b69cca"
+    },
+    {
+      "path": "objects/0068.gz",
+      "label": "historical/vscode/preflight-context-memory-kernel.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-context-memory-kernel.yml-jobs.json",
+      "rawBytes": 17890,
+      "rawSha256": "1d6fb8570f755a904d114b633451e27b5d4b921ac2b87730b569a04e091e4d87",
+      "bytes": 1836,
+      "sha256": "61630636246223706b76f38b0edd6e24fd38d31bfab7f1eebaf12adc383cdd39"
+    },
+    {
+      "path": "objects/0069.gz",
+      "label": "historical/vscode/preflight-context-memory-kernel.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-context-memory-kernel.yml-runs.json",
+      "rawBytes": 67133,
+      "rawSha256": "9e3efcaa89096524b6d8f0d32671e42f0840b2c28a440614b23c5eb7a2f25222",
+      "bytes": 2739,
+      "sha256": "db835862b2dbf609a5b7782412cfeeb367360cebcec0507844c9f0beeb90477b"
+    },
+    {
+      "path": "objects/0070.gz",
+      "label": "historical/vscode/preflight-context-memory-kernel.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-context-memory-kernel.yml-source.yml",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1789,
+      "sha256": "c60949e265d8994422f7a6dea9f84bb1b22ae414ffb21ec86ee1ed588b7df864"
+    },
+    {
+      "path": "objects/0071.gz",
+      "label": "historical/vscode/preflight-ide-arm64-validation.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-arm64-validation.yml-jobs.json",
+      "rawBytes": 38410,
+      "rawSha256": "520bbed0f61dd1519acf34ee3258fe937dce2ed65af205ce8ba60427c6f9f83d",
+      "bytes": 2960,
+      "sha256": "cae46440f87c662e6040ae9b30919e672457d8890d6e93d8888a1b1ca9367bc3"
+    },
+    {
+      "path": "objects/0072.gz",
+      "label": "historical/vscode/preflight-ide-arm64-validation.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-arm64-validation.yml-runs.json",
+      "rawBytes": 13740,
+      "rawSha256": "eda9f43b329fe57b69a956153fb1e22ed7822dc9b678f921ada7119ce4f366de",
+      "bytes": 1659,
+      "sha256": "7acae341079b9ea1c760c6949d7ad94a74fd3c43d6e4cdc2678fc17e06357274"
+    },
+    {
+      "path": "objects/0073.gz",
+      "label": "historical/vscode/preflight-ide-arm64-validation.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-arm64-validation.yml-source.yml",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5785,
+      "sha256": "dbe1a6d47ba10f3b461f5739bf95a7132e36cbcab79495bd9c48a1155479e8e0"
+    },
+    {
+      "path": "objects/0074.gz",
+      "label": "historical/vscode/preflight-ide-extensions.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-extensions.yml-jobs.json",
+      "rawBytes": 67673,
+      "rawSha256": "c847a81f4994bf38aa57a12adf9c042e3ce4ae0d7718d05c6a29bbee0d9d07ee",
+      "bytes": 5475,
+      "sha256": "93c7da27aa274cb452b967c70290b6aff404b7689aa7abd0641ff46ee57d14b3"
+    },
+    {
+      "path": "objects/0075.gz",
+      "label": "historical/vscode/preflight-ide-extensions.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-extensions.yml-runs.json",
+      "rawBytes": 40108,
+      "rawSha256": "d7880eaf03bd083a1374c0b39b879b0304b58da61b8fc28723a9f52b382d6d87",
+      "bytes": 2179,
+      "sha256": "1322e47c19d7e79efea113df75b09b2dac920f537620a9a46e9cc70f89116385"
+    },
+    {
+      "path": "objects/0076.gz",
+      "label": "historical/vscode/preflight-ide-extensions.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-ide-extensions.yml-source.yml",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8826,
+      "sha256": "e74f5d16b6be8bdd842e1bbd610010d7a31cebeb3dcc7c90848ac814a12cd71d"
+    },
+    {
+      "path": "objects/0077.gz",
+      "label": "historical/vscode/preflight-memory-query-index.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-memory-query-index.yml-jobs.json",
+      "rawBytes": 8549,
+      "rawSha256": "2a3928942db298e8d0a561fe4582a2a47defee27519f81308c099993de29e966",
+      "bytes": 1105,
+      "sha256": "d292a0b8932479afd051c264365e2e450d717ea6477619e2d1e8e3b8b300e38a"
+    },
+    {
+      "path": "objects/0078.gz",
+      "label": "historical/vscode/preflight-memory-query-index.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-memory-query-index.yml-runs.json",
+      "rawBytes": 27500,
+      "rawSha256": "555bdedb1b9865fed3b77044501cb2e4fe411e3ffcfbd5282d729d29900186f7",
+      "bytes": 1983,
+      "sha256": "36f7b9f7ad46aec1e04fbaaee0e37595a7425ee4e2cb264409da729c71c85368"
+    },
+    {
+      "path": "objects/0079.gz",
+      "label": "historical/vscode/preflight-memory-query-index.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-memory-query-index.yml-source.yml",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "9ac86a7119bc306b4ecfead54eac6f5a47001ca5e297b2f36ba6429330a0e47d"
+    },
+    {
+      "path": "objects/0080.gz",
+      "label": "historical/vscode/preflight-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/preflight-readback.json",
+      "rawBytes": 1337,
+      "rawSha256": "cc41e35a869f58b3a94d18df9f7cae8eb887d03c6a8375f77e45723cd06b0aa9",
+      "bytes": 310,
+      "sha256": "8a0980e6866f81868ca5443dcaa88052a2a79276f5b00adbda239635e4055a93"
+    },
+    {
+      "path": "objects/0081.gz",
+      "label": "historical/vscode/public-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/public-readback.json",
+      "rawBytes": 1889,
+      "rawSha256": "f58e5d79914cf108f7e33582ae4cd87af9c50d3223ef39b313b14bee733eee3b",
+      "bytes": 735,
+      "sha256": "a4689c3d2277c1b5b92c30d46ebe85bf1a09c7343c8d3ae13a386177dc1fe524"
+    },
+    {
+      "path": "objects/0082.gz",
+      "label": "historical/vscode/public.vsix",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/public.vsix",
+      "rawBytes": 715135,
+      "rawSha256": "b7f559794abae3ac4f890e55ac83980c77fcd7494f10bf206fe3c32fa690d83e",
+      "bytes": 698046,
+      "sha256": "7558baef4ed40f222e730e73bcaf18f5d17453a13e2584ed2b555492d168f808"
+    },
+    {
+      "path": "objects/0083.gz",
+      "label": "historical/vscode/run.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/vscode-verified-38151479654-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T15-53-42.094Z/run.raw.json",
+      "rawBytes": 13197,
+      "rawSha256": "0f1e0957d855224ed969384201cbea9f12c249c94348e4b42c89fbbe3dd9185f",
+      "bytes": 1522,
+      "sha256": "ddb9d48c0e7e056e07b5c88394407af6f9ad19fb3db31abcb849512c61b3575d"
+    },
+    {
+      "path": "objects/0084.gz",
+      "label": "historical/jetbrains/actions-artifact.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/actions-artifact.zip",
+      "rawBytes": 1520153,
+      "rawSha256": "dc6c3f08e99eb74a70a339d8c82dd60e12fc92fa68149940f166bd41704bbb1e",
+      "bytes": 1520636,
+      "sha256": "94fbe6348ecc3398e4783f42eb21b802806983e041fa44dd94f820cf2d49e5e3"
+    },
+    {
+      "path": "objects/0085.gz",
+      "label": "historical/jetbrains/artifact-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/artifact-readback.json",
+      "rawBytes": 16246,
+      "rawSha256": "7db01ffc8a43b70a2b8856b0f51e77d9f55e235ce07852f45e133424fad1b9b6",
+      "bytes": 2005,
+      "sha256": "5c1eefc61e23f6f7379efed43769e50e4a2571fa615628cbbb8313a992ff3485"
+    },
+    {
+      "path": "objects/0086.gz",
+      "label": "historical/jetbrains/artifacts.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/artifacts.raw.json",
+      "rawBytes": 13684,
+      "rawSha256": "46e5f53fa25427b8b01a7e67f2fe562ca2dafc98f6e5a74aeb9ea1a053c5f250",
+      "bytes": 1986,
+      "sha256": "7c8deb371b47842e45c20fe7c8c12e4d452f116620540f1b88cb73169a18676c"
+    },
+    {
+      "path": "objects/0087.gz",
+      "label": "historical/jetbrains/candidate.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/candidate.zip",
+      "rawBytes": 1519933,
+      "rawSha256": "ecaa2ad66641ce2aaf49564934d3ce4344282c9700b26ee8d5b1e54e446d7115",
+      "bytes": 1519983,
+      "sha256": "e8966e1a6db15c692378091f43387329a51afddcba94f20f1a735ed4323b090d"
+    },
+    {
+      "path": "objects/0088.gz",
+      "label": "historical/jetbrains/invocation.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/invocation.json",
+      "rawBytes": 505,
+      "rawSha256": "8953cbfeb96ae44da918af3344e2f8c48fe37845f5231acfd089f305fde589aa",
+      "bytes": 338,
+      "sha256": "29683a60f934ce92724d99bcb0448ae4803aac38db359cad75b12be7cc310b47"
+    },
+    {
+      "path": "objects/0089.gz",
+      "label": "historical/jetbrains/jetbrains-updates.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/jetbrains-updates.json",
+      "rawBytes": 80261,
+      "rawSha256": "f3b716b5058f5c91486f68d779ef6e11b2d27749b63ef5e7eff791bc783e187b",
+      "bytes": 6845,
+      "sha256": "b04d6941cfefd4ce3e597016eda779bda9739a0fc2bad359b9584cd967622c80"
+    },
+    {
+      "path": "objects/0090.gz",
+      "label": "historical/jetbrains/jobs.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/jobs.raw.json",
+      "rawBytes": 53754,
+      "rawSha256": "4d5ee4a5562db5bb5e3cb692cdc45431afaae511c146b06faa198d3afdd7c4b2",
+      "bytes": 4089,
+      "sha256": "3f7a81a75a2d869f3a440705bc2f83c3ef53c9a0c29ad92e5a3711717ba28b80"
+    },
+    {
+      "path": "objects/0091.gz",
+      "label": "historical/jetbrains/marketplace-verifier.stderr",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/marketplace-verifier.stderr",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "path": "objects/0092.gz",
+      "label": "historical/jetbrains/marketplace-verifier.stdout",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/marketplace-verifier.stdout",
+      "rawBytes": 174,
+      "rawSha256": "492eedfe398619dfe7bcfe91f72d107ae8d72b4f901ea4610b61fb9b1339fdde",
+      "bytes": 146,
+      "sha256": "dd9931cb4fa54c2880d6687ebcd46e7b273714521c94f5be16144fb5eb24e0ad"
+    },
+    {
+      "path": "objects/0093.gz",
+      "label": "historical/jetbrains/preflight-cli-background-interaction-e2e.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-background-interaction-e2e.yml-jobs.json",
+      "rawBytes": 8648,
+      "rawSha256": "24857443306ebc973066ed2161a38cffc7c998b23c71164e28512a63c38f3596",
+      "bytes": 1088,
+      "sha256": "0ef86fa4be2fa33f802aeea86139e58ca5e12da659ccee558b69c5b6a36caaa0"
+    },
+    {
+      "path": "objects/0094.gz",
+      "label": "historical/jetbrains/preflight-cli-background-interaction-e2e.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-background-interaction-e2e.yml-runs.json",
+      "rawBytes": 27526,
+      "rawSha256": "7818a5d8bba2258e65ddfbd6a6170d685d4cd8311760dc8136ec20634a6f9ab2",
+      "bytes": 1981,
+      "sha256": "8946aed4bfefae84d65fce1958c646b10f6f5c4fd7312384dc0aa5545aa45611"
+    },
+    {
+      "path": "objects/0095.gz",
+      "label": "historical/jetbrains/preflight-cli-background-interaction-e2e.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-background-interaction-e2e.yml-source.yml",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1152,
+      "sha256": "5b2a578495d14e7c2b3d8426e99eea594e0c752640ecd4197dc870a9d7bad1da"
+    },
+    {
+      "path": "objects/0096.gz",
+      "label": "historical/jetbrains/preflight-cli-ci.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-ci.yml-jobs.json",
+      "rawBytes": 203977,
+      "rawSha256": "2f87454f43d57c52eb9e2c17d1af86492b793c756bc01fd3d51982b31aad2909",
+      "bytes": 11878,
+      "sha256": "b69d36efa86dbdd5cd9c591164d47a1a1e4e257517340d771e5b29d683d2de39"
+    },
+    {
+      "path": "objects/0097.gz",
+      "label": "historical/jetbrains/preflight-cli-ci.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-ci.yml-runs.json",
+      "rawBytes": 14146,
+      "rawSha256": "dab3942f12b8d687f817b7f08d5a8566b2ce277106b5175c0da2e2542f3892b6",
+      "bytes": 1773,
+      "sha256": "5f9bf31ad726facfba1b16922706fb2636fb491559cb27d9fc1b0b89759221be"
+    },
+    {
+      "path": "objects/0098.gz",
+      "label": "historical/jetbrains/preflight-cli-ci.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-ci.yml-source.yml",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4562,
+      "sha256": "85b089a4b1f65b7bee9590e0b4e20b6d872058e849d18072fa64e63e8c64b20d"
+    },
+    {
+      "path": "objects/0099.gz",
+      "label": "historical/jetbrains/preflight-cli-strict-sandbox.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-strict-sandbox.yml-jobs.json",
+      "rawBytes": 21535,
+      "rawSha256": "cb62f023de4704611324bbe047e864631c8e32e06cbc19371f8c9cd3677fa91f",
+      "bytes": 2206,
+      "sha256": "b09973d850f5388da21d3d05e91b94cf20187076b817e5f7eb3bf63c6f567576"
+    },
+    {
+      "path": "objects/0100.gz",
+      "label": "historical/jetbrains/preflight-cli-strict-sandbox.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-strict-sandbox.yml-runs.json",
+      "rawBytes": 13778,
+      "rawSha256": "ed9d1509ee0de23611c87099875315b6b2a11610deac01fdf63d8dd5571223ef",
+      "bytes": 1699,
+      "sha256": "f980f6a238dd928ae5dd61d4da41ab7217abb6c496165648d7010898b641ebac"
+    },
+    {
+      "path": "objects/0101.gz",
+      "label": "historical/jetbrains/preflight-cli-strict-sandbox.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-cli-strict-sandbox.yml-source.yml",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5741,
+      "sha256": "92b861177ce48b0a1a9afecf90403238e7bcfa749866730a2f6d0f64f1b69cca"
+    },
+    {
+      "path": "objects/0102.gz",
+      "label": "historical/jetbrains/preflight-context-memory-kernel.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-context-memory-kernel.yml-jobs.json",
+      "rawBytes": 17890,
+      "rawSha256": "1d6fb8570f755a904d114b633451e27b5d4b921ac2b87730b569a04e091e4d87",
+      "bytes": 1836,
+      "sha256": "61630636246223706b76f38b0edd6e24fd38d31bfab7f1eebaf12adc383cdd39"
+    },
+    {
+      "path": "objects/0103.gz",
+      "label": "historical/jetbrains/preflight-context-memory-kernel.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-context-memory-kernel.yml-runs.json",
+      "rawBytes": 67133,
+      "rawSha256": "9e3efcaa89096524b6d8f0d32671e42f0840b2c28a440614b23c5eb7a2f25222",
+      "bytes": 2739,
+      "sha256": "db835862b2dbf609a5b7782412cfeeb367360cebcec0507844c9f0beeb90477b"
+    },
+    {
+      "path": "objects/0104.gz",
+      "label": "historical/jetbrains/preflight-context-memory-kernel.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-context-memory-kernel.yml-source.yml",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1789,
+      "sha256": "c60949e265d8994422f7a6dea9f84bb1b22ae414ffb21ec86ee1ed588b7df864"
+    },
+    {
+      "path": "objects/0105.gz",
+      "label": "historical/jetbrains/preflight-ide-arm64-validation.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-arm64-validation.yml-jobs.json",
+      "rawBytes": 38410,
+      "rawSha256": "520bbed0f61dd1519acf34ee3258fe937dce2ed65af205ce8ba60427c6f9f83d",
+      "bytes": 2960,
+      "sha256": "cae46440f87c662e6040ae9b30919e672457d8890d6e93d8888a1b1ca9367bc3"
+    },
+    {
+      "path": "objects/0106.gz",
+      "label": "historical/jetbrains/preflight-ide-arm64-validation.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-arm64-validation.yml-runs.json",
+      "rawBytes": 13740,
+      "rawSha256": "eda9f43b329fe57b69a956153fb1e22ed7822dc9b678f921ada7119ce4f366de",
+      "bytes": 1659,
+      "sha256": "7acae341079b9ea1c760c6949d7ad94a74fd3c43d6e4cdc2678fc17e06357274"
+    },
+    {
+      "path": "objects/0107.gz",
+      "label": "historical/jetbrains/preflight-ide-arm64-validation.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-arm64-validation.yml-source.yml",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5785,
+      "sha256": "dbe1a6d47ba10f3b461f5739bf95a7132e36cbcab79495bd9c48a1155479e8e0"
+    },
+    {
+      "path": "objects/0108.gz",
+      "label": "historical/jetbrains/preflight-ide-extensions.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-extensions.yml-jobs.json",
+      "rawBytes": 67673,
+      "rawSha256": "c847a81f4994bf38aa57a12adf9c042e3ce4ae0d7718d05c6a29bbee0d9d07ee",
+      "bytes": 5475,
+      "sha256": "93c7da27aa274cb452b967c70290b6aff404b7689aa7abd0641ff46ee57d14b3"
+    },
+    {
+      "path": "objects/0109.gz",
+      "label": "historical/jetbrains/preflight-ide-extensions.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-extensions.yml-runs.json",
+      "rawBytes": 40111,
+      "rawSha256": "465f77bdd758b632657fb17efb8d90c921c5ed6d40b62e401a12bddae1c9a87f",
+      "bytes": 2164,
+      "sha256": "e4f0d070a4969b4d49be306f0ef701988a893d2315db89ce860156087b0e9fc0"
+    },
+    {
+      "path": "objects/0110.gz",
+      "label": "historical/jetbrains/preflight-ide-extensions.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-ide-extensions.yml-source.yml",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8826,
+      "sha256": "e74f5d16b6be8bdd842e1bbd610010d7a31cebeb3dcc7c90848ac814a12cd71d"
+    },
+    {
+      "path": "objects/0111.gz",
+      "label": "historical/jetbrains/preflight-memory-query-index.yml-jobs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-memory-query-index.yml-jobs.json",
+      "rawBytes": 8549,
+      "rawSha256": "2a3928942db298e8d0a561fe4582a2a47defee27519f81308c099993de29e966",
+      "bytes": 1105,
+      "sha256": "d292a0b8932479afd051c264365e2e450d717ea6477619e2d1e8e3b8b300e38a"
+    },
+    {
+      "path": "objects/0112.gz",
+      "label": "historical/jetbrains/preflight-memory-query-index.yml-runs.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-memory-query-index.yml-runs.json",
+      "rawBytes": 27500,
+      "rawSha256": "555bdedb1b9865fed3b77044501cb2e4fe411e3ffcfbd5282d729d29900186f7",
+      "bytes": 1983,
+      "sha256": "36f7b9f7ad46aec1e04fbaaee0e37595a7425ee4e2cb264409da729c71c85368"
+    },
+    {
+      "path": "objects/0113.gz",
+      "label": "historical/jetbrains/preflight-memory-query-index.yml-source.yml",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-memory-query-index.yml-source.yml",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "9ac86a7119bc306b4ecfead54eac6f5a47001ca5e297b2f36ba6429330a0e47d"
+    },
+    {
+      "path": "objects/0114.gz",
+      "label": "historical/jetbrains/preflight-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/preflight-readback.json",
+      "rawBytes": 1337,
+      "rawSha256": "cc41e35a869f58b3a94d18df9f7cae8eb887d03c6a8375f77e45723cd06b0aa9",
+      "bytes": 310,
+      "sha256": "8a0980e6866f81868ca5443dcaa88052a2a79276f5b00adbda239635e4055a93"
+    },
+    {
+      "path": "objects/0115.gz",
+      "label": "historical/jetbrains/public-readback.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/public-readback.json",
+      "rawBytes": 6964,
+      "rawSha256": "e15a6fe914d9a24aa5798eae23536d8a42fae91ccda6d4b30ce34cbf4c5c36f3",
+      "bytes": 2497,
+      "sha256": "94dc50568a6bdea20c6967cf0f19b382576128204ce3c8d2f525b4edd94643f7"
+    },
+    {
+      "path": "objects/0116.gz",
+      "label": "historical/jetbrains/public.zip",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/public.zip",
+      "rawBytes": 1525593,
+      "rawSha256": "d263676d96c95e43af25e553464279f1b8de54ce3e6b9589b134b67b756f4a25",
+      "bytes": 1524695,
+      "sha256": "d3d91a829a47bd8bacde2fa283b74a122ae445a8f40097ed5a8bfe461a3b808e"
+    },
+    {
+      "path": "objects/0117.gz",
+      "label": "historical/jetbrains/run.raw.json",
+      "kind": "historical-original",
+      "source": ".work/release-readback-0.166.98/jetbrains-verified-38151479621-e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/public-2026-10-11T16-09-13.102Z/run.raw.json",
+      "rawBytes": 13199,
+      "rawSha256": "e16144db3a42844499a27876dfec0fdd24eaf325db113d179be1d8cc2d6d2c56",
+      "bytes": 1527,
+      "sha256": "ccbaf2bd38f5b11ddce1f0e629e714feb8dee8a858da9555aadc3eddd94a507c"
+    },
+    {
+      "path": "objects/0118.gz",
+      "label": "historical/gates/cli-background-interaction-e2e.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/cli-background-interaction-e2e.yml",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1152,
+      "sha256": "5b2a578495d14e7c2b3d8426e99eea594e0c752640ecd4197dc870a9d7bad1da"
+    },
+    {
+      "path": "objects/0119.gz",
+      "label": "historical/gates/cli-ci.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/cli-ci.yml",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4562,
+      "sha256": "85b089a4b1f65b7bee9590e0b4e20b6d872058e849d18072fa64e63e8c64b20d"
+    },
+    {
+      "path": "objects/0120.gz",
+      "label": "historical/gates/cli-strict-sandbox.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/cli-strict-sandbox.yml",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5741,
+      "sha256": "92b861177ce48b0a1a9afecf90403238e7bcfa749866730a2f6d0f64f1b69cca"
+    },
+    {
+      "path": "objects/0121.gz",
+      "label": "historical/gates/context-memory-kernel.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/context-memory-kernel.yml",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1789,
+      "sha256": "c60949e265d8994422f7a6dea9f84bb1b22ae414ffb21ec86ee1ed588b7df864"
+    },
+    {
+      "path": "objects/0122.gz",
+      "label": "historical/gates/ide-arm64-validation.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/ide-arm64-validation.yml",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5785,
+      "sha256": "dbe1a6d47ba10f3b461f5739bf95a7132e36cbcab79495bd9c48a1155479e8e0"
+    },
+    {
+      "path": "objects/0123.gz",
+      "label": "historical/gates/ide-extensions.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/ide-extensions.yml",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8826,
+      "sha256": "e74f5d16b6be8bdd842e1bbd610010d7a31cebeb3dcc7c90848ac814a12cd71d"
+    },
+    {
+      "path": "objects/0124.gz",
+      "label": "historical/gates/jobs-38141558590-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141558590-1.json",
+      "rawBytes": 21535,
+      "rawSha256": "cb62f023de4704611324bbe047e864631c8e32e06cbc19371f8c9cd3677fa91f",
+      "bytes": 2206,
+      "sha256": "b09973d850f5388da21d3d05e91b94cf20187076b817e5f7eb3bf63c6f567576"
+    },
+    {
+      "path": "objects/0125.gz",
+      "label": "historical/gates/jobs-38141558764-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141558764-1.json",
+      "rawBytes": 203977,
+      "rawSha256": "2f87454f43d57c52eb9e2c17d1af86492b793c756bc01fd3d51982b31aad2909",
+      "bytes": 11878,
+      "sha256": "b69d36efa86dbdd5cd9c591164d47a1a1e4e257517340d771e5b29d683d2de39"
+    },
+    {
+      "path": "objects/0126.gz",
+      "label": "historical/gates/jobs-38141577696-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141577696-1.json",
+      "rawBytes": 17890,
+      "rawSha256": "1d6fb8570f755a904d114b633451e27b5d4b921ac2b87730b569a04e091e4d87",
+      "bytes": 1836,
+      "sha256": "61630636246223706b76f38b0edd6e24fd38d31bfab7f1eebaf12adc383cdd39"
+    },
+    {
+      "path": "objects/0127.gz",
+      "label": "historical/gates/jobs-38141582124-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141582124-1.json",
+      "rawBytes": 8549,
+      "rawSha256": "2a3928942db298e8d0a561fe4582a2a47defee27519f81308c099993de29e966",
+      "bytes": 1105,
+      "sha256": "d292a0b8932479afd051c264365e2e450d717ea6477619e2d1e8e3b8b300e38a"
+    },
+    {
+      "path": "objects/0128.gz",
+      "label": "historical/gates/jobs-38141588605-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141588605-1.json",
+      "rawBytes": 8648,
+      "rawSha256": "24857443306ebc973066ed2161a38cffc7c998b23c71164e28512a63c38f3596",
+      "bytes": 1088,
+      "sha256": "0ef86fa4be2fa33f802aeea86139e58ca5e12da659ccee558b69c5b6a36caaa0"
+    },
+    {
+      "path": "objects/0129.gz",
+      "label": "historical/gates/jobs-38141616625-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141616625-1.json",
+      "rawBytes": 67673,
+      "rawSha256": "c847a81f4994bf38aa57a12adf9c042e3ce4ae0d7718d05c6a29bbee0d9d07ee",
+      "bytes": 5475,
+      "sha256": "93c7da27aa274cb452b967c70290b6aff404b7689aa7abd0641ff46ee57d14b3"
+    },
+    {
+      "path": "objects/0130.gz",
+      "label": "historical/gates/jobs-38141621709-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/jobs-38141621709-1.json",
+      "rawBytes": 38410,
+      "rawSha256": "520bbed0f61dd1519acf34ee3258fe937dce2ed65af205ce8ba60427c6f9f83d",
+      "bytes": 2960,
+      "sha256": "cae46440f87c662e6040ae9b30919e672457d8890d6e93d8888a1b1ca9367bc3"
+    },
+    {
+      "path": "objects/0131.gz",
+      "label": "historical/gates/memory-query-index.yml",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/memory-query-index.yml",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "9ac86a7119bc306b4ecfead54eac6f5a47001ca5e297b2f36ba6429330a0e47d"
+    },
+    {
+      "path": "objects/0132.gz",
+      "label": "historical/gates/report.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/report.json",
+      "rawBytes": 5418,
+      "rawSha256": "9ff273e139512aaf1e87a447024b0c226ffce100bd110cf0f68555d548b6dfd4",
+      "bytes": 1156,
+      "sha256": "45e2921aaca11af657815f3d3e3329edcdaef33cb0f9e014523c78c632300d68"
+    },
+    {
+      "path": "objects/0133.gz",
+      "label": "historical/gates/runs-1.json",
+      "kind": "historical-original",
+      "source": ".work/release-016698-gates/e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9/2026-10-11T15-12-15.341Z/runs-1.json",
+      "rawBytes": 522974,
+      "rawSha256": "2da3b44c0ea7fc8d94881ad9bda0113adf97101ec3e95125af2456066fb23f2c",
+      "bytes": 10437,
+      "sha256": "147bef70f5105455dde403a05e17c297a002a67cea88385ab79c45408c392e4c"
+    },
+    {
+      "path": "objects/0134.gz",
+      "label": "helpers/release098-workflow-contract.mjs",
+      "kind": "helper-snapshot",
+      "source": ".work/release098-workflow-contract.mjs",
+      "rawBytes": 11998,
+      "rawSha256": "b48692ca3a90a653bdf5ecc755ba45a7f8f581dff596cc4e1b13babd0d96bede",
+      "bytes": 3982,
+      "sha256": "9146b835b874483ecf5d631a1cfb2aab438d61f2f1159e53e7abf5bbedb74560"
+    },
+    {
+      "path": "objects/0135.gz",
+      "label": "helpers/readback-ide-workflow098.mjs",
+      "kind": "helper-snapshot",
+      "source": ".work/readback-ide-workflow098.mjs",
+      "rawBytes": 5950,
+      "rawSha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf",
+      "bytes": 1779,
+      "sha256": "0cb0e24ac3eb0dc61c9ed702ad0ad27b7bda056ece5b4cccfd36e66bbe4b87a0"
+    },
+    {
+      "path": "objects/0136.gz",
+      "label": "helpers/readback-public-release098.mjs",
+      "kind": "helper-snapshot",
+      "source": ".work/readback-public-release098.mjs",
+      "rawBytes": 27318,
+      "rawSha256": "011ce0de479449480b90a4fbbb89f109e27441419adc59a0efc719fc19f752bf",
+      "bytes": 7918,
+      "sha256": "d038a001ca2b5fe9c1811758bd4bacb04cd193b40f4bcab05c16439774b1954f"
+    },
+    {
+      "path": "objects/0137.gz",
+      "label": "helpers/readback-ide-release098.mjs",
+      "kind": "helper-snapshot",
+      "source": ".work/readback-ide-release098.mjs",
+      "rawBytes": 13386,
+      "rawSha256": "dc879d4c308f4173d1c6425846df74063d19c80e202b6877bba49d27355d1d97",
+      "bytes": 4211,
+      "sha256": "50dea263619b4ffc17eb8e40c37d19c3ba6b8c1136785976d2ef76a5f893bcfb"
+    },
+    {
+      "path": "objects/0138.gz",
+      "label": "helpers/jvm-string-constant.mjs",
+      "kind": "helper-snapshot",
+      "source": ".work/jvm-string-constant.mjs",
+      "rawBytes": 5386,
+      "rawSha256": "77d878993be7f826dcfb88bc48ebbe0222f48bcaf99461b99b06e4a28b36295e",
+      "bytes": 1852,
+      "sha256": "f0eb8332ce6d949b84444ee47664fe22d5bb08583f4422eb381d54fc08e4c56a"
+    },
+    {
+      "path": "objects/0139.gz",
+      "label": "current/gate-38141558764-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141558764",
+      "rawBytes": 13600,
+      "rawSha256": "2a4c3976e78a5ee0325d5c8acfdd6aadf4d66c16f519d292caa285fcad6d762d",
+      "bytes": 1650,
+      "sha256": "72a03824ed328ef12fc8c652c7965857cfaf6e1f307922f4ea19d200d35e26a4"
+    },
+    {
+      "path": "objects/0140.gz",
+      "label": "current/gate-38141558764-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141558764/attempts/1/jobs?per_page=100",
+      "rawBytes": 203977,
+      "rawSha256": "2f87454f43d57c52eb9e2c17d1af86492b793c756bc01fd3d51982b31aad2909",
+      "bytes": 11878,
+      "sha256": "b69d36efa86dbdd5cd9c591164d47a1a1e4e257517340d771e5b29d683d2de39"
+    },
+    {
+      "path": "objects/0141.gz",
+      "label": "current/gate-38141558590-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141558590",
+      "rawBytes": 13232,
+      "rawSha256": "14305fcdddc72c29232612373f756e0120ee73b03e0b90362369f539824df978",
+      "bytes": 1572,
+      "sha256": "4b7b5e1e42f0d31ea8d5bf4400b77758b3574386d50cdd54b1728c31e8814284"
+    },
+    {
+      "path": "objects/0142.gz",
+      "label": "current/gate-38141558590-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141558590/attempts/1/jobs?per_page=100",
+      "rawBytes": 21535,
+      "rawSha256": "cb62f023de4704611324bbe047e864631c8e32e06cbc19371f8c9cd3677fa91f",
+      "bytes": 2206,
+      "sha256": "b09973d850f5388da21d3d05e91b94cf20187076b817e5f7eb3bf63c6f567576"
+    },
+    {
+      "path": "objects/0143.gz",
+      "label": "current/gate-38141616625-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141616625",
+      "rawBytes": 13172,
+      "rawSha256": "894fa902e5bab422ff8cd194fb58e5eb0dca45b9a5c5391a3f402671df0df92a",
+      "bytes": 1524,
+      "sha256": "73ed84a623794c8466b3ccfc5e3868de40ae46e10b0223bd672510ae67ccd74e"
+    },
+    {
+      "path": "objects/0144.gz",
+      "label": "current/gate-38141616625-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141616625/attempts/1/jobs?per_page=100",
+      "rawBytes": 67673,
+      "rawSha256": "c847a81f4994bf38aa57a12adf9c042e3ce4ae0d7718d05c6a29bbee0d9d07ee",
+      "bytes": 5475,
+      "sha256": "93c7da27aa274cb452b967c70290b6aff404b7689aa7abd0641ff46ee57d14b3"
+    },
+    {
+      "path": "objects/0145.gz",
+      "label": "current/gate-38141621709-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141621709",
+      "rawBytes": 13199,
+      "rawSha256": "4e639e80f8785aae22cd3a0e568d6b18d6b456c1a6ef688a8f72638da6fc3dd3",
+      "bytes": 1542,
+      "sha256": "6e35f7ecfd8b73f665d4fdd3450e1b76082847d4aac4b0d75dc2538eaae06cad"
+    },
+    {
+      "path": "objects/0146.gz",
+      "label": "current/gate-38141621709-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141621709/attempts/1/jobs?per_page=100",
+      "rawBytes": 38410,
+      "rawSha256": "520bbed0f61dd1519acf34ee3258fe937dce2ed65af205ce8ba60427c6f9f83d",
+      "bytes": 2960,
+      "sha256": "cae46440f87c662e6040ae9b30919e672457d8890d6e93d8888a1b1ca9367bc3"
+    },
+    {
+      "path": "objects/0147.gz",
+      "label": "current/gate-38141582124-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141582124",
+      "rawBytes": 13206,
+      "rawSha256": "9d6a806e5005d9542f354a54d2c779e9ef60de217b696e7071226862906698b9",
+      "bytes": 1544,
+      "sha256": "f543b07bdc582bb61fb01d7692488a50afa6da903ff7384d287773c2b31a991c"
+    },
+    {
+      "path": "objects/0148.gz",
+      "label": "current/gate-38141582124-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141582124/attempts/1/jobs?per_page=100",
+      "rawBytes": 8549,
+      "rawSha256": "2a3928942db298e8d0a561fe4582a2a47defee27519f81308c099993de29e966",
+      "bytes": 1105,
+      "sha256": "d292a0b8932479afd051c264365e2e450d717ea6477619e2d1e8e3b8b300e38a"
+    },
+    {
+      "path": "objects/0149.gz",
+      "label": "current/gate-38141577696-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141577696",
+      "rawBytes": 13199,
+      "rawSha256": "031a58f9549c20da906ce6f92de5a24d81b26306b5718a29ebedacec557384e3",
+      "bytes": 1542,
+      "sha256": "024821c4d3e52be397bd8f87532348df9fe19f281316bd36c4182e21013441eb"
+    },
+    {
+      "path": "objects/0150.gz",
+      "label": "current/gate-38141577696-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141577696/attempts/1/jobs?per_page=100",
+      "rawBytes": 17890,
+      "rawSha256": "1d6fb8570f755a904d114b633451e27b5d4b921ac2b87730b569a04e091e4d87",
+      "bytes": 1836,
+      "sha256": "61630636246223706b76f38b0edd6e24fd38d31bfab7f1eebaf12adc383cdd39"
+    },
+    {
+      "path": "objects/0151.gz",
+      "label": "current/gate-38141588605-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141588605",
+      "rawBytes": 13219,
+      "rawSha256": "5a428b604891fd46c23ce4c955358e2be425094cb77ee427430467d1f50cefc4",
+      "bytes": 1544,
+      "sha256": "149aac775f302554bdcf7d1d6775a5ba0adc6008b0cfcd9a804ea14a8b420e20"
+    },
+    {
+      "path": "objects/0152.gz",
+      "label": "current/gate-38141588605-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38141588605/attempts/1/jobs?per_page=100",
+      "rawBytes": 8648,
+      "rawSha256": "24857443306ebc973066ed2161a38cffc7c998b23c71164e28512a63c38f3596",
+      "bytes": 1088,
+      "sha256": "0ef86fa4be2fa33f802aeea86139e58ca5e12da659ccee558b69c5b6a36caaa0"
+    },
+    {
+      "path": "objects/0153.gz",
+      "label": "current/npm-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38150341893",
+      "rawBytes": 13405,
+      "rawSha256": "b21b9adeeb5c01af7d0c06ffb3f640bce18ecc3f8751efe81d75ea93c7ddb7c3",
+      "bytes": 1574,
+      "sha256": "e548b45f64adf154c74bb56d1b64f21be46d888916434d959ca3e0297cced749"
+    },
+    {
+      "path": "objects/0154.gz",
+      "label": "current/npm-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38150341893/attempts/1/jobs?per_page=100",
+      "rawBytes": 20458,
+      "rawSha256": "ce53a9f985cb390cfcc206d0262ee178ee10ac46463750de865246807ae3d3c9",
+      "bytes": 2363,
+      "sha256": "a75857169b9f04a5cb631c03ef1ab7d9f41e47d30e61cde461b45dab39c768bf"
+    },
+    {
+      "path": "objects/0155.gz",
+      "label": "current/vscode-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38151479654",
+      "rawBytes": 13197,
+      "rawSha256": "0f1e0957d855224ed969384201cbea9f12c249c94348e4b42c89fbbe3dd9185f",
+      "bytes": 1522,
+      "sha256": "ddb9d48c0e7e056e07b5c88394407af6f9ad19fb3db31abcb849512c61b3575d"
+    },
+    {
+      "path": "objects/0156.gz",
+      "label": "current/vscode-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38151479654/attempts/1/jobs?per_page=100",
+      "rawBytes": 41367,
+      "rawSha256": "3e69eb353cd7513257c640d63275d994f19c2c2a50cabe9679aed1813313eca5",
+      "bytes": 3843,
+      "sha256": "40db0d67c7e59bed44273f69e285543916fe22b7ac2406fff697f1125cec536a"
+    },
+    {
+      "path": "objects/0157.gz",
+      "label": "current/jetbrains-run.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38151479621",
+      "rawBytes": 13199,
+      "rawSha256": "e16144db3a42844499a27876dfec0fdd24eaf325db113d179be1d8cc2d6d2c56",
+      "bytes": 1527,
+      "sha256": "ccbaf2bd38f5b11ddce1f0e629e714feb8dee8a858da9555aadc3eddd94a507c"
+    },
+    {
+      "path": "objects/0158.gz",
+      "label": "current/jetbrains-jobs.json",
+      "kind": "current-api-readback",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/38151479621/attempts/1/jobs?per_page=100",
+      "rawBytes": 53754,
+      "rawSha256": "4d5ee4a5562db5bb5e3cb692cdc45431afaae511c146b06faa198d3afdd7c4b2",
+      "bytes": 4089,
+      "sha256": "3f7a81a75a2d869f3a440705bc2f83c3ef53c9a0c29ad92e5a3711717ba28b80"
+    },
+    {
+      "path": "objects/0159.gz",
+      "label": "current/npm-metadata.json",
+      "kind": "current-public-readback",
+      "source": "https://registry.npmjs.org/chainlesschain/0.166.98",
+      "rawBytes": 7671,
+      "rawSha256": "67d9f8b6ce86f6d59514a0ca635d84ba4e06ff7a1616c6290eb0abfb4dc3700d",
+      "bytes": 2767,
+      "sha256": "d236b21de442c722134fe1d4042be058c638ab9f1b7aba97aeb6d7c9009f04df"
+    },
+    {
+      "path": "objects/0160.gz",
+      "label": "current/open-vsx-metadata.json",
+      "kind": "current-public-readback",
+      "source": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.142",
+      "rawBytes": 10889,
+      "rawSha256": "754843a85ddee76f038ecd2282fb7e702120f98c21238d29614c9267313c0ebe",
+      "bytes": 1555,
+      "sha256": "03566f76eeb548aa29590e5ed19c44d73bc5090a7cb27d299004fabea301eae1"
+    },
+    {
+      "path": "objects/0161.gz",
+      "label": "current/jetbrains-updates.json",
+      "kind": "current-public-readback",
+      "source": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=20",
+      "rawBytes": 80261,
+      "rawSha256": "f0c579d4f73bcde0474c900b46d5c9e96b0b96ab84fcbe583b0a0ac11b0b3800",
+      "bytes": 6846,
+      "sha256": "c8062e4168441829f60782bb38fad5ac3891b039e2f2e0de204c009476912ee7"
+    },
+    {
+      "path": "objects/0162.gz",
+      "label": "current/npm-public-package",
+      "kind": "current-public-readback",
+      "source": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.98.tgz",
+      "rawBytes": 9362674,
+      "rawSha256": "d40fbe737184ebe5b8f2bd5f264d57e3dc82f580bc0a84212b51a0821e943367",
+      "bytes": 9362679,
+      "sha256": "11372688268ccf8da0d3a25dd99fc6dc4b3755006b776fc00201b7605396e8c1"
+    },
+    {
+      "path": "objects/0163.gz",
+      "label": "current/vscode-public-package",
+      "kind": "current-public-readback",
+      "source": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.142/file/chainlesschain.chainlesschain-ide-0.37.142.vsix",
+      "rawBytes": 715135,
+      "rawSha256": "b7f559794abae3ac4f890e55ac83980c77fcd7494f10bf206fe3c32fa690d83e",
+      "bytes": 698046,
+      "sha256": "7558baef4ed40f222e730e73bcaf18f5d17453a13e2584ed2b555492d168f808"
+    },
+    {
+      "path": "objects/0164.gz",
+      "label": "current/jetbrains-public-package",
+      "kind": "current-public-readback",
+      "source": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1191567",
+      "rawBytes": 1525593,
+      "rawSha256": "d263676d96c95e43af25e553464279f1b8de54ce3e6b9589b134b67b756f4a25",
+      "bytes": 1524695,
+      "sha256": "d3d91a829a47bd8bacde2fa283b74a122ae445a8f40097ed5a8bfe461a3b808e"
+    }
+  ]
+}

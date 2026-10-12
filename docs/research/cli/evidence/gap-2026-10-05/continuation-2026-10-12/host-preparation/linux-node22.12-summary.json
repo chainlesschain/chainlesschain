@@ -1,0 +1,22 @@
+{
+  "startedAt": "2026-10-12T03:17:48.978Z",
+  "finishedAt": "2026-10-12T03:17:51.009Z",
+  "executable": "wsl.exe",
+  "args": [
+    "-d",
+    "Ubuntu",
+    "-e",
+    "env",
+    "PATH=/tmp/cc-node-22.12/bin:/usr/bin:/bin",
+    "/tmp/cc-node-22.12/bin/node",
+    "--test",
+    "/mnt/c/code/chainlesschain/scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+  ],
+  "nodeVersion": "v22.12.0",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "sourceSha256": "4ec1abd7e02fecae5df6692f79953f9069c79af2c935b0d03d8addb6cbd61b71",
+  "testSha256": "0d9a652a325e2af8be3c737dbc0c4f5075a148fb58df032ccfda6a6a87bd898d",
+  "scope": "WSL Ubuntu Node22.12.0 contracts; not an Actions gate or formal IDE task"
+}

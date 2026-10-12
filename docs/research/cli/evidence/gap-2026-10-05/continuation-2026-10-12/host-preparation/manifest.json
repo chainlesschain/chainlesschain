@@ -1,0 +1,212 @@
+{
+  "schema": "chainlesschain.host-preparation-repair/v1",
+  "entries": [
+    {
+      "label": "original/prepare.log",
+      "path": "objects/000.gz",
+      "source": ".work/ide-gap-continuation-20261012/host-windows-original/verify01-artifacts/jetbrains/prepare.log",
+      "rawBytes": 2840,
+      "rawSha256": "f42b6ecfe84c4a4545d3378b707409193e702d2db0b2ad4366f1fd2204a62461",
+      "bytes": 763,
+      "sha256": "c86df4ed6d69f84987aafb9239d70ef523b100a05a807a5ac5f72dcb1dff5d8e"
+    },
+    {
+      "label": "original/diagnostic-result.json",
+      "path": "objects/001.gz",
+      "source": ".work/ide-gap-continuation-20261012/host-windows-original/verify01-artifacts/jetbrains/diagnostic-result.json",
+      "rawBytes": 3035,
+      "rawSha256": "ce5216738583d6603a644ff92372f4314b8655b72c4c4fc5d8b48dad33f313ff",
+      "bytes": 1335,
+      "sha256": "16d75efa1f2296eb4a090ebf953777c01de644dd6416f835774a350957d13560"
+    },
+    {
+      "label": "original/diagnostic-scope.json",
+      "path": "objects/002.gz",
+      "source": ".work/ide-gap-continuation-20261012/host-windows-original/verify01-artifacts/jetbrains/diagnostic-scope.json",
+      "rawBytes": 2638,
+      "rawSha256": "4e52a957c38406d20717cfd27822d750e8c0ec156e041e0b7bda8a00727d610a",
+      "bytes": 1184,
+      "sha256": "bfc1d6fe3ceca702aa79868ef5a11449beda2281e848221da4de41e362ff4182"
+    },
+    {
+      "label": "original/canonical-environment.json",
+      "path": "objects/003.gz",
+      "source": ".work/ide-gap-continuation-20261012/host-windows-original/verify01-artifacts/jetbrains/canonical-environment.json",
+      "rawBytes": 175,
+      "rawSha256": "3213bdae5a86dc4b8202ece160549257cceca50973331da2037bef7aea0b4c46",
+      "bytes": 164,
+      "sha256": "0250e034726ea4b7c710c15e03f2901487c77b4cdb7873eb964fe6eae317d458"
+    },
+    {
+      "label": "source/.github/workflows/verify01-host-diagnostics.yml",
+      "path": "objects/004.gz",
+      "source": ".github/workflows/verify01-host-diagnostics.yml",
+      "rawBytes": 7104,
+      "rawSha256": "f4271c5710832e048defd55349fc235e77aa451e23643c99d50f04da7b6ea547",
+      "bytes": 1856,
+      "sha256": "066751aab469ff2810d05bba29ccd07e13d1d8fb7d469e13b26926ba710bce8b"
+    },
+    {
+      "label": "source/scripts/lib/verify01-gradle-bootstrap.mjs",
+      "path": "objects/005.gz",
+      "source": "scripts/lib/verify01-gradle-bootstrap.mjs",
+      "rawBytes": 4697,
+      "rawSha256": "4ec1abd7e02fecae5df6692f79953f9069c79af2c935b0d03d8addb6cbd61b71",
+      "bytes": 1882,
+      "sha256": "74a4e9f2011fdbd3439c9b4df0b1edbea888a7f0e28e32fbfca0cf404ceb4cbe"
+    },
+    {
+      "label": "source/scripts/__tests__/verify01-gradle-bootstrap.test.mjs",
+      "path": "objects/006.gz",
+      "source": "scripts/__tests__/verify01-gradle-bootstrap.test.mjs",
+      "rawBytes": 4522,
+      "rawSha256": "0d9a652a325e2af8be3c737dbc0c4f5075a148fb58df032ccfda6a6a87bd898d",
+      "bytes": 1611,
+      "sha256": "673ebfeee44c7f99a8376dcc30e5cdea7e845adff2446338e3b3ef573552620b"
+    },
+    {
+      "label": "windows/stdout",
+      "path": "objects/007.gz",
+      "source": {
+        "exe": "C:\\nvm4w\\nodejs\\node.exe",
+        "args": [
+          "--test",
+          "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 1352,
+      "rawSha256": "66d8c0bd84bf20875c7d441aa31329f719c161c5af03a6f4827113a81644a280",
+      "bytes": 450,
+      "sha256": "4be8880df9dd26711bc43eda2b004f5248d537489506c423310f7ba5596b6b81"
+    },
+    {
+      "label": "windows/stderr",
+      "path": "objects/008.gz",
+      "source": {
+        "exe": "C:\\nvm4w\\nodejs\\node.exe",
+        "args": [
+          "--test",
+          "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "label": "linux/stdout",
+      "path": "objects/009.gz",
+      "source": {
+        "exe": "wsl",
+        "args": [
+          "--exec",
+          "bash",
+          "-lc",
+          "cd /mnt/c/code/chainlesschain && node --version && node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "label": "linux/stderr",
+      "path": "objects/010.gz",
+      "source": {
+        "exe": "wsl",
+        "args": [
+          "--exec",
+          "bash",
+          "-lc",
+          "cd /mnt/c/code/chainlesschain && node --version && node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 38,
+      "rawSha256": "a1e952bc8383e22b0085048cfd79195c4bc46633707150198999502189693fab",
+      "bytes": 58,
+      "sha256": "f785f3fb73c31ca5ad82cbc84b5153ef97028c6540ef731593607c4a10c1fb8f"
+    },
+    {
+      "label": "linux-explicit-runtime/stdout",
+      "path": "objects/011.gz",
+      "source": {
+        "exe": "wsl",
+        "args": [
+          "--exec",
+          "bash",
+          "-lc",
+          "cd /mnt/c/code/chainlesschain && .work/node-v22.22.2-linux-x64/bin/node --version && .work/node-v22.22.2-linux-x64/bin/node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 1361,
+      "rawSha256": "97db3de8b6aeddd52849bd671442a2297ad07a010e00fc95e34ce21f7b1edfb6",
+      "bytes": 454,
+      "sha256": "2be4d7310bc1839f3b0da72822466b24874cc121a3dcdf45fe98be487139aaf5"
+    },
+    {
+      "label": "linux-explicit-runtime/stderr",
+      "path": "objects/012.gz",
+      "source": {
+        "exe": "wsl",
+        "args": [
+          "--exec",
+          "bash",
+          "-lc",
+          "cd /mnt/c/code/chainlesschain && .work/node-v22.22.2-linux-x64/bin/node --version && .work/node-v22.22.2-linux-x64/bin/node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "label": "linux-node22.12/stdout",
+      "path": "objects/013.gz",
+      "source": {
+        "exe": "wsl.exe",
+        "args": [
+          "-d",
+          "Ubuntu",
+          "-e",
+          "env",
+          "PATH=/tmp/cc-node-22.12/bin:/usr/bin:/bin",
+          "/tmp/cc-node-22.12/bin/node",
+          "--test",
+          "/mnt/c/code/chainlesschain/scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 1261,
+      "rawSha256": "42038bb5c154c4bd48885dfef6d7577b8a26d07942afb4b9769566b0e05c0371",
+      "bytes": 436,
+      "sha256": "02dbb0a0d1d75fb29d1d3e0fe32f798c63b256a53b638a7e9c26cb1ed1d48cf2"
+    },
+    {
+      "label": "linux-node22.12/stderr",
+      "path": "objects/014.gz",
+      "source": {
+        "exe": "wsl.exe",
+        "args": [
+          "-d",
+          "Ubuntu",
+          "-e",
+          "env",
+          "PATH=/tmp/cc-node-22.12/bin:/usr/bin:/bin",
+          "/tmp/cc-node-22.12/bin/node",
+          "--test",
+          "/mnt/c/code/chainlesschain/scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+        ]
+      },
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    }
+  ],
+  "summarySha256": "4ac29dbb0d8175afae86bc2c6d827734986d408261ff53ae41d190fc123d0ba9",
+  "archiveVerified": true,
+  "linuxSummarySha256": "353d1c2f8d0298c3ad59753812b12f874e0b2bca81e9286954b68fde1d403fb1",
+  "linuxNode2212SummarySha256": "16782182364836eb29e53e063694233803234c14b84afb687e1fca8d285305a8"
+}

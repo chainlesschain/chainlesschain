@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-10-12T03:16:10.405Z",
+  "workspaceHead": "e5b58f18ff826460a268f25127215c9e2d39177c",
+  "originalFailure": {
+    "runId": 38154422714,
+    "jobId": 114514461559,
+    "artifactId": 11707424844,
+    "source": "fd284e442d073e7c4fcd256cc868efdbe992fe96",
+    "cause": "Gradle 8.7 distribution download: java.net.SocketException during TLS handshake; wrapper launched and prepare.log was preserved"
+  },
+  "results": [
+    {
+      "name": "windows",
+      "exe": "C:\\nvm4w\\nodejs\\node.exe",
+      "args": [
+        "--test",
+        "scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+      ],
+      "startedAt": "2026-10-12T03:16:04.025Z",
+      "finishedAt": "2026-10-12T03:16:09.798Z",
+      "status": 0,
+      "signal": null,
+      "error": null
+    },
+    {
+      "name": "linux",
+      "exe": "wsl",
+      "args": [
+        "--exec",
+        "bash",
+        "-lc",
+        "cd /mnt/c/code/chainlesschain && node --version && node --test scripts/__tests__/verify01-gradle-bootstrap.test.mjs"
+      ],
+      "startedAt": "2026-10-12T03:16:09.798Z",
+      "finishedAt": "2026-10-12T03:16:10.405Z",
+      "status": 127,
+      "signal": null,
+      "error": null
+    }
+  ],
+  "scope": "Bootstrap unchanged project wrapper --version only; exact pinned distribution network errors may retry at most three times. Each attempt is 90s bounded. Build and actual IDE journeys are not retried.",
+  "releaseGate": false,
+  "paidProviderCalls": 0,
+  "formalSample": false
+}
