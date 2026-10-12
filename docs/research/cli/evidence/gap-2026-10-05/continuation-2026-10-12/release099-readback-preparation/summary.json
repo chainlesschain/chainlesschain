@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T06:33:36.184Z",
+  "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+  "version": "0.166.99",
+  "status": "PREPARED_PUBLIC_NOT_VERIFIED",
+  "offlineHelperChecks": 57,
+  "syntheticMatrixData": true,
+  "networkCallsDuringSelfTest": 0,
+  "collectionPerformed": false,
+  "idePlans": {
+    "vscode": "PREPARED_PUBLIC_NOT_VERIFIED",
+    "jetbrains": "PREPARED_PUBLIC_NOT_VERIFIED"
+  },
+  "notes": [
+    "57 offline cases test the readback helper, not actual GitHub jobs; synthetic runId=123 is not a release run.",
+    "CLI remains exact-release; all 13 children retain prior verified public bytes and unchanged candidate source trees.",
+    "Kernel/SDK/Protocol trusted-reuse retains prior signed source commit/ref/run/attempt/invocation.",
+    "Only full candidate matrices allow tagging. Neither helper preparation nor public install with ignore-scripts establishes native or formal acceptance."
+  ]
+}

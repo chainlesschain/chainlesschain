@@ -32,6 +32,32 @@ describe("shquotePosix", () => {
   });
 });
 
+describe.each(["linux", "win32"])(
+  "search pattern validation (%s)",
+  (platform) => {
+    it.each([undefined, null, "", 0, false, [], {}])(
+      "rejects missing, empty or non-string patterns before building a command: %j",
+      (pattern) => {
+        for (const isContent of [true, false]) {
+          const result = buildSearchCommand({ pattern, isContent, platform });
+          expect(result.error).toContain("non-empty string pattern");
+          expect(result).not.toHaveProperty("cmd");
+        }
+      },
+    );
+
+    it("preserves whitespace within a supplied search pattern", () => {
+      expect(
+        buildSearchCommand({
+          pattern: " leading and trailing ",
+          isContent: true,
+          platform,
+        }).cmd,
+      ).toContain(" leading and trailing ");
+    });
+  },
+);
+
 describe("buildSearchCommand (POSIX)", () => {
   const onPosix = (pattern, isContent) =>
     buildSearchCommand({ pattern, isContent, platform: "linux" });

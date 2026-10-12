@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T04:20:36.110Z",
+  "summarySha256": "2fdb48097f30cdb5b43c48495001ebd78de63331555a40ccf89bac5a4d097177",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/claude-pricing.html",
+      "path": "objects/000.gz",
+      "rawBytes": 1241945,
+      "rawSha256": "f58e739a88ef6d9d7150f64e359b56361ffa62363ff3fd5d767ddf85cc6a0566",
+      "bytes": 242261,
+      "sha256": "7b1000a0dc3965a689789d3ea23fb5f2e90cd1bf30dc4ffb83a1ad47109a24f7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/cli-review-after.json",
+      "path": "objects/001.gz",
+      "rawBytes": 2794,
+      "rawSha256": "9cddf26154ad102460d36a49574771a7033d7d43c409e76639efc61fdd7d1bee",
+      "bytes": 1037,
+      "sha256": "3e9fcc68510c5f96121b417f19549fd0cd8f65977045992b14301491e2913277"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/cli-review-console.log",
+      "path": "objects/002.gz",
+      "rawBytes": 1042,
+      "rawSha256": "087e7a6e94dfd5bf71f2c8998528e90ac8c98b59a42daec04cf66411fec02c20",
+      "bytes": 323,
+      "sha256": "6b8976a259fbc2a035f3be99a4c3c1e64565d912f38340327f20d206a9c926b5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/cli-review-exit-code.txt",
+      "path": "objects/003.gz",
+      "rawBytes": 6,
+      "rawSha256": "24c813cb6f9bade379034e39a4665bf3be056293a53543502481e4f3db7e9291",
+      "bytes": 26,
+      "sha256": "4e1f7bc861761a3a757964537c5804435ca2dbf2e9b7dfde7563f3676eb0ba88"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/console.log",
+      "path": "objects/004.gz",
+      "rawBytes": 1196,
+      "rawSha256": "74668526ca155c3de7e313749f268a41bf699e82ee04f76a0e7c7dc2c142f23e",
+      "bytes": 444,
+      "sha256": "67cdc83f8d6c12935ffa840ba099ea19450cce097a5cc1906ca037cd5c8d0946"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/exit-code.txt",
+      "path": "objects/005.gz",
+      "rawBytes": 6,
+      "rawSha256": "9585fbece5c402088f2d6a2def7e60d1c7ffecc24b16d32d5823a064b008935b",
+      "bytes": 26,
+      "sha256": "44ea5a62d2815cb5cc3ac5b8916ad7d8f1793d67b06a58dfedca7af7430d4c2f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/final-source-hashes.json",
+      "path": "objects/006.gz",
+      "rawBytes": 2275,
+      "rawSha256": "7d9d5d98ecd95e892e2ec6e25b1307e96b73bf82f60d45b83d6848d2f5a46534",
+      "bytes": 653,
+      "sha256": "d614c904bbb21c2313727e6825e292a0ba7cc08574cbfc029ade2dc70f4e0cc0"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/official-fetch.json",
+      "path": "objects/007.gz",
+      "rawBytes": 10618,
+      "rawSha256": "3871eca592cc829cd5008496c8c66c89854ff98271308ad7b4826377dee35e0f",
+      "bytes": 2879,
+      "sha256": "0126bc4fdbe8fda3569634e50905e8ac027c68d1d07cd06033480d5784ac5b22"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/official-pricing-web.json",
+      "path": "objects/008.gz",
+      "rawBytes": 11636,
+      "rawSha256": "5a64e4c7a8947b22ecc629046086409f725091410040c8a0e57613f16c136763",
+      "bytes": 4248,
+      "sha256": "e05001952d06b07e0fac744c56faaba7d10402ee552a0f03d48bdefb030cea49"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/platform-pricing.html",
+      "path": "objects/009.gz",
+      "rawBytes": 1141392,
+      "rawSha256": "8065d2265ad0a44c2773f3faf3c591285325b391ed368a2055f3d09137f05876",
+      "bytes": 102474,
+      "sha256": "3d7eaf0ad3e77b9393e956f1fcebd130d1bb9d6d65bf0f64a1bfd6eba4e6bed4"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/results.json",
+      "path": "objects/010.gz",
+      "rawBytes": 28330,
+      "rawSha256": "f40628628e370561a6f182f4310b9c2a23886373cfbfabf2ec1e8079cf84f50d",
+      "bytes": 3641,
+      "sha256": "bebe9eca0d66c7ad354f918e6575d14c7440e259dd27543146e637b2db1691ec"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/review.json",
+      "path": "objects/011.gz",
+      "rawBytes": 5249,
+      "rawSha256": "d5b2a20015b705530ff936a254fbb0f2ca6ee2e50431cf31265ba9bf3d6ed812",
+      "bytes": 1846,
+      "sha256": "22b63ab94393decb15fdf4fb4d15373e102c94ce5b44d8feb805a8eb6c8ccbac"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-0-after.txt",
+      "path": "objects/012.gz",
+      "rawBytes": 5827,
+      "rawSha256": "9ab7321aaed310f33bac0cab8667a33b88190226d2df280fcca58f17fc433260",
+      "bytes": 1768,
+      "sha256": "1583cd9929d7e3966ec90a68ad12e842f513cdf4fd163c0e3e46dc9e62f47ee9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-0-before.txt",
+      "path": "objects/013.gz",
+      "rawBytes": 5760,
+      "rawSha256": "8abe124bede4135900c56c51e6a4dafe05d11be0b9a514372e585873f88438a1",
+      "bytes": 1753,
+      "sha256": "a1097cddf588a9b0b65abac8dd232a56581b717187527ca4033dc72b67617f41"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-1-after.txt",
+      "path": "objects/014.gz",
+      "rawBytes": 2224,
+      "rawSha256": "6e8207cc4797c213689b491428fbbda206bcfe6e48027c7315989cb49d436aa2",
+      "bytes": 692,
+      "sha256": "562d2657ddd1b3f5eac3c5f19f1cff063b884c303b2ab1ed65b512ce787513ba"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-1-before.txt",
+      "path": "objects/015.gz",
+      "rawBytes": 1868,
+      "rawSha256": "4c186768e157485fde1286866db8133371b08f1fe60238b5128ab1d260cbe795",
+      "bytes": 589,
+      "sha256": "277bca1f9b1f8c02307093b03900ab97934e51cfdc9e8b26812202017dac7be5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-2-after.txt",
+      "path": "objects/016.gz",
+      "rawBytes": 7580,
+      "rawSha256": "ee7ee8879448b3a83fddb74699bcf90b91e6ff41b7de6bc435e719bb0032b188",
+      "bytes": 2042,
+      "sha256": "b0c92fc55f6ce34514989483307899d3b438bcc6fe551a6b531f9678a68daeae"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-2-before.txt",
+      "path": "objects/017.gz",
+      "rawBytes": 6491,
+      "rawSha256": "68fb932f114a9c55dcf7f86931cd4cd3beb01a3a1cfe5a64badf01c024c8ad0e",
+      "bytes": 1889,
+      "sha256": "c4d5ce09efcb690e3f50cab1d6f659448292b1f5f2320f9ab8309bd11543dfd3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-3-after.txt",
+      "path": "objects/018.gz",
+      "rawBytes": 18087,
+      "rawSha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1",
+      "bytes": 6132,
+      "sha256": "ac1c4c7c8e55bef6a9bf06aeff1ae35dce260ee1997e947ffd8e16ea9f5c844d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-3-before.txt",
+      "path": "objects/019.gz",
+      "rawBytes": 18087,
+      "rawSha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1",
+      "bytes": 6132,
+      "sha256": "ac1c4c7c8e55bef6a9bf06aeff1ae35dce260ee1997e947ffd8e16ea9f5c844d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-4-after.txt",
+      "path": "objects/020.gz",
+      "rawBytes": 5188,
+      "rawSha256": "9a7b4813a982bcae2b4650e12e85eff7483e50d3e00c6b8c7227f11c8374eb7a",
+      "bytes": 2168,
+      "sha256": "71d269d4d6a0ef511465ec1e3ed7fb965dc758b7872d7d4ac21d42dd7f4e5df8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source-4-before.txt",
+      "path": "objects/021.gz",
+      "rawBytes": 5188,
+      "rawSha256": "9a7b4813a982bcae2b4650e12e85eff7483e50d3e00c6b8c7227f11c8374eb7a",
+      "bytes": 2168,
+      "sha256": "71d269d4d6a0ef511465ec1e3ed7fb965dc758b7872d7d4ac21d42dd7f4e5df8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/source.patch",
+      "path": "objects/022.gz",
+      "rawBytes": 4111,
+      "rawSha256": "9e554cd2ffd13b570d31155e211e9633777e42d56c0abcff5d6bdd9f01e55580",
+      "bytes": 1314,
+      "sha256": "fed5181edab4d7178f3cfe9454bd72c91055ea3091cc82a5766c7308e1c0e9b8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/sonnet-cache-price/upstream-after.json",
+      "path": "objects/023.gz",
+      "rawBytes": 497,
+      "rawSha256": "b302c8982951615c9ebfbd03f050f8088f3e46da994048033b703ee1089a11f9",
+      "bytes": 257,
+      "sha256": "b18d6a04c42663cb388db9da6ede69b442cde41c206a18a3eaba32fc8771109f"
+    }
+  ]
+}

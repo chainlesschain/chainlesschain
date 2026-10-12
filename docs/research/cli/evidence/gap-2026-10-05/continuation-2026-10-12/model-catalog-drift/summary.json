@@ -1,0 +1,39 @@
+{
+  "capturedAt": "2026-10-12T04:15:37.718Z",
+  "run": 38201454792,
+  "attempt": 1,
+  "source": "08e883acc8ce0c1acdeebb4a7468d275da75311a",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38201454792",
+  "status": "completed",
+  "conclusion": "failure",
+  "localContractPassed": true,
+  "exitCode": 2,
+  "upstream": [
+    {
+      "name": "codex",
+      "reviewedVersion": "0.160.0",
+      "observedVersion": "0.162.1",
+      "reviewRequired": true
+    },
+    {
+      "name": "claude",
+      "reviewedVersion": "2.1.289",
+      "observedVersion": "2.1.296",
+      "reviewRequired": true
+    }
+  ],
+  "upstreamSnapshotsComplete": true,
+  "originalInputAndSourceBindingsVerified": true,
+  "pricingReviewSeparate": true,
+  "baselineAdvanced": false,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "documentation": {
+    "url": "https://developers.openai.com/codex/changelog",
+    "redirect": "https://learn.chatgpt.com/docs/changelog",
+    "mixedProductPage": true,
+    "versionClaimsTakenFromCapturedWorkflowReleaseApi": true
+  }
+}

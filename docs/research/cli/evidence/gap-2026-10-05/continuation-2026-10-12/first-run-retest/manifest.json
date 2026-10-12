@@ -1,0 +1,1431 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:33:19.630Z",
+  "summarySha256": "adf1b56508f00c9718e9bc1f889ed9cff6b9c761528e9ec7006733fe67b9d989",
+  "entries": [
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\analysis.json",
+      "path": "objects/0000.gz",
+      "rawBytes": 300153,
+      "rawSha256": "159debcde8952086f209ab79071ded2568d46836afee12a7f3cd05cce7ce6b63",
+      "bytes": 42731,
+      "sha256": "aee2c7818bc42a3ec271b02e7068512a9be42b51d5463e09d12b1dfcd6c6a30b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\artifact.zip",
+      "path": "objects/0001.gz",
+      "rawBytes": 1116084,
+      "rawSha256": "1801179edbfe4c6eed348696f8a78cdfaad29c23463c8d8e64f6e27657f0b7ab",
+      "bytes": 836625,
+      "sha256": "37e4839b55e4837cc3e8f6aaaa18e303569343f9f342131cdd71985d4b6b8686"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\artifacts.raw.json",
+      "path": "objects/0002.gz",
+      "rawBytes": 795,
+      "rawSha256": "f7dbba56b877f8681add7f5a85fa895907d5582f8fd6782ce9e7444681f6eaff",
+      "bytes": 441,
+      "sha256": "c4f60ee6d874f5c5c1f309f86c13050db5b8d6a66a7869e20688a8d4930446f3"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\download.json",
+      "path": "objects/0003.gz",
+      "rawBytes": 34578,
+      "rawSha256": "981ee3f27a74917252f2951d3c1b217d5f2b4bc43d2e8204b046ceb306742d84",
+      "bytes": 7322,
+      "sha256": "2344555fc5f2aca9b7e5354ed7da1c71a7a90df760f13a35746fca7d481b4fb4"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\extracted.json",
+      "path": "objects/0004.gz",
+      "rawBytes": 32293,
+      "rawSha256": "0424edfbc00406805465ed944510260b233e2791e902bb9bfff811a0ca87c9ee",
+      "bytes": 6802,
+      "sha256": "577abd768c52dc43f796151fbf723bf3093e8fca59ad92c34ef8cf69b51ae8bd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\1-install.json",
+      "path": "objects/0005.gz",
+      "rawBytes": 286,
+      "rawSha256": "cabcadc316b7f751736fc82a58311ac6eda7c54c0f8706b4dfda914271d7eb84",
+      "bytes": 206,
+      "sha256": "531db53ca34224e03d272ce0b0487129e36a3946021b3b9cb65b5a66c033a90e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\2-configure.json",
+      "path": "objects/0006.gz",
+      "rawBytes": 462,
+      "rawSha256": "2d5ebda72701c5a8a5b045840d84762acd2af7656767b64d3a666f2099a7c182",
+      "bytes": 308,
+      "sha256": "e25185c0990cb0765f7b5ce0607c83f481872406df5095d32afbd03feefbcdfa"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\3-authenticate.json",
+      "path": "objects/0007.gz",
+      "rawBytes": 435,
+      "rawSha256": "a1267fc71ace1c37dc83a694ce840bdd98d5f1eb4c812307a0f6dfdc3fa32d4e",
+      "bytes": 266,
+      "sha256": "86913781d3fcdb4c98f37c0008e1eecbd1ca9d608b3a07be2f1d6bd9eb6e76f8"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\4-tool.json",
+      "path": "objects/0008.gz",
+      "rawBytes": 294206,
+      "rawSha256": "b0e2d13d447519e2889d63443890c2705f0cceb9a9f35236435b6d8ab4998019",
+      "bytes": 40906,
+      "sha256": "9ceb4b8f4e9c0b9b91f80ee67f39d6d9524aff2a8231643fe91810a56bd4c967"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\5-artifact.json",
+      "path": "objects/0009.gz",
+      "rawBytes": 1065,
+      "rawSha256": "f043822a765a2d04e2bec885bbc26dc39c350ab2e998552caedb7a5a800049a3",
+      "bytes": 333,
+      "sha256": "c2c6a2b17f2dba9b3872916c39a7f302e8dafe8d50f92e2ae5bf69ddc786275b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\candidate\\packages\\cli\\__tests__\\verify-04.test.js",
+      "path": "objects/0010.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\candidate-manifest.json",
+      "path": "objects/0011.gz",
+      "rawBytes": 277,
+      "rawSha256": "28bdb0f6d0971a3dd22702ea96d8941a5377a2a526c38a76defa0bb6775d4e0a",
+      "bytes": 175,
+      "sha256": "c45b8a82144fec669892ad130c723ed80b4d1b0da556c4a5e93ecbf229f59898"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\frozen.json",
+      "path": "objects/0012.gz",
+      "rawBytes": 10578,
+      "rawSha256": "6aa313a857c1d2335bb4d1f545677e9c066b83a89a57443547ba37b92441e75c",
+      "bytes": 2002,
+      "sha256": "eb179b46387f0fcdf7ee7574fa45cadbf44c877a8db1656c17b0ff08510c7fb1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\prepare.json",
+      "path": "objects/0013.gz",
+      "rawBytes": 937,
+      "rawSha256": "00b0fb98ebbbc838c12087de12656df0dde08c8e14779588b2ae4c560853a417",
+      "bytes": 572,
+      "sha256": "66dea7fd9338edbd1f0f84eb57f1f843a2eb0ac86f0a3cd4de1c2d8cc5202576"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\semantic-0.json",
+      "path": "objects/0014.gz",
+      "rawBytes": 10575,
+      "rawSha256": "79f371171acfb5c68e2d51132a342428713d0859de353248696ff1f038ff81f5",
+      "bytes": 2005,
+      "sha256": "6df32728c74d29f5dcc3958c8731840858299a4e11b8d058b68e5c5457308cc8"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\semantic-1.json",
+      "path": "objects/0015.gz",
+      "rawBytes": 10574,
+      "rawSha256": "70e20feb7ee742de4749f2b8f7b7922843677cb52a2589cc956925b4a698f5f8",
+      "bytes": 2000,
+      "sha256": "e16435f39d740621b6db40f54b86ff986413e3ec37e5640b3017f60f081d9790"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\semantic-2.json",
+      "path": "objects/0016.gz",
+      "rawBytes": 10577,
+      "rawSha256": "667a8ce2f4836cc9bb908ed5021b9cd6aadb3845eea31d526ccf06e22cdf9961",
+      "bytes": 2006,
+      "sha256": "e9a57b3d2075e63ebf5bcfb29527376720ca0fad07b3f02e8f631483e07f5bd6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\semantic-3.json",
+      "path": "objects/0017.gz",
+      "rawBytes": 10572,
+      "rawSha256": "d76d2e92cb61709022b05c93651bc19419de5d908a48934cf0928f850607953b",
+      "bytes": 2009,
+      "sha256": "b6ca0aa01dae31956d55816f8453aa8ef4c1e95ba43181bcaf1c4ff019c5d8b8"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\checks\\setup.json",
+      "path": "objects/0018.gz",
+      "rawBytes": 18842,
+      "rawSha256": "583c9b2b7b0d81dc589c53403a4a115d1fe9436477bea3324551d176ac0bf730",
+      "bytes": 3853,
+      "sha256": "7662197cb02e6fed107b6a11da8e65b30df43ff32e3c85877342d3676ae9eba6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\archive.process.json",
+      "path": "objects/0019.gz",
+      "rawBytes": 407,
+      "rawSha256": "d8c2c784be66f46840f721bc5269ef4e55087fa86377be0d8cb90a6360985091",
+      "bytes": 278,
+      "sha256": "49a8c483fd57ffe36035edd2056f75d26ba86ed9a516e72dce83ef656a163d2f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\archive.stderr.log",
+      "path": "objects/0020.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\archive.stdout.log",
+      "path": "objects/0021.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\authenticate.process.json",
+      "path": "objects/0022.gz",
+      "rawBytes": 441,
+      "rawSha256": "cd0488b0c2d455d82e7e64b7c2b15088f67483641b2566037ec13659e1ea035a",
+      "bytes": 287,
+      "sha256": "3291dde22ad78bfefa192a938fdb851aa0a21b762194da0e2962b69b922dae4b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\authenticate.stderr.log",
+      "path": "objects/0023.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\authenticate.stdout.log",
+      "path": "objects/0024.gz",
+      "rawBytes": 356,
+      "rawSha256": "5795c4355b3f9b49e2dfe01aac7a4582168eb616e22057befe520eea59664341",
+      "bytes": 260,
+      "sha256": "b484518e588f0d98cd7b923f4a02a875e272357f3ee1640285107998fd6a586f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-frozen.process.json",
+      "path": "objects/0025.gz",
+      "rawBytes": 918,
+      "rawSha256": "72f4cdcc848d8ddc0b35906f6e8b7a5ed99303dd287123dc7314219054d68d3d",
+      "bytes": 470,
+      "sha256": "47ac22f6c8714a283c8da1ab2bb6047868137301520addbac45b921a48e0298c"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-frozen.stderr.log",
+      "path": "objects/0026.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-frozen.stdout.log",
+      "path": "objects/0027.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-prepare.process.json",
+      "path": "objects/0028.gz",
+      "rawBytes": 921,
+      "rawSha256": "6490513f3ff9eca72b33a6c9ecaa8d252c056a27ca9c1406aa26e4712593d345",
+      "bytes": 468,
+      "sha256": "643317ae0fcaf9c74d9d19acc8463f14a45deb31926be15c3cc35b86e7df744f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-prepare.stderr.log",
+      "path": "objects/0029.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-prepare.stdout.log",
+      "path": "objects/0030.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-0.process.json",
+      "path": "objects/0031.gz",
+      "rawBytes": 930,
+      "rawSha256": "58930882c4656bd149f5aa4863b577fb4e6da3f7eb35bbadbbb54db608683040",
+      "bytes": 472,
+      "sha256": "df30bd38094854852886ba546af86c6d6b42c86520d9477254abe92bced7f435"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-0.stderr.log",
+      "path": "objects/0032.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-0.stdout.log",
+      "path": "objects/0033.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-1.process.json",
+      "path": "objects/0034.gz",
+      "rawBytes": 930,
+      "rawSha256": "ce3b452107effdbbc34de4facb78fcb39283028ea4771cd2d0fdf7ac5367511f",
+      "bytes": 471,
+      "sha256": "c6a10e6fc4ef12309fd4b31062f992e8421af62fac058ebf53251c7a3f3ec6a7"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-1.stderr.log",
+      "path": "objects/0035.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-1.stdout.log",
+      "path": "objects/0036.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-2.process.json",
+      "path": "objects/0037.gz",
+      "rawBytes": 930,
+      "rawSha256": "1608a257ac8354c3d225d6c7959bebd1ae2bd7a50820a8dea21ab73bae78c2c7",
+      "bytes": 472,
+      "sha256": "9e5a5e128e582d8aaae95665e6d33b7e0c54bb6e94b99d22fdd2663c9b36c9ff"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-2.stderr.log",
+      "path": "objects/0038.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-2.stdout.log",
+      "path": "objects/0039.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-3.process.json",
+      "path": "objects/0040.gz",
+      "rawBytes": 930,
+      "rawSha256": "6d2d73c0a984b30f031d6d22b8e3d460a6af6701330a7e33cae77cf1c301cfcb",
+      "bytes": 471,
+      "sha256": "90eae03125cf65deca444cbc76ed38cf3c5ff8502241b2510458634f6342d6ff"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-3.stderr.log",
+      "path": "objects/0041.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-semantic-3.stdout.log",
+      "path": "objects/0042.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-setup.process.json",
+      "path": "objects/0043.gz",
+      "rawBytes": 915,
+      "rawSha256": "09aa702b79af54e6486be09e4964706cfd40c7577e936014eedcb89cdbef9cd9",
+      "bytes": 470,
+      "sha256": "00ca61356fd26c70517da42d61104fc2b9d502ca34c3d27115155981b7c92f14"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-setup.stderr.log",
+      "path": "objects/0044.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\checker-setup.stdout.log",
+      "path": "objects/0045.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\clean-source.process.json",
+      "path": "objects/0046.gz",
+      "rawBytes": 318,
+      "rawSha256": "ee5d49c6eba0c08847310edb6fd1d76174c6e43836cc6772c0899f94e1f567c2",
+      "bytes": 215,
+      "sha256": "32ce63994066e2de762ef4bb59e118eeeda40036f5fe8285f3ebcc2ca7082e89"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\clean-source.stderr.log",
+      "path": "objects/0047.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\clean-source.stdout.log",
+      "path": "objects/0048.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-baseUrl.process.json",
+      "path": "objects/0049.gz",
+      "rawBytes": 496,
+      "rawSha256": "e7214ff2b879c2c87d30e33499f6b3d3ed53041be3e8e9d0e3ee367f4f3100bf",
+      "bytes": 318,
+      "sha256": "5ade8111f98330b51ca33df5010597fd7368291b52a169f8be379b56cfb1ab6e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-baseUrl.stderr.log",
+      "path": "objects/0050.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-baseUrl.stdout.log",
+      "path": "objects/0051.gz",
+      "rawBytes": 20,
+      "rawSha256": "fa38144845db2631509b158274f8d0698309c750dcd85ac76cac0eebec965699",
+      "bytes": 40,
+      "sha256": "070582146928b585a0688c23269f1f7cb896e5335826f442e9f78b7ffdffa277"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-model.process.json",
+      "path": "objects/0052.gz",
+      "rawBytes": 481,
+      "rawSha256": "6487fb30ea72c7752d2b59240f06cde95a7b114ccbce9160417fa2b62249a341",
+      "bytes": 307,
+      "sha256": "9038362f64a970df668614fa2e16602cc0a88635d978c5efc8af260ab5f7bce4"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-model.stderr.log",
+      "path": "objects/0053.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-model.stdout.log",
+      "path": "objects/0054.gz",
+      "rawBytes": 18,
+      "rawSha256": "9cdfc7519b952eacdd2b8c3e0cfc76b0e728d99cfaba6e2bcd8dae50a6a450fc",
+      "bytes": 38,
+      "sha256": "e4922bcdcf921020b03c6f9b38ffa0a5c263aead8fcd0cac70215d6e5a0b6495"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-provider.process.json",
+      "path": "objects/0055.gz",
+      "rawBytes": 467,
+      "rawSha256": "e3b5bddac66d8e3556f20f2ac13a290348dfabc3c8e173821dc694f8993038ee",
+      "bytes": 298,
+      "sha256": "f8239b4f6776ab47fb80987513a39c2a711e794500c9b3d97b89b1b9eeafcf92"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-provider.stderr.log",
+      "path": "objects/0056.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-provider.stdout.log",
+      "path": "objects/0057.gz",
+      "rawBytes": 21,
+      "rawSha256": "d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6",
+      "bytes": 41,
+      "sha256": "a30018e306e3024f2e6afb4701f94293842b67afb94062e28c68b4a71346bc6f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-readback.process.json",
+      "path": "objects/0058.gz",
+      "rawBytes": 454,
+      "rawSha256": "d018233ed0c7429c19d7d64f23919b70e180e2a9bbcdddfabd399c1eddc45489",
+      "bytes": 290,
+      "sha256": "c194322e1e433a4f36ed6d68bc699aa4eb279fcab418116d86e0a192e2837098"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-readback.stderr.log",
+      "path": "objects/0059.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\config-readback.stdout.log",
+      "path": "objects/0060.gz",
+      "rawBytes": 222,
+      "rawSha256": "bfa728f6eca529936e78b82c0086158fa1be99d5b7f7d2b21abc3e4d6b6ee82b",
+      "bytes": 180,
+      "sha256": "c7816498723265606890a7e5df28dd280bcafdad01f7aa4cd21572c6b5d664a3"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\extract.process.json",
+      "path": "objects/0061.gz",
+      "rawBytes": 392,
+      "rawSha256": "06cb5b8e11a8fa74b86239fd070d660a5b1c34ac162c68d19cfbeb9c0d94a4da",
+      "bytes": 246,
+      "sha256": "908fde8e5cea4d63a207cd3f483d629ab4b1853b3622b15c224ed7c56f4b67a5"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\extract.stderr.log",
+      "path": "objects/0062.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\extract.stdout.log",
+      "path": "objects/0063.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\image.process.json",
+      "path": "objects/0064.gz",
+      "rawBytes": 367,
+      "rawSha256": "072ac67e9a5b82c2ea9bf0a9db46c2c8edf517d16bca1168c170c88ffe5ef103",
+      "bytes": 249,
+      "sha256": "63c04363b900d8c3331b92ddc58ef0f6f7019843743bd414bc69d2a131f4a2bc"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\image.stderr.log",
+      "path": "objects/0065.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\image.stdout.log",
+      "path": "objects/0066.gz",
+      "rawBytes": 3421,
+      "rawSha256": "ffbf64c08f7a4d0a39281adee9160486abc3abf1b94016fd6a3e84e74ef4536a",
+      "bytes": 1363,
+      "sha256": "77012e2b2cc7e8c640968947129b201ff97a6a169eda6cb92873bb25d53b2ef1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\model.process.json",
+      "path": "objects/0067.gz",
+      "rawBytes": 1484,
+      "rawSha256": "f7efbd85083499a940b225451bfeae376ff8e166b5c418a7555edd55ebc88ace",
+      "bytes": 992,
+      "sha256": "adc2c9dba5558093957431a699ee37276cf81d77d77f0e4512bbc150c56e72d9"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\model.stderr.log",
+      "path": "objects/0068.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\model.stdout.log",
+      "path": "objects/0069.gz",
+      "rawBytes": 1883006,
+      "rawSha256": "a5667edc6117d46eb47b03e9eaa79da9a72c6f49b7650e93eb30d8d350db0d87",
+      "bytes": 350940,
+      "sha256": "c40ac209c85204d79ce797e897860be4c53ec6a1b029e3dfe10fbb99f7f8faf6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\source.process.json",
+      "path": "objects/0070.gz",
+      "rawBytes": 286,
+      "rawSha256": "c5c7c0bfe78b8d58c19b97ad720810423f5f83372d97fd5b3c751e1c7d11ab0b",
+      "bytes": 195,
+      "sha256": "01ed642252e25f6e560dbbd9a025adf324d29c91e39626246a09439ca29aa8b6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\source.stderr.log",
+      "path": "objects/0071.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\commands\\source.stdout.log",
+      "path": "objects/0072.gz",
+      "rawBytes": 41,
+      "rawSha256": "3ef2dabaf5a847d255a035b11e54ee7c1ca52bdce2cd4d53137cf11bf82399ec",
+      "bytes": 59,
+      "sha256": "bfdbc090318118000726e0f88ef9002ca5228adabd0dc8eab3d97564627b33d5"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\deliverable-preparation.json",
+      "path": "objects/0073.gz",
+      "rawBytes": 336,
+      "rawSha256": "6f9f0067d78039be15eb0926248c506f44e9c68c66f4cc42d454c03626ccd0a1",
+      "bytes": 253,
+      "sha256": "3bd687c9c5ad5e80faac60b12910778d76f128f3af16c4fab2e55ed23f160479"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\diff.json",
+      "path": "objects/0074.gz",
+      "rawBytes": 310,
+      "rawSha256": "5077d7ffd3c0f1edc743dac8aa0f12f56e36ce4962c604e7d1bb5096055fd89b",
+      "bytes": 224,
+      "sha256": "b78002fa19ecc01f50d7c2efbc0b004079a5a99e2a1657a7adb7390358ffe9bb"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\frozen-prompt.txt",
+      "path": "objects/0075.gz",
+      "rawBytes": 475,
+      "rawSha256": "43a39d3d6fe604f52da2be124b7a51b1d9f3d947d083d013c129295efb5493ba",
+      "bytes": 419,
+      "sha256": "b574b3065ef7d02234a65d53e6b8e0cc8eab3711dfeb2d4a054baf3095e11e6e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\cli-db-init.log",
+      "path": "objects/0076.gz",
+      "rawBytes": 419,
+      "rawSha256": "5ccf9b8b2e6f96a0e30d69ec3a375a22e43191248dfd071b4a5cc3cdccd2e15b",
+      "bytes": 238,
+      "sha256": "466b83eab3bd8f84f99a5a21adf2e0c3c771ffb728abdadb9e09f0f1be0f08d0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\cli-db-init.log.cleanup.json",
+      "path": "objects/0077.gz",
+      "rawBytes": 162,
+      "rawSha256": "aea78c1ef035312006b2c60bb7301e624d8acfce4927941e7a914bf6781175a0",
+      "bytes": 141,
+      "sha256": "bd29e829fd2372c5c6f0571b7a009d8ba7f6b631a3ed7b7b118ba930dc643c88"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-reopen.json",
+      "path": "objects/0078.gz",
+      "rawBytes": 2517,
+      "rawSha256": "950ab42484c2c7526d50fa4ac3378ea78b79929a77f2ac428b7799be529a7829",
+      "bytes": 1012,
+      "sha256": "c363ec39da709454d4dc1929cfba82267222bff24e8ca7b580a19d5c8a47452d"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-reopen.log",
+      "path": "objects/0079.gz",
+      "rawBytes": 222,
+      "rawSha256": "ba92f24a94bf856a3c69a78f66bdd97fec2e5793756fcc6341f503e986a69c3e",
+      "bytes": 165,
+      "sha256": "de92bfe7c9d7e1cfd50019fba61e93f8622682076498ed2c265705d16f775a20"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-reopen.log.cleanup.json",
+      "path": "objects/0080.gz",
+      "rawBytes": 162,
+      "rawSha256": "b3997c2545983db6aa725e4eff482bcf643a549e79c623aa7a7976d562be1062",
+      "bytes": 141,
+      "sha256": "a25b5a0d87d12bf48349e1d13802b6ef550afadab1e899d8f4589d67ccbc40c2"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-write.json",
+      "path": "objects/0081.gz",
+      "rawBytes": 2514,
+      "rawSha256": "ed4b22cfbb4478306e10ac51fcb6ebb5e889e4c44c6653b6628d57e2007d6592",
+      "bytes": 1010,
+      "sha256": "bdb745dd1c639339cab71a6e49e507a860275d864b60c62c1a24d672ec6d204f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-write.log",
+      "path": "objects/0082.gz",
+      "rawBytes": 222,
+      "rawSha256": "ba92f24a94bf856a3c69a78f66bdd97fec2e5793756fcc6341f503e986a69c3e",
+      "bytes": 165,
+      "sha256": "de92bfe7c9d7e1cfd50019fba61e93f8622682076498ed2c265705d16f775a20"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\database-write.log.cleanup.json",
+      "path": "objects/0083.gz",
+      "rawBytes": 162,
+      "rawSha256": "29dc21da901f2cda0e8c2233cb1665c3aeda6b4b28bf73e984bf5ca0c4639c98",
+      "bytes": 141,
+      "sha256": "f1b6d09fc98c41643e658f51797c5a09fe596c9aac4326ec8414a1bb2dff2377"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\npm-install.log",
+      "path": "objects/0084.gz",
+      "rawBytes": 3598,
+      "rawSha256": "ec086723303871209e5ff6c586e571c58f2b4df3db37cdcff93fd9838c2653fe",
+      "bytes": 1102,
+      "sha256": "7178b5fbccfe4e03cb16739e7549426432bc8164dbb943fc708a7d0e674fde13"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\npm-install.log.cleanup.json",
+      "path": "objects/0085.gz",
+      "rawBytes": 162,
+      "rawSha256": "5e013056c26c0ae4e41820038490d60bb1ebd95afff5ac00f582a2d749cf4e6a",
+      "bytes": 141,
+      "sha256": "1e378c8829e2e5058a6420ba6fe7b2467276a2317fa9a3e58669b8c4ef34ecbc"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\os-release.txt",
+      "path": "objects/0086.gz",
+      "rawBytes": 400,
+      "rawSha256": "87458b3b1f1ca0e5c693ade771de7007c3783bdc692fa6b39eb6414bf2af2763",
+      "bytes": 260,
+      "sha256": "7a123a7eee7555c9b4cfa6b9005916fd81363bc918708442719ded39a6ca4976"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\public-package-lock.json",
+      "path": "objects/0087.gz",
+      "rawBytes": 209471,
+      "rawSha256": "8593290b8ac2a5bc3e95e23818d0792ddffe7b1841d3cab544c17a37301f4935",
+      "bytes": 43135,
+      "sha256": "5336cf36ebac2a907c64c7751622b73a8d9509b79851bebe2c4fd0314b0b86e1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\registry-metadata.log",
+      "path": "objects/0088.gz",
+      "rawBytes": 31087,
+      "rawSha256": "568dc6dcf313f78163e01f8a111c21f6baa0556f41902aacdec81721e59ef575",
+      "bytes": 8293,
+      "sha256": "c3b0f6e1054d88aab27c4b504081ac581aa046c3d65d55acbf799f9426eec529"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\registry-metadata.log.cleanup.json",
+      "path": "objects/0089.gz",
+      "rawBytes": 162,
+      "rawSha256": "3b2db2dead3662d89f5b18a49059e67d90f87e9b33b84158363313445dbc94df",
+      "bytes": 141,
+      "sha256": "c134854230b2552ff04ba032cce33a328448da32f49c72a22b4a28272e5f1fdd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\installation\\summary.json",
+      "path": "objects/0090.gz",
+      "rawBytes": 9230,
+      "rawSha256": "fc8d046b6c72467f80165ed98e64b26a24075de55bf535e8ddabb48cf5fedfba",
+      "bytes": 2823,
+      "sha256": "23f511dca4ed5122db411598390be7ae9f21119e6224145ffab5b8f81d5e095d"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\model-analysis.json",
+      "path": "objects/0091.gz",
+      "rawBytes": 281376,
+      "rawSha256": "a94cfb516ecbbc238302b61b0b8d50e98b50e9487190c065aca7b6644005f33c",
+      "bytes": 39905,
+      "sha256": "d85c0d022f1a18c26cb1051518c56d2331f7d7748900339529cadf73d884da30"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\pack.json",
+      "path": "objects/0092.gz",
+      "rawBytes": 856,
+      "rawSha256": "0d65b20b12a50521a3a29461ebf99751904eba1ec28e0ce0bc14c06492e06553",
+      "bytes": 521,
+      "sha256": "013753f5aa1a6af47e76271a555b2cfc3d00f670d04e68200415f6c1adddce47"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\review.json",
+      "path": "objects/0093.gz",
+      "rawBytes": 18679,
+      "rawSha256": "df4c041ca48775a1089cdfb48a51d1a9e7324280d8cf0c7efd7d18753fbe771f",
+      "bytes": 4142,
+      "sha256": "d89a79f8fb4824a6f5cf3d3f78994c4a0b22e98ed2044cad26b2eb84aba95814"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\review.sha256",
+      "path": "objects/0094.gz",
+      "rawBytes": 72,
+      "rawSha256": "1ace802d2477c01e503e13529edb9d2dfd44ef249f245808eec29f96ad813925",
+      "bytes": 79,
+      "sha256": "02e17571347c035b707938b0f57b24ca32c3339fb164abf63af9ec388ff6d79e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-01-check.mjs",
+      "path": "objects/0095.gz",
+      "rawBytes": 21384,
+      "rawSha256": "5db56055f4907be7c7a8a2afb8ffde82d655b72b1fa7b4c7a7cde37da206adde",
+      "bytes": 7212,
+      "sha256": "b8e96395b1c4d3dd61dc6a94e553df9ef3cb5c80c6465030b2be6a153d7b3d82"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-01-setup.mjs",
+      "path": "objects/0096.gz",
+      "rawBytes": 21422,
+      "rawSha256": "e55bf63a9eb291afb9a2b60f9adc9d524cecba2bf4454dbc6f9a802646441d3c",
+      "bytes": 7229,
+      "sha256": "042ed2095cb36df386ad75eef93146d4cae1925b5f4482783514a1ca523e410e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-02-check.mjs",
+      "path": "objects/0097.gz",
+      "rawBytes": 21385,
+      "rawSha256": "c6d970a5e24be56a5715c3671ea056e132ee61563100d7c77de286c43ab96554",
+      "bytes": 7191,
+      "sha256": "3dfc45dce6878df90bc035dab55e4ccbf82ea772d566cc4f4b8078c2b9fff66f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-02-setup.mjs",
+      "path": "objects/0098.gz",
+      "rawBytes": 21423,
+      "rawSha256": "c14f04bf35a3b4e45e602495c1f9748ce95ccd616d5d97ed09eb458cef4353d3",
+      "bytes": 7206,
+      "sha256": "7bde2569774cf61e48acc45e3f38e470143f53aa68300493eab34a4fbfd85efd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-03-check.mjs",
+      "path": "objects/0099.gz",
+      "rawBytes": 21183,
+      "rawSha256": "e7bc26dfc9a4be231883e0c6b5008dd60dea47776222ca34cb112fba46892ae2",
+      "bytes": 7125,
+      "sha256": "abd9ee19d8338c07938bec84e11b581fa862a7e367b6361ec3f586088bd55521"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-03-setup.mjs",
+      "path": "objects/0100.gz",
+      "rawBytes": 21221,
+      "rawSha256": "c6140689c43b6b8873a55a1bc068361cc689992f486675dfb476d1e211ec1649",
+      "bytes": 7141,
+      "sha256": "6770240611a6312abe457a2ec6701b98080449043325a39d25bb71fea0c45af6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-04-check.mjs",
+      "path": "objects/0101.gz",
+      "rawBytes": 21405,
+      "rawSha256": "613f26a561550c405303c0e555a5c55e33c8560b477b4fb34b5b190f9c937342",
+      "bytes": 7220,
+      "sha256": "d91b7de435d94f448971f9a54cd1ece1951abb353c89646948718250c8fc51b8"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-04-setup.mjs",
+      "path": "objects/0102.gz",
+      "rawBytes": 21443,
+      "rawSha256": "a4b881472b9fc3af245d1d5dc98ce4cf1159308dc554e4401585cf8d84e7bc33",
+      "bytes": 7235,
+      "sha256": "485dbd362341a1cfecb88a70b793b88b8989eb750fee354b945ba5a901222cb0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-05-check.mjs",
+      "path": "objects/0103.gz",
+      "rawBytes": 21197,
+      "rawSha256": "cfa2657032909ca563e3fef06b0853105ccdc57af97c3a16599525724c5bf927",
+      "bytes": 7119,
+      "sha256": "a2f00f68649c5661d8c85f5d3ba796df7a5c21021b73181aa795b509a0aa0f78"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-05-setup.mjs",
+      "path": "objects/0104.gz",
+      "rawBytes": 21235,
+      "rawSha256": "c74429a6c2e131bbb3ab701547fcd76b5d0e652f77c533bff28c8969484f6d0a",
+      "bytes": 7134,
+      "sha256": "d251ca3e0c6f2ff8762aa0082e128bb23f984e13dfc8694cbb170b7e3f695a7a"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-06-check.mjs",
+      "path": "objects/0105.gz",
+      "rawBytes": 21258,
+      "rawSha256": "4a25936ba17f786f629ca7766f819d91425e65c6473f386f3104fa8eea82e7b5",
+      "bytes": 7180,
+      "sha256": "13437dbe7f263a2d7e076f9045f3afd020092013f5e7e383feae9760bd964f65"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-06-setup.mjs",
+      "path": "objects/0106.gz",
+      "rawBytes": 21296,
+      "rawSha256": "40e0f9910b8fd4279199bd27160bc4e7301c927645349e4b7a13de8acf57eb8d",
+      "bytes": 7195,
+      "sha256": "bc356b316023b0e817c06573f7d2564abfac8c1e9030210750e3c4d033ab6c27"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-07-check.mjs",
+      "path": "objects/0107.gz",
+      "rawBytes": 21348,
+      "rawSha256": "e2c85c32847c7e413175ec71f504bb97b142e0e7cf9cee19f4f8a003ac9fcf53",
+      "bytes": 7153,
+      "sha256": "542f7a345407d65d4932163b8385d734931b03722613233b90dfd8b461234050"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-07-setup.mjs",
+      "path": "objects/0108.gz",
+      "rawBytes": 21386,
+      "rawSha256": "7e8f03737db44a6f41b6ea805211c6c211b779ae3c62cf86e2b719b094178663",
+      "bytes": 7169,
+      "sha256": "288e4907aa1cb379c6b81ad567a563736ae1ef1bb482365a05f2e3853da42906"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-08-check.mjs",
+      "path": "objects/0109.gz",
+      "rawBytes": 21186,
+      "rawSha256": "545afef2fc2f56645aef64370242fcdf85b0fa6ce10b67ae139a012b51a0c2e9",
+      "bytes": 7117,
+      "sha256": "cb1c2eac9b5d238717e32009f7bb3216d3676af55427241f5fd51cd9972ee216"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-08-setup.mjs",
+      "path": "objects/0110.gz",
+      "rawBytes": 21224,
+      "rawSha256": "8ae193a562a2a174b3ad197c3d48a7be0935ed48593f34a8c409b2e32b5e3245",
+      "bytes": 7132,
+      "sha256": "11b17d16fde10d4f15d561872cfad14df46705b32d5552418e3dab16dc995105"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-09-check.mjs",
+      "path": "objects/0111.gz",
+      "rawBytes": 21136,
+      "rawSha256": "2e840358577fb1c43bb53daec2a1dc0c5bb6f45f9857ef75852fbcc381090044",
+      "bytes": 7105,
+      "sha256": "b9b2821b67eb5c2b7aa271d5339d3f21555896037d6f2b84bf744006c334704c"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-09-setup.mjs",
+      "path": "objects/0112.gz",
+      "rawBytes": 21174,
+      "rawSha256": "984232c9af3336ee318327c3f0773737b01017a76adb40e6dc33921e2f16afa8",
+      "bytes": 7120,
+      "sha256": "bd3cc8f3de9114fc1f42f4d58e076cd6a7fe89be694c30a2d8e39304a87ea4f1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-10-check.mjs",
+      "path": "objects/0113.gz",
+      "rawBytes": 21129,
+      "rawSha256": "dd781f3739a3abb5921a9a70ad35e361c1755fc739a3c430734435007db95d11",
+      "bytes": 7109,
+      "sha256": "d16df37f0ce02ae8efcc0191e423bec08b7dd5c1c7b0cd02822ee3b2bc1fe6b3"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-10-setup.mjs",
+      "path": "objects/0114.gz",
+      "rawBytes": 21167,
+      "rawSha256": "38e4bb2dc27e8e527f0cbcaee23721facc6d46b47ae5314fab3d6d790eb6b277",
+      "bytes": 7125,
+      "sha256": "5952d59370d00c7417de6329225d5492556a21c4198072662cf39f2d5daad6a7"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-11-check.mjs",
+      "path": "objects/0115.gz",
+      "rawBytes": 21366,
+      "rawSha256": "ce94344258c10fb704caff081ed3305ae1f8d36f2af0394fe4f20ed4ea25b1f5",
+      "bytes": 7198,
+      "sha256": "f4121fa023ac21a9da67f2e7a350688eb6683754c94c1e83c5e26981443d7804"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-11-setup.mjs",
+      "path": "objects/0116.gz",
+      "rawBytes": 21404,
+      "rawSha256": "9307d8a25b21c496c599bbc22b6b99b2a1f98c0be54aa2af6a7c4a8113255689",
+      "bytes": 7214,
+      "sha256": "6a0e4adb3f9d09d2727393e20f62ec3e0d618780253c001de5a275c98f485c9f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-12-check.mjs",
+      "path": "objects/0117.gz",
+      "rawBytes": 21170,
+      "rawSha256": "3f1fb674dadfd21e23424190dc79e6633695d9efd138e66abc6df9f8699106ac",
+      "bytes": 7128,
+      "sha256": "f5ee2eb3321eadd2eb24a4b223bbfc435a996c9895bb695de5948f258e60faf1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-12-setup.mjs",
+      "path": "objects/0118.gz",
+      "rawBytes": 21208,
+      "rawSha256": "d044feeb163707b14ed4961c414b3475a92dd5d33003896816e133870a63b0c6",
+      "bytes": 7144,
+      "sha256": "1af2084ed29610acb8818ad606c5f507d97653f0548dfd9d33141896f4acf632"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-13-check.mjs",
+      "path": "objects/0119.gz",
+      "rawBytes": 21263,
+      "rawSha256": "666e113e5d2da785ae33ec97161414f49fc563fb48cdd2dce8b9c9919f496a2c",
+      "bytes": 7171,
+      "sha256": "972c1d8c9f8bd431fac3859ddccec2b25209ae969dce51c2776fb639bb99534d"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-13-setup.mjs",
+      "path": "objects/0120.gz",
+      "rawBytes": 21301,
+      "rawSha256": "01be2a1949d59c52d46c57838afac3683f97eae6f4bbffd49d93586e9eaec1d0",
+      "bytes": 7186,
+      "sha256": "07c481f52363d20163a0311314e3ec17b8e4251c375411dea74b199f90b6a997"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-14-check.mjs",
+      "path": "objects/0121.gz",
+      "rawBytes": 21245,
+      "rawSha256": "0ff0b433d6eb095cac0c07601180bf857884688b3256fea19079f5cf729d20d7",
+      "bytes": 7122,
+      "sha256": "b083b8b896da3cf243a09958125009b03aafe990e667ea0e0dee4350d30d518c"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-14-setup.mjs",
+      "path": "objects/0122.gz",
+      "rawBytes": 21283,
+      "rawSha256": "6b9762c17c76f450832b72c18c94ed487f9abe66cbb31dc95524bb6e8d2fa7de",
+      "bytes": 7138,
+      "sha256": "50596c2ad684fed2dbd5f0063466dcd403f3983c583bb2f55c53ebb67c93c9b7"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-15-check.mjs",
+      "path": "objects/0123.gz",
+      "rawBytes": 21301,
+      "rawSha256": "2fbe2204b7895bb2b353e49abcd9d3e45f5e3e4724ddd154304797c796595c4c",
+      "bytes": 7187,
+      "sha256": "ed1e9b7ef40ee705f6b98aabfe45b948537904e570a6213e9a6821c8a2cf211e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-15-setup.mjs",
+      "path": "objects/0124.gz",
+      "rawBytes": 21339,
+      "rawSha256": "f7647c17e31bfce39d0d0d77e7b1f80c9d7d6f258f287d7670b07b3fb7c7f1db",
+      "bytes": 7203,
+      "sha256": "cb9f4763e9838f21e59679f7992e7783722d4dac1c0f4d96175b1f25efa811a3"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-16-check.mjs",
+      "path": "objects/0125.gz",
+      "rawBytes": 21114,
+      "rawSha256": "df0cb0971004fbd174ff4e6fad139b526d266ce61ed5bc2394501afcdc995fb9",
+      "bytes": 7095,
+      "sha256": "330d552dd9789399105ab4c8299aaea14460ff8a99463a958119d312087ac3a6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-16-setup.mjs",
+      "path": "objects/0126.gz",
+      "rawBytes": 21152,
+      "rawSha256": "d7222fa63bbe13ac6d875ac922b0ab7a9dd60f68feef663e4c86360077baf1a5",
+      "bytes": 7111,
+      "sha256": "f6c98f7d7b061ce175aa02d391088852935b70f44eac8df75c5ee904f0e86aa0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-17-check.mjs",
+      "path": "objects/0127.gz",
+      "rawBytes": 21290,
+      "rawSha256": "425f44b4cbe581c8a0d7caab0753be3992a3528b586e905ab4d24bc726def7e8",
+      "bytes": 7167,
+      "sha256": "18cb1cd97e9eda9d1fdfd2c764b2a56fbbc347ca45377158b20de27859a25203"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-17-setup.mjs",
+      "path": "objects/0128.gz",
+      "rawBytes": 21328,
+      "rawSha256": "2969c904638d815687b719bd534d024563179c8337e406f525daa24cab5b9142",
+      "bytes": 7182,
+      "sha256": "c95921561d2ba37a13ba3bcc6ce83be14f2198e7abbba00e6479e498c3df5eb5"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-18-check.mjs",
+      "path": "objects/0129.gz",
+      "rawBytes": 21150,
+      "rawSha256": "0ab2d8f8489816eddf1b73b1b172e553280dbf8b914f8f5f57238839c03da4c5",
+      "bytes": 7109,
+      "sha256": "ba8ec7333294e22f3c1bbfd574cb636e085f4e1d0fdc92a1b4bab1e6ae28379d"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-18-setup.mjs",
+      "path": "objects/0130.gz",
+      "rawBytes": 21188,
+      "rawSha256": "ffb9f0420c73921f8691c2ddd9c16694c0c789335cd1b9ef2d7de0e186b49548",
+      "bytes": 7125,
+      "sha256": "a10450a68396ffb633b83427a097305631b0088d787edd08878650d90e9dc51a"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-19-check.mjs",
+      "path": "objects/0131.gz",
+      "rawBytes": 21302,
+      "rawSha256": "23af9ec16aabb2a9dfdfb3fa78938fb90605ee4ed55cb8bf8cdaa0f9eb8dddb0",
+      "bytes": 7166,
+      "sha256": "75e884fb2bdaf0561b0590494e55ea0f7693754de5e5953f8bffbcdb5b43b088"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-19-setup.mjs",
+      "path": "objects/0132.gz",
+      "rawBytes": 21340,
+      "rawSha256": "be3c8c45c5182e0d2b7401999d7d378a1f05cecf1e0e259e2631372e0c002b58",
+      "bytes": 7181,
+      "sha256": "8fe321f3413029aaab733f0e00bffd25f25c8767347a52036cec742e2e6adf32"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-20-check.mjs",
+      "path": "objects/0133.gz",
+      "rawBytes": 21171,
+      "rawSha256": "7d01776ac23d1b644dddab24d3efc7d60d6dfa1d269e5b7d77479928cc793df2",
+      "bytes": 7105,
+      "sha256": "85f13e5f2b0c4639c6b60c26312881d53b8dbe6dcbf9be66f8a00677bf980d3b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-20-setup.mjs",
+      "path": "objects/0134.gz",
+      "rawBytes": 21209,
+      "rawSha256": "7a944911783ef5e13cbda9cac9ab421130015a2327befe1013fa0671aadc4f37",
+      "bytes": 7120,
+      "sha256": "8948a9960e58d53aa53e5268d18273698e88bc3d284c92aadad3cb4df62215a2"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-21-check.mjs",
+      "path": "objects/0135.gz",
+      "rawBytes": 21160,
+      "rawSha256": "f8cd0067e10322b40d7e4d6159a5a53691e316772f3bc668bc6166e057173e28",
+      "bytes": 7125,
+      "sha256": "48277b9a76c1772bfcb0114a512f2ceaae7fd353c162547c63ad8aa5f48d02f7"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-21-setup.mjs",
+      "path": "objects/0136.gz",
+      "rawBytes": 21198,
+      "rawSha256": "9993b8b418123aa84d97a98bdaed774a7498a4615cabfb61ebc37829d433b16b",
+      "bytes": 7141,
+      "sha256": "f3167a869f7b12f57db58157391ac234d31857d70548c833a7b98ce105d28209"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-22-check.mjs",
+      "path": "objects/0137.gz",
+      "rawBytes": 21237,
+      "rawSha256": "81e6fc8080240ad7d66983fc90bc4384a4401d4c442566e4f565a9524be2411f",
+      "bytes": 7146,
+      "sha256": "0607c5ea92e8395a10f3073049f1b6204bea43a645619c9624e886ae1fc441e2"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-22-setup.mjs",
+      "path": "objects/0138.gz",
+      "rawBytes": 21275,
+      "rawSha256": "e875c431960938511ac99efe805fa9a6ad24cb99d13867c9753c7cfff8dbfcc4",
+      "bytes": 7161,
+      "sha256": "2e8450d7a5bb8ae93a8b348d529e9fd21c325d1f1f7266058b8e265765e4d4d9"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-23-check.mjs",
+      "path": "objects/0139.gz",
+      "rawBytes": 21372,
+      "rawSha256": "4477a96b8b215a2914e4eeda9ece2cc83886a9bfd93713cd233ea4692d7ef6f7",
+      "bytes": 7161,
+      "sha256": "c9998febca1185661a4f3424225bb9a4e755bb2bddd8c5ba0ae3161e0dfc82ea"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-23-setup.mjs",
+      "path": "objects/0140.gz",
+      "rawBytes": 21410,
+      "rawSha256": "f94d5b335f9613e261e5f88509e61071e0fded24c41205cee53f515fad4a319e",
+      "bytes": 7177,
+      "sha256": "94e5393e35d3a30678402d5804f2ee8f91edcc95e9ba2245ed13b08ef43f7e32"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-24-check.mjs",
+      "path": "objects/0141.gz",
+      "rawBytes": 21136,
+      "rawSha256": "32bc4285d56af6821e628bcf60a9c7e0207d07db9742987827638a800cd438e6",
+      "bytes": 7113,
+      "sha256": "a481db9e9792a892266388102e438886b4e7b0389d3d8f11fc67650e6db7d3cd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-24-setup.mjs",
+      "path": "objects/0142.gz",
+      "rawBytes": 21174,
+      "rawSha256": "6182f803794a4b7381980034612e28da38e9e526fd57015b45504af6271bdb3e",
+      "bytes": 7128,
+      "sha256": "834a907d0195d5887a933764c17575adf5241984e6c5b0eadc7c0967f71e97e3"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-25-check.mjs",
+      "path": "objects/0143.gz",
+      "rawBytes": 21331,
+      "rawSha256": "b287b2e012092dd7fc23464a81e55f06d92b1c18c8379b3265c26de6b5007c0a",
+      "bytes": 7172,
+      "sha256": "42f0666b31d00d7e8b34a49bb70528574023719f69525a15c3c0a8015e61a5a2"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-25-setup.mjs",
+      "path": "objects/0144.gz",
+      "rawBytes": 21369,
+      "rawSha256": "33e9b74a94acc7af7017411f5b25dc48d13188151ba9c9853aa4a5bf3ec30b1d",
+      "bytes": 7187,
+      "sha256": "7213a20796be20c09ef18d93dff14549a1476d6c5a1a1b03b6d97713b4eb6aa0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-26-check.mjs",
+      "path": "objects/0145.gz",
+      "rawBytes": 21360,
+      "rawSha256": "339e460913c414da4131735a5d7f32aa4d26770408a32740571c007a598aa91b",
+      "bytes": 7204,
+      "sha256": "630cdb250e02484b16966c268c8896ea43ea34e439d63cd984b2bab4114fd4be"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-26-setup.mjs",
+      "path": "objects/0146.gz",
+      "rawBytes": 21398,
+      "rawSha256": "ec922e94ec1aa99534b9f1b64b5687ba6d785e3010bace5515c074e4fc5211a9",
+      "bytes": 7219,
+      "sha256": "44304825f71ca43adaf02aa8b541209ef8fd7641e6d90554f6936a1ca515b45e"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-27-check.mjs",
+      "path": "objects/0147.gz",
+      "rawBytes": 21215,
+      "rawSha256": "adc5bc96022b285730463fcd5923c7766a6b28116b954c1061cfc9bf735b16b4",
+      "bytes": 7139,
+      "sha256": "8f0d0870b403d6bc0bfd6eea292da5a5b970195e9cb8e95e825a9711d024de97"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-27-setup.mjs",
+      "path": "objects/0148.gz",
+      "rawBytes": 21253,
+      "rawSha256": "6fd6b739acbd642dd8043ab843211e08e577eeba0a97a939c69aff1ec6ef08db",
+      "bytes": 7154,
+      "sha256": "ae920dd3b4625a777f3709acd2de4a3b1a5102fdb72a6a7aee8d83b1d0f0dd77"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-28-check.mjs",
+      "path": "objects/0149.gz",
+      "rawBytes": 21212,
+      "rawSha256": "7a81e13c247cac3eb6cfb325c035daf8921856527ae96d6918e3c1964d8c6344",
+      "bytes": 7141,
+      "sha256": "a29ba2bbffb900fcca16258f0488af0fa258b3dcaff7ecb399ce0f8c822fe657"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-28-setup.mjs",
+      "path": "objects/0150.gz",
+      "rawBytes": 21250,
+      "rawSha256": "9c107b914b8afeb12f5d28057591f3a1e1c5cf89a44e90aa091001ad3ec35b6b",
+      "bytes": 7157,
+      "sha256": "bb8307e757f2952fb6c7ca69999a3b2f6b496fd8f2fffdd74403217d4fc6a2a6"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-29-check.mjs",
+      "path": "objects/0151.gz",
+      "rawBytes": 21132,
+      "rawSha256": "074cebbebe347c51ee9bf600f7185590f131976a471169c516f78968c97fe9ba",
+      "bytes": 7121,
+      "sha256": "37d825938f69c37b4ce78ea815ce5d4478719eb9adb4eeb68bc21bf0fd35c50c"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-29-setup.mjs",
+      "path": "objects/0152.gz",
+      "rawBytes": 21170,
+      "rawSha256": "4c220bc45411ecae45e142a386f548004f3db5cc2ff011fcdc84fe96614a5eda",
+      "bytes": 7136,
+      "sha256": "162a8b25300880555e1a48cc2b2f14acb8c7549067f25836ef84638a32a5dd32"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-30-check.mjs",
+      "path": "objects/0153.gz",
+      "rawBytes": 21273,
+      "rawSha256": "24b95c6230066f561f61f156fed171df153fb5eb4cba29f67baca1f7ad518b7d",
+      "bytes": 7188,
+      "sha256": "ccd32eda827d7a9b985344ef6c667a34692cafbc3e2d77bd1390d54a67bb1a2b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-30-setup.mjs",
+      "path": "objects/0154.gz",
+      "rawBytes": 21311,
+      "rawSha256": "1af8d1b03ee21a316ae2141f7d1ee27582e64b2726991989a5ec697ef27732b9",
+      "bytes": 7204,
+      "sha256": "622c0ae9c792d1cac492a04aa1c32730fe383739ce66a3091373549e917fc23a"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-31-check.mjs",
+      "path": "objects/0155.gz",
+      "rawBytes": 21189,
+      "rawSha256": "a469038f4bc95c3bab1312225785c69456e0340d27918762d9d47878b9901bc2",
+      "bytes": 7133,
+      "sha256": "efdbc378b722e4f481b3271932548ec1286b8359db88880a65ee2cf9e86d9b53"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-31-setup.mjs",
+      "path": "objects/0156.gz",
+      "rawBytes": 21227,
+      "rawSha256": "776765793587c4696bd92b4143944ac74c4f36f365f10c2909435b90681c111b",
+      "bytes": 7148,
+      "sha256": "dfb4a970bd43b2cd6315f75a4f53646c7d68b7dcda640f7846e9b265ec68cbff"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-32-check.mjs",
+      "path": "objects/0157.gz",
+      "rawBytes": 21194,
+      "rawSha256": "870fcad7086ba1d2f14178d7bbaf8272cee47f04dd8b704b9c7f66b5c7499c12",
+      "bytes": 7139,
+      "sha256": "d2530bfe4690a13d208b3c016360c34ee4640ec263b33992ec762e36319c7a9d"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-32-setup.mjs",
+      "path": "objects/0158.gz",
+      "rawBytes": 21232,
+      "rawSha256": "6b4d9fe2a34884b3ce6c87b6965fbcd107da6adb36afdcc068aa3ffbcc117f58",
+      "bytes": 7154,
+      "sha256": "3920cc6497ce39aa33de10a737b2efa60162e6f80a9d5aad1c2716605c2cef8f"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-33-check.mjs",
+      "path": "objects/0159.gz",
+      "rawBytes": 21178,
+      "rawSha256": "aa8d2b966f5e08e9d3ba073bb1407d38fd0e4e1d0fa0e03f2d83c4a1a8cfc980",
+      "bytes": 7122,
+      "sha256": "9e640c8c443c1788a35f0a82027da0ae18574a59cdd8b0c0f37273d74f74b11b"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-33-setup.mjs",
+      "path": "objects/0160.gz",
+      "rawBytes": 21216,
+      "rawSha256": "1b017692f83279965ed832045af0bb851e904bbf34148d2284e4c52720599bb0",
+      "bytes": 7137,
+      "sha256": "265217660631f1d596e56bc2e941225ad5b0c9a62c5570f12e51cdc79a778c52"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-34-check.mjs",
+      "path": "objects/0161.gz",
+      "rawBytes": 31708,
+      "rawSha256": "b6ef1ef99adc420e42a2167005241d434d6ed6a9117ace33dc0a50aea0f80f82",
+      "bytes": 8858,
+      "sha256": "6b3833b89c8cc43204fb598def74e0da36a9967e79080fd99f5efd314e75b6fd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-34-setup.mjs",
+      "path": "objects/0162.gz",
+      "rawBytes": 31746,
+      "rawSha256": "dd2ae54e64f03a213eda2703fe7db78b82bed7e93cf4d05ff4c722946e3defb6",
+      "bytes": 8875,
+      "sha256": "ee7a453d53bd149cf95cdc44a30f4969a543ef7ae8141a2f9dd18fd39ac04a79"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-35-check.mjs",
+      "path": "objects/0163.gz",
+      "rawBytes": 21202,
+      "rawSha256": "bd986ef8bf065ad40fdcba4249bc2227a4f7011875404fbe722e1d01e163c76d",
+      "bytes": 7168,
+      "sha256": "73f492bd6565bc48be8ee1e72aa031bcf963053c47da9a92f01411794b581c98"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-35-setup.mjs",
+      "path": "objects/0164.gz",
+      "rawBytes": 21240,
+      "rawSha256": "ae2c21cf17883fc87a6208c548482f01fefa3a656f501faeb19674e02d1dc140",
+      "bytes": 7183,
+      "sha256": "4cd141c04bf486c5993fd898858d2e3ceab6527b0a01cfb18b38f82aa3221abd"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-36-check.mjs",
+      "path": "objects/0165.gz",
+      "rawBytes": 21189,
+      "rawSha256": "c6d8d0816d69c07605c8d4f07a2396d3cca7d10772c842004436ff79d2acd7a3",
+      "bytes": 7126,
+      "sha256": "a5f4d19b976f80998f0d5abc1cba81bae42cdeeed4d8c0f13ce4856f048943ae"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\pack\\verify-36-setup.mjs",
+      "path": "objects/0166.gz",
+      "rawBytes": 21227,
+      "rawSha256": "23212a2e9c0ecb0ed46ee2efd4ad416410e6a9da42769f7c5feee153efb8d1c4",
+      "bytes": 7142,
+      "sha256": "e78ada90d3524cd9f07db1343eb796e8cdea84527ead87b778f54137f1c5e2c9"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-diagnostic\\summary.json",
+      "path": "objects/0167.gz",
+      "rawBytes": 324917,
+      "rawSha256": "0ffd7af2c0ae5326693e400affa19333b04537fd9482b764c76bcb3a75a46184",
+      "bytes": 43391,
+      "sha256": "7fa3ad4be9a1f6c9d9c50d386878b01e52e24afea431e724ab69098ebf5896d0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\files\\verify01-first-run-cli-workflow\\workflow.json",
+      "path": "objects/0168.gz",
+      "rawBytes": 341,
+      "rawSha256": "32b536080eaf3bfcc777364bed47717aabcebbd026ad9e617a50263a7436a16b",
+      "bytes": 243,
+      "sha256": "a330aa21173546a8163c575b13e4de393f953069c268bf7a69912fe5b9bcf763"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\invocation.json",
+      "path": "objects/0169.gz",
+      "rawBytes": 337,
+      "rawSha256": "e77fc40e1ce06ae0136541468f2b3ea05c21150c8d929080483aaf8e308db030",
+      "bytes": 253,
+      "sha256": "c2a5430cfcff8248b6c8c31045ed499407a86d722bcc67dd5410d8287de27278"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\job.raw.log",
+      "path": "objects/0170.gz",
+      "rawBytes": 118210,
+      "rawSha256": "49499653f8aa384c9211918cfb8ee67deb34d9a7ecc80c15b162c23de797bb7b",
+      "bytes": 19339,
+      "sha256": "e9ec758fca9ea0e33ba3cfb2513023f6e671fa9230b919ac8d401e52e4b68bfa"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\jobs.raw.json",
+      "path": "objects/0171.gz",
+      "rawBytes": 2924,
+      "rawSha256": "6077fa4517fb10d6e2939d9908d0b2ff7087943eb30cb2c8ddf3f8f41f9cbc88",
+      "bytes": 801,
+      "sha256": "586b4e548d5feaee043c7e619c981c86f87d926d0dca2edcd0c2f326a1e10be1"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-26-11.997Z\\run.raw.json",
+      "path": "objects/0172.gz",
+      "rawBytes": 13192,
+      "rawSha256": "8c6223dbe7de41ca3c5f6a07b0f35376489ae08c6685a2c1e68503a603b9fc4d",
+      "bytes": 1530,
+      "sha256": "00f3d74a1d9086fa97de3de6ed40e096b9a666838b78e203f46f0c0f7c14b2ff"
+    },
+    {
+      "source": ".work/collect-first-run-retest098-main-authenticated.mjs",
+      "path": "objects/0173.gz",
+      "rawBytes": 8622,
+      "rawSha256": "6c32093cae54833e86569de92d491d3bc03da1035a89efbe872bd99292f5d449",
+      "bytes": 3143,
+      "sha256": "5927fb1d85d8dd0143e4d22fa788ee81e1daaabf723ac3858e355998c3da9268"
+    },
+    {
+      "source": ".work/first-run-retest098-bounded-zip.mjs",
+      "path": "objects/0174.gz",
+      "rawBytes": 4771,
+      "rawSha256": "3f2f2728d915b5de0974d2e45fef48c93c7840f5d0f762e6ab0fd9d6b2ce36f0",
+      "bytes": 1615,
+      "sha256": "9ad6ceefde013d792e3b61d4d691634ab5082fdc4ea97bcce4cb5350540cd83d"
+    },
+    {
+      "source": ".work/first-run-retest098-collection-contract.mjs",
+      "path": "objects/0175.gz",
+      "rawBytes": 3506,
+      "rawSha256": "02773b34f977b058e78951aa657b05c0a78b023b32d4ffbfa37d0507b5a9d14d",
+      "bytes": 1220,
+      "sha256": "7dd706875ee03cf625118704a3db3d1b0e69955949bfc01800b1536d8a7e9fc0"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-22-48.923Z\\collection-failure.json",
+      "path": "objects/0176.gz",
+      "rawBytes": 759,
+      "rawSha256": "3a7e13e9429b50fb2ed83c9364aac9cf0f265edf54536986ab373d42b9014000",
+      "bytes": 526,
+      "sha256": "f77cda614555cccd54017124d999f1199ebbdd87ae1e2c0b1872831c3cb7dc0c"
+    },
+    {
+      "source": ".work\\first-run-retest098\\38198687103\\2026-10-12T03-22-48.923Z\\invocation.json",
+      "path": "objects/0177.gz",
+      "rawBytes": 337,
+      "rawSha256": "7516b48f1b91d7143fc7ff8801ab1d00cb9ec6a900201bd8dad040704dd8c3a1",
+      "bytes": 254,
+      "sha256": "b2b121c19226fc92824cec5c8c4c05a756d436c6ce592dc07e76d42fcd4f864d"
+    }
+  ]
+}

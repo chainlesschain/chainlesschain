@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-10-12T03:44:03.564Z",
+  "repairCommit": "861e9bcac9",
+  "scope": "Local current-source regression; not a complete three-OS release gate",
+  "tests": 231,
+  "passed": 231,
+  "platform": "win32",
+  "node": "v22.22.2",
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "providerCalls": 0,
+  "actionsPending": true
+}

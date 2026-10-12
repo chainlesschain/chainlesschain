@@ -1,0 +1,783 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T06:03:35.890Z",
+  "summarySha256": "ecf3a38d9f2cba7ef1d1bfcbe1861e9820909ca904bb1fd6cf29fb25b0059768",
+  "entries": [
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/audit-manifest.json",
+      "path": "objects/000.gz",
+      "rawBytes": 10784,
+      "rawSha256": "d972d0cd4e45c2c673ae444b77d7257f081199d977e9914d293e59462d3bbb19",
+      "bytes": 3387,
+      "sha256": "b6f93d59b9d453675d9e292674b2f9d4571663e4c65524aaec66d0bfff042d17"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/audit-public.mjs",
+      "path": "objects/001.gz",
+      "rawBytes": 5463,
+      "rawSha256": "42591c6a790fd10508fd248a91e6bf7252aa004ae7381f573cbd721078308157",
+      "bytes": 2229,
+      "sha256": "2f7508d322f0dbc391098105ddf5d8fb34a6a68b4e102c10b3799e21cbb783ac"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/check-collisions.mjs",
+      "path": "objects/002.gz",
+      "rawBytes": 2049,
+      "rawSha256": "a1242916e68666d55d60991519328b2e16f82f2f5c469b3e86016f8e11fd0e6a",
+      "bytes": 1096,
+      "sha256": "ecff0f84e97ff7de7e8b8223efd0ff5434216defea06165b2e74c469560ca8d7"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/jetbrains-updates-0.json",
+      "path": "objects/003.gz",
+      "rawBytes": 609236,
+      "rawSha256": "9e74838b5765f9622a9b36092345f2acc01ce2d676d25508b10e7d2fbac45658",
+      "bytes": 51365,
+      "sha256": "b88a5811bf5ee5df40b4068bf1ca5a4127b7fdf490b925530c3f3190f57f9c61"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/jetbrains-updates-1.json",
+      "path": "objects/004.gz",
+      "rawBytes": 609236,
+      "rawSha256": "9e74838b5765f9622a9b36092345f2acc01ce2d676d25508b10e7d2fbac45658",
+      "bytes": 51365,
+      "sha256": "b88a5811bf5ee5df40b4068bf1ca5a4127b7fdf490b925530c3f3190f57f9c61"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/jetbrains-updates-2.json",
+      "path": "objects/005.gz",
+      "rawBytes": 216900,
+      "rawSha256": "75a05d276df3471679f6455dbd91e849e4cf9034b3b5ecd118c307eb3165a6a6",
+      "bytes": 11726,
+      "sha256": "e47bc7a14be32a58d1bc7bb008e705dfc7f02e2b98d140aef4d93de834e6d23f"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/npm-0.166.99.json",
+      "path": "objects/006.gz",
+      "rawBytes": 29,
+      "rawSha256": "ba624297f8007a21092864bff2253aaff3ff473803051e3ba40119c40fcbb2d4",
+      "bytes": 49,
+      "sha256": "f31bc6f35bf19a8fb332316287d291954fa48dbdd5b0cedff1fe6defef374a08"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/openvsx-0.37.143.json",
+      "path": "objects/007.gz",
+      "rawBytes": 115,
+      "rawSha256": "5d12bcf2672e8893aab9449398261c90b5d9cbf0a5d0c8db85eddf5adf976178",
+      "bytes": 111,
+      "sha256": "f220792ceea9f9f6af5afa5f1bc62b88b8cc5b8600697e276c4011a963d9d520"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/summary.json",
+      "path": "objects/008.gz",
+      "rawBytes": 3199,
+      "rawSha256": "d73f17df65e38471422eb560d8638fba457580446414c33eb003c9532f86ba85",
+      "bytes": 781,
+      "sha256": "f46e238b2a6c4e7b4a7d8d4388b5d515a87e6b25f97dc895d97aefa87e154398"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/tag-ide-jetbrains-v0.4.161.json",
+      "path": "objects/009.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "99e8ae7836c92d8eb64a67be015abb11017f85cd1106432a7040d4c2c4274bf0"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/tag-ide-vscode-v0.37.143.json",
+      "path": "objects/010.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "99e8ae7836c92d8eb64a67be015abb11017f85cd1106432a7040d4c2c4274bf0"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/collisions/tag-v-npm-0-166-99.json",
+      "path": "objects/011.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "99e8ae7836c92d8eb64a67be015abb11017f85cd1106432a7040d4c2c4274bf0"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/dependency-audit.json",
+      "path": "objects/012.gz",
+      "rawBytes": 17852,
+      "rawSha256": "88ebba91f7feb190e95acd15c31f83e74c83bd2c20add527d2370963c209a407",
+      "bytes": 3673,
+      "sha256": "2a9c7067fad9a9bc1bd6a448e6b1aefa12cfdd46c059e4f109dffceff5c33075"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/diff-name-status.txt",
+      "path": "objects/013.gz",
+      "rawBytes": 65999,
+      "rawSha256": "dcde8594fb0c42bea6cd1aff483dcbdc4c55bd206c18b8a379b17835d831c84e",
+      "bytes": 2859,
+      "sha256": "46f14345dfa7925ddc0065142980363f61d4c70f588dd20ef5018cda9dd4a98b"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/finalize-audit.mjs",
+      "path": "objects/014.gz",
+      "rawBytes": 1654,
+      "rawSha256": "6d5deb8e7a4c74f8100697589788c2f34f56209c05ea1123e2152a7b7e85bcc1",
+      "bytes": 737,
+      "sha256": "73a9925ba9669f72f28779ae965ac19e2c4c56df4e32f1161b49334a4ef70722"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/agent-protocol-0.1.12.tgz",
+      "path": "objects/015.gz",
+      "rawBytes": 43144,
+      "rawSha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc",
+      "bytes": 43119,
+      "sha256": "e2359237402759a05124aac1fcbd50348f09a812de917ae7015f989e98886874"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/agent-protocol.json",
+      "path": "objects/016.gz",
+      "rawBytes": 2703,
+      "rawSha256": "23a0edd0e8ed005ea1fd81c6370fa305bafacb6cb684bcca2b03ddd012ee6663",
+      "bytes": 1365,
+      "sha256": "876bd89ebeccc10059210410302c26faa0a3c93303c1e41219d1662bb9e4cd4d"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/agent-sdk-0.2.14.tgz",
+      "path": "objects/017.gz",
+      "rawBytes": 88710,
+      "rawSha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537",
+      "bytes": 88549,
+      "sha256": "d541a885d6c715a67305c480f447cbd0dc92186a3c2ae422f837e9f86d41b4c0"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/agent-sdk.json",
+      "path": "objects/018.gz",
+      "rawBytes": 2859,
+      "rawSha256": "a3e5ff72ded6620883fcdffbf04b08bd84f56d55f590a393c145557339f5d3a4",
+      "bytes": 1425,
+      "sha256": "9b3b05faf4b8ba3544fc7c5d9f4f712ffa8febd0a2464eefd227932103a4485a"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/cli-0.166.98.tgz",
+      "path": "objects/019.gz",
+      "rawBytes": 9362674,
+      "rawSha256": "d40fbe737184ebe5b8f2bd5f264d57e3dc82f580bc0a84212b51a0821e943367",
+      "bytes": 9362679,
+      "sha256": "743bc6ada8e6d8b88aec8eb11e7572bcef66a8741fec1529377fa56293682f9e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/cli.json",
+      "path": "objects/020.gz",
+      "rawBytes": 7671,
+      "rawSha256": "67d9f8b6ce86f6d59514a0ca635d84ba4e06ff7a1616c6290eb0abfb4dc3700d",
+      "bytes": 2766,
+      "sha256": "e8761725cf6257385555c6c1fd2f7b7f9c26456a4addc8db7f355c6c5fcfa450"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/context-memory-kernel-0.1.9.tgz",
+      "path": "objects/021.gz",
+      "rawBytes": 50055,
+      "rawSha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805",
+      "bytes": 50093,
+      "sha256": "e815a6781dd7ea7e32572e26c6032479395070e763202b7d8d5f7c268c480852"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/context-memory-kernel.json",
+      "path": "objects/022.gz",
+      "rawBytes": 2850,
+      "rawSha256": "4de7d333a7252c775fde8c1a1e098a6dd57a3dd606e09e86e1eeca5f697dd8ed",
+      "bytes": 1379,
+      "sha256": "b8fe93d5bdc6f8c336667d2ca57155ccf01336588679c3a9f46569120b232d58"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-config-0.1.2.tgz",
+      "path": "objects/023.gz",
+      "rawBytes": 3991,
+      "rawSha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "bytes": 4014,
+      "sha256": "80091ee76074dde14d901ba786510994aa7d54419fbe84a4ecb8824117aed034"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-config.json",
+      "path": "objects/024.gz",
+      "rawBytes": 1938,
+      "rawSha256": "5ff195df40061e5b02a1198492e2ff88315150e36a8d91b403e1e9b9faeb91a6",
+      "bytes": 1020,
+      "sha256": "5106821d80b8e10c40678b7ab8b532f3e731eba8d971a2fba1475c887f67a782"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-db-0.1.5.tgz",
+      "path": "objects/025.gz",
+      "rawBytes": 10302,
+      "rawSha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "bytes": 10325,
+      "sha256": "830d174dd0ccf07c41bed9b665ae1609517fd1e58a8f84fa9d3cc17284a93cb4"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-db.json",
+      "path": "objects/026.gz",
+      "rawBytes": 2586,
+      "rawSha256": "4d92c5647be7c38a0a46f08e560a0d37aa92d49b09283dad9aa689c4bb018f34",
+      "bytes": 1237,
+      "sha256": "d08efac1d25ec149eba855d40ad8455c02a742eae41912368a7e40b855d4ab24"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-env-0.1.2.tgz",
+      "path": "objects/027.gz",
+      "rawBytes": 2600,
+      "rawSha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "bytes": 2623,
+      "sha256": "cb6ef3ef1dabed42d9382df6afc60c68d948678560a8472e2dee15102e676850"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-env.json",
+      "path": "objects/028.gz",
+      "rawBytes": 1878,
+      "rawSha256": "aacf0377a6ea0d3a6d05b6f1a745488d3f09cc2ee9b758f5dfde472aa8f9e5fa",
+      "bytes": 1020,
+      "sha256": "22f071c8c866e99d27218322c07641771bc2b5dcf0db3a11c4f1b7a3c0eb8c16"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-infra-0.1.1.tgz",
+      "path": "objects/029.gz",
+      "rawBytes": 3482,
+      "rawSha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "bytes": 3505,
+      "sha256": "3b182375640a5ffb7ecdd4555888d34f10ffd577d5c3a464d7542c8c29dff83e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-infra.json",
+      "path": "objects/030.gz",
+      "rawBytes": 1979,
+      "rawSha256": "a89a99a98979c0ac38803c8e0ca458826a61d017924c13df7cb68b00a3e9c964",
+      "bytes": 1043,
+      "sha256": "077350e211d1803185a0d5eae0efe73cca857de0e88adc1e1f1b947c2ce2ee9d"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-mtc-0.2.3.tgz",
+      "path": "objects/031.gz",
+      "rawBytes": 38297,
+      "rawSha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "bytes": 38330,
+      "sha256": "a06a7436ba93dcb497a009d98b5c425004516c956e7288841adeced0b259eb67"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-mtc.json",
+      "path": "objects/032.gz",
+      "rawBytes": 2815,
+      "rawSha256": "03a810e219c23885bbd0b0c42ec9e4dc2c3011192dd5c3aa728c23a1c8b03f61",
+      "bytes": 1374,
+      "sha256": "91fe56971063833cbef968f27efb422f24342c431c41bf7507ecbc1ea9db5ecd"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-multisig-0.1.4.tgz",
+      "path": "objects/033.gz",
+      "rawBytes": 13952,
+      "rawSha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "bytes": 13975,
+      "sha256": "aa09ae2ac3c7216272455aed0c4765147cf3e156ffde1bb8d376b7904b88b00a"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-multisig.json",
+      "path": "objects/034.gz",
+      "rawBytes": 2125,
+      "rawSha256": "f0f7de21640db8b934facf7ab9a9dd7214e383fb6d73063359e6078d5bc05cae",
+      "bytes": 1130,
+      "sha256": "b0e0f355669050ca2449979702a81ca8dbe33bf2ec5d90124a7a8bb4ce253881"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-settlement-0.1.2.tgz",
+      "path": "objects/035.gz",
+      "rawBytes": 9031,
+      "rawSha256": "cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699",
+      "bytes": 9054,
+      "sha256": "6c906e09e2d66c8913be58accfeccda56ec76c5173ed61294f3aaff6c06814c0"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/core-settlement.json",
+      "path": "objects/036.gz",
+      "rawBytes": 2153,
+      "rawSha256": "169b36c4d5b5ddbb3fd9de85479b1e781ec5cdf10cfc3ed8f8f99544e93dd39e",
+      "bytes": 1214,
+      "sha256": "ab93f6e3c0073ae37aab43fb1554329543303e52402f77aa10e008ae734bfe5c"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/personal-data-hub-0.4.64.tgz",
+      "path": "objects/037.gz",
+      "rawBytes": 890625,
+      "rawSha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "bytes": 890861,
+      "sha256": "7958ca087980fb97bd80676aa773c0c50c095fa037da338e0e0022e2f3fbd745"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/personal-data-hub.json",
+      "path": "objects/038.gz",
+      "rawBytes": 7349,
+      "rawSha256": "ae7da299a445a318f357df0e648e66284003ab97fe163ef29faba20645e00c0c",
+      "bytes": 2282,
+      "sha256": "54fc2eb6f4a7ce17f8fb4c535402a29925886572fcbf90a8df645304de0adb87"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/session-core-0.3.19.tgz",
+      "path": "objects/039.gz",
+      "rawBytes": 286161,
+      "rawSha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4",
+      "bytes": 286259,
+      "sha256": "1178939ae3dab5b8a075f0c60d95214d45bc7801689d8084ffd5986e3e618f5e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/session-core.json",
+      "path": "objects/040.gz",
+      "rawBytes": 6217,
+      "rawSha256": "a512d521a17204c05ffd3a5a52c31167bda580c6532467fa5f0d88db7b37bc19",
+      "bytes": 2056,
+      "sha256": "d20cea52447cf34a1956afa6c3cd9a4a505104eed916aac77e7bfaa9a13dead3"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/shared-logger-0.1.1.tgz",
+      "path": "objects/041.gz",
+      "rawBytes": 4058,
+      "rawSha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "bytes": 4081,
+      "sha256": "0fc0bcfd6014f083059f83e83e353e00c3aa9634a6d1efebcc33a54e92f2e93e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/registry/shared-logger.json",
+      "path": "objects/042.gz",
+      "rawBytes": 1931,
+      "rawSha256": "289504258ea0cefed545808ef4e831a182f30f5196f8d8854730c6c6f9bc64ea",
+      "bytes": 1025,
+      "sha256": "a13b671cf306a8b0443a228a876f538a2596686ab17134aeac1fe34c23c15e1e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/release-audit.json",
+      "path": "objects/043.gz",
+      "rawBytes": 6966,
+      "rawSha256": "95b81a7caab4ab6a5f0aa5f1e99c59be3b8cc4013ff161faca52ab834b7f4e70",
+      "bytes": 2950,
+      "sha256": "c4eaad0dd9878bb8996446d9f3c65794a8caade4cf40d04621655b834c8ebb1d"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/actions/verify-published-cli/action.yml",
+      "path": "objects/044.gz",
+      "rawBytes": 1623,
+      "rawSha256": "9dce5adf92e3f03e0b004ac7fab97c96c31613dad5dca9bcfdbd28603188741c",
+      "bytes": 759,
+      "sha256": "6784bd315cbefc9531309f492e329a54be88e6db71d0bb965cf6255ee5f8b675"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/cli-background-interaction-e2e.yml",
+      "path": "objects/045.gz",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1148,
+      "sha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/cli-ci.yml",
+      "path": "objects/046.gz",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4512,
+      "sha256": "a3c5b48fe7c3cfdeecc8a16197d9bf29c20ea406751dd31780c8c00fab557566"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/cli-strict-sandbox.yml",
+      "path": "objects/047.gz",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5631,
+      "sha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/context-memory-kernel.yml",
+      "path": "objects/048.gz",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1787,
+      "sha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/ide-arm64-validation.yml",
+      "path": "objects/049.gz",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5746,
+      "sha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/ide-extensions.yml",
+      "path": "objects/050.gz",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8742,
+      "sha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/memory-query-index.yml",
+      "path": "objects/051.gz",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/npm-publish.yml",
+      "path": "objects/052.gz",
+      "rawBytes": 51110,
+      "rawSha256": "0ab117daafe75c0de7fdbd562b05f70baf4288dfcaf3b7ba3b0b6aa5ac96c2dc",
+      "bytes": 9113,
+      "sha256": "776a15befb751b6ab53e260f4e73703ce2d3455c76f733d1bf346c8a2afda24e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/.github/workflows/workspace-npm-publish.yml",
+      "path": "objects/053.gz",
+      "rawBytes": 5993,
+      "rawSha256": "52c9df9e37d93ac73cb9245aab9baebbdfa7864cd7e39eca5c9dfaab1f06c783",
+      "bytes": 2054,
+      "sha256": "049d5d45a7a817e5f1935179455dedbc2c565bfb027af0efed253e1f5dec545a"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/agent-protocol/package.json",
+      "path": "objects/054.gz",
+      "rawBytes": 1595,
+      "rawSha256": "659c55d0be87b3baf6bed2565d9704502b4dbc80608b7f6e5deb1696571ee87e",
+      "bytes": 621,
+      "sha256": "c03e2f058b666962e3d600d420c4a56688dc01a8d36c1ceeae97da532e16654b"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/agent-sdk/package.json",
+      "path": "objects/055.gz",
+      "rawBytes": 1697,
+      "rawSha256": "0b12f29440f392f8be3ee33747f6ee4c773d26b7cdba1e6965edb9a289fe81c4",
+      "bytes": 666,
+      "sha256": "21cf0e955e8b8a8982d1756ffbf6f22695220d3d3eb650a021e2c15377957ec7"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/cli/package.json",
+      "path": "objects/056.gz",
+      "rawBytes": 7356,
+      "rawSha256": "abcf917df0a381a758eeb564f1818923f0f7ac177cda27b789017c93b83cbb19",
+      "bytes": 2101,
+      "sha256": "f9304b114a3f2e9a5350a8a445da21b87085797809ca2b3050f8f027495c4698"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/cli/scripts/verify-cli-registry-install.mjs",
+      "path": "objects/057.gz",
+      "rawBytes": 6401,
+      "rawSha256": "c93a84ca4ae4f0856ee5d7db0c5e5562dc4a43eb4f04f44e8826d62cd6da1f12",
+      "bytes": 2202,
+      "sha256": "c45a58d7af1ee3b701e54512b52f36179484fc35001589629f885fcb84145e88"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/cli/scripts/verify-release-gates.mjs",
+      "path": "objects/058.gz",
+      "rawBytes": 6104,
+      "rawSha256": "dcdeecb8e5c427bb5d6d2e4212509a47ccfc61dac1c3a6b0c579f1685613049c",
+      "bytes": 2345,
+      "sha256": "8beca0adb9935aa8b8b198b78bdbbe7cde80293059529d8f02bc27d3ecbb0910"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/context-memory-kernel/package.json",
+      "path": "objects/059.gz",
+      "rawBytes": 1817,
+      "rawSha256": "13482386a221655eef2852e9760dee681c12130986751e6ab238eedb7fc1504d",
+      "bytes": 654,
+      "sha256": "23554491a6cd17b16e3fa41ebddad0287319eee9a1215dcad291db73c05bed53"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-config/package.json",
+      "path": "objects/060.gz",
+      "rawBytes": 843,
+      "rawSha256": "c7686f8234c73ebc4411c5ab9aca321dd685660d4e63abbb68001d6c41bbe7f0",
+      "bytes": 386,
+      "sha256": "6cb2b473ed58e61abd61cc1e6e0da0ba1a28af3088e34a2f49a7e81aa14fd59e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-db/package.json",
+      "path": "objects/061.gz",
+      "rawBytes": 1147,
+      "rawSha256": "98d422b1035f221e5be0ab5925b701a926d53f84752da407025e7713e387ee88",
+      "bytes": 496,
+      "sha256": "7f969c24d11dc254c572705eceffbec83698a4cb1f56066ba51259f791040b62"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-env/package.json",
+      "path": "objects/062.gz",
+      "rawBytes": 791,
+      "rawSha256": "99ace873e97cd212894cc0b69f0cdb56013fd2e47420c1499577780dfc2b76c7",
+      "bytes": 387,
+      "sha256": "ec5a5b567afd8d970754dfc0021e1a2e5943ddef33f0afe043e9a0ac9f30b7b2"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-infra/package.json",
+      "path": "objects/063.gz",
+      "rawBytes": 899,
+      "rawSha256": "2e48458c948e0b853b82e00bc4f2bcfd282fcd0ce750055632b624c6b4c22051",
+      "bytes": 410,
+      "sha256": "cae46b393befe9ae8f6caa93c7805eb4026b407d91c75b04edd5db6faa9f8569"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-mtc/package.json",
+      "path": "objects/064.gz",
+      "rawBytes": 1891,
+      "rawSha256": "208979fe62c76da9b9a19f559bcdb7c51f999d099980f47fe2a265b701e8a0c1",
+      "bytes": 740,
+      "sha256": "5dc77d0974eac882cbcf43abe87f0eb85f579ee7bc2a1ac9a90f914ce53e5d28"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-multisig/package.json",
+      "path": "objects/065.gz",
+      "rawBytes": 1043,
+      "rawSha256": "f49698d0ba0d26566b65e43abf0e04eac3dc75a45cda4ab89ba9cd7982caf2ac",
+      "bytes": 503,
+      "sha256": "efbbc2e273fe7f5d6b5093d8414285d2b938305c4b574482dd4d51424b6ffd9b"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/core-settlement/package.json",
+      "path": "objects/066.gz",
+      "rawBytes": 1044,
+      "rawSha256": "ebd8d85f7c87424a2bb11451275bddf9c1b59704663fc4863d66a590e40142d6",
+      "bytes": 568,
+      "sha256": "5bcbd6b7d0af4be1c62aaf57fe6e3457b5c04dde5432d8386c56ccb7c7fbabab"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/jetbrains-plugin/build.gradle.kts",
+      "path": "objects/067.gz",
+      "rawBytes": 23698,
+      "rawSha256": "b02e91fdad8cc028e3ef779bd0180b0c5212774e6b2c385b1b108cfa7a3a42b7",
+      "bytes": 8234,
+      "sha256": "6728692add03ecf82b3eb14a9e451680315558cb6ade265fa5a05fe0a130ef3a"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/jetbrains-plugin/gradle.properties",
+      "path": "objects/068.gz",
+      "rawBytes": 170,
+      "rawSha256": "fdf05577e50fe0f01a0ce1dc04baade595c7f5d7b28281223f2aa98066567bc3",
+      "bytes": 145,
+      "sha256": "ba436ec0c404db45a65a276ec76162e05df063a5f174a1c4d9f1c6ab0a6ed20b"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/jetbrains-plugin/scripts/verify-release-metadata.mjs",
+      "path": "objects/069.gz",
+      "rawBytes": 4790,
+      "rawSha256": "6fef9a1e3bc7b2df96806d5471e7291befc7aa26fc92f59a5f18c0fce06bd4f8",
+      "bytes": 1618,
+      "sha256": "5034e31e0083d8cd74334f9526193143287d1198b71033cf064e53ebb6594f56"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "path": "objects/070.gz",
+      "rawBytes": 27473,
+      "rawSha256": "f2a009ce89ef845685f46ac3239b7a7904c0ca495ab7aa2d0b99e9f3311eb131",
+      "bytes": 7131,
+      "sha256": "86feb74b6696c4e3e9f7c0f0c60980a145800802f6ed8157368f8825ce210b51"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/personal-data-hub/package.json",
+      "path": "objects/071.gz",
+      "rawBytes": 6463,
+      "rawSha256": "4ce3c94721bd26010588385bc6838742b9d572ae1d1b41c326139ef57ecc867f",
+      "bytes": 1422,
+      "sha256": "3e39342a4a174e9d1a63e266c3ea5fd93c215d09af23af775624950c208af40f"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/session-core/package.json",
+      "path": "objects/072.gz",
+      "rawBytes": 4913,
+      "rawSha256": "9df662772cc5529e9e5707e7c2442c7d7394040c5f6022e872470825dd1da544",
+      "bytes": 1184,
+      "sha256": "906186e52ccfc188d5d40c3103b5807aa303bb5c07bd804df3d8759bac9a0765"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/shared-logger/package.json",
+      "path": "objects/073.gz",
+      "rawBytes": 825,
+      "rawSha256": "ffb63dda4706ec25e9f50e0956a1df735a4e89a8bc4ce795ed29cf4ecb04919e",
+      "bytes": 392,
+      "sha256": "d69c456cae780d2bb4e31ce2cf171db67fb75ffe735e19f3d356967e6ca8543e"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/packages/vscode-extension/package.json",
+      "path": "objects/074.gz",
+      "rawBytes": 24538,
+      "rawSha256": "f571d28279b9c44f7089b786e6ba11f10835134bbb9a0b53424d4f3b3e1915aa",
+      "bytes": 3657,
+      "sha256": "2886ca5453e697a9d91cc772ee24331777883a6ff9f82d61b27e4f4981622a15"
+    },
+    {
+      "source": "C:/code/chainlesschain/.work/ide-gap-release099-20261012/source/scripts/verify-ide-cli-prerequisite.mjs",
+      "path": "objects/075.gz",
+      "rawBytes": 3499,
+      "rawSha256": "1cf15ed0e78aedaae31642899eca850506652e29c52a3102616992a52faaa850",
+      "bytes": 1415,
+      "sha256": "5ec5fb2806fbab1f21f12bd258c90a735873053c2c0da3008d26e59aedd30a8f"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/full-manifest.json",
+      "path": "objects/076.gz",
+      "rawBytes": 13110,
+      "rawSha256": "c78c0445c3670b0cd1f770aeda66881bdc2fbc4e4c3b8bad8468b7553aabcd4f",
+      "bytes": 4020,
+      "sha256": "8fef92ca8dd739697bb419ccaedfca766266828a4a8be972caf7f7b610410757"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-vscode-unit.tap",
+      "path": "objects/077.gz",
+      "rawBytes": 117600,
+      "rawSha256": "b4058418c74093d28b738cdaf6ddf4bcc8a8944f5e85293b56a1c0468c5fe81f",
+      "bytes": 14305,
+      "sha256": "20cfaa249ea9b8ab909a19948a3601b7de2c742c72f1f1d181178a02a797d51e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-contracts-windows.json",
+      "path": "objects/078.gz",
+      "rawBytes": 24519,
+      "rawSha256": "674f25da7f0428a5e5d28f39e007d50e11965fe7a2f9f0b18510f12d50d2babd",
+      "bytes": 3302,
+      "sha256": "577abecc2aea57975592f3e2d6468f0fb66c154a0bb15cf3667770e4b2ae3aee"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/prepare-release099.mjs",
+      "path": "objects/079.gz",
+      "rawBytes": 7609,
+      "rawSha256": "81a9feb4e603a6327aad120b5e615e1c2549941635cdc2a623ba57d6d061fde3",
+      "bytes": 2971,
+      "sha256": "73cf8c04f2146c7dd1adec08f09ccf08cdc37b8081683a2bc79bded2bbf075f6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/0.txt",
+      "path": "objects/080.gz",
+      "rawBytes": 658728,
+      "rawSha256": "d3a820ba00ee307eee8acf7b02114d59dcc0e6e44b372ac7b198e79d83e4d9d2",
+      "bytes": 266261,
+      "sha256": "bdc671bce414c6a137b78e0dce49cda173b755089e1e3b98311d0cb2a354a607"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/1.txt",
+      "path": "objects/081.gz",
+      "rawBytes": 1352184,
+      "rawSha256": "f3300f217def19ca9e57495c146c9b1c2e9992c6bf7d82ddd035c8224f7adce8",
+      "bytes": 296335,
+      "sha256": "6b8fc7986653f5cabff23575c0066840bb684bfce120add0edcb750a5c665047"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/2.txt",
+      "path": "objects/082.gz",
+      "rawBytes": 159879,
+      "rawSha256": "0f0ed838afe88b9097e2cd82d21d0fdd7b96b259d596d10098b54a3b9efe59a5",
+      "bytes": 50772,
+      "sha256": "b5ba8db39f8fff4a68dd35b5eb92ecc10c05f389dacb4d2a9812f2283a518230"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/3.txt",
+      "path": "objects/083.gz",
+      "rawBytes": 7356,
+      "rawSha256": "a0b005d4386247bbdc453a8b41ee90ce5fb564c146b59a930e05b37aa037d325",
+      "bytes": 2101,
+      "sha256": "0737a6b71dbe79e4023ccaaba0108a893e457eeda859271be13faae4bb5634f3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/4.txt",
+      "path": "objects/084.gz",
+      "rawBytes": 332741,
+      "rawSha256": "88fb83d2f6db107920da49cfe80034a4994bd83a74334204df193de8ff24b369",
+      "bytes": 115791,
+      "sha256": "95f8437d7506bb7b4d745e8731dabee16303320ba36b50090750b659fefee922"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/5.txt",
+      "path": "objects/085.gz",
+      "rawBytes": 141695,
+      "rawSha256": "2cbb79a258b1638f22aba0f88b63f9ce8b5818209f3a7de5fb58b9c9512bef0b",
+      "bytes": 50977,
+      "sha256": "a75e84695a4d0d56dfdd8e49d9d49d0a7c7637b8d194e708a59f1660ca0c5779"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/6.txt",
+      "path": "objects/086.gz",
+      "rawBytes": 28955,
+      "rawSha256": "fde54ed182bcaa698620fad070dcc565e956e601504b48a7095e4f6ae5d148d2",
+      "bytes": 11646,
+      "sha256": "c38cbbedc239d4a55ab989821dd312d85114e9f38dd6bd9803dbbc439decd0b3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/7.txt",
+      "path": "objects/087.gz",
+      "rawBytes": 23698,
+      "rawSha256": "2d9c8173412b4db722627c1e28c656fecabcaa2e7a08d424a0dddd25e34a8a7d",
+      "bytes": 8234,
+      "sha256": "703df26ffb672b7a7657e8008075b2d6e9c5d8eb35bf401c0cd18c4b55cb135f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/8.txt",
+      "path": "objects/088.gz",
+      "rawBytes": 170,
+      "rawSha256": "79705c922f154bf2f48dfb92a9087633b9352b90a21697bcc4914ceea5474e0b",
+      "bytes": 145,
+      "sha256": "7110b70ef08693684ea1ea24a2db39e96c9bd775740e6b667d172cc8b84580e7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/9.txt",
+      "path": "objects/089.gz",
+      "rawBytes": 4099,
+      "rawSha256": "a412d71dafebd5c3ee65a7ced4012d9fb72e889e7cdb92ecfe503e84b34af53a",
+      "bytes": 1616,
+      "sha256": "04ba5577480132cb8feb797518dfceb4e9f91cfb697ba1378baf2ced5ba60a5f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/10.txt",
+      "path": "objects/090.gz",
+      "rawBytes": 27473,
+      "rawSha256": "9cd542f0f3f5e6881902d3688962af29b823681619b8a56c49eb4e337405bed5",
+      "bytes": 7131,
+      "sha256": "bc15a90a7df04a90f96840e2b18034eeb360d9fa48b63198e48aaec18c9b55b6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/11.txt",
+      "path": "objects/091.gz",
+      "rawBytes": 2782,
+      "rawSha256": "70d1a6fab5ae45a4f5fbf6a3c48926636f1c81f92d91d72527c39c25829a1c6a",
+      "bytes": 813,
+      "sha256": "3cfd97842e4f94e2df35f22653e5875543e9bfcd59ed792bec3c93d6afaffa4a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/12.txt",
+      "path": "objects/092.gz",
+      "rawBytes": 3159,
+      "rawSha256": "c9c056987d7179698f83d1ad884ca8bd6d451341d7872b180734f89841effe5d",
+      "bytes": 1025,
+      "sha256": "404d6cc97080e310977f77d3913c0da5f9558d138f0a19da38ea2d84da86339a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/13.txt",
+      "path": "objects/093.gz",
+      "rawBytes": 160179,
+      "rawSha256": "19be85d00ab4b3a06173e787ce6c31a6a579524c5a2fa4db2da5d934f1604d37",
+      "bytes": 56265,
+      "sha256": "51e0b8c5b2ad0c28889e90f09e62e2f33a3d75b42109be8fb9e43d289a8d382f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/14.txt",
+      "path": "objects/094.gz",
+      "rawBytes": 39897,
+      "rawSha256": "f134f54554a2349c9b512977c9b5c10a958297f45a318858f0e2ad878d012d6a",
+      "bytes": 14451,
+      "sha256": "1b3c1b99f9ecf84246ec4c8fef241d1ef084261b8a35c92570ab1b112b3af3f2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-committed-source/15.txt",
+      "path": "objects/095.gz",
+      "rawBytes": 24574,
+      "rawSha256": "236258e9b5c37ad038056b7b970d3a2870d9a80096dbc547e5cc9bacf41aed60",
+      "bytes": 3661,
+      "sha256": "377809611db181752d6595f8624a849cf4b53c465746ad7a9ee5e5a97a0496fc"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/release099-source-bindings.json",
+      "path": "objects/096.gz",
+      "rawBytes": 4420,
+      "rawSha256": "76a0b907c8f1844d744d03c456722d823091368c603764399fb3b476da086b42",
+      "bytes": 1188,
+      "sha256": "fe84615a01f426554318c62fe626a3a2abfebe916625dd2a08ea5de627efd9a3"
+    }
+  ]
+}

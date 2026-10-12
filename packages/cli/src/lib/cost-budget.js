@@ -73,6 +73,14 @@ export class CostBudget {
       outputTokens: usage?.output_tokens || 0,
       cacheReadTokens,
       cacheCreationTokens,
+      cacheCreation5mTokens: pricingContext.cacheCreation5mTokens,
+      cacheCreation1hTokens: pricingContext.cacheCreation1hTokens,
+      cacheCreationInvalid: pricingContext.cacheCreationInvalid,
+      pricingContextInvalid:
+        pricingContext.pricingContextInvalid === true ||
+        (String(provider).toLowerCase() === "anthropic" &&
+          String(model).toLowerCase() === "claude-haiku-5-5" &&
+          pricingContext.regional_processing == null),
       serviceTier: pricingContext.service_tier ?? "standard",
       regionalProcessing: pricingContext.regional_processing === true,
       table: this.table,

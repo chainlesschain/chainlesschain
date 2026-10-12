@@ -37,7 +37,10 @@ export function buildSearchCommand({
   isContent,
   platform = process.platform,
 }) {
-  const pat = String(pattern ?? "");
+  if (typeof pattern !== "string" || pattern.length === 0) {
+    return { error: "search_files requires a non-empty string pattern" };
+  }
+  const pat = pattern;
 
   if (platform === "win32") {
     // cmd.exe has no reliable way to escape an embedded double-quote, and the

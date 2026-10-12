@@ -1,0 +1,567 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T05:10:47.724Z",
+  "summarySha256": "8b281b16cb3514b97fe4b790d47215352b9bb0cfc7699a0ee9eb03c0ee2efc64",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--cost-budget.js",
+      "path": "objects/000.gz",
+      "rawBytes": 5607,
+      "rawSha256": "9cddbba5971a65ee05cd1732663988cd63a843009a3d91e0884d0b85cf0a9025",
+      "bytes": 2257,
+      "sha256": "20d8a32d7275839783487171b4559995e128d0f9da030ba7efd9b572fc17f86f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--llm-pricing.js",
+      "path": "objects/001.gz",
+      "rawBytes": 19829,
+      "rawSha256": "b320e7c81c885298e033b8474fd7a7d57d14ddb14ebc86ef7dc9ad8f4db19dfa",
+      "bytes": 6499,
+      "sha256": "025ed1869ff35d8b5ef779a47cfddd6e634ab28ffc685c93f6ccfcac3f90c98f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--model-capabilities.js",
+      "path": "objects/002.gz",
+      "rawBytes": 9631,
+      "rawSha256": "469b1875bf5a733e8e399677b0ae54899445fc43951fb35e877fe057af6435df",
+      "bytes": 3128,
+      "sha256": "e41e2cdebcc6d7d497147aae366fd93bf2231e624dc4ddf7104fb6365fafa704"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--model-context-catalog.js",
+      "path": "objects/003.gz",
+      "rawBytes": 6740,
+      "rawSha256": "bcdc38bf1a3eb12c93129698cebcbac0e066b0028d40a3ae5ff2713773378844",
+      "bytes": 1893,
+      "sha256": "532db2431e8716e560ca2770b75e4d7313b79ee9c97cccb101e4a1224d8a9185"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--provider-options.js",
+      "path": "objects/004.gz",
+      "rawBytes": 17044,
+      "rawSha256": "116c24b84fc5c70acce35c8ac3e656ed4d0783f1cc6ae57323922414bb64dfef",
+      "bytes": 4039,
+      "sha256": "4b8d231dcbb5792ec81e6d17c1d4cd162898438eeea86dafe0988427c34a380b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--session-usage.js",
+      "path": "objects/005.gz",
+      "rawBytes": 36987,
+      "rawSha256": "7fde4f44c64fcb8bcedc298d595fc5a57f003e1f436ffd35315e15218e304b3a",
+      "bytes": 8532,
+      "sha256": "2ffa2a57e1ece4e0a01b8c8a6cd968657cd401790943d9e082440db1768000c2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/lib--usage-pricing-context.js",
+      "path": "objects/006.gz",
+      "rawBytes": 6311,
+      "rawSha256": "1cc3d3ec173d97196508adde5f9d4fda31ca00464056caea342f7759af469985",
+      "bytes": 1800,
+      "sha256": "990c7ab457017d39bd3132ed4ba7f7cda5585d5141590407a16fd6d9fe096f68"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after/runtime--provider-stream-state.js",
+      "path": "objects/007.gz",
+      "rawBytes": 13119,
+      "rawSha256": "df14a1e417d04d67f3e5edcbd6a5d63df88e20e13585a29981fc13b996824c7e",
+      "bytes": 3314,
+      "sha256": "1b1ee9b6370bd63124547462b0281c3219f6777c86629f3accb5c514fa5d0316"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/after.json",
+      "path": "objects/008.gz",
+      "rawBytes": 3730,
+      "rawSha256": "b3e6455f1a71a769a0dff2b3eea7dce93a2c4c1bccb64d6da86ddcc59f04636e",
+      "bytes": 1369,
+      "sha256": "e323f04a3a0d8bdf7748ce0c6bdd3de702e2a3a64a0be64db6050791103e1bd2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/artifact-manifest.json",
+      "path": "objects/009.gz",
+      "rawBytes": 3310,
+      "rawSha256": "0937ea7089079fc2942ba2532f7dd0d134989680e373941a5d02751424670ff6",
+      "bytes": 1260,
+      "sha256": "e06f1307e6b0f6f95950eb0a23863fbf41a61b851a1369da5cf687550683bc35"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--cost-budget.js",
+      "path": "objects/010.gz",
+      "rawBytes": 5188,
+      "rawSha256": "9a7b4813a982bcae2b4650e12e85eff7483e50d3e00c6b8c7227f11c8374eb7a",
+      "bytes": 2168,
+      "sha256": "71d269d4d6a0ef511465ec1e3ed7fb965dc758b7872d7d4ac21d42dd7f4e5df8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--llm-pricing.js",
+      "path": "objects/011.gz",
+      "rawBytes": 18087,
+      "rawSha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1",
+      "bytes": 6132,
+      "sha256": "ac1c4c7c8e55bef6a9bf06aeff1ae35dce260ee1997e947ffd8e16ea9f5c844d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--model-capabilities.js",
+      "path": "objects/012.gz",
+      "rawBytes": 9351,
+      "rawSha256": "8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+      "bytes": 3051,
+      "sha256": "46553f8e7d7b0e33f06749b0f941a0a3b9b9ba9166849f17c50d7263358ff9e5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--model-context-catalog.js",
+      "path": "objects/013.gz",
+      "rawBytes": 5827,
+      "rawSha256": "9ab7321aaed310f33bac0cab8667a33b88190226d2df280fcca58f17fc433260",
+      "bytes": 1768,
+      "sha256": "1583cd9929d7e3966ec90a68ad12e842f513cdf4fd163c0e3e46dc9e62f47ee9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--provider-options.js",
+      "path": "objects/014.gz",
+      "rawBytes": 15895,
+      "rawSha256": "cde18a09a65f27527933f235bfa886de5d5c94b721924fff86050c1b75cfead4",
+      "bytes": 3703,
+      "sha256": "14ef5958bc571a2f6da4b23be8e76f9f14cc6cd3f2d1239bf1e89956390c5bfa"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--session-usage.js",
+      "path": "objects/015.gz",
+      "rawBytes": 36987,
+      "rawSha256": "7fde4f44c64fcb8bcedc298d595fc5a57f003e1f436ffd35315e15218e304b3a",
+      "bytes": 8532,
+      "sha256": "2ffa2a57e1ece4e0a01b8c8a6cd968657cd401790943d9e082440db1768000c2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/lib--usage-pricing-context.js",
+      "path": "objects/016.gz",
+      "rawBytes": 2847,
+      "rawSha256": "285e3b9d1bf740c2200aac9c2cac95c5a8dd432627281e15cb7ad606757b59e8",
+      "bytes": 1052,
+      "sha256": "480c29316c45c52eec6b9544fb83dc2161511e8b319315aa6699e3b5a0756fba"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before/runtime--provider-stream-state.js",
+      "path": "objects/017.gz",
+      "rawBytes": 12857,
+      "rawSha256": "b414d0fa25b8c153bf56ff7be136be328f7188e8a2fec8394f7d07bac792da88",
+      "bytes": 3234,
+      "sha256": "909dfa4963df41128ab73bacf6810da146fe5c4a3c355af8ff6e76f492e7389e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/before.json",
+      "path": "objects/018.gz",
+      "rawBytes": 3077,
+      "rawSha256": "4537310827fcdebba4abbfa818180b5040b7da5a5c8765bb8ecbf8a8aefd833f",
+      "bytes": 1170,
+      "sha256": "3241eeacf768abf1d97e2f4ce6f9fee3bb81868842165ad8c3e04a02749fdc70"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/combined-windows.json",
+      "path": "objects/019.gz",
+      "rawBytes": 137343,
+      "rawSha256": "6a009c2ba9b69ab7c9f9069d6f60579297e9a1dd81bdaf46ae19cfb4662bdc47",
+      "bytes": 16390,
+      "sha256": "07bd9b14e4649478fc6cb3c00fe3ab88dfc6981ea7bd2b7eb564702084fabc0d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/combined-windows.log",
+      "path": "objects/020.gz",
+      "rawBytes": 4464,
+      "rawSha256": "ec6cc58c6ef1862f97b5949730451d3bbda2bab4ac56e2ef1a42e37dce4fd922",
+      "bytes": 1041,
+      "sha256": "62f8967bcc4fab22da4dd04941149c15fcaab82cee7690e0b20c3e8fad9ad7df"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/committed-source-bindings.json",
+      "path": "objects/021.gz",
+      "rawBytes": 4672,
+      "rawSha256": "c06f0ea1e19dbf9c1952ceef431bd7ed40f196fec0245e433954824eded4bfae",
+      "bytes": 1232,
+      "sha256": "69c395b466b58409ad2dfd0b616813afaef69848c5ec4269506bebd04be366db"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/eslint-final.log",
+      "path": "objects/022.gz",
+      "rawBytes": 5880,
+      "rawSha256": "cd1452bce366742e8a490d3a8923f9b110305b7da1a875164179b06008986b17",
+      "bytes": 990,
+      "sha256": "845fa9546dd9072453ed22c81e4986319030c442b09ac1b23793b88691b9bb51"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/evidence-linux.stderr.log",
+      "path": "objects/023.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/evidence-linux.tap",
+      "path": "objects/024.gz",
+      "rawBytes": 1883,
+      "rawSha256": "8211c06e0bdd1658aec71554b6a80242fb995740bf6c4afa258a11741e0d63ea",
+      "bytes": 620,
+      "sha256": "5d52d1d9c58e8bb85c2222d1f20782bc2ab86b990383db2c4d181f16dd77ad09"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/evidence-windows.stderr.log",
+      "path": "objects/025.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/evidence-windows.tap",
+      "path": "objects/026.gz",
+      "rawBytes": 2017,
+      "rawSha256": "9887a03cf4b6b7bcb2706a5b887594a4341956754c35d149d3531b1b35a25029",
+      "bytes": 633,
+      "sha256": "5c5c12bdf3ce1d486ec417cadd7183dd1d71a7b7577bebfcfb12108658b0d18d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/00.txt",
+      "path": "objects/027.gz",
+      "rawBytes": 7516,
+      "rawSha256": "fff74f66b08b37bf2b3877fe633cd4e35578730013791503ac4edc2ce6a7533a",
+      "bytes": 2216,
+      "sha256": "da55663547bc27890e98e0391c6d27fb94b5bfb77bddcb472f49602ff06b192a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/01.txt",
+      "path": "objects/028.gz",
+      "rawBytes": 5404,
+      "rawSha256": "c87306a2d8b0bc19515856d2f66119eba095a6bc8ef69c5a29b558811b8cbc92",
+      "bytes": 2027,
+      "sha256": "2ca55a7357d8792428e742e6e63fa397a11c2448931e67f1d3a8e873a539a214"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/02.txt",
+      "path": "objects/029.gz",
+      "rawBytes": 5651,
+      "rawSha256": "a0cd6a04fa4c8c26e36c5346d022db56b7b4975826990135f203d3ebafac9131",
+      "bytes": 2276,
+      "sha256": "57802bf3bedf3ed20446add8d618a9f1baf1aabc7fc66bf56d870a3196751b26"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/03.txt",
+      "path": "objects/030.gz",
+      "rawBytes": 19873,
+      "rawSha256": "296036db036e3f446413a5e5987061dfc7defe298b6f665ef1c49070c3d29b5d",
+      "bytes": 6507,
+      "sha256": "2eccd81a6d286a3dc380858e69cb5aa137c8389e240a368869f48fdd4a4d4883"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/04.txt",
+      "path": "objects/031.gz",
+      "rawBytes": 9631,
+      "rawSha256": "469b1875bf5a733e8e399677b0ae54899445fc43951fb35e877fe057af6435df",
+      "bytes": 3128,
+      "sha256": "e41e2cdebcc6d7d497147aae366fd93bf2231e624dc4ddf7104fb6365fafa704"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/05.txt",
+      "path": "objects/032.gz",
+      "rawBytes": 5198,
+      "rawSha256": "a744b25bd23d059a55997a0b0efa8f780ff3a1ef87937a822f19ec1e8264d1d5",
+      "bytes": 1792,
+      "sha256": "9a0c66a36b1579311668ed948a617b00ffac4a063c1c034f1b0521bb8b511b0d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/06.txt",
+      "path": "objects/033.gz",
+      "rawBytes": 6740,
+      "rawSha256": "bcdc38bf1a3eb12c93129698cebcbac0e066b0028d40a3ae5ff2713773378844",
+      "bytes": 1893,
+      "sha256": "532db2431e8716e560ca2770b75e4d7313b79ee9c97cccb101e4a1224d8a9185"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/07.txt",
+      "path": "objects/034.gz",
+      "rawBytes": 17044,
+      "rawSha256": "116c24b84fc5c70acce35c8ac3e656ed4d0783f1cc6ae57323922414bb64dfef",
+      "bytes": 4039,
+      "sha256": "4b8d231dcbb5792ec81e6d17c1d4cd162898438eeea86dafe0988427c34a380b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/08.txt",
+      "path": "objects/035.gz",
+      "rawBytes": 6311,
+      "rawSha256": "1cc3d3ec173d97196508adde5f9d4fda31ca00464056caea342f7759af469985",
+      "bytes": 1800,
+      "sha256": "990c7ab457017d39bd3132ed4ba7f7cda5585d5141590407a16fd6d9fe096f68"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/09.txt",
+      "path": "objects/036.gz",
+      "rawBytes": 637432,
+      "rawSha256": "7d5c83a4afc03b7a5a2121720feecfa62eee6dd8de69966d8f110f677d091de4",
+      "bytes": 161537,
+      "sha256": "95e90f8a2e3f6216b24357cda4d3724753f0ff9d0d3235bc29931572b29fe925"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/10.txt",
+      "path": "objects/037.gz",
+      "rawBytes": 13119,
+      "rawSha256": "df14a1e417d04d67f3e5edcbd6a5d63df88e20e13585a29981fc13b996824c7e",
+      "bytes": 3314,
+      "sha256": "1b1ee9b6370bd63124547462b0281c3219f6777c86629f3accb5c514fa5d0316"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/11.txt",
+      "path": "objects/038.gz",
+      "rawBytes": 6388,
+      "rawSha256": "7789c9eeae9b2585c8cbeff239b7b82a82d525af8ced746a72bb5511948767c3",
+      "bytes": 1982,
+      "sha256": "379c6890a74ccd2715b913537d11519773bd1da5a0cb0bff5e31e9f2aa38c227"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/12.txt",
+      "path": "objects/039.gz",
+      "rawBytes": 3706,
+      "rawSha256": "b217a76ec9d85c89b83825655a2a0188ac63540bf30feaf7ccde3dd9355de91c",
+      "bytes": 998,
+      "sha256": "9ae2a560065e756b6335770996817abbdc02ffd2ecddb7ccd1cab07e539d9ad4"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/13.txt",
+      "path": "objects/040.gz",
+      "rawBytes": 4962,
+      "rawSha256": "0e9eadac1060172eff35cef68e4a83a45b3dbda46f876b80fdc06425e3511740",
+      "bytes": 1668,
+      "sha256": "3e1c80108388f2bf6782e8c5a5122776603673c1fbd153c5648ed4f9a52288aa"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/14.txt",
+      "path": "objects/041.gz",
+      "rawBytes": 7424,
+      "rawSha256": "70bfb2b108ea213063a28cd4a766fa5b71e17bb5a34baf77277a582960c5747a",
+      "bytes": 2049,
+      "sha256": "e772f40944ae661703b69c0fc924685dfa3645a1c901622f57c937cf39d47307"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-committed-source/15.txt",
+      "path": "objects/042.gz",
+      "rawBytes": 9337,
+      "rawSha256": "d89192d417d8a3bc0f995193fa6cac2bbd38d41c97b6f85397d6393f32fe7afc",
+      "bytes": 2544,
+      "sha256": "14138bd9f363229aac5e19552d7615947f6a40f71032e4b37bafb356c86e93a8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-linux-receipt.json",
+      "path": "objects/043.gz",
+      "rawBytes": 9331,
+      "rawSha256": "6c8b09eea9c8eb7bccb86e3321dd5912ee8dbf3170200f5570f27d22838f865e",
+      "bytes": 1412,
+      "sha256": "ed3223cdb81e1c44e80eb6bd66388edf30cd99095f1031ba44aa70899496a2b6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-linux.json",
+      "path": "objects/044.gz",
+      "rawBytes": 139605,
+      "rawSha256": "35396be0a3a69e1deee7b098d120ca3bb258dc0b53c1b9090114cbbbebdf965a",
+      "bytes": 16685,
+      "sha256": "f8a2093b9a2c189a41e3b014d199f4ce1b2cf66e9fe106e4b0f3143b570b29d7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-linux.stderr.log",
+      "path": "objects/045.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-linux.stdout.log",
+      "path": "objects/046.gz",
+      "rawBytes": 3402,
+      "rawSha256": "332a58251549ee734a48a353489ddfa881b4eb248c6c6e732388e1bf2c43eb55",
+      "bytes": 812,
+      "sha256": "5eed6b61ba49840a488ff6d7d0d26365bc36692a27e9d27d12dbb4ebd1c96e07"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-windows-receipt.json",
+      "path": "objects/047.gz",
+      "rawBytes": 9331,
+      "rawSha256": "2dc24fd4016bc392d8ca82a484dd6f866e554c4eac4b7204fa95d0f3f3d808bc",
+      "bytes": 1412,
+      "sha256": "19c74a1e914c02bd102bd874f58a7fd3757cfc51c09d0c85665cd07e7b61b07a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-windows.json",
+      "path": "objects/048.gz",
+      "rawBytes": 139506,
+      "rawSha256": "336813d72d151d1aa3303bca84a57c9a0d18a133dc5c4031dfc3a6d1cd4c4bd3",
+      "bytes": 16638,
+      "sha256": "6c90b5a78bca2c6be0c0025df3c563193b635e3f354c2370d95442de3a672506"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-windows.stderr.log",
+      "path": "objects/049.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/final-windows.stdout.log",
+      "path": "objects/050.gz",
+      "rawBytes": 2246,
+      "rawSha256": "2e0abe5dcfbf59a0d17a012593d82b494ce8cee7e402121167d07c13ee6c3558",
+      "bytes": 824,
+      "sha256": "4cfc61c10267ed2597522933ec048b8c7f1bc763e3bee8e2e205ef83ba66da28"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/haiku-data-residency.html",
+      "path": "objects/051.gz",
+      "rawBytes": 515361,
+      "rawSha256": "42cc7b1e20b6d4fd3e916c79b70ace5be867f3eb0353e340cbd524040fd6896e",
+      "bytes": 65060,
+      "sha256": "6ccf526891a8cdfa3bc81c5f50910883de413b97736d8b8d0e4abcee4b2d899e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/haiku-effort.html",
+      "path": "objects/052.gz",
+      "rawBytes": 855941,
+      "rawSha256": "e258b7095bc1f44c1630017028dd197ac13e872fed2ee631adba039e47127648",
+      "bytes": 94238,
+      "sha256": "8a1a96066d75e73e4edf942fb125198999f2f1fedaeb66e166a55a57b7cc0795"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/haiku-migration.html",
+      "path": "objects/053.gz",
+      "rawBytes": 395155,
+      "rawSha256": "06cc5f563733c368aa1d473e754b2ec5a95b61540a004c0445abbead0ed1523b",
+      "bytes": 64850,
+      "sha256": "4f3ea3b6578618a64474dbfb966f758f6d92be28dec6361a844c0940f8af3b5d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/haiku-overview.html",
+      "path": "objects/054.gz",
+      "rawBytes": 406624,
+      "rawSha256": "7338908d1c46fcc68cb354e22ca84bbea3f7139c1d635611bdea1756e93e0098",
+      "bytes": 60102,
+      "sha256": "b3544ceef5e01a444d8e3ad0717370b7b992e04fc9d3389fa0ea3de6f489db9d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/haiku-pricing.html",
+      "path": "objects/055.gz",
+      "rawBytes": 1141392,
+      "rawSha256": "dd822fc02e2987c9212d19ae279f4c5a4684aa4cb7ab96aab463bfad6c2de90a",
+      "bytes": 102484,
+      "sha256": "86c33a4332cfa399789507661ed9e8aa1f968c1537719e6e4fc8bd8b5a58fd26"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/implementation-review.json",
+      "path": "objects/056.gz",
+      "rawBytes": 33849,
+      "rawSha256": "68dd03f78ea3e8ccc0c4dd031a0b553c6a7bcc6c08468c021e855c704cc9e491",
+      "bytes": 4831,
+      "sha256": "f36c4e809e1330843a974fb672774e20599e19df4be73684d0b25408eef6f2a7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/linux-final-run.log",
+      "path": "objects/057.gz",
+      "rawBytes": 852,
+      "rawSha256": "8d51e68088f8cefd9f8fd26c99538392f857bb3e886028107b4bd4f21e99fcb6",
+      "bytes": 317,
+      "sha256": "14ee583623eead8beba42aba7cfa768884795fa344cf369e2303710bdcccca86"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/linux-preparation-failure.json",
+      "path": "objects/058.gz",
+      "rawBytes": 318,
+      "rawSha256": "21e4c57b6a28ea5a27119d07b8aa9d6c38b1d9ef6a391906fb243e781e117997",
+      "bytes": 247,
+      "sha256": "58ea6c8a4fb94da98fbe3e806918f93b142c67a242315ad5e9f1073e4c960685"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/official-effort.txt",
+      "path": "objects/059.gz",
+      "rawBytes": 25819,
+      "rawSha256": "2f7486cebcf7935fac4c64740ebf0f76c39009eedee029d6b9248e6d5e2a60a0",
+      "bytes": 7797,
+      "sha256": "352aadc87860f11649cf950d132811564228daf8ee3a4588e79f9fb6a8f691f9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/official-migration.txt",
+      "path": "objects/060.gz",
+      "rawBytes": 16967,
+      "rawSha256": "4c5a8952665390961eb62933ab3ae384b2c788eebfa0af990f17bcbd0681dfb3",
+      "bytes": 5614,
+      "sha256": "7dd634c3812023120e1d27c40fa1cff207a257f483acceb1fd7ce3523786f551"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/official-overview.txt",
+      "path": "objects/061.gz",
+      "rawBytes": 5646,
+      "rawSha256": "b3af116e83ba88ed776fc41cc397f8c96a95dab096bb0d22a8c0bcaa7fe666fc",
+      "bytes": 2252,
+      "sha256": "962746d9b81cd92bb9476604cd8e63747973a1d7110b6423ee1f84d44436ddad"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/official-pricing.txt",
+      "path": "objects/062.gz",
+      "rawBytes": 29390,
+      "rawSha256": "3a308985fdfe0b5893de6c32c2049af65691d098601abf077bbf5334b76716d8",
+      "bytes": 8519,
+      "sha256": "f76c1ec47520589d1aec751368a3679c79adabd9fad695c756ec3e9286791e88"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/official-source-manifest.json",
+      "path": "objects/063.gz",
+      "rawBytes": 28904,
+      "rawSha256": "922776d0919e39f661173d8388ee2594dd429b012382f0292a18776201e6e4dc",
+      "bytes": 3472,
+      "sha256": "870ed608697699808843224639ee9daa3f19b91746d4c05e8c5dac36722d8aed"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/source.patch",
+      "path": "objects/064.gz",
+      "rawBytes": 18610,
+      "rawSha256": "59e26fda2fa39ba5937017420cc326c8ee03456c990fba21e6359e390443bf6e",
+      "bytes": 5033,
+      "sha256": "1561eea3d9aaae25a6de4dd77bd50f6faeccb2802305504e8c9fce2d355e43dd"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/tests-final.json",
+      "path": "objects/065.gz",
+      "rawBytes": 73744,
+      "rawSha256": "f79bdb54784a55e4263562e6ce79bbada2121eb36173f5b7f6dbf8affccc5415",
+      "bytes": 8999,
+      "sha256": "9901f6a671c68f56195d152a6ccd620812bac48aa6a75b84403913313d8e519f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/tests-initial.json",
+      "path": "objects/066.gz",
+      "rawBytes": 25067,
+      "rawSha256": "0242f85ac8194212e4c46d1845d0cb2f5645ef262374d03d73d53aa414476b5f",
+      "bytes": 3673,
+      "sha256": "408a91b64e4df57bf8eed2ea2e900a814fd59ff5fbc80516f078fd6df824a0b9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/tests-stream.json",
+      "path": "objects/067.gz",
+      "rawBytes": 19179,
+      "rawSha256": "7cfe6e0697a5d82fc37d85dd8252f99cdba29697368b9eaa272f63dafe309698",
+      "bytes": 3080,
+      "sha256": "77bd41541b7e5ed758e3426f3b8691e7a1a477cac9fbca8aecc44ccc0473da8c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/wire-windows.json",
+      "path": "objects/068.gz",
+      "rawBytes": 14058,
+      "rawSha256": "91f564bad027b7ccd7d204a87c3b3bee63ced4de79d7bb320a40fb7113fd3360",
+      "bytes": 2122,
+      "sha256": "5fff2801a2ccb84d807fb18cc0b63d2897d83301887dadfcd93113839a59d8f3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/haiku-support/wire-windows.log",
+      "path": "objects/069.gz",
+      "rawBytes": 1116,
+      "rawSha256": "13c344858f5db829d26584cf9c5a142e55046971492c343609567a8108721d7b",
+      "bytes": 426,
+      "sha256": "d761298eedd3f5e5c8d99703d6ff96f0781fd8879daea5c2e05979b384f9f07c"
+    }
+  ]
+}

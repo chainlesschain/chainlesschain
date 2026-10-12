@@ -1,0 +1,375 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T05:10:48.404Z",
+  "summarySha256": "3ca49c25df7aa1688c055e9b5f1f2c88484a0b8663493a50603d04797f014ab6",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.290-items.txt",
+      "path": "objects/000.gz",
+      "rawBytes": 33278,
+      "rawSha256": "2c274af5ae2530439c0fd1039bed7ea32c3c74d8dd1928c9ff6eb7631fc167c0",
+      "bytes": 11060,
+      "sha256": "ed96a0dfe26ceda54a2cb40d94b3188a28015edbad5e6a2aeb6d3e9e36a4e71e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.290.md",
+      "path": "objects/001.gz",
+      "rawBytes": 28126,
+      "rawSha256": "12f6394c0e8bfa529c87cc2a8b5d51a014feded40ce580b9c5f561115c3d989c",
+      "bytes": 10369,
+      "sha256": "733c4049be1b03d1a74a0071cf5ccf0f39cd4816f072519f739a1814b5edead9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.291-items.txt",
+      "path": "objects/002.gz",
+      "rawBytes": 244,
+      "rawSha256": "b4084da90f514c75a585b1d2f105902870784b1910bab4244523097feb1b4cb1",
+      "bytes": 158,
+      "sha256": "9ee90e426d40f2a3537d4ef0ec28c77fb231e20b2b714ce3cad3c7ed07bc0793"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.291.md",
+      "path": "objects/003.gz",
+      "rawBytes": 261,
+      "rawSha256": "1120347ed342f39cf527b6fd4957fd099ff362e11d772577f75ca614d01c2866",
+      "bytes": 184,
+      "sha256": "852af1ceaadb95dfc217c2a1be2e7ac02129b587a51b26ec4169660612f7ecd6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.292-items.txt",
+      "path": "objects/004.gz",
+      "rawBytes": 16604,
+      "rawSha256": "2a14fdd20d77e3c535adb3622baa396fccfb37998ca4f207d9a494caf0f7366b",
+      "bytes": 6046,
+      "sha256": "44fc20942223fbfb8c684c1f6c3acccd9b70fa3410155fd8530db468036178f2"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.292.md",
+      "path": "objects/005.gz",
+      "rawBytes": 14255,
+      "rawSha256": "bcaa84a16f2480a39262c084344fb849b8ad56f1e9ab1f63304666c23e076233",
+      "bytes": 5742,
+      "sha256": "4ea5c6514ffab01797747f8cf54cdcf1b47e8900cd672c0444ff9ee6d402e51e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.293-items.txt",
+      "path": "objects/006.gz",
+      "rawBytes": 10151,
+      "rawSha256": "bc936c07af19312f097e53b68fb3c4094b62502fdb96d862b408e05d1b242e37",
+      "bytes": 3876,
+      "sha256": "d098a60c8ad12c8f929138be3576258e290ec803838c0dd3c46dce3f1f54d2f8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.293.md",
+      "path": "objects/007.gz",
+      "rawBytes": 8812,
+      "rawSha256": "a8ac26333d4a86d7c0b6c84031d5e400d7a3e022a6980a1df432bdc0fa97add8",
+      "bytes": 3723,
+      "sha256": "9609496b8aca0cb25b1260d8face2d78e3dd141a66a5bee36e3f80367fed5493"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.294-items.txt",
+      "path": "objects/008.gz",
+      "rawBytes": 353,
+      "rawSha256": "04756e2017db7391329e5d14e9b7752c1a941f3651bd044574d2df2eea26621d",
+      "bytes": 235,
+      "sha256": "49def26ecb339b6df9b3a66f1174b2004a63c5f241b4d4c192dba21686a63594"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.294.md",
+      "path": "objects/009.gz",
+      "rawBytes": 370,
+      "rawSha256": "ea7c0068469049fb90e5fecce6c5111dc6b60c7eff59be3bc219f6b59fffeac0",
+      "bytes": 261,
+      "sha256": "9e9a8627a524177c4320e6074622e8062adeb432892a054c8a7b0daa4091c8aa"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.295-items.txt",
+      "path": "objects/010.gz",
+      "rawBytes": 25594,
+      "rawSha256": "26cb59c0c868fd9f750ee35049e8035155eed300fa5cedb8077fa55639765d76",
+      "bytes": 9019,
+      "sha256": "efd7deca8338fd5b465a252ac30eeb43f46048b99015564aace1027c3b134949"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.295.md",
+      "path": "objects/011.gz",
+      "rawBytes": 21889,
+      "rawSha256": "abeff72a14c7300d5fa91e7fee298d652b647b5d2069fd01d96e7cd7bd992f26",
+      "bytes": 8519,
+      "sha256": "6d43954a2608e9dbd25319cff3e81f59b500a690f6aa40bb8c455b3c7ef8d544"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.296-items.txt",
+      "path": "objects/012.gz",
+      "rawBytes": 14268,
+      "rawSha256": "53372fb82a26ad2f46eb8c50790477705ac5206e9094c4e079a59fc67d6c60b6",
+      "bytes": 5364,
+      "sha256": "cdbe3aa10e760649469b4cc8e1384139c4355e1aa39c4b1bacae35f6e7acba3d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-2.1.296.md",
+      "path": "objects/013.gz",
+      "rawBytes": 12300,
+      "rawSha256": "7202a84c7335d700f84b25005c6da595d40196893a73b3f2b0c082df6e2893c7",
+      "bytes": 5122,
+      "sha256": "c5db90e34e50d0529868a047aa55c7f51426959f4bf4d3852087b13a64f4f01a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-inventory.json",
+      "path": "objects/014.gz",
+      "rawBytes": 1528,
+      "rawSha256": "ff756c6ad05d5bf348ea129bebd7f57742443f682b9c739e73994454c2d7f98c",
+      "bytes": 322,
+      "sha256": "5f4d213ff0362ebf5fdd829cf340eff2e4f255ea650e25414086eefd2a7ec97b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/claude-official-changelog.md",
+      "path": "objects/015.gz",
+      "rawBytes": 1053548,
+      "rawSha256": "ec94562ba87d7910b82cfb83223ba14bf3b39e9901b69b4487c907b661023e3a",
+      "bytes": 336973,
+      "sha256": "7efb04c2dd1e51460ccd74ff2263d814c276b29b864cc5377e3e7a33beae5339"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-0.160.1-items.txt",
+      "path": "objects/016.gz",
+      "rawBytes": 388,
+      "rawSha256": "92f986983f9ae204bb2607f013a54d6df55f5f4cadfdb5cdd77218d45e2e0ce5",
+      "bytes": 283,
+      "sha256": "0cc1d52ce1e1e598468b49e8d5df6fca0a89c87ad68ad197faf2799ef2218d6f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-0.161.0-items.txt",
+      "path": "objects/017.gz",
+      "rawBytes": 19086,
+      "rawSha256": "7d0d70e50efc27ee0dd281a78b84f8469579f8dc3485e27d4952e5af96be8c8e",
+      "bytes": 6207,
+      "sha256": "4bcd97f5178db618cf79ee56c133a936dd75b367d271a7bdd8b76c433461f649"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-0.162.0-items.txt",
+      "path": "objects/018.gz",
+      "rawBytes": 25989,
+      "rawSha256": "efde8e58efbbbf9bd9662b6fac9f18ce69a610b2247ebb5ebd13062e9852fbfc",
+      "bytes": 8014,
+      "sha256": "2d7a492fd6b0a210491543bdd89c87465eb46ac41ae77eeca8bfde1ee8c45f10"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-0.162.1-items.txt",
+      "path": "objects/019.gz",
+      "rawBytes": 405,
+      "rawSha256": "1944ef1d9e13aa922d1d562cb645f7a279a4c5a322acf7a7c3d14124ad4616e4",
+      "bytes": 287,
+      "sha256": "c956aaaf6a7f8ed4874dfe0b64ff7fb6475b06c8650f14e77ec7fbcd0a85ef66"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-release-inventory.json",
+      "path": "objects/020.gz",
+      "rawBytes": 19420,
+      "rawSha256": "97b1b55ba34aa850ffe1adf2d13d3ddeb5b43dc57f114205403b66b12e11edc4",
+      "bytes": 1616,
+      "sha256": "1dfaa8dace4f6c592b612c52211b215a9f1a0d3f12880965171fe087c253e9f4"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-releases-page-1.json",
+      "path": "objects/021.gz",
+      "rawBytes": 31447362,
+      "rawSha256": "faad476f9bb2e00cab04e24ec7ddfb607530cd6e3a5350e51d7c58d4bc23bf60",
+      "bytes": 1651186,
+      "sha256": "0d1b55f7bc3a81d0cd27ca5447b20f620292d2c6011a75be63e94f02c8ce3dc5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.160.0.json",
+      "path": "objects/022.gz",
+      "rawBytes": 305960,
+      "rawSha256": "88eded4fd644b6a227de3d9122f93a577ecdab991fe09964bc9b9a507792005b",
+      "bytes": 19327,
+      "sha256": "34284411fe2709e7d99eef7e0010f85b6be8eddce0bc3fdae044bb7a85e6da8b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.160.0.md",
+      "path": "objects/023.gz",
+      "rawBytes": 6278,
+      "rawSha256": "cc1ac8ec35b1ba705cb24ad5223e4bec92f0906dd0f462c46446a64f3d5d7b94",
+      "bytes": 2698,
+      "sha256": "e3f8c1600210d3a086dfdd38ccc018e950a42fbb89c3d764b2c19c2ec34f0a3e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.160.1.json",
+      "path": "objects/024.gz",
+      "rawBytes": 300024,
+      "rawSha256": "44d6e9aa0e1df803693f03f6c2c1c160d60b62cfadcc7aa29e55a4f4f7e20b86",
+      "bytes": 16660,
+      "sha256": "af77bb3c6801ec332cd52ecb88a835b771150ce6c03a0222dc367df80111748f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.160.1.md",
+      "path": "objects/025.gz",
+      "rawBytes": 364,
+      "rawSha256": "816ce06c6b21a3fe21822f580eb9b68a62f6bfdee3cfd4c44f057d76ce3e6ab5",
+      "bytes": 278,
+      "sha256": "ef5378e5e66a6b9cac53b7dd56b6ba0905f37d757d23ee751edcea515170f892"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.161.0.json",
+      "path": "objects/026.gz",
+      "rawBytes": 314396,
+      "rawSha256": "72751cee6558b48e779e8e19182b821b053da34c10668b0b7c5816bf3eab17ac",
+      "bytes": 22137,
+      "sha256": "5eadf1b4d6f3c6ab441b86d853d8c65d3463d43834bcb932d78e5180b62ca15b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.161.0.md",
+      "path": "objects/027.gz",
+      "rawBytes": 14559,
+      "rawSha256": "24a99d4e9e15b7f29ce1245018e3e0cf3b447a890fc2971061ee446a35a67278",
+      "bytes": 5651,
+      "sha256": "7285f0ef7d84b2af266abcebbc5e925dfc6f409b89c901179acacb0958aa9416"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.162.0.json",
+      "path": "objects/028.gz",
+      "rawBytes": 319311,
+      "rawSha256": "23c9258cfa5008391a6a8cf1bebb1c06d558de11de3ee492772cb878271e9c98",
+      "bytes": 23821,
+      "sha256": "9ee501cf59d342d381acecc110c909002f4f12a089b4f4992304866859f6e970"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.162.0.md",
+      "path": "objects/029.gz",
+      "rawBytes": 19434,
+      "rawSha256": "2b9c6cef6dc10c0352c3fdbfde5cb49105a6d75326553ad21d7eaae0747a850e",
+      "bytes": 7233,
+      "sha256": "278ee246185334d70685f3a041b7224364e666d4f2ff2c25324127ec7527e1f8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.162.1.json",
+      "path": "objects/030.gz",
+      "rawBytes": 300102,
+      "rawSha256": "b92edebfcf3e6b6b75f38596a331c3b3cb756ec4d2852fa3ee1d8858e731731b",
+      "bytes": 16766,
+      "sha256": "86c5495b1db7c38d92f6467232d8768efe21a06594dca063d1e341a9439ec8c1"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/codex-rust-v0.162.1.md",
+      "path": "objects/031.gz",
+      "rawBytes": 453,
+      "rawSha256": "50f8671b5adbd8e0035a385c1b61fb245d5ac8da85bb9541eec4dba119f19ad9",
+      "bytes": 328,
+      "sha256": "3e97609cf5be179da647aac2d2cedf29b43941c75f656eb94e32312cf4c4e243"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/docs-first.json",
+      "path": "objects/032.gz",
+      "rawBytes": 31134,
+      "rawSha256": "36c1a5d6f72e72fa6c0f3360543113c367844584aeab7b3571c1a6a8b9672e45",
+      "bytes": 9906,
+      "sha256": "c83f4df9ac1c4e01138fa2304da428406884e575658530216104c98717e7efb7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-data-residency.html",
+      "path": "objects/033.gz",
+      "rawBytes": 515361,
+      "rawSha256": "42cc7b1e20b6d4fd3e916c79b70ace5be867f3eb0353e340cbd524040fd6896e",
+      "bytes": 65060,
+      "sha256": "6ccf526891a8cdfa3bc81c5f50910883de413b97736d8b8d0e4abcee4b2d899e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-effort.html",
+      "path": "objects/034.gz",
+      "rawBytes": 855941,
+      "rawSha256": "e258b7095bc1f44c1630017028dd197ac13e872fed2ee631adba039e47127648",
+      "bytes": 94238,
+      "sha256": "8a1a96066d75e73e4edf942fb125198999f2f1fedaeb66e166a55a57b7cc0795"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-migration.html",
+      "path": "objects/035.gz",
+      "rawBytes": 395155,
+      "rawSha256": "06cc5f563733c368aa1d473e754b2ec5a95b61540a004c0445abbead0ed1523b",
+      "bytes": 64850,
+      "sha256": "4f3ea3b6578618a64474dbfb966f758f6d92be28dec6361a844c0940f8af3b5d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-overview.html",
+      "path": "objects/036.gz",
+      "rawBytes": 406624,
+      "rawSha256": "7338908d1c46fcc68cb354e22ca84bbea3f7139c1d635611bdea1756e93e0098",
+      "bytes": 60102,
+      "sha256": "b3544ceef5e01a444d8e3ad0717370b7b992e04fc9d3389fa0ea3de6f489db9d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-pricing.html",
+      "path": "objects/037.gz",
+      "rawBytes": 1141392,
+      "rawSha256": "dd822fc02e2987c9212d19ae279f4c5a4684aa4cb7ab96aab463bfad6c2de90a",
+      "bytes": 102484,
+      "sha256": "86c33a4332cfa399789507661ed9e8aa1f968c1537719e6e4fc8bd8b5a58fd26"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/haiku-source-manifest.json",
+      "path": "objects/038.gz",
+      "rawBytes": 28904,
+      "rawSha256": "922776d0919e39f661173d8388ee2594dd429b012382f0292a18776201e6e4dc",
+      "bytes": 3472,
+      "sha256": "870ed608697699808843224639ee9daa3f19b91746d4c05e8c5dac36722d8aed"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/openai-official-changelog.html",
+      "path": "objects/039.gz",
+      "rawBytes": 806976,
+      "rawSha256": "1653bd963cfbe92ebcf9b569e0c89fb267d37ac823d8a5da8318fb9150181952",
+      "bytes": 98103,
+      "sha256": "b806bbf61075f1cd9b52c31a234f9658ae9d10e5401b073ee5ac9f67a9eda3ff"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/openai-official-changelog.md",
+      "path": "objects/040.gz",
+      "rawBytes": 9,
+      "rawSha256": "e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31",
+      "bytes": 29,
+      "sha256": "79cc9c451944bca04522c2f0e0e0fdc88278a44ce67d6e3ff48220313e4147d1"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/per-item-dispositions.json",
+      "path": "objects/041.gz",
+      "rawBytes": 1205476,
+      "rawSha256": "75550428aa945f4ebbcf03720c2164fa3f78682ae5134460c84fa4ad48a91e03",
+      "bytes": 72509,
+      "sha256": "cc5cd5f24cd56e995e281ca913ca386437d7d8220987983d215fbb9c24b0061f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/release-items.json",
+      "path": "objects/042.gz",
+      "rawBytes": 302453,
+      "rawSha256": "b8e54cc437872c00778a555fd889a364cb10298384eb12ddae94d59782e44b03",
+      "bytes": 52694,
+      "sha256": "39c0024a04dbe887473d7e1aaf248320b9aa0bea0152e65e9c2174ce43be69b3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/repository-evidence-groups.json",
+      "path": "objects/043.gz",
+      "rawBytes": 33469,
+      "rawSha256": "ab0f0f3dc71e431eea07316f841e350b445de90a8a0ae83fdaabe3af7f5ec570",
+      "bytes": 10084,
+      "sha256": "5c122aa907dffa15059f8504dd78feb67ed8e90ce0708f402be5550c8043c190"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/review-summary.json",
+      "path": "objects/044.gz",
+      "rawBytes": 5944,
+      "rawSha256": "677f1a89e36a8fe8db348db4725fdea58bde7ce2799d818697e7e740fb8cf697",
+      "bytes": 2487,
+      "sha256": "72a087ea83db8248a4ce01d55e28e042a8361c51e9b9a08178d3ed1631c534d4"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/upstream-review-complete/source-manifest.json",
+      "path": "objects/045.gz",
+      "rawBytes": 17068,
+      "rawSha256": "3062bc20098fb49a00fb6bfbb078effd1318a0484733a0d5314bea26766003f0",
+      "bytes": 3025,
+      "sha256": "23b77433d63437bb1e704d5860d549c4164e9d097e790f59a3e6814bc513e1b3"
+    }
+  ]
+}

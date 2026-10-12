@@ -130,33 +130,57 @@ describe("desktop goal monitoring native storage and lifecycle owner", () => {
       auth.disposeProjectGoalAuth();
     }
   });
+  // The real SQLite lifecycle uses the same bounded functional budget as the
+  // background authorization journey below; phase receipts preserve slow I/O.
   it("invokes start/check/status/stop against live native goals", async () => {
-    const g = goal();
-    expect(
-      await host.start(event, {
-        id: g.id,
-        expectedRevision: 1,
-        intervalMs: 60_000,
-      }),
-    ).toMatchObject({ monitor: { enabled: 1 } });
-    expect(
-      await host.check(event, {
-        id: g.id,
-        expectedRevision: 1,
-        requestId: "manual",
-      }),
-    ).toMatchObject({ status: "succeeded" });
-    expect(await host.status(event, { id: g.id })).toMatchObject({
-      usage: { checks: 1 },
-    });
-    expect(
-      await host.stop(event, { id: g.id, expectedRevision: 1 }),
-    ).toMatchObject({
-      goal: { status: "paused" },
-      monitor: { enabled: 0 },
-      executionState: "paused",
-    });
-  });
+    const started = performance.now();
+    let phase = "create-goal";
+    const phaseStarted = [];
+    const enterPhase = (name) => {
+      phase = name;
+      phaseStarted.push({
+        phase: name,
+        elapsedMs: performance.now() - started,
+      });
+    };
+    try {
+      const g = goal();
+      enterPhase("start");
+      expect(
+        await host.start(event, {
+          id: g.id,
+          expectedRevision: 1,
+          intervalMs: 60_000,
+        }),
+      ).toMatchObject({ monitor: { enabled: 1 } });
+      enterPhase("check");
+      expect(
+        await host.check(event, {
+          id: g.id,
+          expectedRevision: 1,
+          requestId: "manual",
+        }),
+      ).toMatchObject({ status: "succeeded" });
+      enterPhase("status");
+      expect(await host.status(event, { id: g.id })).toMatchObject({
+        usage: { checks: 1 },
+      });
+      enterPhase("stop");
+      expect(
+        await host.stop(event, { id: g.id, expectedRevision: 1 }),
+      ).toMatchObject({
+        goal: { status: "paused" },
+        monitor: { enabled: 0 },
+        executionState: "paused",
+      });
+    } finally {
+      console.info("goal lifecycle native storage timings", {
+        phase,
+        elapsedMs: performance.now() - started,
+        phaseStarted,
+      });
+    }
+  }, 30_000);
   it("keeps background authorization independent from the original renderer window", async () => {
     const started = performance.now();
     let phase = null;

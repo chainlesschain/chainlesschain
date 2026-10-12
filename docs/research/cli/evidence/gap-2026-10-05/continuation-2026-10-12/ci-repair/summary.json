@@ -1,0 +1,29 @@
+{
+  "capturedAt": "2026-10-12T03:19:20.247Z",
+  "originalFailureSource": "fd284e442d073e7c4fcd256cc868efdbe992fe96",
+  "repairCommit": "848e6e4a69",
+  "pr": "https://github.com/chainlesschain/chainlesschain/pull/431",
+  "scope": "Local Windows test harness validation, not an exact release gate",
+  "node": "v22.22.2",
+  "platform": "win32",
+  "sessionTail": {
+    "passed": 16,
+    "total": 16
+  },
+  "nativeGoalHost": {
+    "passed": 20,
+    "total": 20
+  },
+  "gradleBootstrap": {
+    "passed": 6,
+    "total": 6
+  },
+  "evidenceArchival": {
+    "passed": 3,
+    "total": 3
+  },
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "productionRuntimeChanged": false,
+  "actionsPending": true
+}

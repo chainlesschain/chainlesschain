@@ -61,6 +61,20 @@ export function isRetryableStreamError(err, signal) {
   if (isAbortError(err)) return false;
   if (signal && signal.aborted) return false;
   if (!err) return false;
+  const msg = String(err.message || err).toLowerCase();
+  // A provider verdict stays terminal even when its detail mentions a timeout,
+  // reset or network failure. Inspect it before transport codes and wording so
+  // formatted HTTP diagnostics and failed Responses cannot trigger a replay.
+  if (
+    err.code === "CC_OPENAI_RESPONSES_FAILED" ||
+    err.cause?.code === "CC_OPENAI_RESPONSES_FAILED" ||
+    [err.status, err.statusCode, err.cause?.status, err.cause?.statusCode].some(
+      (status) => Number.isInteger(status) && status >= 400 && status <= 599,
+    ) ||
+    /\bhttp\s+[45]\d{2}\b/.test(msg)
+  ) {
+    return false;
+  }
   const code = String(err.code || err.cause?.code || "").toUpperCase();
   if (
     [
@@ -76,7 +90,6 @@ export function isRetryableStreamError(err, signal) {
   ) {
     return true;
   }
-  const msg = String(err.message || err).toLowerCase();
   return /econnreset|etimedout|econnrefused|eai_again|socket hang ?up|terminated|fetch failed|network error|timed?\s*out|premature close/.test(
     msg,
   );

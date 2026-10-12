@@ -78,7 +78,11 @@ export function inferModelOverrides(modelId) {
     return { maxTokens: 16384 };
   }
 
-  // Claude Haiku — cheaper, smaller output by default.
+  if (modelId === "claude-haiku-5-5") {
+    return { maxTokens: 4096, temperature: undefined };
+  }
+
+  // Older Claude Haiku — smaller output by default.
   if (id.includes("haiku")) {
     return { maxTokens: 4096 };
   }
@@ -134,6 +138,39 @@ export function mergeProviderOptions(provider, modelId, callOverrides = {}) {
   const defaults = PROVIDER_DEFAULTS[provider] || {};
   const modelLayer = inferModelOverrides(modelId);
   return deepMerge(defaults, modelLayer, callOverrides || {});
+}
+
+/** Exact Haiku 5.5 request contract; null leaves older model behavior intact. */
+export function haiku55ThinkingParams(model, options = {}) {
+  if (model !== "claude-haiku-5-5") return null;
+  if (options.thinkingBudget != null) {
+    throw new TypeError(
+      "Haiku 5.5 supports adaptive thinking, not thinkingBudget",
+    );
+  }
+  const intensity = {
+    think: "medium",
+    hard: "high",
+    "think-hard": "high",
+    harder: "high",
+    ultra: "xhigh",
+    ultrathink: "xhigh",
+    true: "high",
+  };
+  const effort =
+    options.thinkingEffort ?? intensity[options.thinking] ?? "medium";
+  if (!["low", "medium", "high", "xhigh", "max"].includes(effort)) {
+    throw new TypeError(`Unsupported Haiku 5.5 reasoning effort: ${effort}`);
+  }
+  if (options.thinking === false && ["xhigh", "max"].includes(effort)) {
+    throw new TypeError(
+      "Haiku 5.5 cannot disable thinking at xhigh or max effort",
+    );
+  }
+  return {
+    thinking: { type: options.thinking === false ? "disabled" : "adaptive" },
+    output_config: { effort },
+  };
 }
 
 // =====================================================================

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:19:20.247Z",
+  "summarySha256": "9782f6420eda8fe76485756ec88868b6f1d103d3ce2b216eefe98f319586acd3",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/38154423057-114514336619.log",
+      "path": "objects/000.gz",
+      "rawBytes": 145609,
+      "rawSha256": "d30915cbe4def174fa6fbbd838295a96ef35c65e97093db6621694f5b7326002",
+      "bytes": 22880,
+      "sha256": "08bb0a0e918c100c8ff42b7e78d75bdf5ea2c344569a746f4894ea6f233b8252"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/38154422707-114514335928.log",
+      "path": "objects/001.gz",
+      "rawBytes": 315872,
+      "rawSha256": "dbf74a639d8cb0a899901317487e918431dcb0e53fa21d712a89366a04afd374",
+      "bytes": 33499,
+      "sha256": "98337296cbf4a8350a97ff5127b2d9d2de435465302914ec4972aa92c6511d85"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/session-tail-windows.json",
+      "path": "objects/002.gz",
+      "rawBytes": 5068,
+      "rawSha256": "e9fbe51f4e40f91cf744388b2f6efb7263597671c65e79ee3b18648b6f9ead54",
+      "bytes": 1106,
+      "sha256": "4926e3485231b54fa0e0b4081331cc8ca1178f491fa5457605ff7e55308e88e6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/goal-host-windows.json",
+      "path": "objects/003.gz",
+      "rawBytes": 8576,
+      "rawSha256": "a2cb0a9e60a197ff57b852769afd3081b9d60fa41fe6fec3c3db6a3ffea89242",
+      "bytes": 1364,
+      "sha256": "f29ad6dcd423fb3b91ba5ecdc85db14a634b812e7f9042a68973cf73dcf9579d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/gradle-evidence-windows.tap",
+      "path": "objects/004.gz",
+      "rawBytes": 4794,
+      "rawSha256": "abc95fe19acd39f832c7055bd539c3ea1b499fc95a91096273938c521806ee4f",
+      "bytes": 887,
+      "sha256": "21e54c0f18df64a6db9f65ab5ab89a690f66fc5538a50ae1f8f50adc61cbd6d7"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/session-tail.test.js",
+      "path": "objects/005.gz",
+      "rawBytes": 13136,
+      "rawSha256": "09c77d71dfef6ed723d6d9b9782ae122e8c8e1f83c2fe4fcb5231d4f70ace242",
+      "bytes": 3066,
+      "sha256": "00673af50012cbc3a3ea68e58061ec12b6ebee4dcc33b1bad90b239411aed39e"
+    },
+    {
+      "source": "desktop-app-vue/src/main/task/__tests__/project-goal-monitoring-host.test.js",
+      "path": "objects/006.gz",
+      "rawBytes": 16202,
+      "rawSha256": "3d50ef9624a4515bb92178e163125a050cb348913261a96484689fdff3230046",
+      "bytes": 4292,
+      "sha256": "520f2f52356c6895f02676ac6386723680545976799660e36fc4ffa259673440"
+    }
+  ]
+}

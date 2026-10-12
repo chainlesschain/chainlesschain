@@ -33,6 +33,7 @@ const REFRESH_MS = 15000;
 // Session/agent ids come back through webview messages — keep them argv-safe
 let _panel = null;
 let _timer = null;
+let _refreshState = null;
 let _rows = [];
 let _errors = [];
 let _query = "";
@@ -294,8 +295,20 @@ async function settleDeliveryAction(vscode) {
 
 /** Load the one CLI-owned projection; any failure clears stale actions. */
 async function loadData(vscode) {
+  const state = _refreshState;
+  if (!state) return;
+  const readSequence = ++state.readSequence;
+  state.refreshAfterAction = false;
   post({ type: "loading" });
-  _snapshot = await readProjection(vscode);
+  state.readsInFlight++;
+  let snapshot;
+  try {
+    snapshot = await readProjection(vscode);
+  } finally {
+    state.readsInFlight--;
+  }
+  if (_refreshState !== state || readSequence !== state.readSequence) return;
+  _snapshot = snapshot;
   _rows = _snapshot.connected ? _snapshot.rows : [];
   _errors = [];
   if (!_snapshot.connected) {
@@ -367,6 +380,27 @@ async function showCliOutput(vscode, title, result) {
 }
 
 async function runAction(vscode, msg) {
+  const state = _refreshState;
+  if (!state) return;
+  state.activeActions++;
+  // A pre-action read must not arrive after the action's canonical refresh.
+  if (state.readsInFlight > 0) state.refreshAfterAction = true;
+  state.readSequence++;
+  try {
+    await performAction(vscode, msg, state);
+  } finally {
+    state.activeActions--;
+    if (
+      _refreshState === state &&
+      state.activeActions === 0 &&
+      state.refreshAfterAction
+    ) {
+      await loadData(vscode);
+    }
+  }
+}
+
+async function performAction(vscode, msg, state) {
   const renderedSnapshot = _snapshot;
   const request = {
     id: String(msg.id || ""),
@@ -383,6 +417,7 @@ async function runAction(vscode, msg) {
     return;
   }
   const currentSnapshot = await readProjection(vscode);
+  if (_refreshState !== state) return;
   const checked = recheckProjectionAction(
     renderedSnapshot,
     currentSnapshot,
@@ -409,7 +444,7 @@ async function runAction(vscode, msg) {
       { modal: true },
       "Run exact action",
     );
-    if (confirmed !== "Run exact action") return;
+    if (_refreshState !== state || confirmed !== "Run exact action") return;
   }
 
   if (route.executor === "host") {
@@ -439,6 +474,7 @@ async function runAction(vscode, msg) {
   }
 
   const result = await runCliJson(vscode, route.argv);
+  if (_refreshState !== state) return;
   if (request.action === "peek") {
     await showCliOutput(vscode, "peek", result);
     return;
@@ -648,10 +684,17 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     vscode.ViewColumn.Active,
     { enableScripts: true, retainContextWhenHidden: true },
   );
+  _refreshState = {
+    activeActions: 0,
+    readSequence: 0,
+    readsInFlight: 0,
+    refreshAfterAction: false,
+  };
   _panel.webview.html = renderPageHtml(_hostDomToken);
   ensureDeliveryController(vscode);
   _panel.webview.onDidReceiveMessage((msg) => handleMessage(vscode, msg));
   _panel.onDidDispose(() => {
+    _refreshState = null;
     if (_timer) {
       clearInterval(_timer);
       _timer = null;
@@ -682,7 +725,14 @@ function openSessionsWorkbench(vscode, hooks = {}) {
   loadData(vscode);
   postDelivery();
   _timer = setInterval(() => {
-    if (_panel && _panel.visible) loadData(vscode);
+    if (!_panel || !_panel.visible) return;
+    const state = _refreshState;
+    if (!state) return;
+    if (state.activeActions > 0) {
+      if (state.readsInFlight === 0) state.refreshAfterAction = true;
+      return;
+    }
+    loadData(vscode);
   }, REFRESH_MS);
   return _panel;
 }

@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T04:15:37.718Z",
+  "summarySha256": "f5aa5b361ddf0069662465cf773584541d547cf57967a93885deadf4eda34213",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/run.json",
+      "path": "objects/000.gz",
+      "rawBytes": 13723,
+      "rawSha256": "be42bfc87ad9e2cd37948b1152fa0c069d2680b710c41123ffd06ab8343cb996",
+      "bytes": 1658,
+      "sha256": "afc710ea85a2c88ed16975ad5bfe2a1e197bd10da4c9d17d801f5f377ad71b81"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/jobs.json",
+      "path": "objects/001.gz",
+      "rawBytes": 3375,
+      "rawSha256": "2aac58546d78bac88dc66fa00a7826699e30bfa870c043f88f6e9cdde99b3678",
+      "bytes": 856,
+      "sha256": "19be40188c8c2ce3e60e32de15026cd5359716428dab070c5a489fa35a8946b1"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifacts.json",
+      "path": "objects/002.gz",
+      "rawBytes": 814,
+      "rawSha256": "61c0ed9f076913c989f9abc10cc735c9f2232d08d3b875cd8364ab5dd58b6c70",
+      "bytes": 460,
+      "sha256": "445eea533b8576e82deefcd8e643f4e4b9aa0ee6e18f2ab3ed5a1b586bd14040"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/job.log",
+      "path": "objects/003.gz",
+      "rawBytes": 45054,
+      "rawSha256": "ea5a2a47c6cbf0a39c2c2647ab0319c19bd58820b64c89d3ebd0c1718798247e",
+      "bytes": 11126,
+      "sha256": "f2d049efcdaffab056335ec98832cb30b2be6596e39873b52fecc75f4207014d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/codex-official-changelog.html",
+      "path": "objects/004.gz",
+      "rawBytes": 806976,
+      "rawSha256": "1653bd963cfbe92ebcf9b569e0c89fb267d37ac823d8a5da8318fb9150181952",
+      "bytes": 98103,
+      "sha256": "b806bbf61075f1cd9b52c31a234f9658ae9d10e5401b073ee5ac9f67a9eda3ff"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifact/model-catalog-review-08e883acc8ce0c1acdeebb4a7468d275da75311a-1/claude.md",
+      "path": "objects/005.gz",
+      "rawBytes": 1053548,
+      "rawSha256": "ec94562ba87d7910b82cfb83223ba14bf3b39e9901b69b4487c907b661023e3a",
+      "bytes": 336973,
+      "sha256": "7efb04c2dd1e51460ccd74ff2263d814c276b29b864cc5377e3e7a33beae5339"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifact/model-catalog-review-08e883acc8ce0c1acdeebb4a7468d275da75311a-1/codex.headers",
+      "path": "objects/006.gz",
+      "rawBytes": 1323,
+      "rawSha256": "39df85a9703e4d2fe97e3e36e68ece3797ac922fd8538e048939fbf77fcb3bf4",
+      "bytes": 748,
+      "sha256": "a632a5bed30f50e6c968c717cb911809d53adb15ec9f96dad529b671ae2d5e29"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifact/model-catalog-review-08e883acc8ce0c1acdeebb4a7468d275da75311a-1/codex.json",
+      "path": "objects/007.gz",
+      "rawBytes": 300102,
+      "rawSha256": "94da89c29166b2bd00c705a95993ec3724695589083b8c26254117dcd61b751e",
+      "bytes": 16756,
+      "sha256": "41a1aee1d2bd8b2dd030611053f5725c8c33bde28b6485319100bf2a23c50bb0"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifact/model-catalog-review-08e883acc8ce0c1acdeebb4a7468d275da75311a-1/local.json",
+      "path": "objects/008.gz",
+      "rawBytes": 2222,
+      "rawSha256": "396bf03aa706c42c3195ad049e627277bb75394baff4c080f7365f5661ad9b6a",
+      "bytes": 860,
+      "sha256": "29eb422b55109ccc5b5c7f6073891df86c63babf93757dd1698db661262032d8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/artifact/model-catalog-review-08e883acc8ce0c1acdeebb4a7468d275da75311a-1/upstream.json",
+      "path": "objects/009.gz",
+      "rawBytes": 2795,
+      "rawSha256": "d0321e16fb5a0717a0406d72aa77c0479292e6e389fc59cf42ef55c10be4e60a",
+      "bytes": 1035,
+      "sha256": "38113963201365b2ed07befd619599ae4ba28d8fc823698ce50a0a0966895ab7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/review-model-catalog.mjs",
+      "path": "objects/010.gz",
+      "rawBytes": 5404,
+      "rawSha256": "6583b9bf19ab8150d180eb5f4c0b91c62e430ffa4d61e58d6a1e5c14623549c2",
+      "bytes": 2027,
+      "sha256": "9c8627d08855a8ec0a792e6092b233d2eafc896b5a8072ac8a7db2d9af100896"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/model-catalog-review.js",
+      "path": "objects/011.gz",
+      "rawBytes": 5166,
+      "rawSha256": "b5b30237d6629368785f62e2ca936605a9f015441eeb88e54b921f166dd64929",
+      "bytes": 1788,
+      "sha256": "a0a740e0acdff1eed1c85bfa514a1162183bf15b2446f945e97a92a879253126"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/model-context-catalog.js",
+      "path": "objects/012.gz",
+      "rawBytes": 5760,
+      "rawSha256": "8abe124bede4135900c56c51e6a4dafe05d11be0b9a514372e585873f88438a1",
+      "bytes": 1753,
+      "sha256": "a1097cddf588a9b0b65abac8dd232a56581b717187527ca4033dc72b67617f41"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/model-capabilities.js",
+      "path": "objects/013.gz",
+      "rawBytes": 9351,
+      "rawSha256": "8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+      "bytes": 3051,
+      "sha256": "46553f8e7d7b0e33f06749b0f941a0a3b9b9ba9166849f17c50d7263358ff9e5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/provider-options.js",
+      "path": "objects/014.gz",
+      "rawBytes": 15895,
+      "rawSha256": "cde18a09a65f27527933f235bfa886de5d5c94b721924fff86050c1b75cfead4",
+      "bytes": 3703,
+      "sha256": "14ef5958bc571a2f6da4b23be8e76f9f14cc6cd3f2d1239bf1e89956390c5bfa"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/llm-pricing.js",
+      "path": "objects/015.gz",
+      "rawBytes": 18087,
+      "rawSha256": "ad8211c2dbcfc16c4a0d584e9c815e9b8863a672aada899b441e80ed87be75b1",
+      "bytes": 6132,
+      "sha256": "ac1c4c7c8e55bef6a9bf06aeff1ae35dce260ee1997e947ffd8e16ea9f5c844d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/model-catalog-review/frozen-source/model-catalog-review-2026-10-05.json",
+      "path": "objects/016.gz",
+      "rawBytes": 1868,
+      "rawSha256": "4c186768e157485fde1286866db8133371b08f1fe60238b5128ab1d260cbe795",
+      "bytes": 589,
+      "sha256": "277bca1f9b1f8c02307093b03900ab97934e51cfdc9e8b26812202017dac7be5"
+    }
+  ]
+}

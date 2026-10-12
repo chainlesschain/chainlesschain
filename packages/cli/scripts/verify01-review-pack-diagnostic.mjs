@@ -50,6 +50,15 @@ export function selectDiagnosticTasks(tasks, shard) {
 export function diagnosticBehaviorControl(taskId, modulePath) {
   const source = (file) => JSON.stringify(modulePath(file));
   switch (taskId) {
+    case "verify-03":
+      return `
+import { lookupRate } from ${source("packages/cli/src/lib/llm-pricing.js")};
+diagnosticIt("keeps unknown Opus generations unpriced", () => {
+  diagnosticExpect(lookupRate("anthropic", "claude-opus-5")).toBeNull();
+  diagnosticExpect(lookupRate("anthropic", "claude-opus-99")).toBeNull();
+  diagnosticExpect(lookupRate("anthropic", "claude-opus-4-6")).toMatchObject({ in: 5, out: 25 });
+});
+`;
     case "verify-04":
       return `
 import { mergeUsagePricingBucket } from ${source("packages/cli/src/lib/usage-pricing-context.js")};

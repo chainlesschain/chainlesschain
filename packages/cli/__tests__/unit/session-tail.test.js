@@ -262,14 +262,53 @@ describe("session-tail", () => {
       pollMs: 20,
     });
 
-    setTimeout(() => {
+    // Append only after the tail has captured its initial offset. A wall-clock
+    // append/abort race can otherwise stop a valid reader before Windows I/O
+    // gets scheduled on a busy CI worker.
+    const polling = Promise.withResolvers();
+    const appended = Promise.withResolvers();
+    const originalStat = fs.promises.stat;
+    const stat = vi
+      .spyOn(fs.promises, "stat")
+      .mockImplementationOnce(async (...args) => {
+        polling.resolve();
+        await appended.promise;
+        return originalStat(...args);
+      });
+    const next = iter.next();
+    let timeout;
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error("Session tail append observation timed out")),
+        10_000,
+      );
+    });
+    const stoppedBeforePolling = next.then(() => {
+      throw new Error("Session tail stopped before its initial poll");
+    });
+    try {
+      await Promise.race([polling.promise, stoppedBeforePolling, deadline]);
       appendEvent("s3", "user_message", { role: "user", content: "ping" });
-    }, 40);
-    setTimeout(() => controller.abort(), 600);
-
-    const items = await drain(iter, { maxEvents: 1, timeoutMs: 1500 });
-    expect(items).toHaveLength(1);
-    expect(items[0].event.type).toBe("user_message");
+      appended.resolve();
+      const item = await Promise.race([next, deadline]);
+      expect(item.done).toBe(false);
+      expect(item.value.event.type).toBe("user_message");
+      expect(item.value.event.data).toMatchObject({ content: "ping" });
+      expect(item.value.offset).toBeGreaterThan(0);
+    } finally {
+      clearTimeout(timeout);
+      appended.resolve();
+      controller.abort();
+      try {
+        await next;
+      } finally {
+        try {
+          await iter.return();
+        } finally {
+          stat.mockRestore();
+        }
+      }
+    }
   });
 
   it("followSession with sinceMs filters by timestamp", async () => {

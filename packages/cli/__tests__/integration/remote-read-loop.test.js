@@ -914,7 +914,7 @@ describe("remote read recovery in the agent runtime", () => {
           events
             .filter((event) => event.type === "tool_use")
             .map((event) => event.id),
-        ).toEqual(["call-read-ok", "call-write-ok"]);
+        ).toEqual(["call-read-ok", "paused-1", "paused-2", "call-write-ok"]);
         const results = events.filter((event) => event.type === "tool_result");
         expect(results.map((event) => event.id)).toEqual([
           "call-read-ok",
@@ -924,12 +924,26 @@ describe("remote read recovery in the agent runtime", () => {
         ]);
         expect(results[0].is_error).toBe(false);
         expect(results[3].is_error).toBe(false);
-        for (const paused of results.slice(1, 3))
+        for (const paused of results.slice(1, 3)) {
           expect(paused).toMatchObject({
             execution_started: false,
+            preExecutionDenied: true,
             is_error: true,
             result: { code: "CC_TOOL_RECOVERY_PAUSED" },
           });
+          const declaration = events.find(
+            (event) => event.type === "tool_use" && event.id === paused.id,
+          );
+          expect(declaration).toMatchObject({
+            tool: "read_file",
+            args: {},
+            execution_started: false,
+            preExecutionDenied: true,
+          });
+          expect(events.indexOf(declaration)).toBeLessThan(
+            events.indexOf(paused),
+          );
+        }
       } else {
         const result = JSON.parse(out.join(""));
         expect(result.tool_calls.map((call) => call.id)).toEqual([

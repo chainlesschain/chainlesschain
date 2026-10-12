@@ -15,6 +15,7 @@
  */
 
 import fs from "fs";
+import { isUtf8 } from "node:buffer";
 import {
   _isNonNegativeSafeInteger,
   _providerUsageCount,
@@ -59,6 +60,8 @@ import {
   TASK_RECOVERY_TOOLS,
 } from "../lib/task-progress-tracker.js";
 import { TOOL_RECOVERY_PAUSED_CODE } from "../lib/tool-recovery-result.js";
+import { haiku55ThinkingParams } from "../lib/provider-options.js";
+import { projectUsagePricingContext } from "../lib/usage-pricing-context.js";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
 import { createHash, randomUUID } from "node:crypto";
@@ -2024,6 +2027,20 @@ function applyLiteralEdit(content, oldStr, newStr, replaceAll) {
   return { count, newContent };
 }
 
+// Edits derive their output from the entire existing file. A replacement
+// decoder would silently rewrite unrelated legacy or malformed bytes.
+function readUtf8ForEdit(filePath) {
+  const bytes = fs.readFileSync(filePath);
+  if (!isUtf8(bytes)) {
+    return {
+      error: "File is not valid UTF-8; text edits require valid UTF-8 bytes.",
+      code: "CC_EDIT_INVALID_UTF8",
+    };
+  }
+  // Buffer decoding preserves a valid UTF-8 BOM and literal U+FFFD characters.
+  return { content: bytes.toString("utf8") };
+}
+
 /**
  * Compute the content an edit tool WOULD write, without writing it — the
  * left/right sides for an IDE diff review. Mirrors the corresponding
@@ -2085,7 +2102,9 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
     }
     if (name === "edit_file") {
       if (!fs.existsSync(filePath)) return null;
-      const content = fs.readFileSync(filePath, "utf8");
+      const decoded = readUtf8ForEdit(filePath);
+      if (decoded.error) return null;
+      const content = decoded.content;
       if (
         typeof args.old_string !== "string" ||
         args.old_string === "" ||
@@ -2113,7 +2132,9 @@ export function computeProposedEdit(name, args = {}, cwd = process.cwd()) {
     if (name === "edit_file_hashed") {
       if (!fs.existsSync(filePath)) return null;
       if (!args.anchor_hash || typeof args.new_line !== "string") return null;
-      const original = fs.readFileSync(filePath, "utf8");
+      const decoded = readUtf8ForEdit(filePath);
+      if (decoded.error) return null;
+      const original = decoded.content;
       const result = replaceByHash(original, {
         anchorHash: args.anchor_hash,
         expectedLine: args.expected_line,
@@ -5835,7 +5856,9 @@ async function executeToolInner(
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `Notebook not found: ${filePath}` });
       }
-      const original = fs.readFileSync(filePath, "utf8");
+      const decoded = readUtf8ForEdit(filePath);
+      if (decoded.error) return attachDescriptor(decoded);
+      const original = decoded.content;
       const res = editNotebookCell(original, args);
       if (res.error) return attachDescriptor({ error: res.error });
       const wrote = writeFileVerified(filePath, res.text);
@@ -5871,7 +5894,9 @@ async function executeToolInner(
       }
       const staleEdit = _checkFileFreshness(filePath);
       if (staleEdit) return attachDescriptor({ error: staleEdit });
-      const content = fs.readFileSync(filePath, "utf8");
+      const decoded = readUtf8ForEdit(filePath);
+      if (decoded.error) return attachDescriptor(decoded);
+      const content = decoded.content;
       const replaceAll = args.replace_all === true;
       const { count, newContent } = applyLiteralEdit(
         content,
@@ -5971,7 +5996,9 @@ async function executeToolInner(
       }
       const staleHashed = _checkFileFreshness(filePath);
       if (staleHashed) return attachDescriptor({ error: staleHashed });
-      const original = fs.readFileSync(filePath, "utf8");
+      const decoded = readUtf8ForEdit(filePath);
+      if (decoded.error) return attachDescriptor(decoded);
+      const original = decoded.content;
       const result = replaceByHash(original, {
         anchorHash: args.anchor_hash,
         expectedLine: args.expected_line,
@@ -11962,10 +11989,16 @@ export async function chatWithTools(rawMessages, options) {
       messages: _toAnthropicMessages(otherMsgs),
       tools: anthropicTools,
     };
-    // Extended thinking — OPT-IN via options.thinking; off by default so the
-    // request is byte-identical to before. Model-aware (adaptive+effort on Opus
-    // 4.6+/Sonnet 4.6, legacy enabled+budget else; nothing on Haiku). temperature
-    // is never sent. RUNTIME-UNVERIFIED: no Anthropic key here to E2E the
+    if (
+      effModel.toLowerCase() === "claude-haiku-5-5" &&
+      body.messages.at(-1)?.role === "assistant"
+    ) {
+      throw new TypeError("Haiku 5.5 does not support assistant prefill.");
+    }
+    // Legacy models retain opt-in thinking. Exact Haiku 5.5 uses its documented
+    // adaptive/medium default and accepts an explicit disabled setting.
+    // Sampling parameters are never sent. RUNTIME-UNVERIFIED: no Anthropic key
+    // here to E2E the
     // thinking-block signature replay (see cli_claude_code_parity_landed memory).
     const thinkingParams = _anthropicThinkingParams(
       effModel,
@@ -12046,6 +12079,11 @@ export async function chatWithTools(rawMessages, options) {
     const data = await response.json();
     const normalized = _normalizeAnthropicResponse(data);
     if (_hasCompleteProviderUsage(data.usage)) {
+      const cacheCreationTokens = _optionalProviderUsageCount(
+        data.usage,
+        "cache_creation_input_tokens",
+        "cache_creation_tokens",
+      );
       normalized.usage = {
         // With prompt caching, Anthropic splits input into uncached
         // `input_tokens` + cache read/write — capture all three so cost
@@ -12066,11 +12104,11 @@ export async function chatWithTools(rawMessages, options) {
           "cache_read_input_tokens",
           "cache_read_tokens",
         ),
-        cache_creation_input_tokens: _optionalProviderUsageCount(
-          data.usage,
-          "cache_creation_input_tokens",
-          "cache_creation_tokens",
-        ),
+        cache_creation_input_tokens: cacheCreationTokens,
+        ...projectUsagePricingContext({
+          ...data.usage,
+          cache_creation_input_tokens: cacheCreationTokens,
+        }),
       };
     }
     return normalized;
@@ -13067,11 +13105,12 @@ export function _openAIResponsesReasoningParams(
 
 /**
  * Decide the Anthropic `thinking` request params for a model. Returns null
- * (off) unless the caller opts in via options.thinking (true | "think" |
- * "hard" | "ultra"). Model-aware per the Claude API:
+ * (off) on legacy models unless the caller opts in via options.thinking
+ * (true | "think" | "hard" | "ultra"). Model-aware per the Claude API:
+ *   - exact Haiku 5.5 → adaptive/medium by default, explicitly disableable
  *   - Opus 4.6/4.7/4.8, Sonnet 4.6 → adaptive thinking + output_config.effort
  *   - Sonnet 4.5 / Opus 4.0-4.5 / older → legacy enabled+budget (< max_tokens)
- *   - anything else (e.g. Haiku) → null (no thinking)
+ *   - other models, including older Haiku → null (no explicit thinking)
  * temperature is never added (it 400s on Opus 4.7/4.8). Note: `xhigh`/`max`
  * effort are Opus-tier — on Sonnet they may error; left to the caller's intent.
  * RUNTIME-UNVERIFIED — no Anthropic key to validate the wire shape live.
@@ -13082,9 +13121,10 @@ export function _anthropicThinkingParams(
   options = {},
   maxTokens = 8192,
 ) {
+  const m = String(model || "").toLowerCase();
+  if (m === "claude-haiku-5-5") return haiku55ThinkingParams(m, options);
   const want = options?.thinking;
   if (!want) return null; // off by default → request unchanged
-  const m = String(model || "").toLowerCase();
   const adaptive = /opus-4-(6|7|8)/.test(m) || /sonnet-4-6/.test(m);
   const legacy =
     /sonnet-4-5/.test(m) ||
@@ -16320,12 +16360,27 @@ export async function* agentLoop(messages, options) {
           toolName,
           earlyAuthorityDenial,
         );
+        const preExecutionDenied =
+          earlyAuthorityDenial.code === TOOL_RECOVERY_PAUSED_CODE;
+        if (preExecutionDenied) {
+          // Declare the rejected request without an execution/ledger boundary
+          // or its arguments. Consumers can pair the refusal by provider ID.
+          yield {
+            type: "tool-pre-execution-denied",
+            tool: toolName,
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+            preExecutionDenied: true,
+            execution_started: false,
+          };
+        }
         yield {
           type: "tool-result",
           tool: toolName,
           result: earlyAuthorityDenial,
           error: earlyAuthorityDenial.error,
           execution_started: false,
+          ...(preExecutionDenied ? { preExecutionDenied: true } : {}),
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
           permission_decision_id: decision?.id || null,

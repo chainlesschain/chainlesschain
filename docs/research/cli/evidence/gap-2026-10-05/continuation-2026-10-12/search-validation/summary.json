@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-10-12T03:40:04.044Z",
+  "scope": "Local Windows source increment; no model calls or actual search process launched",
+  "originalHelperSourceCommit": "848e6e4a69",
+  "originalAcceptedInvalidInputs": 8,
+  "repairedRejectedInvalidInputs": 8,
+  "searchTests": 34,
+  "passed": 34,
+  "sessionTailFinalTests": 16,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0
+}

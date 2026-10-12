@@ -234,6 +234,56 @@ describe("headless pre-execution denial correlation", () => {
       ]);
     },
   );
+
+  it.each(["json", "stream-json"])(
+    "declares a paused request without execution or argument disclosure (%s)",
+    async (outputFormat) => {
+      const { deps, out } = makeDeps(null);
+      deps.agentLoop = async function* () {
+        yield {
+          type: "tool-pre-execution-denied",
+          tool: "read_file",
+          tool_use_id: "paused-read",
+          args: { path: "private-argument-sentinel" },
+          preExecutionDenied: true,
+          execution_started: false,
+        };
+        yield {
+          type: "tool-result",
+          tool: "read_file",
+          tool_use_id: "paused-read",
+          preExecutionDenied: true,
+          execution_started: false,
+          error: "paused",
+          result: { code: "CC_TOOL_RECOVERY_PAUSED", error: "paused" },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      };
+      await runAgentHeadless(
+        { prompt: "go", ephemeral: true, outputFormat },
+        deps,
+      );
+      const text = out.join("");
+      expect(text).not.toContain("private-argument-sentinel");
+      if (outputFormat === "json") {
+        expect(JSON.parse(text).tool_calls).toEqual([]);
+      } else {
+        const events = text.trim().split("\n").map(JSON.parse);
+        const pair = events.filter((event) => event.id === "paused-read");
+        expect(pair.map((event) => event.type)).toEqual([
+          "tool_use",
+          "tool_result",
+        ]);
+        expect(pair[0].args).toEqual({});
+        for (const event of pair)
+          expect(event).toMatchObject({
+            execution_started: false,
+            preExecutionDenied: true,
+          });
+      }
+    },
+  );
 });
 
 function verifiedEventChain(events) {

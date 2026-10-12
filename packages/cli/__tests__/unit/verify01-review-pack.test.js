@@ -246,6 +246,50 @@ describe("operator acceptance pack", () => {
       }),
     ).toThrow(/re-review/);
   });
+  it("selects exactly one explicit source-version anchor without ambiguous fallback", () => {
+    const mutant = {
+      name: "versioned guard",
+      find: "old.guard",
+      alternatives: [{ find: "current.guard", replace: "false.current" }],
+      replace: "false",
+    };
+    for (const { find, replace } of [mutant, ...mutant.alternatives]) {
+      expect(applyReviewMutation(`before ${find} after`, mutant)).toBe(
+        `before ${replace} after`,
+      );
+      expect(() => applyReviewMutation(`${find} ${find}`, mutant)).toThrow(
+        /one exact match/,
+      );
+    }
+    for (const source of ["missing", "old.guard current.guard"]) {
+      expect(() => applyReviewMutation(source, mutant)).toThrow(/re-review/);
+    }
+    for (const alternatives of [
+      null,
+      "current.guard",
+      [""],
+      [null],
+      [{ find: "", replace: "false" }],
+      [{ find: "current.guard", replace: null }],
+      [{ find: "current.guard", replace: "current.guard" }],
+      [{ find: "old.guard", replace: "false.other" }],
+      [
+        { find: "current.guard", replace: "false" },
+        { find: "current.guard", replace: "false.other" },
+      ],
+    ]) {
+      expect(() =>
+        applyReviewMutation("old.guard", { ...mutant, alternatives }),
+      ).toThrow(/invalid behavioral mutation/);
+    }
+    expect(() =>
+      applyReviewMutation("aaa", {
+        name: "overlapping matches",
+        find: "aa",
+        replace: "b",
+      }),
+    ).toThrow(/one exact match/);
+  });
 });
 
 describe("real Vitest reports, not implementation-shaped success flags", () => {

@@ -144,13 +144,38 @@ export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
 });
 
 export const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({
+  "claude-haiku-5-5": Object.freeze({
+    contextWindowTokens: 1000000,
+    advertisedMaxOutputTokens: 128000,
+    reasoningEfforts: Object.freeze(["low", "medium", "high", "xhigh", "max"]),
+    defaultReasoningEffort: "medium",
+    adaptiveThinkingDefault: true,
+    pricing: Object.freeze({ in: 0.1, out: 0.5 }),
+    pricingTerms: Object.freeze({
+      cacheReadMultiplier: 0.1,
+      cacheWriteMultiplier: 1.25,
+      cacheWrite1hMultiplier: 2,
+      longContext: Object.freeze({
+        threshold: 100000,
+        inputMultiplier: 5,
+        outputMultiplier: 5,
+      }),
+      serviceMultipliers: Object.freeze({ standard: 1, default: 1 }),
+    }),
+    sources: Object.freeze([
+      "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+      "https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide",
+      "https://platform.claude.com/docs/en/about-claude/pricing",
+    ]),
+  }),
   "claude-sonnet-5-5": Object.freeze({
     contextWindowTokens: 1000000,
     advertisedMaxOutputTokens: null,
     pricing: Object.freeze({ in: 2, out: 10 }),
-    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.1 }),
+    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.05 }),
     sources: Object.freeze([
       "https://code.claude.com/docs/en/changelog#2-1-284",
+      "https://platform.claude.com/docs/en/about-claude/pricing",
     ]),
   }),
   "claude-opus-5-5": Object.freeze({

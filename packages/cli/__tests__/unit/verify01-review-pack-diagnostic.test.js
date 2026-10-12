@@ -12,6 +12,7 @@ import {
   readDiagnosticReceipt,
 } from "../../scripts/verify01-review-pack-diagnostic.mjs";
 import { VERIFY01_REVIEW_SPECS } from "../../scripts/verify01-review-specs.mjs";
+import { applyReviewMutation } from "../../scripts/verify01-review-runtime.mjs";
 
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const catalog = JSON.parse(
@@ -97,6 +98,7 @@ async function controlFailures(task, spec, source) {
 
 describe("real Docker review diagnostic admission", () => {
   it.each([
+    "verify-03",
     "verify-04",
     "verify-07",
     "verify-08",
@@ -123,11 +125,10 @@ describe("real Docker review diagnostic admission", () => {
         : fs.readFileSync(path.join(repository, spec.sourcePath), "utf8");
       expect(await controlFailures(task, spec, source)).toEqual([]);
       for (const mutant of spec.mutants) {
-        expect(source.split(mutant.find)).toHaveLength(2);
         const failures = await controlFailures(
           task,
           spec,
-          source.replace(mutant.find, mutant.replace),
+          applyReviewMutation(source, mutant),
         );
         expect(failures.length, mutant.name).toBeGreaterThan(0);
         expect(

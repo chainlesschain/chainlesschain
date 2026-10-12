@@ -990,6 +990,19 @@ async function runTurn(
     }
     turnBindingFeed?.handleEvent(event);
     switch (event.type) {
+      case "tool-pre-execution-denied": {
+        // Keep the request/result pair visible without plan/ledger execution
+        // bookkeeping and without exposing rejected request arguments.
+        emit({
+          type: "tool_use",
+          id: event.tool_use_id,
+          tool: event.tool,
+          args: {},
+          preExecutionDenied: true,
+          execution_started: false,
+        });
+        break;
+      }
       case "tool-executing": {
         // Additive protocol-v1 correlation id ("tu-<n>", session-scoped —
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
@@ -1128,6 +1141,10 @@ async function runTurn(
           is_error: Boolean(err),
           ...(event.execution_started === false
             ? { execution_started: false }
+            : {}),
+          ...(event.preExecutionDenied === true &&
+          event.execution_started === false
+            ? { preExecutionDenied: true }
             : {}),
           error: err,
           result: event.result,

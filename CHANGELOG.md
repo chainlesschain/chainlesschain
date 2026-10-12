@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.99: preserve file bytes and exact model contracts
+
+- Reject invalid UTF-8 in literal, hashed and notebook edits and matching IDE
+  previews without rewriting target bytes; preserve valid BOM, Unicode and CRLF.
+- Add the exact Haiku 5.5 model contract, adaptive effort combinations, request
+  output limits and per-request 100K pricing tiers with cache TTL and region
+  evidence. Preserve the default output budget and leave unsupported or missing
+  actual pricing evidence unpriced. Correct Sonnet 5.5 cache-read pricing.
+- Validate search patterns and correlate paused tool requests without execution.
+- Keep HTTP and failed Responses verdicts terminal before matching connection
+  wording, preserving genuine bounded network recovery.
+- Pair VS Code 0.37.143 and JetBrains 0.4.161 with the publicly available CLI
+  only after exact-commit gates. VS Code delays periodic projection reads during
+  actions, discards obsolete results and isolates refresh state across panels.
+- Retain the macOS needs-input 2s/100-sample gate and its original failure.
+  Formal 36+9, native/durable authority and long-term acceptance remain open.
+
 ### Fixed - cc CLI 0.166.98: apply real-task findings and preserve task delivery
 
 - Bind formal task file scope and tool allowlists to isolated per-task configuration;

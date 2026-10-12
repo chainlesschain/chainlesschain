@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:40:04.044Z",
+  "summarySha256": "dc06d3740c5e23472fbe719ff219b9258fb48a2fde43f3d6819f00ab3ef4d47c",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/search-pattern-before-after.json",
+      "path": "objects/000.gz",
+      "rawBytes": 2073,
+      "rawSha256": "7263ef5e58f869ace9c55f635023caa2b42e7a6ebfbff06db716467abd057de8",
+      "bytes": 344,
+      "sha256": "f27e6b08232516903ccf42924c9caff00b7b79987634eb195eceb98b901e0c5d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/search-validation-after-windows.json",
+      "path": "objects/001.gz",
+      "rawBytes": 12475,
+      "rawSha256": "0f325edfe2939229f34590f5d54cc0674df585203f5a4e58d1b18edf6f63ed44",
+      "bytes": 1796,
+      "sha256": "e379b88488587600414000302611eb46b081921768a94b4d92ebbfd3e75fecaf"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/session-tail-final-windows.json",
+      "path": "objects/002.gz",
+      "rawBytes": 5031,
+      "rawSha256": "6cccef04e0f7764b642713a7e582ecebfed3f965b0b64a664c36ca87be944585",
+      "bytes": 1103,
+      "sha256": "37ee4608be54b073cb453c6fb0d9b914bbee2804e1c0cc328cf763752d725799"
+    },
+    {
+      "source": "packages/cli/src/lib/search-command.js",
+      "path": "objects/003.gz",
+      "rawBytes": 2659,
+      "rawSha256": "2d6ad0eaf42c989804a8021637db938947b08fa4e531a937d8108258922f9f9a",
+      "bytes": 1323,
+      "sha256": "4d03b5892ba4c40bae71cc5a12ffc79b81d76c2e135613938f3a7c4bda04f3e8"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/search-command.test.js",
+      "path": "objects/004.gz",
+      "rawBytes": 3962,
+      "rawSha256": "d4fda38fabb87c4ea638f24825b931de5ead5b9b0460438fe6bc058b7eaefcbd",
+      "bytes": 1547,
+      "sha256": "9dd2ccba1ef699b4d1dc9120cbbaca1b1a7a0220bbf086f6c0773aa16839f8cf"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-search-validation.test.js",
+      "path": "objects/005.gz",
+      "rawBytes": 1481,
+      "rawSha256": "5706d9434a0a4fe84e6806c39a73506681eda6cd2e843dbf7ed6ed32485ecb9d",
+      "bytes": 651,
+      "sha256": "dc10a25439414196c22a05a4017b035f80e29f154140f565f08fbc780ec0c23f"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/session-tail.test.js",
+      "path": "objects/006.gz",
+      "rawBytes": 13667,
+      "rawSha256": "f6d95126cd6312c940e217cdf7571c706d90287cb8ef224356105df1b517a52d",
+      "bytes": 3218,
+      "sha256": "982ab9ff9e3f025130b11dc33a0ec14dadaf24d2b31aeda93bad9bb705d93c05"
+    }
+  ]
+}

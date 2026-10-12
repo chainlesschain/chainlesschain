@@ -69,6 +69,7 @@ jobs:
       - name: Verify process deadlines and evidence rejection
         run: >-
           node --test scripts/__tests__/verify01-diagnostic-process.test.mjs
+          scripts/__tests__/verify01-gradle-bootstrap.test.mjs
           scripts/__tests__/verify01-diagnostic-port.test.mjs
           scripts/__tests__/verify01-diagnostic-evidence.test.mjs
           scripts/__tests__/verify01-diagnostic-command-drain.test.mjs
@@ -115,6 +116,12 @@ jobs:
       - name: Prepare Gradle wrapper
         if: matrix.host == 'jetbrains' && runner.os != 'Windows'
         run: chmod +x packages/jetbrains-plugin/gradlew
+      - name: Bootstrap pinned Gradle before the IDE journey
+        if: matrix.host == 'jetbrains'
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir verify01-artifacts/gradle-bootstrap
       - name: Run IntelliJ initial/restart capture
         if: matrix.host == 'jetbrains'
         shell: bash

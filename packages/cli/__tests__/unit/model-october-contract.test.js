@@ -82,8 +82,9 @@ describe("October model contracts from reviewed official documentation", () => {
     for (const [provider, model, cost] of [
       ["openai", "gpt-6.1-sol", 0.01],
       ["openai", "gpt-6-sol", 0.02],
-      ["anthropic", "claude-sonnet-5-5", 0.02],
+      ["anthropic", "claude-sonnet-5-5", 0.01],
       ["anthropic", "claude-opus-5-5", 0.02],
+      ["anthropic", "claude-sonnet-4-6", 0.03],
     ]) {
       expect(
         estimateCost({ provider, model, cacheReadTokens: 100000 })
@@ -98,6 +99,34 @@ describe("October model contracts from reviewed official documentation", () => {
         outputTokens: 100,
       }).totalCost,
     ).toBeCloseTo(0.003, 12);
+  });
+  it("uses the reviewed Sonnet 5.5 cache-read rate in mixed usage and budget totals", () => {
+    const options = {
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      inputTokens: 1000,
+      outputTokens: 100,
+      cacheReadTokens: 100000,
+      cacheCreationTokens: 10000,
+    };
+    const cost = estimateCost(options);
+    expect(cost.inputCost).toBeCloseTo(0.002, 12);
+    expect(cost.outputCost).toBeCloseTo(0.001, 12);
+    expect(cost.cacheReadCost).toBeCloseTo(0.01, 12);
+    expect(cost.cacheCreationCost).toBeCloseTo(0.025, 12);
+    expect(cost.totalCost).toBeCloseTo(0.038, 12);
+    const budget = new CostBudget({ limitUsd: 1 });
+    budget.add({
+      provider: options.provider,
+      model: options.model,
+      usage: {
+        input_tokens: options.inputTokens,
+        output_tokens: options.outputTokens,
+        cache_read_input_tokens: options.cacheReadTokens,
+        cache_creation_input_tokens: options.cacheCreationTokens,
+      },
+    });
+    expect(budget.spentUsd).toBeCloseTo(0.038, 12);
   });
   it("applies cache, long-context and service rates at each request and budget boundary", () => {
     const options = {

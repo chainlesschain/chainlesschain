@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.99",
+      "cliVersions": ["0.166.99"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.99: preserve file bytes and exact model contracts",
+          "body": "- Reject invalid UTF-8 in literal, hashed and notebook edits and matching IDE\n  previews without rewriting target bytes; preserve valid BOM, Unicode and CRLF.\n- Add the exact Haiku 5.5 model contract, adaptive effort combinations, request\n  output limits and per-request 100K pricing tiers with cache TTL and region\n  evidence. Preserve the default output budget and leave unsupported or missing\n  actual pricing evidence unpriced. Correct Sonnet 5.5 cache-read pricing.\n- Validate search patterns and correlate paused tool requests without execution.\n- Keep HTTP and failed Responses verdicts terminal before matching connection\n  wording, preserving genuine bounded network recovery.\n- Pair VS Code 0.37.143 and JetBrains 0.4.161 with the publicly available CLI\n  only after exact-commit gates. VS Code delays periodic projection reads during\n  actions, discards obsolete results and isolates refresh state across panels.\n- Retain the macOS needs-input 2s/100-sample gate and its original failure.\n  Formal 36+9, native/durable authority and long-term acceptance remain open."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.98",
       "cliVersions": ["0.166.98"],
       "date": null,
