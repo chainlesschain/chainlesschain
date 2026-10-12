@@ -1,0 +1,150 @@
+name: VERIFY01 Formal Keyless Preflight
+
+# Prepares an actual Linux operator, public installation and review package.
+# No provider credentials, authentication call, agent task or observation write.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/cli-ide-gap-*"]
+    paths:
+      - "docs/research/cli/verify01-plan-2026-10-12-v2/**"
+      - "packages/cli/src/lib/eval/verify01-execution-window.js"
+      - ".github/workflows/verify01-formal-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate both plans without creating observations
+        run: |
+          node docs/research/cli/verify01-plan-2026-10-04/validate-plan.mjs
+          node docs/research/cli/verify01-plan-2026-10-12-v2/validate-plan.mjs
+          mkdir -p "$RUNNER_TEMP/verify01-formal-preflight"
+      - name: Pin an actual acceptance image and generate all reviewed bytes
+        run: |
+          docker pull node:22.12.0-bookworm
+          REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')
+          echo "REVIEW_IMAGE_ID=$REVIEW_IMAGE_ID" >> "$GITHUB_ENV"
+          docker image inspect "$REVIEW_IMAGE_ID" > "$RUNNER_TEMP/verify01-formal-preflight/image.json"
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --entrypoint node "$REVIEW_IMAGE_ID" --version > "$RUNNER_TEMP/verify01-formal-preflight/image-node.txt"
+          node packages/cli/scripts/verify01-review-pack.mjs \
+            --plan-dir docs/research/cli/verify01-plan-2026-10-12-v2 \
+            --output-dir "$RUNNER_TEMP/verify01-formal-preflight/review" \
+            --image-id "$REVIEW_IMAGE_ID"
+      - name: Materialize and verify the actual frozen project checkout
+        run: |
+          git clone --shared --no-checkout "$GITHUB_WORKSPACE" "$RUNNER_TEMP/verify01-frozen-project"
+          git -C "$RUNNER_TEMP/verify01-frozen-project" checkout --detach b2aa3aba082873570e85dce39b00754e5504ff37
+          git -C "$RUNNER_TEMP/verify01-frozen-project" rev-parse HEAD > "$RUNNER_TEMP/verify01-formal-preflight/project-head.txt"
+      - name: Fetch the exact public CLI registry pin
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
+          const response = await fetch('https://registry.npmjs.org/chainlesschain/0.166.99');
+          assert(response.ok, 'Public CLI metadata unavailable');
+          const metadata = await response.json();
+          assert.equal(metadata.name, 'chainlesschain');
+          assert.equal(metadata.version, '0.166.99');
+          const priorRoot = 'docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-public';
+          const summaryBytes = fs.readFileSync(path.join(priorRoot, 'summary.json'));
+          const manifestBytes = fs.readFileSync(path.join(priorRoot, 'manifest.json'));
+          const manifest = JSON.parse(manifestBytes);
+          const summarySha256 = createHash('sha256').update(summaryBytes).digest('hex');
+          assert.equal(summarySha256, manifest.summarySha256);
+          const prior = JSON.parse(summaryBytes);
+          assert.equal(prior.status, 'PUBLIC_READBACK_VERIFIED');
+          assert.equal(prior.sha, '311e01a5ec34a8e433c7abde0e4b6b05bce4513b');
+          assert.equal(prior.cli.oidcVerified, 'VERIFIED');
+          assert.equal(prior.cli.immutableCliBytesMatch, true);
+          assert.equal(metadata.dist.tarball, prior.cli.publicCliInstall.cliArchive.resolved);
+          assert.equal(metadata.dist.integrity, prior.cli.publicCliInstall.cliArchive.integrity);
+          if (metadata.gitHead != null) assert.equal(metadata.gitHead, prior.sha);
+          const outputRoot = path.join(process.env.RUNNER_TEMP, 'verify01-formal-preflight');
+          fs.writeFileSync(path.join(outputRoot, 'prior-summary.json'), summaryBytes);
+          fs.writeFileSync(path.join(outputRoot, 'prior-manifest.json'), manifestBytes);
+          fs.writeFileSync(path.join(outputRoot, 'source-binding.json'), JSON.stringify({
+            summarySha256, manifestSha256: createHash('sha256').update(manifestBytes).digest('hex'),
+            oidcVerified: prior.cli.oidcVerified, immutableCliBytesMatch: prior.cli.immutableCliBytesMatch,
+            sourceCommit: prior.sha, archive: prior.cli.publicCliInstall.cliArchive,
+          }, null, 2) + '\n');
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'verify01-formal-preflight/registry.json'), JSON.stringify(metadata, null, 2) + '\n');
+          NODE
+      - name: Perform a normal isolated public installation without model access
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify01-public-cli"
+          npm install --prefix "$RUNNER_TEMP/verify01-public-cli" --registry=https://registry.npmjs.org \
+            --omit=dev --no-audit --no-fund chainlesschain@0.166.99 \
+            > "$RUNNER_TEMP/verify01-formal-preflight/install.stdout" \
+            2> "$RUNNER_TEMP/verify01-formal-preflight/install.stderr"
+          node packages/cli/scripts/verify-cli-registry-install.mjs \
+            "$RUNNER_TEMP/verify01-public-cli" \
+            "$RUNNER_TEMP/verify01-formal-preflight/registry.json" \
+            "$RUNNER_TEMP/verify01-formal-preflight/public-install.json"
+          cp "$RUNNER_TEMP/verify01-public-cli/package-lock.json" "$RUNNER_TEMP/verify01-formal-preflight/package-lock.json"
+          node "$RUNNER_TEMP/verify01-public-cli/node_modules/chainlesschain/bin/chainlesschain.js" --version \
+            > "$RUNNER_TEMP/verify01-formal-preflight/public-version.txt"
+      - name: Bind actual readiness and preserve outstanding human and budget conditions
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import { outcomeDigest } from './packages/cli/src/lib/eval/outcomes.js';
+          import { assertVerify01ExecutionWindow } from './packages/cli/src/lib/eval/verify01-execution-window.js';
+          const root = path.join(process.env.RUNNER_TEMP, 'verify01-formal-preflight');
+          const read = name => JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+          const planRoot = 'docs/research/cli/verify01-plan-2026-10-12-v2';
+          const plan = JSON.parse(fs.readFileSync(path.join(planRoot, 'plan.json'), 'utf8'));
+          const digest = fs.readFileSync(path.join(planRoot, 'plan.sha256'), 'utf8').trim();
+          assert.equal(outcomeDigest(plan), digest);
+          assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
+          assert.equal(process.version, 'v22.12.0');
+          const os = fs.readFileSync('/etc/os-release', 'utf8');
+          assert(/^ID=ubuntu$/m.test(os) && /^VERSION_ID="24\.04"$/m.test(os));
+          const image = read('image.json')[0];
+          assert.equal(image.Id, process.env.REVIEW_IMAGE_ID);
+          assert.equal(fs.readFileSync(path.join(root, 'image-node.txt'), 'utf8').trim(), 'v22.12.0');
+          assert.equal(fs.readFileSync(path.join(root, 'project-head.txt'), 'utf8').trim(), plan.commitSha);
+          assert.equal(fs.readFileSync(path.join(root, 'public-version.txt'), 'utf8').trim(), '0.166.99');
+          const review = read('review/pack.json');
+          assert.equal(review.planDigest, digest); assert.equal(review.generatedArtifacts, 72);
+          const window = assertVerify01ExecutionWindow(plan, { requiredTimeMs: 1800000 });
+          fs.writeFileSync(path.join(root, 'readiness.json'), JSON.stringify({
+            schema: 'chainlesschain.verify01-keyless-preflight/v1', at: new Date().toISOString(),
+            sourceCommit: process.env.GITHUB_SHA, runId: process.env.GITHUB_RUN_ID, planDigest: digest,
+            status: 'KEYLESS_PREFLIGHT_VERIFIED', host: { platform: process.platform, arch: process.arch, node: process.version, os },
+            window, projectCommit: plan.commitSha, imageId: image.Id, reviewDigest: review.reviewDigest,
+            publicCliVersion: '0.166.99', publicCliSource: '311e01a5ec34a8e433c7abde0e4b6b05bce4513b',
+            sourceBinding: 'Current registry SRI/archive matches the digest-bound prior OIDC/public verification; current install lock is independently checked.',
+            priorSourceBinding: read('source-binding.json'),
+            nativeInstallLifecycleEnabled: true, publicInstall: read('public-install.json'),
+            independentHumanReview: false, providerHardBudgetVerified: false, providerAuthenticated: false,
+            paidExecutionReady: false, taskObservations: 0, firstRunObservations: 0,
+            remaining: ['human review of this exact review/image digest', 'account hard quota or reliable metering', 'controlled model credentials', 'actual model task and separate first-run'],
+          }, null, 2) + '\n');
+          NODE
+      - name: Preserve actual checkout, installation, image and complete review package
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: verify01-formal-preflight-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/verify01-formal-preflight/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90

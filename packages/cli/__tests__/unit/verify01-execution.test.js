@@ -84,6 +84,10 @@ function fixture() {
     catalog = json("tasks.json"),
     bindings = json("comparison-bindings.json");
   plan.commitSha = catalog.projectCommit = commit;
+  plan.window = {
+    start: new Date(Date.now() - 60000).toISOString(),
+    end: new Date(Date.now() + 3600000).toISOString(),
+  };
   catalog.tasks.forEach((task) => {
     task.sourcePaths = ["source.js"];
     task.expectedFiles = [`result/${task.id}.txt`];
@@ -143,6 +147,18 @@ function fixture() {
   };
   return { root, options, plan, catalog, bindings, review, sample, commit };
 }
+function pinFixtureWindow(f, window) {
+  f.plan.window = window;
+  f.options.planDigest = outcomeDigest(f.plan);
+  f.review.planDigest = f.options.planDigest;
+  f.options.reviewDigest = outcomeDigest(f.review);
+  writeJson(join(f.options.planDir, "plan.json"), f.plan);
+  fs.writeFileSync(
+    join(f.options.planDir, "plan.sha256"),
+    f.options.planDigest,
+  );
+  writeJson(f.options.reviewFile, f.review);
+}
 async function runFixture(tasks, edit = () => {}) {
   return runEvalSuite(tasks, {
     cwdBase: location(),
@@ -174,6 +190,70 @@ afterEach(() => {
 });
 
 describe("review-gated frozen eval execution", () => {
+  it.each(["not-started", "expired", "insufficient-time"])(
+    "refuses %s windows before checkout, setup or a model request",
+    async (condition) => {
+      const f = fixture(),
+        now = Date.now();
+      pinFixtureWindow(f, {
+        start: new Date(
+          condition === "not-started" ? now + 60000 : now - 3600000,
+        ).toISOString(),
+        end: new Date(
+          condition === "expired"
+            ? now - 1000
+            : condition === "insufficient-time"
+              ? now + f.sample.timeBudgetMs - 1000
+              : now + 3600000,
+        ).toISOString(),
+      });
+      const tasks = loadVerify01Suite(f.options),
+        runAgent = vi.fn();
+      const result = await runEvalSuite(tasks, {
+        cwdBase: location(),
+        keepWorkspaces: true,
+        runAgent,
+      });
+      expect(result.failed).toBe(1);
+      expect(runAgent).not.toHaveBeenCalled();
+      expect(tasks.verification.receipts[0].setup).toBeNull();
+      expect(tasks.verification.receipts[0].checkout).toBeUndefined();
+    },
+  );
+
+  it("checks the execution window again when an already prepared task starts", async () => {
+    const f = fixture(),
+      tasks = loadVerify01Suite(f.options),
+      runAgent = vi.fn();
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse(f.plan.window.end));
+    const result = await runEvalSuite(tasks, {
+      cwdBase: location(),
+      keepWorkspaces: true,
+      runAgent,
+    });
+    expect(result.failed).toBe(1);
+    expect(runAgent).not.toHaveBeenCalled();
+    expect(tasks.verification.receipts[0].setup).toBeNull();
+  });
+
+  it("rejects an expired saved agent binding immediately before launch", async () => {
+    const f = fixture(),
+      tasks = loadVerify01Suite(f.options),
+      workspace = location();
+    await tasks[0].setup(workspace, { remainingMs: () => 60000 });
+    try {
+      const binding = tasks[0].agentLaunchBinding(workspace);
+      vi.spyOn(Date, "now").mockReturnValue(Date.parse(f.plan.window.end));
+      expect(() =>
+        captureVerify01AgentBinding(binding, workspace),
+      ).toThrowError(
+        expect.objectContaining({ code: "CC_VERIFY01_WINDOW_EXPIRED" }),
+      );
+    } finally {
+      tasks[0].cleanup();
+    }
+  });
+
   it("keeps account credentials and Node hooks out of the independent checker", () => {
     vi.stubEnv("CC_API_KEY", "fixture-only-key");
     vi.stubEnv("GITHUB_TOKEN", "fixture-only-token");

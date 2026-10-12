@@ -1,0 +1,35 @@
+{
+  "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+  "reviewDigest": "sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79",
+  "productSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "independentHumanReview": {
+    "reviewer": null,
+    "reviewedAt": null,
+    "recordPath": null,
+    "recordDigest": null
+  },
+  "providerControls": [
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "credentialSecretName": "CC_LLM_API_KEY",
+      "endpointReceipt": null,
+      "quotaReceipt": null,
+      "quotaReceiptDigest": null
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-6-astra",
+      "credentialSecretName": null,
+      "endpointReceipt": null,
+      "quotaReceipt": null,
+      "quotaReceiptDigest": null
+    }
+  ],
+  "sharedBudgetControl": {
+    "maximumUsd": 99,
+    "controlReceipt": null,
+    "remainingUsd": null
+  },
+  "rule": "Record references only. Do not put API keys or fabricated approvals in this file. Missing fields do not authorize live execution."
+}

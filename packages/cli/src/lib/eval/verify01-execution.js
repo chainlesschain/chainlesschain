@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import executionBroker from "../process-execution-broker/index.js";
 import { evalDigest, createEvalComparison } from "./evidence.js";
 import { outcomeDigest } from "./outcomes.js";
+import { assertVerify01ExecutionWindow } from "./verify01-execution-window.js";
 import {
   readBytes,
   readJson,
@@ -30,7 +31,8 @@ export const VERIFY01_SUITES = [
 const agentBindings = new WeakSet();
 const EMPTY_DELIVERABLE_DIGEST = evalDigest(Buffer.alloc(0));
 
-function createAgentBinding(directory, allowedPaths, provider, model) {
+function createAgentBinding(directory, allowedPaths, provider, model, window) {
+  assertVerify01ExecutionWindow({ window });
   const workspace = canonicalDirectory(directory);
   for (const relative of allowedPaths) {
     const file = regularPath(workspace, relative);
@@ -72,6 +74,7 @@ function createAgentBinding(directory, allowedPaths, provider, model) {
     root,
     provider,
     model,
+    executionWindow: Object.freeze({ ...window }),
     allowedPaths: Object.freeze([...allowedPaths]),
     environment,
   });
@@ -86,6 +89,7 @@ export function captureVerify01AgentBinding(binding, directory) {
     agentBindings.has(binding),
     "unrecognized VERIFY01 agent binding",
   );
+  assertVerify01ExecutionWindow({ window: binding.executionWindow });
   requireValue(
     canonicalDirectory(directory) === binding.workspace,
     "VERIFY01 agent binding belongs to another workspace",
@@ -420,6 +424,9 @@ export function loadVerify01Suite(options = {}) {
       costBudgetUsd: sample.costBudget,
       expectedFiles: [...reviewed.allowedChangedPaths],
       async setup(directory, budget) {
+        receipt.windowAdmission = assertVerify01ExecutionWindow(bundle.plan, {
+          requiredTimeMs: sample.timeBudgetMs,
+        });
         receipt.workspace = directory;
         receipt.checkout = await materializeCheckout(
           projectRoot,
@@ -450,6 +457,7 @@ export function loadVerify01Suite(options = {}) {
           reviewed.allowedChangedPaths,
           options.provider,
           options.model,
+          bundle.plan.window,
         );
         receipt.agentBinding = {
           workspace: agentBinding.workspace,

@@ -1266,3 +1266,15 @@ CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `875
 另已结算此前发行：准确 **311e01a5ec34a8e433c7abde0e4b6b05bce4513b** 完整发行矩阵通过，OIDC run38231920482 发布 CLI **0.166.99**；Open VSX **0.37.143** 与 JetBrains **0.4.161** tag run38234861662/38234862629 成功。14 个公开 npm 包、13 子包可信复用/安装身份与双 IDE 公开下载内容核验完成，JB update1192210 已 approved/listed/hidden=false。135 份原件见[发行公开回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-public/README.md)。npm 安装回读禁用 lifecycle scripts，不代替原生功能验收；VS Code 此处为既定 Open VSX 渠道。
 
 正式 36+9 保持 **NOT_RUN / observed=0 / $99**。独立人工预审、受控账号硬额度/账单、目标 GUI/真人辅助技术、Windows/macOS native durable、8h/24h 与正式 SLO 仍未关闭。旧源码成绩、发布来源与本次工程分别绑定，不改写历史失败、冻结指纹或窗口。
+
+### 20.53 2026-10-12 正式 36+9 v2 与窗口准入
+
+用户要求处理正式36+9。原计划在2026-10-12 00:00 UTC结束且observed=0，按其约定另建[v2计划](./cli/verify01-plan-2026-10-12-v2/README.md)，窗口2026-10-12 14:46:52.556至2026-10-19 14:46:52.556 UTC。新指纹为 `sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd`；原目录/指纹/窗口不变。validator自动断言仅window改变、catalog和bindings原字节一致、revision新旧指纹绑定；仍36任务+9独立首次旅程、固定项目b2aa3aba082873570e85dce39b00754e5504ff37和共享$99，无追加额度。
+
+新完整72份setup/check与可移植[审阅包预览](./cli/verify01-plan-2026-10-12-v2/review-preview/README.md)已准备。其历史image pin未在本轮重验，reviewDigest为 `sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79`；实际Actions镜像改变则新包须自己的人工预审。首批Linux CLI为verify-04/22（Volcengine）、verify-13/31（OpenAI）及独立first-run-linux-cli，最大$11属于共享$99。外部审阅人员/记录、账号额度/可靠计量及受控配置名尚缺，不保存key。
+
+补齐实际执行窗口边界：CLI在checkout/setup前检查完整任务预算，保存的不可变Agent binding在实际launch前重验；IDE preparation在建目录/setup前拒绝未开始、过期或时间不足，并用同一时间戳计算deadline。实际IDE提交仍需driver检查state.deadline/window。准确4e6ae449a57ecfa16e32f53a43b2d7dd61326742的两模块隔离副本8项全部失败，24项未选中；最终六文件Windows22.22.2 / WSL Ubuntu22.12.0各177/177、零fail/skip。最初8失败、较窄65/65、原Git blob/别名源/测试/复现脚本和最终报告共44份双摘要原件见[窗口与准备证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-v2-preparation/README.md)。这不是正式Docker宿主验收；公开CLI0.166.99没有取得新guard，新源需自己的准确CI。
+
+新增 `VERIFY01 Formal Keyless Preflight`：真实Ubuntu24.04/Node22.12.0/Docker，固定项目checkout，全72份实际image review，正常公开CLI0.166.99安装（启用lifecycle），registry/SRI/lock身份与版本核验。旧发行summary先验证manifest摘要、OIDC VERIFIED和不可变字节通过，归档原summary/manifest及当前package-lock。workflow无provider凭据，不认证/执行Agent/写observations；当前完成静态语法校验，尚未实际运行。Astra只读复核及建议修复已落实，不作为独立人工签核。
+
+只读collection原process Buffer已归档，退出2且reviewValidated=true仅为机械校验，仍INSUFFICIENT_EVIDENCE。两计划正式 **NOT_RUN / task observed=0/36 / firstRun observed=0/9**，totalCost和维护时间未知；账号硬额度/账单、合规Windows11/macOS15 arm64、目标GUI/native/durable、真人辅助技术、8h/24h与SLO仍未关闭。没有新增付费调用、发行或合并。
