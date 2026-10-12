@@ -1412,6 +1412,7 @@ final class ConversationView {
     /** Two-stage native chooser: canonical turn projection, then CLI-enabled action. */
     private void showCheckpointTimeline(String sid,
             RewindCommands.TimelineProjection timeline, File cwd) {
+        if (!isRewindCurrent(sid)) return;
         if (timeline.entries.isEmpty()) {
             append("ℹ /rewind: this session has no persisted timeline entries yet.\n");
             return;
@@ -1431,14 +1432,32 @@ final class ConversationView {
                     UiEventDiagnostics.observeFailure(Stage.POPUP_CALLBACK_FAILED,
                             Map.of("type", "checkpoint-timeline", "kind", "timeline"), trace, sid,
                             () -> {
-                                if (index >= 0) showTimelineActions(
-                                        sid, timeline.entries.get(index), cwd);
+                                if (index < 0) return;
+                                // The platform may run this callback while disposing the
+                                // first popup, even through doWhenFocusSettlesDown.
+                                // Create the next native window after that dispatch ends.
+                                SwingUtilities.invokeLater(() -> UiEventDiagnostics.observeFailure(
+                                        Stage.POPUP_CALLBACK_FAILED,
+                                        Map.of("type", "checkpoint-timeline", "kind", "timeline"), trace, sid,
+                                        () -> {
+                                            recordRewindPopup(Stage.POPUP_HANDOFF_ENTERED, trace,
+                                                    "timeline", sid, index, labels.size(), null, null);
+                                            if (!isRewindCurrent(sid)) {
+                                                recordRewindPopup(Stage.POPUP_STALE, trace,
+                                                        "timeline", sid, index, labels.size(), null, null);
+                                                return;
+                                            }
+                                            showTimelineActions(sid, timeline.entries.get(index), cwd);
+                                        }));
+                                recordRewindPopup(Stage.POPUP_HANDOFF_SCHEDULED, trace,
+                                        "timeline", sid, index, labels.size(), null, null);
                             });
                 }), trace, "timeline", sid, labels);
     }
 
     private void showTimelineActions(String sid,
             RewindCommands.TimelineEntry entry, File cwd) {
+        if (!isRewindCurrent(sid)) return;
         java.util.List<String> labels = new java.util.ArrayList<>();
         java.util.List<String> actions = new java.util.ArrayList<>();
         for (String action : entry.enabledActions) {
@@ -1462,11 +1481,21 @@ final class ConversationView {
                             Map.of("type", "checkpoint-timeline", "kind", "actions"), trace, sid,
                             () -> {
                                 if (index < 0) return;
+                                if (!isRewindCurrent(sid)) {
+                                    recordRewindPopup(Stage.POPUP_STALE, trace, "actions", sid,
+                                            index, labels.size(), null, null);
+                                    return;
+                                }
                                 String action = actions.get(index);
                                 Map<String, Object> submission = entry.actionSubmission(action);
                                 previewTimelineAction(sid, entry, action, submission, cwd);
                             });
                 }), trace, "actions", sid, labels);
+    }
+
+    private boolean isRewindCurrent(String sid) {
+        return !disposed && !project.isDisposed() && sid.equals(conv.sessionId)
+                && !sendInFlight && !turnActive;
     }
 
     /** Opt-in observations only: preserve the chooser's own close/focus/callback ordering. */

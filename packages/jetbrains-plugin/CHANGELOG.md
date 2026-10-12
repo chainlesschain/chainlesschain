@@ -6,6 +6,10 @@
   commit's complete CLI, IDE and ARM64 release gates.
 - Pair with cancellable Retry-After handling capped at 60 seconds, terminal
   error and visible-output replay guards, and corrected chat token callbacks.
+- Add opt-in checkpoint chooser diagnostics for real-host selection, closure
+  and focus observations while preserving existing transition deadlines.
+- Open checkpoint actions on the next EDT dispatch after the timeline chooser
+  closes; discard handoffs when the view, project or session becomes stale.
 - Retain the bridge compatibility floor; formal evaluation and native/durable
   acceptance remain separately evidenced.
 
