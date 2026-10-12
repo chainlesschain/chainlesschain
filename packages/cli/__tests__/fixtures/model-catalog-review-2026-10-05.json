@@ -39,13 +39,22 @@
     {
       "provider": "anthropic",
       "model": "claude-sonnet-5-5",
+      "pricingReview": {
+        "reviewedAt": "2026-10-12",
+        "scope": "Cache-read price only; upstream CLI review baseline unchanged",
+        "sources": [
+          "https://platform.claude.com/docs/en/about-claude/pricing",
+          "https://claude.com/pricing",
+          "https://code.claude.com/docs/en/changelog#2-1-296"
+        ]
+      },
       "runtimeProtocol": "anthropic-messages",
       "contextWindowTokens": 1000000,
       "advertisedMaxOutputTokens": null,
       "pricing": {
         "in": 2,
         "out": 10,
-        "cacheReadMultiplier": 0.1,
+        "cacheReadMultiplier": 0.05,
         "longContext": null,
         "serviceMultipliers": null
       }

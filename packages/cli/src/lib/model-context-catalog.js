@@ -148,9 +148,10 @@ export const DOCUMENTED_ANTHROPIC_MODELS = Object.freeze({
     contextWindowTokens: 1000000,
     advertisedMaxOutputTokens: null,
     pricing: Object.freeze({ in: 2, out: 10 }),
-    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.1 }),
+    pricingTerms: Object.freeze({ cacheReadMultiplier: 0.05 }),
     sources: Object.freeze([
       "https://code.claude.com/docs/en/changelog#2-1-284",
+      "https://platform.claude.com/docs/en/about-claude/pricing",
     ]),
   }),
   "claude-opus-5-5": Object.freeze({
