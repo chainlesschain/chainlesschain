@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-10-12T18:18:47.108Z",
+  "source": "packages/cli/src/harness/worktree-isolator.js",
+  "beforeSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+  "afterSha256": "0978ed3c1b8a756b67365c9d98d052b851b771f242a0bfe02cc35a7d5c51f84b",
+  "normalizedAstSha256": "7146c55c648d122abd2635a71cd0becb485aced96308add50d0d225f013bc17f",
+  "acornOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "excludedAstKeys": [
+    "start",
+    "end",
+    "loc",
+    "raw"
+  ],
+  "normalizedAstEqual": true,
+  "unchangedTestSha256": "83921b021049893fa6f5ef561a3b782dcd2b2ab4a7ef242cdbd7bb580b480a57",
+  "preFormatting10TestPassTransferred": false,
+  "existing52Rerun": false,
+  "finalCommitCiRequired": true,
+  "scope": "AST comparison excludes source positions and literal raw spellings; it is not runtime execution or a general behavioral proof."
+}

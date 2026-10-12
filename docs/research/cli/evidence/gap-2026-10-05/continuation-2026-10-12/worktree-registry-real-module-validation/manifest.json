@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T18:09:22.778Z",
+  "summarySha256": "d165d0482dab9364fb7b1e33a63de3c98544fd5675131c80a4f8cf19825e7343",
+  "readmeSha256": "de45d947b35e1d56c5aeb634f879222d939e789055ee5c401a6c30ac2c81dac7",
+  "entries": [
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/during-worktree-registry-read-retry.test.js",
+      "path": "objects/000.gz",
+      "rawBytes": 6756,
+      "rawSha256": "83921b021049893fa6f5ef561a3b782dcd2b2ab4a7ef242cdbd7bb580b480a57",
+      "bytes": 2007,
+      "sha256": "9b41bf5ed99b7f6cd9e5c9f73d512a0d83ebc6b8ce460b15cde93918a62833c3"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/execution-result.json",
+      "path": "objects/001.gz",
+      "rawBytes": 1054,
+      "rawSha256": "4d61f151afbe76b2712c2a8bbe44550bfd3d562ac1ef5c128bf08a0bb719e6e3",
+      "bytes": 460,
+      "sha256": "d4a347d16be5d3414b1a63f980a25fe65f9c24e63c76a39c2ad56db75eb1d48a"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/execution-start.json",
+      "path": "objects/002.gz",
+      "rawBytes": 929,
+      "rawSha256": "4eac1ded7b9404c781e1cace38b9d57b746e0d4a0f54c7f88dbb9bd868e5d67e",
+      "bytes": 398,
+      "sha256": "da3422e7e3b3ee2fe488345538791b0d377945e95db33f6779a2791b9165f4c6"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/review-validation.json",
+      "path": "objects/003.gz",
+      "rawBytes": 11296,
+      "rawSha256": "70c33aa718033b80f9b3a5f69c20dbbc9e1686a6e8cf871dc4b72374aa13e6b0",
+      "bytes": 3224,
+      "sha256": "27bc20688b07d89ef135d0561535978281eaae741d316c7c8c3124ab3c5a145c"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/run.cjs",
+      "path": "objects/004.gz",
+      "rawBytes": 3375,
+      "rawSha256": "c585daef8b010b9066aed722ae26b35e70359e3f8c9809a45990b6025b29a1f1",
+      "bytes": 1266,
+      "sha256": "0b6c5cc5a0b14d53d8c4d5847a95ef33171179f9bc179cee31a6db50e9a399e4"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/source-after.json",
+      "path": "objects/005.gz",
+      "rawBytes": 2181,
+      "rawSha256": "ecaa74b6f5a7c30a279393b81c8e57a69e230974000aacde98c882cdcc744985",
+      "bytes": 857,
+      "sha256": "fb9a853d2ee9fbfd393b5cb79b02b1f6f0b69739c36558de216439ca0274e955"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/source-before.json",
+      "path": "objects/006.gz",
+      "rawBytes": 3066,
+      "rawSha256": "c6859261a427d0145d6a94795ce3c79ecf4d01cac0b00606f91524522272c4a4",
+      "bytes": 992,
+      "sha256": "c981406509af89d8a059d005fc524371124e62906a80a708655b16b39c413d62"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/source-during.json",
+      "path": "objects/007.gz",
+      "rawBytes": 2532,
+      "rawSha256": "46cebae840beabb7524c2b9f219ffaac659820e6dfab726877367074b1ffdbd1",
+      "bytes": 930,
+      "sha256": "d77b238f86234e117a4f4116019b0c3eb10cbb5e874540243ea20e7d4eba6835"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/stderr.log",
+      "path": "objects/008.gz",
+      "rawBytes": 11940,
+      "rawSha256": "5eeeaabb364c407769da89a72cf4c5f11829906c8dc21ec4cffce5a94e6bada3",
+      "bytes": 267,
+      "sha256": "7749f3b64a7fa6ce431c02763c875c837aa31da284e66c2ee14b10708ac3e5ce"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/stdout.log",
+      "path": "objects/009.gz",
+      "rawBytes": 5536,
+      "rawSha256": "6e91255f784fd9f23a3d476e9cafa648c06791756b0c47a713aa908367bf67f4",
+      "bytes": 1986,
+      "sha256": "c22c1abddb85017f4791b2a264b8f5ed8a50c0d2ce5a2847d8944ff5f6003621"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/vitest-results.json",
+      "path": "objects/010.gz",
+      "rawBytes": 21746,
+      "rawSha256": "fd8736cc4ebbce6267311ae78df25195a798d12180fb9a865fc7db83afb1a46f",
+      "bytes": 3178,
+      "sha256": "3dae3d0c7d2fa4ba9325af1af50328be6c49f9565025e2c80538ad3a4bed2040"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/vitest.config.mjs",
+      "path": "objects/011.gz",
+      "rawBytes": 264,
+      "rawSha256": "b231d52968fb75f0ef2ebbc268d52646debe3dd446b2153e74cf9344575d7c7d",
+      "bytes": 195,
+      "sha256": "865b8b73dc5bb165b060d2efa132e439ee31cd7ae919f14ccd78b2d5b2819323"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/00-worktree-registry-read-retry.test.js",
+      "path": "objects/012.gz",
+      "rawBytes": 6704,
+      "rawSha256": "00ab223f34e10f776a60855772e63c9e5f0fc6b15c0c7205a5bbbd8fd1bb7cf9",
+      "bytes": 1988,
+      "sha256": "af91c70606f15336ad72ca779f10fbafb0da0c02d2230680b3265bad3367050d"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/01-worktree-isolator.test.js",
+      "path": "objects/013.gz",
+      "rawBytes": 38853,
+      "rawSha256": "30352398551a06f2b6dcd55917aba956e75fa85c4426cf6917e54df6c501b95b",
+      "bytes": 7015,
+      "sha256": "0006ec0e38b8429e3d36fe518031fdada291a12b3e4f85ebca85297a968a33f4"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/02-worktree-isolator.js",
+      "path": "objects/014.gz",
+      "rawBytes": 54976,
+      "rawSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+      "bytes": 13876,
+      "sha256": "753aa503a68f2278003e4f5e3de842106ad65a220c04ce0798ac6bc1ebdf16bd"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/03-worktree-isolator.js",
+      "path": "objects/015.gz",
+      "rawBytes": 511,
+      "rawSha256": "f32423e5df3d142e298a6200c6ee4b948061320d4868af7c5f05f917f2949d6b",
+      "bytes": 271,
+      "sha256": "9fcc6d57cdae87283fc8fc9217332a65988fcf4844c7bc6d18726108146642db"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/04-git-integration.js",
+      "path": "objects/016.gz",
+      "rawBytes": 20713,
+      "rawSha256": "69629c4377f52d7b8306b32d1d6d7fff1271748fde5edc9dcffd44403eece88c",
+      "bytes": 5903,
+      "sha256": "fcde93dca797a6d24e8a979975b8497e45464a513a9260ccc694135f83fd7401"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/05-worktree-sparse.js",
+      "path": "objects/017.gz",
+      "rawBytes": 5671,
+      "rawSha256": "6934131bfcffbe27c773af6fd772a31f5cb8545ba28c9b319f9317d6cec00628",
+      "bytes": 2283,
+      "sha256": "6f900812c61bb6ac3c9e20d25f430caf1b016ed4c08b317c7c051ef5a3d52f13"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/06-worktree-cleanup-safety.js",
+      "path": "objects/018.gz",
+      "rawBytes": 5994,
+      "rawSha256": "841add12a6c784624cdfd04e863f2ab5eeaf36709cf6f1ab7d7eefa35d757336",
+      "bytes": 2542,
+      "sha256": "ea8a3863c923bd53d3dbd1c445c1645f8925c3ecfb93c167fe4d77147e5385f7"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/07-index.js",
+      "path": "objects/019.gz",
+      "rawBytes": 216534,
+      "rawSha256": "ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a",
+      "bytes": 40459,
+      "sha256": "c4990eb8df10ca0afa7f340243983c6f531d93109fb0a45acb44920c42f2a7b9"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/08-vitest.config.js",
+      "path": "objects/020.gz",
+      "rawBytes": 3515,
+      "rawSha256": "2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08",
+      "bytes": 1741,
+      "sha256": "4d034ed7e8dd9af5a867b51390c006dbcf155945b3f0d02075a4726f55647963"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/09-windows-sandbox-adapter-temp-root.js",
+      "path": "objects/021.gz",
+      "rawBytes": 846,
+      "rawSha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1",
+      "bytes": 389,
+      "sha256": "2d51b34e08fbd2f927854aad48c8bf63c453a555ba94bac7e515c12e6d85e157"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/10-windows-sandbox-adapter-cleanup.js",
+      "path": "objects/022.gz",
+      "rawBytes": 1490,
+      "rawSha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+      "bytes": 699,
+      "sha256": "7d2a0217fe839b95cb327568e6320ddb7f3c08e6495238da9ff9ca897a9e136e"
+    },
+    {
+      "source": ".work/worktree-registry-real-module-validation-20261013-nLDxAX/sources/11-agent-evolution-test-boundary.js",
+      "path": "objects/023.gz",
+      "rawBytes": 4922,
+      "rawSha256": "c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516",
+      "bytes": 1387,
+      "sha256": "f601e368d02a94c759070c7302ba9f90dc86b1992e426c838105fe856a3ad7fc"
+    }
+  ]
+}

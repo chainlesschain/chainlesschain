@@ -1,0 +1,9 @@
+# Isolated worktree-registry fault-injection validation
+
+The single changed-file run passed 10 tests in 19.924 seconds with no failures, skips, pending or todo tests. Thirteen candidate input files were stable, including final test bytes 83921b021049893fa6f5ef561a3b782dcd2b2ab4a7ef242cdbd7bb580b480a57. Actual Vite transform-input hashes agree with the observed bytes and the copied candidate input manifest. The prior 52 existing tests were not rerun or added to this count; extracted-function mock results remain separate.
+
+All 267 load observations bind 228 distinct file byte hashes and were independently checked against saved loaded-source bytes. Scope is 67 r100 candidate files, 158 shared node_modules files, two shared root session-core files and one validation configuration. This is source-isolated supplementary testing with shared dependencies, not a hermetic build or final release-commit gate.
+
+The archive includes raw bytes for the 67 candidate modules, two root modules, configuration, 13 candidate snapshots, input manifest, observers, traces, receipts, stdout/stderr and reporter. The 158 shared dependency member bytes are omitted to avoid duplicating large binaries. Their sizes/hashes and available original package-lock version/resolved/SRI mappings are preserved. Tarball SRI is package metadata, not independently verified installed-member provenance; missing SRI remains null. Exact reconstruction of omitted member bytes is not claimed. Temp Git fixtures and Vite cache are excluded.
+
+Only targeted fault injection with real public modules and Git fixtures passed. No natural concurrent Git race or final multi-OS gate is established. Formal evaluation remains NOT_RUN, 0/36 and 0/9. No product, r100 source, Git or provider action was taken during archival. See [summary.json](./summary.json) and [manifest.json](./manifest.json).
