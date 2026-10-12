@@ -1,5 +1,20 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+## 当前续做状态（2026-10-12）
+
+整体任务仍有外部验收和平台实现未关闭，当前以本表及最新增量为准。
+
+| 范围                                     | 当前状态                               | 仍需完成                                                                |
+| ---------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| CLI 0.166.99 / 配对双 IDE                | 准确311e完整发行门、OIDC和公开回读完成 | 后续源码重新验证自身矩阵                                                |
+| Retry-After / 服务端终态 / 可见输出重放  | 工程实现与双平台248/248回归完成        | 本次准确源码Actions、实际provider场景；模型WebSocket另验                |
+| MODEL-03 / MODEL-04 / UTF-8 / Workbench  | 已有工程随0.99发行，原证据保留         | 官方endpoint与usage/账单、上游候选场景及正式SLO分别验收                 |
+| VERIFY-02 / VERIFY-IDE-02                | 正式项目0/36、首次安装0/9，NOT_RUN     | 合规九入口、独立人工预审、受控账号硬额度与完整产物/费用                 |
+| PLATFORM-02 / NET-02 / 完整native review | durable=false、NOT_ADMITTED            | Windows/macOS存储broker、连续authority、写入/CAS/journal/恢复与网络撤销 |
+| 真人辅助技术 / 8h/24h / SLO              | 未完成                                 | 实际人员、目标宿主与批准的观测计划；不改冻结窗口或回填样本              |
+
+> **2026-10-12 Retry-After 工程完成与 .99 发行结算**：Agent/Chat 已接入 header 截止时间、60秒等待上限与即时取消；HTTP/Responses终态不自动重放，纯空白、思考输出与部分工具调用的重放边界已修复。正确夹具在原源码隔离副本24/24失败，最终Windows/Linux各 **248/248**（12文件，含费用归集38项），见[生产回归与源摘要](./evidence/gap-2026-10-05/continuation-2026-10-12/retry-after-transport/README.md)。准确 **311e01a5ec34a8e433c7abde0e4b6b05bce4513b** 的完整发行门、Actions OIDC及公开回读已完成：CLI **0.166.99**、Open VSX **0.37.143**、JetBrains **0.4.161**（update1192210，approved/listed且公开可下载）；135份原件保存14个npm公开包、13子包复用及双IDE逐内容对照，见[发行结算](./evidence/gap-2026-10-05/continuation-2026-10-12/release099-public/README.md)。**本次重试源码尚未新发行，须自身准确提交CI**；0.99旧门不转移。正式 **36+9 / NOT_RUN / observed=0 / $99**、人工/账号硬额度/账单/目标GUI/辅助技术/native durable/8h/24h/SLO仍开放，本轮无新付费调用。以下旧记录保留各自历史时点。
+
 > **2026-10-11 第四轮 CI 夹具与端口修复**：安装误取准备步骤、三个 CLI 旧末尾 user 假设与 JetBrains HTTP 停止不等于端口释放均已修复。安装双平台 6/6、既有合同 56/56，最终 Windows CI integrity 60/60；CLI 双平台 11/11 和 E2E 1/1，坏请求即时失败。端口 Windows 6/6；WSL1 4pass/2fail 与双 listener 探针完整保留，原生 Linux/macOS 待 Actions。518 个双摘要原件及 head/merge 来源见[失败依据、优化与限制](./evidence/gap-2026-10-05/release-0.166.98/ci-repair4/README.md)。旧 821 的六门通过不能转移给新提交。新发行候选须自己的七门 71/5/19/10/3/3/3，以及 Full Test、PR Tests 和 Host Diagnostics 修复验证；用户已授权通过后按 Actions OIDC 子包 → CLI → IDE 发布并公开回读，当前未新增发行、付费复跑或合并。正式 **36+9 / NOT_RUN / observed=0 / $99** 和冻结指纹不变，人工预审、账单/硬额度、目标 GUI/辅助技术、native/durable 与 8h/24h/SLO 仍开放。 以下历史时点保留。
 
 > **2026-10-11 固定 owner-only 宿主读取原型**：在冻结 53ad9df 的独立 Windows 普通非管理员实验中，固定 owner-only 文件的宿主只读 RPC 完成一次实际运行：**9 请求 = 1 成功 / 8 拒绝**，合法读取真实返回 16 字节；actor 六项直接路径操作仍全部 Win32 5，目标 HANDLE 不继承。原 HANDLE/Job/profile/通道完成结算；身份与对象前后快照只证明检查时点，未建立连续 authority 或 atomic fencing。独立静态回读 **25/25 = 4 原件检查 + 21 篡改拒绝**，并非 25 次 RPC。 66 份双摘要原件及冻结来源见[实际结果与边界](./evidence/gap-2026-10-05/owner-canary-rpc-2026-10-11/README.md)。写入/CAS、flush/崩溃恢复、防回滚、服务自身保护和长期运行仍未实现，保持 **NOT_ADMITTED / durable=false**；正式 **36+9 / NOT_RUN / observed=0 / $99**、冻结窗口及其余人工/账单/GUI/辅助技术/长时验收不变，本轮零付费调用。 以下历史记录保留。

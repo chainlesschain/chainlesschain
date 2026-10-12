@@ -1256,3 +1256,13 @@ macOS旧准确fdead P95=2113ms /2s失败继续保留，三次命令链本身未�
 CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `8750f6afc346458115ff0e84ec9963f3dec79ffa`。用户授权测试成功后直接发布；当前七门与适用CI/Host仍有运行/排队项，不能创建发布tag或记作完成。06:29:17 UTC快照及实际checkout/tree日志见[原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-release099-inflight/README.md)。
 
 13子包源码不变，版本保留。新版公开回读工具已严格绑定上一轮VERIFIED公开包字节与候选Git tree，Kernel/SDK/Protocol保留原签名来源，CLI要求本次exact-release；[57项离线合同与helper原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-readback-preparation/README.md)通过仅是工具自检。双IDE回读计划通过，没有执行实际发行collect。正式36+9仍NOT_RUN/observed=0/$99；旧fdead macOS P95=2113ms原失败保留，2s/100样本要求不放宽，未新增付费provider调用。
+
+### 20.52 2026-10-12 Retry-After 生产接线与 .99 公开发行结算
+
+已在共享 `stream-retry` 接入响应 status、Retry-After 截止时间、60 秒最大等待与即时取消。Agent 四种流式协议及聊天三种协议复用同一等待规则，HTTP 4xx/5xx 与 Responses 终态继续直接返回，不因 header 放开重放；只有既有零输出 transport 恢复才使用剩余等待。超长 header 拒绝重试，不截短为更短时间。修复 chat HTTP timeout 误分类、Responses failed/completed/incomplete 后断线、纯空白/thinking/部分工具重放，并保留终态 usage、严格 observer 和取消的权威性；聊天 token sink 的既存 options 作用域错误同步修复。
+
+原准确 `83ce1d6d42658bab2e5dcd34045da6873962aef6` 四模块隔离副本的 24 条生产路径回归全部失败；最终 12 文件 Windows Node22.22.2 与 WSL Ubuntu Node22.12.0 各 **248/248**，含严格费用归集 38 项。其余 10 条新时序/背压/终态回归未记为原源码失败。初始六项错误 gateway fixture 与两项旧断言失败保留，正确官方 endpoint fixture 已单独复现原源码。31 份双摘要原件和执行源摘要见[工程证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/retry-after-transport/README.md)。本次新源码仍需自身准确 Actions，未新发布或付费调用。
+
+另已结算此前发行：准确 **311e01a5ec34a8e433c7abde0e4b6b05bce4513b** 完整发行矩阵通过，OIDC run38231920482 发布 CLI **0.166.99**；Open VSX **0.37.143** 与 JetBrains **0.4.161** tag run38234861662/38234862629 成功。14 个公开 npm 包、13 子包可信复用/安装身份与双 IDE 公开下载内容核验完成，JB update1192210 已 approved/listed/hidden=false。135 份原件见[发行公开回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-public/README.md)。npm 安装回读禁用 lifecycle scripts，不代替原生功能验收；VS Code 此处为既定 Open VSX 渠道。
+
+正式 36+9 保持 **NOT_RUN / observed=0 / $99**。独立人工预审、受控账号硬额度/账单、目标 GUI/真人辅助技术、Windows/macOS native durable、8h/24h 与正式 SLO 仍未关闭。旧源码成绩、发布来源与本次工程分别绑定，不改写历史失败、冻结指纹或窗口。

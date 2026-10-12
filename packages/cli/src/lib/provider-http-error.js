@@ -3,6 +3,11 @@
  * Keep structured provider diagnostics while redacting credential-shaped text.
  */
 
+import {
+  attachStreamRetryMetadata,
+  captureStreamRetryMetadata,
+} from "./stream-retry.js";
+
 function safePart(value, secrets = []) {
   if (value == null) return "";
   let text = String(value);
@@ -110,4 +115,15 @@ export async function formatProviderResponseError(
   return formatProviderHttpError(provider, response.status, payload, {
     secrets,
   });
+}
+
+/** Keep response status authoritative even if reading its error body fails. */
+export async function createProviderResponseError(provider, response, options) {
+  const metadata = captureStreamRetryMetadata(response);
+  let message = await formatProviderResponseError(provider, response, options);
+  const remaining = metadata.retryAfterAt - Date.now();
+  if (Number.isFinite(remaining) && remaining > 0) {
+    message += ` Retry-After: wait at least ${Math.ceil(remaining / 1000)}s before an explicit retry.`;
+  }
+  return attachStreamRetryMetadata(new Error(message), metadata);
 }

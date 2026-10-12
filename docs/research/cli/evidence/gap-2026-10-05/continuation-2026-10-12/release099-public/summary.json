@@ -1,0 +1,179 @@
+{
+  "schema": "release099.publication-archive/v1",
+  "capturedAt": "2026-10-12T14:04:44.877Z",
+  "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "status": "PUBLIC_READBACK_VERIFIED",
+  "versions": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161"
+  },
+  "cli": {
+    "runId": "38231920482",
+    "oidcVerified": "VERIFIED",
+    "registryArchiveCount": 14,
+    "childCount": 13,
+    "childrenReused": true,
+    "immutableCliBytesMatch": true,
+    "publicCliInstall": {
+      "schema": "chainlesschain.cli-public-dependency-install.v1",
+      "package": "chainlesschain",
+      "version": "0.166.99",
+      "cliSource": "public-npm-registry-lock",
+      "cliArchive": {
+        "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.99.tgz",
+        "integrity": "sha512-DiPW+mWBLsbidbuFXu/DKtTlQyTkG0gs2SRBBpuGHmtuP8zVGDyscIEyzI5JlZmh8wg4O63Q8x3pDSucBnylfQ=="
+      },
+      "childrenSource": "https://registry.npmjs.org",
+      "children": [
+        {
+          "name": "@chainlesschain/core-db",
+          "version": "0.1.5",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+          "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+        },
+        {
+          "name": "@chainlesschain/core-env",
+          "version": "0.1.2",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+          "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+        },
+        {
+          "name": "@chainlesschain/core-mtc",
+          "version": "0.2.3",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+          "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+        },
+        {
+          "name": "@chainlesschain/core-infra",
+          "version": "0.1.1",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+          "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+        },
+        {
+          "name": "@chainlesschain/core-config",
+          "version": "0.1.2",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+          "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+        },
+        {
+          "name": "@chainlesschain/session-core",
+          "version": "0.3.19",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.19.tgz",
+          "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg=="
+        },
+        {
+          "name": "@chainlesschain/core-multisig",
+          "version": "0.1.4",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+          "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+        },
+        {
+          "name": "@chainlesschain/shared-logger",
+          "version": "0.1.1",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+          "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+        },
+        {
+          "name": "@chainlesschain/personal-data-hub",
+          "version": "0.4.64",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+          "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q=="
+        },
+        {
+          "name": "@chainlesschain/context-memory-kernel",
+          "version": "0.1.9",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.9.tgz",
+          "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw=="
+        }
+      ]
+    }
+  },
+  "vscode": {
+    "runId": 38234861662,
+    "channel": "Open VSX",
+    "publicPackage": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.143/file/chainlesschain.chainlesschain-ide-0.37.143.vsix",
+      "sha256": "039b6e519a7d38e6297a8f7529dcbab2a345490b121fd97370ab941073f76981",
+      "bytes": 715820,
+      "canonicalContentSha256": "320ac80087bd5cf88fd3c422529b8c83dd77122706c51039d37d4684d89abb4c",
+      "archiveExactMatch": true
+    },
+    "packagedPlugin": {
+      "version": "0.37.143",
+      "pairedCliVersion": "0.166.99",
+      "tagArtifactSha256": "039b6e519a7d38e6297a8f7529dcbab2a345490b121fd97370ab941073f76981",
+      "versionCheckSourceMatchesReleaseBlob": true
+    }
+  },
+  "jetbrains": {
+    "runId": 38234862629,
+    "updateId": 1192210,
+    "approved": true,
+    "listed": true,
+    "hidden": false,
+    "publicPackage": {
+      "url": "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=1192210",
+      "sha256": "0f10eb96e3f52e26aa56f150a051984527b4efdfb5b6d0bfca3102b6dc66696d",
+      "bytes": 1525706,
+      "archiveExactMatch": false,
+      "allEntryBytesMatch": true,
+      "entries": [
+        {
+          "name": "chainlesschain-ide-bridge/",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "chainlesschain-ide-bridge/lib/",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.161.jar",
+          "bytes": 1613847,
+          "sha256": "18afdef592c5045681e4cc65ebee3997759a8b52b6dbeee80b43e228c01460bd"
+        },
+        {
+          "name": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.161-searchableOptions.jar",
+          "bytes": 1263,
+          "sha256": "b066147c2a253736fb6bc570c8f1bf2930ca822b14eb73a5273de5ee50a43ac7"
+        }
+      ]
+    },
+    "packagedPlugin": {
+      "version": "0.4.161",
+      "pairedCliVersion": "0.166.99",
+      "tagArtifactSha256": "d6510c923e0ad53df3d88a0281aaf455ba42555b646922f903679a8e2b58c209",
+      "classSha256": "fef918aabaf52c6e212c78d453167f686b5f520851616713053e22e41c9d1fb7",
+      "classPin": {
+        "className": "com/chainlesschain/ide/CliVersionCheck",
+        "fieldName": "RECOMMENDED_CLI_VERSION",
+        "descriptor": "Ljava/lang/String;",
+        "value": "0.166.99",
+        "majorVersion": 65,
+        "minorVersion": 0,
+        "classAccess": 49,
+        "fieldAccess": 25,
+        "constantPoolIndex": 9,
+        "utf8PoolIndex": 10,
+        "fieldAccessOffset": 2218,
+        "constantValueIndexOffset": 2232,
+        "constantValueLengthOffset": 2228,
+        "constantPoolEntryOffset": 101,
+        "evidence": "field-ConstantValue-CONSTANT_String-CONSTANT_Utf8",
+        "bytecodeExecuted": false
+      }
+    }
+  },
+  "formalStatus": "NOT_RUN",
+  "taskObservations": 0,
+  "firstRunObservations": 0,
+  "newPaidProviderCalls": 0,
+  "boundaries": [
+    "Release verification is separate from formal 36+9, billing/human/native/durable/long-duration acceptance.",
+    "Public npm install uses ignore-scripts; native functional installation is not asserted.",
+    "VS Code publication here is Open VSX. Official Visual Studio Marketplace is not established by the tag workflow.",
+    "Original fdead macOS SLA failure remains archived; new passing source does not erase or relabel it."
+  ]
+}

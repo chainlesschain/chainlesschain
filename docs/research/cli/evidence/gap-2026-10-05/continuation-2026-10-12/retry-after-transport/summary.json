@@ -1,0 +1,111 @@
+{
+  "schema": "chainlesschain.retry-after-continuation/v1",
+  "capturedAt": "2026-10-12T14:10:30.006Z",
+  "sourceBaseSha": "83ce1d6d42658bab2e5dcd34045da6873962aef6",
+  "status": "LOCAL_ENGINEERING_VERIFIED",
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/stream-retry.js",
+      "sha256": "4e002ab09a89194c4e67e348def7cede1a4d556ec8ff9e5d4852a31848680b65"
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "sha256": "2d5a4f1029ee41e6ea1d5b2fca702c4b8c0f37b5036a4c4ca583b8ac54bab6dc"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-http-error.js",
+      "sha256": "edc0239c32659a669eb5e8a2b4df670587bdac8673a70bf405f22369ec219c8e"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "4cd33e7336c80f915869cd0134867684a5277cb6697acb409e699a4b742865be"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/stream-retry-transport-boundaries.test.js",
+      "sha256": "795f766396e2c0bed8816b78063741d32f8b41cf6d74f15d5c0d484abb157b26"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/stream-retry-after.test.js",
+      "sha256": "bc13c76041c32a1f1dc402e26de3e74bb9b8387cb8d87d8db4dbb657f9b07361"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/stream-retry.test.js",
+      "sha256": "754f6c506ba029b97a9d2dff706111c0dc4ce4cd90bcdb0f35f5b439e4413dc1"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/stream-retry-provider-verdict.test.js",
+      "sha256": "794cb3e657daf4afdbf95e3cc82a6a28ec19345deb23fba961cbca2ccfff0c45"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/chat-core-retry.test.js",
+      "sha256": "c10e7bb6c34d26d69729fdc93bcc762b217d9b74b2377d3ac483351cadddc3ce"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/chat-core-stream-framing.test.js",
+      "sha256": "707f3d32e41bbfa0965c3f3c1d60327de0da6a6f88dc33c9822cb60e0a9cd639"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-streaming.test.js",
+      "sha256": "e87c6159f6db6bf01e9f04b3627a9b88e435d267e14f1014d806a24b94fdc0de"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-stream-resilience.test.js",
+      "sha256": "a097f2697c6f318ec0c601603a800c58f1762664c87d332755cd4fb44835f282"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-openai-responses.test.js",
+      "sha256": "fee3651a175fd0451ea1e2127e41cebe18fc83dd02dac854c2da8ea76687f284"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-stream-stall.test.js",
+      "sha256": "0aa0bc952722f4bc9b3a52469b18ea429358d2badc2a8d28d45869255742aa26"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-usage-boundary.test.js",
+      "sha256": "2a2937818c4198226f5a4b1a5592024b4aaa74b12298bb950a6410b796fb866c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-usage-attribution.test.js",
+      "sha256": "ca1cad705fb220e45b81a1cd8ed72c0651c3d82bd25df166f1c0bdcfe87f4665"
+    }
+  ],
+  "before": {
+    "passed": 0,
+    "failed": 24,
+    "skipped": 10,
+    "isolatedOriginalModules": true
+  },
+  "windows": {
+    "node": "22.22.2",
+    "passed": 248,
+    "failed": 0,
+    "suites": 12
+  },
+  "linux": {
+    "host": "WSL Ubuntu",
+    "node": "22.12.0",
+    "passed": 248,
+    "failed": 0,
+    "suites": 12
+  },
+  "maxRetryWaitMs": 60000,
+  "httpVerdictReplay": false,
+  "actualProviderAssessed": false,
+  "paidProviderCalls": 0,
+  "sourceCiVerified": false,
+  "newReleasePerformed": false,
+  "formal": {
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "status": "NOT_RUN",
+    "budgetUsd": 99
+  },
+  "boundaries": [
+    "Retry-After only delays already eligible zero-output transport retries; it never authorizes an HTTP/provider verdict replay.",
+    "HTTP metadata captures only status and a deadline; provider headers and credentials are not persisted.",
+    "24 original regressions fail using isolated copies of original modules; 10 additional timing/backpressure/terminal regressions are skipped in that original-source run.",
+    "Initial fixture routed Responses via a custom gateway; six initial failures are fixture-limited. Corrected official-endpoint fixture is independently reproduced against original source.",
+    "Intermediate two legacy assertion failures are retained: an extra fake clock read affected usage timing; abort now returns cancellation rather than the old transport error.",
+    "Local Windows/WSL checks do not replace exact-SHA Actions, real provider, macOS, independent human, billing, native durable or long-duration acceptance."
+  ]
+}
