@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T16:33:22.974Z",
+  "summarySha256": "a966a8ffc1b3ceb898874f26618d5ff6865043d8efebf5535cf2d108d1737469",
+  "entries": [
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\artifact-11758880908.zip",
+      "path": "objects/000.gz",
+      "rawBytes": 621123,
+      "rawSha256": "749e6928e67f02fee5ba2c18131faccbe5d27d17c6876964b41b628ac5e372b4",
+      "bytes": 364702,
+      "sha256": "463bcff24a1dca4a1fb0aef2843eecc357de386ef9ea421d2807d9448b5f8f8b"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\artifact-11758880908.zip.stderr",
+      "path": "objects/001.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\artifacts.raw.json",
+      "path": "objects/002.gz",
+      "rawBytes": 832,
+      "rawSha256": "77ceab2dc6c5d8afa84439af5e993d0582ee838e1146e1004e058cb00e5ccc62",
+      "bytes": 475,
+      "sha256": "7082534f307d8eb8a22410263b3c02eb867224f8222eb57c86b4f9c3719d7381"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\artifacts.raw.json.stderr",
+      "path": "objects/003.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\capture.json",
+      "path": "objects/004.gz",
+      "rawBytes": 11880,
+      "rawSha256": "abd3ad0cc26fced55eb9ae20c3d941486d7228599e33e7edae725d8438c348ed",
+      "bytes": 1377,
+      "sha256": "52d5ded658b49809420536112b11b959ffeda426a7521219d5a310709e4718e3"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\jobs.raw.json",
+      "path": "objects/005.gz",
+      "rawBytes": 3554,
+      "rawSha256": "572595799840aca45dbe473aac74bd2e1f6e5fc7dc21aec02e9e3bb2fa55cb4a",
+      "bytes": 970,
+      "sha256": "c93d7f6b5d581bd77ac65d66959b6eb203a0f554358410d3c32561825d27ca88"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\jobs.raw.json.stderr",
+      "path": "objects/006.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\run.log",
+      "path": "objects/007.gz",
+      "rawBytes": 206277,
+      "rawSha256": "1636e1d99755a7793237ba7837a458d694223db74779674c049ffd3e81eb6793",
+      "bytes": 21034,
+      "sha256": "914e3f7c629e9876575b086ef6b3f809fad5d6e1575def1c7a78680f16e28a7b"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\run.log.stderr",
+      "path": "objects/008.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\run.raw.json",
+      "path": "objects/009.gz",
+      "rawBytes": 13781,
+      "rawSha256": "d5a19b933312efcbb92611aa185b1ccbc831fc17ba978dd4d1fff948913f7a5e",
+      "bytes": 1660,
+      "sha256": "e89d63901a0a8dc41a643b30612d8cdee090e4fd06b07cf16eaa34fb75ab23f5"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\run.raw.json.stderr",
+      "path": "objects/010.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\runs.raw.json",
+      "path": "objects/011.gz",
+      "rawBytes": 9164,
+      "rawSha256": "5e5d92df8d891d9e410f39fa6446e3c357db00759cedb5a8d9e09c5b829abe5d",
+      "bytes": 1115,
+      "sha256": "aadee2a31ef9206f7a784077dbbff94aecb67cdeeb400df0db063304b1b59c04"
+    },
+    {
+      "source": ".work\\formal-keyless-actions-20261012\\2026-10-12T16-08-03.572Z\\runs.raw.json.stderr",
+      "path": "objects/012.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\image-node.txt",
+      "path": "objects/013.gz",
+      "rawBytes": 9,
+      "rawSha256": "982a3f2042b45aaa560e4cb8d6ffeca7e9d28dc60c6d545fd716dd4b813053fd",
+      "bytes": 29,
+      "sha256": "a27b6467854eab6a0a4b3bb9266a83779b896e42ec7d5efd99225924a0e4c589"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\image.json",
+      "path": "objects/014.gz",
+      "rawBytes": 3421,
+      "rawSha256": "465359945428836e95ec92af844b6b5b1db5ff95f9056a9849be7a734bbb2bb6",
+      "bytes": 1361,
+      "sha256": "cfdcb5615ac88d072dcefcde0f22838b5d683335b3e0c8147b8ded34b8f7ce8d"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\install.stderr",
+      "path": "objects/015.gz",
+      "rawBytes": 243,
+      "rawSha256": "9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b",
+      "bytes": 188,
+      "sha256": "8fd892a6b6c79787f5330cb4c305ceb36efd4b927a5011f7bdb42dfaf5eba8e9"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\install.stdout",
+      "path": "objects/016.gz",
+      "rawBytes": 27,
+      "rawSha256": "4c426d592f332799a28f83a4ed8f274dec3894d82d97c5c56d0892bc15f18387",
+      "bytes": 47,
+      "sha256": "e13fcb049d014cfcf612e4bc9532a4f98ea9d75f91ba6f77e3485d4e388ecbe9"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\package-lock.json",
+      "path": "objects/017.gz",
+      "rawBytes": 209483,
+      "rawSha256": "f00815e8b7be05eb7fb47c4b54027e904f472d1ac5afec5fabf44c50e388288d",
+      "bytes": 43148,
+      "sha256": "37643477d1993347323b82d2a1ab857083517ed3316a532b14a392a5b61e62da"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\prior-manifest.json",
+      "path": "objects/018.gz",
+      "rawBytes": 60693,
+      "rawSha256": "75b145495fc4abe2162c8db6b9b93993958b490fd8241b2ff8f724aa38b325f2",
+      "bytes": 12822,
+      "sha256": "231f036aea31ecc2dbf982ebdf54f8a49b3c066b52df9c8675577b3756794d6c"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\prior-summary.json",
+      "path": "objects/019.gz",
+      "rawBytes": 7800,
+      "rawSha256": "1bb590163823632e782f52aff6d9b9f4830762f6c1a87b1a652d195a7108579e",
+      "bytes": 2888,
+      "sha256": "bc4b582cd931e340b2e5ad0b559bd25c691ea77b9daf93f22ce4a962f0ca5902"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\project-head.txt",
+      "path": "objects/020.gz",
+      "rawBytes": 41,
+      "rawSha256": "ff845a4224651d503d0448b8457876068f418e780f752cca30881b50e4dc5f84",
+      "bytes": 59,
+      "sha256": "af56305ed30d35c3439b17ec142980788f58a327ffa7043cc7c8c44e178c3322"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\public-install.json",
+      "path": "objects/021.gz",
+      "rawBytes": 3508,
+      "rawSha256": "c655dd0025c3e9b3a5d207d0e97e47f71c887dcb42a0e9d9a99e044f67107463",
+      "bytes": 1295,
+      "sha256": "d143ff460fb8c15aa22507c06ec52a5738a7f9fa938eb2d0f7e99e01b434ea14"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\public-version.txt",
+      "path": "objects/022.gz",
+      "rawBytes": 9,
+      "rawSha256": "bcf66d79b6c2b85504dbe4341a1fbbdba5bcb219ac51ab10a6c88c44b0e7fff9",
+      "bytes": 29,
+      "sha256": "0f64b3491756d17f239bc3a0ddbbcb1f67799ef4e648d4f3bf26d5d63ff5249a"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\readiness.json",
+      "path": "objects/023.gz",
+      "rawBytes": 6313,
+      "rawSha256": "e80fbcb9034c8fc40b699ae1515f88282287f95180a392c239258c5df1d0a313",
+      "bytes": 2584,
+      "sha256": "2432af4f38f6d349b3b775776a9e99d291c9daa9a80557c3eba85996332200d5"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\registry.json",
+      "path": "objects/024.gz",
+      "rawBytes": 8694,
+      "rawSha256": "a9268b90c833d3331f831579019f75e025ff0e246e005878ff951ee644ec1d82",
+      "bytes": 2847,
+      "sha256": "15647d96558bafb2d631e38c573b6c579857e76b15875f4baa7b9d6e4bfd2c17"
+    },
+    {
+      "source": ".work\\formal-keyless-extracted-38274178046-ff2927\\source-binding.json",
+      "path": "objects/025.gz",
+      "rawBytes": 530,
+      "rawSha256": "9a458e25cfdabe5983cdbc118c1b7bde50799868865f74a243175a24b1126ec6",
+      "bytes": 413,
+      "sha256": "90367db1becf550e42ad6cde07995265138ad19225a637dc903f6261e83850ac"
+    },
+    {
+      "source": ".work/collect-formal-preflight-20261012.mjs",
+      "path": "objects/026.gz",
+      "rawBytes": 2641,
+      "rawSha256": "810ad247221d1befd159e133cbf5bbbc73c2403dbdb545f7a94c42855ef2ff9b",
+      "bytes": 1121,
+      "sha256": "df9fdba776891f8af2586c7b772c0b16f47a7e37c11408a077d12dea4a957bf7"
+    },
+    {
+      "source": ".work/archive-formal-keyless-final-ff2927.mjs",
+      "path": "objects/027.gz",
+      "rawBytes": 8321,
+      "rawSha256": "590f25cbd67310de7b5523dd8a0255727b96e00e721db7bd4ba5472901af03e3",
+      "bytes": 2916,
+      "sha256": "f2e0c1191b19288d0c43cbda0d020918abdabb96ee739a0491fa9aa6692bca86"
+    },
+    {
+      "source": ".work/formal-keyless-final-ff2927-collection.stdout",
+      "path": "objects/028.gz",
+      "rawBytes": 41144,
+      "rawSha256": "a696095017f802770f9645621b738969c9974fab6751c48d981ae481f2245c0f",
+      "bytes": 2041,
+      "sha256": "beb6460ec06654d87e3f4fa019eda63500c6329f98c10397765fe35b82145e19"
+    },
+    {
+      "source": ".work/formal-keyless-final-ff2927-collection.stderr",
+      "path": "objects/029.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    }
+  ]
+}

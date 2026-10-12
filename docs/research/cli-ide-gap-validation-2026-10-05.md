@@ -1285,8 +1285,22 @@ CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `875
 
 旧70bf包找到verify-34文档分支漏跑候选修改后的原baseline，正式审阅结论CHANGES_REQUIRED保留。源码补齐该baseline并保持NUL路径拒绝；e32e75原runtime隔离复现2/2失败，最终Windows22.22.2/Linux22.12.0各11/11（2文件）。最初agent Windows结果仅终端转录，根随后原源码隔离复现及最终运行有原磁盘JSON/stdout/stderr，分别记录。新准确07f050be901dd806f68ccb3ddb8eee12ad7a5254的[run38272128731](https://github.com/chainlesschain/chainlesschain/actions/runs/38272128731)完成成功，真实Ubuntu24.04.5 x64/Node22.12.0、固定项目、正常公开CLI.99安装、原lock/10直接子包身份、实际Docker镜像及72脚本都已回读。新reviewDigest为`sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f`，image为`sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da`。新包由Astra重新审阅，verdict为`APPROVED_FOR_DECLARED_EVALUATOR_SCOPE`，详见[逐题记录与原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/README.md)、[修后实际回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)；旧实际包/预览/失败结论均保留。
 
-用户另授权“火山引擎可以测试”。已有本地受控key单次1024token/20s/零重试[连接测试](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/README.md)于15:32:40.573UTC HTTP200，1246ms，89输入/13输出，估算USD0.0000161，billingVerified:false；非编码任务/独立首次旅程，未写observations。provider硬额度/共享预算计量仍未验证。OpenAI环境API/WIF key及仓库专用配置缺失，本地Codex CLI未登录；官方[Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)允许符合资格账号在应用授权后使用套餐，当前项目尚未集成，不导出或借用Codex认证token。
+用户另授权“火山引擎可以测试”。已有本地受控key单次 `max_tokens=1024`（回答长度限制，不是回答加推理的总输出硬上限）/20s/零重试[连接测试](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/README.md)于15:32:40.573UTC HTTP200，1246ms，89输入/13输出，旧配置估算USD0.0000161（后续官方常规价token-only估算¥0.000384，账单未知），billingVerified:false；非编码任务/独立首次旅程，未写observations。provider硬额度/共享预算计量仍未验证。OpenAI环境API/WIF key及仓库专用配置缺失，本地Codex CLI未登录；官方[Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)允许符合资格账号在应用授权后使用套餐，当前项目尚未集成，不导出或借用Codex认证token。
 
 用户再次授权测试成功发布CLI/IDE。新候选CLI0.166.100/VS Code0.37.144/JetBrains0.4.162的16份元数据已准备；13子包tree不变、14份公开tarball/SRI及依赖对齐通过，发布合同31/31、changelog14/14及三metadata检查通过。最终提交仍须自己的完整Actions七门及适用CI/Host，然后按既有OIDC子包核验→CLI→双IDE发行与公开回读；当前尚未tag/发布。
 
 正式36+9仍NOT_RUN、0/36、0/9，v2指纹/同样本/共享$99不变，总费用未知；AI评估器审阅已按用户规则处理，账号/费用、目标宿主/native/durable、真人辅助技术和8h/24h/SLO仍各自开放。
+
+### 20.55 2026-10-13 发行候选真实失败与精确费用核查
+
+准确候选 `ff292775c4a032541fb50147d49dd353967be3b4` 的 [Linux预检run38274178046](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-final-candidate-ff2927/README.md)成功；30份双摘要原件、88个ZIP解包文件与75文件评估器包逐字节匹配，72 scripts、review d333及image344d复核。实际安装仍为旧公开CLI0.166.99/source311e，并非候选0.166.100发行或正式模型/首次旅程。
+
+[ARM64首轮失败原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-attempt1-failure/README.md)保留run38274184765/job114895528089、9份压缩原件与artifact11758154099 ZIP/API digest；Windows2026.2.0.1的后续Summarize菜单45秒未出现。原失败及原断言保留，根因NOT_DETERMINED。Astra接管仅metadata诊断，不放宽期限或增加二级菜单重试；实际修复后须新准确SHA的完整七门及适用CI/Host，不能迁移ff或更早成绩。CLI0.166.100/VS0.37.144/JB0.4.162尚未tag或发布，用户成功后直接发行授权持续有效。
+
+[Astra官方费用合同核查](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-cost-contract-review/README.md)新增18份双摘要原件，无新付费请求。精确模型常规在线价为人民币3/0.10/9元每百万token；已有89/13token、缓存0短测的公开常规价token-only估算为¥0.000384，旧$0.0000161仅配置估算，原回执不改写。实际response tier为default，13completion已包含11reasoning，不重复相加。全模型上限可提出¥7.86432、圆整¥8的条件请求预留候选，但账号合同、真实账单、CNY→USD预算上界、请求前原子预留与跨补救/宿主持久ledger未完成；它不证明正式费用准入。正式仍NOT_RUN/0/36/0/9、v2指纹与共享$99不变。
+
+### 20.56 2026-10-13 最小弹窗诊断与 macOS 上传失败分责
+
+仅增加metadata的四文件诊断已独立提交 `0c148cf927507280760dc91ab00db17c30588c01`，未推进PR #434发行分支。JDK21/真实IntelliJ2024.2 SDK direct javac及Gradle8.7 compileJava/compileUiTestJava通过；隔离JUnit实际5tests/0failures/0errors/0skipped。32assertion仅为源码静态调用数。首轮Gradle输出占用失败、早期javac缺依赖失败与未采用/不可归因的原工作区补丁均完整保留，[本地诊断归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-local/README.md)32原件核四源Git blob与9handoff hashes。新ARM64 run38280050578于16:51:18UTC快照2in_progress/4queued；生产chosen→actions→preview路径和45秒断言未放宽，没有新增二级菜单重试或交接策略。仅诊断，根因尚未确认，尚无实际修复或发行准入。
+
+准确ff292775的[macOS Browser evidence job114899117033](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-browser-macos-upload-failure/README.md)产品Workbench步骤输出ok:true、liveEvolution:true且源码精确匹配；上传找到12文件、artifact名称/目录通过，CreateArtifact阶段ENOTFOUND，后续two-origin未执行。24份原件保留metadata/annotations/完整日志、两份GitHub摘要一致的对照ZIP及受限读取错误体；不推测失败hostname、重试次数或临时性，不需要据此改产品/工作流或放宽检查。旧ff已确认无法发行；保存状态后取消该提交仍活动的CLI/Memory Query/Background测试以释放runner。最终修复SHA仍须自身完整七门及适用CI/Host；诊断或旧源码局部成功不得转移。尚未tag/发布，正式36+9/0/36/0/9/$99保持。

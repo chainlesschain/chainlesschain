@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T16:33:52.592Z",
+  "summarySha256": "f12d657400e1c2d17a9b8e868ba53f6a038cd8b88c753f8d73f493dedcac32cb",
+  "entries": [
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/artifacts.raw.json",
+      "path": "objects/000.gz",
+      "rawBytes": 7355,
+      "rawSha256": "ebb22afae7cfeb897d1b1038a51f418d6cff1b094562bd53106681df4044dfdb",
+      "bytes": 1227,
+      "sha256": "0c61519591ddfe6c611d0912d0e1917230328d19edf080092c41639a5cc59915"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/artifacts.raw.json.stderr",
+      "path": "objects/001.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/job.log",
+      "path": "objects/002.gz",
+      "rawBytes": 227568,
+      "rawSha256": "506af8ea1f4c4ef6b7da407a835e1a79b907f082a27ad3e3a6a0a93e53722310",
+      "bytes": 44139,
+      "sha256": "2f72840a02fab3929503fead08fb4c089828da2871f186ee06dc72ac9f2684bb"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/job.log.stderr",
+      "path": "objects/003.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/job.raw.json",
+      "path": "objects/004.gz",
+      "rawBytes": 4491,
+      "rawSha256": "c3ea11e22c53c72bc5d1f6e7ee30c3db6b90ead1f4fad2dbe623a1531cf0bb30",
+      "bytes": 1015,
+      "sha256": "bda14b471ec76470e9a813c813946458bbbf2727d48ea807b8351c485b360bf1"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/job.raw.json.stderr",
+      "path": "objects/005.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/run.raw.json",
+      "path": "objects/006.gz",
+      "rawBytes": 13774,
+      "rawSha256": "3ac2061c86b285992d4177ae5e82e3b1c81fd5ae315654ed14cba1d7decdb774",
+      "bytes": 1682,
+      "sha256": "2538bd9f180d3cf5d9b6b47bd5074309254a7cf4a62449c34cc0ed2843700cf9"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/run.raw.json.stderr",
+      "path": "objects/007.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/artifact-11758154099.zip",
+      "path": "objects/008.gz",
+      "rawBytes": 1900726,
+      "rawSha256": "4526a301293fca3ae0103c6abd17c5fa3760531bf9835d8a0adf462cd1174e46",
+      "bytes": 1892942,
+      "sha256": "802736e2ed1a1664b8fbd5c49863db5d94f78353e2cd5768f0565322347816e5"
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T16:52:47.929Z",
+  "entries": [
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/annotations.raw.json",
+      "path": "objects/000.gz",
+      "rawBytes": 975,
+      "rawSha256": "e07f6192743e1e9e1297d80f1afe725a6380b5b743c7b166bd805fb64ad01810",
+      "bytes": 455,
+      "sha256": "eadc0af1f9301fd6a752606c30ab0439510c7e9edfa8bd92b891133bdfd40e2d"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/annotations.raw.json.stderr",
+      "path": "objects/001.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/artifacts.raw.json",
+      "path": "objects/002.gz",
+      "rawBytes": 9478,
+      "rawSha256": "7288e95e14dc1267a6969469e053f11004d110634d2cd3b93f0d51576ad87f24",
+      "bytes": 1527,
+      "sha256": "837024a4bc14f208a7f5e566c0781e122283e16e61655bbcae6725692bdac068"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/artifacts.raw.json.stderr",
+      "path": "objects/003.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/check.raw.json",
+      "path": "objects/004.gz",
+      "rawBytes": 3637,
+      "rawSha256": "1a2687b57b3ab666565451901bea65397ed6c9dc7b96abd8acbc8ca399f2a740",
+      "bytes": 1308,
+      "sha256": "57cb4ac9c6238a40010b22e7e3871a668ae87b795c5abc50a5a6195da768ca8b"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/check.raw.json.stderr",
+      "path": "objects/005.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/diagnosis.json",
+      "path": "objects/006.gz",
+      "rawBytes": 4230,
+      "rawSha256": "9b438ca0a0760e3e658032ebc65e8d4b4a195e68c4eb2afb3fd2f4dc7a326c86",
+      "bytes": 1972,
+      "sha256": "7b39bd7c7ec1653f090205637735b432097c2e65b0c48f8029c4504cde6cb2f1"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/evolution-workbench-linux-ff292775c4a032541fb50147d49dd353967be3b4-1.zip",
+      "path": "objects/007.gz",
+      "rawBytes": 1395911,
+      "rawSha256": "d5e061f866a60f056c2943b00dd6a281b3af9a0e4afb17d591739f4d9fb1691f",
+      "bytes": 1396015,
+      "sha256": "b84aee8957b2c11fbe582e94e08bf8e060c7d2111c543fa35bbc3a109b427e44"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/evolution-workbench-linux-ff292775c4a032541fb50147d49dd353967be3b4-1.zip.stderr",
+      "path": "objects/008.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/image-codec-budget-macos-ff292775c4a032541fb50147d49dd353967be3b4-1.zip",
+      "path": "objects/009.gz",
+      "rawBytes": 801,
+      "rawSha256": "d217e217c914565c0af9d7b4a6e209b71e87880acbe21cb97717e1fd9739811f",
+      "bytes": 810,
+      "sha256": "e766c44ac426b471a85bf4b250f2b4278afd122930c7fe8739e21a667ace3e63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/image-codec-budget-macos-ff292775c4a032541fb50147d49dd353967be3b4-1.zip.stderr",
+      "path": "objects/010.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job-log-cachebust.txt",
+      "path": "objects/011.gz",
+      "rawBytes": 136937,
+      "rawSha256": "feb7c0b1c3bb151624101e9eb4c334e03d3ede2975b5d4ef10ef15feef732e9b",
+      "bytes": 20413,
+      "sha256": "d029b41beedc20c8b2b3cb687e11a2087cc30827ab4a9516a1988f4c5927c2e3"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job-log-cachebust.txt.stderr",
+      "path": "objects/012.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job.log",
+      "path": "objects/013.gz",
+      "rawBytes": 176,
+      "rawSha256": "eb33485d28599807605118a29221fdfd58c48e041a1ad2aba74ae9c70646e289",
+      "bytes": 157,
+      "sha256": "67fc0e2a09d018f3ba1c4fafb7035777f53f2547df95b3e410f4760a5abaadc2"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job.log.stderr",
+      "path": "objects/014.gz",
+      "rawBytes": 53,
+      "rawSha256": "8a1e11184eeeb732b03c2b3e6c3c4c5b27c3467f3e5ea044a6ff2faddc2f7a99",
+      "bytes": 73,
+      "sha256": "8ca6d1e60f2fbb59d4438decbaf67d741e748463e7480ae08abb30f4a048bac0"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job.raw.json",
+      "path": "objects/015.gz",
+      "rawBytes": 4187,
+      "rawSha256": "df8be775fadbf3dab52b8668d059086d4cf9f018fd0175877dc67c797aca1128",
+      "bytes": 992,
+      "sha256": "384872cb62fbe4c24715c7d7761df2b9b65b8a39717328eba7c0cbdec5828876"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/job.raw.json.stderr",
+      "path": "objects/016.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/retrieval-results.json",
+      "path": "objects/017.gz",
+      "rawBytes": 1179,
+      "rawSha256": "fe627a0f2750f6204d66bdf67c79a20459b6d5b9b3e396821717b6e60ba98922",
+      "bytes": 421,
+      "sha256": "a84a2501de408593bca7d5d9a2ca96d97ee9346a47db9097f342fb50402cf2f6"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/run-logs.zip",
+      "path": "objects/018.gz",
+      "rawBytes": 138,
+      "rawSha256": "e8fa4851e502f3095a703c63ad22e9fd551fe971c46d41f9ed673989835740ab",
+      "bytes": 132,
+      "sha256": "bdb1f25785cd006fc80b6587037a3bc945d206c964de831894bd41beb637e59c"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/run-logs.zip.stderr",
+      "path": "objects/019.gz",
+      "rawBytes": 25,
+      "rawSha256": "d2c8985c89b29a842ac4946d13bdbc297709f44f20bb968faf9682664b211db6",
+      "bytes": 45,
+      "sha256": "afbe5da21ceca8a87534aa133e53c3feac4204cfad08078a844064774527e8ea"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/run.raw.json",
+      "path": "objects/020.gz",
+      "rawBytes": 13763,
+      "rawSha256": "b17bceb9b036055a0dc5a7915445608ffc00129334e4e1a2b3a8c77802b72aff",
+      "bytes": 1673,
+      "sha256": "b9c826825770ad69780ce4290a9b6a0fff5de65e493084615e78cfc9e2da44de"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/run.raw.json.stderr",
+      "path": "objects/021.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/zip-members.json",
+      "path": "objects/022.gz",
+      "rawBytes": 641,
+      "rawSha256": "b3c1c9cfb1b80598c0646b27fd165331fc577493e23a836bb08d6ac26cd1ee62",
+      "bytes": 265,
+      "sha256": "d54ef23f181b414628f7f57f7410a2e4d0df7f6e1a91cabb7f42f4da08b4f3f3"
+    },
+    {
+      "source": ".work/release100-browser-macos-failure-20261013/manifest.json",
+      "path": "objects/023.gz",
+      "rawBytes": 3910,
+      "rawSha256": "bfda39bb66d8d48d3d7cc2702aedf16cc6416e3807611fb7eb8ed9bce59276ea",
+      "bytes": 1054,
+      "sha256": "4a8d44d46b208ccfda46bf41b16b408844aec6982a3035ba72934999b8f5520e"
+    }
+  ],
+  "summarySha256": "e93caa345068216bbbe7253e76e85465bdb069fb5688a6ca9cc453d817436467",
+  "readmeSha256": "0f3f77c46ea147055b6a1049900893087106483d07b07ec7a29b62577261beae"
+}

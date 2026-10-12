@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.failed-candidate-test-cancellation/v1",
+  "capturedAt": "2026-10-12T16:57:31.910Z",
+  "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "reason": "Candidate cannot be released after confirmed ARM64 failure; preserve exact run/job receipts and release runner capacity for diagnostic and eventual full validation of a new source SHA. No publishing or paid-provider workflows selected.",
+  "confirmedFailureJob": 114895528089,
+  "scope": "Three non-publishing test workflows only",
+  "followup": [
+    {
+      "id": 38274185415,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "cancellationRequested": true,
+      "state": "CANCELLED_CONFIRMED",
+      "passed": false,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38274185415"
+    },
+    {
+      "id": 38274511648,
+      "name": "Memory Query Index Measurement",
+      "path": ".github/workflows/memory-query-index.yml",
+      "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "cancellationRequested": true,
+      "state": "CANCELLED_CONFIRMED",
+      "passed": false,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38274511648"
+    },
+    {
+      "id": 38274523267,
+      "name": "CLI Background Interaction E2E",
+      "path": ".github/workflows/cli-background-interaction-e2e.yml",
+      "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "cancellationRequested": true,
+      "state": "CANCELLED_CONFIRMED",
+      "passed": false,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38274523267"
+    }
+  ],
+  "releaseGatePassed": false,
+  "published": false,
+  "collectorActions": "Read-only GET of exact three run metadata endpoints; no new cancellation or workflow mutation."
+}

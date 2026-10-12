@@ -1,0 +1,199 @@
+{
+  "schema": "chainlesschain.release-attempt-failure/v1",
+  "capturedAt": "2026-10-12T16:33:52.592Z",
+  "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "releaseCandidate": {
+    "cli": "0.166.100",
+    "vscode": "0.37.144",
+    "jetbrains": "0.4.162"
+  },
+  "status": "RELEASE_GATE_FAILED",
+  "run": {
+    "id": 38274184765,
+    "attempt": 1,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38274184765",
+    "status": "queued",
+    "conclusion": null
+  },
+  "job": {
+    "id": 114895528089,
+    "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+    "attempt": 1,
+    "conclusion": "failure",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38274184765/job/114895528089"
+  },
+  "artifact": {
+    "id": 11758154099,
+    "name": "ide-arm64-evidence-jetbrains-windows-2026.2.0.1-ff292775c4a032541fb50147d49dd353967be3b4-1",
+    "digest": "sha256:4526a301293fca3ae0103c6abd17c5fa3760531bf9835d8a0adf462cd1174e46",
+    "bytes": 1900726,
+    "githubDigestVerified": true,
+    "contents": [
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/001-fake-cli-bin_cc",
+        "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/002-fake-cli-bin_cc.cmd",
+        "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/003-fake-cli-bin_chainlesschain",
+        "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/004-fake-cli-bin_chainlesschain.cmd",
+        "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/005-fake-cli-bin_clc",
+        "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/006-fake-cli-bin_clc.cmd",
+        "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/007-fake-cli-bin_clchain",
+        "sha256": "536cb03b0399b35360f62205065ef36161b0955561733800fd94935b67b68889"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/008-fake-cli-bin_clchain.cmd",
+        "sha256": "3a5dd16de2955595f5650bd85ee021d16908e25b88a5d14f811ca1befcef15f7"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+        "sha256": "3ba5c6d9fa4df0281f76a4168a2f0d69389fbe5a05d9ad41224eeaef4d8d45a8"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/010-fake-cli-state.json",
+        "sha256": "d1d6a331fa555a23cdce148d47558503797d9ef8615a7d51d70b1b5e55920aed"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/011-fake-cli-state.json.receipts_48dd06d62c91aa23cc6a1831e42c0f8df4b593e883f167a5306b2b26947a3810.json",
+        "sha256": "56f99d79a08042a7ca8860825081a588e2c2ad6db4798e7eb3bd97b44b453a47"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/012-fake-cli-state.json.receipts_91683b715602cd22fcb255f35a332d9d0678efc5cab6505d5e5caae1d5a75ac6.json",
+        "sha256": "1334f31cd8318cb67b318ce12e8c3dff8cd709480189b44ccf76da535f44ec79"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/013-fake-cli-state.json.receipts_98be67604f23ec2660a8fd80a40c2ea2a3fedd977d2db67a51873be76049f93b.json",
+        "sha256": "6efd5eacfe7f9e6e1043d76ad29a6eedb143ac706100e9ee63ca9013f5fe5d06"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/014-fake-cli-state.json.receipts_cd54e2daf0c21ac0195f06baee822d18b8ca21f4917146d050b7d5a6c7985f43.json",
+        "sha256": "a4502c114eb31b3af011c59a273380923ed196d7e6ce25a3adc7743ed8f6ae7e"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/015-fake-cli-state.json.receipts_ddc9ecf4ea14f5213fa284e7c6b2444c2b23390a619f2b37594a73732648e182.json",
+        "sha256": "7999c7b6b6c549f2c5059db47921ce86a09d40079a645446ebfb69b085be23e6"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/016-fake-cli-state.json.receipts_f0924516d2bf9ad4b379efc280d4c54a05d822093011d7af2c0cd8a924861851.json",
+        "sha256": "8b0ee97200487e2be99521e51367a0fddc7744d902a81e8a19a019de8414de06"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/017-host-capture-initial_capture-status.json",
+        "sha256": "da9ee76726656abeea594d9d9db1e8e21600614afeea6ce7e3b77e65196d201b"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/018-host-capture-initial_host-events.jsonl",
+        "sha256": "c61edaab32d482a0caf159b58b35e06de6eb7a46ee05e7c8c4fdda1df3989222"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/019-host-capture-initial_host-events.jsonl.bin",
+        "sha256": "c61edaab32d482a0caf159b58b35e06de6eb7a46ee05e7c8c4fdda1df3989222"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_idea-002.log.bin",
+        "sha256": "a765d28bd5794c69e3203421fcf9c2f3d2cc85ef8511d85b9f45b236dd38ea49"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/020-host-capture-initial_idea-001.log.bin",
+        "sha256": "552f79a43d0b79708f0f0f68a690dda50716a52670b958eae0d9db68a07946af"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/022-prepare.stderr.log",
+        "sha256": "9755edd1f009c4debc691f5cfb7561eb790c52a32d65e57b7e89d735e98dd468"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/023-prepare.stdout.log",
+        "sha256": "dd9bfb3f2bcb5f761deab7f522fda3b551c5cdb87f3d63cb74cc19428cd1829a"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/024-sandbox-ide-initial.stderr.log",
+        "sha256": "ec2a9af762545ba5a5c2686e51209c79aebfdb5b7061b43b1a854ba4debb9d0a"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/025-sandbox-ide-initial.stdout.log",
+        "sha256": "49f92194ef6fa40d516eee182f4fe2c93eda08fa81f2d24e1112508e181a9f22"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/026-ui-smoke-initial.stderr.log",
+        "sha256": "0d23b37a75868dfc11479e8790aa69b7e0603acbbe841f8c48ef86610c50eff5"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/027-ui-smoke-initial.stdout.log",
+        "sha256": "43f17070c16a0db832ceda60a7036b09306aadeb87846e4eece0a42c1fdcdd0e"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/028-binary_output.bin",
+        "sha256": "8e72bd34977bdad1a20274a49fb7b2ffef89979e4412223bbd5e23ceeb0bc415"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/029-binary_output.bin.idx",
+        "sha256": "ca71801f7f0d2b7afccf71f5a7cb7f61e20fda679c34506375269eac76780a96"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/030-binary_results.bin",
+        "sha256": "ee3ca9208d513fb8a85bc7a7cf2b5959a2caef736bdef126bcf461ab783cdb58"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/031-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+        "sha256": "e73ea0420051e420193a37fa0446a1bbc6093db9e0b2c44de32263ee66ecb257"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/032-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+        "sha256": "73609bfe319c4db7036a406721808e227bb3bc890ae3a21be51e4b47bafeb9bd"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/033-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+        "sha256": "434a49f994fea0aa87e6c8ec6b76a39813f2f3cac28cab071f0596cb5eaa77b4"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/034-chat-control-journey-1791821682884.png",
+        "sha256": "bc2dd091e49b4552155559845c6cb3c975ac83f515f99b0a553d2cf9fdb744ab"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/diagnostics/035-chat-control-journey-1791821682884.swing.json.bin",
+        "sha256": "db25220990bf98daa89fd1ab4ea31320d27bf15360e3d435cce958aaac7e2a4a"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/journey-evidence.json",
+        "sha256": "5982aa55c494ee49425450b8459e4edfb11d1fa20a15f597cec83db7a09c5915"
+      },
+      {
+        "path": "jetbrains-windows-2026.2.0.1/release-artifacts/001-chainlesschain-ide-bridge-0.4.162.zip",
+        "sha256": "7db361517bb518b41fa8f8570bbbf61e1d6eb4579f2495857e9817ec78ea6a7f"
+      },
+      {
+        "path": "runner-diagnostics/chainlesschain-windows-gui-guard.log",
+        "sha256": "1621f0013d7bf76fbe0a0447c9ecab4212363aab658190b78a784845edad84ff"
+      }
+    ]
+  },
+  "observation": "The Windows ARM64 JetBrains host test reported that the popup item 'Summarize from here' did not appear within 45 seconds; visible lists were empty.",
+  "logEvidence": [
+    "2026-10-12T16:14:44.5168845Z     java.lang.IllegalStateException: Popup item 'Summarize from here' did not appear within 45s; visible lists="
+  ],
+  "rootCause": "NOT_DETERMINED",
+  "fullReleaseGatePassed": false,
+  "published": false,
+  "formalEvaluationSample": false,
+  "boundaries": [
+    "Captured run status is a point-in-time observation, not a later complete matrix result.",
+    "This archive does not establish a specific popup API, focus, fixture or timing root cause.",
+    "Follow-up diagnostics require a new source SHA and its complete release gates."
+  ]
+}

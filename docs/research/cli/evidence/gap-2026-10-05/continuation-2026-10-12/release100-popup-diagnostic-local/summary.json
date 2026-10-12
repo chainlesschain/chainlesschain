@@ -1,0 +1,55 @@
+{
+  "schema": "chainlesschain.popup-diagnostic-local-archive/v1",
+  "capturedAt": "2026-10-12T16:51:15.347Z",
+  "status": "DIAGNOSTIC_ONLY_LOCAL_VALIDATION_PASSED_ROOT_CAUSE_UNCONFIRMED",
+  "diagnosticSha": "0c148cf927507280760dc91ab00db17c30588c01",
+  "failedReleaseCandidateSha": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "diagnosticBranch": "feature/jetbrains-popup-diagnostic-20261013",
+  "sourceReceiptsMatchCommit": true,
+  "sourceCount": 4,
+  "handoffArtifactHashesVerified": 9,
+  "localValidation": {
+    "gradleExitCode": 0,
+    "directJavacExitCode": 0,
+    "junit": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "sourceExplicitAssertionCallCount": 32,
+    "assertionCountIsStaticNotRuntime": true,
+    "firstGradleAttempt": {
+      "exitCode": 1,
+      "observedFailure": "Unable to delete shared test-results/test/binary/output.bin; preserved original error and output."
+    }
+  },
+  "unadoptedWorkingPatch": {
+    "adopted": false,
+    "attribution": "UNKNOWN",
+    "receipt": "preserved-popup-working-diff-20261013/receipt.json",
+    "sourceHashesVerified": true
+  },
+  "rootCause": "NOT_DETERMINED",
+  "behavioralFixClaimed": false,
+  "fullReleaseGatePassed": false,
+  "published": false,
+  "formalEvaluationSample": false,
+  "limitations": [
+    "Local compilation uses IntelliJ 2024.2 SDK; failing host is Windows ARM64 IntelliJ 2026.2.0.1.",
+    "No behavioral fix or root-cause claim; original 45-second assertion and popup callback timing preserved.",
+    "First wrapper test attempt could not enter assertions because an existing shared test binary was locked; isolated output retry executed all five tests successfully."
+  ],
+  "diagnosticCISnapshot": {
+    "capturedAt": "2026-10-12T16:51:23.462Z",
+    "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+    "runId": 38280050578,
+    "status": "queued",
+    "jobCounts": {
+      "in_progress": 2,
+      "queued": 4
+    },
+    "completed": false,
+    "releaseGatePassed": false
+  }
+}

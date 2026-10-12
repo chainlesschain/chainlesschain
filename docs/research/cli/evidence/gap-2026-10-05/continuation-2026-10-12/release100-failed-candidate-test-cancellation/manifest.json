@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T16:57:31.910Z",
+  "summarySha256": "af0f58c4ff36c273fef647d8022b1d65596414e963304f555dbb19187adc7c08",
+  "readmeSha256": "92035898064d2a54a07872114adf5d6a1307655d877899e187fa036c40dc9319",
+  "entries": [
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274185415.stderr",
+      "path": "objects/000.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274185415.stdout",
+      "path": "objects/001.gz",
+      "rawBytes": 54,
+      "rawSha256": "edb345056580a94c66173c9bb2c11b134a3879c117a1f729a8dedc9da1723416",
+      "bytes": 74,
+      "sha256": "71dc720c2c61dfb80a9e56be97d74ba110945bf651cab244f16f55a758ab47c9"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274511648.stderr",
+      "path": "objects/002.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274511648.stdout",
+      "path": "objects/003.gz",
+      "rawBytes": 54,
+      "rawSha256": "6f5c2b647e606a4f026dfbcd1f200e803082a0232d62728e024955e9bc181a1f",
+      "bytes": 74,
+      "sha256": "126a45cb55de5f6f7e2cc9a39301f67d47ad02156fddfe68a502a97686442052"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274523267.stderr",
+      "path": "objects/004.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/cancel-38274523267.stdout",
+      "path": "objects/005.gz",
+      "rawBytes": 54,
+      "rawSha256": "906e4905e492b4f9a4d32152b53f6a1576b14ed2e4a12978008229307842e839",
+      "bytes": 74,
+      "sha256": "b97f2cef1a8909f6cf02f640877e58480368bf12ae2d062b27aeaffd2fa0f2e0"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/confirmed-arm64-failure.stderr",
+      "path": "objects/006.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/confirmed-arm64-failure.stdout",
+      "path": "objects/007.gz",
+      "rawBytes": 4491,
+      "rawSha256": "c3ea11e22c53c72bc5d1f6e7ee30c3db6b90ead1f4fad2dbe623a1531cf0bb30",
+      "bytes": 1015,
+      "sha256": "bda14b471ec76470e9a813c813946458bbbf2727d48ea807b8351c485b360bf1"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274185415.json",
+      "path": "objects/008.gz",
+      "rawBytes": 28294,
+      "rawSha256": "9744a6b39ba047ea850fe94719f126ad2069dd1556d4830502a405adb67c453c",
+      "bytes": 2191,
+      "sha256": "573be3c02b8a04b72332fca9e5a51ca2c2253e28fe6d92df4fe59ae6482546ac"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274185415.stderr",
+      "path": "objects/009.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274511648.json",
+      "path": "objects/010.gz",
+      "rawBytes": 27520,
+      "rawSha256": "5a948739b5e28dd7d747e1b610050896280eb265c31f86493ea646508f4ccb22",
+      "bytes": 2084,
+      "sha256": "333d3cc7c673ab4c6c72fa1c6dea10380daf5f4a6e94f9cb2f06f7488c675414"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274511648.stderr",
+      "path": "objects/011.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274523267.json",
+      "path": "objects/012.gz",
+      "rawBytes": 27546,
+      "rawSha256": "4c4355080a6a71deb7454e7cb48df50fad5fd6f644fba57f36f5696c8f12479d",
+      "bytes": 2089,
+      "sha256": "1975e6a55512447ab23078b2dd8e02768e078eaf4d18d2200be613b42c4b6e77"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/followup-run-38274523267.stderr",
+      "path": "objects/013.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274185415.stderr",
+      "path": "objects/014.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274185415.stdout",
+      "path": "objects/015.gz",
+      "rawBytes": 95662,
+      "rawSha256": "3f69355402259608b60491299dd639ab8b1dc84693c27a44fb549f419ad016f2",
+      "bytes": 5121,
+      "sha256": "eb46de93e269efbd4986a8f6619618f0fe406c6f95839fb1211b28e51e6224f3"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274511648.stderr",
+      "path": "objects/016.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274511648.stdout",
+      "path": "objects/017.gz",
+      "rawBytes": 6688,
+      "rawSha256": "fb1a5901a70cfda19b25827c0e1e4b8177c871f0fb8f3252bf2d54a21942c85f",
+      "bytes": 1046,
+      "sha256": "8058697e646ab93d2d4d820bdef11cce40127be5edd0594541f377914a843005"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274523267.stderr",
+      "path": "objects/018.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/jobs-38274523267.stdout",
+      "path": "objects/019.gz",
+      "rawBytes": 6773,
+      "rawSha256": "c57a87db5baf43ba3a767524f62161280968736cbda6de5dfe77578c86f4180f",
+      "bytes": 1014,
+      "sha256": "4b2497c6d9be416f2f50c5055d4534cc3b423328487736c415c726f5625ce108"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274185415.stderr",
+      "path": "objects/020.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274185415.stdout",
+      "path": "objects/021.gz",
+      "rawBytes": 14134,
+      "rawSha256": "799d907710ff7ec1bcfa143b1c0c5b62c3ab4f3c5f8e0c3989ded06ebd258d54",
+      "bytes": 1745,
+      "sha256": "607fb46131c55de01510e2b69382d02b1a9310be24ab4d260c2f32b4b6e3320f"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274511648.stderr",
+      "path": "objects/022.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274511648.stdout",
+      "path": "objects/023.gz",
+      "rawBytes": 13747,
+      "rawSha256": "2fa1827bc17ef23ab21ead0f92044f3fe1bf41fd8a8277273577f8d61059a4b3",
+      "bytes": 1642,
+      "sha256": "abfd35ff05f58238e0f738c1a82816ee0fc1cc2367e70279d24b5e5853a19593"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274523267.stderr",
+      "path": "objects/024.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/run-38274523267.stdout",
+      "path": "objects/025.gz",
+      "rawBytes": 13760,
+      "rawSha256": "f73fcaa6673db35249d91859f2023a2b800f97409d1bf4df009a9e0f5e37f84a",
+      "bytes": 1643,
+      "sha256": "75e71e9bc5643da612d7de98ac1f44fbcc13b68b4d30a779d2bfaab70d07e6bb"
+    },
+    {
+      "source": ".work/release100-failed-candidate-test-cancellation-2026-10-12T16-53-10.333Z/summary.json",
+      "path": "objects/026.gz",
+      "rawBytes": 881,
+      "rawSha256": "51cbe22af443453301fcda10fc118db9aa896a64aedca166f30a64b7c3e85db6",
+      "bytes": 468,
+      "sha256": "4d45da6160c48c4ebb918fd2425ab1274e51a734fd1a1546dd513d4db4371812"
+    }
+  ]
+}

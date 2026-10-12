@@ -1,0 +1,150 @@
+{
+  "schema": "chainlesschain.gzip-evidence-manifest/v1",
+  "summarySha256": "1890db1e5f7fab3a378078c625ffaa4428aadf6a01485ccbc42e71098a1dc646",
+  "entries": [
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/chat-api.headers.txt",
+      "path": "objects/001-chat-api.headers.txt.gz",
+      "sha256": "c7562685edf85ac9b54e15e42a8e0ace55b02f57a5c5ed3a90a26ba965111905",
+      "bytes": 1310,
+      "rawSha256": "7184fae9b448ee4687299e705ed7dc323f6d546c21c2624018c3a1b23f7fd24e",
+      "rawBytes": 3621
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/chat-api.html",
+      "path": "objects/002-chat-api.html.gz",
+      "sha256": "ad5c77dd5d0237cff87a6fdc3347c471ecb28ef0bc165c95fb5db8fffdf474ea",
+      "bytes": 3489,
+      "rawSha256": "1ab953d0467ead760acef55c91d834a7360e8bb76065bc6e599c3d136aeb7352",
+      "rawBytes": 11914
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/chat-api.text.txt",
+      "path": "objects/003-chat-api.text.txt.gz",
+      "sha256": "5dbdcf54295550819c3e24594866eb4e323987aa5009f3c4628d18285fe682ec",
+      "bytes": 2626,
+      "rawSha256": "ef6ad0a78dbebb9781bc29279015092fdc29f7b287af7ca2576c55ab63bb8663",
+      "rawBytes": 8133
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/contract-review.json",
+      "path": "objects/004-contract-review.json.gz",
+      "sha256": "90725fd68b1151278d6c1ab444b5acace1c80d4e3af6791b000dfc870ef35108",
+      "bytes": 4054,
+      "rawSha256": "ffaaa00009179587b136b67a61053cf713742fb0679b501bf56fce68a3e3234d",
+      "rawBytes": 9783
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-1.json",
+      "path": "objects/005-web-1.json.gz",
+      "sha256": "2a071b36a674c388b494bd9fff950bde6f01c9589b9711cc5e00a75bdb1469b0",
+      "bytes": 57,
+      "rawSha256": "28edcbab09929d2c781aeebacc3c1d0e57b05276d064c3b48983273c381fe072",
+      "rawBytes": 39
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-10.json",
+      "path": "objects/006-web-10.json.gz",
+      "sha256": "9be25329bd0a4eb10b2e97436f4703f79c66e326d6ad6682ebd13c3abc30d175",
+      "bytes": 5713,
+      "rawSha256": "6ad2b21c9e5565ee79d322edce758db9b43401f34a8b2aeaf4db200af598d638",
+      "rawBytes": 17195
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-11.json",
+      "path": "objects/007-web-11.json.gz",
+      "sha256": "b71bde147c94eb1d50a8e3b3900ac20be444e308af85dd242e9edc0648023b80",
+      "bytes": 5734,
+      "rawSha256": "13d7598eead3a4efb842314f1ecfecc15c3794e887841f0ae384c21cf87a4556",
+      "rawBytes": 25851
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-2.json",
+      "path": "objects/008-web-2.json.gz",
+      "sha256": "3b7dba348887573f2fa34ed37a91f9e5135bde5b1addd81ba8768450b690c553",
+      "bytes": 7006,
+      "rawSha256": "f6e04223ab3fe45ac19800e6990f6be1c910ac6e4f4ed7efb0c327f9bd9981b0",
+      "rawBytes": 23931
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-3.json",
+      "path": "objects/009-web-3.json.gz",
+      "sha256": "cbd8b22337c52f1fb4ce2d59daa74920204271c8b7559aa5cbdae947a7f8b59f",
+      "bytes": 3104,
+      "rawSha256": "2ee932b2ce731cdc53d60039ce034c1b9f90e1c9fe11c773b335111759a36312",
+      "rawBytes": 24499
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-4.json",
+      "path": "objects/010-web-4.json.gz",
+      "sha256": "20e83c6ad5ba0c292ae03619ed9040c37d638172f24622d6707521e75ad254cc",
+      "bytes": 5438,
+      "rawSha256": "54b8db8ddba0d2ef887d75efac4f8cc643f9e3393be6fde46677692b0874e9a5",
+      "rawBytes": 20702
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-5.json",
+      "path": "objects/011-web-5.json.gz",
+      "sha256": "4054bdf7e8b04af26e4bd663bf868f2ced7f6b0fcc8f5cd902f0efedd29ab454",
+      "bytes": 8040,
+      "rawSha256": "ef434f532707e9eb10ec00cc1c02de992a51048a367f0e1b50880b5c97c3c0ee",
+      "rawBytes": 28907
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-6.json",
+      "path": "objects/012-web-6.json.gz",
+      "sha256": "afb44cffd40d717fa2e53b7d963effea5cfaebfbc4b0090b723b0d5bd7dd8c45",
+      "bytes": 9425,
+      "rawSha256": "f57dc6522fb5b27df67848979bb8e34c680aa851770f697983c7bfd7496df0c3",
+      "rawBytes": 26318
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-7.json",
+      "path": "objects/013-web-7.json.gz",
+      "sha256": "fb43d1f8b9bbfbf3edc1a3384febe569a42e9616431a1193d3f40c16d753531e",
+      "bytes": 7613,
+      "rawSha256": "97351ce0cce17a72f7c605519ee200eb45b83cb8b139ae79be0b5babe7d383eb",
+      "rawBytes": 24370
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-8.json",
+      "path": "objects/014-web-8.json.gz",
+      "sha256": "27c60e0e5cef7380e75c2ca72e12a4b7fa13e584f46a58cd326394e2fa23a581",
+      "bytes": 8816,
+      "rawSha256": "ea86b75eb6472c65b59729742582a68a1baeb84dc14f70ee26d2c1e4337f4a03",
+      "rawBytes": 28039
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/web-9.json",
+      "path": "objects/015-web-9.json.gz",
+      "sha256": "88b57f04a52a3fe3a69d075b98587d6231ca6e0754cc70d4b5a5c3216d05ee1a",
+      "bytes": 7532,
+      "rawSha256": "578b3f1ca8c44aa8da9b9ac52260d1e7bde32d14e350c1ccb9e4e1d0bea4ebc7",
+      "rawBytes": 33365
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/manifest.json",
+      "path": "objects/016-manifest.json.gz",
+      "sha256": "ea8b73979dac62bdbe6a980aae7102e87b9090bbdc87d8b4f58cc6cad50d7f5a",
+      "bytes": 927,
+      "rawSha256": "8eed28b0f85273e63df59470100b391bf98500a41c462f757b8bee54f6b139dc",
+      "rawBytes": 2473
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/existing-probe-readback.json",
+      "path": "objects/017-existing-probe-readback.json.gz",
+      "sha256": "d9c786ac7ee9c84d21181777d87ce830de216ef4e94fb4bb6d7913f4dfc52373",
+      "bytes": 270,
+      "rawSha256": "d94ea72fac0af98b269f77f08abd88db4bf27b12d2c24719a297101d3777db47",
+      "rawBytes": 441
+    },
+    {
+      "source": ".work/formal-volcengine-cost-contract-20261013/existing-probe-tier-followup.json",
+      "path": "objects/018-existing-probe-tier-followup.json.gz",
+      "sha256": "cb722a455f73f846ea20561edfa164e55d051c29670b7ac59cfba963773fb033",
+      "bytes": 1684,
+      "rawSha256": "677e2112b32316287372e901bb71ced1888752f64a21ce069877c1a5e15e1e8b",
+      "rawBytes": 3722
+    }
+  ]
+}
