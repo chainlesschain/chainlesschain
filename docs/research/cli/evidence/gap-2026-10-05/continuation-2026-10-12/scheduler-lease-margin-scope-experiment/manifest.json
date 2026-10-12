@@ -1,0 +1,296 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:55:29.799Z",
+  "summarySha256": "7728013df27de1609835a0a6f47a6b079147f78c9502046b8501bb5cc2fbf431",
+  "readmeSha256": "28b76e0ccfd1ab8e125212f53e9eaf3a40e5ba891d415c2e78dbf53e05bf89ff",
+  "entries": [
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/cli-local-dependencies.json",
+      "path": "objects/000.gz",
+      "rawBytes": 584,
+      "rawSha256": "6f57972dd95da81a0fa98c05cb2835ee9a5a0c83f6c560e1d2df8b7f0c587f6b",
+      "bytes": 182,
+      "sha256": "71c53aa33a64b41091ea6b01ba1af4af485e68f5df5c530d1222e44c8e53a504"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/empty.cjs",
+      "path": "objects/001.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/execution-result.json",
+      "path": "objects/002.gz",
+      "rawBytes": 473,
+      "rawSha256": "ae0c8c6f247692d6908b0094eaaa74eae9c374ba1a7357eb26dd8b69b96623c3",
+      "bytes": 298,
+      "sha256": "0379b446dbfd2f674a58b266b9c77ba4a9d4ec81a0574198e0b04fbc668d674c"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/execution-start.json",
+      "path": "objects/003.gz",
+      "rawBytes": 373,
+      "rawSha256": "8c0adb0b8d3dc3e9f9394f00026c7d950e83a709929a5a739ee96357c8fc946b",
+      "bytes": 255,
+      "sha256": "3c5bce8902e0cd40d8dce86a4fef0b84077241da8a168c41a7b86387d7401548"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/experiment-result.json",
+      "path": "objects/004.gz",
+      "rawBytes": 15443,
+      "rawSha256": "51fe025bc57e60fe882afd3e1c810205ef31f3924150230658c884c09f76de28",
+      "bytes": 4417,
+      "sha256": "a0b52d59d5998da303662e79f1232b7ffee285f890bbf27d7ff22cc0ab84e4de"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/experiment.stderr.log",
+      "path": "objects/005.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/experiment.stdout.log",
+      "path": "objects/006.gz",
+      "rawBytes": 101,
+      "rawSha256": "69a747388a76c4406d5c4c41a1ea786a021eb38c7eb7afab27fd4e9b7e66b3a2",
+      "bytes": 107,
+      "sha256": "31ba63f828b2855f24e6baa72317b26713cebcb3a73ccc7a2f92392ef20806cf"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/independent-archive-source-dependency-verification.json",
+      "path": "objects/007.gz",
+      "rawBytes": 723,
+      "rawSha256": "4c729d1c34952b020ef7173620bf809d33edf83cad0bae543d67b69519e8ae18",
+      "bytes": 446,
+      "sha256": "d489950d95855095690f5ab190d6991fe7e0b0bb86b6ff4f103536f6764a044f"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/instrumentation.patch",
+      "path": "objects/008.gz",
+      "rawBytes": 5032,
+      "rawSha256": "87f71a84443ffa07065a5def0e2baa012e020daff649e6a39ca0dca7dedbcfc6",
+      "bytes": 1650,
+      "sha256": "1eef1b4a05215f5f15a71ae6ecbe1af307c28ab9f5fa0077309ad5c944567343"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/loaded-dependencies.json",
+      "path": "objects/009.gz",
+      "rawBytes": 43938,
+      "rawSha256": "0deeb3f2c8c271df41e849776685f49ccd8939b70b86b1b34537205b3524a143",
+      "bytes": 6426,
+      "sha256": "1d5da055eda6d7409b7010b94889894b60cb749415fa02782bfb3b17c3e9ab70"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/observer.cjs",
+      "path": "objects/010.gz",
+      "rawBytes": 4608,
+      "rawSha256": "767fe50cd68e1a1db1d31442ee4900be04c9078e03715c8eed518d76dc5a77ae",
+      "bytes": 1522,
+      "sha256": "8621073173e180f177ed0e82c136fa713b15d0778e234a77731b7f35cc76712f"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight-complete-receipt.json",
+      "path": "objects/011.gz",
+      "rawBytes": 1389,
+      "rawSha256": "25040197a2f60187144dbfeabc388ccfa140dacf64f280f22598a6ceaf84f5b8",
+      "bytes": 789,
+      "sha256": "a8b48be27e0ef3dc6854f5a22164a5dbb160382cf0c4ce165f8ed9eacb8039a3"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight-complete.stderr.log",
+      "path": "objects/012.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight-complete.stdout.json",
+      "path": "objects/013.gz",
+      "rawBytes": 24859,
+      "rawSha256": "929b18f40c42a5a7cf1ddd58879c9809cfcb5a47dbafcbc13e787b4db707efcb",
+      "bytes": 1590,
+      "sha256": "3ebdb9d8c5d6e8302afa9168fccd9822ebe1e5d47e1bb64e80e415cca0915e5c"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight-receipt.json",
+      "path": "objects/014.gz",
+      "rawBytes": 1069,
+      "rawSha256": "3d51a93cd4e6eed80b9e6f26f3cb886f4758e054d7b643ed46df0ae807578699",
+      "bytes": 627,
+      "sha256": "4a48b057bd1839266e8e15e248b5df40a9ae199cd84c0d43c62322b5df88fe10"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight.mjs",
+      "path": "objects/015.gz",
+      "rawBytes": 589,
+      "rawSha256": "b4a1a22e5c0c313542b009017cd7530d787c517491f0f3bcf8d06701f1f6a9a5",
+      "bytes": 337,
+      "sha256": "c689611df75fbbb4a210c6c0d7218a0c880d7ad9e7fe0609a705bfb9c4c200bc"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight.stderr.log",
+      "path": "objects/016.gz",
+      "rawBytes": 1044,
+      "rawSha256": "17b4cfa33e27513863fca48ccad4c69861fbe5b8e8320905db5b352236a24a17",
+      "bytes": 458,
+      "sha256": "4ae40b865410ccf60e28ff33819005a910bb5d7627a7913eccd37a55424d7b03"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/preflight.stdout.json",
+      "path": "objects/017.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/run-experiment.mjs",
+      "path": "objects/018.gz",
+      "rawBytes": 2063,
+      "rawSha256": "37f03cb77cd288edf02c61ad5bb1704bac734fe3843f690d178ac5075efa78c2",
+      "bytes": 1030,
+      "sha256": "134c0f602ee208a15c33565d83955ed9405de14cf46c7b06e1cb49688cf411ab"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/snapshot-check-1.json",
+      "path": "objects/019.gz",
+      "rawBytes": 247,
+      "rawSha256": "a643d7b7a57dac3cc92d2737b4391b5b436cb9920186ece5edb21083172c0525",
+      "bytes": 201,
+      "sha256": "e5f95d4b7d705c82186982f4eea8e36b8ba59e9aca2a2bfc007fb05c16deab4a"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/snapshot-check-2.json",
+      "path": "objects/020.gz",
+      "rawBytes": 247,
+      "rawSha256": "a643d7b7a57dac3cc92d2737b4391b5b436cb9920186ece5edb21083172c0525",
+      "bytes": 201,
+      "sha256": "e5f95d4b7d705c82186982f4eea8e36b8ba59e9aca2a2bfc007fb05c16deab4a"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/soak-report.json",
+      "path": "objects/021.gz",
+      "rawBytes": 23860,
+      "rawSha256": "37c6dbc86950b2fb065c98c658bbfaf8640ddf798d067722fa1e62c65de86122",
+      "bytes": 4349,
+      "sha256": "81a43e54b765f2ca6e3139943b29274ca0a39f8a84b28382df9b40c4d2190091"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/source-receipt.json",
+      "path": "objects/022.gz",
+      "rawBytes": 415422,
+      "rawSha256": "aa4a7c55731d113a3d31fea21d8dcf4f09ff7088e27676cae4aaa4649394fc1c",
+      "bytes": 116350,
+      "sha256": "48a2482c54dcb99364dd0a4f591b005964168a349211b0b61737c8cea92e595e"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/source.tar",
+      "path": "objects/023.gz",
+      "rawBytes": 44513280,
+      "rawSha256": "97b6b61a49bdfabdd7cea1f76af935da5a9a6d26dc88fc10cff616445bb4ff35",
+      "bytes": 9481312,
+      "sha256": "85738dbdad7629f0e387a99edd11a77e6cc27f15fe7dbdb8e105a4510c2fb21a"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/supervisor.cjs",
+      "path": "objects/024.gz",
+      "rawBytes": 2338,
+      "rawSha256": "d911993cbce45bbc59b6aae6aa8e635e3608bde34402ad2a687e00c34a7b527e",
+      "bytes": 1029,
+      "sha256": "e997861fc07bc9841ef071841d60c6e576c9e7d5b39cbff1c66752c308e5714b"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-10068.json",
+      "path": "objects/025.gz",
+      "rawBytes": 17106,
+      "rawSha256": "e4906f90be88e818be973c2a013813e9f972ccff4374d89f8b89aa5f69db528f",
+      "bytes": 2631,
+      "sha256": "d792529f7f61accf2b1af90ffd537d4d5d003cc7705cf993caf321bce66c862b"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-17600.json",
+      "path": "objects/026.gz",
+      "rawBytes": 3862,
+      "rawSha256": "1c715907e032ca667703c50d381646be9c75d739e74bc1f2128665fd695569be",
+      "bytes": 1043,
+      "sha256": "e848fb59ef1c51a0ce0f6111b2c69c42d3cb01b4fe30059951bcb642d10c353a"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-18300.json",
+      "path": "objects/027.gz",
+      "rawBytes": 3834,
+      "rawSha256": "518a9e5e46658353a6ddd65e4372536ec9b5132eb790c5c7a5bf806faa040438",
+      "bytes": 1043,
+      "sha256": "8d512ca5db5d7b7a4ae89c0f3e079cd80dc4ff09bd527db548bb512ef1e96c9a"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-19868.json",
+      "path": "objects/028.gz",
+      "rawBytes": 2936091,
+      "rawSha256": "90937c00de62551cd6c083d381b97d9644af8ec4c80e9f074e5b9b552722b2b0",
+      "bytes": 202911,
+      "sha256": "29c4f0b376ac82d570c93155b447b38f8c1f390b8f780c8e4295fd6f9927cba6"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-23936.json",
+      "path": "objects/029.gz",
+      "rawBytes": 12965,
+      "rawSha256": "de827cf65bb2dffc00ec66abf7375f19f0b35f782f5538343624cc4dfcfa60c7",
+      "bytes": 1908,
+      "sha256": "076eeee8e0c3343ed8b309acac0c82043d9842de7779d1cef3507e99369ee1be"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-25260.json",
+      "path": "objects/030.gz",
+      "rawBytes": 3837,
+      "rawSha256": "33b9fcf4c2e1752430398246ee18c5f47d01e60b91cd75109f5b91435e92c216",
+      "bytes": 1038,
+      "sha256": "30de5aafb68a037ec5040f9d7cd5a8b08f822f3d1274ef79ac04ed38f09b9e83"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-28712.json",
+      "path": "objects/031.gz",
+      "rawBytes": 24602,
+      "rawSha256": "01c0fb3130e2a97c3b66c35d739e1b88d19a8735f3ffa68cf5b29a75424a6913",
+      "bytes": 2767,
+      "sha256": "4db4395627738db3fdec25faf6de982b00e36fed5854da18f16b5ed40114ac9e"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-30396.json",
+      "path": "objects/032.gz",
+      "rawBytes": 12970,
+      "rawSha256": "991893882355342bf97acf85889ca95291db188b05a711510317dc7e18ad0128",
+      "bytes": 1913,
+      "sha256": "251a86524a8349e38d28d95fc4d52c20a1cfed5037cf5943828a89115ea8fc8b"
+    },
+    {
+      "source": ".work/release100-scheduler-1e-experiment-20261013/traces/process-4084.json",
+      "path": "objects/033.gz",
+      "rawBytes": 2988260,
+      "rawSha256": "7063dd53df336d77ff00623dc4bba19f2b2ea879301c64e29df4a0c94b6c60b2",
+      "bytes": 206259,
+      "sha256": "c8b50d98dc0ed193196ead5580cf8a7666d988c8c3fbfbf7d6615f938e955626"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/review-as-root-cause-fix.json",
+      "path": "objects/034.gz",
+      "rawBytes": 8279,
+      "rawSha256": "c024c869ae2583b668ad69ab51e3ea1482a68f3db903b02a24cbfb20d24e6458",
+      "bytes": 3051,
+      "sha256": "3741a97b97d32e63831c6d5bd0a5a209e57db2e1141f0465c0f3d37c1ac2677b"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/review.json",
+      "path": "objects/035.gz",
+      "rawBytes": 11698,
+      "rawSha256": "89c5fefe0e55f82b6b3abbb81f222c1ec1a2e61ec12bf5d7539796405584476d",
+      "bytes": 4310,
+      "sha256": "fc8a3ab2ace398b814e674ba9c4652e4e4896b69c6f37608cc48f76bb4170e86"
+    }
+  ]
+}

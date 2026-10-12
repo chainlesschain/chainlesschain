@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:57:02.319Z",
+  "summarySha256": "f6f51381e724f53dff2e8d2897e5845fdd396cb5025355d4e273b195ebc42a9a",
+  "readmeSha256": "7ae390acb9c44a218fe0774c122bf24068c7a4d392979306f07ec2860c5c6acf",
+  "entries": [
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/artifacts.json",
+      "path": "objects/000.gz",
+      "rawBytes": 1552,
+      "rawSha256": "5f19b273678bae2ae8b6b7327791f76c05fa64b7bf13723935068812c93f03b3",
+      "bytes": 566,
+      "sha256": "93d8879e510d86960c68acb8bae6bf7f2cbcb1ce47e2df9c09d5ce7d196389f1"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/capture-context.json",
+      "path": "objects/001.gz",
+      "rawBytes": 167,
+      "rawSha256": "48b6da904aba4b2d0bec262a09fdec94689f81683d2437ed160c1fab4d222e60",
+      "bytes": 157,
+      "sha256": "88729508f0bf95eeb5dc1cb451b692a4d4d5622645b52068c6602e48ef04ad09"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/capture-git-source.mjs",
+      "path": "objects/002.gz",
+      "rawBytes": 758,
+      "rawSha256": "71cc8a782e382bcec1f192d19c70aec4e2fe14a30b3154b17dd1f08bc6459770",
+      "bytes": 451,
+      "sha256": "dce79e1bf613f5437cb90b1f30597615e6c055d42acb8a4539f609b8544e74db"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/diagnosis.json",
+      "path": "objects/003.gz",
+      "rawBytes": 7093,
+      "rawSha256": "0c57005ca62f5a24787c448374419bf0f61d0c8b0ea77a34e56cdeb1ff8a92f9",
+      "bytes": 3262,
+      "sha256": "d063726bce6d4af6a3e866bf635a231203b947e423818c6d842acb36cdf9904d"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-cli-team-soak.yml",
+      "path": "objects/004.gz",
+      "rawBytes": 5544,
+      "rawSha256": "d9f4f7acbe55b226b47dd0f71d4a2271f0a377e0ed679b803a88db6b33f0ff41",
+      "bytes": 2042,
+      "sha256": "7cacc116814aa526d659541d18d3314258df90cbceb7e56971c9191abfd6b414"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-git-integration.js",
+      "path": "objects/005.gz",
+      "rawBytes": 20713,
+      "rawSha256": "69629c4377f52d7b8306b32d1d6d7fff1271748fde5edc9dcffd44403eece88c",
+      "bytes": 5903,
+      "sha256": "fcde93dca797a6d24e8a979975b8497e45464a513a9260ccc694135f83fd7401"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-isolator.js",
+      "path": "objects/006.gz",
+      "rawBytes": 54415,
+      "rawSha256": "4a05d135cb82d9a75e73e61b57d98cdfaa7c70ebd160e332f7797e7e53778c17",
+      "bytes": 13658,
+      "sha256": "65cadf03a3d1731b62d4108696432a5e66d529d2a510500c02986237ba748168"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-team-distributed-queue.js",
+      "path": "objects/007.gz",
+      "rawBytes": 169282,
+      "rawSha256": "5453126f0bdcbd8718b565f128ff1d6ee512e5a1ae47a200181d16128217a299",
+      "bytes": 32178,
+      "sha256": "c457831b60f67a0337216e21989038320b8b9a48ba647a6b025a32496b4ed878"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-team-distributed-soak.mjs",
+      "path": "objects/008.gz",
+      "rawBytes": 93406,
+      "rawSha256": "4013dfcefe79d11565e3c8b7528ad28412c4abdecef907dda6c5e0f41fc7b7be",
+      "bytes": 22150,
+      "sha256": "adb959d3531d88b8c90bb5ebe83383c06ca6e856e558c036177fb56fc7b01aed"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-team-distributed.js",
+      "path": "objects/009.gz",
+      "rawBytes": 113010,
+      "rawSha256": "86650e65eea59b475ceb4fd77b8fad158d2215caad4e5f45fa546f1ce49d2a06",
+      "bytes": 25150,
+      "sha256": "267c9652178981714aba2454b4e04921ef58b540fa91a221428d77bbaccc74f6"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-team-runner.js",
+      "path": "objects/010.gz",
+      "rawBytes": 96797,
+      "rawSha256": "a8b93c70be7861baa95d7aa1e42a97866e95aacf4b184cf549615ebc677740db",
+      "bytes": 22455,
+      "sha256": "f0454ffa7d1a5f602afbd8d2b76e2e6b66c974a0cc46a76be0997b40b683ff62"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/exact1e-team-worktree.js",
+      "path": "objects/011.gz",
+      "rawBytes": 88209,
+      "rawSha256": "de69ae04588890554c15bc0c435cb2232ba41153cbd46d75956ff413fd5c1a6b",
+      "bytes": 18055,
+      "sha256": "99ac9bf2a9f5cd45be683372a725051e5c034951931e444ed5e7c54510c351db"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/git-2.55.0.windows.5-builtin-worktree.c",
+      "path": "objects/012.gz",
+      "rawBytes": 42566,
+      "rawSha256": "2c8e8a8ee6a6ee346e226116fb5cc08cb76785dcb1ced76a824ba2a1d46ce884",
+      "bytes": 11385,
+      "sha256": "a59290375ef7344c6ea73e122cdedc028fbff67bce62e1aa11b2f7e72ff02a1a"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/git-2.55.0.windows.5-worktree.c",
+      "path": "objects/013.gz",
+      "rawBytes": 30796,
+      "rawSha256": "65caa125b7f5d96a9b9ee38bddc4f7522f6b262cb5db451ae1dd422193eef64c",
+      "bytes": 7905,
+      "sha256": "45f70ad04322406a5ddd4c8ce269ce70f7d253334218d2a317ea6b9302a7e948"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/isolated-review-results.json",
+      "path": "objects/014.gz",
+      "rawBytes": 6925,
+      "rawSha256": "b7132c121b502937f512170f6b949234e4f72b4e386d0c8c22e79507a3932392",
+      "bytes": 1628,
+      "sha256": "fd9fa76ac89078f316558aaa381de64de847c108886d76e49cecd3350df0092c"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/job-log-cachebust.txt",
+      "path": "objects/015.gz",
+      "rawBytes": 57406,
+      "rawSha256": "50d4233c411972d40e5066e5aea6f93e8745bd038baeea89b6c53670781bdbd7",
+      "bytes": 13897,
+      "sha256": "50c8c1687676b02d7e42662b4907e47584ef10b70c33d49585a5a836d9f6cbcf"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/job.json",
+      "path": "objects/016.gz",
+      "rawBytes": 2732,
+      "rawSha256": "45b6cbbc578f79bc2c3c6aa8928db38b423c0696508c1f1e4f6a12b830981d26",
+      "bytes": 763,
+      "sha256": "aa3b3487c14271281a700d944a3604390ca45f6ca4e26e3830f95e0378025131"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/job.log.error.txt",
+      "path": "objects/017.gz",
+      "rawBytes": 53,
+      "rawSha256": "8a1e11184eeeb732b03c2b3e6c3c4c5b27c3467f3e5ea044a6ff2faddc2f7a99",
+      "bytes": 73,
+      "sha256": "8ca6d1e60f2fbb59d4438decbaf67d741e748463e7480ae08abb30f4a048bac0"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/review-isolator.mjs",
+      "path": "objects/018.gz",
+      "rawBytes": 3967,
+      "rawSha256": "685bb741bdf75b9d57365c511c7538f2d1dc183fcc1e30280636ade01b968102",
+      "bytes": 1730,
+      "sha256": "ecc637ba336ce7156271e8c93c384ae6e03f3dc18e17204159efbc90b1738939"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/run.json",
+      "path": "objects/019.gz",
+      "rawBytes": 13782,
+      "rawSha256": "61c7b6e57f6d706796292de4933d4ea2cb740560fa74f4b938a1c9f07c79e45f",
+      "bytes": 1709,
+      "sha256": "7102f41df33ad15b4536a0768b2b34538ffd2da746ceec262b367e221cb8798f"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/windows-artifact.zip",
+      "path": "objects/020.gz",
+      "rawBytes": 3205,
+      "rawSha256": "054c448ed40c7a13e7c7ca5b280c165ebd5e3d6d94da5ff2e112e5e94a97e862",
+      "bytes": 3210,
+      "sha256": "1bf1b269d48d3958c7ddffd44e8b1ac0a71a4bfcf99e2a0293dd155fb77854fc"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/working-isolator.diff",
+      "path": "objects/021.gz",
+      "rawBytes": 1205,
+      "rawSha256": "5f4cd0166fc49ae66addaa6d3cd2c58b6c8deeb7539ef78aeda2c845121d0807",
+      "bytes": 573,
+      "sha256": "dfcf510e1b69791c74d071164d1e6d16bb5af5d8f463f0f083720c50ae1987c4"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/working-isolator.js",
+      "path": "objects/022.gz",
+      "rawBytes": 54976,
+      "rawSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+      "bytes": 13876,
+      "sha256": "753aa503a68f2278003e4f5e3de842106ad65a220c04ce0798ac6bc1ebdf16bd"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/extracted/cli-team-soak-result.json",
+      "path": "objects/023.gz",
+      "rawBytes": 17069,
+      "rawSha256": "35bc4a9de1fcc571019d807975d4852b15595b7e83b282a59cfb4cf88c377ccb",
+      "bytes": 3059,
+      "sha256": "f2fa830b8548b9f715de0bec2c9718d2cc13e4ce51c08e95799ca70c0b7f4d93"
+    },
+    {
+      "source": ".work/soak-1e-windows-failure-20261013/manifest.json",
+      "path": "objects/024.gz",
+      "rawBytes": 4135,
+      "rawSha256": "3eba68b70cda627122c8de82d11ae343a54ded7c09286c4fcf5b6f4e51a2a421",
+      "bytes": 1383,
+      "sha256": "11f21ccc5046dc6e016d2153a9fb41acf7cc07aecc1b2de2e4ab339d941026c9"
+    }
+  ]
+}

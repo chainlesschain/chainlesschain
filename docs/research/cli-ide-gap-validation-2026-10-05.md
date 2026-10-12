@@ -1313,7 +1313,7 @@ CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `875
 
 仅metadata诊断的准确 **0c148cf927507280760dc91ab00db17c30588c01**，run38280050578/job114914883288的Windows ARM64旅程成功；initial/restart均attempt1，107事件/12实例，六次timeline→actions→preview→confirm完成，无callback failure。artifact11761039003的ZIP/API摘要一致，嵌入manifest51/51完整；45份双摘要原件见[成功诊断](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-windows/README.md)。六次后继popupVisible:true时旧focusWindowShowing:false，不能把隐藏旧焦点窗口断言为根因。原ff菜单45秒失败保留；结论为 **PASSED_ORIGINAL_FAILURE_NOT_REPRODUCED_ROOT_CAUSE_UNCONFIRMED**，不宣称已修复。
 
-共享工作区随后出现 **1e0272fb491db46c3b46eb03170b67bb7136d132** 的行为提交，增加SwingUtilities.invokeLater交接与isRewindCurrent守卫，提交来源未归属。Astra只读审查及三次隔离本地验证见[85份原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/unattributed-popup-1e-source-review/README.md)：首次编译全部main/UI/test通过，JUnit四项临时目录setup失败；第二次init脚本BOM失败；第三次工作区temp下现有UiEventDiagnosticsTest **5/5**，复用第一次compile输出。四受审文件每次执行前后均与1e一致，非整tree绑定，既有测试不覆盖新handoff/guard；正常rewind入口不会无条件被guard挡住，但原故障修复仍 **UNPROVEN**。0c的CI/本地成绩不转移给1e或后续源码。
+共享工作区随后出现 **1e0272fb491db46c3b46eb03170b67bb7136d132** 的行为提交，增加SwingUtilities.invokeLater交接与isRewindCurrent守卫，另一会话捕获时来源未归属，现已确认由本PR维护root会话实现。历史原件保留当时快照。Astra只读审查及三次隔离本地验证见[85份原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/unattributed-popup-1e-source-review/README.md)：首次编译全部main/UI/test通过，JUnit四项临时目录setup失败；第二次init脚本BOM失败；第三次工作区temp下现有UiEventDiagnosticsTest **5/5**，复用第一次compile输出。四受审文件每次执行前后均与1e一致，非整tree绑定，既有测试不覆盖新handoff/guard；正常rewind入口不会无条件被guard挡住，但原故障修复仍 **UNPROVEN**。0c的CI/本地成绩不转移给1e或后续源码。
 
 ### 20.59 2026-10-13 Windows Scheduler租约真实失败与测试profile变更
 
