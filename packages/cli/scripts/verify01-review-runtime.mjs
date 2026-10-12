@@ -23,7 +23,8 @@ function regularFile(root, relative) {
       relative
         .split("/")
         .every((part) => part && part !== "." && part !== "..") &&
-      !/[\\:*?<>|"\u0000]/u.test(relative) &&
+      !/[\\:*?<>|"]/u.test(relative) &&
+      !relative.includes("\u0000") &&
       !relative.startsWith("/"),
     "acceptance path must be an exact relative file",
   );
@@ -88,7 +89,9 @@ export function reviewDockerArgs({
     "Docker mounts must be absolute",
   );
   requireCondition(
-    ![workspace, control].some((value) => /[,\r\n\u0000]/u.test(value)),
+    ![workspace, control].some(
+      (value) => /[,\r\n]/u.test(value) || value.includes("\u0000"),
+    ),
     "unsupported Docker mount path",
   );
   requireCondition(
@@ -579,6 +582,10 @@ export function runReviewStage(
         });
     } else if (spec.doc) {
       receipt.document = verifyDocument(workspace, spec, runner);
+      receipt.tests.push({
+        kind: "baseline",
+        ...runner.tests(spec.baselineTests, false, true),
+      });
     } else {
       receipt.tests.push({
         kind: "baseline",

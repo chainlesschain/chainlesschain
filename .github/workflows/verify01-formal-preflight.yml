@@ -135,8 +135,10 @@ jobs:
             priorSourceBinding: read('source-binding.json'),
             nativeInstallLifecycleEnabled: true, publicInstall: read('public-install.json'),
             independentHumanReview: false, providerHardBudgetVerified: false, providerAuthenticated: false,
+            reviewerPolicy: 'User explicitly authorized Astra to replace human review; this newly generated exact pack still requires Astra review.',
+            authorizedAiReviewAccepted: false,
             paidExecutionReady: false, taskObservations: 0, firstRunObservations: 0,
-            remaining: ['human review of this exact review/image digest', 'account hard quota or reliable metering', 'controlled model credentials', 'actual model task and separate first-run'],
+            remaining: ['user-authorized Astra review of this exact review/image digest', 'account hard quota or reliable metering', 'controlled model credentials', 'actual model task and separate first-run'],
           }, null, 2) + '\n');
           NODE
       - name: Preserve actual checkout, installation, image and complete review package
