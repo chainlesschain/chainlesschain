@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:17:17.937Z",
+  "summarySha256": "7c9af0a49dfa150bfb78578fb51f9ddab62fa52e4abb6ec443945ff15c43701e",
+  "readmeSha256": "44a28bacbfea346bb242abe4d3a40634ae6ee1f2ff2deec92a3c7df66ec03f40",
+  "entries": [
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/independent-final-script-review.json",
+      "path": "objects/000.gz",
+      "rawBytes": 3067,
+      "rawSha256": "ae246d43011f4be7fd2ab7bd03185417ac41992e2795b51e79b5429f38db3e58",
+      "bytes": 1499,
+      "sha256": "576480b1687338e3082a97da586f3dd4b70230e4c6f436c902885ce847016b1e"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-process.json",
+      "path": "objects/001.gz",
+      "rawBytes": 378,
+      "rawSha256": "a47218813c740629cec92faa31b1a337322b448f77c9921402905114ff3915e3",
+      "bytes": 278,
+      "sha256": "e0b8a855a1b96c71c8f430b43dfc76d5bbba27d390ead291b792229d809589f1"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-process.stderr.log",
+      "path": "objects/002.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-process.stdout.log",
+      "path": "objects/003.gz",
+      "rawBytes": 169,
+      "rawSha256": "3ad596288099f6ffcf052feed4d388ab12aeea4996c51c44d40c3fd57310aa02",
+      "bytes": 157,
+      "sha256": "f79cc3663bfb08099f5acd369f8bccc91c9f95cbd23e78e4abf9f1c086a66c18"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/attempts.json",
+      "path": "objects/004.gz",
+      "rawBytes": 51,
+      "rawSha256": "8e747ba87f639e3b917ee76114ce30783ae3870e01c31b27cf5453f19052e6f2",
+      "bytes": 66,
+      "sha256": "b3e22de3fe5c104c7028ef2ae2681a563060dd7b2dd5cf8cf0887911240070b7"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/parsed-1.json",
+      "path": "objects/005.gz",
+      "rawBytes": 6605,
+      "rawSha256": "48f27277a6bb60fc9192bc11ed3a8c592e97915f2ab542bea399f436cff7860b",
+      "bytes": 643,
+      "sha256": "90fc3403f7aba7042ade6f70f37427e21a24767ba41b341e3143755e2b1cb5fe"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/parsed-2.json",
+      "path": "objects/006.gz",
+      "rawBytes": 4138,
+      "rawSha256": "505aa0af9a0f84c822fe5c89e89c5f2db161d94fe7a4b219aeefe6e997f3e6ac",
+      "bytes": 490,
+      "sha256": "c04e83e5e0e63b327d59af8f80207a7d5472128b660f28ab96e5628a0888eaf4"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/request-1.json",
+      "path": "objects/007.gz",
+      "rawBytes": 1180,
+      "rawSha256": "eb4f4c5c203793a8687ac9ccd9a05614f01dd6f5bdabea99d685b765fafaf8fe",
+      "bytes": 514,
+      "sha256": "3341dbc5be63317fc59bdb4916408ab97ddf24f15c40b2ef3692da99dc57a9b8"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/request-2.json",
+      "path": "objects/008.gz",
+      "rawBytes": 1547,
+      "rawSha256": "5847fe8e162045786b1986a351b47c15402a6eb32c601747398a0f2790518c92",
+      "bytes": 613,
+      "sha256": "1ac18c6cc59b239374fbc82e1c6db7626fd82922bdbb651caad11999b2a6c7da"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/response-1.metadata.json",
+      "path": "objects/009.gz",
+      "rawBytes": 346,
+      "rawSha256": "9e3ab41ab9c68153b4cf7e7fb189712c2ca40cbf0626450c5e156ed270ad87ee",
+      "bytes": 195,
+      "sha256": "4f0de01461c9bd7f580f94c5d628abb1902626519b21b203bd18c2b91b7b0fdf"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/response-1.sse",
+      "path": "objects/010.gz",
+      "rawBytes": 3446,
+      "rawSha256": "81a98f80d83f471dedd11a48c07cf1a73ae0a43d41897be0dee17c2e8442f7bf",
+      "bytes": 452,
+      "sha256": "77660767a4282919131bbe40f0378f81aaca0359dff393bbc13d4bd2cc66c2bb"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/response-2.metadata.json",
+      "path": "objects/011.gz",
+      "rawBytes": 346,
+      "rawSha256": "23fcd833f20afd2b3389b8344417d5cd492f0166cc23a3c0ccf6d87ccd2c1b76",
+      "bytes": 195,
+      "sha256": "570457afa0c980c014fb40b750b8cf112300622acaaf55419393865bc3017a96"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/response-2.sse",
+      "path": "objects/012.gz",
+      "rawBytes": 2430,
+      "rawSha256": "7f25fadec0f249ad58b68254676b7c943d30692be93dbe69dc56ad44f56bc921",
+      "bytes": 357,
+      "sha256": "eb1274834cb6437d1ccc5316907282e370106e27538738c41e70583a54e84af0"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/summary.json",
+      "path": "objects/013.gz",
+      "rawBytes": 686,
+      "rawSha256": "7bcc35ee0311b18a0cceaf48080d5709e23527d9e06accbee24c4cd7ba6a6bb9",
+      "bytes": 399,
+      "sha256": "cc099ddba18f98cce2ec4d2a78aa8fbaeb06e44c6aa228b7f7589a0c9042d3ad"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/live-single-attempt/synthetic-tool-result.json",
+      "path": "objects/014.gz",
+      "rawBytes": 101,
+      "rawSha256": "2d2087a21731f3fa3787924ea4dfe44fa3130b80d75873dee79708baaf9035f5",
+      "bytes": 105,
+      "sha256": "970ddc15aeb3ba79ed7131c9ddfe946380bb1a5573c4d601eaf6538409e9291d"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/offline-process.json",
+      "path": "objects/015.gz",
+      "rawBytes": 363,
+      "rawSha256": "cf457af776cb6d4a4f0bf052f3dab751f589a3e42888ee866eb565988796dde8",
+      "bytes": 248,
+      "sha256": "c791bfc8f278e0f2447067d90b62926c4b732321c0639cd9aa0f1fcb8abff802"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/offline-process.stderr.log",
+      "path": "objects/016.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/offline-process.stdout.log",
+      "path": "objects/017.gz",
+      "rawBytes": 196,
+      "rawSha256": "cf3ff435d4a182d5bf8f3bca566d1279084e1d050e153aa2bd2497d04c801bb0",
+      "bytes": 169,
+      "sha256": "101ebe5cbaf079daeb852160f89f168a1d454136147b600f871c89e6dc2868c5"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/review.json",
+      "path": "objects/018.gz",
+      "rawBytes": 4409,
+      "rawSha256": "354e204c88abbb5622f4fc3116f532a4ec6449a1aa47c558e33fb5cd473f7124",
+      "bytes": 2035,
+      "sha256": "11bc6ea99902e7c4144bc2d53997a418ba83679d24690c022e9ec7c640a4cef0"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013/thinking-contract-search.raw.json",
+      "path": "objects/019.gz",
+      "rawBytes": 29453,
+      "rawSha256": "7a78a00075d46a77b2cef825be99741fc0a564ee5f252ff3bfdebfba515b7547",
+      "bytes": 5915,
+      "sha256": "7b1c9938c5cdf83b87a02f71dc7761ff2a428cc95bfed416761342d8f1febce2"
+    },
+    {
+      "source": ".work/volcengine-stream-tool-smoke-20261013.mjs",
+      "path": "objects/020.gz",
+      "rawBytes": 12138,
+      "rawSha256": "77d5da41f9f67a4a66c5310c2baa56bc6dc5c7dcdc9bfe6634ea879ade83d926",
+      "bytes": 4550,
+      "sha256": "97b61e1a0702118d1e057c9c553d5ce1ccec0796f76bc972a59a7f36367729d9"
+    },
+    {
+      "source": ".work/run-volcengine-stream-tool-smoke-20261013.mjs",
+      "path": "objects/021.gz",
+      "rawBytes": 1427,
+      "rawSha256": "59615d1f8b96b1d3f8052250d1abb41793e99ffce5554e149ae972f895140940",
+      "bytes": 717,
+      "sha256": "69070caa7e85ddc57f5c6e197babcc1992a4334ad7e6008c47e5ea92963a570a"
+    }
+  ]
+}

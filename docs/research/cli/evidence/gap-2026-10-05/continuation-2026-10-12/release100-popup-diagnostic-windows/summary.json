@@ -1,0 +1,89 @@
+{
+  "schema": "chainlesschain.jetbrains-popup-diagnostic-archive/v1",
+  "capturedAt": "2026-10-12T17:19:47.099Z",
+  "status": "PASSED_ORIGINAL_FAILURE_NOT_REPRODUCED_ROOT_CAUSE_UNCONFIRMED",
+  "diagnosticCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+  "runId": 38280050578,
+  "jobId": 114914883288,
+  "jobConclusion": "success",
+  "host": {
+    "name": "jetbrains",
+    "version": "2026.2.0.1",
+    "operatingSystem": "win32",
+    "architecture": "arm64",
+    "transport": "local-ide-bridge"
+  },
+  "diagnosticResultRawSha256": "1a9d871fc7a8b9ae580d9f4dfd0b935c6b7f9bcc61fbbdeaaf110054bf6f7d65",
+  "diagnosticResultObject": "objects/025.gz",
+  "sourceScope": [
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+      "sha256": "0c499c6d3384bbe09d641f46ea9f20112d58e41d823b9f47371d120de60c8cc3",
+      "verifiedAgainstDiagnosticReceipt": true
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+      "sha256": "e10f49ff40677091c694eb58777c45e1e0bef12df7083ee6dd3e1102ae639128",
+      "verifiedAgainstDiagnosticReceipt": true
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/UiEventDiagnosticsTest.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+      "sha256": "30fd0918c59a8893ae8f653156e0c7f3d36cce1e41cb2f2033725d97b9244247",
+      "verifiedAgainstDiagnosticReceipt": true
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01",
+      "sha256": "5a1d5054b710a4b42bae9bbc27e7e27078c3488ac24392610ff3519b5af2d761",
+      "verifiedAgainstDiagnosticReceipt": true
+    }
+  ],
+  "artifact": {
+    "id": 11761039003,
+    "bytes": 1789973,
+    "sha256": "41051f3bb5c0a2378f2c5036136eb884457d3db3bdaebb6894382a8951988820",
+    "apiDigestMatched": true,
+    "manifestEntriesVerified": 51,
+    "result": "passed",
+    "evidenceComplete": true,
+    "zipObject": "objects/022.gz",
+    "allEntriesAvailableInOriginalZip": true
+  },
+  "observations": {
+    "popupEvents": 107,
+    "popupInstances": 12,
+    "menuTransitions": 6,
+    "previewAndConfirmActions": [
+      "restore-code",
+      "restore-conversation",
+      "restore-both",
+      "summary-from",
+      "summary-to",
+      "branch"
+    ],
+    "callbackFailures": 0,
+    "initialAttempt": 1,
+    "restartAttempt": 1,
+    "hiddenOldFocusWindowWithVisibleSuccessorObservedForAllSix": true
+  },
+  "sourceReviewOpinion": {
+    "furtherSourceModificationRequiredByThisEvidence": false,
+    "reason": "This run contains no failed popup lifecycle and no callback exception. It does not establish a product defect mechanism that justifies an additional popup callback/show/focus/retry change. Preserve the diagnostic-only implementation and original failed artifact; do not infer that the issue is fixed.",
+    "releaseBoundary": "No claim of root-cause resolution. Publishing remains subject to every required release gate on the frozen final source SHA; this isolated Windows diagnostic success is only supporting evidence."
+  },
+  "readback": {
+    "compressedAndOriginalHashesVerified": true,
+    "byteForByteGunzipEqualityVerified": true,
+    "objectCount": 45
+  },
+  "boundaries": [
+    "Original failure not reproduced in one diagnostic-only Windows ARM64 run; root cause unknown and no behavioral fix claimed.",
+    "Source 0c148cf is an isolated diagnostic commit, not the final release SHA; final release still requires all seven gates on its frozen exact source.",
+    "Historical first-failure archive and all product sources were left unchanged.",
+    "Working-tree source changes are not included; four source hashes are verified from exact Git commit bytes."
+  ],
+  "retention": "Full original artifact ZIP plus all top-level capture records and selected key raw artifact files; remaining extracted files available from ZIP and identified by original journey-evidence manifest."
+}

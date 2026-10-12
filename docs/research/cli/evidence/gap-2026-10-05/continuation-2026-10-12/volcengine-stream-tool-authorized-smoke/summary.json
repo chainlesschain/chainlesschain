@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.volcengine-authorized-synthetic-smoke/v1",
+  "capturedAt": "2026-10-12T17:17:17.937Z",
+  "status": "DIRECT_SYNTHETIC_STREAM_TOOL_ROUNDTRIP_VERIFIED",
+  "scriptSha256": "77d5da41f9f67a4a66c5310c2baa56bc6dc5c7dcdc9bfe6634ea879ade83d926",
+  "observations": [
+    {
+      "request": 1,
+      "httpStatus": 200,
+      "bytes": 3446,
+      "bodySha256": "81a98f80d83f471dedd11a48c07cf1a73ae0a43d41897be0dee17c2e8442f7bf",
+      "model": "deepseek-v4-flash-ga-260731",
+      "serviceTier": "default",
+      "finish": "tool_calls",
+      "inputTokens": 327,
+      "outputTokens": 40,
+      "cachedTokens": 0,
+      "reasoningTokens": 0
+    },
+    {
+      "request": 2,
+      "httpStatus": 200,
+      "bytes": 2430,
+      "bodySha256": "7f25fadec0f249ad58b68254676b7c943d30692be93dbe69dc56ad44f56bc921",
+      "model": "deepseek-v4-flash-ga-260731",
+      "serviceTier": "default",
+      "finish": "stop",
+      "inputTokens": 107,
+      "outputTokens": 6,
+      "cachedTokens": 0,
+      "reasoningTokens": 0
+    }
+  ],
+  "requests": 2,
+  "retries": 0,
+  "inputTokens": 434,
+  "outputTokens": 46,
+  "reasoningTokens": 0,
+  "cachedTokens": 0,
+  "tokenOnlyEstimate": {
+    "currency": "CNY",
+    "amount": 0.001716,
+    "formula": "(434 * 3 + 46 * 9) / 1000000",
+    "actualBilling": null,
+    "fxRate": null
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  },
+  "productionAgentAcceptance": false,
+  "frozenDefaultThinkingAcceptance": false,
+  "independentHumanApproval": false,
+  "additionalPaidCallsDuringArchival": 0
+}

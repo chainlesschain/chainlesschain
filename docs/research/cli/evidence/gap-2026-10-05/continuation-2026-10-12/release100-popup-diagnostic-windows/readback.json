@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-12T17:19:47.110Z",
+  "manifestSha256": "f108e81fb1cfd099cbe82d63d121b0d3916b49a359599281f488e7515b9d042d",
+  "summarySha256": "fc149d7ad0cfc3a7cd48cd85e62674f0bc5c0990b6ecc3a3da9a19e720fa3512",
+  "readmeSha256": "de3efef3db39fa8e47c908085b36e89e6bf4f1f6d090cc255aa115ec64457601",
+  "objectsVerified": 45,
+  "originalAndCompressedDigestChecks": 90,
+  "byteEqualityChecks": 45,
+  "failures": [],
+  "diagnosticResultPinVerified": true,
+  "exactCommitSourceFilesVerified": 4,
+  "artifactManifestFilesVerified": 51
+}

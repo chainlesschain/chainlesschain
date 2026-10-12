@@ -1,0 +1,413 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:19:47.099Z",
+  "summarySha256": "fc149d7ad0cfc3a7cd48cd85e62674f0bc5c0990b6ecc3a3da9a19e720fa3512",
+  "readmeSha256": "de3efef3db39fa8e47c908085b36e89e6bf4f1f6d090cc255aa115ec64457601",
+  "entries": [
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-54-59-267Z-artifacts.json",
+      "path": "objects/000.gz",
+      "rawBytes": 826,
+      "rawSha256": "a38fb58b81731e90bde601058142c70df2326caa8c4cc0d4463d64b0f69edf97",
+      "bytes": 470,
+      "sha256": "5a15a5d01b73ba5ea743550e592f3e5ce66eb650b56eedc602b84c65210f2b89",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-54-59-267Z-job.json",
+      "path": "objects/001.gz",
+      "rawBytes": 3858,
+      "rawSha256": "1f8212fb768f1a4bc30622098d1bfb26b1a011413042bc076326882978748347",
+      "bytes": 953,
+      "sha256": "4d933b440ea23d6bfdef94219ce61eae4c65edc968c20e850113f3792bcf8f72",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-54-59-267Z-run.json",
+      "path": "objects/002.gz",
+      "rawBytes": 13206,
+      "rawSha256": "fad41a1cdaf9d7fb67575b90e9dc4c772aac1c9db2cf901776056e6b7a2fc0d4",
+      "bytes": 1521,
+      "sha256": "944d744fdb0e4d287473904a282da15f6cb7519d6d02b1d6fd20b31781764497",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-56-20-506Z-job.json",
+      "path": "objects/003.gz",
+      "rawBytes": 3858,
+      "rawSha256": "1f8212fb768f1a4bc30622098d1bfb26b1a011413042bc076326882978748347",
+      "bytes": 953,
+      "sha256": "4d933b440ea23d6bfdef94219ce61eae4c65edc968c20e850113f3792bcf8f72",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-57-31-969Z-job.json",
+      "path": "objects/004.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-58-48-453Z-job.json",
+      "path": "objects/005.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T16-59-52-837Z-job.json",
+      "path": "objects/006.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-01-06-846Z-job.json",
+      "path": "objects/007.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-01-34-141Z-job.json",
+      "path": "objects/008.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-02-36-989Z-job.json",
+      "path": "objects/009.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-03-43-704Z-job.json",
+      "path": "objects/010.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-04-45-688Z-job.json",
+      "path": "objects/011.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-05-46-466Z-job.json",
+      "path": "objects/012.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-06-48-447Z-job.json",
+      "path": "objects/013.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-07-52-869Z-job.json",
+      "path": "objects/014.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-10-43-544Z-job.json",
+      "path": "objects/015.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-11-41-981Z-job.json",
+      "path": "objects/016.gz",
+      "rawBytes": 4030,
+      "rawSha256": "200e4e9b8b8984ba12068e4b4edd15e33fdc9b6853ac4579d3d6078efc608056",
+      "bytes": 972,
+      "sha256": "c7afb443308368f92db84b92b4eafdd203a45e21245d9ebe09945fd0a4db2e32",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/2026-10-12T17-12-44-783Z-job.json",
+      "path": "objects/017.gz",
+      "rawBytes": 4484,
+      "rawSha256": "81970b238a81b8c366ded1ef669d838d4461d8f87c851505713389f77aa11f77",
+      "bytes": 993,
+      "sha256": "ff1476e82e4f85c371af09a6d7a3b37ae485e3f9be53a6c8b1924f15f77fd6c9",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/active-job-log-request.json",
+      "path": "objects/018.gz",
+      "rawBytes": 114,
+      "rawSha256": "0c813063dbcb74ba6983d8745ea711fa605aadb06064f1b161e44be736464ba5",
+      "bytes": 116,
+      "sha256": "53b27b8546ab14dd22895ebe39865294e74228fd59c6d954975c42989a346ff8",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/active-job-log-request.stderr",
+      "path": "objects/019.gz",
+      "rawBytes": 13,
+      "rawSha256": "6c5ec582d3b25e97273d17fd4088d0e13837c8384ee94aba555afc35856ec3ae",
+      "bytes": 33,
+      "sha256": "94a22da6255533988a6b0479d4105cddd83200b81f22506d123dde9a7dd54d9a",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/active-job-log-request.stdout",
+      "path": "objects/020.gz",
+      "rawBytes": 215,
+      "rawSha256": "8225a6902fec1ea0b277ab98407e5715f6ff8a366ce0597d90c39a357984a6e3",
+      "bytes": 205,
+      "sha256": "57be5558fdb0ddda8c71cdfb3fcc57cd6988acfbc8ba7947d3fd5f2d8c019ce7",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/archive-final.cjs",
+      "path": "objects/021.gz",
+      "rawBytes": 1614,
+      "rawSha256": "fa36b8484310798274fcd3a689319fdc859a90ce7d2803016e601ffa6a970fdb",
+      "bytes": 737,
+      "sha256": "be5c5278997d26745d9546eacd931af1868ae1a1817a7ecb649ce8d24317dac3",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact-11761039003.zip",
+      "path": "objects/022.gz",
+      "rawBytes": 1789973,
+      "rawSha256": "41051f3bb5c0a2378f2c5036136eb884457d3db3bdaebb6894382a8951988820",
+      "bytes": 1776483,
+      "sha256": "28544beb2a3225b5aeb49926e3d6039a9b24908c379f23b870afc8ab894de327",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact.raw.json",
+      "path": "objects/023.gz",
+      "rawBytes": 816,
+      "rawSha256": "e58127e41b3476239f5d84db91b7728b1842962dfe771f7aa5ffe8ae08bad3a9",
+      "bytes": 463,
+      "sha256": "c1791ebb620751ec3af9c9a1261796362668654a9ecb0a7b66d9c3e4393cd9e3",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifacts.raw.json",
+      "path": "objects/024.gz",
+      "rawBytes": 5670,
+      "rawSha256": "1c3901420991c1c5306fd3be9112c395a5ebd4abbaab32a37f7ee86e1186cde1",
+      "bytes": 1043,
+      "sha256": "fed9c305edc926c22d5ae8f95d655fe0cdfc5a9e947e0ca1bc041cd74f5a6b04",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/diagnostic-result.json",
+      "path": "objects/025.gz",
+      "rawBytes": 31871,
+      "rawSha256": "1a9d871fc7a8b9ae580d9f4dfd0b935c6b7f9bcc61fbbdeaaf110054bf6f7d65",
+      "bytes": 4571,
+      "sha256": "1de8e93a081820fb4243878f8ddc586cfd2f51594d8f75ae4abbf23596589f75",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/job.log",
+      "path": "objects/026.gz",
+      "rawBytes": 243646,
+      "rawSha256": "707c70eada7409447be71cd5169f50b01a396fb51043a320c5a6a137d146572b",
+      "bytes": 46922,
+      "sha256": "1521a062a118f5d93234f0907734bad43cb312961ec2b33cf14f6a79ce82d93a",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/job.raw.json",
+      "path": "objects/027.gz",
+      "rawBytes": 4484,
+      "rawSha256": "81970b238a81b8c366ded1ef669d838d4461d8f87c851505713389f77aa11f77",
+      "bytes": 993,
+      "sha256": "ff1476e82e4f85c371af09a6d7a3b37ae485e3f9be53a6c8b1924f15f77fd6c9",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/manifest-verification.json",
+      "path": "objects/028.gz",
+      "rawBytes": 11873,
+      "rawSha256": "b09709cbeb5a6c0bb06a3906ca0124372cc9045bafd1e0360af0b07e239663c2",
+      "bytes": 2983,
+      "sha256": "7bf02b7764c3c1352f307f8ed1e5fffca3b2c97ae22f9cce46c2da53b2d0c624",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/observation-window-report.json",
+      "path": "objects/029.gz",
+      "rawBytes": 2607,
+      "rawSha256": "b4989dc6d01b65c78dd4d878f5290e7d5372e32bdb77c16d2129ef3d837c73c5",
+      "bytes": 1039,
+      "sha256": "f1036c50d4dcc183964b9c8a74f16abcd022ffdb7b2ad3d2aa7a6ff22abf644b",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/poll.cjs",
+      "path": "objects/030.gz",
+      "rawBytes": 635,
+      "rawSha256": "79e3aa365c902ed8fd8ca3bff1c3a4af252ab1e2d8111bcd051057205c7ec510",
+      "bytes": 396,
+      "sha256": "d7798aa161c5fcf2fcff2417db03109f4d8516dd37bc2365012b4f86f10852d5",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/popup-events.json",
+      "path": "objects/031.gz",
+      "rawBytes": 56562,
+      "rawSha256": "fb0cc2a7f58696ffa9d7e78f0be9c404bf6cfcdf19ff151c6ba4f014cb89e195",
+      "bytes": 1855,
+      "sha256": "7eea9f03a6adde3f37bbbdee7437481874dd4ae9c185356eea3c8980b6ed99dc",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/popup-groups.json",
+      "path": "objects/032.gz",
+      "rawBytes": 64413,
+      "rawSha256": "dd82259d96d65219197d62eb313e19f3c27a5aaf5e94f8fdd85c19339364b2bf",
+      "bytes": 2002,
+      "sha256": "8ba020350acfce038eae0a6ab71829e08d10497a761150a91f953586a21ed7d9",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/run.raw.json",
+      "path": "objects/033.gz",
+      "rawBytes": 13211,
+      "rawSha256": "b34fef5177d9fd631229e18f8b22cb254ba69496e247f4b9c145f2e2a90ebb71",
+      "bytes": 1529,
+      "sha256": "222c289933314c0c2c0cf9d2b2fcffe17f0bcaec210c126dd2a293aa4f46d15b",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/zip-verification-11761039003.json",
+      "path": "objects/034.gz",
+      "rawBytes": 388,
+      "rawSha256": "fe1e040f5a5ea11c36e73f87a22584b0492e41c343ec546d2efc030f56c20df9",
+      "bytes": 233,
+      "sha256": "a0442991bce51728258860c498ceca65bb5f5cee8b3978e118d6509160cce287",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/journey-evidence.json",
+      "path": "objects/035.gz",
+      "rawBytes": 17339,
+      "rawSha256": "c3707adde7d8c86d5010790e7303d90408d363a6202009e9cc0431143a788680",
+      "bytes": 3316,
+      "sha256": "7afd856a6701f1ef3ac1f3908ce3ee295ca2ca734717baa6daa93098f50627ed",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/009-fake-cli-protocol.jsonl",
+      "path": "objects/036.gz",
+      "rawBytes": 354931,
+      "rawSha256": "09ceeb3854adfcfe2818edb0c19327b0a5b06cd7320e4ac774132b45719ebf83",
+      "bytes": 34154,
+      "sha256": "ca01a481e4b6ee861608a944d75cb2d41fc15d7e7690b6445f4d74d2a4ffb3c3",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/021-host-capture-initial_capture-status.json",
+      "path": "objects/037.gz",
+      "rawBytes": 910,
+      "rawSha256": "8c2f844eae33262876be9e763795ec77e447dbbf0d62464067863a9cffd08095",
+      "bytes": 450,
+      "sha256": "f5195949edb769d73d08e1d83693d3ff0c81ba3a3cbb63aa4e77a6de47b884e1",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/023-host-capture-initial_host-events.jsonl.bin",
+      "path": "objects/038.gz",
+      "rawBytes": 72741,
+      "rawSha256": "bc226388acc8d20e68795f8bedee86d6abedce6c8bd0847be17705b65c96de56",
+      "bytes": 3185,
+      "sha256": "18973bdc65061c321d6b65d717f61bb904244bc04f30f1d92dfff90cedf1339d",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/026-host-capture-restart_capture-status.json",
+      "path": "objects/039.gz",
+      "rawBytes": 909,
+      "rawSha256": "d86ba0399a3ecdbc1407534ba3e365c5da4eaac438dd5ce3f525b01e6186d230",
+      "bytes": 449,
+      "sha256": "8da8241217a4c52ccc095288ab64a3189959acbfd72d793da3e5c5cb8c8657f2",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/028-host-capture-restart_host-events.jsonl.bin",
+      "path": "objects/040.gz",
+      "rawBytes": 2341,
+      "rawSha256": "10353b77182fc7781f2c458c3a9dc4737466e62e65d52b7ebf78c03b680319bd",
+      "bytes": 341,
+      "sha256": "ab3d7f4c4b0008d9ee7cbbd1a9daca9278d743d96b13b5c2a2afda8b3a715e5b",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/041-workbench-host-phases.json",
+      "path": "objects/041.gz",
+      "rawBytes": 1884,
+      "rawSha256": "213cb738d609954d00e5a1b830121cf0ee957c7996ecd04d854301a41bb03030",
+      "bytes": 760,
+      "sha256": "02ff3ecc6d6032811f6f26b939024146067ddf9d8a743b2d10a65518f40ac959",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/046-TEST-com.chainlesschain.ide.uitest.IdeUiSmokeTest.xml",
+      "path": "objects/042.gz",
+      "rawBytes": 826,
+      "rawSha256": "7cce7c1955aa037bd6be159ae2ed9632b0977bc7e8d37096bf6e85aeee38eaa3",
+      "bytes": 464,
+      "sha256": "b14fffdd75ad641fecf1a57105878b109466d27f7e53e0d87ce8c474f9895698",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/047-TEST-com.chainlesschain.ide.uitest.NativeTranscriptProbeTest.xml",
+      "path": "objects/043.gz",
+      "rawBytes": 653,
+      "rawSha256": "988704de7c3ef9ec96098569b57b82703f4000720cf7d46466121201918f91c5",
+      "bytes": 353,
+      "sha256": "8a62db1c0d68c2f4c7c7d3b2852fbaf5ecf0884e148737f37ed3201414022c7f",
+      "readbackVerified": true
+    },
+    {
+      "source": ".work/release100-arm64-windows-diagnostic-0c148cf-20261013/artifact/jetbrains-windows-2026.2.0.1/diagnostics/048-TEST-com.chainlesschain.ide.uitest.PluginStartupContractTest.xml",
+      "path": "objects/044.gz",
+      "rawBytes": 1227,
+      "rawSha256": "23c8e81bf9ba902e7373a0e1ec151f3fd7c5e7031149808f509eb10a9966d813",
+      "bytes": 515,
+      "sha256": "a9a2ba9ab2307c4ed3457a3c1b0443a0aa1dfcfafc4f972d14a49d75b3163bed",
+      "readbackVerified": true
+    }
+  ]
+}
