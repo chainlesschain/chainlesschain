@@ -1,0 +1,792 @@
+{
+  "archivedAt": "2026-10-12T05:34:37.345Z",
+  "sourceCommit": "fdead28689393bdf6881c9f806927f9f09333194",
+  "currentCapturedAt": "2026-10-12T05:33:52.086Z",
+  "currentRuns": [
+    {
+      "id": 38206567032,
+      "name": "CLI Session Host Consistency",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567032",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 2,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38206566916,
+      "name": "CI Tests",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566916",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 6,
+        "in_progress": 4,
+        "queued": 3,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38206567211,
+      "name": "CLI CI",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567211",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 7,
+        "queued": 53,
+        "in_progress": 5
+      },
+      "failures": []
+    },
+    {
+      "id": 38206566986,
+      "name": "Model Catalog Review",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566986",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38206566982,
+      "name": "IDE Extensions",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566982",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 4,
+        "in_progress": 3,
+        "queued": 6,
+        "failure": 1
+      },
+      "failures": [
+        {
+          "id": 114673617116,
+          "name": "VS Code extension (macOS host gate)",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566982/job/114673617116",
+          "conclusion": "failure",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-12T05:18:25Z",
+              "completed_at": "2026-10-12T05:18:28Z"
+            },
+            {
+              "name": "Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-12T05:18:28Z",
+              "completed_at": "2026-10-12T05:19:04Z"
+            },
+            {
+              "name": "Run actions/setup-node@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-12T05:19:04Z",
+              "completed_at": "2026-10-12T05:19:16Z"
+            },
+            {
+              "name": "Download immutable .vsix candidate",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-12T05:19:16Z",
+              "completed_at": "2026-10-12T05:19:18Z"
+            },
+            {
+              "name": "Verify immutable candidate manifest",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-12T05:19:18Z",
+              "completed_at": "2026-10-12T05:19:18Z"
+            },
+            {
+              "name": "Install Extension Host test runtime",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-12T05:19:18Z",
+              "completed_at": "2026-10-12T05:19:21Z"
+            },
+            {
+              "name": "Extension Host multi-root + multi-window journey (macOS stable)",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 7,
+              "started_at": "2026-10-12T05:19:21Z",
+              "completed_at": "2026-10-12T05:24:47Z"
+            },
+            {
+              "name": "Extension Host multi-root + multi-window journey (macOS minimum 1.85.2)",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-12T05:24:47Z",
+              "completed_at": "2026-10-12T05:29:53Z"
+            },
+            {
+              "name": "Upload macOS host journey evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-12T05:29:53Z",
+              "completed_at": "2026-10-12T05:29:56Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v5",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 17,
+              "started_at": "2026-10-12T05:29:56Z",
+              "completed_at": "2026-10-12T05:29:57Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18,
+              "started_at": "2026-10-12T05:29:57Z",
+              "completed_at": "2026-10-12T05:29:58Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-12T05:29:58Z",
+              "completed_at": "2026-10-12T05:30:00Z"
+            }
+          ],
+          "log": {
+            "path": ".work\\ide-gap-continuation-20261012\\fdead-actions\\38206566982-114673617116.log"
+          }
+        }
+      ]
+    },
+    {
+      "id": 38206567047,
+      "name": "VERIFY01 Host Diagnostics",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567047",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 2,
+        "in_progress": 2,
+        "queued": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38206567090,
+      "name": "IDE Roadmap Accessibility Performance",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567090",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38206566942,
+      "name": "Context Memory Kernel CI",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566942",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38206566970,
+      "name": "CLI Strict Sandbox",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206566970",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 5
+      },
+      "failures": []
+    },
+    {
+      "id": 38206567045,
+      "name": "IDE Roadmap Safety Matrix",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567045",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38206567110,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567110",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 3,
+        "skipped": 2,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38206567172,
+      "name": "Code Quality & Security",
+      "status": "in_progress",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206567172",
+      "event": "pull_request",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 5,
+        "in_progress": 1,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38206561968,
+      "name": "Context Memory Kernel CI",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38206561968",
+      "event": "push",
+      "headSha": "fdead28689393bdf6881c9f806927f9f09333194",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    }
+  ],
+  "currentMatricesComplete": false,
+  "modelReviewSteps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run ./.github/actions/setup-node-deps",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify evidence capture contracts",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prepare evidence directory",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify reviewed model contracts",
+      "conclusion": "success"
+    },
+    {
+      "name": "Fetch official release notes",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Detect releases requiring review",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Preserve reports and original release snapshots on success or failure",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "historicalSource": "bdaf873c68a706ee65b985892d2603cbe0510979",
+  "historicalCapturedAt": "2026-10-12T05:20:44.444Z",
+  "historicalRuns": [
+    {
+      "id": "38203332622",
+      "name": "CLI CI",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 21,
+        "cancelled": 48
+      },
+      "failures": [
+        {
+          "id": 114661377472,
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377474,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377502,
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377584,
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377587,
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377607,
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377622,
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377630,
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377633,
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377634,
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377640,
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377644,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377649,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377661,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377671,
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377672,
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377675,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377679,
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377686,
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377687,
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377692,
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377703,
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377706,
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377710,
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377726,
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377731,
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377739,
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377745,
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377746,
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377754,
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377759,
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377760,
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377761,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377762,
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377769,
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377774,
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377788,
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377793,
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377805,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377843,
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377896,
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661377950,
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661378972,
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114661379017,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671301774,
+          "name": "pack-linux-dryrun",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671302007,
+          "name": "dry-run-publish",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671321929,
+          "name": "verify-cli",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671322434,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "cancelled",
+          "steps": []
+        }
+      ]
+    },
+    {
+      "id": "38203332434",
+      "name": "CLI Strict Sandbox",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 5
+      },
+      "failures": []
+    },
+    {
+      "id": "38203332517",
+      "name": "CI Tests",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 12,
+        "cancelled": 1,
+        "skipped": 1
+      },
+      "failures": [
+        {
+          "id": 114661366616,
+          "name": "Unit Tests (windows-latest, 22.x)",
+          "conclusion": "cancelled",
+          "steps": [
+            {
+              "name": "Enforce selector or fallback result",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 14,
+              "started_at": "2026-10-12T05:07:16Z",
+              "completed_at": "2026-10-12T05:07:17Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "38203332448",
+      "name": "VERIFY01 Host Diagnostics",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 7
+      },
+      "failures": []
+    },
+    {
+      "id": "38203332384",
+      "name": "Code Quality & Security",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 7,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": "38203332502",
+      "name": "Context Memory Kernel CI",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": "38203332522",
+      "name": "IDE Extensions",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": {
+        "success": 14,
+        "cancelled": 5
+      },
+      "failures": [
+        {
+          "id": 114668225563,
+          "name": "VS Code extension (macOS host gate)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114670793548,
+          "name": "Browser evidence (three-OS required aggregate)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671242058,
+          "name": "JetBrains plugin (build + publish)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671242473,
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "conclusion": "cancelled",
+          "steps": []
+        },
+        {
+          "id": 114671424613,
+          "name": "VS Code extension (Linux host gate + publish)",
+          "conclusion": "cancelled",
+          "steps": []
+        }
+      ]
+    },
+    {
+      "id": "38203332415",
+      "name": "Model Catalog Review",
+      "sha": "bdaf873c68a706ee65b985892d2603cbe0510979",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 1
+      },
+      "failures": []
+    }
+  ],
+  "releaseAdmitted": false,
+  "published": false,
+  "paidCalls": 0,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0
+}

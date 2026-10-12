@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-10-12T05:33:23.395Z",
+  "sourceCommit": "ceb2d6f5961fd260739cfe523365f827e22dd9e9",
+  "testsMatchCommittedBlobs": true,
+  "baseline": {
+    "total": 29,
+    "passed": 8,
+    "failed": 21
+  },
+  "windows": {
+    "node": "v22.22.2",
+    "tests": 139
+  },
+  "linux": {
+    "node": "v22.12.0",
+    "tests": 139
+  },
+  "newCases": 29,
+  "scope": "Keep HTTP and failed Responses verdicts terminal before connection classification",
+  "retryAfterImplemented": false,
+  "transportRetriesPreserved": true,
+  "published": false,
+  "pushed": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "paidCalls": 0
+}

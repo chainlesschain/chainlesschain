@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-10-12T05:44:27.896Z",
+  "sourceCommit": "20f4a4bfe395f3b36846f1e7b48c6c8c6cfcc8a5",
+  "testsMatchCommittedBlobs": true,
+  "baseline": {
+    "tests": 4,
+    "pass": 1,
+    "fail": 3,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "intermediate": {
+    "tests": 5,
+    "pass": 4,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "finalNewCases": 5,
+  "windows": {
+    "node": "v22.22.2",
+    "nodeCases": 46,
+    "vitestCases": 51
+  },
+  "linux": {
+    "node": "v22.12.0",
+    "nodeCases": 46,
+    "vitestCases": 51
+  },
+  "freshAuthorityReadPreserved": true,
+  "postMutationReadPreserved": true,
+  "staleReadDiscarded": true,
+  "periodicReadsDeferredDuringActions": true,
+  "macosSlaSatisfied": false,
+  "macosSlaThresholdMs": 2000,
+  "macosSlaSamples": 100,
+  "pushed": false,
+  "published": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "paidCalls": 0
+}

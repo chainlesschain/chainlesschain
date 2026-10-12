@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-10-12T06:03:35.890Z",
+  "sourceCommit": "4c46f3c7dd1fbe2003d89f5bce7ce0f49cf727e1",
+  "candidate": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161"
+  },
+  "userAuthorizedPublishAfterCompleteTests": true,
+  "childVersionsChanged": false,
+  "childTreesUnchanged": 13,
+  "publicPackagesIntegrityVerified": 14,
+  "originalAuditObjectsVerified": 76,
+  "metadataSourceBlobs": 16,
+  "windows": {
+    "nodeCases": 266,
+    "releaseContractCases": 67
+  },
+  "actionsSevenGatesComplete": false,
+  "macosSlaPassed": false,
+  "published": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "paidCalls": 0
+}

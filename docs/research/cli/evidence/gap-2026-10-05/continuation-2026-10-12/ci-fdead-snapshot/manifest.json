@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T05:34:37.345Z",
+  "summarySha256": "bd93a41536dc554340002ab2d8c92ea6304e2f5f731528648c000ca1211b8e43",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206561968-jobs-1.json",
+      "path": "objects/000.gz",
+      "rawBytes": 17917,
+      "rawSha256": "59652d67452168aefc9f8b75fb34ee429ec8d2592086c21d9c1f1ae72085a9f1",
+      "bytes": 1762,
+      "sha256": "a97440750ea78359df29d9b045bb037e0b282a481e5583de77027bd88bc45394"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206566916-jobs-1.json",
+      "path": "objects/001.gz",
+      "rawBytes": 31551,
+      "rawSha256": "dea5537ce1e1d78981d1cf424d86af6bfebf24e179a2c28fa74bc7ba7e09493c",
+      "bytes": 2649,
+      "sha256": "b374e0705d52f7fae00c172e7c6960f2309e082697e43bc5c88a419e4c8f1486"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206566942-jobs-1.json",
+      "path": "objects/002.gz",
+      "rawBytes": 17917,
+      "rawSha256": "ebe786f211cb9a079ac37796eb4de687a5b84e908b5bf536eaab884b3918fb91",
+      "bytes": 1771,
+      "sha256": "060c055db846f1a822f37dacf520fdaf76097be14e18a920b39b313686c2f65c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206566970-jobs-1.json",
+      "path": "objects/003.gz",
+      "rawBytes": 21580,
+      "rawSha256": "302352f0f6c4d79b7a0fdfd9a38476b351e107f2380074426b4220dc5e379af7",
+      "bytes": 2112,
+      "sha256": "1c89d9b47cb994e18db5fcb5173064316cffb486b3fca3475f649c51a2a61d7f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206566982-jobs-1.json",
+      "path": "objects/004.gz",
+      "rawBytes": 33546,
+      "rawSha256": "0ed8628925e9b69509e1402667b13b9a577733983e00e4f5c264eeb140bcf98f",
+      "bytes": 2939,
+      "sha256": "c583bd7be9017fcfbc839b912a79592a68f4f83316d16b02008bb8759f7e6c23"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206566986-jobs-1.json",
+      "path": "objects/005.gz",
+      "rawBytes": 3375,
+      "rawSha256": "64e94ebc0fb55baaa1104a4235dec32404396b2201ae78eae60d614c7a80fce8",
+      "bytes": 842,
+      "sha256": "6d4f4a2913e5f4e8dc48953c032601604ac2012f865de7b00fcd760e35bffb37"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567032-jobs-1.json",
+      "path": "objects/006.gz",
+      "rawBytes": 6758,
+      "rawSha256": "f3da7f37e1cc7372a83a67b03349f53c6bebee4b562215cbad01343157ce2a63",
+      "bytes": 995,
+      "sha256": "15d9fecd093f349b21ddba58b23af39c2fb9443e0f865f1247a9e12840e67910"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567045-jobs-1.json",
+      "path": "objects/007.gz",
+      "rawBytes": 13929,
+      "rawSha256": "d82deee6844975ab35fc513336c8b580eaeab829910b64a3b7430285f4c8b3df",
+      "bytes": 1599,
+      "sha256": "55171e6b2f7d847325970783fd3e8ae294b5974e2a04f019ee91c47944828c7c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567047-jobs-1.json",
+      "path": "objects/008.gz",
+      "rawBytes": 17520,
+      "rawSha256": "9e15889e9f05584fbd55307cc2f11cf6ff0284a4b52e8becb485566f807f4bc3",
+      "bytes": 1744,
+      "sha256": "1fd8c99b4a8f63d191bd023983f7bb3a6e2a2fee90edcfc7bf1cd814480d2cca"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567090-jobs-1.json",
+      "path": "objects/009.gz",
+      "rawBytes": 21475,
+      "rawSha256": "b23547b5a56bb6d8cddc962b80b5684253aeb0304398b66a910db38141828b61",
+      "bytes": 2177,
+      "sha256": "5bd78c736588917caf5acc7d0159e3222f475adb9ccf22f9dae57d6c951903a6"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567110-jobs-1.json",
+      "path": "objects/010.gz",
+      "rawBytes": 10644,
+      "rawSha256": "2ed9c6efbf9b6ebb52f467548191e7ddd348d9d2dcb5443b7dd80295baa37862",
+      "bytes": 1233,
+      "sha256": "fad1b36520f0cb067ef917955c662c4aca390e58a7679a82351c5d3f69751dd7"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567172-jobs-1.json",
+      "path": "objects/011.gz",
+      "rawBytes": 15704,
+      "rawSha256": "6d400c6619ca45756ada936645bc7d5e3b59ab58d70fcbe8b6622bdc9fc3afdd",
+      "bytes": 1630,
+      "sha256": "cbdca57c72470b8868a485c2fa247ba46b5b419fd9c5f7bc0636d6594b7206f5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/38206567211-jobs-1.json",
+      "path": "objects/012.gz",
+      "rawBytes": 80396,
+      "rawSha256": "c85152e4e18fcc30f5302a3eb50da2b55ebf66b2e1f63c493322b6b9bc49ff82",
+      "bytes": 4148,
+      "sha256": "00e9fd681c43663a44fe82e4ab1b1d57c8a457f4a79f1d12feb240a2ac8bd34f"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/runs.json",
+      "path": "objects/013.gz",
+      "rawBytes": 399657,
+      "rawSha256": "26b5b4c695558c549f6a225e7dd47f5004568bbb92f53d391851acf4375e3e60",
+      "bytes": 8092,
+      "sha256": "607d10afa5c1c193a15fbe9aa6b8efa5c06a544312689a840a68a906e8c82a3d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/2026-10-12T05-33-52.086Z/summary.json",
+      "path": "objects/014.gz",
+      "rawBytes": 9511,
+      "rawSha256": "6e0b88a26ba6f7e2b9e31733f952c696ee8b6e539710947bed0921751397ca78",
+      "bytes": 1249,
+      "sha256": "dbacab7f12bb990b7d656ae53ea266744c9c697594b62cda12f1667588321a2d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332384-jobs.json",
+      "path": "objects/015.gz",
+      "rawBytes": 17559,
+      "rawSha256": "0177dea9d5959fb683a5c053b6420347ec349213b0711c084109ee1c7e04f7d7",
+      "bytes": 1706,
+      "sha256": "f4adc0161af2e74923173d0dad62cce8fd9764e5e37e4e928ce6c78948131ddf"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332384-run.json",
+      "path": "objects/016.gz",
+      "rawBytes": 13736,
+      "rawSha256": "770b1172a192685c623224572d59396c17281e8f6b24dcbbcd7d59dd04d1a50a",
+      "bytes": 1693,
+      "sha256": "eb88d090c7244ebf6fa327b067e33a2d0329158b6f65f3324fecb0ae37bc3040"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332415-jobs.json",
+      "path": "objects/017.gz",
+      "rawBytes": 3375,
+      "rawSha256": "23e21a75adc6b6a400875f28a7496968b373cf6c1e3c9524ee7a88c4ca7b8273",
+      "bytes": 847,
+      "sha256": "2f051a3c486177a6e63ef553d44cd8c42d6f0a7a6a53f41f790affec24e68a35"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332415-run.json",
+      "path": "objects/018.gz",
+      "rawBytes": 13739,
+      "rawSha256": "230aab8fd9068369c51c34ddb89f75379d2b383724e33bbf78472891759be15f",
+      "bytes": 1686,
+      "sha256": "30d811902a90665d82f248087dcbee54530fd93f6667ed6e92bb97b909c2ed22"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332434-jobs.json",
+      "path": "objects/019.gz",
+      "rawBytes": 21580,
+      "rawSha256": "21056edfe3d8777144a0dcd35919f0f14b0736de9a75a6ac5453acce82b649f5",
+      "bytes": 2118,
+      "sha256": "fb91c529b986570be81bbeb066a3a3cb42a44b45dfb70fe7016748bc32b9e5eb"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332434-run.json",
+      "path": "objects/020.gz",
+      "rawBytes": 13737,
+      "rawSha256": "d2a24f525b3dbe7c741c706301bc647ceaa071b7980ae97bbd1b01a60cd11fe5",
+      "bytes": 1689,
+      "sha256": "3b41cc598bb0f7fc40bd0246ace60863177e8dfe45be8b934cf82fe615941a53"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332448-jobs.json",
+      "path": "objects/021.gz",
+      "rawBytes": 28781,
+      "rawSha256": "1c95b64b61e1b8a9623dcc8cc773ae64ad992f0cc5fd0d5137cf7694d8836421",
+      "bytes": 2240,
+      "sha256": "6286ef322e990796a906668b2ab1530f89d42e3821513a2d70b60f670bf35ce9"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332448-run.json",
+      "path": "objects/022.gz",
+      "rawBytes": 13750,
+      "rawSha256": "2d630a1217c90e2d2efd83fc269957e1ff0fc7b75b380230ebe5022121340440",
+      "bytes": 1701,
+      "sha256": "2048ca48047cb1b1e89fa63d368b18527a883d6dffd1e3d5ef46c9e5b08be79b"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332502-jobs.json",
+      "path": "objects/023.gz",
+      "rawBytes": 17917,
+      "rawSha256": "85b5da74e9c21458bb0fc108667ce9db811b542b1c9354f3246a66ccb0246a0a",
+      "bytes": 1768,
+      "sha256": "70adb869ef3ed23a9304cbc837b09692b6386ce3894c8b6a8aa0920e0de4ae1a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332502-run.json",
+      "path": "objects/024.gz",
+      "rawBytes": 13746,
+      "rawSha256": "e18576dbebb896b58a6a9f3ba2d976b299dce979b2f033ea588d3fe898e7fece",
+      "bytes": 1695,
+      "sha256": "386575851dbc27350aa3fa489d4962357e563c93efb2c2a56c9ad7bb877b0364"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332517-jobs.json",
+      "path": "objects/025.gz",
+      "rawBytes": 38612,
+      "rawSha256": "07cc5c8476f9c68ec134ae744b38f4a6500b7a391a07c6427d993386a8bf57fa",
+      "bytes": 3097,
+      "sha256": "ee405dbe49f2f7dbc4ba85818925d74f65e814588cd25a9eb86db256b99c34b3"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332517-run.json",
+      "path": "objects/026.gz",
+      "rawBytes": 13715,
+      "rawSha256": "7393f803ab6711964e5de1a48369fcecf6f0be51832f9c8d2cd396234b59f7bf",
+      "bytes": 1675,
+      "sha256": "f39164b60e3f47b9bae6827b0b2a8b15166f160773e2d241f8b3236845d79466"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332522-jobs.json",
+      "path": "objects/027.gz",
+      "rawBytes": 59245,
+      "rawSha256": "297080e1218204e20df70c7c561304c650e0c8339b0e0dcf26272b02fa986e67",
+      "bytes": 4578,
+      "sha256": "a8c5745d135e5a3e730a6a3822ed79b7b358d75a2a69d83d006abb76502b303e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332522-run.json",
+      "path": "objects/028.gz",
+      "rawBytes": 13731,
+      "rawSha256": "c615691d2a3893b1cafdd088a31da780d70bc756a527fd1b08c7d2354ade08c3",
+      "bytes": 1681,
+      "sha256": "2651f77bcb8249977fa75ddcd8d8b7fe9d7296a6583419d26f5224ad33917b2a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332622-jobs.json",
+      "path": "objects/029.gz",
+      "rawBytes": 127901,
+      "rawSha256": "2777370e8a5fe8b15092b2ed2f01943e50f4c105fa9ef7e2d7df5eb6d98d55cc",
+      "bytes": 6446,
+      "sha256": "47f90587b5bb047c0abb3f1cd91f428db51b362fa624b20a15e60b0abe8c6eb8"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/38203332622-run.json",
+      "path": "objects/030.gz",
+      "rawBytes": 14107,
+      "rawSha256": "bbe8705109dbd7152b1c99520931970e5ef339b22b1037f73413ad348c18a42e",
+      "bytes": 1764,
+      "sha256": "7a6f074ecafa1597fa9caf9fbf4d7a5f9327b559a1a423d641b238e11cef769e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/2026-10-12T05-20-37-094Z/summary.json",
+      "path": "objects/031.gz",
+      "rawBytes": 12254,
+      "rawSha256": "f3b0ddb6ff5986670a9c874bfd6505132d1ada03ba71487567e2c0a9dc4bec71",
+      "bytes": 1225,
+      "sha256": "9c518d4322c6dc66e241e3c7a5a5d8dfde8a0e355157e886669bcce4b897aa8e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-monitor.mjs",
+      "path": "objects/032.gz",
+      "rawBytes": 3045,
+      "rawSha256": "90bc650f33f275c2f5e5c62cf249927888d497c8b8b2a54e06396a1c538b7abd",
+      "bytes": 1443,
+      "sha256": "1ea6848197bb49cb0249118443064c1d3273be1d3bec3bd11cc994a3c1b05539"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/38206566982-114673617116.log",
+      "path": "objects/033.gz",
+      "rawBytes": 921726,
+      "rawSha256": "7ef676d5271e1031ad55198727e0ba669d09d6f76009e529cdf75eb5818fdb49",
+      "bytes": 141824,
+      "sha256": "e1baf0875fa2eb68d898b27d8ac967f8bf0df1d76d464bea8034f4229079eb9c"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/11727978776.zip",
+      "path": "objects/034.gz",
+      "rawBytes": 1632854,
+      "rawSha256": "90b15a9df7d51e0d84f79d01e32f0d0699da94467cbea8c6e8ffa03e2806ddf5",
+      "bytes": 1624675,
+      "sha256": "6392b8505858efc1e9a23f7ed9038367c01338a4a47244d833eec9514789ce21"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/38206566982-artifacts.json",
+      "path": "objects/035.gz",
+      "rawBytes": 5668,
+      "rawSha256": "f0e0d6f4dbe258a9ba126395de6835769337e7fc504c7c863ede3b6a49f4679c",
+      "bytes": 1005,
+      "sha256": "22a7d336efac18c05a7289f42a81887e5ae7bec14a1372edfc5c2c8de3c022ee"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/fdead-actions/macos-host-failure-analysis.json",
+      "path": "objects/036.gz",
+      "rawBytes": 254353,
+      "rawSha256": "937d44c76fbda0a4dff4af22a2a4deea0c5e13bebf71b8791cadd8407452ecb3",
+      "bytes": 28639,
+      "sha256": "4f379c00066813b14541c2a305d1d6ac4f1083b1904749799b16ba87bb407b1d"
+    }
+  ]
+}

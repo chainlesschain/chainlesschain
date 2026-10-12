@@ -1222,3 +1222,31 @@ Windows22.22.2与Linux22.12.0最终各400/400（22文件）、采集9/9，零ski
 上游Codex4稳定版本与Claude7稳定版本的974条原文/版本/保守处置已完整归档，41个预发布排除；974包含摘要与PR条目重复，**不是独立功能数、测试数或已验证场景数**。源码引用为审查时工作区快照，不把既有测试引用算为实跑。剩余MCP2026-07-28、Retry-After、管理hooks/权限/沙箱/后台/IDE候选保留；AI审阅不代替独立人工。详见[完整清单](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/upstream-inventory/README.md)，上游基线0.160.0/2.1.289未自动推进。
 
 bdaf的Strict5/5、Host7/7、Quality7成功/2条件skip、Kernel3/3与Model合同成功为旧源码结果，CLI/IDE等未完成门不计通过。当前fdead自身Actions另验，增量已推送[草稿PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)，没有公开发行或新付费调用。正式36+9/NOT_RUN/observed=0/$99及冻结指纹保持，原2026-10-12 00:00 UTC窗口结束后未补写旧观察；合规宿主、独立人工、官方账号/账单/硬额度、辅助技术、native/durable和8h/24h/SLO仍开放。
+
+### 20.48 2026-10-12 准确工程 CI 回读与证据结算
+
+远端工程提交 **fdead28689393bdf6881c9f806927f9f09333194** 的 Actions 于 **2026-10-12 05:33:52 UTC** 只读回读：Model Catalog Review：1 success；IDE Roadmap Accessibility Performance：4 success；Context Memory Kernel CI (pull_request)：3 success；CLI Strict Sandbox：5 success；IDE Roadmap Safety Matrix：4 success；Context Memory Kernel CI (push)：3 success。其余为 CLI Session Host Consistency：2 success / 1 queued；CI Tests：6 success / 4 in_progress / 3 queued / 1 skipped；CLI CI：7 success / 53 queued / 5 in_progress；IDE Extensions：4 success / 3 in_progress / 6 queued / 1 failure；VERIFY01 Host Diagnostics：2 success / 2 in_progress / 3 queued；IDE Roadmap Live Provider Trajectory：3 success / 2 skipped / 1 queued；Code Quality & Security：5 success / 1 in_progress / 2 skipped。macOS 稳定 VS Code needs_input P95=2113ms，超过2000ms门限（6/100样本超限）；原失败与分布已归档，尚未修复或成功复跑。完整 CLI、IDE、宿主及其他矩阵未完成，不作为发行或合并准入。Model Catalog PR 的本地合同通过，官方抓取/上游漂移步骤条件跳过；自动化辅助技术/性能回归与真人、固定硬件 SLO 和长时观察分别判定。
+
+当前13条run及全部job API、历史bdaf终态和只读采集器保存于[准确CI归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-fdead-snapshot/README.md)。bdaf的Strict5/5、Host7/7、Quality7成功/2条件跳过、Kernel3/3与Model合同通过；CLI21成功/48取消、CI Tests12成功/1取消/1跳过、IDE14成功/5取消，不计为完整通过。取消后结算步骤failure按原记录保存，不自行改记为原测试失败。新增归档含macOS失败原921726字节日志、完整artifact ZIP和逐100样本关联分析：stable P50=1058/P95=2113/max=5368，minimum P95=1319；最终输出到DOM观测P95仅136ms，主要慢在前面的命令链/启动/主机调度，缺parent-spawn/child-exit标记，不能精确断定Node冷启动。2s/100样本未放宽，整个IDE run未结束时job级复跑被GitHub拒绝，没有成功启动复跑。
+
+审查还发现并修复服务端终态误重试：HTTP格式化诊断或Responses失败code含network/timeout/ECONNRESET时，旧分类器会误作连接中断。新29项修前21失败/8通过，修后全过，实际重试循环对终态只尝试一次且无sleep/onRetry；真正连接恢复继续工作。Windows22.22.2 / Linux22.12.0各139/139，6份源前后摘要一致并与本地工程 **ceb2d6f5961fd260739cfe523365f827e22dd9e9** 的Git blob精确匹配，见[终态误重试归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/provider-verdict-retry/README.md)。Astra只读复核不代替独立人工。**此修复没有完成Retry-After header/delay语义**，没有扩大服务端错误自动重放；模型传输WebSocket及实际provider场景仍开放。此前589份证据与42处链接/锚点已核验，新增归档后再次完整核验。
+
+本轮误重试工程、文档和证据提交先保留本地，允许fdead工程CI继续；新源码未推送，后续任何新SHA仍须自己的准确矩阵。PR #431的当前远端仍为fdead，未合并、发行或再次付费调用。正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0 / $99**、冻结指纹与原窗口不变；独立人工、账号/账单/硬额度、合规目标宿主、辅助技术、native/durable和8h/24h/SLO仍待外部条件与实际验收。
+
+### 20.49 2026-10-12 Workbench 刷新争用与跨窗口生命周期
+
+真实macOS100样本中的sample23/89出现第4条周期projection读与三命令操作链竞争。新增有效首组4项回归为3失败/1通过，确认较晚初始读取/操作前读取回写，以及action中周期读取争用；中间post-read tick反例为5项4通过/1失败。最初fixture schema/row revision/Windows argv准备错误单独保留，不计为上述有效产品反例。初轮修复与双平台46/46 +51/51绑定20f4a4bf，见[初轮归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/workbench-refresh/README.md)。
+
+Astra只读复核指出旧action仍等待时关闭/重开panel会因全局计数而停掉新窗口周期刷新。第6项准确复现（5通过/1失败）；已将active/read/inFlight/pending状态隔离到每panel，旧请求与finally只操作旧state，fresh authority read、modal确认与CLI返回后均检查身份。操作前当前authority/revision检查、动作后canonical读取和空闲周期刷新保持；旧读取代次不能覆盖新投影，在途post-read覆盖周期tick，不额外读取；旧action完成不再刷新新panel。
+
+最终Node3文件 Windows22.22.2 / Linux22.12.0各 **47/47**，投影/Workbench/host fixture的Vitest3文件各 **51/51**，零失败/skip/todo。4份源测试前后摘要一致，且与 **0d20671dc63765848e52b852b6ff65457146c21a** 的Git blob全部匹配；新反例、两轮原回执/日志、源blob与脚本见[最终生命周期证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/workbench-refresh-reopen/README.md)。Astra复核发现的问题已修复；其最终判断来自只读审阅，不代跑回归或独立人工签核。
+
+macOS旧准确fdead P95=2113ms /2s失败继续保留，三次命令链本身未改为常驻RPC或合并collector；本修复不能独自证明SLA达标。原2s/100样本门、正式硬件SLO与真人验收均未放宽。所有新源需自身完整Actions/native host验证；新误重试139/139、旧fdead400/400与历史门分别绑定，不把取消、未完成矩阵或AI审阅当成正式36+9通过。没有新增真实模型调用、发行或合并，冻结observed=0/NOT_RUN/$99、原指纹和截止窗口保持。
+
+### 20.50 2026-10-12 CLI0.166.99 与双IDE条件发行准备
+
+用户授权测试成功后直接发布CLI和双IDE。候选CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161已同步16份metadata/README/推荐版本/Java断言/lock/changelog，元数据提交 **4c46f3c7dd1fbe2003d89f5bce7ce0f49cf727e1**；新VS Code显式单元清单纳入6项窗口回归。Windows完整VS266/266与发布合同67/67均通过，Overview/JetBrains metadata/public capability通过。Astra76项审计原件全部再次核验：13子包Git tree与e0d4相同，14个旧公开npm tarball SHA512 SRI/SHA1通过，内部依赖对齐，无需造子包新版本或重复发布。原件、16个元数据Git blob与本地报告见[候选准备](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-preparation/README.md)。
+
+最后统一推送的准确SHA需自身完整七门：CLI CI、Strict、IDE、ARM64、Memory Query Index、Context/Memory Kernel、Background Interaction；窄路径未触发的门使用最终ref手动dispatch并核对head_sha。适用CI Tests/Full Test/PR Tests/Host诊断仍需通过。npm工作流自动硬验前两门，其余五门由根代理完整回读；不从旧源、局部矩阵、超时或取消结果准入。旧macOS2s/100样本与P95=2113原失败保持，UI工程修复不等同真实SLA已通过。
+
+全部门通过后按既有Actions OIDC发布：immutable npm tag→依赖顺序核对/复用子包/registry-byte/provenance→CLI发布与公开安装回读→同一SHA双IDE tag/公开制品回读。OpenVSX为主渠道；官方VS Marketplace另有显式dispatch，JetBrains仅upload/allow-pending不能算已公开。当前尚未tag或发行，用户的条件授权不改变正式36+9/NOT_RUN/observed=0/$99、冻结指纹/窗口或真实模型费用权限，没有新付费调用。
