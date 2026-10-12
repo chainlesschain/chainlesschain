@@ -1,21 +1,22 @@
 {
   "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
-  "reviewDigest": "sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79",
+  "reviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
   "productSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
   "independentHumanReview": {
-    "reviewer": null,
-    "reviewedAt": null,
-    "recordPath": null,
-    "recordDigest": null
+    "required": false,
+    "substitutedByUserAuthorization": "Astra AI review",
+    "actualHumanReview": false
   },
   "providerControls": [
     {
       "provider": "volcengine",
       "model": "deepseek-v4-flash-ga-260731",
       "credentialSecretName": "CC_LLM_API_KEY",
-      "endpointReceipt": null,
+      "endpointReceipt": "../evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/summary.json",
       "quotaReceipt": null,
-      "quotaReceiptDigest": null
+      "quotaReceiptDigest": null,
+      "localCredentialEnvironmentName": "VOLCENGINE_API_KEY",
+      "userAuthorizedTesting": true
     },
     {
       "provider": "openai",
@@ -31,5 +32,18 @@
     "controlReceipt": null,
     "remainingUsd": null
   },
-  "rule": "Record references only. Do not put API keys or fabricated approvals in this file. Missing fields do not authorize live execution."
+  "rule": "Record references only. Do not put API keys or fabricated approvals in this file. Missing fields do not authorize live execution.",
+  "reviewPolicy": "./review-policy.json",
+  "authorizedAIReview": {
+    "reviewer": "Astra",
+    "reviewerKind": "AI",
+    "verdict": "APPROVED_FOR_DECLARED_EVALUATOR_SCOPE",
+    "recordPath": "../evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/corrected-review.json",
+    "recordPlanDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "recordReviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
+    "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+    "recordDigest": "sha256:bbe6e74c9369f45c468ef3aaf4507f6b0b2fc60be24e2ef8ad032a7eec8d84d9",
+    "reviewedAt": "2026-10-12T15:49:38.527Z",
+    "acceptedForDeclaredEvaluatorScope": true
+  }
 }

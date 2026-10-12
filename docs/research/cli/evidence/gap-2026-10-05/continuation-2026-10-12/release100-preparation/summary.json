@@ -1,0 +1,147 @@
+{
+  "capturedAt": "2026-10-12T15:47:50.860Z",
+  "candidate": {
+    "cli": "0.166.100",
+    "vscode": "0.37.144",
+    "jetbrains": "0.4.162"
+  },
+  "files": [
+    "package-lock.json",
+    "packages/cli/package.json",
+    "packages/vscode-extension/package.json",
+    "packages/jetbrains-plugin/build.gradle.kts",
+    "packages/jetbrains-plugin/gradle.properties",
+    "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+    "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+    "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+    "CHANGELOG.md",
+    "packages/cli/README.md",
+    "packages/cli/src/data/changelog.json",
+    "packages/vscode-extension/CHANGELOG.md",
+    "packages/vscode-extension/README.md",
+    "packages/jetbrains-plugin/CHANGELOG.md",
+    "packages/jetbrains-plugin/README.md"
+  ],
+  "childCount": 13,
+  "allChildrenUnchanged": true,
+  "allFetched": true,
+  "allPinsAligned": true,
+  "baselineBinding": "baseline-public-binding.json",
+  "tests": [
+    {
+      "name": "release-contracts",
+      "success": true,
+      "passed": 31,
+      "failed": 0,
+      "total": 31
+    },
+    {
+      "name": "changelog-tests",
+      "success": true,
+      "passed": 14,
+      "failed": 0,
+      "total": 14
+    }
+  ],
+  "localChecks": [
+    {
+      "name": "overview",
+      "exitCode": 0
+    },
+    {
+      "name": "jetbrains-metadata",
+      "exitCode": 0
+    },
+    {
+      "name": "public-capabilities",
+      "exitCode": 0
+    },
+    {
+      "name": "release-contracts",
+      "exitCode": 0
+    },
+    {
+      "name": "changelog",
+      "exitCode": 0
+    }
+  ],
+  "pending": [
+    "Final commit full CLI CI and CLI Strict Sandbox OS matrices",
+    "Final commit IDE Extensions, IDE ARM64, Memory Query Index, Context/Memory Kernel, Background Interaction and applicable CI/Host checks",
+    "OIDC unchanged child validation before CLI publish; immutable bytes, provenance and public install readback",
+    "IDE publication after CLI publicly available and public marketplace readback"
+  ],
+  "notes": [
+    "Initial tests used a stale agent-sdk Vitest path; retained local-checks-first-run.json; successful repeat used installed root Vitest.",
+    "No commit, push, tag, publish, paid model invocation or token access performed."
+  ],
+  "metadataWorktreeHashes": [
+    {
+      "source": "package-lock.json",
+      "sha256": "106e64b0b67ee0475cd85c6abb29445e5c0906280c0896149012a536b228999b"
+    },
+    {
+      "source": "packages/cli/package.json",
+      "sha256": "e31c1a5ef5b3d9fcfc3e5724a2aee294d196ccc3659ea96d85669bc5afa30a90"
+    },
+    {
+      "source": "packages/vscode-extension/package.json",
+      "sha256": "3c22491ee0b92175228e02bd9de544aeb016b423e7949a6a184187ffac5cfa2e"
+    },
+    {
+      "source": "packages/jetbrains-plugin/build.gradle.kts",
+      "sha256": "0b234b6cd0ad59c5fae013d81a2d87283be07db39cfb0a44d27a7506f83c55eb"
+    },
+    {
+      "source": "packages/jetbrains-plugin/gradle.properties",
+      "sha256": "117aee0d6e6ec1a7f4f48e6221477f35a21073189417abd72485f62823164bc4"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "sha256": "2ba7871623a1413dce7600de9adc2695a0f3a1773350923e6efc843bfa8be56a"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "sha256": "3fd7bfdc52c037297416488123f87c78561eed2b9c3401234345a1df23868faf"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "sha256": "80dac0bde3c0233a9d97653ff19631604469e09b4bc2957458ffe7dd4d4dbe23"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+      "sha256": "7455b2bf7db2145c1ecb338a3f1b2060781dfb49dbfec6508c24f431faa5c3ac"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "sha256": "ab5d4926c6e33f6d1a98f405247c07f539edba407304ae740d35285bf160fbaa"
+    },
+    {
+      "source": "packages/cli/README.md",
+      "sha256": "7943bc620983634e302fdd1c1abadd433f3c653494e192f096225ab964cf2314"
+    },
+    {
+      "source": "packages/cli/src/data/changelog.json",
+      "sha256": "93a2d1c2b614740e3a34e7396c3e892ac142e0d2be80ab1dab06ba9b770137d7"
+    },
+    {
+      "source": "packages/vscode-extension/CHANGELOG.md",
+      "sha256": "d87789b5576ccbc645f1690b79bbf088d323e82f8df698cdc51b1316bf937510"
+    },
+    {
+      "source": "packages/vscode-extension/README.md",
+      "sha256": "4e65814e620cc2954e112c9a3e42e97b64e99c1c4ebdfd354d723be571e5041b"
+    },
+    {
+      "source": "packages/jetbrains-plugin/CHANGELOG.md",
+      "sha256": "96375877959ae1ce3bef840617811f97cc7bda2ec440cf6a11f2bafdd8389213"
+    },
+    {
+      "source": "packages/jetbrains-plugin/README.md",
+      "sha256": "93da148e286f353fc65c11981e915c380659f9b0c1dec4f29b94970d6f3ec65b"
+    }
+  ],
+  "preparationScope": "Local candidate metadata/audit only; not release approval or publication",
+  "sourceCommit": null
+}

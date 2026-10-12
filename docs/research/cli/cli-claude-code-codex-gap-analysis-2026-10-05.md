@@ -9,10 +9,12 @@
 | CLI 0.166.99 / 配对双 IDE                | 准确311e完整发行门、OIDC和公开回读完成 | 后续源码重新验证自身矩阵                                                |
 | Retry-After / 服务端终态 / 可见输出重放  | 工程实现与双平台248/248回归完成        | 本次准确源码Actions、实际provider场景；模型WebSocket另验                |
 | MODEL-03 / MODEL-04 / UTF-8 / Workbench  | 已有工程随0.99发行，原证据保留         | 官方endpoint与usage/账单、上游候选场景及正式SLO分别验收                 |
-| VERIFY-02 / VERIFY-IDE-02                | v2窗口与72份脚本已准备；项目0/36、首次0/9 | 真实Linux预检、合规九入口、独立人工预审、受控账号硬额度与完整产物/费用 |
+| VERIFY-02 / VERIFY-IDE-02                | v2窗口与72份脚本已准备；项目0/36、首次0/9 | 真实Linux预检与Astra预审已处理；九入口、账号额度及正式产物/费用仍需完成 |
 | 正式执行窗口保护                        | 双平台177/177，工程已完成                | 本次准确源码Actions；实际IDE发送前检查deadline/window                 |
 | PLATFORM-02 / NET-02 / 完整native review | durable=false、NOT_ADMITTED            | Windows/macOS存储broker、连续authority、写入/CAS/journal/恢复与网络撤销 |
 | 真人辅助技术 / 8h/24h / SLO              | 未完成                                 | 实际人员、目标宿主与批准的观测计划；不改冻结窗口或回填样本              |
+
+> **2026-10-12 Astra授权审阅、真实预检与发行候选**：按用户指示由Astra代替人工审阅。旧70bf包第34题baseline缺口已修复，原源码2失败、Windows/Linux各11/11；新准确07f050的真实Linux预检成功，72脚本新pin已重审（APPROVED_FOR_DECLARED_EVALUATOR_SCOPE），见[审阅原件](./evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/README.md)及[实际回读](./evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)。火山授权短测HTTP200，89/13token、估算$0.0000161，非正式样本；OpenAI项目凭据/订阅授权集成尚缺。CLI0.166.100/VS0.37.144/JB0.4.162候选已准备，按用户条件授权待准确提交完整Actions通过后OIDC发布。正式仍0/36、0/9、NOT_RUN及共享$99；原计划不改，真人辅助技术/目标宿主/费用/native/长时观察分别验收。
 
 > **2026-10-12 正式 36+9 v2 准备**：原窗口已于 10 月 12 日 00:00 UTC 结束，按原计划要求另建 [v2](./verify01-plan-2026-10-12-v2/README.md)，新窗口至 **2026-10-19 14:46:52.556 UTC**，指纹 `sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd`。自动校验确认仅 window 改变，任务目录与比较绑定字节一致，共享 **$99** 未增加；原指纹/窗口完整保留。72 份 setup/check 与可移植审阅预览已准备，人工签核仍缺。补齐 CLI setup/实际 Agent launch 和 IDE preparation 的窗口检查，原源码隔离复现 8 失败，最终 Windows/Linux 各 **177/177**，见[原件和源摘要](./evidence/gap-2026-10-05/continuation-2026-10-12/formal-v2-preparation/README.md)。新的无密钥 Actions 预检准备核验真实 Ubuntu 24.04、Docker image、固定项目与启用 lifecycle 的公开安装；当前尚未实跑。首批 Linux CLI 四任务及一次独立首次旅程最大 **$11**，待实际审阅和账号额度条件落实。两计划仍 **NOT_RUN / observed=0**，预检、AI 复核和工程回归均不填正式样本。
 

@@ -1278,3 +1278,15 @@ CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `875
 新增 `VERIFY01 Formal Keyless Preflight`：真实Ubuntu24.04/Node22.12.0/Docker，固定项目checkout，全72份实际image review，正常公开CLI0.166.99安装（启用lifecycle），registry/SRI/lock身份与版本核验。旧发行summary先验证manifest摘要、OIDC VERIFIED和不可变字节通过，归档原summary/manifest及当前package-lock。workflow无provider凭据，不认证/执行Agent/写observations；当前完成静态语法校验，尚未实际运行。Astra只读复核及建议修复已落实，不作为独立人工签核。
 
 只读collection原process Buffer已归档，退出2且reviewValidated=true仅为机械校验，仍INSUFFICIENT_EVIDENCE。两计划正式 **NOT_RUN / task observed=0/36 / firstRun observed=0/9**，totalCost和维护时间未知；账号硬额度/账单、合规Windows11/macOS15 arm64、目标GUI/native/durable、真人辅助技术、8h/24h与SLO仍未关闭。没有新增付费调用、发行或合并。
+
+### 20.54 2026-10-12 用户授权Astra审阅、实际Linux回读与火山短测
+
+用户明确指示“astra代替人工审阅”，新增[审阅规则](./cli/verify01-plan-2026-10-12-v2/review-policy.json)将其作为用户授权的AI审阅，independentHumanReview仍为false；不再把缺独立人工签核列为这项评估器预审的阻塞。Astra逐题核对36任务、全部72脚本、42变异锚点/语法、45比较摘要和18+18 provider映射，另9first-run均属火山；静态审阅不冒称变异/真实checker已执行，后续候选断言/原产物还需逐样本审查。
+
+旧70bf包找到verify-34文档分支漏跑候选修改后的原baseline，正式审阅结论CHANGES_REQUIRED保留。源码补齐该baseline并保持NUL路径拒绝；e32e75原runtime隔离复现2/2失败，最终Windows22.22.2/Linux22.12.0各11/11（2文件）。最初agent Windows结果仅终端转录，根随后原源码隔离复现及最终运行有原磁盘JSON/stdout/stderr，分别记录。新准确07f050be901dd806f68ccb3ddb8eee12ad7a5254的[run38272128731](https://github.com/chainlesschain/chainlesschain/actions/runs/38272128731)完成成功，真实Ubuntu24.04.5 x64/Node22.12.0、固定项目、正常公开CLI.99安装、原lock/10直接子包身份、实际Docker镜像及72脚本都已回读。新reviewDigest为`sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f`，image为`sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da`。新包由Astra重新审阅，verdict为`APPROVED_FOR_DECLARED_EVALUATOR_SCOPE`，详见[逐题记录与原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/README.md)、[修后实际回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)；旧实际包/预览/失败结论均保留。
+
+用户另授权“火山引擎可以测试”。已有本地受控key单次1024token/20s/零重试[连接测试](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/README.md)于15:32:40.573UTC HTTP200，1246ms，89输入/13输出，估算USD0.0000161，billingVerified:false；非编码任务/独立首次旅程，未写observations。provider硬额度/共享预算计量仍未验证。OpenAI环境API/WIF key及仓库专用配置缺失，本地Codex CLI未登录；官方[Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)允许符合资格账号在应用授权后使用套餐，当前项目尚未集成，不导出或借用Codex认证token。
+
+用户再次授权测试成功发布CLI/IDE。新候选CLI0.166.100/VS Code0.37.144/JetBrains0.4.162的16份元数据已准备；13子包tree不变、14份公开tarball/SRI及依赖对齐通过，发布合同31/31、changelog14/14及三metadata检查通过。最终提交仍须自己的完整Actions七门及适用CI/Host，然后按既有OIDC子包核验→CLI→双IDE发行与公开回读；当前尚未tag/发布。
+
+正式36+9仍NOT_RUN、0/36、0/9，v2指纹/同样本/共享$99不变，总费用未知；AI评估器审阅已按用户规则处理，账号/费用、目标宿主/native/durable、真人辅助技术和8h/24h/SLO仍各自开放。

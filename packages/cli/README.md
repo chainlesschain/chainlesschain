@@ -4,12 +4,11 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Current release and source (2026-10-12)
 
-Source candidate **0.166.99** pairs with VS Code **0.37.143** and JetBrains
-**0.4.161**. It preserves invalid-UTF8 files during text edits, adds the exact
-Haiku 5.5 reasoning/usage/pricing contract, corrects Sonnet cache pricing,
-validates searches and keeps terminal provider errors out of connection retries.
-VS Code also prevents stale Workbench results and refresh contention across
-active operations and reopened panels.
+Source candidate **0.166.100** pairs with VS Code **0.37.144** and JetBrains
+**0.4.162**. It bounds cancellable Retry-After waits at 60 seconds, preserves
+terminal failures and prevents replay after visible streaming output. Chat
+forwards token callbacks and request options correctly. Evaluation tooling
+rechecks formal windows, saved bindings and modified documentation baselines.
 
 The candidate is unpublished. Publication requires the final commit’s complete
 GitHub Actions release gates and OIDC child-package verification; IDE publication
@@ -18,9 +17,9 @@ public-byte, source-tree and provenance checks before reuse.
 
 ### Last published pairing
 
-Public npm is **chainlesschain@0.166.98**, with Agent SDK **0.2.14**, Session
+Public npm is **chainlesschain@0.166.99**, with Agent SDK **0.2.14**, Session
 Core **0.3.19**, Personal Data Hub **0.4.64** and Context/Memory Kernel **0.1.9**.
-Open VSX **0.37.142** and JetBrains **0.4.160** recommend that CLI; public
+Open VSX **0.37.143** and JetBrains **0.4.161** recommend that CLI; public
 artifacts and the original exact-source release receipts have been read back.
 
 Windows native review remains NOT_ADMITTED and formal 36+9 evaluation NOT_RUN.

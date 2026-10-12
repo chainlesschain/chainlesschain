@@ -1,0 +1,63 @@
+{
+  "sourceCommit": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+  "capturedAt": "2026-10-12T15:36:06.011Z",
+  "status": "LIVE_CONNECTION_VERIFIED",
+  "result": {
+    "scope": "user-authorized-bounded-volcengine-connection-probe",
+    "authorizedBy": "用户：火山引擎可以测试",
+    "at": "2026-10-12T15:32:40.573Z",
+    "elapsedMs": 1246,
+    "request": {
+      "url": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+      "body": {
+        "model": "deepseek-v4-flash-ga-260731",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hi in one word."
+          }
+        ],
+        "max_tokens": 1024
+      },
+      "authentication": "controlled environment variable",
+      "credentialName": "VOLCENGINE_API_KEY"
+    },
+    "response": {
+      "status": 200,
+      "capturedBytes": 510,
+      "bodySha256": "250d5c3c9483886545b852b5bfa1beb23c9bdcc9eb9f4f88bad8965634c71a1d",
+      "sensitiveValueRedacted": false
+    },
+    "receipt": {
+      "schema": "chainlesschain.llm-connection-probe/v1",
+      "ok": true,
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "reply": "Hi",
+      "usage": {
+        "input_tokens": 89,
+        "output_tokens": 13,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "totalCostUsd": 0.000016100000000000002,
+      "currency": "USD",
+      "costBasis": "token-estimate",
+      "billingVerified": false
+    },
+    "failure": null,
+    "maximumRequestedOutputTokens": 1024,
+    "singleRequest": true,
+    "automaticRetry": false,
+    "planningTokenEstimateUsd": 0.00035840000000000004,
+    "providerHardQuotaVerified": false,
+    "billingVerified": false,
+    "formal": false,
+    "taskObservationsCreated": 0,
+    "firstRunObservationsCreated": 0
+  },
+  "taskObserved": 0,
+  "firstRunObserved": 0,
+  "providerHardQuotaVerified": false,
+  "billingVerified": false
+}

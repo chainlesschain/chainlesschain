@@ -7,19 +7,19 @@
 - 原指纹：`sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0`。
 - 固定项目：`b2aa3aba082873570e85dce39b00754e5504ff37`。被测公开产品另绑定 CLI **0.166.99** / VS Code **0.37.143** / JetBrains **0.4.161**，发行源码 `311e01a5ec34a8e433c7abde0e4b6b05bce4513b`。
 
-两套计划均为 **NOT_RUN，36 项任务 observed=0，9 次首次安装 observed=0**。旧诊断、fixture、安装预检及工程回归不导入本计划 observations。新观察使用新 planDigest，历史缺失分母保留。
+两套计划均为 **NOT_RUN，36 项任务 observed=0，9 次首次安装 observed=0**。用户已明确授权 **Astra 代替人工审阅**，按 [review-policy.json](./review-policy.json) 记录为 AI 审阅；真人辅助技术等其他实际验收仍各自保留。旧诊断、fixture、安装预检及工程回归不导入本计划 observations。新观察使用新 planDigest，历史缺失分母保留。
 
 ## 先做 Linux CLI 五个样本
 
 普通任务为 `verify-04`、`verify-22`（Volcengine）及 `verify-13`、`verify-31`（OpenAI），另独立执行 `first-run-linux-cli`。首批最大预算 **$11**，从共享 $99 中占用，不是新增额度。九入口完整映射和各自四任务/一首次旅程见 [execution-readiness.json](./execution-readiness.json)。
 
-当前已生成针对新指纹的全部 **72 个 setup/check**；本地预览 reviewDigest 为 `sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79`。其 Docker image ID 沿用历史 pin，尚待实际操作者重验；生成和摘要核对不是独立人工预审。[review-preview](./review-preview/README.md) 保存可供审阅的完整包。若 Actions 实际镜像或配置变化，以其新 reviewDigest 重新锁定和预审，不能沿用旧批准。
+初始本地已生成针对新指纹的全部 **72 个 setup/check**；本地预览 reviewDigest 为 `sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79`。其 Docker image ID 沿用历史 pin，尚待实际操作者重验；生成和摘要核对不是独立人工预审。[review-preview](./review-preview/README.md) 保存可供审阅的完整包。若 Actions 实际镜像或配置变化，以其新 reviewDigest 重新锁定和预审，不能沿用旧批准。
 
-`VERIFY01 Formal Keyless Preflight` 使用真实 Ubuntu 24.04 / Node 22.12.0 / Docker、固定项目 checkout 和正常公开 CLI 安装，输出新的完整 review 包与原始回执。流程不注入 provider 凭据、不认证模型、不执行 Agent、不产生正式 observations。它的技术通过只关闭预检项目，`paidExecutionReady` 仍为 false。
+`VERIFY01 Formal Keyless Preflight` 使用真实 Ubuntu 24.04 / Node 22.12.0 / Docker、固定项目 checkout 和正常公开 CLI 安装，输出新的完整 review 包与原始回执。流程不注入 provider 凭据、不认证模型、不执行 Agent、不产生正式 observations。修复后的 [run38272128731](https://github.com/chainlesschain/chainlesschain/actions/runs/38272128731) 已通过并[实际回读](../evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)。实际 image ID 为 `sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da`，reviewDigest 为 `sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f`；完整 [实际72脚本包](../evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/linux-review-pack.tgz) 和 [Astra逐题记录](../evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/corrected-review.md) 已保存。旧70bf包的第34题漏跑修改后baseline，原包CHANGES_REQUIRED保留；修复隔离复现2失败，Windows/Linux最终各11/11。技术通过和AI审阅各自绑定，`paidExecutionReady` 仍为 false。
 
 ## 正式启动所需信息
 
-[required-inputs.json](./required-inputs.json) 已列出外部记录位置：独立人工审阅人员/时间/记录摘要；精确模型和端点；受控凭据配置名称；provider 硬额度或可靠实时计量，以及包含失败、补救与全部样本的共享预算控制。只保存记录引用，不填 API key，不把未知费用填零。当前火山仓库配置名称已知为 `CC_LLM_API_KEY`；OpenAI 专用配置与额度记录尚未找到。
+[required-inputs.json](./required-inputs.json) 已绑定用户授权的Astra审阅及实际包指纹；原独立人工预审要求按用户指示替代，不再等待人工签核。其余外部记录仍需：精确模型和端点；受控凭据配置名称；provider 硬额度或可靠实时计量，以及包含失败、补救与全部样本的共享预算控制。只保存记录引用，不填 API key，不把未知费用填零。火山仓库配置为 `CC_LLM_API_KEY`，本地 `VOLCENGINE_API_KEY` 已实际短测HTTP200；usage89/13、估算USD0.0000161，非正式样本，官方账单/硬额度未验证。OpenAI API/WIF环境凭据和专用仓库配置未找到，本地Codex CLI未登录，项目尚无Sign in with ChatGPT集成；当前对话中Astra可用不能替代项目provider实跑。
 
 现有 `--max-budget-usd` 根据已返回 token usage 累加估算，可能一次调用超额，未定价时停止线不生效；它不证明 provider 硬额度，也没有跨补救/跨样本的 $99 共享 reservation。因此这些外部条件未落实时，正式付费阶段不启动。具体要求沿用[原计划](../verify01-plan-2026-10-04/README.md#执行范围与固定预算)。
 

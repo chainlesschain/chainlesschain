@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.100: bound stream retries and revalidate evaluation evidence
+
+- Honor Retry-After within a cancellable 60-second bound, preserve terminal
+  provider errors and prevent replay after visible stream output.
+- Pass chat token callbacks and request options through the streaming wrapper.
+- Recheck formal evaluation windows and saved bindings before execution, and
+  validate documentation baselines again after acceptance-checker changes.
+- Pair VS Code 0.37.144 and JetBrains 0.4.162 with public CLI 0.166.100 only
+  after the final source commit passes every required Actions release gate.
+- Reuse unchanged child versions after source-tree, registry-byte and provenance
+  checks. Formal evaluation, native/durable authority and long-term acceptance
+  retain their separate evidence and unfinished status.
+
 ### Fixed - cc CLI 0.166.99: preserve file bytes and exact model contracts
 
 - Reject invalid UTF-8 in literal, hashed and notebook edits and matching IDE
