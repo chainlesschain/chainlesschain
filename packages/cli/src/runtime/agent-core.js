@@ -16320,12 +16320,27 @@ export async function* agentLoop(messages, options) {
           toolName,
           earlyAuthorityDenial,
         );
+        const preExecutionDenied =
+          earlyAuthorityDenial.code === TOOL_RECOVERY_PAUSED_CODE;
+        if (preExecutionDenied) {
+          // Declare the rejected request without an execution/ledger boundary
+          // or its arguments. Consumers can pair the refusal by provider ID.
+          yield {
+            type: "tool-pre-execution-denied",
+            tool: toolName,
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+            preExecutionDenied: true,
+            execution_started: false,
+          };
+        }
         yield {
           type: "tool-result",
           tool: toolName,
           result: earlyAuthorityDenial,
           error: earlyAuthorityDenial.error,
           execution_started: false,
+          ...(preExecutionDenied ? { preExecutionDenied: true } : {}),
           tool_use_id: call.id,
           turn_id: `${runId}:t${budget.consumed}`,
           permission_decision_id: decision?.id || null,

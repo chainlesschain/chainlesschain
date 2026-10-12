@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "node",
     pool: "forks",
     maxWorkers: 1,
+    // Functional budget for native SQLite journeys on shared CI hosts, not an SLO.
+    testTimeout: 30_000,
     include: [
       "src/main/notification/__tests__/*.test.js",
       "src/main/task/__tests__/task-description-ipc.test.js",

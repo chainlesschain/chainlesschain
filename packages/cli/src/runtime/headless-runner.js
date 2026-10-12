@@ -3231,6 +3231,19 @@ async function runAgentHeadlessInWorkspace(
             });
             break;
           }
+          case "tool-pre-execution-denied": {
+            // A request declaration is not an invocation: do not start a
+            // side effect, telemetry call, or persisted compact tool record.
+            emitStream({
+              type: "tool_use",
+              id: event.tool_use_id,
+              tool: event.tool,
+              args: {},
+              preExecutionDenied: true,
+              execution_started: false,
+            });
+            break;
+          }
           case "tool-executing": {
             const telemetryToolId = runtimeToolCallId(event.tool_use_id);
             const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
@@ -3351,6 +3364,10 @@ async function runAgentHeadlessInWorkspace(
               is_error: Boolean(err),
               ...(event.execution_started === false
                 ? { execution_started: false }
+                : {}),
+              ...(event.preExecutionDenied === true &&
+              event.execution_started === false
+                ? { preExecutionDenied: true }
                 : {}),
               error: err,
               result: event.result,

@@ -276,21 +276,38 @@ describe("session-tail", () => {
         return originalStat(...args);
       });
     const next = iter.next();
+    let timeout;
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error("Session tail append observation timed out")),
+        10_000,
+      );
+    });
+    const stoppedBeforePolling = next.then(() => {
+      throw new Error("Session tail stopped before its initial poll");
+    });
     try {
-      await polling.promise;
+      await Promise.race([polling.promise, stoppedBeforePolling, deadline]);
       appendEvent("s3", "user_message", { role: "user", content: "ping" });
       appended.resolve();
-      const item = await next;
+      const item = await Promise.race([next, deadline]);
       expect(item.done).toBe(false);
       expect(item.value.event.type).toBe("user_message");
       expect(item.value.event.data).toMatchObject({ content: "ping" });
       expect(item.value.offset).toBeGreaterThan(0);
     } finally {
+      clearTimeout(timeout);
       appended.resolve();
       controller.abort();
-      await next;
-      await iter.return();
-      stat.mockRestore();
+      try {
+        await next;
+      } finally {
+        try {
+          await iter.return();
+        } finally {
+          stat.mockRestore();
+        }
+      }
     }
   });
 

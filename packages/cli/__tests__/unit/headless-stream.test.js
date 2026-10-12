@@ -1759,11 +1759,22 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
           result: { content: "before" },
         };
         if (pending) yield writeStart;
+        if (started === false)
+          yield {
+            type: "tool-pre-execution-denied",
+            tool: "write_file",
+            tool_use_id: "write-denied",
+            args: { content: "private-paused-argument-sentinel" },
+            preExecutionDenied: true,
+            execution_started: false,
+          };
         yield {
           type: "tool-result",
           tool: "write_file",
           tool_use_id: "write-denied",
-          ...(started === false ? { execution_started: false } : {}),
+          ...(started === false
+            ? { execution_started: false, preExecutionDenied: true }
+            : {}),
           error: "blocked",
           result: { error: "blocked" },
         };
@@ -1804,7 +1815,13 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
           events
             .filter((event) => event.type === "tool_use")
             .map((event) => event.id),
-        ).toEqual(["read-ok", "write-next"]);
+        ).toEqual(
+          started === false
+            ? pending
+              ? ["read-ok", "write-next", "write-denied"]
+              : ["read-ok", "write-denied", "write-next"]
+            : ["read-ok", "write-next"],
+        );
         const results = events.filter((event) => event.type === "tool_result");
         expect(results.map((event) => event.id)).toEqual([
           "read-ok",
@@ -1812,8 +1829,26 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
           "write-next",
         ]);
         expect(results[1]).not.toHaveProperty("plan_item_id");
-        if (started === false)
-          expect(results[1]).toHaveProperty("execution_started", false);
+        if (started === false) {
+          expect(results[1]).toMatchObject({
+            execution_started: false,
+            preExecutionDenied: true,
+          });
+          const declaration = events.find(
+            (event) => event.type === "tool_use" && event.id === "write-denied",
+          );
+          expect(declaration).toMatchObject({
+            args: {},
+            execution_started: false,
+            preExecutionDenied: true,
+          });
+          expect(events.indexOf(declaration)).toBeLessThan(
+            events.indexOf(results[1]),
+          );
+          expect(JSON.stringify(events)).not.toContain(
+            "private-paused-argument-sentinel",
+          );
+        }
         expect(compactCalls).toEqual([
           expect.objectContaining({ id: "read-ok", isError: false }),
           expect.objectContaining({ id: "write-next", isError: false }),
