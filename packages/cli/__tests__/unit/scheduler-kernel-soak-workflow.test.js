@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEFAULT_BUSY_TIMEOUT_MS } from "../../src/lib/scheduler-kernel/store.js";
 
 const REPOSITORY_ROOT = resolve(
   fileURLToPath(new URL("../../../../", import.meta.url)),
@@ -49,11 +50,13 @@ describe("scheduler kernel soak workflow contract", () => {
     expect(workflow).toContain(
       "CC_SCHEDULER_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '15' || inputs.duration_seconds || '7200' }}",
     );
-    expect(
-      workflow.match(
-        /CC_SCHEDULER_SOAK_LEASE_MS: \$\{\{ github\.event_name == 'pull_request' && '1000' \|\| '10000' \}\}/gu,
-      ),
-    ).toHaveLength(2);
+    const leases = [
+      ...workflow.matchAll(/CC_SCHEDULER_SOAK_LEASE_MS: "(\d+)"/gu),
+    ].map((match) => Number(match[1]));
+    expect(leases).toEqual([
+      DEFAULT_BUSY_TIMEOUT_MS * 2,
+      DEFAULT_BUSY_TIMEOUT_MS * 2,
+    ]);
     expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_PINNED_SHA");
     expect(workflow).toContain("vars.CLI_SCHEDULER_SOAK_CAMPAIGN");
     expect(workflow).toContain(
