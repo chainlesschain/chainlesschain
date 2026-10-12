@@ -33,6 +33,10 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.IPopupChooserBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupListener;
+import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -1408,6 +1412,7 @@ final class ConversationView {
     /** Two-stage native chooser: canonical turn projection, then CLI-enabled action. */
     private void showCheckpointTimeline(String sid,
             RewindCommands.TimelineProjection timeline, File cwd) {
+        if (!isRewindCurrent(sid)) return;
         if (timeline.entries.isEmpty()) {
             append("ℹ /rewind: this session has no persisted timeline entries yet.\n");
             return;
@@ -1416,20 +1421,43 @@ final class ConversationView {
         for (RewindCommands.TimelineEntry entry : timeline.entries) {
             labels.add(RewindCommands.timelineEntryLabel(entry));
         }
-        JBPopupFactory.getInstance()
+        Object trace = new Object();
+        showRewindChooser(JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(labels)
                 .setTitle("Checkpoint timeline — choose a turn")
                 .setItemChosenCallback(label -> {
                     int index = labels.indexOf(label);
-                    if (index >= 0) showTimelineActions(
-                            sid, timeline.entries.get(index), cwd);
-                })
-                .createPopup()
-                .showCenteredInCurrentWindow(project);
+                    recordRewindPopup(Stage.POPUP_CHOSEN, trace, "timeline", sid,
+                            index, labels.size(), null, null);
+                    UiEventDiagnostics.observeFailure(Stage.POPUP_CALLBACK_FAILED,
+                            Map.of("type", "checkpoint-timeline", "kind", "timeline"), trace, sid,
+                            () -> {
+                                if (index < 0) return;
+                                // The platform may run this callback while disposing the
+                                // first popup, even through doWhenFocusSettlesDown.
+                                // Create the next native window after that dispatch ends.
+                                SwingUtilities.invokeLater(() -> UiEventDiagnostics.observeFailure(
+                                        Stage.POPUP_CALLBACK_FAILED,
+                                        Map.of("type", "checkpoint-timeline", "kind", "timeline"), trace, sid,
+                                        () -> {
+                                            recordRewindPopup(Stage.POPUP_HANDOFF_ENTERED, trace,
+                                                    "timeline", sid, index, labels.size(), null, null);
+                                            if (!isRewindCurrent(sid)) {
+                                                recordRewindPopup(Stage.POPUP_STALE, trace,
+                                                        "timeline", sid, index, labels.size(), null, null);
+                                                return;
+                                            }
+                                            showTimelineActions(sid, timeline.entries.get(index), cwd);
+                                        }));
+                                recordRewindPopup(Stage.POPUP_HANDOFF_SCHEDULED, trace,
+                                        "timeline", sid, index, labels.size(), null, null);
+                            });
+                }), trace, "timeline", sid, labels);
     }
 
     private void showTimelineActions(String sid,
             RewindCommands.TimelineEntry entry, File cwd) {
+        if (!isRewindCurrent(sid)) return;
         java.util.List<String> labels = new java.util.ArrayList<>();
         java.util.List<String> actions = new java.util.ArrayList<>();
         for (String action : entry.enabledActions) {
@@ -1441,18 +1469,90 @@ final class ConversationView {
             append("ℹ /rewind: no CLI-enabled actions for " + entry.turnId + ".\n");
             return;
         }
-        JBPopupFactory.getInstance()
+        Object trace = new Object();
+        showRewindChooser(JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(labels)
                 .setTitle("Action at " + entry.turnId)
                 .setItemChosenCallback(label -> {
                     int index = labels.indexOf(label);
-                    if (index < 0) return;
-                    String action = actions.get(index);
-                    Map<String, Object> submission = entry.actionSubmission(action);
-                    previewTimelineAction(sid, entry, action, submission, cwd);
-                })
-                .createPopup()
-                .showCenteredInCurrentWindow(project);
+                    recordRewindPopup(Stage.POPUP_CHOSEN, trace, "actions", sid,
+                            index, labels.size(), null, null);
+                    UiEventDiagnostics.observeFailure(Stage.POPUP_CALLBACK_FAILED,
+                            Map.of("type", "checkpoint-timeline", "kind", "actions"), trace, sid,
+                            () -> {
+                                if (index < 0) return;
+                                if (!isRewindCurrent(sid)) {
+                                    recordRewindPopup(Stage.POPUP_STALE, trace, "actions", sid,
+                                            index, labels.size(), null, null);
+                                    return;
+                                }
+                                String action = actions.get(index);
+                                Map<String, Object> submission = entry.actionSubmission(action);
+                                previewTimelineAction(sid, entry, action, submission, cwd);
+                            });
+                }), trace, "actions", sid, labels);
+    }
+
+    private boolean isRewindCurrent(String sid) {
+        return !disposed && !project.isDisposed() && sid.equals(conv.sessionId)
+                && !sendInFlight && !turnActive;
+    }
+
+    /** Opt-in observations only: preserve the chooser's own close/focus/callback ordering. */
+    private void showRewindChooser(IPopupChooserBuilder<String> builder, Object trace,
+            String kind, String sid, List<String> labels) {
+        boolean observing = !System.getProperty(UiEventDiagnostics.PROPERTY, "").isBlank();
+        int[] selectedIndex = {-1};
+        if (observing) builder.setItemSelectedCallback(label -> {
+            selectedIndex[0] = labels.indexOf(label);
+            recordRewindPopup(Stage.POPUP_SELECTED, trace, kind, sid,
+                    selectedIndex[0], labels.size(), null, null);
+        });
+        JBPopup popup = builder.createPopup();
+        if (observing) popup.addListener(new JBPopupListener() {
+            @Override public void beforeShown(LightweightWindowEvent event) {
+                recordRewindPopup(Stage.POPUP_BEFORE_SHOWN, trace, kind, sid,
+                        selectedIndex[0], labels.size(), popup, null);
+            }
+            @Override public void onClosed(LightweightWindowEvent event) {
+                recordRewindPopup(Stage.POPUP_CLOSED, trace, kind, sid,
+                        selectedIndex[0], labels.size(), popup, event.isOk());
+            }
+        });
+        recordRewindPopup(Stage.POPUP_CREATED, trace, kind, sid,
+                selectedIndex[0], labels.size(), popup, null);
+        popup.showCenteredInCurrentWindow(project);
+        recordRewindPopup(Stage.POPUP_SHOW_RETURNED, trace, kind, sid,
+                selectedIndex[0], labels.size(), popup, null);
+    }
+
+    private void recordRewindPopup(Stage stage, Object trace, String kind, String sid,
+            int selectedIndex, int itemCount, JBPopup popup, Boolean closedOk) {
+        if (System.getProperty(UiEventDiagnostics.PROPERTY, "").isBlank()) return;
+        try {
+            Map<String, Object> event = new LinkedHashMap<>();
+            event.put("type", "checkpoint-timeline");
+            event.put("kind", kind);
+            event.put("selectedIndex", selectedIndex);
+            event.put("itemCount", itemCount);
+            event.put("anchorShowing", root.isShowing());
+            if (popup != null) {
+                event.put("popupVisible", popup.isVisible());
+                event.put("popupDisposed", popup.isDisposed());
+            }
+            if (closedOk != null) event.put("closedOk", closedOk);
+            java.awt.KeyboardFocusManager focus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager();
+            if (focus.getFocusOwner() != null)
+                event.put("focusClass", focus.getFocusOwner().getClass().getName().replace('$', '.'));
+            if (focus.getFocusedWindow() != null) {
+                event.put("focusWindowClass", focus.getFocusedWindow().getClass().getName().replace('$', '.'));
+                event.put("focusWindowShowing", focus.getFocusedWindow().isShowing());
+            }
+            UiEventDiagnostics.record(stage, event, trace, sid, null);
+        } catch (RuntimeException failureToObserve) {
+            System.err.println(UiEventDiagnostics.FAILURE_MARKER + " stage=" + stage.name()
+                    + " failureClass=" + failureToObserve.getClass().getName());
+        }
     }
 
     private void previewTimelineAction(String sid,

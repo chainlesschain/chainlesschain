@@ -234,6 +234,42 @@ function fixture() {
 }
 
 describe("actual host preparation and acceptance assembly", () => {
+  it.each(["not-started", "expired", "insufficient-time"])(
+    "refuses a %s host window before creating the workspace or executing setup",
+    async (condition) => {
+      const f = fixture(),
+        now = Date.now();
+      const sample = f.bundle.plan.samples.find(
+        (row) => row.id === f.options.sampleId,
+      );
+      f.bundle.plan.window = {
+        start: new Date(
+          condition === "not-started" ? now + 60000 : now - 3600000,
+        ).toISOString(),
+        end: new Date(
+          condition === "expired"
+            ? now - 1000
+            : condition === "insufficient-time"
+              ? now + sample.timeBudgetMs - 1000
+              : now + 3600000,
+        ).toISOString(),
+      };
+      f.bundle.expectedPlanDigest = outcomeDigest(f.bundle.plan);
+      f.preparation.review.planDigest = f.bundle.expectedPlanDigest;
+      f.preparation.expectedReviewDigest = outcomeDigest(f.preparation.review);
+      await expect(f.prepare()).rejects.toMatchObject({
+        code:
+          condition === "not-started"
+            ? "CC_VERIFY01_WINDOW_NOT_STARTED"
+            : condition === "expired"
+              ? "CC_VERIFY01_WINDOW_EXPIRED"
+              : "CC_VERIFY01_WINDOW_INSUFFICIENT_TIME",
+      });
+      expect(fs.existsSync(f.options.workspace)).toBe(false);
+      expect(fs.existsSync(f.options.captureRoot)).toBe(false);
+    },
+  );
+
   it("materializes committed blobs, preserves full diffs and keeps missing cost unknown", async () => {
     const f = fixture(),
       prepared = await f.prepare();

@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T14:10:30.006Z",
+  "summarySha256": "ed6a916231f5996b4742ec2929d57cdeed151e250d6a882c3176684093dcb403",
+  "entries": [
+    {
+      "source": "packages/cli/src/lib/stream-retry.js",
+      "path": "objects/000.gz",
+      "rawBytes": 11983,
+      "rawSha256": "4e002ab09a89194c4e67e348def7cede1a4d556ec8ff9e5d4852a31848680b65",
+      "bytes": 4546,
+      "sha256": "12d74b80c74e08e41b611e966bff09d78ffe573c1b6cdb7279384f57ee1ce943"
+    },
+    {
+      "source": "packages/cli/src/lib/chat-core.js",
+      "path": "objects/001.gz",
+      "rawBytes": 45119,
+      "rawSha256": "2d5a4f1029ee41e6ea1d5b2fca702c4b8c0f37b5036a4c4ca583b8ac54bab6dc",
+      "bytes": 9130,
+      "sha256": "7533c84943ee7ef2ccabbbe70b7bac0cce372eb9a89a2390e7b41ef971ece274"
+    },
+    {
+      "source": "packages/cli/src/lib/provider-http-error.js",
+      "path": "objects/002.gz",
+      "rawBytes": 4235,
+      "rawSha256": "edc0239c32659a669eb5e8a2b4df670587bdac8673a70bf405f22369ec219c8e",
+      "bytes": 1663,
+      "sha256": "20f5b8d161d32d7a09f7c74902361d5d3fa4b06236fe1bbb5e0169f822b57841"
+    },
+    {
+      "source": "packages/cli/src/runtime/agent-core.js",
+      "path": "objects/003.gz",
+      "rawBytes": 639320,
+      "rawSha256": "4cd33e7336c80f915869cd0134867684a5277cb6697acb409e699a4b742865be",
+      "bytes": 161889,
+      "sha256": "6d3efd5c3732b92f44c869344b2d6917dae6e26c0c94eb7d414d36467c996e10"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/stream-retry-transport-boundaries.test.js",
+      "path": "objects/004.gz",
+      "rawBytes": 14949,
+      "rawSha256": "795f766396e2c0bed8816b78063741d32f8b41cf6d74f15d5c0d484abb157b26",
+      "bytes": 3438,
+      "sha256": "e418d39bc22c784fcab79863942d62c8fa8df5cf16aeb91e32ac614e943d6aeb"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/stream-retry-after.test.js",
+      "path": "objects/005.gz",
+      "rawBytes": 11377,
+      "rawSha256": "bc13c76041c32a1f1dc402e26de3e74bb9b8387cb8d87d8db4dbb657f9b07361",
+      "bytes": 2973,
+      "sha256": "8f17c661b839f0d4bc9d1a519967130d7fd00ac4efe421b890eec35eb41e2843"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/stream-retry.test.js",
+      "path": "objects/006.gz",
+      "rawBytes": 4115,
+      "rawSha256": "754f6c506ba029b97a9d2dff706111c0dc4ce4cd90bcdb0f35f5b439e4413dc1",
+      "bytes": 1203,
+      "sha256": "adddbd3cb8c2ffb2f43937a5117a1e7f16037615fc2bd8d6a7702ec3f730a7ae"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/stream-retry-provider-verdict.test.js",
+      "path": "objects/007.gz",
+      "rawBytes": 3262,
+      "rawSha256": "794cb3e657daf4afdbf95e3cc82a6a28ec19345deb23fba961cbca2ccfff0c45",
+      "bytes": 1128,
+      "sha256": "261d5c1c5ee6c80dee3cd4487b41a113cc8da1066325dc4d04e724b51e5182b0"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/chat-core-retry.test.js",
+      "path": "objects/008.gz",
+      "rawBytes": 3386,
+      "rawSha256": "c10e7bb6c34d26d69729fdc93bcc762b217d9b74b2377d3ac483351cadddc3ce",
+      "bytes": 1315,
+      "sha256": "2b1a1c48d1e1250de2203366ea0825066a959f16d2609e056c61e123b8656d93"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/chat-core-stream-framing.test.js",
+      "path": "objects/009.gz",
+      "rawBytes": 3708,
+      "rawSha256": "707f3d32e41bbfa0965c3f3c1d60327de0da6a6f88dc33c9822cb60e0a9cd639",
+      "bytes": 1234,
+      "sha256": "47c29339af2ebf12463598b4bc5c49a221249e31cffb65340a452598ec652027"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-streaming.test.js",
+      "path": "objects/010.gz",
+      "rawBytes": 10037,
+      "rawSha256": "e87c6159f6db6bf01e9f04b3627a9b88e435d267e14f1014d806a24b94fdc0de",
+      "bytes": 1950,
+      "sha256": "49d5753e3d808b7679965a30b8879445230bac5824de3e6afbecd174a18b9679"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-stream-resilience.test.js",
+      "path": "objects/011.gz",
+      "rawBytes": 13840,
+      "rawSha256": "a097f2697c6f318ec0c601603a800c58f1762664c87d332755cd4fb44835f282",
+      "bytes": 3734,
+      "sha256": "06e461f4cf74d81a60e6f482a9873bc2641d7a7ac91c3a1fd3d7a1bce85bec35"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-openai-responses.test.js",
+      "path": "objects/012.gz",
+      "rawBytes": 17382,
+      "rawSha256": "fee3651a175fd0451ea1e2127e41cebe18fc83dd02dac854c2da8ea76687f284",
+      "bytes": 3722,
+      "sha256": "adde0e764797c7361ee52d68a2076537a035ab366d6232e6fef2652e5cf2d882"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-stream-stall.test.js",
+      "path": "objects/013.gz",
+      "rawBytes": 10437,
+      "rawSha256": "0aa0bc952722f4bc9b3a52469b18ea429358d2badc2a8d28d45869255742aa26",
+      "bytes": 3059,
+      "sha256": "a93b41b354d41c4c27843ea741ec214886afe5318b78dae10b88b2e2ae42cb00"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-core-usage-boundary.test.js",
+      "path": "objects/014.gz",
+      "rawBytes": 22670,
+      "rawSha256": "2a2937818c4198226f5a4b1a5592024b4aaa74b12298bb950a6410b796fb866c",
+      "bytes": 4319,
+      "sha256": "5b18d006859898ed222c83cad44f3fd1807c5ed9faab18e71e51836977525b13"
+    },
+    {
+      "source": "packages/cli/__tests__/unit/agent-usage-attribution.test.js",
+      "path": "objects/015.gz",
+      "rawBytes": 18933,
+      "rawSha256": "ca1cad705fb220e45b81a1cd8ed72c0651c3d82bd25df166f1c0bdcfe87f4665",
+      "bytes": 4194,
+      "sha256": "4c0acd22ceb5c924765a33aca60f6d091f998f289866de512c0bdd86c3ec9e34"
+    },
+    {
+      "source": ".tmp-gap-retry-final.json",
+      "path": "objects/016.gz",
+      "rawBytes": 87327,
+      "rawSha256": "cf5511c47d1e044fa4707347fb63e4a4488843ed6ed00c001fd4168155134f24",
+      "bytes": 9787,
+      "sha256": "7261dcea5db6128e277baec68fcfa93c3ebd4e6c5a686bfa409a1b013cac4d6f"
+    },
+    {
+      "source": ".tmp-gap-retry-linux.json",
+      "path": "objects/017.gz",
+      "rawBytes": 87348,
+      "rawSha256": "cdb4541ccbdf64dd43c7817857ca6ba204f32a6e0eae0205a846f322816831aa",
+      "bytes": 9762,
+      "sha256": "64c2c921b9453258ce7600b527f7cd83531266a7dbd2fa3453049ea6eea5b810"
+    },
+    {
+      "source": ".tmp-gap-retry-before-corrected.json",
+      "path": "objects/018.gz",
+      "rawBytes": 36316,
+      "rawSha256": "4d477adfb09520d239475fca599d42db7eda68765c9bbc2952e83033a68b13ec",
+      "bytes": 2478,
+      "sha256": "11054d43765b9628080a2075faa67751cf4a2658c52985c873679b610a08f709"
+    },
+    {
+      "source": ".tmp-gap-retry-before.json",
+      "path": "objects/019.gz",
+      "rawBytes": 32809,
+      "rawSha256": "09e28ebccaac2d3fca01ef0e679c5f3d32c3a5c4dad9371a25a7ec12ae4af147",
+      "bytes": 2087,
+      "sha256": "762263a1400e641023eb4c8cf031ee2fe97f2978690042994f01fdd93003b17a"
+    },
+    {
+      "source": ".tmp-gap-retry-after.json",
+      "path": "objects/020.gz",
+      "rawBytes": 15577,
+      "rawSha256": "7d4642267fe789a6975ff0b49aa508769accad7745a6dcadfef1cd64adbac8d8",
+      "bytes": 1777,
+      "sha256": "7af0dddadf50bb41fa4b7f553a8a2144959a6bcd39ff5e589920103cd79988e3"
+    },
+    {
+      "source": ".tmp-gap-retry-suite.json",
+      "path": "objects/021.gz",
+      "rawBytes": 71776,
+      "rawSha256": "7f660d8e3f0e54c52f4248e8b0391c334c82fe55cb76dd838bc0fb325b2c518b",
+      "bytes": 8285,
+      "sha256": "ddc93c1703bc8f0a98ada5acc65d80ddb2276866877c6940f6255e5447ac2d66"
+    },
+    {
+      "source": ".tmp-gap-retry-focused.json",
+      "path": "objects/022.gz",
+      "rawBytes": 19877,
+      "rawSha256": "131fc8d2f8ae65ee5fea8e70def5427bd35ce462d06357ea1d9a0c0480eabe30",
+      "bytes": 2552,
+      "sha256": "c856672c03ae23d3b341585a0bbc72619f6197ccfebf9bf53ff28c5b58fd54c0"
+    },
+    {
+      "source": ".tmp-gap-retry-usage.json",
+      "path": "objects/023.gz",
+      "rawBytes": 13808,
+      "rawSha256": "df84c79b0505981d16399ea693017b749314003052fd9fb685a3bad57c3e0a87",
+      "bytes": 2009,
+      "sha256": "fef4339e67049c4f5a3517782c3063d3827b185d09365404da9ec210b17228d8"
+    },
+    {
+      "source": ".work/gap-retry-before-20261012.mjs",
+      "path": "objects/024.gz",
+      "rawBytes": 2882,
+      "rawSha256": "f7324efd4c8b391cdb3f033fba2384c4f27d6ddf8d4bf6401d2a760f92ad1ea1",
+      "bytes": 1044,
+      "sha256": "ba1eae0e703d34cc6f666da81f6d9a9a3b1edcfe89ee26f203f7e6f68c1f8853"
+    },
+    {
+      "source": ".work/gap-retry-before-20261012.log",
+      "path": "objects/025.gz",
+      "rawBytes": 83,
+      "rawSha256": "7f3dabe8891ee46881eee9153351b62d4d49869353f9fddd6ce0b4f04cdb315c",
+      "bytes": 98,
+      "sha256": "536b486249ca27f5fe1bc39749dd537b644a7c8926231890574aff7f6f2c8718"
+    },
+    {
+      "source": ".work/gap-retry-before-test-source.js",
+      "path": "objects/026.gz",
+      "rawBytes": 15191,
+      "rawSha256": "2d4291911ef28bb28d8d167d99b9b69f8f202ea1c077d7da3ee934feb33a54a9",
+      "bytes": 3502,
+      "sha256": "b4c9f748714ba5f3d9bcc97dd96889e6495b6c0438d23b767a17b45c9cab2378"
+    },
+    {
+      "source": "83ce1d6d42658bab2e5dcd34045da6873962aef6:packages/cli/src/lib/stream-retry.js",
+      "path": "objects/027.gz",
+      "rawBytes": 5071,
+      "rawSha256": "92266dafa3f783614a81e4e70e0d51ffeae44559b644ef7aeaaedbc429142828",
+      "bytes": 2160,
+      "sha256": "3fff2b7b6fb516aefe1081cc7311a451a29f89be124e7adc57867493c6fd491f"
+    },
+    {
+      "source": "83ce1d6d42658bab2e5dcd34045da6873962aef6:packages/cli/src/lib/chat-core.js",
+      "path": "objects/028.gz",
+      "rawBytes": 44090,
+      "rawSha256": "18cb120430f7e31254c3888751045277a55b49633386ad9fcd7b35661656b349",
+      "bytes": 8998,
+      "sha256": "de032e7d4f122485c1a632e0d251adb1aff4e7bdb1e69ff5e58890a95ed35777"
+    },
+    {
+      "source": "83ce1d6d42658bab2e5dcd34045da6873962aef6:packages/cli/src/lib/provider-http-error.js",
+      "path": "objects/029.gz",
+      "rawBytes": 3554,
+      "rawSha256": "3a5c3d99a2438a7295d6e75f58639b02bbeb3b13989fa8eafdfa7b4025f0c1e3",
+      "bytes": 1409,
+      "sha256": "2d969e9f34e88fc4e014f517c68ddaf1ebbf224ac900a59d5c197c4e55e77294"
+    },
+    {
+      "source": "83ce1d6d42658bab2e5dcd34045da6873962aef6:packages/cli/src/runtime/agent-core.js",
+      "path": "objects/030.gz",
+      "rawBytes": 637432,
+      "rawSha256": "7d5c83a4afc03b7a5a2121720feecfa62eee6dd8de69966d8f110f677d091de4",
+      "bytes": 161537,
+      "sha256": "95e90f8a2e3f6216b24357cda4d3724753f0ff9d0d3235bc29931572b29fe925"
+    }
+  ]
+}

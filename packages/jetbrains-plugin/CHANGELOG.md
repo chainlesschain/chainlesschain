@@ -1,5 +1,18 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.162] - Bounded stream retry pairing (2026-10-13)
+
+- Recommend CLI `0.166.100` after its public npm release and this exact
+  commit's complete CLI, IDE and ARM64 release gates.
+- Pair with cancellable Retry-After handling capped at 60 seconds, terminal
+  error and visible-output replay guards, and corrected chat token callbacks.
+- Add opt-in checkpoint chooser diagnostics for real-host selection, closure
+  and focus observations while preserving existing transition deadlines.
+- Open checkpoint actions on the next EDT dispatch after the timeline chooser
+  closes; discard handoffs when the view, project or session becomes stale.
+- Retain the bridge compatibility floor; formal evaluation and native/durable
+  acceptance remain separately evidenced.
+
 ## [0.4.161] - Model and runtime safety pairing (2026-10-12)
 
 - Recommend CLI `0.166.99` after it is public and this exact release commit’s

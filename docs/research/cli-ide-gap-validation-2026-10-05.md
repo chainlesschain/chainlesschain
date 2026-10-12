@@ -1256,3 +1256,81 @@ macOS旧准确fdead P95=2113ms /2s失败继续保留，三次命令链本身未�
 CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `8750f6afc346458115ff0e84ec9963f3dec79ffa`。用户授权测试成功后直接发布；当前七门与适用CI/Host仍有运行/排队项，不能创建发布tag或记作完成。06:29:17 UTC快照及实际checkout/tree日志见[原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-release099-inflight/README.md)。
 
 13子包源码不变，版本保留。新版公开回读工具已严格绑定上一轮VERIFIED公开包字节与候选Git tree，Kernel/SDK/Protocol保留原签名来源，CLI要求本次exact-release；[57项离线合同与helper原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-readback-preparation/README.md)通过仅是工具自检。双IDE回读计划通过，没有执行实际发行collect。正式36+9仍NOT_RUN/observed=0/$99；旧fdead macOS P95=2113ms原失败保留，2s/100样本要求不放宽，未新增付费provider调用。
+
+### 20.52 2026-10-12 Retry-After 生产接线与 .99 公开发行结算
+
+已在共享 `stream-retry` 接入响应 status、Retry-After 截止时间、60 秒最大等待与即时取消。Agent 四种流式协议及聊天三种协议复用同一等待规则，HTTP 4xx/5xx 与 Responses 终态继续直接返回，不因 header 放开重放；只有既有零输出 transport 恢复才使用剩余等待。超长 header 拒绝重试，不截短为更短时间。修复 chat HTTP timeout 误分类、Responses failed/completed/incomplete 后断线、纯空白/thinking/部分工具重放，并保留终态 usage、严格 observer 和取消的权威性；聊天 token sink 的既存 options 作用域错误同步修复。
+
+原准确 `83ce1d6d42658bab2e5dcd34045da6873962aef6` 四模块隔离副本的 24 条生产路径回归全部失败；最终 12 文件 Windows Node22.22.2 与 WSL Ubuntu Node22.12.0 各 **248/248**，含严格费用归集 38 项。其余 10 条新时序/背压/终态回归未记为原源码失败。初始六项错误 gateway fixture 与两项旧断言失败保留，正确官方 endpoint fixture 已单独复现原源码。31 份双摘要原件和执行源摘要见[工程证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/retry-after-transport/README.md)。本次新源码仍需自身准确 Actions，未新发布或付费调用。
+
+另已结算此前发行：准确 **311e01a5ec34a8e433c7abde0e4b6b05bce4513b** 完整发行矩阵通过，OIDC run38231920482 发布 CLI **0.166.99**；Open VSX **0.37.143** 与 JetBrains **0.4.161** tag run38234861662/38234862629 成功。14 个公开 npm 包、13 子包可信复用/安装身份与双 IDE 公开下载内容核验完成，JB update1192210 已 approved/listed/hidden=false。135 份原件见[发行公开回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-public/README.md)。npm 安装回读禁用 lifecycle scripts，不代替原生功能验收；VS Code 此处为既定 Open VSX 渠道。
+
+正式 36+9 保持 **NOT_RUN / observed=0 / $99**。独立人工预审、受控账号硬额度/账单、目标 GUI/真人辅助技术、Windows/macOS native durable、8h/24h 与正式 SLO 仍未关闭。旧源码成绩、发布来源与本次工程分别绑定，不改写历史失败、冻结指纹或窗口。
+
+### 20.53 2026-10-12 正式 36+9 v2 与窗口准入
+
+用户要求处理正式36+9。原计划在2026-10-12 00:00 UTC结束且observed=0，按其约定另建[v2计划](./cli/verify01-plan-2026-10-12-v2/README.md)，窗口2026-10-12 14:46:52.556至2026-10-19 14:46:52.556 UTC。新指纹为 `sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd`；原目录/指纹/窗口不变。validator自动断言仅window改变、catalog和bindings原字节一致、revision新旧指纹绑定；仍36任务+9独立首次旅程、固定项目b2aa3aba082873570e85dce39b00754e5504ff37和共享$99，无追加额度。
+
+新完整72份setup/check与可移植[审阅包预览](./cli/verify01-plan-2026-10-12-v2/review-preview/README.md)已准备。其历史image pin未在本轮重验，reviewDigest为 `sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79`；实际Actions镜像改变则新包须自己的人工预审。首批Linux CLI为verify-04/22（Volcengine）、verify-13/31（OpenAI）及独立first-run-linux-cli，最大$11属于共享$99。外部审阅人员/记录、账号额度/可靠计量及受控配置名尚缺，不保存key。
+
+补齐实际执行窗口边界：CLI在checkout/setup前检查完整任务预算，保存的不可变Agent binding在实际launch前重验；IDE preparation在建目录/setup前拒绝未开始、过期或时间不足，并用同一时间戳计算deadline。实际IDE提交仍需driver检查state.deadline/window。准确4e6ae449a57ecfa16e32f53a43b2d7dd61326742的两模块隔离副本8项全部失败，24项未选中；最终六文件Windows22.22.2 / WSL Ubuntu22.12.0各177/177、零fail/skip。最初8失败、较窄65/65、原Git blob/别名源/测试/复现脚本和最终报告共44份双摘要原件见[窗口与准备证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-v2-preparation/README.md)。这不是正式Docker宿主验收；公开CLI0.166.99没有取得新guard，新源需自己的准确CI。
+
+新增 `VERIFY01 Formal Keyless Preflight`：真实Ubuntu24.04/Node22.12.0/Docker，固定项目checkout，全72份实际image review，正常公开CLI0.166.99安装（启用lifecycle），registry/SRI/lock身份与版本核验。旧发行summary先验证manifest摘要、OIDC VERIFIED和不可变字节通过，归档原summary/manifest及当前package-lock。workflow无provider凭据，不认证/执行Agent/写observations；当前完成静态语法校验，尚未实际运行。Astra只读复核及建议修复已落实，不作为独立人工签核。
+
+只读collection原process Buffer已归档，退出2且reviewValidated=true仅为机械校验，仍INSUFFICIENT_EVIDENCE。两计划正式 **NOT_RUN / task observed=0/36 / firstRun observed=0/9**，totalCost和维护时间未知；账号硬额度/账单、合规Windows11/macOS15 arm64、目标GUI/native/durable、真人辅助技术、8h/24h与SLO仍未关闭。没有新增付费调用、发行或合并。
+
+### 20.54 2026-10-12 用户授权Astra审阅、实际Linux回读与火山短测
+
+用户明确指示“astra代替人工审阅”，新增[审阅规则](./cli/verify01-plan-2026-10-12-v2/review-policy.json)将其作为用户授权的AI审阅，independentHumanReview仍为false；不再把缺独立人工签核列为这项评估器预审的阻塞。Astra逐题核对36任务、全部72脚本、42变异锚点/语法、45比较摘要和18+18 provider映射，另9first-run均属火山；静态审阅不冒称变异/真实checker已执行，后续候选断言/原产物还需逐样本审查。
+
+旧70bf包找到verify-34文档分支漏跑候选修改后的原baseline，正式审阅结论CHANGES_REQUIRED保留。源码补齐该baseline并保持NUL路径拒绝；e32e75原runtime隔离复现2/2失败，最终Windows22.22.2/Linux22.12.0各11/11（2文件）。最初agent Windows结果仅终端转录，根随后原源码隔离复现及最终运行有原磁盘JSON/stdout/stderr，分别记录。新准确07f050be901dd806f68ccb3ddb8eee12ad7a5254的[run38272128731](https://github.com/chainlesschain/chainlesschain/actions/runs/38272128731)完成成功，真实Ubuntu24.04.5 x64/Node22.12.0、固定项目、正常公开CLI.99安装、原lock/10直接子包身份、实际Docker镜像及72脚本都已回读。新reviewDigest为`sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f`，image为`sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da`。新包由Astra重新审阅，verdict为`APPROVED_FOR_DECLARED_EVALUATOR_SCOPE`，详见[逐题记录与原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/README.md)、[修后实际回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)；旧实际包/预览/失败结论均保留。
+
+用户另授权“火山引擎可以测试”。已有本地受控key单次 `max_tokens=1024`（回答长度限制，不是回答加推理的总输出硬上限）/20s/零重试[连接测试](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/README.md)于15:32:40.573UTC HTTP200，1246ms，89输入/13输出，旧配置估算USD0.0000161（后续官方常规价token-only估算¥0.000384，账单未知），billingVerified:false；非编码任务/独立首次旅程，未写observations。provider硬额度/共享预算计量仍未验证。OpenAI环境API/WIF key及仓库专用配置缺失，本地Codex CLI未登录；官方[Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)允许符合资格账号在应用授权后使用套餐，当前项目尚未集成，不导出或借用Codex认证token。
+
+用户再次授权测试成功发布CLI/IDE。新候选CLI0.166.100/VS Code0.37.144/JetBrains0.4.162的16份元数据已准备；13子包tree不变、14份公开tarball/SRI及依赖对齐通过，发布合同31/31、changelog14/14及三metadata检查通过。最终提交仍须自己的完整Actions七门及适用CI/Host，然后按既有OIDC子包核验→CLI→双IDE发行与公开回读；当前尚未tag/发布。
+
+正式36+9仍NOT_RUN、0/36、0/9，v2指纹/同样本/共享$99不变，总费用未知；AI评估器审阅已按用户规则处理，账号/费用、目标宿主/native/durable、真人辅助技术和8h/24h/SLO仍各自开放。
+
+### 20.55 2026-10-13 发行候选真实失败与精确费用核查
+
+准确候选 `ff292775c4a032541fb50147d49dd353967be3b4` 的 [Linux预检run38274178046](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-final-candidate-ff2927/README.md)成功；30份双摘要原件、88个ZIP解包文件与75文件评估器包逐字节匹配，72 scripts、review d333及image344d复核。实际安装仍为旧公开CLI0.166.99/source311e，并非候选0.166.100发行或正式模型/首次旅程。
+
+[ARM64首轮失败原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-attempt1-failure/README.md)保留run38274184765/job114895528089、9份压缩原件与artifact11758154099 ZIP/API digest；Windows2026.2.0.1的后续Summarize菜单45秒未出现。原失败及原断言保留，根因NOT_DETERMINED。Astra接管仅metadata诊断，不放宽期限或增加二级菜单重试；实际修复后须新准确SHA的完整七门及适用CI/Host，不能迁移ff或更早成绩。CLI0.166.100/VS0.37.144/JB0.4.162尚未tag或发布，用户成功后直接发行授权持续有效。
+
+[Astra官方费用合同核查](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-cost-contract-review/README.md)新增18份双摘要原件，无新付费请求。精确模型常规在线价为人民币3/0.10/9元每百万token；已有89/13token、缓存0短测的公开常规价token-only估算为¥0.000384，旧$0.0000161仅配置估算，原回执不改写。实际response tier为default，13completion已包含11reasoning，不重复相加。全模型上限可提出¥7.86432、圆整¥8的条件请求预留候选，但账号合同、真实账单、CNY→USD预算上界、请求前原子预留与跨补救/宿主持久ledger未完成；它不证明正式费用准入。正式仍NOT_RUN/0/36/0/9、v2指纹与共享$99不变。
+
+### 20.56 2026-10-13 最小弹窗诊断与 macOS 上传失败分责
+
+仅增加metadata的四文件诊断已独立提交 `0c148cf927507280760dc91ab00db17c30588c01`，未推进PR #434发行分支。JDK21/真实IntelliJ2024.2 SDK direct javac及Gradle8.7 compileJava/compileUiTestJava通过；隔离JUnit实际5tests/0failures/0errors/0skipped。32assertion仅为源码静态调用数。首轮Gradle输出占用失败、早期javac缺依赖失败与未采用/不可归因的原工作区补丁均完整保留，[本地诊断归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-local/README.md)32原件核四源Git blob与9handoff hashes。新ARM64 run38280050578于16:51:18UTC快照2in_progress/4queued；生产chosen→actions→preview路径和45秒断言未放宽，没有新增二级菜单重试或交接策略。仅诊断，根因尚未确认，尚无实际修复或发行准入。
+
+准确ff292775的[macOS Browser evidence job114899117033](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-browser-macos-upload-failure/README.md)产品Workbench步骤输出ok:true、liveEvolution:true且源码精确匹配；上传找到12文件、artifact名称/目录通过，CreateArtifact阶段ENOTFOUND，后续two-origin未执行。24份原件保留metadata/annotations/完整日志、两份GitHub摘要一致的对照ZIP及受限读取错误体；不推测失败hostname、重试次数或临时性，不需要据此改产品/工作流或放宽检查。旧ff已确认无法发行；保存状态后取消该提交仍活动的CLI/Memory Query/Background测试以释放runner。最终修复SHA仍须自身完整七门及适用CI/Host；诊断或旧源码局部成功不得转移。尚未tag/发布，正式36+9/0/36/0/9/$99保持。
+
+### 20.57 2026-10-13 火山流式工具协议短测
+
+用户再次确认可用火山引擎测试。固定官方 https://ark.cn-beijing.volces.com/api/v3/chat/completions、精确 deepseek-v4-flash-ga-260731 的两次流式 POST 均 HTTP200；首次返回合成只读 read_file synthetic.txt，内存固定工具结果后第二次答 SMOKE_OK_731。共434输入/46输出，reasoning/cache均0；公开常规价 token-only 估算 **¥0.001716**，actualBill/FX为null。原SSE原字节保存，raw/stored哈希一致，未触发脱敏；零重试/redirect/fallback，每请求20s。22份双摘要原件及Astra独立复核见[短测归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-stream-tool-authorized-smoke/README.md)。此短测禁用thinking，设置max_tokens=128，不改变冻结default-thinking身份，不是生产Agent编码/正式样本，独占single-attempt未重复付费。
+
+### 20.58 2026-10-13 Windows弹窗诊断成功与后续源码范围
+
+仅metadata诊断的准确 **0c148cf927507280760dc91ab00db17c30588c01**，run38280050578/job114914883288的Windows ARM64旅程成功；initial/restart均attempt1，107事件/12实例，六次timeline→actions→preview→confirm完成，无callback failure。artifact11761039003的ZIP/API摘要一致，嵌入manifest51/51完整；45份双摘要原件见[成功诊断](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-windows/README.md)。六次后继popupVisible:true时旧focusWindowShowing:false，不能把隐藏旧焦点窗口断言为根因。原ff菜单45秒失败保留；结论为 **PASSED_ORIGINAL_FAILURE_NOT_REPRODUCED_ROOT_CAUSE_UNCONFIRMED**，不宣称已修复。
+
+共享工作区随后出现 **1e0272fb491db46c3b46eb03170b67bb7136d132** 的行为提交，增加SwingUtilities.invokeLater交接与isRewindCurrent守卫，原只读审查保留当时的来源范围；此处以提交及源码字节绑定行为，不将未核验的操作者身份作为验收依据。Astra只读审查及三次隔离本地验证见[85份原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/unattributed-popup-1e-source-review/README.md)：首次编译全部main/UI/test通过，JUnit四项临时目录setup失败；第二次init脚本BOM失败；第三次工作区temp下现有UiEventDiagnosticsTest **5/5**，复用第一次compile输出。四受审文件每次执行前后均与1e一致，非整tree绑定，既有测试不覆盖新handoff/guard；正常rewind入口不会无条件被guard挡住，但原故障修复仍 **UNPROVEN**。0c的CI/本地成绩不转移给1e或后续源码。
+
+### 20.59 2026-10-13 Windows Scheduler租约真实失败与测试profile变更
+
+准确 **1e0272fb491db46c3b46eb03170b67bb7136d132**，run38283485238/job114926160748在第二轮steady-2的before-execute失败 **SCHEDULER_LEASE_LOST**。Node22.12.0/Windows x64、seed1592598566、smoke15s/lease1000ms/poll10ms保留。最后成功renew为17:24:43.428Z，expiry44.428Z；resume/fatal45.118Z，超过expiry690ms。DB仍同owner/fence1，history无reclaim，effectCreated/effectFlushed/exists均false；严格过期保护正确阻止执行。初始heartbeat和round1通过；aggregate未到最终断言，不能把false汇总当作每项独立失败。此为产品/测试lease liveness失败，不是安装或CI超时；artifact没有timer/SQLite获取锁/commit耗时，续期延迟根因 **UNDETERMINED**，不能归为基础设施。20份原件及ZIP/API摘要核验见[原失败诊断](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release100-scheduler-windows-failure/README.md)。
+
+后续共享提交 **94da2311b380442cf861ffebe2402bfe77986d16** 只改workflow/contract test，把PR smoke lease1000→10000ms；派生heartbeat delay1500→15000ms、renew interval333→3333ms、worker场景timeout15000→55000ms，cleanup10000不变。原1000ms双worker两轮压力场景未单独保留，现有短租约unit用例不足以等同该门；[最初按原故障修复范围的审查](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/scheduler-lease-margin-source-review/README.md)不能证明1s根因已修复。Astra随后核对runtime默认60s、formal原本10s，未发现永久冻结1s三OS门条款，[最终范围审查与原参数实验](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/scheduler-lease-margin-scope-experiment/README.md)接受10s为与formal一致的CI smoke配置纠正，verdict=SCOPE_APPROVED_AS_CI_SMOKE_PROFILE_CORRECTION_NOT_A_ROOT_CAUSE_FIX。产品严格过期/fence保护未改，原1s liveness根因继续开放。单次隔离Windows x64/Node22.12.0/1e原字节、seed1592598566/1000ms/15s/2轮实验47.759s exit0，8 steady及10个安全不变量通过；17423事件/0drop，最大timer迟到182.06ms、transaction66.87ms、renew31.43ms。它未复现CI失租，也未证明SQLite等待的因果；2222来源文件与180依赖前后字节一致，observer为外部插桩副本，不能替代最终SHA的CI。1e的Memory run38285642163与Background run38285654295已按缺门触发并回读准确head，2026-10-12T17:46:58.376Z快照仍queued；不重复dispatch，不计作通过。
+
+候选 **CLI0.166.100 / VS0.37.144 / JB0.4.162** 未发布。最终源码、profile和有效门须重新核对完整七门及适用CI/Host，符合条件后按用户已有授权Actions OIDC发布CLI并公开回读，再发布双IDE。正式 **NOT_RUN / task0/36 / firstRun0/9 / $99** 及v2指纹不变，原分配火山18+9/OpenAI18保持；费用控制、目标宿主/native/durable、真人辅助技术与8h/24h/SLO仍分别开放，不将诊断或短测填作正式结果。
+
+### 20.60 2026-10-13 正式费用控制离线原型
+
+Astra完成中央SQLite事务ledger的[离线原型及落地方案](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/formal-budget-offline-readiness/README.md)，7项fixture测试通过：原子并发预留、重启保留pending、initial/一次remediation共用原task余额、unknown保留预留并停止、幂等/冲突结算、call ID禁止重发，以及共享99不可静默重置。限.work、无provider transport/真实价格FX/旧lineage导入，未集成生产、未验证所有付费出口或物理崩溃，不能启动正式样本。指定本地配置/证据范围仅发现推理凭据存在，未发现账号订单合同/FX上界，未输出秘密值；不宣称穷尽云端账单API。默认thinking、18火山+18OpenAI+9首次旅程及每样本2/3美元和共享99均保持。具体缺口见[费用准入](./cli/verify01-plan-2026-10-12-v2/BUDGET_READINESS.md)，observations仍0。
+
+### 20.61 2026-10-13 Git worktree 注册表竞态与隔离发行
+
+1e的CLI Agent Team Soak run38283485176/job114926287459在Windows的实际末次错误为Git读取worktrees临时locked标记时ENOENT。5任务和2次注入故障的启动额度7保持，但额外worktree读取失败消耗一次启动，最终仅4任务完成、1任务pending，team-distributed-soak.mjs:2523终态断言失败。Git for Windows v2.55.0.windows.5的源码支持file_exists→read之间被正常worktree add结束unlink的TOCTOU机制；无FS trace，不认定具体删除进程或调用位点。artifact11763082531的ZIP/API摘要一致，25份原件见[原失败及源码依据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/team-worktree-registry-windows-failure/README.md)。
+
+后续修补仅对精确missing locked ENOENT的git worktree list --porcelain最多读取三次，不重放worktree add/remove/branch等写操作，不接受失败时的partial stdout，保留最终原错误及fresh registry、locked-worktree保护。首次独立提取函数mock10项只证明该局部边界；[真实模块验证](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/worktree-registry-real-module-validation/README.md)Node22.12.0单次339.145s exit0，共62/62（新增10+既有52），无fail/skip/pending/todo，但新增测试在运行中00ab→839发生fixture规范化变化。其余11份来源字节稳定；该次新增10结果不能给最终测试文件背书，更不是自然复现真实并发Git竞态。
+
+为固定输入，创建feature/cli-ide-release100-final-20261013隔离发行分支，基于ce0165e的完整30381文件检出，再显式复制已审阅worktree修补、新测试、最新四份文档与证据。首次长目录检出在两历史文件达到260字符时失败，Git自动清理后改用工作区短目录.work/r100，最长236字符，未修改全局Git设置。复制124文件逐字节绑定；[隔离版真实模块10项](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/worktree-registry-isolated-validation/README.md)单次19.924s exit0，无fail/skip/pending/todo；测试839与harness994字节和124输入清单相符，13候选文件前后稳定，267观察/228模块load或transform到结束hash一致。其中67候选模块、158 root node_modules、2 root session-core及1验证config，共享来源范围明确，不等于整个安装包/任意data read绑定。旧52不重复计数。之后Prettier只修正harness排版，994→0978的[独立AST一致增量](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/worktree-registry-format-delta/README.md)通过；前格式10项不冒称已测试新字节，最终提交CI仍必须另验。当前尚未取得最终准确SHA完整Actions或发布；原1e取消门及任何旧源码结果均不转移。最终候选需自身完整七门及适用Scheduler/Team/CI/Host，成功后按用户已有授权OIDC CLI→公开回读→双IDE。正式36+9仍NOT_RUN、0/36、0/9，费用控制和目标宿主等验收继续独立。

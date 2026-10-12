@@ -93,10 +93,10 @@ describe("_streamErrorDisposition", () => {
     );
   });
 
-  it("rethrows a genuine drop with no / blank text", () => {
+  it("rethrows a genuine drop without text and preserves visible whitespace", () => {
     const e = new Error("ECONNRESET");
     expect(_streamErrorDisposition(e, null, "")).toBe("rethrow");
-    expect(_streamErrorDisposition(e, null, "   ")).toBe("rethrow");
+    expect(_streamErrorDisposition(e, null, "   ")).toBe("preserve");
     expect(_streamErrorDisposition(e, null, null)).toBe("rethrow");
     expect(_streamErrorDisposition(e, null, undefined)).toBe("rethrow");
   });
@@ -423,7 +423,7 @@ describe("_retryStreamingChat (bounded auto-retry, 2.1.181)", () => {
         },
         { sleep, signal },
       ),
-    ).rejects.toThrow(/terminated/);
+    ).rejects.toMatchObject({ name: "AbortError" });
     expect(calls).toBe(1);
   });
 });

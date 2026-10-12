@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.formal-budget-offline-archive/v1",
+  "status": "OFFLINE_PROTOTYPE_ONLY_NOT_PAID_ADMISSION",
+  "tests": 7,
+  "testsExitCode": 0,
+  "paidRequests": 0,
+  "productionIntegrated": false,
+  "paidAdmissionReady": false,
+  "outputCapture": "Original tests.log is combined stdout/stderr with PowerShell native-stderr wrapper text; no separate original stdout/stderr files were supplied.",
+  "capturedAt": "2026-10-12T17:52:47.246Z",
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  }
+}

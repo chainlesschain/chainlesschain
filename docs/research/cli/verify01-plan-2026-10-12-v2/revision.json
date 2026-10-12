@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.verify01-plan-revision/v1",
+  "version": 2,
+  "issuedAt": "2026-10-12T14:46:52.556Z",
+  "previousPlan": "../verify01-plan-2026-10-04/plan.json",
+  "previousPlanDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+  "previousWindow": {
+    "start": "2026-10-05T00:00:00.000Z",
+    "end": "2026-10-12T00:00:00.000Z"
+  },
+  "previousStatus": {
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "executionStatus": "NOT_RUN"
+  },
+  "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+  "window": {
+    "start": "2026-10-12T14:46:52.556Z",
+    "end": "2026-10-19T14:46:52.556Z"
+  },
+  "reason": "The original observation window closed before any formal sample ran. User requested continuing formal 36+9; create a separate window before new execution.",
+  "preserved": {
+    "taskCount": 36,
+    "firstRunCount": 9,
+    "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "catalogDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+    "bindingsDigest": "sha256:e5db1d0992753efefa2ddbf7abf09d846c8984b26e6046563619181bb2ad23f7",
+    "sampleIdentitiesUnchanged": true,
+    "totalPlannedBudgetUsd": 99,
+    "taskCostUsd": 2,
+    "firstRunCostUsd": 3,
+    "maintenanceBudgetHours": 16
+  },
+  "budgetLineage": {
+    "sharedLimitUsd": 99,
+    "additionalBudgetAuthorized": false,
+    "availableAmountUsd": null,
+    "billingControlVerified": false
+  },
+  "testedPublication": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161",
+    "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+  },
+  "executionStatus": "NOT_RUN",
+  "observationsCreated": false,
+  "independentHumanReview": false
+}

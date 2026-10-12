@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "summarySha256": "b86a60ef1769bf999256aca13673ae2ff9b7fbc33efddfb2aa5c580382414719",
+  "entries": [
+    {
+      "source": ".work/volcengine-authorized-probe-20261012/2026-10-12T15-32-39.325Z/response.body",
+      "path": "objects/000.gz",
+      "rawBytes": 510,
+      "rawSha256": "250d5c3c9483886545b852b5bfa1beb23c9bdcc9eb9f4f88bad8965634c71a1d",
+      "bytes": 326,
+      "sha256": "efb1f8d00e959d60e086290e58e8c6d41bae13d4444d135a50dcd239e26ebb10"
+    },
+    {
+      "source": ".work/volcengine-authorized-probe-20261012/2026-10-12T15-32-39.325Z/result.json",
+      "path": "objects/001.gz",
+      "rawBytes": 1556,
+      "rawSha256": "6fead66b5e60a0d288cba31f262f8d5081133eef0d796b61d414d507e1fdbb83",
+      "bytes": 829,
+      "sha256": "e3cb50d9b6fb0151aeae56392f9f9ee707ab4de7c856c231076ca21c5dfec5ef"
+    },
+    {
+      "source": ".work/probe-volcengine-authorized-20261012.mjs",
+      "path": "objects/002.gz",
+      "rawBytes": 2975,
+      "rawSha256": "a0349fed4f825e71a4c56251b005bee63c77ff3cb7d4afdf46df2be1ce4bb4dc",
+      "bytes": 1434,
+      "sha256": "6ccde8eb1a5b20662ee0b6536d3a99caf143fad0b7a4fed1f8e3cfa1d21c4c49"
+    },
+    {
+      "source": "packages/cli/src/lib/llm-connection-probe.js",
+      "path": "objects/003.gz",
+      "rawBytes": 8060,
+      "rawSha256": "30d6b198304257c0fbc31f7aec5d210dd68942a68941906e7243510e0efb6f47",
+      "bytes": 2491,
+      "sha256": "0d54a516351142879f53a54d11ab9a76778e921d7eb9c2e04ff4b8963fdfef1e"
+    },
+    {
+      "source": "packages/cli/src/lib/llm-pricing.js",
+      "path": "objects/004.gz",
+      "rawBytes": 19873,
+      "rawSha256": "296036db036e3f446413a5e5987061dfc7defe298b6f665ef1c49070c3d29b5d",
+      "bytes": 6503,
+      "sha256": "8ff90d27237164204beac3919724bfb107a52c00e7de673300f1a442fcbb28ea"
+    }
+  ]
+}

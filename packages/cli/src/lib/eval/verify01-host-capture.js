@@ -3,6 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { evalDigest } from "./evidence.js";
 import { outcomeDigest } from "./outcomes.js";
+import { assertVerify01ExecutionWindow } from "./verify01-execution-window.js";
 import {
   requireValue,
   relativeFile,
@@ -202,8 +203,11 @@ export async function prepareVerify01HostTask(bundle, preparation, options) {
     !fs.existsSync(workspace) && !fs.existsSync(root),
     "workspace and capture directory must be new; retry cannot overwrite an attempt",
   );
-  const startedAt = new Date().toISOString(),
-    deadline = Date.now() + sample.timeBudgetMs;
+  const windowAdmission = assertVerify01ExecutionWindow(bundle.plan, {
+    requiredTimeMs: sample.timeBudgetMs,
+  });
+  const startedAt = new Date(windowAdmission.startedAt).toISOString(),
+    deadline = windowAdmission.startedAt + sample.timeBudgetMs;
   fs.mkdirSync(workspace, { recursive: true, mode: 0o700 });
   fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   const stageBudget = budget(deadline);

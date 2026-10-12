@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.browser-upload-failure-archive/v1",
+  "capturedAt": "2026-10-12T16:52:47.929Z",
+  "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "runId": 38274184713,
+  "jobId": 114899117033,
+  "status": "RELEASE_GATE_FAILED",
+  "observedFailure": "CreateArtifact ENOTFOUND",
+  "rootCausePrecision": "DNS name resolution failed; failing hostname, retry count and underlying or transient cause are not established.",
+  "workbenchStep": "success",
+  "uploadFilesFound": 12,
+  "workbenchEvidenceUpload": "failure",
+  "twoOriginBrowserJourney": "skipped",
+  "exactHeadBrowserFragmentUpload": "skipped",
+  "macosWorkbenchArtifactPresent": false,
+  "macosBrowserArtifactPresent": false,
+  "zipDigestChecks": [
+    {
+      "id": 11759377369,
+      "name": "evolution-workbench-linux-ff292775c4a032541fb50147d49dd353967be3b4-1",
+      "digest": "sha256:d5e061f866a60f056c2943b00dd6a281b3af9a0e4afb17d591739f4d9fb1691f",
+      "bytes": 1395911,
+      "verified": true
+    },
+    {
+      "id": 11759378326,
+      "name": "image-codec-budget-macos-ff292775c4a032541fb50147d49dd353967be3b4-1",
+      "digest": "sha256:d217e217c914565c0af9d7b4a6e209b71e87880acbe21cb97717e1fd9739811f",
+      "bytes": 801,
+      "verified": true
+    }
+  ],
+  "sourceManifestEntriesVerified": 23,
+  "access": {
+    "sandboxJobLog": "job.log is a preserved HTTP 403 error body, not a successful job log.",
+    "runLog": "run-logs.zip is a preserved HTTP 404 error body, not a ZIP.",
+    "successful": "job-log-cachebust.txt and two selected artifact ZIPs were retrieved by authorized require_escalated read-only execution, as recorded by the collecting agent.",
+    "http401": "No HTTP 401 original exists among the supplied 23 files; no such response is asserted as archived."
+  },
+  "productAssertionFailureObserved": false,
+  "fullReleaseGatePassed": false,
+  "sourceOrWorkflowChanged": false
+}

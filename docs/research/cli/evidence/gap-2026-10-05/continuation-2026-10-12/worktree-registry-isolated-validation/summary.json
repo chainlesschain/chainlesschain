@@ -1,0 +1,77 @@
+{
+  "schema": "chainlesschain.worktree-isolated-validation-archive/v1",
+  "capturedAt": "2026-10-12T18:15:58.418Z",
+  "status": "ISOLATED_CLI_SOURCE_PUBLIC_MODULE_FAULT_INJECTION_PASSED",
+  "execution": {
+    "startedAt": "2026-10-12T18:12:18.470Z",
+    "node": "C:\\code\\chainlesschain\\.work\\node-v22.12.0-win-x64\\node.exe",
+    "nodeSha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+    "nodeVersion": "v22.12.0",
+    "args": [
+      "C:\\code\\chainlesschain\\node_modules\\vitest\\vitest.mjs",
+      "run",
+      "--config",
+      "C:\\code\\chainlesschain\\.work\\worktree-registry-isolated-20261013-HqcVml\\vitest.config.mjs",
+      "--configLoader",
+      "native",
+      "__tests__/unit/worktree-registry-read-retry.test.js",
+      "--reporter=default",
+      "--reporter=json",
+      "--outputFile.json=C:\\code\\chainlesschain\\.work\\worktree-registry-isolated-20261013-HqcVml\\vitest-results.json"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\.work\\r100\\packages\\cli",
+    "temp": "C:\\code\\chainlesschain\\.work\\worktree-registry-isolated-20261013-HqcVml\\temp",
+    "childPid": 28036,
+    "attempt": 1,
+    "retries": 0,
+    "sharedDependencies": "C:\\code\\chainlesschain\\node_modules",
+    "observer": "CJS _load wrapper and ESM load hook return original results; Vite pre-transform returns null; observers record file hashes without altering module code or assertions.",
+    "completedAt": "2026-10-12T18:12:38.394Z",
+    "wallMs": 19924,
+    "exitCode": 0,
+    "signal": null,
+    "sourceStable": true
+  },
+  "tests": {
+    "passed": 10,
+    "failed": 0,
+    "pending": 0,
+    "todo": 0,
+    "skipped": 0,
+    "existing52Rerun": false,
+    "priorMockTestsCounted": false
+  },
+  "candidateBaseCommit": "ce0165e041e7115efd2c9254db1c73a0cc6164f0",
+  "copiedCandidateNotFinalReleaseSha": true,
+  "reviewSha256": "0563a38b4316c9b5e8171436bb5538603eafaceea4f71ff82960de2bda04c2a5",
+  "moduleBindingSha256": "fba5532aca9355f986354bf36a6fd844192c3f25d7cd6e86b4787a0127e5daab",
+  "sourceBindings": {
+    "stableCandidateFiles": 13,
+    "observations": 267,
+    "distinctFileHashes": 228,
+    "scopeCounts": {
+      "shared-node-modules": 158,
+      "isolated-input": 67,
+      "shared-workspace-package": 2,
+      "validation-harness": 1
+    },
+    "actualTransformInputHashesMatch": true,
+    "rawCandidateModulesArchived": 67,
+    "rawRootWorkspaceModulesArchived": 2,
+    "rawSharedNodeModulesArchived": 0
+  },
+  "limitations": [
+    "158 shared node_modules file bytes intentionally omitted; exact reconstruction from this archive is not claimed.",
+    "Two root session-core loaded files and one validation configuration are included; this is not hermetic isolation.",
+    "SRI entries are preserved as package-lock metadata; absent SRI remains null."
+  ],
+  "physicalRaceReproduced": false,
+  "finalReleaseGatesPassed": false,
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  }
+}

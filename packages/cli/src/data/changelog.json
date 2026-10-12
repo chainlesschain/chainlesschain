@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.100",
+      "cliVersions": ["0.166.100"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.100: bound stream retries and revalidate evaluation evidence",
+          "body": "- Honor Retry-After within a cancellable 60-second bound, preserve terminal\n  provider errors and prevent replay after visible stream output.\n- Pass chat token callbacks and request options through the streaming wrapper.\n- Recheck formal evaluation windows and saved bindings before execution, and\n  validate documentation baselines again after acceptance-checker changes.\n- Pair VS Code 0.37.144 and JetBrains 0.4.162 with public CLI 0.166.100 only\n  after the final source commit passes every required Actions release gate.\n- Reuse unchanged child versions after source-tree, registry-byte and provenance\n  checks. Formal evaluation, native/durable authority and long-term acceptance\n  retain their separate evidence and unfinished status."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.99",
       "cliVersions": ["0.166.99"],
       "date": null,

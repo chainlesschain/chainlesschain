@@ -1,0 +1,2784 @@
+{
+  "schema": "chainlesschain.verify01-authorized-ai-review/v1",
+  "createdAt": "2026-10-12T15:49:38.527Z",
+  "reviewer": {
+    "type": "AI",
+    "name": "Astra",
+    "role": "User-authorized replacement for human review",
+    "authorizationQuote": "astra代替人工审阅",
+    "independentHumanReview": false,
+    "authorshipNote": "This AI reviewer discovered the original baseline omission and prepared its correction, then re-reviewed the exact regenerated artifact. Do not represent this as independent human approval."
+  },
+  "independentHumanReview": false,
+  "verdict": "APPROVED_FOR_DECLARED_EVALUATOR_SCOPE",
+  "summary": {
+    "taskEvaluatorsReviewed": 36,
+    "actualScriptsReadAndHashVerified": 72,
+    "mutantAnchorsAndSyntaxVerified": 42,
+    "staticApprovedTasks": 36,
+    "changesRequiredTasks": 0,
+    "paidProviderCallsByReviewer": 0,
+    "taskObservationsProducedByReview": 0,
+    "firstRunObservationsProducedByReview": 0
+  },
+  "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+  "reviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "imageRepoDigest": "node@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc",
+  "sourceCommit": "07f050be901dd806f68ccb3ddb8eee12ad7a5254",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "publicProductSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "publicCliVersion": "0.166.99",
+  "runtimeDigest": "sha256:dc34539305ce48372d9848c5fcc61f1336d116623e5a4b997f9cd13069baf267",
+  "specsDigest": "sha256:46f712ece8bf4d03dd7d700304aa4acd6296cee86dc11e6382bc3e947536e21f",
+  "catalogDigest": "sha256:b9dc7b3ae9e7ea126c7bece9617686e3c3187c32212eff1d5d9ea6dde51d012c",
+  "artifactRoot": ".work/formal-keyless-extracted-38272128731-07f050",
+  "workflowRun": "38272128731",
+  "window": {
+    "start": "2026-10-12T14:46:52.556Z",
+    "end": "2026-10-19T14:46:52.556Z"
+  },
+  "reviewMethod": {
+    "actualScripts": "All 72 raw script digests matched the new review.json; every runtime prefix matched the exact 07f050 Git blob. Removing only each package runtime left all 72 generated suffixes and embedded specs byte-identical to the old package. Embedded base specs match the unchanged frozen specs; expectedFiles, image and support Git digests match.",
+    "frozenInputs": "All frozen task/source/baseline identities carry forward unchanged after exact spec/allowlist comparison. All 45 comparison digest references were recomputed; plan/catalog/review/runtime/spec digests and image ID agree across the actual records.",
+    "syntax": "All 42 mutation anchors were reapplied uniquely to the frozen project and each mutated source passed node --check through stdin. This is syntax validation, not execution of candidate tests or mutants.",
+    "notExecuted": [
+      "No actual Docker setup/check stage from this package was executed by this review.",
+      "No frozen project baseline, submitted candidate test or behavioral mutant was executed by this review.",
+      "No paid provider request, formal host task, IDE first-run or task-outcome observation was created by this review."
+    ],
+    "previousKeylessEvidence": "Successful source-bound public installation and pack generation are provenance/preflight evidence, not acceptance results.",
+    "nulChecks": "Imported exact new runtime Git bytes in-memory, adding only an export for its unchanged regularFile helper. Tested rejection of NUL in regularFile relative path and each Docker mount path, plus a real valid-file positive. Both old/new character rejection predicates matched over 128 ASCII codepoints, 256 comparisons in total. No Docker process was invoked.",
+    "provenance": "Independently checked raw Actions run id/head_sha/completed/success, artifact ZIP digest against artifact API, image linux/amd64 identity, prior OIDC-bound summary/manifest hashes, and readiness pins.",
+    "executedChecks": {
+      "scriptsHashed": 72,
+      "generatedSuffixByteComparisons": 72,
+      "mutantSyntaxChecks": 42,
+      "comparisonDigestChecks": 45,
+      "nulRejections": 3,
+      "validFilePositive": 1,
+      "characterPredicateEquivalenceComparisons": 256
+    }
+  },
+  "findings": [
+    {
+      "id": "DOC-BASELINE-01",
+      "severity": "resolved",
+      "taskId": "verify-34",
+      "status": "FIXED_IN_THIS_PIN",
+      "location": "packages/cli/scripts/verify01-review-runtime.mjs:585",
+      "detail": "The doc check now runs runner.tests(spec.baselineTests,false,true) after document smoke commands and stores the baseline receipt. A failing original regression reaches the controller catch and returns pass:false even when fingerprint/empty-report smoke succeeds.",
+      "verification": "Read exact pinned runtime and all regenerated artifacts; inspected archived pre-fix controlled reproduction (2/2 failures) and corrected Windows/Linux suites (11/11 each). Those are controller regression tests with controlled Docker responses, not executed formal task outcomes."
+    },
+    {
+      "id": "SEMANTIC-REVIEW-01",
+      "severity": "limitation",
+      "scope": "all candidates",
+      "detail": "Mutation checks reject specific wrong behaviors but do not establish every clause or prevent a test from gaming known mutants. The frozen acceptance requires inspection of submitted assertions and original output. This pre-execution evaluator review does not waive that step. The same user-authorized AI substitution can inspect those later artifacts."
+    },
+    {
+      "id": "HOST-SCOPE-01",
+      "severity": "execution-blocker",
+      "detail": "Runtime explicitly supports Linux Docker only. A generated evaluator for all36 tasks does not validate native Windows/macOS or IDE host execution. Separate exact-host records and first-run observations remain necessary."
+    },
+    {
+      "id": "NUL-EQUIVALENCE-01",
+      "severity": "resolved",
+      "status": "VERIFIED",
+      "detail": "Moving NUL from the forbidden-character regex into String.includes preserves both path rejection predicates. Direct checks against the pinned runtime reject NUL in all three reviewed entry points; valid path positive and 256 old/new predicate comparisons pass."
+    }
+  ],
+  "executionControlReview": {
+    "result": "APPROVED_STATIC_DESIGN_WITH_EXECUTION_LIMITS",
+    "frozenCheckout": "Executor materializes committed Git blobs, excludes untracked credentials/.git/development dependencies, and validates project SHA.",
+    "allowedChanges": "Executor snapshots every dependency file/link and rejects dependency changes, unlisted changes and deliverable links before invoking the reviewed checker.",
+    "testAuthenticity": "Locked external config selects exact baseline/candidate files and hash-pinned support. Original test files cannot be changed by candidate allowlist. Real Vitest entry is executed; synthetic test responses used in regression tests are explicitly separate.",
+    "isolation": "Exact Docker image ID; caller numeric uid/gid; read-only container root and check workspace; external readonly control mount; no network during checks; all capabilities dropped; no-new-privileges; pids256,4GiB,2CPUs,1GiB tmpfs; only HOME/CI passed into container.",
+    "setup": "Only setup has network and writable workspace. npm ci uses frozen lock, both required workspaces, ignore-scripts and /dev/null userconfig; explicitly locked prebuild-install and SQLite probe precede candidates. No arbitrary lifecycle/source-build fallback.",
+    "timeouts": "Each stage <=10min and honors outer deadline minus40s cleanup reserve. Container watchdog and host timeout coexist; on timeout/error Docker force-removal is required and unconfirmed cleanup rejects.",
+    "testResults": "Single JSON report with nonzero cases required. Candidate pending/todo/skip rejects; existing baseline pending allowed for platform-specific cases. Mutants require failure status and assertion-shaped diagnostics, rejecting syntax/import errors.",
+    "limitations": [
+      "These are reviewed controls, not executed isolation/cleanup demonstrations in this review.",
+      "Baseline pending allowance means baseline success is not proof that every platform-specific original test ran.",
+      "Mutation-anchor mismatch after an otherwise valid source change fails closed and requires re-review.",
+      "Without the source-bound executor, standalone check scripts do not themselves enforce the full candidate changed-path allowlist."
+    ]
+  },
+  "mapping": {
+    "comparisonDigestsVerified": 45,
+    "taskCount": 36,
+    "providerTaskCounts": {
+      "volcengine": 18,
+      "openai": 18
+    },
+    "tasksPerHostProvider": 2,
+    "hostMatrix": [
+      {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "linux-cli",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "linux-vscode",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "linux-jetbrains",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "darwin-cli",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "darwin-vscode",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      {
+        "id": "darwin-jetbrains",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      }
+    ],
+    "providers": [
+      {
+        "provider": "volcengine",
+        "model": "deepseek-v4-flash-ga-260731",
+        "modelRevision": "deepseek-v4-flash-ga-260731@operator-declared-endpoint"
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-6-astra",
+        "modelRevision": "gpt-6-astra@official-endpoint-operator-declared"
+      }
+    ],
+    "firstRunCount": 9,
+    "firstRunProvider": "volcengine",
+    "firstRuns": [
+      {
+        "id": "first-run-win32-cli",
+        "kind": "first-run",
+        "taskId": "verify-01",
+        "stratum": "win32-cli-volcengine",
+        "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-win32-vscode",
+        "kind": "first-run",
+        "taskId": "verify-02",
+        "stratum": "win32-vscode-volcengine",
+        "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-win32-jetbrains",
+        "kind": "first-run",
+        "taskId": "verify-03",
+        "stratum": "win32-jetbrains-volcengine",
+        "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-linux-cli",
+        "kind": "first-run",
+        "taskId": "verify-04",
+        "stratum": "linux-cli-volcengine",
+        "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-linux-vscode",
+        "kind": "first-run",
+        "taskId": "verify-05",
+        "stratum": "linux-vscode-volcengine",
+        "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-linux-jetbrains",
+        "kind": "first-run",
+        "taskId": "verify-06",
+        "stratum": "linux-jetbrains-volcengine",
+        "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-darwin-cli",
+        "kind": "first-run",
+        "taskId": "verify-07",
+        "stratum": "darwin-cli-volcengine",
+        "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-darwin-vscode",
+        "kind": "first-run",
+        "taskId": "verify-08",
+        "stratum": "darwin-vscode-volcengine",
+        "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      },
+      {
+        "id": "first-run-darwin-jetbrains",
+        "kind": "first-run",
+        "taskId": "verify-09",
+        "stratum": "darwin-jetbrains-volcengine",
+        "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+        "costBudget": 3,
+        "timeBudgetMs": 1800000
+      }
+    ],
+    "interpretation": "The 9 first-run samples are separate observations referring to tasks01?09. They must not be double-counted as new task completions, treated as OpenAI first-runs, or inferred from public installation/preflight."
+  },
+  "remainingExecutionBlockers": [
+    "Provider hard account quota/reliable metering evidence remains absent; this review does not authorize or execute paid requests.",
+    "OpenAI execution credential/authorized ingress is still absent from supplied readiness evidence.",
+    "Actual native Windows/macOS/IDE records, separate first-run observations and formal task observations remain absent.",
+    "Submitted candidate assertions and original checker outputs must still be reviewed against all acceptance clauses; evaluator approval does not pre-approve them."
+  ],
+  "correction": {
+    "status": "FIXED_AND_REVIEWED_IN_NEW_ACTUAL_PACKAGE",
+    "sourceCommit": "07f050be901dd806f68ccb3ddb8eee12ad7a5254",
+    "newActualReviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
+    "files": [
+      "packages/cli/scripts/verify01-review-runtime.mjs",
+      "packages/cli/__tests__/unit/verify01-review-document.test.js"
+    ],
+    "changes": [
+      "Document check now reruns the original regression suite after candidate edits.",
+      "NUL rejection moved from regex literals to equivalent String.includes checks to satisfy lint."
+    ],
+    "reports": [
+      {
+        "path": ".work/formal-review-document-before-isolated.json",
+        "sha256": "sha256:f33b78954d063f85a2a8c99dc8a572ea340dbc64fccf7f648ddebe64aee2a0a8",
+        "success": false,
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "files": 1,
+        "startTime": 1791819654489
+      },
+      {
+        "path": ".work/formal-review-document-windows.json",
+        "sha256": "sha256:684a4f7c4300f179312ac619782e65614ec435e6599e1233be09043328dd0234",
+        "success": true,
+        "total": 11,
+        "passed": 11,
+        "failed": 0,
+        "files": 2,
+        "startTime": 1791819657427
+      },
+      {
+        "path": ".work/formal-review-document-linux-final.json",
+        "sha256": "sha256:1c2d9c149b2b8b34862a15426c3b41b7baf2b98d8e72d75e13cb0ba6dba458e5",
+        "success": true,
+        "total": 11,
+        "passed": 11,
+        "failed": 0,
+        "files": 2,
+        "startTime": 1791819694053
+      }
+    ],
+    "archivedCounterexample": {
+      "kind": "Separate archived rerun against isolated original e32e75 runtime, not the initial terminal-only run",
+      "stdout": ".work/formal-review-document-before-isolated.stdout",
+      "stderr": ".work/formal-review-document-before-isolated.stderr"
+    },
+    "testInterpretation": "The document regression uses injected Docker responses to exercise the real stage controller and pass/fail propagation. Pack tests additionally execute real Node syntax checks and Vitest report controls. These are local Windows/Linux tests, not the frozen 36-task benchmark or actual Docker acceptance.",
+    "oldPackageVerdictUnchanged": true
+  },
+  "tasks": [
+    {
+      "taskId": "verify-01",
+      "description": "官方 endpoint 与同名自定义网关隔离",
+      "prompt": "在固定项目快照中完成「官方 endpoint 与同名自定义网关隔离」。阅读 packages/cli/src/lib/model-context-catalog.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：分别输入官方与自定义 endpoint，同名模型不得共享官方认证；未知窗口保留未知。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "分别输入官方与自定义 endpoint，同名模型不得共享官方认证；未知窗口保留未知",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-01.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-01.test.js",
+        "packages/cli/src/lib/model-context-catalog.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-01",
+        "kind": "task",
+        "taskId": "verify-01",
+        "stratum": "win32-cli-volcengine",
+        "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Endpoint isolation is mutated in the model-profile consumer, outside catalog edit permission; the documented mutation-only mapping is consistent. Unknown-window and positive official-endpoint assertions still require candidate review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+          "frozenSha256": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+          "frozenSha256": "sha256:537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/model-capabilities.js",
+      "mutationOwnerSha256": "sha256:8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+      "mutationOwnerIsAllowedCandidateEdit": false,
+      "mutationOnlyRationale": "Frozen sourcePaths names the catalog; endpoint isolation is implemented by its profile consumer. Mutation-only target; task edit permissions are unchanged.",
+      "mutants": [
+        {
+          "name": "custom-endpoint-inherits-official-profile",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-01-setup.mjs",
+          "digest": "sha256:74e3fc2333f3ef9ee1b0416a5db920786d078a0f9caec9d7253e44aa4120421d"
+        },
+        "check": {
+          "path": "verify-01-check.mjs",
+          "digest": "sha256:1581d3e2ce0a0ce037f84f7a606e9c35043e72088b30e4d24d14ed42066f86fa"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-02",
+      "description": "精确模型能力查找",
+      "prompt": "在固定项目快照中完成「精确模型能力查找」。阅读 packages/cli/src/lib/model-capabilities.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：验证 Astra/Sol/Luna 精确标识及未知后缀，不把未知模型当作已认证工具模型。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "验证 Astra/Sol/Luna 精确标识及未知后缀，不把未知模型当作已认证工具模型",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-02.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-02.test.js",
+        "packages/cli/src/lib/model-capabilities.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-02",
+        "kind": "task",
+        "taskId": "verify-02",
+        "stratum": "win32-vscode-volcengine",
+        "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Exact lookup is changed to prefix lookup; this targets unknown suffix certification. Candidate assertions must name the frozen identifiers and include known positives."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+          "frozenSha256": "sha256:0048e1987772f0ff063720d566f8578599059a6eca977896e2e77db546995edf"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+          "frozenSha256": "sha256:537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/model-capabilities.js",
+      "mutationOwnerSha256": "sha256:8a9d4ff2dd122e787cebdd066ee3b963eedd2b43b597d07187127d70133747f1",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "unknown-suffix-inherits-certified-model",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-02-setup.mjs",
+          "digest": "sha256:14f8be6c32997ae6c03aa265b44ae005a8eb6e547b9ebbeb17e2f28a290e129b"
+        },
+        "check": {
+          "path": "verify-02-check.mjs",
+          "digest": "sha256:019603391a300611389b923b82b9597b93f3cb7b92674616f0c2b1c4ff5c458d"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-03",
+      "description": "新家族未知计价",
+      "prompt": "在固定项目快照中完成「新家族未知计价」。阅读 packages/cli/src/lib/llm-pricing.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：未知模型返回 unpriced，不命中旧家族价格；已知模型正对照仍可计价。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "未知模型返回 unpriced，不命中旧家族价格；已知模型正对照仍可计价",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-03.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-03.test.js",
+        "packages/cli/src/lib/llm-pricing.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-03",
+        "kind": "task",
+        "taskId": "verify-03",
+        "stratum": "win32-jetbrains-volcengine",
+        "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Unknown Opus inherits legacy pricing under the mutant; exactly one source-version anchor applies. Known-price controls remain required."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/llm-pricing.test.js",
+          "frozenSha256": "sha256:5eb409d50a09cf30916e642956b6600ac08e9320c00c6e67ea856b94efc267d0"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+          "frozenSha256": "sha256:537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/llm-pricing.js",
+      "mutationOwnerSha256": "sha256:f2e3f0edcddcbab418e39b041ee0a0c1bc011d20d2b445b2d0e3efcb9d843525",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "unknown-opus-inherits-legacy-price",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-03-setup.mjs",
+          "digest": "sha256:d8ef9a34a4cdac320e9bb0ad9d5067f09a889663d10f2f789399bf771c1cbf4c"
+        },
+        "check": {
+          "path": "verify-03-check.mjs",
+          "digest": "sha256:aff384fba3e49accaab8f322f27dcc318f18498c2c393b028d45a4bd486c4df2"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-04",
+      "description": "请求级缓存与阶梯费用",
+      "prompt": "在固定项目快照中完成「请求级缓存与阶梯费用」。阅读 packages/cli/src/lib/usage-pricing-context.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-04.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-04.test.js",
+        "packages/cli/src/lib/usage-pricing-context.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-04",
+        "kind": "task",
+        "taskId": "verify-04",
+        "stratum": "linux-cli-volcengine",
+        "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Two separate mutants cover price-bucket merging and omission of cached tokens from the long-context threshold; candidate distribution assertions must remain request-level."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+          "frozenSha256": "sha256:537a04f7145ce745fbc7eb0398f7700dd391a66e37eb2f036cdc5d0a09ea1f8a"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/session-usage.test.js",
+          "frozenSha256": "sha256:c7859c1e87bc90800f7df51c3ab9d7506c2f99e4ec6122da5621ec5a28f1b769"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/usage-pricing-context.js",
+      "mutationOwnerSha256": "sha256:285e3b9d1bf740c2200aac9c2cac95c5a8dd432627281e15cb7ad606757b59e8",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "merge-short-and-long-request-price-buckets",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "drop-cache-tokens-from-request-threshold",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-04-setup.mjs",
+          "digest": "sha256:eed6c6b11b7e9345d7b158d4e33ba925eccbf9b2533d569e5383dc381dbcb269"
+        },
+        "check": {
+          "path": "verify-04-check.mjs",
+          "digest": "sha256:2c6f2cdbc568babf93c4b99ac47aa055ce9230c4a16aa0da741e861ba1491765"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-05",
+      "description": "安装与准入分离",
+      "prompt": "在固定项目快照中完成「安装与准入分离」。阅读 packages/cli/src/lib/agent-router.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：已安装未 attested 的 CLI 后端仍拒绝运行；可用 API 后端保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "已安装未 attested 的 CLI 后端仍拒绝运行；可用 API 后端保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-05.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-05.test.js",
+        "packages/cli/src/lib/agent-router.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-05",
+        "kind": "task",
+        "taskId": "verify-05",
+        "stratum": "linux-vscode-volcengine",
+        "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "The installed-but-unattested backend admission gate is bypassed by the mutant. Candidate must also preserve an available API backend."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/agent-router.test.js",
+          "frozenSha256": "sha256:dad2e62e26ec8abd8e575adfbdc34459b019c9f2b7959b3e71bf471b1bf661f0"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/agent-router.js",
+      "mutationOwnerSha256": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "installed-cli-passes-dispatch-preflight",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-05-setup.mjs",
+          "digest": "sha256:7caabf8e86e53a5b6064994a86f4f1f85e35dd02bda83f02a498c1cf0055b902"
+        },
+        "check": {
+          "path": "verify-05-check.mjs",
+          "digest": "sha256:d4efe680717851b3cab48d931cebc3f9c0fdc6d781e23904a5ad076eaff0a4f9"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-06",
+      "description": "付费分解前预检",
+      "prompt": "在固定项目快照中完成「付费分解前预检」。阅读 packages/cli/src/commands/orchestrate.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：被拒绝后端在分解前终止；分解和通知 spy 均为零。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "被拒绝后端在分解前终止；分解和通知 spy 均为零",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-06.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-06.test.js",
+        "packages/cli/src/commands/orchestrate.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-06",
+        "kind": "task",
+        "taskId": "verify-06",
+        "stratum": "linux-jetbrains-volcengine",
+        "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Removing orchestrator preflight targets paid decomposition ordering. Owner is outside the command edit allowlist, with explicit mutation-only rationale. Both decomposition and notification spy assertions need output review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+          "frozenSha256": "sha256:c003c36bdcb1cd0ebfd3a652bf05483d7f2adb9714daf29eb276daa20abd0d62"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/orchestrator.js",
+      "mutationOwnerSha256": "sha256:42ed32c1e228cffe23b6e21e68ae052d2d1deb6bdfac784a383f910074d0a058",
+      "mutationOwnerIsAllowedCandidateEdit": false,
+      "mutationOnlyRationale": "The command delegates preflight to Orchestrator.addTask. Mutation-only target; task edit permissions are unchanged.",
+      "mutants": [
+        {
+          "name": "decomposition-before-backend-admission",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-06-setup.mjs",
+          "digest": "sha256:5d3d33759618c11af6ece7784f9226aa0a5cd0a9aa0a4b115d01fd7aa152d766"
+        },
+        "check": {
+          "path": "verify-06-check.mjs",
+          "digest": "sha256:f007ca86c37beec35ac6116e9951013bf552f2f4d27179026cb643b3c50396e0"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-07",
+      "description": "持久正文分页边界",
+      "prompt": "在固定项目快照中完成「持久正文分页边界」。阅读 packages/cli/src/lib/session-transcript-history.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：跨页读取首尾 cursor，不遗漏最终正文、不重复边界事件。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "跨页读取首尾 cursor，不遗漏最终正文、不重复边界事件",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-07.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-07.test.js",
+        "packages/cli/src/lib/session-transcript-history.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-07",
+        "kind": "task",
+        "taskId": "verify-07",
+        "stratum": "darwin-cli-volcengine",
+        "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Two opposite cursor off-by-one mutants cover duplicate and omitted boundaries; inspect final-body assertions as well."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "frozenSha256": "sha256:100442776e62ff71c3594adbc6e06cd8c88f63f25f1bc17dea720646a2b225e0"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/session-transcript-history.js",
+      "mutationOwnerSha256": "sha256:086768a2d567735aa2be97f4ea4cbbe5bdeee882a7ff4727e97cbb05ef561a31",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "repeat-before-cursor-boundary",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "skip-after-cursor-first-row",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-07-setup.mjs",
+          "digest": "sha256:950880ded0874cae94eb828c8b0c291f81447f2c628e0a7177020ebbdda48999"
+        },
+        "check": {
+          "path": "verify-07-check.mjs",
+          "digest": "sha256:6b2f6509219d4c0fbcf82fb6cb54de815af27aa2c997e2fc9b1badd709a77b0c"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-08",
+      "description": "fork 历史归属",
+      "prompt": "在固定项目快照中完成「fork 历史归属」。阅读 packages/cli/src/lib/session-branch-history.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：两个分支各自恢复有效祖先和独立正文，分支之后内容不串入。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "两个分支各自恢复有效祖先和独立正文，分支之后内容不串入",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-08.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-08.test.js",
+        "packages/cli/src/lib/session-branch-history.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-08",
+        "kind": "task",
+        "taskId": "verify-08",
+        "stratum": "darwin-vscode-volcengine",
+        "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant removes parent-session binding; ancestor and independent branch-body positives remain part of candidate review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/session-branch.test.js",
+          "frozenSha256": "sha256:5021526b3171eca1645212f796144853b4a43a389592b2ea56c355213a8781d9"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/session-transcript-history.test.js",
+          "frozenSha256": "sha256:100442776e62ff71c3594adbc6e06cd8c88f63f25f1bc17dea720646a2b225e0"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/session-branch-history.js",
+      "mutationOwnerSha256": "sha256:5ddd05dec04ecf8378904417f8c29b6b81475acdd24bfceb723aaa4a368e8857",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "accept-history-capability-from-wrong-parent",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-08-setup.mjs",
+          "digest": "sha256:bf07183bf170c29dc8c334e1f69747425830b41566105657870750529f66c8e5"
+        },
+        "check": {
+          "path": "verify-08-check.mjs",
+          "digest": "sha256:95d1860b898071fcd1631194118ce5019615be5bb9600e77e673e0c89595d534"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-09",
+      "description": "历史来源篡改拒绝",
+      "prompt": "在固定项目快照中完成「历史来源篡改拒绝」。阅读 packages/cli/src/lib/session-history-origins.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：错误 session/source 身份被拒绝，正确来源正对照可读。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "错误 session/source 身份被拒绝，正确来源正对照可读",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-09.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-09.test.js",
+        "packages/cli/src/lib/session-history-origins.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-09",
+        "kind": "task",
+        "taskId": "verify-09",
+        "stratum": "darwin-jetbrains-volcengine",
+        "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant trusts a mismatched source digest; inspect session mismatch and valid-source controls too."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/session-history-origins.test.js",
+          "frozenSha256": "sha256:9ea1bde1f3f2611ed88348ea47bfcace71aad7f1662c88960cff22c9cbab660a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/session-history-origins.js",
+      "mutationOwnerSha256": "sha256:98235ac374ddc6fa8a9bc2de2c251cad9b3caa6527680ec211e8d1868c5ffb31",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "trust-tampered-source-digest",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-09-setup.mjs",
+          "digest": "sha256:0a9decb56c50f607de9597414e34301e632a97bbd0dfe5cda0066f6b30047c46"
+        },
+        "check": {
+          "path": "verify-09-check.mjs",
+          "digest": "sha256:414cc1727e169039d72cf8da99580b3ddacb86ce04a99889d993c149451429c5"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-10",
+      "description": "分页索引失效回归",
+      "prompt": "在固定项目快照中完成「分页索引失效回归」。阅读 packages/cli/src/lib/background-agent-list-index.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：写入、删除后索引分页与同快照全量列表一致，包含末页。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "写入、删除后索引分页与同快照全量列表一致，包含末页",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-10.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-10.test.js",
+        "packages/cli/src/lib/background-agent-list-index.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-10",
+        "kind": "task",
+        "taskId": "verify-10",
+        "stratum": "win32-cli-openai",
+        "comparisonDigest": "sha256:6e97d8cca2d845d000ccab9988d9ad23832c71a8e65c22d8984ff4c0a60b4982",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant allows a stale inventory digest. Candidate needs both write/delete cases and a final-page comparison."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/background-agent-list-index.test.js",
+          "frozenSha256": "sha256:d355ba8f94dbf77028466425c501cb74f28ce473b5a8c26d5f0c46feb7eb63a1"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/background-agent-list-index.js",
+      "mutationOwnerSha256": "sha256:178296fb536522ccfbc3dc214d38a964517bb16f514d8c805e5e32f70a1e7e55",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "reuse-index-after-state-update",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-10-setup.mjs",
+          "digest": "sha256:07a4788abc297d9933405136e952457046e86cad2e6096b8d6e5984f8c88d0ef"
+        },
+        "check": {
+          "path": "verify-10-check.mjs",
+          "digest": "sha256:7b8aeeb9d121c3301f2d3a37cd769d180053cea3581c16f0cc0d9982f3231b98"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-11",
+      "description": "问题持久记录归属",
+      "prompt": "在固定项目快照中完成「问题持久记录归属」。阅读 packages/cli/src/lib/background-interaction-journal.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：同名问题不同 session 不串值；完成记录不重建执行权。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "同名问题不同 session 不串值；完成记录不重建执行权",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-11.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-11.test.js",
+        "packages/cli/src/lib/background-interaction-journal.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-11",
+        "kind": "task",
+        "taskId": "verify-11",
+        "stratum": "win32-vscode-openai",
+        "comparisonDigest": "sha256:f29cb6508b21a3380ecd9262ff2e35becda6c501b4426dae164db52c359d6d26",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Separate mutants cover wrong-session recovery and terminal records reappearing as pending."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/background-interaction-journal.test.js",
+          "frozenSha256": "sha256:5a2b7ed477a67ccc5c7e773449f310336d3f6bff138606fb24727c0210fd20c7"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/background-interaction-journal.js",
+      "mutationOwnerSha256": "sha256:8a6974b0b8037581f03251595ad99e1639334fca109695b402f95a5f2587c704",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "recover-same-question-from-other-session",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "expose-completed-records-as-pending",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-11-setup.mjs",
+          "digest": "sha256:87214296cdb119ff9befe3b73603b80c6e0a1dcc807bd4bb898669fa8cb528a4"
+        },
+        "check": {
+          "path": "verify-11-check.mjs",
+          "digest": "sha256:4cfe2952ca52f23b66a9d7c19b5ba6994805bbc02c32008c7c458aafc3964ebc"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-12",
+      "description": "含空格参数完整性",
+      "prompt": "在固定项目快照中完成「含空格参数完整性」。阅读 packages/cli/src/lib/background-command-argv.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：空参数、空格和引号路径保持 argv 边界，不触发 shell 展开。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "空参数、空格和引号路径保持 argv 边界，不触发 shell 展开",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-12.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-12.test.js",
+        "packages/cli/src/lib/background-command-argv.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-12",
+        "kind": "task",
+        "taskId": "verify-12",
+        "stratum": "win32-jetbrains-openai",
+        "comparisonDigest": "sha256:0097eb516d082fee2d2aad67530eb2aa7e6e0d35dd6f5a39ead842a682fb961e",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Join/split mutation destroys spaces and empty argument boundaries. Quotes and lack of shell expansion also need explicit assertions."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/background-command-argv.test.js",
+          "frozenSha256": "sha256:c8af5d1c432e20d000e7a2af1c1195e15c538e424e63b1fdf7d64de9faf1361a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/background-command-argv.js",
+      "mutationOwnerSha256": "sha256:8b086b2e0db32400c044e4c999390eb7cd7f5248f7cc298f3d19decf304d7c4a",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "flatten-spaces-and-empty-argv",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-12-setup.mjs",
+          "digest": "sha256:7563cf317fe59a7c22e4a65d0cc119bdaa623a9933d8c35f5b8cbbed525c8bd0"
+        },
+        "check": {
+          "path": "verify-12-check.mjs",
+          "digest": "sha256:9c07b06a7d016854dec4c61920979c121c31d6b65c27a19260d46c332f4051cc"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-13",
+      "description": "附件同句柄读取边界",
+      "prompt": "在固定项目快照中完成「附件同句柄读取边界」。阅读 packages/cli/src/lib/image-file-boundary.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：读取前替换或超限输入被拒绝；正常小图可读且资源关闭。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "读取前替换或超限输入被拒绝；正常小图可读且资源关闭",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-13.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-13.test.js",
+        "packages/cli/src/lib/image-file-boundary.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-13",
+        "kind": "task",
+        "taskId": "verify-13",
+        "stratum": "linux-cli-openai",
+        "comparisonDigest": "sha256:a9960328a3f7115a9de63f401ab5efd3c5300240dfec5a5e8850652f76edc27c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Separate mutants ignore opened-handle identity changes and pixel caps. Normal small-image and close-resource controls must remain."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/image-file-boundary.test.js",
+          "frozenSha256": "sha256:964388f244960aebd07705edf4206acdcdc6923737ccc1b6ccd2736ee6650dbe"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/image-file-boundary.js",
+      "mutationOwnerSha256": "sha256:4aa8ca526e5fb4b7b9b7563cca14cebd082292f3a01285b544228d851d69d709",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "ignore-image-change-on-pinned-handle",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "allow-over-pixel-budget",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-13-setup.mjs",
+          "digest": "sha256:db9af39071ef4048af094120805491b38b845ba39875587ce7011dbcbb327e84"
+        },
+        "check": {
+          "path": "verify-13-check.mjs",
+          "digest": "sha256:7ae6f5fb31441a71257273148c74003bb6493619b0d93f12b79f8c4db012af29"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-14",
+      "description": "图片逐项错误",
+      "prompt": "在固定项目快照中完成「图片逐项错误」。阅读 packages/cli/src/lib/image-input.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：混合合法图与损坏输入保留准确成功/拒绝信息，不默默跳过。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "混合合法图与损坏输入保留准确成功/拒绝信息，不默默跳过",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-14.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-14.test.js",
+        "packages/cli/src/lib/image-input.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-14",
+        "kind": "task",
+        "taskId": "verify-14",
+        "stratum": "linux-vscode-openai",
+        "comparisonDigest": "sha256:c85373d1bb4b42621a73687d243cb1be72e01a5151eda28ae68aec3b6b43bd7c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "One-based error index becomes zero-based, testing item attribution. Mixed success and damaged-input assertions still need review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/image-input.test.js",
+          "frozenSha256": "sha256:b76ab5d08569ebcd9fc4de14e5e3abec399829153607ac39cec157c87a68406a"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/image-file-boundary.test.js",
+          "frozenSha256": "sha256:964388f244960aebd07705edf4206acdcdc6923737ccc1b6ccd2736ee6650dbe"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/image-input.js",
+      "mutationOwnerSha256": "sha256:4283855c793164314a1c99587a41459d4aa82d54e93b2498f76c163e984aac9c",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "attribute-error-to-wrong-image",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-14-setup.mjs",
+          "digest": "sha256:bf8b6b29e4c8afb6fff8a751940d92b18e6525361578d59aecd617d062c71776"
+        },
+        "check": {
+          "path": "verify-14-check.mjs",
+          "digest": "sha256:3a334f8ed63c92940ee96fae1420e61272d8f26639e0a538cc1cfce3f9819c67"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-15",
+      "description": "权限修订溢出拒绝",
+      "prompt": "在固定项目快照中完成「权限修订溢出拒绝」。阅读 packages/cli/src/lib/scoped-permission-store.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：generation/revision 到上界时写入失败且不放宽旧权限。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "generation/revision 到上界时写入失败且不放宽旧权限",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-15.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-15.test.js",
+        "packages/cli/src/lib/scoped-permission-store.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-15",
+        "kind": "task",
+        "taskId": "verify-15",
+        "stratum": "linux-jetbrains-openai",
+        "comparisonDigest": "sha256:8cd57b4f5f0d57a95571ef1e2a27c67b491686319eb3b881b24dd24d75206e44",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Counter exhaustion wraps instead of rejecting. Verify candidate asserts old permission is not widened as well as the error."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/scoped-permission-store.test.js",
+          "frozenSha256": "sha256:1227ff5ec9ae8a74ce2263cf36c52ac7214ef8e9f4e3b888d9e058367d816dc0"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/scoped-permission-store.js",
+      "mutationOwnerSha256": "sha256:6f97e720fb1801b04e0905fa489552a3ec945605a7bcdd8061071cab65147054",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "wrap-exhausted-permission-counter",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-15-setup.mjs",
+          "digest": "sha256:4e931639bbcd401983acba88743f4faa971e77c8cd9774ee1cf8e9c79d0924b9"
+        },
+        "check": {
+          "path": "verify-15-check.mjs",
+          "digest": "sha256:e630699948d2d7e76005b43174eed0d67fdab83f84c4af8e6cdc7e2939372126"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-16",
+      "description": "无效设置来源保守失败",
+      "prompt": "在固定项目快照中完成「无效设置来源保守失败」。阅读 packages/cli/src/lib/settings-source-observation.cjs 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：删除、损坏及 ABA 来源变化不会复用旧允许结果。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "删除、损坏及 ABA 来源变化不会复用旧允许结果",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-16.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-16.test.js",
+        "packages/cli/src/lib/settings-source-observation.cjs"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-16",
+        "kind": "task",
+        "taskId": "verify-16",
+        "stratum": "darwin-cli-openai",
+        "comparisonDigest": "sha256:60f0c3583484c86813b3d7f5e651a35c7aa113c872943ef875cd067ea6c56e63",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Source stat-field equality is forced true. Candidate must explicitly exercise deletion, corruption and ABA, beyond this single mutant."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/settings-source-observation.test.js",
+          "frozenSha256": "sha256:ceebb691a0a2a78c725265235a15606e1ed04cf2fd309fab2248e9c12488b0fb"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/settings-source-observation.cjs",
+      "mutationOwnerSha256": "sha256:8b4fc5990ee137136b83b910c9bb566a2cdcf38b45dc4c330834466b7e58e808",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "ignore-opened-source-identity-change",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-16-setup.mjs",
+          "digest": "sha256:7feea2b08b7132a6b0eb98cc563aac410be11c0ca06192ebf10a4ab5f828e2e9"
+        },
+        "check": {
+          "path": "verify-16-check.mjs",
+          "digest": "sha256:7878ea1a206de7211a4e80e6f5a993799107308e3a823eeb148acf234ee33731"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-17",
+      "description": "持久进程所有权记录",
+      "prompt": "在固定项目快照中完成「持久进程所有权记录」。阅读 packages/cli/src/lib/process-execution-broker/process-ownership-journal.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：损坏 journal 不被当作空闲；合法待回收记录跨实例保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "损坏 journal 不被当作空闲；合法待回收记录跨实例保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-17.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-17.test.js",
+        "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-17",
+        "kind": "task",
+        "taskId": "verify-17",
+        "stratum": "darwin-vscode-openai",
+        "comparisonDigest": "sha256:9722493e74f1a6010d2af7a7ea9513455c3223b82f1e8894f2cbb54f61b0d4cb",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Corrupt JSON becomes an empty pending list. Candidate must include valid pending recovery across instances."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/process-ownership-journal.test.js",
+          "frozenSha256": "sha256:6ffd16023eb0ea46e992333af6360e7b7ec9ecf6fc5870fbd3bea30b4160f2fc"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js",
+      "mutationOwnerSha256": "sha256:6f92ebbd6cd30eb4dd3e0c6b26049cada324f655bccabf19406e36311c9880e4",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "treat-corrupt-journal-as-empty",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-17-setup.mjs",
+          "digest": "sha256:f5f11f4919c805c8482d4216b1a65eb1432db6af70acabcbbf6b608493b09f09"
+        },
+        "check": {
+          "path": "verify-17-check.mjs",
+          "digest": "sha256:3637b0841cd561806317c5564363ea3cdb11dc9db5915acaf0db14e0d08bff98"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-18",
+      "description": "所有权未知保持阻断",
+      "prompt": "在固定项目快照中完成「所有权未知保持阻断」。阅读 packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：监督器失联后后续执行被阻断，不以根进程消失当完整树退出。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "监督器失联后后续执行被阻断，不以根进程消失当完整树退出",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-18.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-18.test.js",
+        "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-18",
+        "kind": "task",
+        "taskId": "verify-18",
+        "stratum": "darwin-jetbrains-openai",
+        "comparisonDigest": "sha256:8a05412b84d28c5d55a20fc66df8cdb04e80efc53a3077502d8bcf50831f3e49",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Unresolved-owner admission check is forced true. Candidate must demonstrate root disappearance is insufficient for tree cleanup."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/process-ownership-quarantine.test.js",
+          "frozenSha256": "sha256:a02eeeb0f484563a191f5c275979aae9b42f099c447b94649f1e3ce75fe8c221"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js",
+      "mutationOwnerSha256": "sha256:de7d8640e42d6ffbc2c42355327c174720066a1de01cd94a29fb29965f4062d3",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "ignore-unresolved-in-memory-owner",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-18-setup.mjs",
+          "digest": "sha256:ae70763151e7d96d351bab9fd7aa7b4aa6fe5d40750754e374e0ece4b4ef296d"
+        },
+        "check": {
+          "path": "verify-18-check.mjs",
+          "digest": "sha256:e3c1d6d4703af31d9f6d48eaa4e44ef86c435888434062a6a3208a108501fb94"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-19",
+      "description": "取消审批迟到回调",
+      "prompt": "在固定项目快照中完成「取消审批迟到回调」。阅读 packages/cli/src/lib/permission-request.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：取消后迟到接受不能授权新请求；正常接受仅绑定原请求。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "取消后迟到接受不能授权新请求；正常接受仅绑定原请求",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-19.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-19.test.js",
+        "packages/cli/src/lib/permission-request.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-19",
+        "kind": "task",
+        "taskId": "verify-19",
+        "stratum": "win32-cli-volcengine",
+        "comparisonDigest": "sha256:c176a7a1e00b08aa5c6e124db50a15d64d48b79d8e07b75f08abd1cecefaee64",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Cancellation resolves an approval true. Runtime stream owner differs from the catalog module, with explicit mutation-only rationale; delayed callback/request binding needs candidate review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/headless-stream-approvals.test.js",
+          "frozenSha256": "sha256:c952533d14d984f3aade6cf14eddcb2d6c15e5ae3b73caaf790690c43316fef6"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/runtime/headless-stream.js",
+      "mutationOwnerSha256": "sha256:0ccf3cbbbf340438ff25c65d636f224c60c81ca791fefb65b72faa700fcd4909",
+      "mutationOwnerIsAllowedCandidateEdit": false,
+      "mutationOnlyRationale": "permission-request.js normalizes request labels only; pending approval cancellation is owned by headless-stream. Mutation-only target; task edit permissions are unchanged.",
+      "mutants": [
+        {
+          "name": "cancellation-grants-pending-approval",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-19-setup.mjs",
+          "digest": "sha256:cc68eebc2ff4f423256c524974b895130949073b9c1f6a8c130aaeed62932761"
+        },
+        "check": {
+          "path": "verify-19-check.mjs",
+          "digest": "sha256:85bd49f750080b13e712f75c8234e70c00786f88d2df559518516118ecb1578e"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-20",
+      "description": "deny 决策不降级",
+      "prompt": "在固定项目快照中完成「deny 决策不降级」。阅读 packages/cli/src/lib/permission-decision.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：显式 deny 与未知策略不会被 fallback 变成 allow。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "显式 deny 与未知策略不会被 fallback 变成 allow",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-20.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-20.test.js",
+        "packages/cli/src/lib/permission-decision.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-20",
+        "kind": "task",
+        "taskId": "verify-20",
+        "stratum": "win32-vscode-volcengine",
+        "comparisonDigest": "sha256:b87fc3194d257b819b6e27c6ce9e12577e092cc061d5c34c4bbbbd386a634d5c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Approval precedence bypasses policy deny. Unknown policy and normal decisions remain required candidate controls."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/permission-decision.test.js",
+          "frozenSha256": "sha256:80a7246e56786d86fef6b5facc26f32bb4f2c43c6f4dd84b2c90f9d6b2f0ae81"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/permission-decision.js",
+      "mutationOwnerSha256": "sha256:0c762130194fa2a433b672a509d3631a31fe08326542434da99caaa68becfa54",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "approval-overrides-policy-deny",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-20-setup.mjs",
+          "digest": "sha256:a274a5e7f8f26d11c0e5ef2d91518727bcd8e70f3c0a52327b46075402e903d7"
+        },
+        "check": {
+          "path": "verify-20-check.mjs",
+          "digest": "sha256:f42320379949965a9de7d4c8ffc038bc19526fed1b6791c960f5ff39827fd420"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-21",
+      "description": "Memory 影子读取无写入",
+      "prompt": "在固定项目快照中完成「Memory 影子读取无写入」。阅读 packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：v1/v2 shadow 读前后目录字节与条目一致，不触发迁移/GC。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "v1/v2 shadow 读前后目录字节与条目一致，不触发迁移/GC",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-21.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-21.test.js",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-21",
+        "kind": "task",
+        "taskId": "verify-21",
+        "stratum": "win32-jetbrains-volcengine",
+        "comparisonDigest": "sha256:978b15be2d74757c9ed87188744f72a83746232b1eddaf55062e99e103788933",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Shadow read performs collection unconditionally. Verify complete byte/inventory equality for both v1 and v2 fixtures."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+          "frozenSha256": "sha256:b8cda9af3714ffb85f67cd98d8d9b2c080f3127c4dc4d00eb7ea2930a67ba3af"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "mutationOwnerSha256": "sha256:dd3d1ee414858e8431dd43449b487c3079d012db36a09b998c24e2a39c3985e3",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "shadow-read-collects-authority-shards",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-21-setup.mjs",
+          "digest": "sha256:6adaf4a1bbede0d3f6c78e2b16cbca048161f70e9336f3a6bdde56dcdf7849c3"
+        },
+        "check": {
+          "path": "verify-21-check.mjs",
+          "digest": "sha256:d4a515f65c012a8ac58cc7201261972ed9d5ef62dea77f0f5e4a9a3b50a417ba"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-22",
+      "description": "Memory 发布后故障语义",
+      "prompt": "在固定项目快照中完成「Memory 发布后故障语义」。阅读 packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：manifest 发布后注入同步失败，错误声明 committed 且重开仍可读新状态。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "manifest 发布后注入同步失败，错误声明 committed 且重开仍可读新状态",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-22.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-22.test.js",
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-22",
+        "kind": "task",
+        "taskId": "verify-22",
+        "stratum": "linux-cli-volcengine",
+        "comparisonDigest": "sha256:de69246028ab35e3063f4361f39eea43ad4e0a831001a016679b597604d07bdb",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Post-publication failure reports committed false. Reopen/read-new-state assertion is necessary alongside error metadata."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+          "frozenSha256": "sha256:b8cda9af3714ffb85f67cd98d8d9b2c080f3127c4dc4d00eb7ea2930a67ba3af"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "mutationOwnerSha256": "sha256:dd3d1ee414858e8431dd43449b487c3079d012db36a09b998c24e2a39c3985e3",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "published-commit-reported-uncommitted",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-22-setup.mjs",
+          "digest": "sha256:510066fc7d65362dd7ff2db22021a54b3ff163c852333cf59a40bda134981267"
+        },
+        "check": {
+          "path": "verify-22-check.mjs",
+          "digest": "sha256:f998e5b35b2138243518908d0641aea67de8aa9fa7106088b352d9c9bc3091b0"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-23",
+      "description": "缺失样本固定分母",
+      "prompt": "在固定项目快照中完成「缺失样本固定分母」。阅读 packages/cli/src/lib/eval/outcomes.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：部分 observations 保留全部计划样本；未知费用保持 null，不能冒充零。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "部分 observations 保留全部计划样本；未知费用保持 null，不能冒充零",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-23.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-23.test.js",
+        "packages/cli/src/lib/eval/outcomes.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-23",
+        "kind": "task",
+        "taskId": "verify-23",
+        "stratum": "linux-vscode-volcengine",
+        "comparisonDigest": "sha256:4177b758b9ae924d2251679c65b9634a4e157b0525e7d5f03bb8b6adc945dea0",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Two mutants cover omitted unobserved samples and unknown cost becoming zero; directly aligned with denominator/cost requirements."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/task-outcome-report.test.js",
+          "frozenSha256": "sha256:af94bf5720106dc19ddfa98f87af39c330db4381841bd795e4d2aa314bc5c5fb"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/eval/outcomes.js",
+      "mutationOwnerSha256": "sha256:72f8c93b878de169f9eac544f457aa11040188827c3a9226483837b27476f264",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "remove-missing-samples-from-denominator",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "unknown-cost-becomes-zero",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-23-setup.mjs",
+          "digest": "sha256:d6a50b6c54bc2de753497459d8149c8e84c827caffa2e73f83df15a7aae24f5d"
+        },
+        "check": {
+          "path": "verify-23-check.mjs",
+          "digest": "sha256:739fe2f09f8a6dd072a086a3bab3498bc496f766a1ee6c06d0c4061b29814af5"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-24",
+      "description": "比较身份严格隔离",
+      "prompt": "在固定项目快照中完成「比较身份严格隔离」。阅读 packages/cli/src/lib/eval/evidence.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：相同 task 不同模型/权限/运行时身份不能算可比改善。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "相同 task 不同模型/权限/运行时身份不能算可比改善",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-24.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-24.test.js",
+        "packages/cli/src/lib/eval/evidence.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-24",
+        "kind": "task",
+        "taskId": "verify-24",
+        "stratum": "linux-jetbrains-volcengine",
+        "comparisonDigest": "sha256:1b5e5fd872dbe39b5c02c4d7e78b2b9a80b149b1ba7bbda017093374cc981ef7",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant removes comparison identity inequality rejection. Candidate must cover model, permission and runtime dimensions."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/eval-evidence.test.js",
+          "frozenSha256": "sha256:e30736bb4af2f24062d9dfa14641cd39fabae1f1ad0e20444586b4c450fb17b7"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/eval/evidence.js",
+      "mutationOwnerSha256": "sha256:05aeff9bab25dd552286895e9664f2702d9aa0c61d026295e65a4a21cc4c6320",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "compare-different-runtime-identities",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-24-setup.mjs",
+          "digest": "sha256:72ba58e1473c8e4f288a8a77f8c90e0da098b9c9fc663c29dc338022a0109043"
+        },
+        "check": {
+          "path": "verify-24-check.mjs",
+          "digest": "sha256:d1f2729b64b813aeb053f905a73299b296dea62ebd9c69478edd2b7ebf75e6a2"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-25",
+      "description": "草稿写失败保留旧记录",
+      "prompt": "在固定项目快照中完成「草稿写失败保留旧记录」。阅读 packages/vscode-extension/src/chat/draft-store.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：原子写入失败后旧草稿可恢复，发送不提前清空。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "原子写入失败后旧草稿可恢复，发送不提前清空",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-25.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-25.test.js",
+        "packages/vscode-extension/src/chat/draft-store.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-25",
+        "kind": "task",
+        "taskId": "verify-25",
+        "stratum": "darwin-cli-volcengine",
+        "comparisonDigest": "sha256:9c680b8d67a42104335c8a920d04ef963698b792100fc3dec4332884d0f0bfe7",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant removes the previous draft before atomic publish. Early clearing on send is a separate assertion requirement."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+          "frozenSha256": "sha256:916c745439ab33c502afa109e1a1513f36f7fe903819e6c6d5785d55d0f05349"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/draft-store.js",
+      "mutationOwnerSha256": "sha256:1582f23ea8102f32722f502253574f39080ecae699eec5249b90c2a20d8ab8e9",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "delete-prior-draft-before-atomic-publication",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-25-setup.mjs",
+          "digest": "sha256:5499e0f5438cdf3919b37f09cc3e4c90a2ff12e1851c570164e8010e93664f00"
+        },
+        "check": {
+          "path": "verify-25-check.mjs",
+          "digest": "sha256:1188dd8f90e72da7d258042ee87b4b96d657003521387706994b89603bfb5fc8"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-26",
+      "description": "敏感问题字段排除",
+      "prompt": "在固定项目快照中完成「敏感问题字段排除」。阅读 packages/vscode-extension/src/chat/question-draft-contract.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：password/writeOnly 与未知 schema fallback 不进入持久化投影。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "password/writeOnly 与未知 schema fallback 不进入持久化投影",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-26.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-26.test.js",
+        "packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-26",
+        "kind": "task",
+        "taskId": "verify-26",
+        "stratum": "darwin-vscode-volcengine",
+        "comparisonDigest": "sha256:0c73a8bb9ae948a96a2a40adc0af4fc442c9fddd8246ed19abb4705493944361",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Separate mutants persist writeOnly fields and unknown-schema fallback; password controls should remain explicit."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js",
+          "frozenSha256": "sha256:3280716890b5c66eb0ca9d5995c92d16e5e57a6a742843e77ac908566c1a83cf"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/question-draft-contract.js",
+      "mutationOwnerSha256": "sha256:08f583818c7e9cf0ece05817edeea7ceb6f2d5b73110b1874bc9ab9ec6268ac4",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "persist-write-only-property",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "persist-unknown-schema-fallback",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-26-setup.mjs",
+          "digest": "sha256:46d51bfd95b7c8d9d6e2c4c5f6d12ade44c7b1ecb7a664e9f89947477d7b1ab7"
+        },
+        "check": {
+          "path": "verify-26-check.mjs",
+          "digest": "sha256:9accbed1f04fc64e413b3a796963735baf5f30a6fc3130e9a7cb6bfbda91c44e"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-27",
+      "description": "重载问题精确绑定",
+      "prompt": "在固定项目快照中完成「重载问题精确绑定」。阅读 packages/vscode-extension/src/chat/question-drafts.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：request/session/schema 不匹配不恢复 live 字段；精确重发才恢复。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "request/session/schema 不匹配不恢复 live 字段；精确重发才恢复",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-27.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-27.test.js",
+        "packages/vscode-extension/src/chat/question-drafts.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-27",
+        "kind": "task",
+        "taskId": "verify-27",
+        "stratum": "darwin-jetbrains-volcengine",
+        "comparisonDigest": "sha256:5bf3630291366fae1fff1e08a5c3a27ddeb865f40c3c297f25a30c6fa65ca703",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant bypasses session/request/schema identity conjunction. Exact retransmission positive is also required."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js",
+          "frozenSha256": "sha256:3280716890b5c66eb0ca9d5995c92d16e5e57a6a742843e77ac908566c1a83cf"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/question-drafts.js",
+      "mutationOwnerSha256": "sha256:2c3a0d7913ce0940941fd323f519f78c9f0e01c51a93916e2528693a1f4d1bee",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "restore-mismatched-question-identity",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-27-setup.mjs",
+          "digest": "sha256:629554fad3abe6e8b79a836edaefbd7567334aa7cd3238aa237e562413064ece"
+        },
+        "check": {
+          "path": "verify-27-check.mjs",
+          "digest": "sha256:88d2ce19f24a4403713873e9e782f6ea2137d0541fabf76b7500a8920b3d7ea0"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-28",
+      "description": "迟到加载不覆盖编辑",
+      "prompt": "在固定项目快照中完成「迟到加载不覆盖编辑」。阅读 packages/vscode-extension/src/chat/question-form-drafts.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：延迟恢复返回时新输入保留；select/checkbox 声明顺序保持。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "延迟恢复返回时新输入保留；select/checkbox 声明顺序保持",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-28.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-28.test.js",
+        "packages/vscode-extension/src/chat/question-form-drafts.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-28",
+        "kind": "task",
+        "taskId": "verify-28",
+        "stratum": "win32-cli-openai",
+        "comparisonDigest": "sha256:6e97d8cca2d845d000ccab9988d9ad23832c71a8e65c22d8984ff4c0a60b4982",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant drops the dirty-field guard and tests delayed overwrite. Select/checkbox declaration order is not directly mutated and needs candidate review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js",
+          "frozenSha256": "sha256:3280716890b5c66eb0ca9d5995c92d16e5e57a6a742843e77ac908566c1a83cf"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/question-form-drafts.js",
+      "mutationOwnerSha256": "sha256:3e7902a95f231672418801648269e68da96985dca2056f63445911456962fada",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "late-snapshot-overwrites-new-input",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-28-setup.mjs",
+          "digest": "sha256:e67c80a72100e52d16d7fc0cc2c425e2a9c9a3a7f670e17f142739a88be99bab"
+        },
+        "check": {
+          "path": "verify-28-check.mjs",
+          "digest": "sha256:77d777e0efd300590630039d04ed4df4118f6292dd287b0b6fd5afbf4eebbee0"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-29",
+      "description": "模式 ACK 关联",
+      "prompt": "在固定项目快照中完成「模式 ACK 关联」。阅读 packages/vscode-extension/src/chat/permission-mode-state.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：旧 generation/correlation ACK 无效，失败不显示新模式已生效。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "旧 generation/correlation ACK 无效，失败不显示新模式已生效",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-29.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-29.test.js",
+        "packages/vscode-extension/src/chat/permission-mode-state.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-29",
+        "kind": "task",
+        "taskId": "verify-29",
+        "stratum": "win32-vscode-openai",
+        "comparisonDigest": "sha256:f29cb6508b21a3380ecd9262ff2e35becda6c501b4426dae164db52c359d6d26",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant targets cross-session ACK, narrower than generation/correlation acceptance. Frozen baseline explicitly tests wrong correlation, old child ACK and failed/pending display; new candidate coverage must still match the prompt."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-chat-mode.test.js",
+          "frozenSha256": "sha256:454f02dbce547213b076302f8c8a27ac02c3aa147e8b50f3a0124fa5e1745dc6"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/permission-mode-state.js",
+      "mutationOwnerSha256": "sha256:0360774755b72738aadfb8c183ad951eb777738c1177c8a438405f773235d8d4",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "ack-from-other-session-accepted",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-29-setup.mjs",
+          "digest": "sha256:4d7c2a17db10b68a2d87a8ff8f40921e4cf68ac4343e44d3a89d0ef78beb0dd7"
+        },
+        "check": {
+          "path": "verify-29-check.mjs",
+          "digest": "sha256:9e9a9a77f8fcf4d4d40a9a23a84ed32348e82da2e58668d3e09948f51e96f703"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-30",
+      "description": "累计动画帧预算",
+      "prompt": "在固定项目快照中完成「累计动画帧预算」。阅读 packages/vscode-extension/src/chat/image-decode-budget.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：多帧累计超限在昂贵解码前拒绝，合法边界图保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "多帧累计超限在昂贵解码前拒绝，合法边界图保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-30.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-30.test.js",
+        "packages/vscode-extension/src/chat/image-decode-budget.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-30",
+        "kind": "task",
+        "taskId": "verify-30",
+        "stratum": "win32-jetbrains-openai",
+        "comparisonDigest": "sha256:0097eb516d082fee2d2aad67530eb2aa7e6e0d35dd6f5a39ead842a682fb961e",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Two mutants collapse frame count and omit fallback pixels. Candidate must show rejection before expensive decoding and valid-boundary success."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js",
+          "frozenSha256": "sha256:49bd7c2e821252eeced06258785855c84acd397776f9ac0dce052883f44d5742"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/image-decode-budget.js",
+      "mutationOwnerSha256": "sha256:d1b3fe8eca174df430bfc51a7414f78eee75bfbf37edf7ca125919d40d6d16ad",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "collapse-animation-frame-count-and-cumulative-budget",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        },
+        {
+          "name": "ignore-animation-fallback-pixels",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-30-setup.mjs",
+          "digest": "sha256:df6170c2b785dd1011b99bb9d16ad84780f7c04e4d154f67630c881e5c1dd36a"
+        },
+        "check": {
+          "path": "verify-30-check.mjs",
+          "digest": "sha256:523d0bcb7f1255b63dcabf75e6d9b182c739891c92afb00ade98b425e5f7fb35"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-31",
+      "description": "快照失败资源清理",
+      "prompt": "在固定项目快照中完成「快照失败资源清理」。阅读 packages/vscode-extension/src/chat/image-file-snapshot.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：读取/复制失败后句柄和临时文件清理，不删除成功引用图片。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "读取/复制失败后句柄和临时文件清理，不删除成功引用图片",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-31.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-31.test.js",
+        "packages/vscode-extension/src/chat/image-file-snapshot.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-31",
+        "kind": "task",
+        "taskId": "verify-31",
+        "stratum": "linux-cli-openai",
+        "comparisonDigest": "sha256:a9960328a3f7115a9de63f401ab5efd3c5300240dfec5a5e8850652f76edc27c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant leaks a read handle; temporary cleanup and preservation of successful references are separate assertions requiring review."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+          "frozenSha256": "sha256:d5986e6224e5e6a74ce3385f2dc9a98e2cdbd8184ae43494b3fd1a2d443f305b"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+          "frozenSha256": "sha256:916c745439ab33c502afa109e1a1513f36f7fe903819e6c6d5785d55d0f05349"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/image-file-snapshot.js",
+      "mutationOwnerSha256": "sha256:46d97f90b21d179c0e70134275f91bc6d6ea74c1a86317e86fe2cd80d3f04f36",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "leak-read-handle-on-failure",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-31-setup.mjs",
+          "digest": "sha256:06f1631e91ea0ce86436cd326996b8b7b117887cd225f2d64264fcc67a65d35f"
+        },
+        "check": {
+          "path": "verify-31-check.mjs",
+          "digest": "sha256:24eca41ad4329ee9a9506964723c44d22d410fee9f41917ce1b9bc3ef175d565"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-32",
+      "description": "预览取消失效",
+      "prompt": "在固定项目快照中完成「预览取消失效」。阅读 packages/vscode-extension/src/chat/image-preview-gate.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：页面切换或取消后迟到预览不写入新页面；当前页面正常显示。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "页面切换或取消后迟到预览不写入新页面；当前页面正常显示",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-32.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-32.test.js",
+        "packages/vscode-extension/src/chat/image-preview-gate.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-32",
+        "kind": "task",
+        "taskId": "verify-32",
+        "stratum": "linux-vscode-openai",
+        "comparisonDigest": "sha256:c85373d1bb4b42621a73687d243cb1be72e01a5151eda28ae68aec3b6b43bd7c",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Canceled active preview resolves as successful. Candidate must also exercise page switching and current-page success."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js",
+          "frozenSha256": "sha256:49bd7c2e821252eeced06258785855c84acd397776f9ac0dce052883f44d5742"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/image-preview-gate.js",
+      "mutationOwnerSha256": "sha256:06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "cancelled-preview-resolves-successfully",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-32-setup.mjs",
+          "digest": "sha256:c4c1a8a54da1fda892dd4bdc112944a6bf46615a9a170f131051453d8da83ce7"
+        },
+        "check": {
+          "path": "verify-32-check.mjs",
+          "digest": "sha256:6595b4490fe0976bce47e314fa869cafa29454cf253bb0b4af7a65d26a7fa40c"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-33",
+      "description": "快速多图添加预算",
+      "prompt": "在固定项目快照中完成「快速多图添加预算」。阅读 packages/vscode-extension/src/chat/image-attachments.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：连续添加超总量准确拒绝对应项，已成功附件保持可用。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "连续添加超总量准确拒绝对应项，已成功附件保持可用",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-33.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/vscode-extension/__tests__/verify-33.test.js",
+        "packages/vscode-extension/src/chat/image-attachments.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-33",
+        "kind": "task",
+        "taskId": "verify-33",
+        "stratum": "linux-jetbrains-openai",
+        "comparisonDigest": "sha256:8cd57b4f5f0d57a95571ef1e2a27c67b491686319eb3b881b24dd24d75206e44",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Cumulative bytes reset per image. Candidate needs rejected-item attribution and continued usability of accepted attachments."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-image-budget.test.js",
+          "frozenSha256": "sha256:d5986e6224e5e6a74ce3385f2dc9a98e2cdbd8184ae43494b3fd1a2d443f305b"
+        },
+        {
+          "path": "packages/cli/__tests__/unit/vscode-ext-chat-images.test.js",
+          "frozenSha256": "sha256:4a60e796dc7387d2faf1ecfa60405427b18ca11ba716126489e3fe7b76646990"
+        }
+      ],
+      "mutationOwner": "packages/vscode-extension/src/chat/image-attachments.js",
+      "mutationOwnerSha256": "sha256:e56ae057281535b00ebd44fd4873d2c62354ef86e8b7ce251b89dac0464af2cb",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "reset-byte-budget-for-each-image",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-33-setup.mjs",
+          "digest": "sha256:ac5df6901aac080b9093976160085eb02bf01a87b51ac4de8ec159806bed47e6"
+        },
+        "check": {
+          "path": "verify-33-check.mjs",
+          "digest": "sha256:ab333a49c15553333545c1a972ab9860ef8bf7de5118b55b55903b4c5747f706"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-34",
+      "description": "冻结计划操作说明",
+      "prompt": "在固定项目快照中完成「冻结计划操作说明」。阅读 packages/cli/scripts/task-outcome-report.mjs 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：编写该真实脚本的仓库运维说明，包含指纹、缺失样本退出2、未知费用及禁止改善PASS。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "编写该真实脚本的仓库运维说明，包含指纹、缺失样本退出2、未知费用及禁止改善PASS",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "docs/development/verify-34-outcome-runbook.md"
+      ],
+      "allowedChangedPaths": [
+        "docs/development/verify-34-outcome-runbook.md",
+        "packages/cli/scripts/task-outcome-report.mjs"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-34",
+        "kind": "task",
+        "taskId": "verify-34",
+        "stratum": "darwin-cli-openai",
+        "comparisonDigest": "sha256:60f0c3583484c86813b3d7f5e651a35c7aa113c872943ef875cd067ea6c56e63",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "The fixed doc branch validates required document content, executes the real fingerprint/empty-report smoke commands and then reruns the declared original baseline. Controlled regression proves successful document smoke cannot override baseline failure. Actual runbook instructions still need semantic review; keyword matching is not proof of correct runnable commands."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/task-outcome-report.test.js",
+          "frozenSha256": "sha256:af94bf5720106dc19ddfa98f87af39c330db4381841bd795e4d2aa314bc5c5fb"
+        }
+      ],
+      "mutationOwner": "packages/cli/scripts/task-outcome-report.mjs",
+      "mutationOwnerSha256": "sha256:1fa3e3ac3d22c403891a57a72ecaed156ed404a0e3ee9f836961b5986875d006",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [],
+      "artifacts": {
+        "setup": {
+          "path": "verify-34-setup.mjs",
+          "digest": "sha256:6d7424287a8d498cadd840cfb4190724e1cdbfb1acfbc4f414b1e2c97f0a2a7d"
+        },
+        "check": {
+          "path": "verify-34-check.mjs",
+          "digest": "sha256:f415e7a1a4870fa4548bf3ae278a8aedd2e68cacf323de77e0083dc02766bcc2"
+        }
+      },
+      "emptyRejection": "Empty/short documents and missing required expressions reject by static code review.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Missing/short required document content, incorrect real report smoke behavior and a failed post-edit original regression reject according to the pinned code. The original baseline omission is fixed. Formal task execution remains unobserved.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-35",
+      "description": "模型失败分类回归",
+      "prompt": "在固定项目快照中完成「模型失败分类回归」。阅读 packages/cli/src/lib/model-failure-policy.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：可重试与明确拒绝按现有合同区分，不把协议错误隐式转成成功。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "可重试与明确拒绝按现有合同区分，不把协议错误隐式转成成功",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-35.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-35.test.js",
+        "packages/cli/src/lib/model-failure-policy.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-35",
+        "kind": "task",
+        "taskId": "verify-35",
+        "stratum": "darwin-vscode-openai",
+        "comparisonDigest": "sha256:9722493e74f1a6010d2af7a7ea9513455c3223b82f1e8894f2cbb54f61b0d4cb",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant allows governance ingress rejection into retry classification. Retryable outage, explicit refusal and protocol-error behavior require broader candidate assertions."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/fallback-model.test.js",
+          "frozenSha256": "sha256:2f7767a2f517059f3988ed7a374823d1f574eb9d4a03cc04f4b1e9288bb33890"
+        },
+        {
+          "path": "packages/cli/__tests__/integration/orchestrator-workflow.test.js",
+          "frozenSha256": "sha256:c003c36bdcb1cd0ebfd3a652bf05483d7f2adb9714daf29eb276daa20abd0d62"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/model-failure-policy.js",
+      "mutationOwnerSha256": "sha256:1666fe6065f705b588c8266159c075a20914e4a8b6d7f05427802df4042296e2",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "retry-governance-rejection-as-provider-outage",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-35-setup.mjs",
+          "digest": "sha256:2367de646ff85eb3be264704b211e878c2e2a05c02fbd500a299e66fa7562a01"
+        },
+        "check": {
+          "path": "verify-35-check.mjs",
+          "digest": "sha256:3893e8ac698537eb70da6673a19209e742ca32f5688fc41d7810f61b931fa3bd"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    },
+    {
+      "taskId": "verify-36",
+      "description": "启动配置身份保真",
+      "prompt": "在固定项目快照中完成「启动配置身份保真」。阅读 packages/cli/src/lib/background-launch-profile.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：保存和恢复启动配置后策略身份一致，非法配置拒绝而非放宽。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "acceptance": [
+        "保存和恢复启动配置后策略身份一致，非法配置拒绝而非放宽",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "expectedFiles": [
+        "packages/cli/__tests__/verify-36.test.js"
+      ],
+      "allowedChangedPaths": [
+        "packages/cli/__tests__/verify-36.test.js",
+        "packages/cli/src/lib/background-launch-profile.js"
+      ],
+      "allowlistMatchesFrozenCatalog": true,
+      "sample": {
+        "id": "verify-36",
+        "kind": "task",
+        "taskId": "verify-36",
+        "stratum": "darwin-jetbrains-openai",
+        "comparisonDigest": "sha256:8a05412b84d28c5d55a20fc66df8cdb04e80efc53a3077502d8bcf50831f3e49",
+        "costBudget": 2,
+        "timeBudgetMs": 1200000
+      },
+      "verdict": "STATIC_REVIEW_APPROVED",
+      "findings": [
+        "Mutant restores bypassPermissions regardless of saved mode. Invalid-configuration rejection and full permission identity roundtrip need explicit controls."
+      ],
+      "behaviorExecuted": false,
+      "baselineTests": [
+        {
+          "path": "packages/cli/__tests__/unit/background-launch-profile.test.js",
+          "frozenSha256": "sha256:5580c107d964d1d64967ecb007ad281b81bbf1fc1fb5b812105f1d94c1d04d3a"
+        }
+      ],
+      "mutationOwner": "packages/cli/src/lib/background-launch-profile.js",
+      "mutationOwnerSha256": "sha256:6a66ff699b53d4253c935270f4948a134efe5f525087e7937929557b33853d4e",
+      "mutationOwnerIsAllowedCandidateEdit": true,
+      "mutationOnlyRationale": null,
+      "mutants": [
+        {
+          "name": "restore-more-permissive-mode",
+          "frozenAnchorUnique": true,
+          "syntaxChecked": true,
+          "behaviorExecuted": false
+        }
+      ],
+      "artifacts": {
+        "setup": {
+          "path": "verify-36-setup.mjs",
+          "digest": "sha256:6efa449e9cfe276ec3f5b9e65dbb296f86057e68d798db94198f1906c74ace31"
+        },
+        "check": {
+          "path": "verify-36-check.mjs",
+          "digest": "sha256:b4fb49de1004157ab7f55859f1a6a878fe0c13ab5cb67d6b3d6f49bfc26f03be"
+        }
+      },
+      "emptyRejection": "Outer executor rejects missing/zero-byte deliverables; controller rejects zero executed tests, pending/todo candidate tests and mutants without assertion failure.",
+      "outOfScopeRejection": "Exact diff allowlist and complete dependency snapshot in source-bound executor; mutation-only paths do not expand candidate permissions.",
+      "wrongBehaviorRejection": "Designated mutants must fail candidate assertions; this has not been executed against a real submitted candidate, and does not prove all semantic requirements.",
+      "approvalScope": "Evaluator design only; no candidate outcome accepted."
+    }
+  ],
+  "encodingCorrection": {
+    "method": "ASCII-only Node writer with Unicode-escaped authorization quote; all writes explicitly UTF-8; original task strings retained from valid JSON."
+  },
+  "authorizedAiReviewAccepted": true,
+  "paidExecutionReady": false,
+  "taskOutcomeApproved": false,
+  "releaseGateSatisfied": false,
+  "approvalScope": {
+    "type": "User-authorized AI static evaluator review",
+    "approved": true,
+    "taskEvaluators": 36,
+    "scriptArtifacts": 72,
+    "acceptancePlatform": "linux",
+    "acceptanceBackend": "docker",
+    "subject": "The exact plan/review/image/source pins in this record",
+    "meaning": "The corrected evaluator design and fixed provenance are accepted for their declared scope. The user-authorized AI review step is satisfied for this exact package.",
+    "exclusions": [
+      "This is not human review or provider/model assessment.",
+      "This is not approval of any submitted candidate task artifact, assertion coverage or outcome.",
+      "This does not demonstrate Docker setup/check execution, native Windows/macOS/IDE runs, first-run completion, account quota or credentials.",
+      "This does not replace release CI gates or establish release eligibility."
+    ]
+  },
+  "supersedesForFutureUse": {
+    "record": ".work/verify01-astra-authorized-review-20261012.json",
+    "reviewDigest": "sha256:70bf778369d352cfa7d31036ec8f2ab4b14d2079a8d18a82ab465bf2b7803c54",
+    "oldVerdict": "CHANGES_REQUIRED",
+    "oldRecordUnchanged": true,
+    "oldRecordByteDigests": {
+      ".work/verify01-astra-authorized-review-20261012.json": "sha256:05c10d2b82e1cbdff71b8e9b9dd0162619c0f44d02d6913d028f3e7520d4e87a",
+      ".work/verify01-astra-authorized-review-20261012.md": "sha256:03c86ecc99f765c5e362701f234d3787008bf3ac1c20123303d7dc9d9f3d7a21"
+    },
+    "note": "This is a separate approval of a new actual package. The rejected original package and its review records remain unchanged."
+  },
+  "provenance": {
+    "rawCaptureDir": ".work/formal-keyless-actions-20261012/2026-10-12T15-44-55.949Z",
+    "runId": "38272128731",
+    "runConclusion": "success",
+    "headSha": "07f050be901dd806f68ccb3ddb8eee12ad7a5254",
+    "artifactZip": ".work/formal-keyless-actions-20261012/2026-10-12T15-44-55.949Z/artifact-11757816001.zip",
+    "artifactDigest": "sha256:e8f941aec159b3cf92690baae9b95d3863d3ddcab3b15264813f086929fa96f1",
+    "apiArtifactDigestMatched": true
+  }
+}

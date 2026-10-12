@@ -1,0 +1,53 @@
+{
+  "schema": "chainlesschain.unattributed-popup-review-archive/v1",
+  "candidate": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+  "baseline": "0c148cf927507280760dc91ab00db17c30588c01",
+  "verdict": "UNPROVEN",
+  "sourceManifestEntriesVerified": 20,
+  "localManifestEntriesVerified": 17,
+  "sourceBeforeAfterBindingsVerified": 24,
+  "sourceScope": "Four files match 1e Git blobs across three attempts; not an entire-worktree binding. HEAD advanced independently to 94da231 during observation.",
+  "localAttempts": {
+    "sourceCommit": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+    "compilation": "PASS: main, UI-test and test Java compilation executed on attempt1; reused up-to-date on successful attempt3",
+    "tests": {
+      "attempt": "attempt3",
+      "errors": 0,
+      "suite": "UiEventDiagnosticsTest",
+      "tests": 5,
+      "failures": 0,
+      "skipped": 0
+    },
+    "fourSourceFilesStableAndMatch": true,
+    "environmentWorkaround": "Test JVM java.io.tmpdir points to attempt3/tmp in writable workspace",
+    "preservedAttempts": {
+      "attempt3": "BUILD SUCCESSFUL; exit0",
+      "initial": "5 tests; 4 setup failures from AccessDeniedException at temporary.toRealPath() under system Temp",
+      "attempt2": "Gradle init script rejected UTF-8 BOM before tasks"
+    },
+    "limits": [
+      "Only four reviewed source files are bound to 1e, not the entire working tree",
+      "Existing tests do not cover new delayed handoff or currentness guards",
+      "Original popup fault repair remains UNPROVEN",
+      "Local results are not GitHub Actions release gates"
+    ]
+  },
+  "uniqueExistingTestCases": 5,
+  "candidateSpecificHandoffTestsEstablished": false,
+  "baseline0cResultsTransferred": false,
+  "attribution": "UNKNOWN",
+  "omittedGeneratedDirectories": [
+    "build",
+    "tmp",
+    "classes"
+  ],
+  "capturedAt": "2026-10-12T17:46:24.627Z",
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  },
+  "releaseGatePassed": false
+}

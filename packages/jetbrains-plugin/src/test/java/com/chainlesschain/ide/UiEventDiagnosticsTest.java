@@ -92,4 +92,40 @@ class UiEventDiagnosticsTest {
         assertFalse(text.contains("secret cause"));
         assertFalse(text.contains(temporary.toString()));
     }
+
+    @Test void popupObservationsKeepOnlyBoundedLifecycleMetadata() throws Exception {
+        Path output = enable();
+        Map<String, Object> event = new java.util.LinkedHashMap<>();
+        event.put("type", "checkpoint-timeline");
+        event.put("kind", "actions");
+        event.put("selectedIndex", 3);
+        event.put("itemCount", 6);
+        event.put("closedOk", true);
+        event.put("popupVisible", false);
+        event.put("focusClass", "com.intellij.ui.components.JBList");
+        event.put("label", "secret checkpoint label");
+        event.put("text", "secret conversation content");
+        UiEventDiagnostics.record(UiEventDiagnostics.Stage.POPUP_CLOSED,
+                event, new Object(), "session-1", null);
+        String text = Files.readString(output);
+        assertFalse(text.contains("secret"));
+        Map<?, ?> record = (Map<?, ?>) MiniJson.parse(text);
+        assertEquals(3L, record.get("selectedIndex"));
+        assertEquals(6L, record.get("itemCount"));
+        assertEquals(Boolean.TRUE, record.get("closedOk"));
+        assertEquals(Boolean.FALSE, record.get("popupVisible"));
+        assertEquals("com.intellij.ui.components.JBList", record.get("focusClass"));
+
+        event.put("selectedIndex", "secret selection");
+        event.put("itemCount", 1001);
+        event.put("closedOk", "secret value");
+        event.put("focusClass", "secret window title");
+        UiEventDiagnostics.record(UiEventDiagnostics.Stage.POPUP_CLOSED,
+                event, null, "session-1", null);
+        record = (Map<?, ?>) MiniJson.parse(Files.readAllLines(output).get(1));
+        assertFalse(record.containsKey("selectedIndex"));
+        assertFalse(record.containsKey("itemCount"));
+        assertFalse(record.containsKey("closedOk"));
+        assertFalse(record.containsKey("focusClass"));
+    }
 }

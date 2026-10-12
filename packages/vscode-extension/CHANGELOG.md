@@ -2,6 +2,15 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.144] - Bounded stream retry pairing (2026-10-13)
+
+- Recommend CLI `0.166.100` after its public npm release and this exact
+  commit's complete CLI, IDE and ARM64 release gates.
+- Pair with cancellable Retry-After handling capped at 60 seconds, terminal
+  error and visible-output replay guards, and corrected chat token callbacks.
+- Retain the bridge compatibility floor; formal evaluation and native/durable
+  acceptance remain separately evidenced.
+
 ## [0.37.143] - Model and runtime safety pairing (2026-10-12)
 
 - Recommend CLI `0.166.99` after it is public and this exact release commit’s

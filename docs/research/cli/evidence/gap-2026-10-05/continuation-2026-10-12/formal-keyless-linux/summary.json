@@ -1,0 +1,2361 @@
+{
+  "schema": "chainlesschain.verify01-keyless-linux-readback/v1",
+  "capturedAt": "2026-10-12T15:24:21.403Z",
+  "status": "KEYLESS_PREFLIGHT_READBACK_VERIFIED",
+  "sourceCommit": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+  "runId": "38269124745",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269124745",
+  "runStatus": "completed",
+  "runConclusion": "success",
+  "artifact": {
+    "id": 11755658900,
+    "name": "verify01-formal-preflight-e32e75e2b4a14daf0901f09a6738605896fb6385-1",
+    "bytes": 619891,
+    "digest": "sha256:30732043f3bc2610d936804bf3c036fb932c0558590a8f3704195715e4b306ed"
+  },
+  "readiness": {
+    "schema": "chainlesschain.verify01-keyless-preflight/v1",
+    "at": "2026-10-12T15:19:15.424Z",
+    "sourceCommit": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+    "runId": "38269124745",
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "status": "KEYLESS_PREFLIGHT_VERIFIED",
+    "host": {
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v22.12.0",
+      "os": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n"
+    },
+    "window": {
+      "startedAt": 1791818355424,
+      "windowEndMs": 1792421212556
+    },
+    "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+    "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+    "reviewDigest": "sha256:70bf778369d352cfa7d31036ec8f2ab4b14d2079a8d18a82ab465bf2b7803c54",
+    "publicCliVersion": "0.166.99",
+    "publicCliSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+    "sourceBinding": "Current registry SRI/archive matches the digest-bound prior OIDC/public verification; current install lock is independently checked.",
+    "priorSourceBinding": {
+      "summarySha256": "1bb590163823632e782f52aff6d9b9f4830762f6c1a87b1a652d195a7108579e",
+      "manifestSha256": "75b145495fc4abe2162c8db6b9b93993958b490fd8241b2ff8f724aa38b325f2",
+      "oidcVerified": "VERIFIED",
+      "immutableCliBytesMatch": true,
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "archive": {
+        "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.99.tgz",
+        "integrity": "sha512-DiPW+mWBLsbidbuFXu/DKtTlQyTkG0gs2SRBBpuGHmtuP8zVGDyscIEyzI5JlZmh8wg4O63Q8x3pDSucBnylfQ=="
+      }
+    },
+    "nativeInstallLifecycleEnabled": true,
+    "publicInstall": {
+      "schema": "chainlesschain.cli-public-dependency-install.v1",
+      "package": "chainlesschain",
+      "version": "0.166.99",
+      "cliSource": "public-npm-registry-lock",
+      "cliArchive": {
+        "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.99.tgz",
+        "integrity": "sha512-DiPW+mWBLsbidbuFXu/DKtTlQyTkG0gs2SRBBpuGHmtuP8zVGDyscIEyzI5JlZmh8wg4O63Q8x3pDSucBnylfQ=="
+      },
+      "childrenSource": "https://registry.npmjs.org",
+      "children": [
+        {
+          "name": "@chainlesschain/core-db",
+          "version": "0.1.5",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+          "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+        },
+        {
+          "name": "@chainlesschain/core-env",
+          "version": "0.1.2",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+          "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+        },
+        {
+          "name": "@chainlesschain/core-mtc",
+          "version": "0.2.3",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+          "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+        },
+        {
+          "name": "@chainlesschain/core-infra",
+          "version": "0.1.1",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+          "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+        },
+        {
+          "name": "@chainlesschain/core-config",
+          "version": "0.1.2",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+          "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+        },
+        {
+          "name": "@chainlesschain/session-core",
+          "version": "0.3.19",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.19.tgz",
+          "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg=="
+        },
+        {
+          "name": "@chainlesschain/core-multisig",
+          "version": "0.1.4",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+          "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+        },
+        {
+          "name": "@chainlesschain/shared-logger",
+          "version": "0.1.1",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+          "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+        },
+        {
+          "name": "@chainlesschain/personal-data-hub",
+          "version": "0.4.64",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+          "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q=="
+        },
+        {
+          "name": "@chainlesschain/context-memory-kernel",
+          "version": "0.1.9",
+          "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.9.tgz",
+          "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw=="
+        }
+      ]
+    },
+    "independentHumanReview": false,
+    "providerHardBudgetVerified": false,
+    "providerAuthenticated": false,
+    "paidExecutionReady": false,
+    "taskObservations": 0,
+    "firstRunObservations": 0,
+    "remaining": [
+      "human review of this exact review/image digest",
+      "account hard quota or reliable metering",
+      "controlled model credentials",
+      "actual model task and separate first-run"
+    ]
+  },
+  "actualReview": {
+    "archive": "linux-review-pack.tgz",
+    "bytes": 49058,
+    "sha256": "a494dcfa479fdfec36c091dfe0bdf1c48139938524952aedecbdd43af638a8a3",
+    "files": [
+      {
+        "path": "pack.json",
+        "bytes": 856,
+        "sha256": "7f8f4578b6daa138bf2d0ac56b486bfa5ed68c7b32214525f497e863424edd43"
+      },
+      {
+        "path": "review.json",
+        "bytes": 18679,
+        "sha256": "329beb5cba865ea78e1b6b1ec2d7e640bebc3e41b73b50126d19b9a25bb8f743"
+      },
+      {
+        "path": "review.sha256",
+        "bytes": 72,
+        "sha256": "5e85b67c77b1244c9cbee03d69bba26805eaa47a03d8fb969243a5c7b29ab7b8"
+      },
+      {
+        "path": "verify-01-check.mjs",
+        "bytes": 22083,
+        "sha256": "e1306929a78192ea8718418d14149908fa28b44f9ebfb5ea10db250e07389c2e"
+      },
+      {
+        "path": "verify-01-setup.mjs",
+        "bytes": 22121,
+        "sha256": "1af96828ba24b2d17f812baf4e850609e625c54114b67c6e74ff834605655458"
+      },
+      {
+        "path": "verify-02-check.mjs",
+        "bytes": 22084,
+        "sha256": "db88d8eb2b723461a82d2eb17baf2116591978ce3a32c39ec7d6a38c831495b5"
+      },
+      {
+        "path": "verify-02-setup.mjs",
+        "bytes": 22122,
+        "sha256": "6ab6c1d5897e879557752f458a77d7310a0522e927e685407f10947ac9dc45d2"
+      },
+      {
+        "path": "verify-03-check.mjs",
+        "bytes": 22022,
+        "sha256": "0f23be065b8009ccfbb40d7b12b17e904430877dfe6b6ec1b3c3aa2a2533b931"
+      },
+      {
+        "path": "verify-03-setup.mjs",
+        "bytes": 22060,
+        "sha256": "85e296735a6b25b4b2e8ab10cbc3de7f1e6790ed56cac89d5b5ba8fe4e00570a"
+      },
+      {
+        "path": "verify-04-check.mjs",
+        "bytes": 22212,
+        "sha256": "ca44d5294d789c27fba9bbb9fb46722666543887aad3028d05c5b75b5463352c"
+      },
+      {
+        "path": "verify-04-setup.mjs",
+        "bytes": 22250,
+        "sha256": "2a420a32983942f5aa158378c2e5b148f87a5db2ba12ada8218e7e43b773f691"
+      },
+      {
+        "path": "verify-05-check.mjs",
+        "bytes": 21896,
+        "sha256": "a72ea52a52623be3fb06104a7ac3ab9076dc2e92cd8f0aa8d11c5f93123494a4"
+      },
+      {
+        "path": "verify-05-setup.mjs",
+        "bytes": 21934,
+        "sha256": "d74349c73b233bba20a75a17bb93b8b05ed39b8dd1bf6d1844d1a134227d9cf9"
+      },
+      {
+        "path": "verify-06-check.mjs",
+        "bytes": 21957,
+        "sha256": "422ff19ef1e8f140988c153efe0d0b02014b935671d373c21af47504a02455e0"
+      },
+      {
+        "path": "verify-06-setup.mjs",
+        "bytes": 21995,
+        "sha256": "8de5478e39b1367628a719a894b51a51ff8570422bbf3c7a6274a02df2b975f4"
+      },
+      {
+        "path": "verify-07-check.mjs",
+        "bytes": 22047,
+        "sha256": "604813ea7344b559f0adf6dcbc92ec747a4c742fd84c955b4741cbdeee610a3c"
+      },
+      {
+        "path": "verify-07-setup.mjs",
+        "bytes": 22085,
+        "sha256": "1624cb36f4632464192424132037832f1c4b96bba36f0b23748d079eb279d1e5"
+      },
+      {
+        "path": "verify-08-check.mjs",
+        "bytes": 21885,
+        "sha256": "1333e8e06d19395327d4e4d98a44b306b424f26473ba46a5a11f57bbc6806e8d"
+      },
+      {
+        "path": "verify-08-setup.mjs",
+        "bytes": 21923,
+        "sha256": "d31f8425a176de57c12b1fd0ceba74e6b9e329c2f14288cbb88c560845d908ed"
+      },
+      {
+        "path": "verify-09-check.mjs",
+        "bytes": 21835,
+        "sha256": "7d7485f7f2226a8e8c6f542ee77822cf4ef7274ad36fcca25a35bc3596a8f342"
+      },
+      {
+        "path": "verify-09-setup.mjs",
+        "bytes": 21873,
+        "sha256": "36aaa5d628063520e6f97ddc57557549f4757c2f0adf316a93ecc964652f1256"
+      },
+      {
+        "path": "verify-10-check.mjs",
+        "bytes": 21828,
+        "sha256": "6cea345a4399233127bf79ae4b35f3af347b2d0fecbef7fbdd9c6cda2a24fe1f"
+      },
+      {
+        "path": "verify-10-setup.mjs",
+        "bytes": 21866,
+        "sha256": "9cc49101f7928acb7b92596bee2d0515b8c30e37d0e06b78d55d3f9d99e7c69a"
+      },
+      {
+        "path": "verify-11-check.mjs",
+        "bytes": 22065,
+        "sha256": "73278c9ea4d3cfb4dc20f4a2c34464899e29e3599b0243c654ec74cb545cc7ac"
+      },
+      {
+        "path": "verify-11-setup.mjs",
+        "bytes": 22103,
+        "sha256": "82ac25d335664b07e96500f6a3c1f05641e88debd4c2a1bb7bdc1b9a343ab12d"
+      },
+      {
+        "path": "verify-12-check.mjs",
+        "bytes": 21869,
+        "sha256": "c7af43ea0153aa1b9aecfa84df8c855422159f7020743d3269fe0356fab0124c"
+      },
+      {
+        "path": "verify-12-setup.mjs",
+        "bytes": 21907,
+        "sha256": "a01d3b8182998e29b7cad18e974049de22961dd9b9cfadfc6aedbd1984bba7c7"
+      },
+      {
+        "path": "verify-13-check.mjs",
+        "bytes": 21962,
+        "sha256": "1ee36502afda2c154df571e6cd3b0f3109bc9ef6ead343e992d569bb00c645f4"
+      },
+      {
+        "path": "verify-13-setup.mjs",
+        "bytes": 22000,
+        "sha256": "67e1fd666d78b18743765a730084c7c944c04c85137293ff0ba2b21b4f807837"
+      },
+      {
+        "path": "verify-14-check.mjs",
+        "bytes": 21944,
+        "sha256": "eb433b0f1e2c3d20e84d02010a1dc53f588a15474eece47b18b0cb3ed2e9480c"
+      },
+      {
+        "path": "verify-14-setup.mjs",
+        "bytes": 21982,
+        "sha256": "6ced04e69df2eb58be4d78805d711493f952da729a818e9bf30a5dc58a772ff6"
+      },
+      {
+        "path": "verify-15-check.mjs",
+        "bytes": 22000,
+        "sha256": "eceb091a53ac9256f8133025ac83c791a5e53f44027b4932c7d0fe5d87020802"
+      },
+      {
+        "path": "verify-15-setup.mjs",
+        "bytes": 22038,
+        "sha256": "1e784b5d408fb0d78de574f6c03e0ff27803863c77d6e6434d9c2d810898635e"
+      },
+      {
+        "path": "verify-16-check.mjs",
+        "bytes": 21813,
+        "sha256": "d7720639fe2862287e0606229830acc53789410e9fa2702c50ccacc1bf64f1f8"
+      },
+      {
+        "path": "verify-16-setup.mjs",
+        "bytes": 21851,
+        "sha256": "409c3fceba256d10167fc64e6fa188f39dcf514853e4f7a80570e9822f1306c5"
+      },
+      {
+        "path": "verify-17-check.mjs",
+        "bytes": 21989,
+        "sha256": "a6358fbf18ae86fb885cad06316a6d4704ec780ed27a1fd3723fee1f6427562d"
+      },
+      {
+        "path": "verify-17-setup.mjs",
+        "bytes": 22027,
+        "sha256": "f4429c6632d4558c63ce2b9d4a3f5eba36a1989f4b5e8bf8aa565745a071c642"
+      },
+      {
+        "path": "verify-18-check.mjs",
+        "bytes": 21849,
+        "sha256": "f931a793550425d2099002885787c28f3b8608c48d3fd3c08cb5b12664813ad0"
+      },
+      {
+        "path": "verify-18-setup.mjs",
+        "bytes": 21887,
+        "sha256": "a365a1189f7dc1d0d63a74ddbf268d573c4804feb32d10c0976186477c1bcf92"
+      },
+      {
+        "path": "verify-19-check.mjs",
+        "bytes": 22001,
+        "sha256": "fd0a99b23a0f918843d666d2afecce49841c967592f3e2684e2917b2fef16456"
+      },
+      {
+        "path": "verify-19-setup.mjs",
+        "bytes": 22039,
+        "sha256": "0351d6ac7f85afc5796fe49b475acf295a25fcb651b6a6c21ad1ebd216649722"
+      },
+      {
+        "path": "verify-20-check.mjs",
+        "bytes": 21870,
+        "sha256": "de06aef4564a83b5f30dbaf304b5c4405d14eb8d847ea19b7e96cbb62b3bbe1d"
+      },
+      {
+        "path": "verify-20-setup.mjs",
+        "bytes": 21908,
+        "sha256": "54ee58fb43567dfd9bf3829c647dac4e58c8181602218363aad54f87f96b4e6f"
+      },
+      {
+        "path": "verify-21-check.mjs",
+        "bytes": 21859,
+        "sha256": "cabcee4beb70de14b39d7e6822941ca7d58027303c63887102225105b49b08cb"
+      },
+      {
+        "path": "verify-21-setup.mjs",
+        "bytes": 21897,
+        "sha256": "11b7575132d337df2af1ab5ab7156d45414552caf3407b3e2494eece778d001e"
+      },
+      {
+        "path": "verify-22-check.mjs",
+        "bytes": 21936,
+        "sha256": "e30a0b580adef3b8a9f09c88d1e9567e4b2b3a951b7c88572d3971661e60643c"
+      },
+      {
+        "path": "verify-22-setup.mjs",
+        "bytes": 21974,
+        "sha256": "72254c84988715f875e438c274b3874e5363a6c8910f04ad1285d11acec5d81c"
+      },
+      {
+        "path": "verify-23-check.mjs",
+        "bytes": 22071,
+        "sha256": "9197b90ed322260c170dc5766b24405381c36bb740aeb0bc67edc85cbf103a3b"
+      },
+      {
+        "path": "verify-23-setup.mjs",
+        "bytes": 22109,
+        "sha256": "a6cb596ed43e9a12dbd7b77e818752c2348bbb9152f9ad5a5b0efba197b6c860"
+      },
+      {
+        "path": "verify-24-check.mjs",
+        "bytes": 21835,
+        "sha256": "ddc918265477c291b5daa9a98a74c91c244ade6d233f216d7f16de81b9bc3432"
+      },
+      {
+        "path": "verify-24-setup.mjs",
+        "bytes": 21873,
+        "sha256": "3938933da2cf34c27077f9fa3b61db3deaaccb72680142a3ea9d4302cac52a8e"
+      },
+      {
+        "path": "verify-25-check.mjs",
+        "bytes": 22030,
+        "sha256": "386658b78ac6bc211bfff10c21871d132b480ef92353b04aa9e54134bd2b9420"
+      },
+      {
+        "path": "verify-25-setup.mjs",
+        "bytes": 22068,
+        "sha256": "3ffc936c6ff5e9e9edd3c24600f84c9fbff7f9d6b22f6f3037342723f8ceb95d"
+      },
+      {
+        "path": "verify-26-check.mjs",
+        "bytes": 22059,
+        "sha256": "7d2b4371775a362a1b739242a7e4f194a84a5396519c6a8cf611084b1d8b1471"
+      },
+      {
+        "path": "verify-26-setup.mjs",
+        "bytes": 22097,
+        "sha256": "bd4170a1e26408ad07b69dcc45cc6ef481fc8935c5a48d4b79bd76a0db00a4bc"
+      },
+      {
+        "path": "verify-27-check.mjs",
+        "bytes": 21914,
+        "sha256": "1ebad6e35275484cb4a667a7fe5b00c911aaca11c769939033dcf3dd37e76bfa"
+      },
+      {
+        "path": "verify-27-setup.mjs",
+        "bytes": 21952,
+        "sha256": "796946a6781f805a7ae439d429627dc51c495e0f0fff043516b6c8a08602ca60"
+      },
+      {
+        "path": "verify-28-check.mjs",
+        "bytes": 21911,
+        "sha256": "ce3c55ea3367f4f5bf0db1d4b634a934183fab1421a45d50b8b6e4578157fd52"
+      },
+      {
+        "path": "verify-28-setup.mjs",
+        "bytes": 21949,
+        "sha256": "b6252c3028b31af7ddb5f371831b5e7086f8445ab66b97fb6ea3af637d1509a9"
+      },
+      {
+        "path": "verify-29-check.mjs",
+        "bytes": 21831,
+        "sha256": "31ac6497ea26dede1e0298e6ddf30ce743b2783df13925c87410284d2921ac32"
+      },
+      {
+        "path": "verify-29-setup.mjs",
+        "bytes": 21869,
+        "sha256": "b502d0affddfcd21fbf52fc24e58c1d2adeb36651133c63a270ff725684ff1c6"
+      },
+      {
+        "path": "verify-30-check.mjs",
+        "bytes": 21972,
+        "sha256": "afc81ef9f6792172f2a09de94fe89952af78ad6084e90181868cf4adc5ede3a8"
+      },
+      {
+        "path": "verify-30-setup.mjs",
+        "bytes": 22010,
+        "sha256": "685931a0f8058616ba95009ca5b4cb22fd3ec9eae260beec1c3c752932e5c61b"
+      },
+      {
+        "path": "verify-31-check.mjs",
+        "bytes": 21888,
+        "sha256": "fb745b84ce78435d7cea44c4264bf2445646e9a3e57ceac2cb1b340a8f8de844"
+      },
+      {
+        "path": "verify-31-setup.mjs",
+        "bytes": 21926,
+        "sha256": "a67cd7396fbb908face7ac40f7141642f063716d2530461828f7784f3a589aba"
+      },
+      {
+        "path": "verify-32-check.mjs",
+        "bytes": 21893,
+        "sha256": "8f70087febc3744f1ed36100e892cdace353fe51bf4e52bcda4e75d218278ea9"
+      },
+      {
+        "path": "verify-32-setup.mjs",
+        "bytes": 21931,
+        "sha256": "03730113d2e6827a8f7bb6c33bd7bc0fe87c31b26f343f66bb885b0af8a0fe25"
+      },
+      {
+        "path": "verify-33-check.mjs",
+        "bytes": 21877,
+        "sha256": "08e4dd07a6a01990826bf85c7f58bc7cf7c75018caafe80f651788dac01d66f1"
+      },
+      {
+        "path": "verify-33-setup.mjs",
+        "bytes": 21915,
+        "sha256": "3306ae4cb57fe9e540026ddaed66bbac17bf65b8e15d5e185bca6598a8ceceaf"
+      },
+      {
+        "path": "verify-34-check.mjs",
+        "bytes": 32407,
+        "sha256": "6f7f4b87cc302f2d5b4f564dcee79d913169c2b74039488efbac5611d7d5a552"
+      },
+      {
+        "path": "verify-34-setup.mjs",
+        "bytes": 32445,
+        "sha256": "5d5aac7e103374e479dd973b9e7fecb5e1482b02e56fdfcd6cbc131f1997948e"
+      },
+      {
+        "path": "verify-35-check.mjs",
+        "bytes": 21901,
+        "sha256": "0f08deb03c9bfa8232c80ebf491d8b4fafb5b220cc556c1a9a6fd807968232ef"
+      },
+      {
+        "path": "verify-35-setup.mjs",
+        "bytes": 21939,
+        "sha256": "37000e60d135ae9638bcdf0c6f170bb74ecc91d2acd18eb56deb8c22945f6695"
+      },
+      {
+        "path": "verify-36-check.mjs",
+        "bytes": 21888,
+        "sha256": "228dc61265378b2add230b3618793deb6e881bfb32e9b313a459b0cd3f92b2e7"
+      },
+      {
+        "path": "verify-36-setup.mjs",
+        "bytes": 21926,
+        "sha256": "715d12a461faa716f47e82e136346dd99c6c3d476571743e456a3603dbf67a14"
+      }
+    ]
+  },
+  "formerPreview": {
+    "reviewDigest": "sha256:14033f24125c7319f978d5044b2cec16cb5245cfa7019c7879c9d02c2b78dc79",
+    "imageId": "sha256:2eaf47036616a95c00604989975f2116ea824b747942532df935c8bbebe79513",
+    "supersededForExecution": true
+  },
+  "collection": {
+    "scope": "verify01-read-only-preparation",
+    "productionAttested": false,
+    "executionStatus": "NOT_RUN",
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "reviewValidated": true,
+    "report": {
+      "schema": "chainlesschain.outcome-report/v1",
+      "generatedAt": "2026-10-12T15:24:21.051Z",
+      "scope": "local-outcome-baseline",
+      "productionAttested": false,
+      "status": "INSUFFICIENT_EVIDENCE",
+      "improvementVerdict": "NOT_EVALUATED",
+      "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+      "commitSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "executionCommitSha": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "currency": "USD",
+      "window": {
+        "start": "2026-10-12T14:46:52.556Z",
+        "end": "2026-10-19T14:46:52.556Z"
+      },
+      "task": {
+        "planned": 36,
+        "observed": 0,
+        "missing": 36,
+        "succeeded": 0,
+        "successRate": 0,
+        "knownCost": 0,
+        "totalCost": null,
+        "costPerSuccess": null,
+        "retries": null,
+        "manualRepairs": null
+      },
+      "firstRun": {
+        "planned": 9,
+        "observed": 0,
+        "missing": 9,
+        "succeeded": 0,
+        "successRate": 0,
+        "knownCost": 0,
+        "totalCost": null,
+        "costPerSuccess": null,
+        "retries": null,
+        "manualRepairs": null
+      },
+      "maintenance": {
+        "complete": false,
+        "knownHours": 0,
+        "totalHours": null,
+        "per100Attempts": null,
+        "observedAttempts": 0,
+        "constructionHours": null,
+        "categories": {
+          "repair": 0,
+          "support": 0,
+          "compatibility": 0,
+          "release": 0,
+          "test-infrastructure": 0,
+          "construction": 0
+        }
+      },
+      "groups": [
+        {
+          "kind": "task",
+          "stratum": "win32-cli-volcengine",
+          "taskId": "verify-01",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-vscode-volcengine",
+          "taskId": "verify-02",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-jetbrains-volcengine",
+          "taskId": "verify-03",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-cli-volcengine",
+          "taskId": "verify-04",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-vscode-volcengine",
+          "taskId": "verify-05",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-jetbrains-volcengine",
+          "taskId": "verify-06",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-cli-volcengine",
+          "taskId": "verify-07",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-vscode-volcengine",
+          "taskId": "verify-08",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-jetbrains-volcengine",
+          "taskId": "verify-09",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-cli-openai",
+          "taskId": "verify-10",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-vscode-openai",
+          "taskId": "verify-11",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-jetbrains-openai",
+          "taskId": "verify-12",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-cli-openai",
+          "taskId": "verify-13",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-vscode-openai",
+          "taskId": "verify-14",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-jetbrains-openai",
+          "taskId": "verify-15",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-cli-openai",
+          "taskId": "verify-16",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-vscode-openai",
+          "taskId": "verify-17",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-jetbrains-openai",
+          "taskId": "verify-18",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-cli-volcengine",
+          "taskId": "verify-19",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-vscode-volcengine",
+          "taskId": "verify-20",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-jetbrains-volcengine",
+          "taskId": "verify-21",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-cli-volcengine",
+          "taskId": "verify-22",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-vscode-volcengine",
+          "taskId": "verify-23",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-jetbrains-volcengine",
+          "taskId": "verify-24",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-cli-volcengine",
+          "taskId": "verify-25",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-vscode-volcengine",
+          "taskId": "verify-26",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-jetbrains-volcengine",
+          "taskId": "verify-27",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-cli-openai",
+          "taskId": "verify-28",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-vscode-openai",
+          "taskId": "verify-29",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "win32-jetbrains-openai",
+          "taskId": "verify-30",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-cli-openai",
+          "taskId": "verify-31",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-vscode-openai",
+          "taskId": "verify-32",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "linux-jetbrains-openai",
+          "taskId": "verify-33",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-cli-openai",
+          "taskId": "verify-34",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-vscode-openai",
+          "taskId": "verify-35",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "task",
+          "stratum": "darwin-jetbrains-openai",
+          "taskId": "verify-36",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "win32-cli-volcengine",
+          "taskId": "verify-01",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "win32-vscode-volcengine",
+          "taskId": "verify-02",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "win32-jetbrains-volcengine",
+          "taskId": "verify-03",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "linux-cli-volcengine",
+          "taskId": "verify-04",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "linux-vscode-volcengine",
+          "taskId": "verify-05",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "linux-jetbrains-volcengine",
+          "taskId": "verify-06",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "darwin-cli-volcengine",
+          "taskId": "verify-07",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "darwin-vscode-volcengine",
+          "taskId": "verify-08",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        },
+        {
+          "kind": "first-run",
+          "stratum": "darwin-jetbrains-volcengine",
+          "taskId": "verify-09",
+          "planned": 1,
+          "observed": 0,
+          "missing": 1,
+          "succeeded": 0,
+          "successRate": 0,
+          "knownCost": 0,
+          "totalCost": null,
+          "costPerSuccess": null,
+          "retries": null,
+          "manualRepairs": null
+        }
+      ],
+      "firstRunFunnel": [
+        {
+          "stage": "install",
+          "planned": 9,
+          "passed": 0
+        },
+        {
+          "stage": "configure",
+          "planned": 9,
+          "passed": 0
+        },
+        {
+          "stage": "authenticate",
+          "planned": 9,
+          "passed": 0
+        },
+        {
+          "stage": "tool",
+          "planned": 9,
+          "passed": 0
+        },
+        {
+          "stage": "artifact",
+          "planned": 9,
+          "passed": 0
+        }
+      ],
+      "failureCauses": [
+        {
+          "cause": "unknown",
+          "count": 45
+        }
+      ],
+      "issues": [
+        "observation_window_not_closed",
+        "verify-01:missing_observation",
+        "verify-02:missing_observation",
+        "verify-03:missing_observation",
+        "verify-04:missing_observation",
+        "verify-05:missing_observation",
+        "verify-06:missing_observation",
+        "verify-07:missing_observation",
+        "verify-08:missing_observation",
+        "verify-09:missing_observation",
+        "verify-10:missing_observation",
+        "verify-11:missing_observation",
+        "verify-12:missing_observation",
+        "verify-13:missing_observation",
+        "verify-14:missing_observation",
+        "verify-15:missing_observation",
+        "verify-16:missing_observation",
+        "verify-17:missing_observation",
+        "verify-18:missing_observation",
+        "verify-19:missing_observation",
+        "verify-20:missing_observation",
+        "verify-21:missing_observation",
+        "verify-22:missing_observation",
+        "verify-23:missing_observation",
+        "verify-24:missing_observation",
+        "verify-25:missing_observation",
+        "verify-26:missing_observation",
+        "verify-27:missing_observation",
+        "verify-28:missing_observation",
+        "verify-29:missing_observation",
+        "verify-30:missing_observation",
+        "verify-31:missing_observation",
+        "verify-32:missing_observation",
+        "verify-33:missing_observation",
+        "verify-34:missing_observation",
+        "verify-35:missing_observation",
+        "verify-36:missing_observation",
+        "first-run-win32-cli:missing_observation",
+        "first-run-win32-vscode:missing_observation",
+        "first-run-win32-jetbrains:missing_observation",
+        "first-run-linux-cli:missing_observation",
+        "first-run-linux-vscode:missing_observation",
+        "first-run-linux-jetbrains:missing_observation",
+        "first-run-darwin-cli:missing_observation",
+        "first-run-darwin-vscode:missing_observation",
+        "first-run-darwin-jetbrains:missing_observation",
+        "incomplete_maintenance_records"
+      ],
+      "rows": [
+        {
+          "sampleId": "verify-01",
+          "kind": "task",
+          "taskId": "verify-01",
+          "stratum": "win32-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-02",
+          "kind": "task",
+          "taskId": "verify-02",
+          "stratum": "win32-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-03",
+          "kind": "task",
+          "taskId": "verify-03",
+          "stratum": "win32-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-04",
+          "kind": "task",
+          "taskId": "verify-04",
+          "stratum": "linux-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-05",
+          "kind": "task",
+          "taskId": "verify-05",
+          "stratum": "linux-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-06",
+          "kind": "task",
+          "taskId": "verify-06",
+          "stratum": "linux-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-07",
+          "kind": "task",
+          "taskId": "verify-07",
+          "stratum": "darwin-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-08",
+          "kind": "task",
+          "taskId": "verify-08",
+          "stratum": "darwin-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-09",
+          "kind": "task",
+          "taskId": "verify-09",
+          "stratum": "darwin-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-10",
+          "kind": "task",
+          "taskId": "verify-10",
+          "stratum": "win32-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-11",
+          "kind": "task",
+          "taskId": "verify-11",
+          "stratum": "win32-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-12",
+          "kind": "task",
+          "taskId": "verify-12",
+          "stratum": "win32-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-13",
+          "kind": "task",
+          "taskId": "verify-13",
+          "stratum": "linux-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-14",
+          "kind": "task",
+          "taskId": "verify-14",
+          "stratum": "linux-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-15",
+          "kind": "task",
+          "taskId": "verify-15",
+          "stratum": "linux-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-16",
+          "kind": "task",
+          "taskId": "verify-16",
+          "stratum": "darwin-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-17",
+          "kind": "task",
+          "taskId": "verify-17",
+          "stratum": "darwin-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-18",
+          "kind": "task",
+          "taskId": "verify-18",
+          "stratum": "darwin-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-19",
+          "kind": "task",
+          "taskId": "verify-19",
+          "stratum": "win32-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-20",
+          "kind": "task",
+          "taskId": "verify-20",
+          "stratum": "win32-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-21",
+          "kind": "task",
+          "taskId": "verify-21",
+          "stratum": "win32-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-22",
+          "kind": "task",
+          "taskId": "verify-22",
+          "stratum": "linux-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-23",
+          "kind": "task",
+          "taskId": "verify-23",
+          "stratum": "linux-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-24",
+          "kind": "task",
+          "taskId": "verify-24",
+          "stratum": "linux-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-25",
+          "kind": "task",
+          "taskId": "verify-25",
+          "stratum": "darwin-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-26",
+          "kind": "task",
+          "taskId": "verify-26",
+          "stratum": "darwin-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-27",
+          "kind": "task",
+          "taskId": "verify-27",
+          "stratum": "darwin-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-28",
+          "kind": "task",
+          "taskId": "verify-28",
+          "stratum": "win32-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-29",
+          "kind": "task",
+          "taskId": "verify-29",
+          "stratum": "win32-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-30",
+          "kind": "task",
+          "taskId": "verify-30",
+          "stratum": "win32-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-31",
+          "kind": "task",
+          "taskId": "verify-31",
+          "stratum": "linux-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-32",
+          "kind": "task",
+          "taskId": "verify-32",
+          "stratum": "linux-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-33",
+          "kind": "task",
+          "taskId": "verify-33",
+          "stratum": "linux-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-34",
+          "kind": "task",
+          "taskId": "verify-34",
+          "stratum": "darwin-cli-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-35",
+          "kind": "task",
+          "taskId": "verify-35",
+          "stratum": "darwin-vscode-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "verify-36",
+          "kind": "task",
+          "taskId": "verify-36",
+          "stratum": "darwin-jetbrains-openai",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-win32-cli",
+          "kind": "first-run",
+          "taskId": "verify-01",
+          "stratum": "win32-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-win32-vscode",
+          "kind": "first-run",
+          "taskId": "verify-02",
+          "stratum": "win32-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-win32-jetbrains",
+          "kind": "first-run",
+          "taskId": "verify-03",
+          "stratum": "win32-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-linux-cli",
+          "kind": "first-run",
+          "taskId": "verify-04",
+          "stratum": "linux-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-linux-vscode",
+          "kind": "first-run",
+          "taskId": "verify-05",
+          "stratum": "linux-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-linux-jetbrains",
+          "kind": "first-run",
+          "taskId": "verify-06",
+          "stratum": "linux-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-darwin-cli",
+          "kind": "first-run",
+          "taskId": "verify-07",
+          "stratum": "darwin-cli-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-darwin-vscode",
+          "kind": "first-run",
+          "taskId": "verify-08",
+          "stratum": "darwin-vscode-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        },
+        {
+          "sampleId": "first-run-darwin-jetbrains",
+          "kind": "first-run",
+          "taskId": "verify-09",
+          "stratum": "darwin-jetbrains-volcengine",
+          "observed": false,
+          "succeeded": false,
+          "reasons": [
+            "missing_observation"
+          ],
+          "cost": null,
+          "elapsedMs": null,
+          "retries": null,
+          "manualRepairs": null,
+          "failureCause": null,
+          "firstRunCompletedStages": []
+        }
+      ]
+    }
+  },
+  "exactCommitCISnapshot": [
+    {
+      "conclusion": "",
+      "databaseId": 38269133232,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133232",
+      "workflowName": "E2E Tests"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133043,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133043",
+      "workflowName": "Secret Scan Audit (PR advisory)"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133133,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133133",
+      "workflowName": "Workspace Publish Staleness Check (PR mandatory)"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133102,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133102",
+      "workflowName": "IDE Roadmap Live Provider Trajectory"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133247,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133247",
+      "workflowName": "ESM require() Audit (hard gate, trap"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269132983,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269132983",
+      "workflowName": "PDH Bundle Staleness Check (hard gate, traps"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133259,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133259",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269132930,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269132930",
+      "workflowName": "Cosmetic-Green Audit (PR advisory)"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269132917,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269132917",
+      "workflowName": "Undeclared Dependency Audit (PR mandatory)"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133007,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133007",
+      "workflowName": "CI Mask Audit (PR advisory)"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133080,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133080",
+      "workflowName": "VERIFY01 Docker Review Pack"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133142,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133142",
+      "workflowName": "IDE Roadmap Safety Matrix"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133173,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133173",
+      "workflowName": "CLI Session Host Consistency"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133349,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133349",
+      "workflowName": "CLI Agent Team Soak"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133135,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133135",
+      "workflowName": "Full Test Automation with Diagnostics"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133055,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133055",
+      "workflowName": "CLI Strict Sandbox"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133094,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133094",
+      "workflowName": "Code Quality & Security"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133415,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133415",
+      "workflowName": "CLI CI"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133122,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133122",
+      "workflowName": "CLI Reliability Soak"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133078,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133078",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133096,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133096",
+      "workflowName": "CLI Session Scale"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133077,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133077",
+      "workflowName": "PR Tests"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133324,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133324",
+      "workflowName": "IDE Extensions"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133264,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133264",
+      "workflowName": "CI Tests"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269133244,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "in_progress",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269133244",
+      "workflowName": "IDE Roadmap Accessibility Performance"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269124469,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269124469",
+      "workflowName": "VERIFY01 Host Diagnostics"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269124431,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269124431",
+      "workflowName": "VERIFY01 Docker Review Pack"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 38269124569,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269124569",
+      "workflowName": "Context Memory Kernel CI"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 38269124745,
+      "headSha": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+      "status": "completed",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38269124745",
+      "workflowName": "VERIFY01 Formal Keyless Preflight"
+    }
+  ],
+  "independentHumanReview": false,
+  "providerHardBudgetVerified": false,
+  "providerAuthenticated": false,
+  "paidExecutionReady": false,
+  "taskObserved": 0,
+  "firstRunObserved": 0,
+  "totalCost": null,
+  "limitations": [
+    "This is keyless preflight, not actual task or first-run capture",
+    "All 72 scripts were generated and hash-validated, not human-approved or task-executed",
+    "Installation lifecycle/lock/version checks are not a native SQL functional probe",
+    "Source commit full CI matrix remains queued/running; this run is not release approval",
+    "Other Windows/macOS and IDE targets remain unverified"
+  ]
+}

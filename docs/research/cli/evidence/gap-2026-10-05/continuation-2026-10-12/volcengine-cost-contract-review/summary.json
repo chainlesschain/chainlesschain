@@ -1,0 +1,87 @@
+{
+  "schema": "chainlesschain.volcengine-cost-contract-evidence/v1",
+  "capturedAt": "2026-10-12T16:40:37.096Z",
+  "sourceCommit": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "reportSha256": "ffaaa00009179587b136b67a61053cf713742fb0679b501bf56fce68a3e3234d",
+  "target": {
+    "provider": "volcengine",
+    "model": "deepseek-v4-flash-ga-260731",
+    "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+  },
+  "pricing": {
+    "currency": "CNY",
+    "perMillionTokens": {
+      "uncachedInput": 3,
+      "cachedInput": 0.1,
+      "outputIncludingReasoning": 9
+    },
+    "settlementFormula": "((prompt_tokens - cached_tokens)*3 + cached_tokens*0.10 + completion_tokens*9)/1000000",
+    "reservationFormula": "(Imax*3 + (Amax+Rmax)*9)/1000000",
+    "discountsAssumed": false,
+    "accountApplicabilityConfirmed": false
+  },
+  "probeRepricing": {
+    "inputTokens": 89,
+    "outputTokens": 13,
+    "priorConfiguredEstimateUsd": 0.0000161,
+    "priorEstimateStatus": "configuration-table estimate only, not actual billing",
+    "officialStandardNoCacheTokenOnlyEstimateCny": 0.000384,
+    "actualBilledCost": null,
+    "fxRate": null,
+    "notes": "Parent supplied usage. Raw probe not opened here. Under current official implicit-cache minimum, an 89-token request cannot hit the 2048-token minimum. Apply actual account tier and invoice separately."
+  },
+  "existingProbeReadback": {
+    "responseBodySha256": "250d5c3c9483886545b852b5bfa1beb23c9bdcc9eb9f4f88bad8965634c71a1d",
+    "model": "deepseek-v4-flash-ga-260731",
+    "serviceTier": "default",
+    "usage": {
+      "completion_tokens": 13,
+      "prompt_tokens": 89,
+      "total_tokens": 102,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 11
+      }
+    },
+    "actualBilledCost": null,
+    "fxRate": null
+  },
+  "reservationCandidate": {
+    "kind": "conditional-token-only-document-envelope",
+    "kMultiplierConservative": 1024,
+    "maxInputTokens": 1048576,
+    "maxAnswerTokens": 393216,
+    "maxReasoningTokens": 131072,
+    "maxOutputTokens": 524288,
+    "cny": 7.86432,
+    "roundedReserveCny": 8,
+    "assumptions": [
+      "Single completion, exact model and endpoint, standard token postpaid; no non-token services or extra requests.",
+      "Published maxima bound all charged input/output including framing and reasoning; conservative independent maxima avoid relying on context/input/output overlap.",
+      "Public rates apply as upper bounds to account and remain effective throughout call.",
+      "Cash fees, rounding, tax, settlement currency and exchange treatment are separately resolved."
+    ],
+    "defaultAnswerBoundCandidateCny": 4.36224,
+    "defaultAnswerBoundAdopted": false,
+    "note": "Use full 384k+128k envelope initially, without changing request body. A tighter 4096+128k envelope requires captured absence of max_completion_tokens, matching server defaults and all-path verification. CNY 8 is not USD 8 and is not an actual bill."
+  },
+  "paidRequestsMade": 0,
+  "paidExecutionReady": false,
+  "formalTaskObserved": 0,
+  "formalFirstRunObserved": 0,
+  "boundaries": [
+    "Account/order actual rate ceiling, settlement currency, discounts/surcharges/tax and TPM package arrangement; can potentially be obtained via authorized read-only billing/order API or sanitized account export, not by inference from an inference API key.",
+    "A binding CNY-to-USD budget conversion rule with fees/validity; a spot market quote alone does not guarantee eventual card settlement.",
+    "Existing shared-lineage consumption and outstanding unknown attempts across all hosts/providers. Local new ledger cannot establish remaining USD 99 by itself.",
+    "Provider authoritative charge for an interrupted call without usage; retain full reservation until actual request/billing reconciliation.",
+    "Whether all runtime paid egress is behind admission and matches pinned product/request identity. This is an implementation/test fact, not a provider console permission issue."
+  ],
+  "actualTierFollowup": {
+    "source": ".work/formal-volcengine-cost-contract-20261013/existing-probe-tier-followup.json",
+    "path": "objects/018-existing-probe-tier-followup.json.gz",
+    "rawSha256": "677e2112b32316287372e901bb71ced1888752f64a21ce069877c1a5e15e1e8b",
+    "meaning": "Response default identifies online regular inference; standard is not asserted as an interchangeable API enum."
+  }
+}

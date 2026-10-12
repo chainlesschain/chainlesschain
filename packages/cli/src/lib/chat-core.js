@@ -15,7 +15,12 @@ import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
   resolveStreamRetryMax,
+  captureStreamRetryMetadata,
+  attachStreamRetryMetadata,
+  resolveStreamRetryDelay,
+  waitForStreamRetry,
 } from "./stream-retry.js";
+import { throwIfAborted } from "./abort-utils.js";
 
 // A streaming chat call must not hang forever if the API accepts the connection
 // but then goes silent (TCP up, no bytes). Abort the request if no data arrives
@@ -90,7 +95,7 @@ function _cachedPromptTokens(usage) {
   return 0;
 }
 
-async function _deliverToken(onToken, token, guard) {
+async function _deliverToken(onToken, token, guard, options = {}) {
   if (typeof onToken !== "function") return;
   // Terminal backpressure is not provider silence. Suspend the network stall
   // timer while the UI sink drains, then re-arm it before reading more bytes.
@@ -150,8 +155,13 @@ export async function streamOllama(
 
   if (!response.ok) {
     guard.stop();
-    throw new Error(`Ollama error: ${response.status} ${response.statusText}`);
+    throw attachStreamRetryMetadata(
+      new Error(`Ollama error: ${response.status} ${response.statusText}`),
+      captureStreamRetryMetadata(response),
+    );
   }
+
+  const retryMetadata = captureStreamRetryMetadata(response);
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -182,7 +192,7 @@ export async function streamOllama(
           if (json.done === true) completed = true;
           if (json.message?.content) {
             fullResponse += json.message.content;
-            await _deliverToken(onToken, json.message.content, guard);
+            await _deliverToken(onToken, json.message.content, guard, options);
           }
           if (json.done && onUsage) {
             const inputTokens = Number(json.prompt_eval_count) || 0;
@@ -202,11 +212,14 @@ export async function streamOllama(
       }
     }
   } catch (e) {
-    throw guard.stalled()
-      ? new Error(
-          `Ollama stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
-        )
-      : e;
+    throw attachStreamRetryMetadata(
+      guard.stalled()
+        ? new Error(
+            `Ollama stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+          )
+        : e,
+      retryMetadata,
+    );
   } finally {
     guard.stop();
   }
@@ -263,8 +276,13 @@ export async function streamOpenAI(
 
   if (!response.ok) {
     guard.stop();
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw attachStreamRetryMetadata(
+      new Error(`API error: ${response.status} ${response.statusText}`),
+      captureStreamRetryMetadata(response),
+    );
   }
+
+  const retryMetadata = captureStreamRetryMetadata(response);
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -300,7 +318,7 @@ export async function streamOpenAI(
             const content = json.choices?.[0]?.delta?.content;
             if (content) {
               fullResponse += content;
-              await _deliverToken(onToken, content, guard);
+              await _deliverToken(onToken, content, guard, options);
             }
             if (json.usage && onUsage) {
               // Split cached prompt tokens out of prompt_tokens so cc cost
@@ -325,9 +343,14 @@ export async function streamOpenAI(
       }
     }
   } catch (e) {
-    throw guard.stalled()
-      ? new Error(`API stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`)
-      : e;
+    throw attachStreamRetryMetadata(
+      guard.stalled()
+        ? new Error(
+            `API stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+          )
+        : e,
+      retryMetadata,
+    );
   } finally {
     guard.stop();
   }
@@ -398,10 +421,13 @@ export async function streamAnthropic(
 
   if (!response.ok) {
     guard.stop();
-    throw new Error(
-      `Anthropic error: ${response.status} ${response.statusText}`,
+    throw attachStreamRetryMetadata(
+      new Error(`Anthropic error: ${response.status} ${response.statusText}`),
+      captureStreamRetryMetadata(response),
     );
   }
+
+  const retryMetadata = captureStreamRetryMetadata(response);
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -435,7 +461,7 @@ export async function streamAnthropic(
             const delta = obj.delta?.text;
             if (delta) {
               fullResponse += delta;
-              await _deliverToken(onToken, delta, guard);
+              await _deliverToken(onToken, delta, guard, options);
             }
           } else if (obj.type === "message_start") {
             const u = obj.message?.usage || {};
@@ -459,11 +485,14 @@ export async function streamAnthropic(
       }
     }
   } catch (e) {
-    throw guard.stalled()
-      ? new Error(
-          `Anthropic stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
-        )
-      : e;
+    throw attachStreamRetryMetadata(
+      guard.stalled()
+        ? new Error(
+            `Anthropic stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+          )
+        : e,
+      retryMetadata,
+    );
   } finally {
     guard.stop();
   }
@@ -607,6 +636,7 @@ export async function* chatStream(messages, options) {
       const maxRetries = resolveStreamRetryMax();
       let attempt = 0;
       for (;;) {
+        throwIfAborted(options.signal);
         try {
           return await providerCall();
         } catch (err) {
@@ -618,10 +648,14 @@ export async function* chatStream(messages, options) {
           if (
             attempt >= maxRetries ||
             tokensEmitted > 0 ||
-            !isRetryableStreamError(err)
+            !isRetryableStreamError(err, options.signal)
           ) {
             throw err;
           }
+          const delayMs = resolveStreamRetryDelay(err, attempt + 1, {
+            baseDelayMs: STREAM_RETRY_BASE_MS,
+          });
+          if (delayMs === null) throw err;
           attempt++;
           if (typeof options.onStreamRetry === "function") {
             try {
@@ -630,9 +664,7 @@ export async function* chatStream(messages, options) {
               /* retry notice is best-effort */
             }
           }
-          await new Promise((r) =>
-            setTimeout(r, STREAM_RETRY_BASE_MS * 2 ** (attempt - 1)),
-          );
+          await waitForStreamRetry(delayMs, options.signal);
         }
       }
     } finally {

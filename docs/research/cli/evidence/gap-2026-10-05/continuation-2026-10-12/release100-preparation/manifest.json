@@ -1,0 +1,814 @@
+{
+  "schema": 1,
+  "summarySha256": "7c977c2d24a5b8a408129b235be37c2822338035aa2cc3a2f50236b5151e095c",
+  "entries": [
+    {
+      "source": ".work\\release100-preparation-20261012\\audit-manifest.json",
+      "path": "objects/000.gz",
+      "rawBytes": 10784,
+      "rawSha256": "07836fd7dc54eb1b65009ee08d39e9de3a1b8f7ef7e6147fbbf450b2d698fcc6",
+      "bytes": 3434,
+      "sha256": "c1296d2c9814f911976d576174094a4f8f2d2ec0df477a66b39fdf12ffaa94d4"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\audit-public.mjs",
+      "path": "objects/001.gz",
+      "rawBytes": 5467,
+      "rawSha256": "36c3e98b7753a549bb18fa5646e7f820edcf3ed3826e640810f5e5e6b87a74cc",
+      "bytes": 2225,
+      "sha256": "4e322055bb71a3a5f031bcc360f8ce8f1cd830326701f965eb72c16be36f22b6"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\baseline-public-binding.json",
+      "path": "objects/002.gz",
+      "rawBytes": 6173,
+      "rawSha256": "f65874171eaa886e42033ca03c224cd02b3a22459f242da157dc4d564788d926",
+      "bytes": 1424,
+      "sha256": "eb958282ec9fce3b4424505f8e9d58bec833464df84034299b6ec6a208019081"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\bind-and-summarize.mjs",
+      "path": "objects/003.gz",
+      "rawBytes": 3561,
+      "rawSha256": "b0b2fccd05a01a674272fb31c4c534c575f04daf79327d19c73df94da077ddef",
+      "bytes": 1642,
+      "sha256": "4c11cad532d320489121011a4a5cd750070e9a34d239518757625a6fbaacebf9"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\changelog-tests.json",
+      "path": "objects/004.gz",
+      "rawBytes": 5387,
+      "rawSha256": "a3175c99303e8565763d889ed27ae0142258c7b4e0aaeb7c5317d29afb08b690",
+      "bytes": 1229,
+      "sha256": "ccd649e100b895ace56460933e7bbb662050400c6e7d05ba12a3ff80ed866b24"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\check-collisions.mjs",
+      "path": "objects/005.gz",
+      "rawBytes": 2031,
+      "rawSha256": "602e8ba7965f21123f3d76279e95a9a97b548ac5db5e70feca71ca8096df9ec2",
+      "bytes": 1070,
+      "sha256": "36edc55d02bc7dd52daaa64eb0a4a390443a67cfd928e7a08d4323a748bddcde"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\checks.mjs",
+      "path": "objects/006.gz",
+      "rawBytes": 1481,
+      "rawSha256": "645d172128b7121355a44e2ed1e2834f57fe8d4390ab3c33b80ce7100109b5be",
+      "bytes": 718,
+      "sha256": "92807cd317736620cb5bbb4af7a2809dc1b5cc897c2b33108c24a23684660af2"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\jetbrains-updates-0.json",
+      "path": "objects/007.gz",
+      "rawBytes": 607176,
+      "rawSha256": "afa27612d7ab4ae37bc632d50d6e2ecce6d16de7231953c8494f0d0c4d861275",
+      "bytes": 51286,
+      "sha256": "8c8020a60621b5b73036c155b7004090a55a985371bd486be9c6ec82a4a95c10"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\jetbrains-updates-1.json",
+      "path": "objects/008.gz",
+      "rawBytes": 607176,
+      "rawSha256": "afa27612d7ab4ae37bc632d50d6e2ecce6d16de7231953c8494f0d0c4d861275",
+      "bytes": 51286,
+      "sha256": "8c8020a60621b5b73036c155b7004090a55a985371bd486be9c6ec82a4a95c10"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\jetbrains-updates-2.json",
+      "path": "objects/009.gz",
+      "rawBytes": 222642,
+      "rawSha256": "1617e4bcbaf71d6ac8105cea2cf17224b31748d5d6ed7235c57d329cc988e3c3",
+      "bytes": 13204,
+      "sha256": "de8177cee8a23902159ddfbb94d311b35ec51025881cc1c27ffb8ea575821ae0"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\npm-0.166.100.json",
+      "path": "objects/010.gz",
+      "rawBytes": 30,
+      "rawSha256": "35ecf8d84bc933c518d4c2c66b56ef750a36360a3842e4fe0aac1eb7c371dd02",
+      "bytes": 50,
+      "sha256": "9433630fb63f2bae13e1e4267a2b7f6e6698a0b7e6a8b4e4032389119e36d341"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\openvsx-0.37.144.json",
+      "path": "objects/011.gz",
+      "rawBytes": 115,
+      "rawSha256": "6b8db81932467456779e71d487ec46aa637b9acb0632ff4c9f8e1a96fbe511ae",
+      "bytes": 111,
+      "sha256": "36912ba2390fc242372619873f73dee93e7457d13e38e417aa30cf140fc974e5"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\summary.json",
+      "path": "objects/012.gz",
+      "rawBytes": 3203,
+      "rawSha256": "2bf14ab7c6833b27f4fdfb6959904aeae0f8885bcad2d6d70fb19c960676a2a6",
+      "bytes": 785,
+      "sha256": "d176799f10c9a2f09cb3999165a28253e0836fdcff8b73cfd504270272c4794d"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\tag-ide-jetbrains-v0.4.162.json",
+      "path": "objects/013.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "8b50ad2cff9e2f6ac34011ab7493bc377ed295fba2165336e982ae36b453d171"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\tag-ide-vscode-v0.37.144.json",
+      "path": "objects/014.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "8b50ad2cff9e2f6ac34011ab7493bc377ed295fba2165336e982ae36b453d171"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\collisions\\tag-v-npm-0-166-100.json",
+      "path": "objects/015.gz",
+      "rawBytes": 114,
+      "rawSha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a",
+      "bytes": 119,
+      "sha256": "8b50ad2cff9e2f6ac34011ab7493bc377ed295fba2165336e982ae36b453d171"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\contracts.config.mjs",
+      "path": "objects/016.gz",
+      "rawBytes": 208,
+      "rawSha256": "e1640e48409c16c894209989c571fd1685a27f7b9e2806473c0a207fe62c76d5",
+      "bytes": 179,
+      "sha256": "5c6b44012c1d1a419cdd2e9c02d8a236beec79b5e69c41cfe864a3590024d309"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\dependency-audit.json",
+      "path": "objects/017.gz",
+      "rawBytes": 17852,
+      "rawSha256": "9d63dd941e048d4d9c81dddcf0cbb09efe4f9deae571a7a49d6387a8e6d32bd1",
+      "bytes": 3667,
+      "sha256": "d222337489adc25f3964a855a5611bafb6a6f66893d48b974f7f0bc6d7f7e70c"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\diff-name-status.txt",
+      "path": "objects/018.gz",
+      "rawBytes": 43862,
+      "rawSha256": "c2732f8226e9c81f0b57c5510b0a4b162bec59882012f90faea0d6772ac33626",
+      "bytes": 2132,
+      "sha256": "d3e6f2f9e18083f719d1b752cdb206e08af089d330b19d0f32761f282c3c7141"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\local-checks-first-run.json",
+      "path": "objects/019.gz",
+      "rawBytes": 4108,
+      "rawSha256": "a9c0e945694a1dc0d09003b98b1c34b8dd8f58b0bc1de69c0b97f622bc26311f",
+      "bytes": 1045,
+      "sha256": "89fe9502bcb55e1cd59cee8be4f3d90db82b95726a81017eac5fd1c9be645d28"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\local-checks.json",
+      "path": "objects/020.gz",
+      "rawBytes": 2628,
+      "rawSha256": "a00d766b5af351696ac1cb5415f2cb19f405af7383d69ba8e6bd3c9e4eaebe20",
+      "bytes": 719,
+      "sha256": "d4a9cd0b1c285bb6cfd4b3b5691df5abb7dd3845548dd0b395c1da367fe0aa29"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\metadata-files.json",
+      "path": "objects/021.gz",
+      "rawBytes": 795,
+      "rawSha256": "0276926523585f0d6e84528e9c030a58926c0a851800dd1d6bb3ec13d929d8e6",
+      "bytes": 258,
+      "sha256": "8cd5ff565d142e5a0f0eeb9a5b6e0ec1135699bed42c928a2fa4f72bf201bb64"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\prepare.mjs",
+      "path": "objects/022.gz",
+      "rawBytes": 4901,
+      "rawSha256": "233d3d17a7716721145793dc3d3a7af73a772ea0b28db17dad414ebc70c6144e",
+      "bytes": 1924,
+      "sha256": "986fe1c6734e23fee1b547907ba66534101e7a59c0428a0af976829db4b1cdfd"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\agent-protocol-0.1.12.tgz",
+      "path": "objects/023.gz",
+      "rawBytes": 43144,
+      "rawSha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc",
+      "bytes": 43119,
+      "sha256": "75374ea88ea3075b8b4aa116ae96f2ab724d1ce15d685b06e3cb49d8c0cbb9d7"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\agent-protocol.json",
+      "path": "objects/024.gz",
+      "rawBytes": 2703,
+      "rawSha256": "23a0edd0e8ed005ea1fd81c6370fa305bafacb6cb684bcca2b03ddd012ee6663",
+      "bytes": 1367,
+      "sha256": "6a5782697293651429aec07008b00769ba5fc6c0a14fa00f94a92d7d6afd3549"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\agent-sdk-0.2.14.tgz",
+      "path": "objects/025.gz",
+      "rawBytes": 88710,
+      "rawSha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537",
+      "bytes": 88549,
+      "sha256": "baa1585cbaa26093573c31d8c5966e64f4d0da50d6b0c373c4507ae0100fbdde"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\agent-sdk.json",
+      "path": "objects/026.gz",
+      "rawBytes": 2859,
+      "rawSha256": "a3e5ff72ded6620883fcdffbf04b08bd84f56d55f590a393c145557339f5d3a4",
+      "bytes": 1425,
+      "sha256": "4e476b2a25d9cee0dec51f8348a9e8c31fff0d139daafa91e7403a8212a4d806"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\cli-0.166.99.tgz",
+      "path": "objects/027.gz",
+      "rawBytes": 9366198,
+      "rawSha256": "e12974b5b026b7280b1b5e3979558e082ec0a4335d2ddb2ef0bf684b4e7ed38c",
+      "bytes": 9366351,
+      "sha256": "cd36fc34ec4f5206bba758a418dbc14aeeb7ddd014849a63a77119bd3fd62b7b"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\cli.json",
+      "path": "objects/028.gz",
+      "rawBytes": 7671,
+      "rawSha256": "d0a032b8434e36f19f410d88ed6eaae82b6dd7814799fcf4f797e3b92948c158",
+      "bytes": 2767,
+      "sha256": "b2d6452f4569162f690b5e5c96f329f4867530a4b6b0b3698809c510ec7de535"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\context-memory-kernel-0.1.9.tgz",
+      "path": "objects/029.gz",
+      "rawBytes": 50055,
+      "rawSha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805",
+      "bytes": 50093,
+      "sha256": "52d81c0c73cbf53fd722b4b64efe06e05de92328237767013b841e84a1e0b3fb"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\context-memory-kernel.json",
+      "path": "objects/030.gz",
+      "rawBytes": 2850,
+      "rawSha256": "4de7d333a7252c775fde8c1a1e098a6dd57a3dd606e09e86e1eeca5f697dd8ed",
+      "bytes": 1381,
+      "sha256": "3382d40983494f5426f0e2dddd5caac055d5aca0f458dfb41d4969a0f33139f7"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-config-0.1.2.tgz",
+      "path": "objects/031.gz",
+      "rawBytes": 3991,
+      "rawSha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "bytes": 4014,
+      "sha256": "6032e11f020a889ce25a8a425d2d6b9af104011cfe0f535daabf9cf43b3a778a"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-config.json",
+      "path": "objects/032.gz",
+      "rawBytes": 1938,
+      "rawSha256": "5ff195df40061e5b02a1198492e2ff88315150e36a8d91b403e1e9b9faeb91a6",
+      "bytes": 1020,
+      "sha256": "6c696f28ad69c6d27fc557d75b5591357d6b0319b44c9fc3c71b96ba7e2f7a96"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-db-0.1.5.tgz",
+      "path": "objects/033.gz",
+      "rawBytes": 10302,
+      "rawSha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "bytes": 10325,
+      "sha256": "ad492e8ab2ecdc54ee7a7666fbc6035003acc80c20497a1e270ba4323e7f642c"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-db.json",
+      "path": "objects/034.gz",
+      "rawBytes": 2586,
+      "rawSha256": "4d92c5647be7c38a0a46f08e560a0d37aa92d49b09283dad9aa689c4bb018f34",
+      "bytes": 1237,
+      "sha256": "e1a062a7e2c8b9752a738a390a53775e70588f2b2ed43deaa33d6230d2ba4609"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-env-0.1.2.tgz",
+      "path": "objects/035.gz",
+      "rawBytes": 2600,
+      "rawSha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "bytes": 2623,
+      "sha256": "fabc0cd94eb224fa1adb96230b6d005c2a03ea8d8e5c036acfb7b9c5f558cbf4"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-env.json",
+      "path": "objects/036.gz",
+      "rawBytes": 1878,
+      "rawSha256": "aacf0377a6ea0d3a6d05b6f1a745488d3f09cc2ee9b758f5dfde472aa8f9e5fa",
+      "bytes": 1020,
+      "sha256": "30e920c227b7cccb1f26a3c9f2b2a0a05f904b39c275a8a0126ac9e6ed456403"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-infra-0.1.1.tgz",
+      "path": "objects/037.gz",
+      "rawBytes": 3482,
+      "rawSha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "bytes": 3505,
+      "sha256": "413e9dfd6f07642d53d2c064d759b0b5ad36fbe3c85a25627eb83e024f49fe05"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-infra.json",
+      "path": "objects/038.gz",
+      "rawBytes": 1979,
+      "rawSha256": "a89a99a98979c0ac38803c8e0ca458826a61d017924c13df7cb68b00a3e9c964",
+      "bytes": 1043,
+      "sha256": "42ed324e4040de6e14c15aeddebef509cb18ee94ea5e2020577d4fed3146dee5"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-mtc-0.2.3.tgz",
+      "path": "objects/039.gz",
+      "rawBytes": 38297,
+      "rawSha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "bytes": 38330,
+      "sha256": "363b298103b22d0b194e62eea7841e96b871f57dca35fefd5a0e26bf2f6bc5bf"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-mtc.json",
+      "path": "objects/040.gz",
+      "rawBytes": 2815,
+      "rawSha256": "03a810e219c23885bbd0b0c42ec9e4dc2c3011192dd5c3aa728c23a1c8b03f61",
+      "bytes": 1374,
+      "sha256": "c7f7b491f4a1c38db25e4ed5a37166f1858314b5ab8e5d43229c1fc8ad439530"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-multisig-0.1.4.tgz",
+      "path": "objects/041.gz",
+      "rawBytes": 13952,
+      "rawSha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "bytes": 13975,
+      "sha256": "280b26adaf85b7670ed2144718d77db6d04a49f3f3996adc2c058d1f1fbe3c20"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-multisig.json",
+      "path": "objects/042.gz",
+      "rawBytes": 2125,
+      "rawSha256": "f0f7de21640db8b934facf7ab9a9dd7214e383fb6d73063359e6078d5bc05cae",
+      "bytes": 1130,
+      "sha256": "b2abe218a2afde94d878b3980b0288e27696489b003cfccf0587c6282b36f0f2"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-settlement-0.1.2.tgz",
+      "path": "objects/043.gz",
+      "rawBytes": 9031,
+      "rawSha256": "cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699",
+      "bytes": 9054,
+      "sha256": "403023f10e59fba5677d1fb21f2225b93461e7be0e52035634486180a7ab99c3"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\core-settlement.json",
+      "path": "objects/044.gz",
+      "rawBytes": 2153,
+      "rawSha256": "169b36c4d5b5ddbb3fd9de85479b1e781ec5cdf10cfc3ed8f8f99544e93dd39e",
+      "bytes": 1214,
+      "sha256": "261b322339f0771a54a9fb9d65ac5042e3a103a22796c64f2a2fda4ff406e9bd"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\personal-data-hub-0.4.64.tgz",
+      "path": "objects/045.gz",
+      "rawBytes": 890625,
+      "rawSha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "bytes": 890861,
+      "sha256": "d2dcf26f85c0da9c81221e988e8fc7d288dd4c5cb0d2add8929b28eed850c6f6"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\personal-data-hub.json",
+      "path": "objects/046.gz",
+      "rawBytes": 7349,
+      "rawSha256": "ae7da299a445a318f357df0e648e66284003ab97fe163ef29faba20645e00c0c",
+      "bytes": 2282,
+      "sha256": "0d014cac349398acb2e863437759e59b35153158cfcfb9f196ee51b24c742d1e"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\session-core-0.3.19.tgz",
+      "path": "objects/047.gz",
+      "rawBytes": 286161,
+      "rawSha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4",
+      "bytes": 286259,
+      "sha256": "15e96d536f2aa48e704c0353ecb5988f83e76d55c5afc3776cac0ffebf3b1890"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\session-core.json",
+      "path": "objects/048.gz",
+      "rawBytes": 6217,
+      "rawSha256": "a512d521a17204c05ffd3a5a52c31167bda580c6532467fa5f0d88db7b37bc19",
+      "bytes": 2056,
+      "sha256": "929a0252172cc08783e620fc5092ba9ac504faaa2db1d1e69a2346477316b1bc"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\shared-logger-0.1.1.tgz",
+      "path": "objects/049.gz",
+      "rawBytes": 4058,
+      "rawSha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "bytes": 4081,
+      "sha256": "10401c8c90809f699cc87fa5c427745702439f073689e7efe77ffbdf6d79eda2"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\registry\\shared-logger.json",
+      "path": "objects/050.gz",
+      "rawBytes": 1931,
+      "rawSha256": "289504258ea0cefed545808ef4e831a182f30f5196f8d8854730c6c6f9bc64ea",
+      "bytes": 1025,
+      "sha256": "19b85f36cedeac15ba83a8155f27bb4fc38b73989c9f0309d53ff4bd19a87558"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\release-contracts.json",
+      "path": "objects/051.gz",
+      "rawBytes": 11148,
+      "rawSha256": "b7c448a563a0c11a8f6d89c6d7098486e7307e91cc51871b2eba7de88d99b81c",
+      "bytes": 2017,
+      "sha256": "63adbae8468de3b588dcfdf1d5389f2d208d7b612a1092e69f1af187b87e225f"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\actions\\verify-published-cli\\action.yml",
+      "path": "objects/052.gz",
+      "rawBytes": 1623,
+      "rawSha256": "9dce5adf92e3f03e0b004ac7fab97c96c31613dad5dca9bcfdbd28603188741c",
+      "bytes": 759,
+      "sha256": "60dc8c2bfec7838015f1cd91570a364ad726114684d2c13d507970018f4fa3ec"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\cli-background-interaction-e2e.yml",
+      "path": "objects/053.gz",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1152,
+      "sha256": "5b2a578495d14e7c2b3d8426e99eea594e0c752640ecd4197dc870a9d7bad1da"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\cli-ci.yml",
+      "path": "objects/054.gz",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4562,
+      "sha256": "85b089a4b1f65b7bee9590e0b4e20b6d872058e849d18072fa64e63e8c64b20d"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\cli-strict-sandbox.yml",
+      "path": "objects/055.gz",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5741,
+      "sha256": "92b861177ce48b0a1a9afecf90403238e7bcfa749866730a2f6d0f64f1b69cca"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\context-memory-kernel.yml",
+      "path": "objects/056.gz",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1789,
+      "sha256": "c60949e265d8994422f7a6dea9f84bb1b22ae414ffb21ec86ee1ed588b7df864"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\ide-arm64-validation.yml",
+      "path": "objects/057.gz",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5785,
+      "sha256": "dbe1a6d47ba10f3b461f5739bf95a7132e36cbcab79495bd9c48a1155479e8e0"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\ide-extensions.yml",
+      "path": "objects/058.gz",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8826,
+      "sha256": "e74f5d16b6be8bdd842e1bbd610010d7a31cebeb3dcc7c90848ac814a12cd71d"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\memory-query-index.yml",
+      "path": "objects/059.gz",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "9ac86a7119bc306b4ecfead54eac6f5a47001ca5e297b2f36ba6429330a0e47d"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\npm-publish.yml",
+      "path": "objects/060.gz",
+      "rawBytes": 51110,
+      "rawSha256": "0ab117daafe75c0de7fdbd562b05f70baf4288dfcaf3b7ba3b0b6aa5ac96c2dc",
+      "bytes": 9226,
+      "sha256": "bcb79323323e145a2949a8e8b92b270516cd8676c1c3a3a81bdc1b2ae6934186"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\.github\\workflows\\workspace-npm-publish.yml",
+      "path": "objects/061.gz",
+      "rawBytes": 5993,
+      "rawSha256": "52c9df9e37d93ac73cb9245aab9baebbdfa7864cd7e39eca5c9dfaab1f06c783",
+      "bytes": 2062,
+      "sha256": "ed35ae615f22961265a597384458a484768085ff5f377303b2aee98c7617d07c"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\agent-protocol\\package.json",
+      "path": "objects/062.gz",
+      "rawBytes": 1595,
+      "rawSha256": "659c55d0be87b3baf6bed2565d9704502b4dbc80608b7f6e5deb1696571ee87e",
+      "bytes": 622,
+      "sha256": "7ca55faffda0586369edfefdddc60e5155685410fd5ce92bc9ae44878a9098a8"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\agent-sdk\\package.json",
+      "path": "objects/063.gz",
+      "rawBytes": 1697,
+      "rawSha256": "0b12f29440f392f8be3ee33747f6ee4c773d26b7cdba1e6965edb9a289fe81c4",
+      "bytes": 666,
+      "sha256": "222729d910cba1799bdc7280d35d678d3e090fe22acb7f9e1ae758743219a665"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\cli\\package.json",
+      "path": "objects/064.gz",
+      "rawBytes": 7356,
+      "rawSha256": "a0b005d4386247bbdc453a8b41ee90ce5fb564c146b59a930e05b37aa037d325",
+      "bytes": 2107,
+      "sha256": "b3d24e1086732364796b9a4fe23312d98c2d3a5fa3415ea40b98b028e5100cae"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\cli\\scripts\\verify-cli-registry-install.mjs",
+      "path": "objects/065.gz",
+      "rawBytes": 6401,
+      "rawSha256": "c93a84ca4ae4f0856ee5d7db0c5e5562dc4a43eb4f04f44e8826d62cd6da1f12",
+      "bytes": 2202,
+      "sha256": "141b15cd33effdec4a12dbbb3c34be5706ca434d3a272909b9185ac4a7af194a"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\cli\\scripts\\verify-release-gates.mjs",
+      "path": "objects/066.gz",
+      "rawBytes": 6104,
+      "rawSha256": "dcdeecb8e5c427bb5d6d2e4212509a47ccfc61dac1c3a6b0c579f1685613049c",
+      "bytes": 2346,
+      "sha256": "582e1292d4b52f3288b6fccd27cc73b6e6a5007fd35dcc9d7ae3a9b961b454cc"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\context-memory-kernel\\package.json",
+      "path": "objects/067.gz",
+      "rawBytes": 1817,
+      "rawSha256": "13482386a221655eef2852e9760dee681c12130986751e6ab238eedb7fc1504d",
+      "bytes": 656,
+      "sha256": "eaf43664d0d3d845c1d2d0eb7e0d7d34f077e3f5e5249a1cc8395ce02e9cdbe6"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-config\\package.json",
+      "path": "objects/068.gz",
+      "rawBytes": 843,
+      "rawSha256": "c7686f8234c73ebc4411c5ab9aca321dd685660d4e63abbb68001d6c41bbe7f0",
+      "bytes": 386,
+      "sha256": "2fd508fa625a6cba3794450773c12a0cf255cd92f7c4b83433b5b6dfc5bc0029"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-db\\package.json",
+      "path": "objects/069.gz",
+      "rawBytes": 1147,
+      "rawSha256": "98d422b1035f221e5be0ab5925b701a926d53f84752da407025e7713e387ee88",
+      "bytes": 496,
+      "sha256": "2f7bbd6df44ffbb203beced9eecc9035330c0c2cd9e9837688ee708e3e48741f"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-env\\package.json",
+      "path": "objects/070.gz",
+      "rawBytes": 791,
+      "rawSha256": "99ace873e97cd212894cc0b69f0cdb56013fd2e47420c1499577780dfc2b76c7",
+      "bytes": 387,
+      "sha256": "021dfeab8bd315a7c7bcc03cc34d1fc082e778bbf14c5dae11571e4d7b467cdd"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-infra\\package.json",
+      "path": "objects/071.gz",
+      "rawBytes": 899,
+      "rawSha256": "2e48458c948e0b853b82e00bc4f2bcfd282fcd0ce750055632b624c6b4c22051",
+      "bytes": 410,
+      "sha256": "2005317161df7ea8b4b415a8330124b98c1055229ccb5ae049498ec18293ee1a"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-mtc\\package.json",
+      "path": "objects/072.gz",
+      "rawBytes": 1891,
+      "rawSha256": "208979fe62c76da9b9a19f559bcdb7c51f999d099980f47fe2a265b701e8a0c1",
+      "bytes": 740,
+      "sha256": "72d69d4ddbe905d74e3549ddd9646f7c14528737462ea5cdc9b50e196fac246e"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-multisig\\package.json",
+      "path": "objects/073.gz",
+      "rawBytes": 1043,
+      "rawSha256": "f49698d0ba0d26566b65e43abf0e04eac3dc75a45cda4ab89ba9cd7982caf2ac",
+      "bytes": 503,
+      "sha256": "b7fa594959a8100d52315b11a9f0a2f55d0fd4fd9fb017b119c96b33d8b09854"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\core-settlement\\package.json",
+      "path": "objects/074.gz",
+      "rawBytes": 1044,
+      "rawSha256": "ebd8d85f7c87424a2bb11451275bddf9c1b59704663fc4863d66a590e40142d6",
+      "bytes": 568,
+      "sha256": "ae1efbcb322eaac05bea6a492fe5120da33dc01f4c66b808c61f0bd00353e806"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\jetbrains-plugin\\build.gradle.kts",
+      "path": "objects/075.gz",
+      "rawBytes": 23698,
+      "rawSha256": "2d9c8173412b4db722627c1e28c656fecabcaa2e7a08d424a0dddd25e34a8a7d",
+      "bytes": 8244,
+      "sha256": "ca535f1b01b4ec84dd271e743ebe8ef5efe5d20dc9d1104173e1caae095657a8"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\jetbrains-plugin\\gradle.properties",
+      "path": "objects/076.gz",
+      "rawBytes": 170,
+      "rawSha256": "79705c922f154bf2f48dfb92a9087633b9352b90a21697bcc4914ceea5474e0b",
+      "bytes": 145,
+      "sha256": "8222fc10287b65951f0f88a69ba92c281b3007de62f9097c38f37068924b30ff"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\jetbrains-plugin\\scripts\\verify-release-metadata.mjs",
+      "path": "objects/077.gz",
+      "rawBytes": 4790,
+      "rawSha256": "6fef9a1e3bc7b2df96806d5471e7291befc7aa26fc92f59a5f18c0fce06bd4f8",
+      "bytes": 1618,
+      "sha256": "8f6d22a4b3b445eb29bd011a6d14a688b1e03e6bb71c3016eea77e903b92a265"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\jetbrains-plugin\\src\\main\\resources\\META-INF\\plugin.xml",
+      "path": "objects/078.gz",
+      "rawBytes": 27473,
+      "rawSha256": "9cd542f0f3f5e6881902d3688962af29b823681619b8a56c49eb4e337405bed5",
+      "bytes": 7150,
+      "sha256": "abc03bd63825a4975f942adc04450ff524ab302cdf6eb5deed3bbcee819dca79"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\personal-data-hub\\package.json",
+      "path": "objects/079.gz",
+      "rawBytes": 6463,
+      "rawSha256": "4ce3c94721bd26010588385bc6838742b9d572ae1d1b41c326139ef57ecc867f",
+      "bytes": 1422,
+      "sha256": "1b432c442b7bc2aa9b9b6b6579f6d792a2f04cdd8e95ac331e58e10931ebc9b4"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\session-core\\package.json",
+      "path": "objects/080.gz",
+      "rawBytes": 4913,
+      "rawSha256": "9df662772cc5529e9e5707e7c2442c7d7394040c5f6022e872470825dd1da544",
+      "bytes": 1184,
+      "sha256": "01c1c07d419d6d346d02096decc236409ff6e465208e1e1b42ea1f713bcbeb84"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\shared-logger\\package.json",
+      "path": "objects/081.gz",
+      "rawBytes": 825,
+      "rawSha256": "ffb63dda4706ec25e9f50e0956a1df735a4e89a8bc4ce795ed29cf4ecb04919e",
+      "bytes": 392,
+      "sha256": "2b416d03a1b57c4f833864a6cb4d5ef9af4d17f921fec95a35cc26938cf39f46"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\packages\\vscode-extension\\package.json",
+      "path": "objects/082.gz",
+      "rawBytes": 24574,
+      "rawSha256": "236258e9b5c37ad038056b7b970d3a2870d9a80096dbc547e5cc9bacf41aed60",
+      "bytes": 3678,
+      "sha256": "f477672aae42f387971ba750435eafec7e212838ed779bb6d21734af8dd42f4a"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\source\\scripts\\verify-ide-cli-prerequisite.mjs",
+      "path": "objects/083.gz",
+      "rawBytes": 3499,
+      "rawSha256": "1cf15ed0e78aedaae31642899eca850506652e29c52a3102616992a52faaa850",
+      "bytes": 1416,
+      "sha256": "1833793151daf9263f7a4eac1f78846bc9e7c86c19dc83b019536e4c04e37abf"
+    },
+    {
+      "source": ".work\\release100-preparation-20261012\\summary.json",
+      "path": "objects/084.gz",
+      "rawBytes": 2433,
+      "rawSha256": "a7a9b414321a7054f765f4900703c0a7ed391844891a6e602b152559ffee9796",
+      "bytes": 908,
+      "sha256": "8bd1c68222396503ecad441b94771e4d33a62b7d924f85df93abefbd307cc7bc"
+    },
+    {
+      "source": "package-lock.json",
+      "path": "objects/085.gz",
+      "rawBytes": 1352185,
+      "rawSha256": "106e64b0b67ee0475cd85c6abb29445e5c0906280c0896149012a536b228999b",
+      "bytes": 300394,
+      "sha256": "71c1d541c3bbbd92a40157677fb52d6ea9902a3975a68af8eac1195ec87fb333"
+    },
+    {
+      "source": "packages/cli/package.json",
+      "path": "objects/086.gz",
+      "rawBytes": 7357,
+      "rawSha256": "e31c1a5ef5b3d9fcfc3e5724a2aee294d196ccc3659ea96d85669bc5afa30a90",
+      "bytes": 2108,
+      "sha256": "bfa609b65e45d51230d882f2ea61fbffe2e73f4a26b2ccdfad983cbb771089e8"
+    },
+    {
+      "source": "packages/vscode-extension/package.json",
+      "path": "objects/087.gz",
+      "rawBytes": 24575,
+      "rawSha256": "3c22491ee0b92175228e02bd9de544aeb016b423e7949a6a184187ffac5cfa2e",
+      "bytes": 3678,
+      "sha256": "5136af213f3240c255bb406dab5f2f02d46f39af7312b644a106691eba602684"
+    },
+    {
+      "source": "packages/jetbrains-plugin/build.gradle.kts",
+      "path": "objects/088.gz",
+      "rawBytes": 23698,
+      "rawSha256": "0b234b6cd0ad59c5fae013d81a2d87283be07db39cfb0a44d27a7506f83c55eb",
+      "bytes": 8244,
+      "sha256": "7efdcc746d8da0cf67488dff70abd8e448a12284ac21890f72e2d6b0a1440ca3"
+    },
+    {
+      "source": "packages/jetbrains-plugin/gradle.properties",
+      "path": "objects/089.gz",
+      "rawBytes": 171,
+      "rawSha256": "117aee0d6e6ec1a7f4f48e6221477f35a21073189417abd72485f62823164bc4",
+      "bytes": 144,
+      "sha256": "f66524d8ec6654890cffd16522781b0d2ae39439e64d88407d8112fd878d71aa"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "path": "objects/090.gz",
+      "rawBytes": 27473,
+      "rawSha256": "2ba7871623a1413dce7600de9adc2695a0f3a1773350923e6efc843bfa8be56a",
+      "bytes": 7148,
+      "sha256": "96769ad0436cabd9e5b4c0e59b41ae5b67eca58fea5af5ead9834f3e1618a925"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "path": "objects/091.gz",
+      "rawBytes": 4100,
+      "rawSha256": "3fd7bfdc52c037297416488123f87c78561eed2b9c3401234345a1df23868faf",
+      "bytes": 1617,
+      "sha256": "c16f144f0e81f75a0da0ae7b81e4f0c284007b7cf55fe80291fd0d6b05cd7cea"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "path": "objects/092.gz",
+      "rawBytes": 2786,
+      "rawSha256": "80dac0bde3c0233a9d97653ff19631604469e09b4bc2957458ffe7dd4d4dbe23",
+      "bytes": 816,
+      "sha256": "40ffba9252474aefe6792aaf1b43853432e7b28e5916dba36efb9882a9449284"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+      "path": "objects/093.gz",
+      "rawBytes": 3160,
+      "rawSha256": "7455b2bf7db2145c1ecb338a3f1b2060781dfb49dbfec6508c24f431faa5c3ac",
+      "bytes": 1029,
+      "sha256": "ad15dd34d1c98687a0499a3a89cd02bbbaf485a27421d342d72888b771bc71ab"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "path": "objects/094.gz",
+      "rawBytes": 659558,
+      "rawSha256": "ab5d4926c6e33f6d1a98f405247c07f539edba407304ae740d35285bf160fbaa",
+      "bytes": 266612,
+      "sha256": "2ae5d93b0be3f58c8f9c16b938a7861f078674a3cfec5699c19019ed7d2ad343"
+    },
+    {
+      "source": "packages/cli/README.md",
+      "path": "objects/095.gz",
+      "rawBytes": 159836,
+      "rawSha256": "7943bc620983634e302fdd1c1abadd433f3c653494e192f096225ab964cf2314",
+      "bytes": 51022,
+      "sha256": "ca5d0b21b5a0d8c1a40d2c32f6668a736f6e18dbf4ed420365722d15e4ad447f"
+    },
+    {
+      "source": "packages/cli/src/data/changelog.json",
+      "path": "objects/096.gz",
+      "rawBytes": 333817,
+      "rawSha256": "93a2d1c2b614740e3a34e7396c3e892ac142e0d2be80ab1dab06ba9b770137d7",
+      "bytes": 116290,
+      "sha256": "d0df997c70c8f2948aadb4bc0ad712b9c1c7d1dd48e03efe3367f69ceb1388ab"
+    },
+    {
+      "source": "packages/vscode-extension/CHANGELOG.md",
+      "path": "objects/097.gz",
+      "rawBytes": 160639,
+      "rawSha256": "d87789b5576ccbc645f1690b79bbf088d323e82f8df698cdc51b1316bf937510",
+      "bytes": 56467,
+      "sha256": "6ade6d18e88da309cc53d0dd858023d8d09aa8b52d314af3e20ce156ea1a474f"
+    },
+    {
+      "source": "packages/vscode-extension/README.md",
+      "path": "objects/098.gz",
+      "rawBytes": 40161,
+      "rawSha256": "4e65814e620cc2954e112c9a3e42e97b64e99c1c4ebdfd354d723be571e5041b",
+      "bytes": 14552,
+      "sha256": "eeb6dcd9b7468ea2701c8ab8acf05c3db6919e41461a2f9e6a695ed96ab56ec8"
+    },
+    {
+      "source": "packages/jetbrains-plugin/CHANGELOG.md",
+      "path": "objects/099.gz",
+      "rawBytes": 142154,
+      "rawSha256": "96375877959ae1ce3bef840617811f97cc7bda2ec440cf6a11f2bafdd8389213",
+      "bytes": 51169,
+      "sha256": "36e9149aa4dbbc3b0556d8cb8fe0bdbcfeae44ced0b7911bb07dd510f79a2894"
+    },
+    {
+      "source": "packages/jetbrains-plugin/README.md",
+      "path": "objects/100.gz",
+      "rawBytes": 28994,
+      "rawSha256": "93da148e286f353fc65c11981e915c380659f9b0c1dec4f29b94970d6f3ec65b",
+      "bytes": 11675,
+      "sha256": "5ccd07441e8e48007349b6ef5ece8f2424b99708834e20f0ed1d980b8f12654b"
+    }
+  ]
+}

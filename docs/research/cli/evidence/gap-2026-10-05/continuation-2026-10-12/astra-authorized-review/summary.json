@@ -1,0 +1,31 @@
+{
+  "schema": "chainlesschain.verify01-astra-review-evidence/v1",
+  "at": "2026-10-12T15:52:18.096Z",
+  "userAuthorization": "astra代替人工审阅",
+  "reviewerKind": "AI",
+  "reviewer": "Astra",
+  "independentHumanReview": false,
+  "oldPack": {
+    "verdict": "CHANGES_REQUIRED",
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "reviewDigest": "sha256:70bf778369d352cfa7d31036ec8f2ab4b14d2079a8d18a82ab465bf2b7803c54"
+  },
+  "correctedPack": {
+    "verdict": "APPROVED_FOR_DECLARED_EVALUATOR_SCOPE",
+    "sourceCommit": "07f050be901dd806f68ccb3ddb8eee12ad7a5254",
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "reviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
+    "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da"
+  },
+  "regression": {
+    "isolatedOriginalSource": "e32e75e2b4a14daf0901f09a6738605896fb6385",
+    "failed": 2,
+    "passed": 0,
+    "windowsFinalPassed": 11,
+    "linuxFinalPassed": 11
+  },
+  "originalAgentWindowsReports": "Only terminal transcriptions were saved by the agent initially; later root isolated-source reproduction/final rerun have original disk reports and are separately identified.",
+  "observationsCreated": false,
+  "billingVerified": false,
+  "nativeAcceptanceClaimed": false
+}

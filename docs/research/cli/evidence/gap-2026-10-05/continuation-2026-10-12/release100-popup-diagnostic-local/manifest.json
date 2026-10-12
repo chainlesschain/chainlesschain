@@ -1,0 +1,280 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T16:51:15.347Z",
+  "summarySha256": "080e595b13095bdd974935462a4faf02fc93a28078fad7296c330e005b9d6ca6",
+  "readmeSha256": "dea22c703048f5e157780efb094b830c3b272848bf8f223e6aa7d5b499e15086",
+  "entries": [
+    {
+      "source": "git:0c148cf927507280760dc91ab00db17c30588c01:packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+      "path": "objects/000.gz",
+      "rawBytes": 4870,
+      "rawSha256": "0c499c6d3384bbe09d641f46ea9f20112d58e41d823b9f47371d120de60c8cc3",
+      "bytes": 1713,
+      "sha256": "709d04a01fad548437963c01305b6e2a890f45664c2a205917f002fb6a182dad",
+      "repositoryPath": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/UiEventDiagnostics.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01"
+    },
+    {
+      "source": "git:0c148cf927507280760dc91ab00db17c30588c01:packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "path": "objects/001.gz",
+      "rawBytes": 171013,
+      "rawSha256": "e10f49ff40677091c694eb58777c45e1e0bef12df7083ee6dd3e1102ae639128",
+      "bytes": 38903,
+      "sha256": "4a96d0614816ea8b4cc45a35e7dc5eef97b089a09932ec8592d6274377aff203",
+      "repositoryPath": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01"
+    },
+    {
+      "source": "git:0c148cf927507280760dc91ab00db17c30588c01:packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/UiEventDiagnosticsTest.java",
+      "path": "objects/002.gz",
+      "rawBytes": 6477,
+      "rawSha256": "30fd0918c59a8893ae8f653156e0c7f3d36cce1e41cb2f2033725d97b9244247",
+      "bytes": 1672,
+      "sha256": "c8bda3c1b7a5ead404da5ac60c3c009f09b561a372a9db503725166d54071baf",
+      "repositoryPath": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/UiEventDiagnosticsTest.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01"
+    },
+    {
+      "source": "git:0c148cf927507280760dc91ab00db17c30588c01:packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "path": "objects/003.gz",
+      "rawBytes": 71851,
+      "rawSha256": "5a1d5054b710a4b42bae9bbc27e7e27078c3488ac24392610ff3519b5af2d761",
+      "bytes": 15672,
+      "sha256": "acc12a02bedd102ee220cecc7c887ecabd032ead965b50a42d9375c695df1b77",
+      "repositoryPath": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "sourceCommit": "0c148cf927507280760dc91ab00db17c30588c01"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/classpath.txt",
+      "path": "objects/004.gz",
+      "rawBytes": 14583,
+      "rawSha256": "2341b00d536dcd0cf031b15069c8904a92293f32800db1bcd68e00fb4eb904d9",
+      "bytes": 2431,
+      "sha256": "db8ba61b48d14bdd451009b6d2015d4a270d687c53e3f3d283f5c354a73b3009"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/diagnostic-only.patch",
+      "path": "objects/005.gz",
+      "rawBytes": 14143,
+      "rawSha256": "a91383b60094de67b44f33381fc78cba12534c204b826c059b16d57741304625",
+      "bytes": 3250,
+      "sha256": "04e0e77461983b57f10a11b351eb05cd9638d5ab6fe18bc40f314da3dad4f9a6"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle-isolated.result.json",
+      "path": "objects/006.gz",
+      "rawBytes": 379,
+      "rawSha256": "e68d87bb232cffdd171bab36b1c420533bdd7daff63ea28b42777dd3e689bd90",
+      "bytes": 273,
+      "sha256": "d61ddaa7df3edb6db9a6352d175f0408bad12ca9e634800c6507776e643ed20c"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle-isolated.stderr.log",
+      "path": "objects/007.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle-isolated.stdout.log",
+      "path": "objects/008.gz",
+      "rawBytes": 1120,
+      "rawSha256": "a759655c83124f0cb32539c94ca621cadbc329f2fe9c23fd3a6500ef684d3a69",
+      "bytes": 491,
+      "sha256": "7e5e049864b9dbaebd8722ad7bcaca17eafead3ddbfac6c04706f2943ac8df63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle.result.json",
+      "path": "objects/009.gz",
+      "rawBytes": 241,
+      "rawSha256": "b13e987e4ada413a8df7f5318490da466d0dbea9b3cb33ec377d135266ea6d8c",
+      "bytes": 193,
+      "sha256": "a2288482c839727a56d5408b1b611aa78b59d969ba14f16a1c8bf45ef1a9fee7"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle.stderr.log",
+      "path": "objects/010.gz",
+      "rawBytes": 774,
+      "rawSha256": "dafb46620f3c3b90b701f818a3790d4c42903e788352a4448b70004773fe4a58",
+      "bytes": 395,
+      "sha256": "8a9ad61d1962037e2abd57c383174dd5c470eb5e0f130894299b0440c477a0e5"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/gradle.stdout.log",
+      "path": "objects/011.gz",
+      "rawBytes": 1416,
+      "rawSha256": "919a68020710f5bdf43d3348e918b2171495f422f6a5f235bff5344919f3680a",
+      "bytes": 627,
+      "sha256": "eaab9e0e7d82f698ef37ca0d14aacd76000a0f24089f9e5e5b66a43b5536a7e8"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/handoff.json",
+      "path": "objects/012.gz",
+      "rawBytes": 5120,
+      "rawSha256": "243a9c0f7f2b15b7a5c9b78a1e9cde916725f6a4242028bd3eacbf1d440420ba",
+      "bytes": 1689,
+      "sha256": "c935dcfc4b325b8241da04fb3dcff44d7567ecc49931560c53ae133ade11fa7f"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/isolated-test-output.gradle",
+      "path": "objects/013.gz",
+      "rawBytes": 399,
+      "rawSha256": "1c76bbd0346a76aed40e1d0c8598584a780c309ea6929c8ee37de0f5ce1387b3",
+      "bytes": 246,
+      "sha256": "c671cd9516e05ac30a6a3128fda975b988ccfeef7b7be069397578f0e977d9f1"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac-complete.args",
+      "path": "objects/014.gz",
+      "rawBytes": 15353,
+      "rawSha256": "da117caf2d113a44c6bcd58e5533920cb046f1fe8005af563222567e99e4c72c",
+      "bytes": 2586,
+      "sha256": "bc6df2d026c16bc83fb8ceb20e7740d49dc800d1880e3a1bb04ba58789099115"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac-complete.result.json",
+      "path": "objects/015.gz",
+      "rawBytes": 34,
+      "rawSha256": "86496f38c76a076c50a5eda0dd7ffb1f474e70150d416bdd1a9a1fb74102d364",
+      "bytes": 51,
+      "sha256": "207204406917c8e11274bbc6e231db2fc306a08a7d0fe98f9df3caefeebfc2ff"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac-complete.stderr.log",
+      "path": "objects/016.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac-complete.stdout.log",
+      "path": "objects/017.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac.args",
+      "path": "objects/018.gz",
+      "rawBytes": 15288,
+      "rawSha256": "6de8de76bdf7e6a7247de2895c8b759f5d282a2a653ae832793da700be01af3d",
+      "bytes": 2575,
+      "sha256": "8d450c491060b6d41257d25bfd9beff2e356a5d2d6234c4cb1ae8ca11f5aedea"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac.result.json",
+      "path": "objects/019.gz",
+      "rawBytes": 34,
+      "rawSha256": "917299159f35663070066b62879e3f4ae309fbc43f3cbc5b35b5f1ae0c7ae73c",
+      "bytes": 51,
+      "sha256": "b7da3a955e39bd27b72b3c4d7cd8af2dd7d46b58adc6d1ccf2c74fc0aa7402c0"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac.stderr.log",
+      "path": "objects/020.gz",
+      "rawBytes": 3968,
+      "rawSha256": "9c207837162618080c228cfd9b7e92cb1982e635f5e7e2509bade6192f388efc",
+      "bytes": 644,
+      "sha256": "a3e1c440ca3d9aa3eb687362b9553facb007354e13a782d054c718d32a49af7b"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/javac.stdout.log",
+      "path": "objects/021.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/source-receipt.json",
+      "path": "objects/022.gz",
+      "rawBytes": 1428,
+      "rawSha256": "632ccaef04a4bd15a2f30b2e17ae56454b1f9e5e2a883abe20d86390674cfccf",
+      "bytes": 510,
+      "sha256": "078081543362df59b45d734df0b339024ac03532ae2dc1cc8a2dd10924b41bbb"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/local-diagnostic-validation/junit/xml/TEST-com.chainlesschain.ide.UiEventDiagnosticsTest.xml",
+      "path": "objects/023.gz",
+      "rawBytes": 1066,
+      "rawSha256": "d95c18ca42a70a74d9e84400ca75e1ce64798b70167e00c32fdd83ea656fd73c",
+      "bytes": 453,
+      "sha256": "9442a5bf4b8f7ed72a473ba42bbf1d2e3fd4f16bb1286a11c645c45bd22c8244"
+    },
+    {
+      "source": ".work/release100-arm64-windows-failure-20261013/investigation.json",
+      "path": "objects/024.gz",
+      "rawBytes": 3404,
+      "rawSha256": "a0b5ed86d6026266002f6274cc7d4104f3b4392c52bf4bb4d3b1f8292c03f4c0",
+      "bytes": 1715,
+      "sha256": "27b0eeb8978d5f312267082b2fe6b705fa86049e71e4e4f4c10387211f830a70"
+    },
+    {
+      "source": ".work/preserved-popup-working-diff-20261013/receipt.json",
+      "path": "objects/025.gz",
+      "rawBytes": 695,
+      "rawSha256": "43198267e6b1b931dac30a23ca3f1d16d9975a5b6c0adf7c99e1a8e46e19ec77",
+      "bytes": 412,
+      "sha256": "44d779406fbb03547dfa444484b0d685bed8cfa296007a6fd42303b2d4e6dc03",
+      "adopted": false,
+      "attribution": "UNKNOWN_WORKING_TREE_EDITS"
+    },
+    {
+      "source": ".work/preserved-popup-working-diff-20261013/working.patch",
+      "path": "objects/026.gz",
+      "rawBytes": 8106,
+      "rawSha256": "1874769515356bbb6439318bd78ba2ebf59a291dd4366419ee8bc60c5682febf",
+      "bytes": 1954,
+      "sha256": "6fed86affed7d8c425c5b198561bc6f17f0d674ccf34620ee29b3ce955fb01c1",
+      "adopted": false,
+      "attribution": "UNKNOWN_WORKING_TREE_EDITS"
+    },
+    {
+      "source": ".work/preserved-popup-working-diff-20261013/UiEventDiagnostics.java",
+      "path": "objects/027.gz",
+      "rawBytes": 4097,
+      "rawSha256": "054e0035e47d2a73eb350c686fc81b92eb4cef98350638e600ee06bfef890551",
+      "bytes": 1559,
+      "sha256": "a375e034c5d6c5ea795dc9047e636ffbb102fa96f47cb7343723a58657ee9aee",
+      "adopted": false,
+      "attribution": "UNKNOWN_WORKING_TREE_EDITS"
+    },
+    {
+      "source": ".work/preserved-popup-working-diff-20261013/ConversationView.java",
+      "path": "objects/028.gz",
+      "rawBytes": 170206,
+      "rawSha256": "459cdadccda470aefaed72808041e90b276a59674413fb1e16800e27ea3ba0f1",
+      "bytes": 38576,
+      "sha256": "7eb251c76b302fa3332faaeddccc772ddaf32bfbdb423f55c8b524561835de9a",
+      "adopted": false,
+      "attribution": "UNKNOWN_WORKING_TREE_EDITS"
+    },
+    {
+      "source": ".work/release100-ci/2026-10-12T16-51-18.863Z/runs.raw.json",
+      "path": "objects/029.gz",
+      "rawBytes": 479,
+      "rawSha256": "05964207731e052ea3bc0f0b4f25711b3fcff7aee42731830dc027ce918b7e01",
+      "bytes": 244,
+      "sha256": "832678fa93178374267bad809d07a8d5cc4bef2736d4fbae2fdc9f28d86c1b0d"
+    },
+    {
+      "source": ".work/release100-ci/2026-10-12T16-51-18.863Z/jobs-38280050578.raw.json",
+      "path": "objects/030.gz",
+      "rawBytes": 9239,
+      "rawSha256": "b23cace8247b39899b1425af776305920ff07de4d85699923ba71ce621456a2d",
+      "bytes": 1289,
+      "sha256": "23bc0a56b4c92db8af4d97aa25f6b46036530b35a73e5ae349d0e49027cfe94c"
+    },
+    {
+      "source": ".work/release100-ci/2026-10-12T16-51-18.863Z/summary.json",
+      "path": "objects/031.gz",
+      "rawBytes": 2411,
+      "rawSha256": "0691c481c8baac888e2b9a3e6f80a23c9e3928962a7843813bf5a171e6873b8f",
+      "bytes": 579,
+      "sha256": "5852f3958ea9f43e94c19afb957d4a39b5bb9e838847de4295b3085f8297154c"
+    }
+  ]
+}

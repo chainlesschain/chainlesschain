@@ -16,7 +16,10 @@ public final class UiEventDiagnostics {
     public enum Stage {
         RECEIVED, STALE_RECEIVE, CALLBACK_FAILED, MAPPED, MAP_FAILED, SCHEDULED, SCHEDULE_FAILED,
         EDT_ENTERED, STALE_EDT, RENDER_RETURNED, RENDER_FAILED,
-        CARD_ENTERED, CARD_SKIPPED, CARD_ADDED
+        CARD_ENTERED, CARD_SKIPPED, CARD_ADDED,
+        POPUP_CREATED, POPUP_BEFORE_SHOWN, POPUP_SHOW_RETURNED, POPUP_SELECTED,
+        POPUP_CHOSEN, POPUP_CLOSED, POPUP_CALLBACK_FAILED,
+        POPUP_HANDOFF_SCHEDULED, POPUP_HANDOFF_ENTERED, POPUP_STALE
     }
 
     private UiEventDiagnostics() {}
@@ -48,6 +51,19 @@ public final class UiEventDiagnostics {
                 Object turn = event.get("turn");
                 if (turn instanceof Byte || turn instanceof Short || turn instanceof Integer || turn instanceof Long)
                     record.put("turn", turn);
+                if (stage.name().startsWith("POPUP_")) {
+                    for (String key : new String[] {"selectedIndex", "itemCount"}) {
+                        Object value = event.get(key);
+                        if (value instanceof Integer number && number >= -1 && number <= 1000)
+                            record.put(key, number);
+                    }
+                    for (String key : new String[] {"popupVisible", "popupDisposed",
+                            "anchorShowing", "focusWindowShowing", "closedOk"}) {
+                        if (event.get(key) instanceof Boolean value) record.put(key, value);
+                    }
+                    for (String key : new String[] {"focusClass", "focusWindowClass"})
+                        putIdentifier(record, key, event.get(key));
+                }
             }
             if (failure != null) record.put("failureClass", failure.getClass().getName());
             synchronized (UiEventDiagnostics.class) {

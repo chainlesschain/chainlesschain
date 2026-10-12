@@ -1,0 +1,50 @@
+{
+  "schema": "chainlesschain.scheduler-lease-margin-source-review-archive/v1",
+  "reviewedCommit": "94da2311b380442cf861ffebe2402bfe77986d16",
+  "parent": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+  "verdict": "CHANGES_REQUIRED_FOR_ADMISSION_AS_A_FIX_FOR_THE_ORIGINAL_1000MS_FAILURE",
+  "sourceArtifactHashesVerified": 11,
+  "gitSourceBindingsVerified": 8,
+  "experimentsRunAtReview": 0,
+  "sourceReviewOnly": true,
+  "original1000msFailureFixed": false,
+  "profileChanges": {
+    "leaseMs": {
+      "before": 1000,
+      "after": 10000
+    },
+    "renewIntervalMs": {
+      "before": 333,
+      "after": 3333
+    },
+    "heartbeatDelayMs": {
+      "before": 1500,
+      "after": 15000
+    },
+    "workerScenarioTimeoutMs": {
+      "before": 15000,
+      "after": 55000
+    },
+    "cleanupDeadlineMs": {
+      "before": 10000,
+      "after": 10000
+    },
+    "actionsJobTimeoutMinutes": {
+      "before": 300,
+      "after": 300
+    },
+    "configuredSmokeDurationSeconds": {
+      "before": 15,
+      "after": 15
+    }
+  },
+  "originalPressureRetained": false,
+  "capturedAt": "2026-10-12T17:52:47.977Z",
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  }
+}

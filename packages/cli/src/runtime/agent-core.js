@@ -156,6 +156,10 @@ import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
   resolveStreamRetryMax,
+  captureStreamRetryMetadata,
+  attachStreamRetryMetadata,
+  resolveStreamRetryDelay,
+  waitForStreamRetry,
 } from "../lib/stream-retry.js";
 import {
   annotateLines,
@@ -184,7 +188,7 @@ import {
 } from "../lib/unattended-action-policy.js";
 import {
   formatProviderHttpError,
-  formatProviderResponseError,
+  createProviderResponseError,
 } from "../lib/provider-http-error.js";
 import { buildPermissionDecision } from "../lib/permission-decision.js";
 import { resolveSandboxPolicyPath } from "../lib/agent-sandbox.js";
@@ -11920,7 +11924,7 @@ export async function chatWithTools(rawMessages, options) {
       }),
     });
     if (!response.ok) {
-      throw new Error(await formatProviderResponseError("ollama", response));
+      throw await createProviderResponseError("ollama", response);
     }
     const data = await response.json();
     if (
@@ -12073,7 +12077,7 @@ export async function chatWithTools(rawMessages, options) {
     });
 
     if (!response.ok) {
-      throw new Error(await formatProviderResponseError("anthropic", response));
+      throw await createProviderResponseError("anthropic", response);
     }
 
     const data = await response.json();
@@ -12229,7 +12233,7 @@ export async function chatWithTools(rawMessages, options) {
       body: JSON.stringify(responseBody),
     });
     if (!response.ok) {
-      throw new Error(await formatProviderResponseError(provider, response));
+      throw await createProviderResponseError(provider, response);
     }
     const data = await response.json();
     const out = normalizeOpenAIResponsesResponse(data);
@@ -12310,7 +12314,7 @@ export async function chatWithTools(rawMessages, options) {
   });
 
   if (!response.ok) {
-    throw new Error(await formatProviderResponseError(provider, response));
+    throw await createProviderResponseError(provider, response);
   }
 
   const data = await response.json();
@@ -12397,9 +12401,11 @@ function _ollamaInitState() {
 
 function _streamUiCallbacks(onToken, onThinking) {
   let pending = [];
+  let visible = false;
   const capture = (callback) =>
     typeof callback === "function"
       ? (value) => {
+          if (typeof value === "string" && value.length > 0) visible = true;
           try {
             const result = callback(value);
             if (result && typeof result.then === "function") {
@@ -12413,6 +12419,7 @@ function _streamUiCallbacks(onToken, onThinking) {
   return {
     onToken: capture(onToken),
     onThinking: capture(onThinking),
+    hasVisibleOutput: () => visible,
     async settle() {
       if (pending.length === 0) return;
       const current = pending;
@@ -12516,11 +12523,17 @@ export function _accumulateOllamaStream(lines, onToken) {
  * Parity with Claude-Code 2.1.179 ("preserving partial responses instead of
  * showing raw errors"). Pure + exported for unit tests.
  */
-export function _streamErrorDisposition(err, signal, partialText) {
+export function _streamErrorDisposition(
+  err,
+  signal,
+  partialText,
+  visible = false,
+) {
   if (err?.isOutputBackpressureFailure === true) return "rethrow";
   if (isAbortError(err)) return "rethrow";
   if (signal && signal.aborted) return "rethrow";
-  if (typeof partialText === "string" && partialText.trim()) return "preserve";
+  if (visible || (typeof partialText === "string" && partialText.length > 0))
+    return "preserve";
   return "rethrow";
 }
 
@@ -12585,16 +12598,22 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
   const retries = opts.retries ?? resolveStreamRetryMax();
   const base = opts.baseDelayMs ?? STREAM_RETRY_BASE_MS;
   const signal = opts.signal;
-  const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const now = typeof opts.now === "function" ? opts.now : Date.now;
   let attempt = 0;
   for (;;) {
+    throwIfAborted(signal);
     const attemptStartedAt = now();
     try {
       return await streamFn(attempt);
     } catch (err) {
       if (attempt >= retries || !_isRetryableStreamError(err, signal))
         throw err;
+      const attemptEndedAt = now();
+      const delayMs = resolveStreamRetryDelay(err, attempt + 1, {
+        baseDelayMs: base,
+        now: attemptEndedAt,
+      });
+      if (delayMs === null) throw err;
       attempt++;
       if (
         opts.strictRetryObserver === true &&
@@ -12609,7 +12628,7 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
       if (typeof opts.onRetry === "function") {
         try {
           const observation = opts.onRetry(attempt, err, {
-            durationMs: Math.max(0, now() - attemptStartedAt),
+            durationMs: Math.max(0, attemptEndedAt - attemptStartedAt),
           });
           if (observation && typeof observation.then === "function") {
             void Promise.resolve(observation).catch(() => {});
@@ -12638,8 +12657,7 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
           }
         }
       }
-      await sleep(base * Math.pow(2, attempt - 1));
-      if (signal && signal.aborted) throw err; // user bailed during backoff
+      await waitForStreamRetry(delayMs, signal, { sleep: opts.sleep });
     }
   }
 }
@@ -12762,8 +12780,9 @@ async function _chatOllamaStreaming(
     body: JSON.stringify({ ...body, stream: true }),
   });
   if (!response.ok) {
-    throw new Error(await formatProviderResponseError("ollama", response));
+    throw await createProviderResponseError("ollama", response);
   }
+  const retryMetadata = captureStreamRetryMetadata(response);
   const state = _ollamaInitState();
   const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
@@ -12788,7 +12807,17 @@ async function _chatOllamaStreaming(
       await ui.settle();
     }
   } catch (err) {
-    if (_streamErrorDisposition(err, signal, state.content) === "rethrow")
+    attachStreamRetryMetadata(err, retryMetadata);
+    if (!ui.hasVisibleOutput() && !state.content && state.toolCalls?.length)
+      err.noReplay = true;
+    if (
+      _streamErrorDisposition(
+        err,
+        signal,
+        state.content,
+        ui.hasVisibleOutput(),
+      ) === "rethrow"
+    )
       throw err;
     return _finalizeTruncatedStream(_ollamaFinalize, state);
   }
@@ -12813,8 +12842,9 @@ async function _chatAnthropicStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(await formatProviderResponseError("anthropic", response));
+    throw await createProviderResponseError("anthropic", response);
   }
+  const retryMetadata = captureStreamRetryMetadata(response);
   const state = _anthropicInitState();
   const ui = _streamUiCallbacks(onToken, onThinking);
   const reader = response.body.getReader();
@@ -12839,7 +12869,21 @@ async function _chatAnthropicStreaming(
       await ui.settle();
     }
   } catch (err) {
-    if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
+    attachStreamRetryMetadata(err, retryMetadata);
+    if (
+      !ui.hasVisibleOutput() &&
+      !state.text &&
+      Object.values(state.blocks).some((block) => block.type === "tool_use")
+    )
+      err.noReplay = true;
+    if (
+      _streamErrorDisposition(
+        err,
+        signal,
+        state.text,
+        ui.hasVisibleOutput(),
+      ) === "rethrow"
+    )
       throw err;
     return _finalizeTruncatedStream(_anthropicFinalize, state);
   }
@@ -12871,8 +12915,9 @@ async function _chatOpenAIStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(await formatProviderResponseError(provider, response));
+    throw await createProviderResponseError(provider, response);
   }
+  const retryMetadata = captureStreamRetryMetadata(response);
   const state = _openaiInitState();
   const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
@@ -12897,7 +12942,17 @@ async function _chatOpenAIStreaming(
       await ui.settle();
     }
   } catch (err) {
-    if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
+    attachStreamRetryMetadata(err, retryMetadata);
+    if (!ui.hasVisibleOutput() && !state.text && state.tools.length)
+      err.noReplay = true;
+    if (
+      _streamErrorDisposition(
+        err,
+        signal,
+        state.text,
+        ui.hasVisibleOutput(),
+      ) === "rethrow"
+    )
       throw err;
     const out = _finalizeTruncatedStream(_openaiFinalize, state);
     const providerReceipt = _openAIProviderRequestReceipt(
@@ -12943,8 +12998,9 @@ async function _chatOpenAIResponsesStreaming(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(await formatProviderResponseError("openai", response));
+    throw await createProviderResponseError("openai", response);
   }
+  const retryMetadata = captureStreamRetryMetadata(response);
   const state = createOpenAIResponsesStreamState();
   const ui = _streamUiCallbacks(onToken, onThinking);
   const reader = response.body.getReader();
@@ -12969,10 +13025,31 @@ async function _chatOpenAIResponsesStreaming(
       await ui.settle();
     }
   } catch (error) {
-    if (_streamErrorDisposition(error, signal, state.text) === "rethrow") {
+    if (state.terminalError) throw state.terminalError;
+    attachStreamRetryMetadata(error, retryMetadata);
+    if (
+      !ui.hasVisibleOutput() &&
+      !state.text &&
+      state.outputItems.some((item) => item?.type === "function_call")
+    )
+      error.noReplay = true;
+    if (
+      !state.normalized &&
+      _streamErrorDisposition(
+        error,
+        signal,
+        state.text,
+        ui.hasVisibleOutput(),
+      ) === "rethrow"
+    ) {
       throw error;
     }
-    const out = _finalizeTruncatedStream(finalizeOpenAIResponsesStream, state);
+    throwIfAborted(signal);
+    if (isAbortError(error) || error?.isOutputBackpressureFailure === true)
+      throw error;
+    const out = state.normalized
+      ? finalizeOpenAIResponsesStream(state)
+      : _finalizeTruncatedStream(finalizeOpenAIResponsesStream, state);
     const responseId = out.responseId || state.responseId;
     delete out.responseId;
     const providerReceipt = _openAIProviderRequestReceipt(
