@@ -21,8 +21,8 @@ export const DIAGNOSTIC = Object.freeze({
   projectCommit: "b2aa3aba082873570e85dce39b00754e5504ff37",
   planDigest:
     "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
-  publicVersion: "0.166.97",
-  publicReleaseCommit: "22ef588c1bb8f71c45feaa115df1d75d5ca505c5",
+  publicVersion: "0.166.98",
+  publicReleaseCommit: "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
   provider: "volcengine",
   model: "deepseek-v4-flash-ga-260731",
   endpoint: "https://ark.cn-beijing.volces.com/api/v3",

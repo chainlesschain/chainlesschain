@@ -8,11 +8,16 @@ import {
   runCaptured,
   createStageLedger,
   costAccounting,
+  inspectAuthenticationProbe,
   agentArguments,
   assessArtifact,
   runFirstRunDiagnostic,
 } from "../scripts/verify01-first-run-cli-diagnostic.mjs";
-import { modelEnvironment } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
+import {
+  DIAGNOSTIC,
+  modelEnvironment,
+} from "../scripts/verify01-volcengine-task-diagnostic.mjs";
+import { llmProbeReceipt } from "../src/lib/llm-connection-probe.js";
 import { PRICING_SEMANTIC_MUTANTS } from "../scripts/verify01-review-pricing-diagnostic.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
@@ -246,6 +251,141 @@ test("tool estimate never substitutes for unknown authentication or journey cost
     assert.equal(cost.budgetVerified, false);
     assert.equal(cost.hardQuotaVerified, false);
   }
+});
+
+test("separate authentication estimate is included only when both invocation costs are known", () => {
+  const usage = {
+    input_tokens: 200,
+    output_tokens: 32,
+    cache_read_input_tokens: 80,
+    cache_creation_input_tokens: 0,
+  };
+  const receipt = llmProbeReceipt(DIAGNOSTIC, { ok: true, usage });
+  const observed = inspectAuthenticationProbe(JSON.stringify(receipt), true);
+  assert.equal(observed.accountingIssue, null);
+  assert.ok(observed.probe.totalCostUsd > 0);
+  const cost = costAccounting(0.12, true, observed.probe);
+  assert.deepEqual(cost.authenticationProbe.usage, usage);
+  assert.equal(cost.authenticationEstimatedCostUSD, receipt.totalCostUsd);
+  assert.equal(cost.totalJourneyEstimatedCostUSD, receipt.totalCostUsd + 0.12);
+  assert.equal(
+    costAccounting(0, true, receipt).totalJourneyEstimatedCostUSD,
+    receipt.totalCostUsd,
+  );
+  assert.equal(
+    costAccounting(null, true, receipt).totalJourneyEstimatedCostUSD,
+    null,
+  );
+  for (const key of [
+    "actualBilledCostUSD",
+    "billingVerified",
+    "budgetVerified",
+    "hardQuotaVerified",
+  ])
+    assert.equal(cost[key], key === "actualBilledCostUSD" ? null : false);
+});
+
+test("invalid authentication identity, usage and estimates cannot establish journey cost", () => {
+  const receipt = llmProbeReceipt(DIAGNOSTIC, {
+    ok: true,
+    usage: {
+      input_tokens: 200,
+      output_tokens: 32,
+      cache_read_input_tokens: 80,
+      cache_creation_input_tokens: 0,
+    },
+  });
+  for (const patch of [
+    { provider: "openai" },
+    { model: "foreign-model" },
+    { ok: false },
+    { currency: "CNY" },
+    { costBasis: "invoice" },
+    { billingVerified: true },
+    { totalCostUsd: receipt.totalCostUsd + 1 },
+    { usage: { ...receipt.usage, input_tokens: -1 } },
+    { usage: { ...receipt.usage, output_tokens: 1.5 } },
+    { usage: { ...receipt.usage, cache_read_input_tokens: undefined } },
+    { usage: null, totalCostUsd: 0 },
+  ]) {
+    const observed = inspectAuthenticationProbe(
+      JSON.stringify({ ...receipt, ...patch }),
+      true,
+    );
+    assert.equal(observed.probe, null);
+    assert.ok(observed.accountingIssue);
+    assert.equal(
+      costAccounting(0.12, true, observed.probe).totalJourneyEstimatedCostUSD,
+      null,
+    );
+  }
+  for (const stdout of ["", "legacy Connected message", "{}\n{}", "null", "[]"])
+    assert.equal(inspectAuthenticationProbe(stdout, true).probe, null);
+  assert.throws(() => costAccounting(-1), /invalid tool estimate/u);
+});
+
+test("failed paid authentication retains valid usage while missing usage stays unknown", () => {
+  const receipt = llmProbeReceipt(DIAGNOSTIC, {
+    ok: false,
+    usage: {
+      input_tokens: 200,
+      output_tokens: 32,
+      cache_read_input_tokens: 80,
+      cache_creation_input_tokens: 0,
+    },
+  });
+  const observed = inspectAuthenticationProbe(JSON.stringify(receipt), false);
+  assert.equal(observed.accountingIssue, null);
+  const cost = costAccounting(null, true, observed.probe);
+  assert.equal(cost.authenticationEstimatedCostUSD, receipt.totalCostUsd);
+  assert.equal(cost.totalJourneyEstimatedCostUSD, null);
+  const unknown = llmProbeReceipt(DIAGNOSTIC, { ok: true });
+  assert.equal(
+    inspectAuthenticationProbe(JSON.stringify(unknown), true).accountingIssue,
+    null,
+  );
+  assert.equal(
+    costAccounting(0.12, true, unknown).totalJourneyEstimatedCostUSD,
+    null,
+  );
+  assert.equal(
+    costAccounting(null, false).authenticationEstimatedCostUSD,
+    null,
+  );
+  assert.throws(() => costAccounting(null, false, receipt));
+});
+
+test("ambiguous authentication states never establish a paid journey estimate", () => {
+  const receipt = llmProbeReceipt(DIAGNOSTIC, {
+    ok: true,
+    usage: {
+      input_tokens: 200,
+      output_tokens: 32,
+      cache_read_input_tokens: 80,
+      cache_creation_input_tokens: 0,
+    },
+  });
+  for (const state of [null, undefined, "false", 0, {}]) {
+    const ambiguous = { ...receipt, ok: state };
+    assert.equal(
+      inspectAuthenticationProbe(JSON.stringify(ambiguous), state).probe,
+      null,
+    );
+    assert.equal(
+      costAccounting(0.12, true, ambiguous).totalJourneyEstimatedCostUSD,
+      null,
+    );
+    if (state !== undefined)
+      assert.throws(() => costAccounting(0.12, state, receipt));
+  }
+  assert.equal(
+    costAccounting(0.12, undefined, receipt).authenticationExecuted,
+    true,
+  );
+  assert.equal(
+    costAccounting(0.12, undefined, receipt).totalJourneyEstimatedCostUSD,
+    receipt.totalCostUsd + 0.12,
+  );
 });
 
 test("agent receives exactly the frozen verify-04 prompt and fixed file-only tool surface", () => {

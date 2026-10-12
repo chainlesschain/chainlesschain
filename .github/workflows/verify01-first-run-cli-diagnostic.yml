@@ -4,9 +4,10 @@ name: VERIFY01 First Run CLI Diagnostic
 # Ordinary PRs, schedules, pushes and workflow completion never call a provider.
 on:
   push:
-    branches: [feature/cli-ide-gap-20261011]
+    branches: [feature/cli-first-run-retest-016698]
     paths:
       - "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs"
+      - "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs"
       - ".github/workflows/verify01-first-run-cli-diagnostic.yml"
   workflow_dispatch:
     inputs:
@@ -27,7 +28,7 @@ jobs:
   diagnostic:
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-ide-gap-20261011' &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-first-run-retest-016698' &&
       contains(github.event.head_commit.message, '[volcengine-first-run-diagnostic]'))
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -50,7 +51,7 @@ jobs:
         run: |
           docker pull node:22.12.0-bookworm
           echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
-      - name: Run five actual first-run stages on public CLI 0.166.97
+      - name: Run five actual first-run stages on public CLI 0.166.98
         env:
           VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
