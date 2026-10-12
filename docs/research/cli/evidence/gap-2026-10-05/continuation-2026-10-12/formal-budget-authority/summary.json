@@ -1,0 +1,80 @@
+{
+  "status": "REVIEWED_MODULE_FIXES_AND_FORMAL_CLI_REFUSAL_NOT_PAID_READY",
+  "baseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "branch": "feature/cli-formal-budget-authority-20261013",
+  "sourceIdentity": "Uncommitted development files bound by exact source hashes; release candidate r100 is unchanged",
+  "module": {
+    "node2212": {
+      "passed": 60,
+      "failed": 0
+    },
+    "node2222": {
+      "passed": 60,
+      "failed": 0
+    }
+  },
+  "independent": {
+    "reviewerKind": "AI",
+    "reviewer": "Astra",
+    "casesPassed": 13,
+    "casesFailed": 0
+  },
+  "launcher": {
+    "node2212": {
+      "passed": 81,
+      "failed": 0
+    },
+    "node2222": {
+      "passed": 81,
+      "failed": 0
+    },
+    "sourceStable": true
+  },
+  "originalLauncher": {
+    "node2212": {
+      "passed": 63,
+      "failed": 18,
+      "reason": "Managed sandbox ancestor lstat denied on user-profile TEMP"
+    },
+    "node2222": {
+      "passed": 81,
+      "failed": 0
+    },
+    "preserved": true
+  },
+  "correction": "Validation child TEMP/TMP/TMPDIR relocated into writable workspace only; no product guard change",
+  "paidRequests": 0,
+  "paidReady": false,
+  "formalTaskObservations": 0,
+  "formalFirstRunObservations": 0,
+  "sharedBudgetUsd": 99,
+  "remaining": [
+    "Same lineage may initialize distinct database paths; external singleton/fencing and antirollback required",
+    "Actual account inputEnvelope, tariff, FX ceiling and original liability/history evidence",
+    "Authenticated authority IPC and complete provider/credential/OS egress coverage",
+    "Provider-authoritative unknown-charge reconciliation",
+    "Exact development source Linux/Windows/macOS CI",
+    "Nine actual formal hosts and separate native/accessibility/long-duration acceptance"
+  ],
+  "release": {
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "ready": false,
+    "originalRun": 38291132764,
+    "originalAttempt": 1,
+    "originalAttemptConclusion": "cancelled",
+    "originalWindowsJob": 114951234222,
+    "originalWindowsConclusion": "failure",
+    "originalTests": "SKIPPED",
+    "originalActualCheckout": "14039a029ad9d634667ccdfbdf1f61736d4ad949",
+    "sameTree": "cdfb6120fb2621d0ffa738d6b0901294424be07e",
+    "upstreamDependencyNowFetchable": true,
+    "rerunAttempt": 2,
+    "rerunInitiatorSession": "unknown",
+    "exactDispatchRun": 38294563150,
+    "exactDispatchHeadVerified": true,
+    "exactDispatchActualCheckoutVerified": false,
+    "matrix": "PENDING"
+  },
+  "clarification": "Handoff rev2 contains one historical need-independent-review phrase. Module independent review has completed; full runtime integration review and exact new-source CI have not.",
+  "entries": 231
+}
