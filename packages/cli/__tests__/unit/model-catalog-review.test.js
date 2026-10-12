@@ -10,7 +10,50 @@ const review = JSON.parse(
     "utf8",
   ),
 );
+const currentReview = JSON.parse(
+  readFileSync(
+    new URL(
+      "../fixtures/model-catalog-review-2026-10-12.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
 describe("reviewed model catalog drift", () => {
+  it("checks the current Haiku contract while preserving the unclosed upstream baseline", () => {
+    expect(currentReview.upstream).toEqual(review.upstream);
+    expect(reviewModelCatalog(currentReview)).toMatchObject({
+      localContractPassed: true,
+      automaticEnablement: false,
+    });
+    expect(
+      currentReview.models.some((m) => m.model === "claude-haiku-5-5"),
+    ).toBe(true);
+  });
+  it("rejects a drifted Haiku one-hour cache-write rate", () => {
+    const changed = structuredClone(currentReview);
+    changed.models.find(
+      (m) => m.model === "claude-haiku-5-5",
+    ).pricing.cacheWrite1hMultiplier = 1.25;
+    expect(reviewModelCatalog(changed).mismatches).toContainEqual({
+      model: "claude-haiku-5-5",
+      field: "cacheWrite1hMultiplier",
+      expected: 1.25,
+      actual: 2,
+    });
+  });
+  it("keeps the batch beta output ceiling out of the standard reviewed model contract", () => {
+    const changed = structuredClone(currentReview);
+    changed.models.find(
+      (m) => m.model === "claude-haiku-5-5",
+    ).advertisedMaxOutputTokens = 300000;
+    expect(reviewModelCatalog(changed).mismatches).toContainEqual({
+      model: "claude-haiku-5-5",
+      field: "advertisedMaxOutputTokens",
+      expected: 300000,
+      actual: 128000,
+    });
+  });
   const stableRelease = {
     tag_name: "rust-v0.160.1",
     html_url: "https://github.com/openai/codex/releases/tag/rust-v0.160.1",

@@ -98,15 +98,17 @@ export function resolveAgentOutputBudget({
     const effectiveModel = model || "claude-sonnet-4-6";
     const { maxTokens } = mergeProviderOptions("anthropic", effectiveModel);
     const defaultCap = maxTokens || 8192;
+    const explicitCap =
+      effectiveModel === "claude-haiku-5-5" ? 128000 : defaultCap;
     const requestMaxOutputTokens =
-      requested === null ? defaultCap : Math.min(defaultCap, requested);
+      requested === null ? defaultCap : Math.min(explicitCap, requested);
     return Object.freeze({
       requestMaxOutputTokens,
       plannedOutputReserveTokens: requestMaxOutputTokens,
       outputReserveSource:
         requested === null
           ? "anthropic-request-default"
-          : requested > defaultCap
+          : requested > explicitCap
             ? "anthropic-request-clamp"
             : "explicit-request-cap",
     });
@@ -271,6 +273,12 @@ export function resolveModelCapabilityProfile({
     runtimeVerified: false,
     ...output,
     advertisedMaxOutputTokens: documented?.advertisedMaxOutputTokens ?? null,
+    ...(documented?.adaptiveThinkingDefault
+      ? {
+          adaptiveThinkingDefault: true,
+          defaultReasoningEffort: documented.defaultReasoningEffort,
+        }
+      : {}),
     ...(documented?.reasoningEfforts
       ? { reasoningEfforts: [...documented.reasoningEfforts] }
       : {}),

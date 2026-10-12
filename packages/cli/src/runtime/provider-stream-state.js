@@ -4,6 +4,8 @@
  * agent-core. Shared usage validation also serves non-streamed responses.
  */
 
+import { projectUsagePricingContext } from "../lib/usage-pricing-context.js";
+
 export function _isNonNegativeSafeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0;
 }
@@ -114,6 +116,10 @@ export function _anthropicReduceLine(state, raw, onToken, onThinking) {
         state.inputTokens = inputTokens;
         state.cacheReadTokens = cacheReadTokens;
         state.cacheCreationTokens = cacheCreationTokens;
+        state.pricingContext = projectUsagePricingContext({
+          ...usage,
+          cache_creation_input_tokens: cacheCreationTokens,
+        });
       }
     }
   } else if (obj.type === "content_block_start") {
@@ -215,6 +221,7 @@ export function _anthropicFinalize(state) {
       output_tokens: state.outputTokens,
       cache_read_input_tokens: state.cacheReadTokens,
       cache_creation_input_tokens: state.cacheCreationTokens,
+      ...state.pricingContext,
     };
   }
   return out;

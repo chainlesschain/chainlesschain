@@ -92,6 +92,7 @@ export function reviewModelCatalog(review, snapshots = {}) {
     for (const field of [
       "cacheReadMultiplier",
       "cacheWriteMultiplier",
+      "cacheWrite1hMultiplier",
       "longContext",
       "serviceMultipliers",
     ]) {

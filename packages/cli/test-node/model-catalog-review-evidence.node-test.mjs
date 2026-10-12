@@ -14,7 +14,7 @@ const script = path.join(
 );
 const reviewPath = path.join(
   repository,
-  "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-05.json",
+  "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-12.json",
 );
 const sha = execFileSync("git", ["-C", repository, "rev-parse", "HEAD"], {
   encoding: "utf8",

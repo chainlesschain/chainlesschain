@@ -1,0 +1,118 @@
+{
+  "schema": "chainlesschain.model-catalog-review/v1",
+  "reviewedAt": "2026-10-12",
+  "upstream": {
+    "codex": "0.160.0",
+    "claude": "2.1.289"
+  },
+  "sources": [
+    "https://developers.openai.com/codex/changelog",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "https://code.claude.com/docs/en/changelog#2-1-284",
+    "https://code.claude.com/docs/en/changelog#2-1-280",
+    "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+    "https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide",
+    "https://platform.claude.com/docs/en/build-with-claude/effort",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://platform.claude.com/docs/en/manage-claude/data-residency"
+  ],
+  "models": [
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "runtimeProtocol": "openai-responses",
+      "contextWindowTokens": 1050000,
+      "advertisedMaxOutputTokens": 128000,
+      "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+      "pricing": {
+        "in": 2,
+        "out": 10,
+        "cacheReadMultiplier": 0.05,
+        "cacheWriteMultiplier": 1.25,
+        "longContext": {
+          "threshold": 272000,
+          "inputMultiplier": 2,
+          "outputMultiplier": 1.5
+        },
+        "serviceMultipliers": {
+          "standard": 1,
+          "default": 1,
+          "auto": 1,
+          "batch": 0.5,
+          "flex": 0.5,
+          "fast": 2
+        }
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "pricingReview": {
+        "reviewedAt": "2026-10-12",
+        "scope": "Cache-read price only; upstream CLI review baseline unchanged",
+        "sources": [
+          "https://platform.claude.com/docs/en/about-claude/pricing",
+          "https://claude.com/pricing",
+          "https://code.claude.com/docs/en/changelog#2-1-296"
+        ]
+      },
+      "runtimeProtocol": "anthropic-messages",
+      "contextWindowTokens": 1000000,
+      "advertisedMaxOutputTokens": null,
+      "pricing": {
+        "in": 2,
+        "out": 10,
+        "cacheReadMultiplier": 0.05,
+        "longContext": null,
+        "serviceMultipliers": null
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-5-5",
+      "runtimeProtocol": "anthropic-messages",
+      "contextWindowTokens": 1000000,
+      "advertisedMaxOutputTokens": null,
+      "pricing": {
+        "in": 4,
+        "out": 20,
+        "cacheReadMultiplier": 0.05,
+        "longContext": null,
+        "serviceMultipliers": null
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "runtimeProtocol": "anthropic-messages",
+      "contextWindowTokens": 1000000,
+      "advertisedMaxOutputTokens": 128000,
+      "reasoningEfforts": ["low", "medium", "high", "xhigh", "max"],
+      "pricing": {
+        "in": 0.1,
+        "out": 0.5,
+        "cacheReadMultiplier": 0.1,
+        "cacheWriteMultiplier": 1.25,
+        "cacheWrite1hMultiplier": 2,
+        "longContext": {
+          "threshold": 100000,
+          "inputMultiplier": 5,
+          "outputMultiplier": 5
+        },
+        "serviceMultipliers": {
+          "standard": 1,
+          "default": 1
+        }
+      }
+    }
+  ],
+  "scope": "Haiku 5.5 standard Messages contracts and Sonnet 5.5 cache-read correction; other model facts retain the prior review. Upstream scenario completion remains open.",
+  "upstreamInventory": {
+    "checkedThrough": {
+      "codex": "0.162.1",
+      "claude": "2.1.296"
+    },
+    "stableVersions": 11,
+    "note": "Complete release-note inventory and conservative dispositions; upstream baseline unchanged pending scenario validation."
+  }
+}

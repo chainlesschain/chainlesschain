@@ -216,13 +216,18 @@ export function normalizePricingTerms(value) {
   const allowed = new Set([
     "cacheReadMultiplier",
     "cacheWriteMultiplier",
+    "cacheWrite1hMultiplier",
     "longContext",
     "serviceMultipliers",
   ]);
   if (!object(value) || Reflect.ownKeys(value).some((key) => !allowed.has(key)))
     fail();
   const result = {};
-  for (const key of ["cacheReadMultiplier", "cacheWriteMultiplier"]) {
+  for (const key of [
+    "cacheReadMultiplier",
+    "cacheWriteMultiplier",
+    "cacheWrite1hMultiplier",
+  ]) {
     if (!Object.hasOwn(value, key)) continue;
     if (!finite(value[key])) fail();
     result[key] = value[key];
@@ -289,8 +294,15 @@ export function lookupRate(provider, model, table = PRICE_TABLE) {
       // An unrecognized new generation must not inherit an older family price.
       // Explicit operator overrides remain authoritative.
       if (
-        ["opus", "sonnet"].includes(e.match) &&
-        Number(/^claude-(?:opus|sonnet)-(\d+)(?:[.-]|$)/u.exec(m)?.[1]) >= 5 &&
+        e.match === "haiku" &&
+        /(?:^|[.:/])(?:claude-)?haiku-(?:[5-9]|\d{2,})(?:[.-]|$)/u.test(m) &&
+        !e.explicitOverride
+      )
+        continue;
+      if (
+        ["opus", "sonnet", "haiku"].includes(e.match) &&
+        Number(/^claude-(?:opus|sonnet|haiku)-(\d+)(?:[.-]|$)/u.exec(m)?.[1]) >=
+          5 &&
         !e.explicitOverride
       )
         continue;
@@ -337,18 +349,42 @@ export function estimateCost({
   outputTokens = 0,
   cacheReadTokens = 0,
   cacheCreationTokens = 0,
+  cacheCreation5mTokens,
+  cacheCreation1hTokens,
+  cacheCreationInvalid = false,
+  pricingContextInvalid = false,
   requestInputTokens,
   serviceTier = "standard",
   regionalProcessing = false,
   table,
 } = {}) {
   const rate = lookupRate(provider, model, table);
+  const splitPresent =
+    cacheCreation5mTokens != null || cacheCreation1hTokens != null;
+  const splitValid =
+    splitPresent &&
+    Number.isSafeInteger(cacheCreation5mTokens) &&
+    cacheCreation5mTokens >= 0 &&
+    Number.isSafeInteger(cacheCreation1hTokens) &&
+    cacheCreation1hTokens >= 0 &&
+    cacheCreation5mTokens + cacheCreation1hTokens === cacheCreationTokens;
+  const missingCacheEvidence =
+    cacheCreationInvalid ||
+    (splitPresent && !splitValid) ||
+    (rate?.terms?.cacheWrite1hMultiplier != null &&
+      cacheCreationTokens > 0 &&
+      !splitValid);
   const tierMultiplier = rate?.terms?.serviceMultipliers
     ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)
       ? rate.terms.serviceMultipliers[serviceTier]
       : null
     : 1;
-  if (!rate || tierMultiplier == null) {
+  if (
+    !rate ||
+    tierMultiplier == null ||
+    missingCacheEvidence ||
+    pricingContextInvalid
+  ) {
     return {
       inputCost: 0,
       outputCost: 0,
@@ -384,9 +420,14 @@ export function estimateCost({
     inputMultiplier *
     multiplier;
   const cacheCreationCost =
-    (Number(cacheCreationTokens) / 1e6) *
+    ((splitValid
+      ? cacheCreation5mTokens *
+          (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) +
+        cacheCreation1hTokens * (rate.terms?.cacheWrite1hMultiplier ?? 2)
+      : Number(cacheCreationTokens) *
+        (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER)) /
+      1e6) *
     rate.in *
-    (rate.terms?.cacheWriteMultiplier ?? CACHE_WRITE_MULTIPLIER) *
     inputMultiplier *
     multiplier;
   return {
@@ -419,6 +460,15 @@ export function priceRollup(aggregate, { table } = {}) {
       outputTokens: row.outputTokens,
       cacheReadTokens: row.cacheReadTokens,
       cacheCreationTokens: row.cacheCreationTokens,
+      cacheCreation5mTokens: row.cacheCreation5mTokens,
+      cacheCreation1hTokens: row.cacheCreation1hTokens,
+      cacheCreationInvalid: row.cacheCreationInvalid,
+      pricingContextInvalid:
+        row.pricingContextInvalid === true ||
+        (String(row.provider).toLowerCase() === "anthropic" &&
+          String(row.model).toLowerCase() === "claude-haiku-5-5" &&
+          row.regionalProcessing == null &&
+          row.regional_processing == null),
       serviceTier: row.serviceTier ?? row.service_tier ?? "standard",
       regionalProcessing:
         row.regionalProcessing ?? row.regional_processing ?? false,
@@ -479,7 +529,11 @@ export function priceRollup(aggregate, { table } = {}) {
   for (const row of byModel) {
     if (row.matched) {
       totalCost += row.cost;
-    } else if (row.totalTokens > 0) {
+    } else if (
+      row.totalTokens > 0 ||
+      row.cacheReadTokens > 0 ||
+      row.cacheCreationTokens > 0
+    ) {
       unpriced.push({
         provider: row.provider,
         model: row.model,
