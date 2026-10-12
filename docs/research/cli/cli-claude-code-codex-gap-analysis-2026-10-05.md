@@ -2,13 +2,14 @@
 
 > **2026-10-13 发行门失败与费用更正**：候选CLI0.166.100/VS0.37.144/JB0.4.162尚未发布。准确ff292775的[最终候选Linux预检](./evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-final-candidate-ff2927/README.md)成功，但[Windows ARM64 JetBrains原失败](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-attempt1-failure/README.md)显示后续Summarize动作菜单45秒内未出现，根因仍待定位；[最小诊断本地验证](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-local/README.md)5/5通过，独立诊断SHA0c148cf927/run38280050578已启动，尚非完整发行门。[macOS浏览器原件](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-browser-macos-upload-failure/README.md)另确认CreateArtifact时DNS解析失败，后续two-origin未执行，需新源码完整重验。完整准确源码门未通过；修复后的新SHA须重跑完整七门及适用CI/Host，再按用户授权OIDC发布CLI、公开回读后发布IDE。火山旧$0.0000161仅是配置估价；[精确模型官方费用核查](./evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-cost-contract-review/README.md)的常规价token-only估算为¥0.000384，实际账单/换算仍未知。正式36+9保持NOT_RUN、0/36、0/9与共享$99。
 
-## 当前续做状态（2026-10-12）
+## 当前续做状态（2026-10-13）
 
 整体任务仍有外部验收和平台实现未关闭，当前以本表及最新增量为准。
 
 | 范围                                     | 当前状态                                  | 仍需完成                                                                |
 | ---------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
 | CLI 0.166.99 / 配对双 IDE                | 准确311e完整发行门、OIDC和公开回读完成    | 后续源码重新验证自身矩阵                                                |
+| CLI 0.166.100 / VS 0.37.144 / JB 0.4.162 | 候选尚未发行；ARM64 实机诊断执行中        | 修复提交完整七门及适用 CI/Host，随后 OIDC 发行和公开回读                |
 | Retry-After / 服务端终态 / 可见输出重放  | 工程实现与双平台248/248回归完成           | 本次准确源码Actions、实际provider场景；模型WebSocket另验                |
 | MODEL-03 / MODEL-04 / UTF-8 / Workbench  | 已有工程随0.99发行，原证据保留            | 官方endpoint与usage/账单、上游候选场景及正式SLO分别验收                 |
 | VERIFY-02 / VERIFY-IDE-02                | v2窗口与72份脚本已准备；项目0/36、首次0/9 | 真实Linux预检与Astra预审已处理；九入口、账号额度及正式产物/费用仍需完成 |
