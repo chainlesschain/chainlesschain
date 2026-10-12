@@ -1,0 +1,640 @@
+{
+  "capturedAt": "2026-10-12T09:44:21.131Z",
+  "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "required": [
+    "CLI CI",
+    "CLI Strict Sandbox",
+    "IDE Extensions",
+    "IDE ARM64 Host Validation",
+    "Memory Query Index Measurement",
+    "Context Memory Kernel CI",
+    "CLI Background Interaction E2E"
+  ],
+  "missing": [],
+  "sevenGatesComplete": true,
+  "allSelectedChecksComplete": true,
+  "results": [
+    {
+      "id": 38218353948,
+      "name": "Memory Query Index Measurement",
+      "event": "workflow_dispatch",
+      "path": ".github/workflows/memory-query-index.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218353948",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218266969,
+      "name": "IDE ARM64 Host Validation",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218266969",
+      "counts": {
+        "success": 10
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265300,
+      "name": "CLI Strict Sandbox",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265300",
+      "counts": {
+        "success": 5
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265334,
+      "name": "Context Memory Kernel CI",
+      "event": "pull_request",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265334",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218266034,
+      "name": "CI Mask Audit (PR advisory)",
+      "event": "pull_request",
+      "path": ".github/workflows/ci-mask-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218266034",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265451,
+      "name": "Secret Scan Audit (PR advisory)",
+      "event": "pull_request",
+      "path": ".github/workflows/secret-scan-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265451",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265506,
+      "name": "ESM require() Audit (hard gate, trap",
+      "event": "pull_request",
+      "path": ".github/workflows/esm-require-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265506",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265534,
+      "name": "SQLite Number→TEXT Bind Audit (PR advisory)",
+      "event": "pull_request",
+      "path": ".github/workflows/sqlite-number-text-bind-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265534",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265329,
+      "name": "Cosmetic-Green Audit (PR advisory)",
+      "event": "pull_request",
+      "path": ".github/workflows/cosmetic-green-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265329",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265296,
+      "name": "Workspace Publish Staleness Check (PR mandatory)",
+      "event": "pull_request",
+      "path": ".github/workflows/publish-staleness-check.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265296",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265247,
+      "name": "Model Catalog Review",
+      "event": "pull_request",
+      "path": ".github/workflows/model-catalog-review.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265247",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265256,
+      "name": "VERIFY01 Docker Review Pack",
+      "event": "pull_request",
+      "path": ".github/workflows/verify01-review-pack-docker.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265256",
+      "counts": {
+        "success": 6
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265558,
+      "name": "CLI Session Host Consistency",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-session-host-consistency.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265558",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265473,
+      "name": "CLI Session Scale",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-session-scale.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265473",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265619,
+      "name": "Full Test Automation with Diagnostics",
+      "event": "pull_request",
+      "path": ".github/workflows/test-automation-full.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265619",
+      "counts": {
+        "success": 3,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265306,
+      "name": "App Server Overload Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/app-server-overload-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265306",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265364,
+      "name": "CLI Clipboard Image Host Matrix",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-clipboard-image.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265364",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265325,
+      "name": "CLI Agent Team Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-team-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265325",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265275,
+      "name": "CLI Scheduler Kernel Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-scheduler-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265275",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265283,
+      "name": "CLI Background Interaction E2E",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-background-interaction-e2e.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265283",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265352,
+      "name": "Undeclared Dependency Audit (PR mandatory)",
+      "event": "pull_request",
+      "path": ".github/workflows/undeclared-deps-audit.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265352",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265552,
+      "name": "PDH Bundle Staleness Check (hard gate, traps",
+      "event": "pull_request",
+      "path": ".github/workflows/pdh-bundle-staleness-check.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265552",
+      "counts": {
+        "success": 2,
+        "skipped": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265309,
+      "name": "IDE Roadmap Accessibility Performance",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-accessibility-performance.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265309",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265605,
+      "name": "CLI Background Agent Keeper Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-background-agent-keeper-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265605",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265564,
+      "name": "CLI Team Fairness Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-team-fairness-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265564",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265233,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-live-provider.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265233",
+      "counts": {
+        "success": 4,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265379,
+      "name": "IDE Roadmap Safety Matrix",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-safety.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265379",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265664,
+      "name": "Project Management E2E Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/pm-e2e-tests.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265664",
+      "counts": {
+        "success": 6,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265436,
+      "name": "VERIFY01 Host Diagnostics",
+      "event": "pull_request",
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265436",
+      "counts": {
+        "success": 7
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265465,
+      "name": "CLI Reliability Soak",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-reliability-soak.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265465",
+      "counts": {
+        "success": 15
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265535,
+      "name": "PR Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/pr-tests.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265535",
+      "counts": {
+        "success": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265431,
+      "name": "CI Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/test.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265431",
+      "counts": {
+        "success": 13,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265955,
+      "name": "CLI CI",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-ci.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265955",
+      "counts": {
+        "success": 71
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265186,
+      "name": "Code Quality & Security",
+      "event": "pull_request",
+      "path": ".github/workflows/code-quality.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265186",
+      "counts": {
+        "success": 7,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265172,
+      "name": "Evolution Ledger Reliability",
+      "event": "pull_request",
+      "path": ".github/workflows/evolution-ledger-reliability.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265172",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265154,
+      "name": "E2E Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/e2e-tests.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265154",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38218265133,
+      "name": "IDE Extensions",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-extensions.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218265133",
+      "counts": {
+        "success": 18,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38218258690,
+      "name": "Context Memory Kernel CI",
+      "event": "push",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38218258690",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    }
+  ],
+  "mutations": [],
+  "paidCalls": 0,
+  "archiveCapturedAt": "2026-10-12T09:45:15.519Z",
+  "releaseAdmission": "Snapshot only. Full matrix and source identity must be independently checked before tagging.",
+  "formalStatus": "NOT_RUN",
+  "formalTaskObservations": 0,
+  "formalFirstRunObservations": 0
+}

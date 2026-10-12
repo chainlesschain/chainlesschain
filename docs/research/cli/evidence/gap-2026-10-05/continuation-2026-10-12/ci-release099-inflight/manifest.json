@@ -1,0 +1,391 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T06:29:38.086Z",
+  "summarySha256": "9ec6bbdd5da56b15bd2e59d6f404f616c141e7fdfdef681d91ca858ca353bd0f",
+  "entries": [
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210971992-jobs-1.json",
+      "path": "objects/000.gz",
+      "rawBytes": 17917,
+      "rawSha256": "ff4da6f85aa74d26408e17a875a778e744024833a8528e84f2b93c6b49706e55",
+      "bytes": 1768,
+      "sha256": "879a7feda49ae79e3d7b6354cc49c92ddcfdfcfa132bb5c067a07439e1c55af9"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979763-jobs-1.json",
+      "path": "objects/001.gz",
+      "rawBytes": 6734,
+      "rawSha256": "7e9c7cffc45bf17b081c7d01204446e7a5682f100478bba75f7fa776193ededb",
+      "bytes": 1000,
+      "sha256": "1bff56e297a7dcc257b5ba7734cfde2b6bf581de7687edf5c36ef4e72f78c2da"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979772-jobs-1.json",
+      "path": "objects/002.gz",
+      "rawBytes": 9708,
+      "rawSha256": "40f6713e1fe031f868d3fb4220e1550cce44c6392810b2339c90c383159d0db6",
+      "bytes": 1291,
+      "sha256": "4fddee55283c340bd01b4eec94093e076929382694c3a85946f751be605dc9a4"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979819-jobs-1.json",
+      "path": "objects/003.gz",
+      "rawBytes": 949,
+      "rawSha256": "c08749a47b8952802a87359f0fe0b0b6b4b449b58c2b7f7be2f44ec5ad90b111",
+      "bytes": 462,
+      "sha256": "c0f88d2086cc861b1c50f41ab2168f0fed322c9e550adac51b1d0a4eac0ed539"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979852-jobs-1.json",
+      "path": "objects/004.gz",
+      "rawBytes": 9727,
+      "rawSha256": "c735ad38c2fe134c5607cf18be4b17936613d02eb4271c3a180217d77f39f742",
+      "bytes": 1128,
+      "sha256": "6634ae01e22f30ed307e7b98cf9b76693e14016f54c8a08ba2fad31fe611f8b4"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979864-jobs-1.json",
+      "path": "objects/005.gz",
+      "rawBytes": 34570,
+      "rawSha256": "2b1a778623bb55284751a83546e91b40fa2bf91f8115343991316ae62525c21e",
+      "bytes": 2669,
+      "sha256": "ff3d0107f71fa8c3881994c772b8541a43e51588f7d802bab3bef49126deb8c1"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979889-jobs-1.json",
+      "path": "objects/006.gz",
+      "rawBytes": 21475,
+      "rawSha256": "4df02854f2b9d3d12e7b1ea1ca325eea339dd4dc1901cac6879ddeb74c315053",
+      "bytes": 2211,
+      "sha256": "4a26ef5c507ef860dce990c9642c231a3180aea27f043ec27667861e34652995"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979952-jobs-1.json",
+      "path": "objects/007.gz",
+      "rawBytes": 8723,
+      "rawSha256": "4558104f7da4d38e0b9e94428dfbe4228518026b67725f5b2a67da8771439c22",
+      "bytes": 1067,
+      "sha256": "db2420858effff49f707062fefe4934e957829d34f1a48310a1405235ba40534"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979959-jobs-1.json",
+      "path": "objects/008.gz",
+      "rawBytes": 3375,
+      "rawSha256": "052a3b8e9761a4fc6ecf80b57a702fbc109ceee2c9934b181e673a078a1307d4",
+      "bytes": 837,
+      "sha256": "c4e0e770cd089d4f851af2936d9ba91f35d90239b5e0157ed8e5d5d8b0f719f3"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979960-jobs-1.json",
+      "path": "objects/009.gz",
+      "rawBytes": 19289,
+      "rawSha256": "0569c82609dcfa721f31a92cb99dbf3c6f7ee51dcec3b2f4e5ee74a634e2d107",
+      "bytes": 1842,
+      "sha256": "64550bc52b4624a65c26e18ad4eb0273a3d1931f138edb245d4bc077b75a88e7"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979977-jobs-1.json",
+      "path": "objects/010.gz",
+      "rawBytes": 7430,
+      "rawSha256": "348635a1dc279295171b5d342efd0e9b14d875f9d1fa324aee80f6e80cc3440e",
+      "bytes": 1057,
+      "sha256": "93fe724ec13a0e27f2558f23284d691ecb2d157ab6d27e6bd93b73f0ec20011a"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210979987-jobs-1.json",
+      "path": "objects/011.gz",
+      "rawBytes": 5579,
+      "rawSha256": "094d783d8ebab5da254c3371a62f51590cd2e16f21a17b6ea3490183fb5b9563",
+      "bytes": 1064,
+      "sha256": "3055b230f1e9f07b79b0732a826942794e7abd29fc1b76b8748b8df6c997f95d"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210980010-jobs-1.json",
+      "path": "objects/012.gz",
+      "rawBytes": 24054,
+      "rawSha256": "471740660f38cff49f7c2a50ec614129aff677e5c262e971f85c721e0b568670",
+      "bytes": 2026,
+      "sha256": "a78c2d1ff26f6af46e8291839d8c847bd9a3deeeb2d88a60f9d1f604587722ad"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210980033-jobs-1.json",
+      "path": "objects/013.gz",
+      "rawBytes": 19816,
+      "rawSha256": "5ea5f0a1eed4183b7ecd2fe4983a2b82345bfab265515bf747fd747f27f6e452",
+      "bytes": 2014,
+      "sha256": "0c5cf4c80ea28fb9e35210670b55cad81fb0c42ffd93312549c7fc5c7e845c74"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210980105-jobs-1.json",
+      "path": "objects/014.gz",
+      "rawBytes": 4551,
+      "rawSha256": "1f52411747a3d5a8c74e8258dad2263a8cb406226b2d5c98cb61e03ed06ce043",
+      "bytes": 850,
+      "sha256": "f3d4f49e42d8c388906e754aedd426e717b9400f3225de185f39d34197a43bef"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210980124-jobs-1.json",
+      "path": "objects/015.gz",
+      "rawBytes": 12866,
+      "rawSha256": "180b63b54807df2c0b7a26b6998ee8256fc064d939cb56621be2808c539ea9cb",
+      "bytes": 1538,
+      "sha256": "b812a516dfa2a9ed32123dcc90d6a422b30a116d103d0878fb42ba4daf54e08a"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38210980329-jobs-1.json",
+      "path": "objects/016.gz",
+      "rawBytes": 71772,
+      "rawSha256": "5b458e9cc214ec21bed548a97ba06858aa058d6a3855e820672c0268f6420673",
+      "bytes": 3324,
+      "sha256": "752ac91c20adddcb955ca4f1fd7ede55d39355d2460d745dc0f546a8c2dc423d"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/38211137620-jobs-1.json",
+      "path": "objects/017.gz",
+      "rawBytes": 5999,
+      "rawSha256": "bea91d1b38624127c48e047d1622477f1cf2cfa15aff7f40eac8fa8f113dafdb",
+      "bytes": 992,
+      "sha256": "b903d092f21d300fecda1869a40debc96e3c2dff985a6d314be345c3fe927ef0"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/runs.json",
+      "path": "objects/018.gz",
+      "rawBytes": 509655,
+      "rawSha256": "04f352f4d675f4de9c303b89fa1b1f2c01fc1cd83c0dccf302bfc59e6d6f6a23",
+      "bytes": 9735,
+      "sha256": "5d93418be4522bc4959f2a2ecc9c100451c84594d530357380d10d3c8ff050d1"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/2026-10-12T06-29-17.020Z/summary.json",
+      "path": "objects/019.gz",
+      "rawBytes": 10182,
+      "rawSha256": "9a1abee411d2d02f93019934dbb9ebda6ffb8bac6ecc04c49ac90b043f602ef7",
+      "bytes": 1228,
+      "sha256": "51cfc15458c993a5b028b0df3a6f9f64f85d0d6b5db5b66eb7f73415a94f7c18"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210979772-1-114684849437.log",
+      "path": "objects/020.gz",
+      "rawBytes": 30647,
+      "rawSha256": "383162f62e0ad8c19f4430e9c87b1a94f27edcf0dd52170422e3acebccd6731c",
+      "bytes": 7706,
+      "sha256": "8c33d5e360a593772ed1e810b038aac3108e7b96c12d324a4fe400a740afc471"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210979772-1-114684849447.log",
+      "path": "objects/021.gz",
+      "rawBytes": 305545,
+      "rawSha256": "fd8b6f7913361ae8a8b122e4bd5d4ba7fc114775ca1a4222a134b90d6e846fa3",
+      "bytes": 55711,
+      "sha256": "0cff0c57c43fe2e3ef5ca53769c38867ea44132b0a51d59af374b7d4d3be26e0"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210979852-1-114684850458.log",
+      "path": "objects/022.gz",
+      "rawBytes": 146091,
+      "rawSha256": "beda0cde9391642090f34c9dd6b0be2731cabda5f6b338680fb1dfd04343b37b",
+      "bytes": 13235,
+      "sha256": "33124a9011b8bedcb9b70754c7c5c90d352b3d813eca766a41ba143525102546"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210979960-1-114684852506.log",
+      "path": "objects/023.gz",
+      "rawBytes": 57749,
+      "rawSha256": "729eb890f0fa01cfb4ab55149016b238729e45f7f11bbc4897b2a517efec6fc2",
+      "bytes": 13613,
+      "sha256": "08da3920de6bc58be2e392bd62c21aa5bf9d60171e2ed9ef0f0eb96451391a49"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210980010-1-114684851204.log",
+      "path": "objects/024.gz",
+      "rawBytes": 19908,
+      "rawSha256": "80f2d8db02097ed3ec12fbfe057214cf176db2e822e6437770c5898c800ddcec",
+      "bytes": 5659,
+      "sha256": "83f6c37c75a104053c9e4fbb70b95b1ee4fa15e716b9f14a73e45916a8438017"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210980010-1-114686094497.log",
+      "path": "objects/025.gz",
+      "rawBytes": 52400,
+      "rawSha256": "c60e7608c735a6690700741af5d503d5a4dc711fad4eaad03a55b6ae20e30631",
+      "bytes": 12895,
+      "sha256": "d6b7bd5ee08fbe2699316f20e93918527cfed938301a88bca3210d37949821b8"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210980010-1-114686094636.log",
+      "path": "objects/026.gz",
+      "rawBytes": 52540,
+      "rawSha256": "7682a319d7d9960c04b7cf7e635a3ab0bc3c41c4edaf54d14d18f43a8293549a",
+      "bytes": 12854,
+      "sha256": "347636daa067e37fdad751c7dbe69b653353e514401355c24f96a4d51d5e0306"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/38210980105-1-114684918130.log",
+      "path": "objects/027.gz",
+      "rawBytes": 2739172,
+      "rawSha256": "268491c392ede86bda988c76d2a464576ae96c8ff6156c046691e8bdb37cd29f",
+      "bytes": 281311,
+      "sha256": "f1d4406a5c8703c5e672b523a1e45e93a1b9b8701f026c31eac44b0c5ce98f71"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/checkout-logs/summary.json",
+      "path": "objects/028.gz",
+      "rawBytes": 6271,
+      "rawSha256": "165bbe3aebae5a163ec2083380d63b9d6af65c127f052387c856e9bbf01e305b",
+      "bytes": 1353,
+      "sha256": "0e4809fcb90c808f24f4529280a5261765a9ac786bec6cfde31e94dd9b822c7b"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/base-commit.json",
+      "path": "objects/029.gz",
+      "rawBytes": 1477,
+      "rawSha256": "44d3fe837b8d5cdcdf6732975ace9de502cfd3c2bf5032ba65bac7955b13b9e5",
+      "bytes": 527,
+      "sha256": "f16f475b876a622ab33c9d2effecb1f311f608c9434a8038a82f6070b1597e1b"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/cli-background-interaction-e2e.yml",
+      "path": "objects/030.gz",
+      "rawBytes": 5626,
+      "rawSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "bytes": 1148,
+      "sha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/cli-ci.yml",
+      "path": "objects/031.gz",
+      "rawBytes": 22840,
+      "rawSha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299",
+      "bytes": 4512,
+      "sha256": "a3c5b48fe7c3cfdeecc8a16197d9bf29c20ea406751dd31780c8c00fab557566"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/cli-strict-sandbox.yml",
+      "path": "objects/032.gz",
+      "rawBytes": 45806,
+      "rawSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "bytes": 5631,
+      "sha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/code-quality.yml",
+      "path": "objects/033.gz",
+      "rawBytes": 9773,
+      "rawSha256": "cc29433ede86b353634ef2f0138b6381925e1344969fc47e88e364b9677af415",
+      "bytes": 2559,
+      "sha256": "eff0d3828da58b76dd4c1f571f629ad38ef53528debb8a71ddce86241a6663af"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/context-memory-kernel.yml",
+      "path": "objects/034.gz",
+      "rawBytes": 7400,
+      "rawSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "bytes": 1787,
+      "sha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/head-commit.json",
+      "path": "objects/035.gz",
+      "rawBytes": 1213,
+      "rawSha256": "26abd44680dd26581aa05e47d02c6cca0d0a67ba6fa66b146ba11e539b832c8e",
+      "bytes": 498,
+      "sha256": "980dd4d26011b66b1a5cb8717ed15e3b03b17bd03d26c771a80fea46691e6f3e"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/ide-arm64-validation.yml",
+      "path": "objects/036.gz",
+      "rawBytes": 22894,
+      "rawSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "bytes": 5746,
+      "sha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/ide-extensions.yml",
+      "path": "objects/037.gz",
+      "rawBytes": 50808,
+      "rawSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "bytes": 8742,
+      "sha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/manifest.json",
+      "path": "objects/038.gz",
+      "rawBytes": 2600,
+      "rawSha256": "0e152c581ebc245f70d6348383765cde125ad8cc3be919266da12bbea045a8e8",
+      "bytes": 1060,
+      "sha256": "ddf3654908e56bb0afa113af5b3a83465f289e4af522c19227762fd81f8aefb0"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/memory-query-index.yml",
+      "path": "objects/039.gz",
+      "rawBytes": 2079,
+      "rawSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "bytes": 860,
+      "sha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/merge-commit.json",
+      "path": "objects/040.gz",
+      "rawBytes": 2752,
+      "rawSha256": "801c824c608f92e1f6c15fb20018bd071dd14f0c36d6ad3a2c4c267b521d5ae2",
+      "bytes": 1251,
+      "sha256": "72172946d3f1c757bf74ec1ff7eb6845e4228392143081d39fdda4ca05f3a5d4"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/model-catalog-review.yml",
+      "path": "objects/041.gz",
+      "rawBytes": 3355,
+      "rawSha256": "a06ed5747af60b7e63bf93a5078dd44adcbd2b1df2da1a61dc5bada71875e60e",
+      "bytes": 1166,
+      "sha256": "3c5eafaa30e52407198e7dfba3df1b8e9bbb913a6a1338e859dd2a12fa123249"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/pr-tests.yml",
+      "path": "objects/042.gz",
+      "rawBytes": 3261,
+      "rawSha256": "9e88273c0858025d260c1e50a71e25419be783806c9dafae6395c72bd9e6ca34",
+      "bytes": 1318,
+      "sha256": "dd199b4ef65fd2d5f7cfed930a552362377a56c25bb2e6895d009d940f2f3709"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/pull-431.json",
+      "path": "objects/043.gz",
+      "rawBytes": 19877,
+      "rawSha256": "e18870cd32e5d59c351b7d919a559c5bd4d2bf9c60885806ab4f33900f16202b",
+      "bytes": 3501,
+      "sha256": "b4d6c4972012a91a0bd9f360f0babe15f1d2eacc94d3e3d09a3b68ed75ff7d3e"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/summary.json",
+      "path": "objects/044.gz",
+      "rawBytes": 678,
+      "rawSha256": "832e350eca1edf13f61cfff98365ca4f72979ba50fb87ea8cc4965ca0b48784f",
+      "bytes": 380,
+      "sha256": "e55c5360973b6924f279a5c621342c2287d1190b130ec8b3fc78792aaa45c8a0"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/test-automation-full.yml",
+      "path": "objects/045.gz",
+      "rawBytes": 9185,
+      "rawSha256": "ca30fee4a7bb68716aebb81b282b4e74c3310a336e7fd73beace710754ada8ce",
+      "bytes": 3622,
+      "sha256": "f77b181839b81024f03817eead4741371515f48c8185c436907a9f4a60bf45c3"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/test.yml",
+      "path": "objects/046.gz",
+      "rawBytes": 22295,
+      "rawSha256": "099900183ebd72774f50a52936d9981c73f03eb1c0e926c2751c0769a90947c3",
+      "bytes": 6702,
+      "sha256": "4d17bd44ab3c32090e618044d759b7e866b18906a5e61406224e5e8ce09da2dd"
+    },
+    {
+      "source": ".work/ide-gap-release099-20261012/actions-8750f6afc3/source-identity/verify01-host-diagnostics.yml",
+      "path": "objects/047.gz",
+      "rawBytes": 7104,
+      "rawSha256": "f4271c5710832e048defd55349fc235e77aa451e23643c99d50f04da7b6ea547",
+      "bytes": 1846,
+      "sha256": "3477d303e052972ebd780c6aab3b8bc4e021e7d93da157c7390c2e7ea4a2829e"
+    }
+  ]
+}

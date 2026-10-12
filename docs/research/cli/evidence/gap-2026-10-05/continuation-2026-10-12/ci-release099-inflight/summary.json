@@ -1,0 +1,331 @@
+{
+  "capturedAt": "2026-10-12T06:29:17.020Z",
+  "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+  "required": [
+    "CLI CI",
+    "CLI Strict Sandbox",
+    "IDE Extensions",
+    "IDE ARM64 Host Validation",
+    "Memory Query Index Measurement",
+    "Context Memory Kernel CI",
+    "CLI Background Interaction E2E"
+  ],
+  "missing": [],
+  "sevenGatesComplete": false,
+  "allSelectedChecksComplete": false,
+  "results": [
+    {
+      "id": 38211137620,
+      "name": "Memory Query Index Measurement",
+      "event": "workflow_dispatch",
+      "path": ".github/workflows/memory-query-index.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38211137620",
+      "counts": {
+        "in_progress": 2,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979959,
+      "name": "Model Catalog Review",
+      "event": "pull_request",
+      "path": ".github/workflows/model-catalog-review.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979959",
+      "counts": {
+        "success": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979763,
+      "name": "CLI Background Interaction E2E",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-background-interaction-e2e.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979763",
+      "counts": {
+        "success": 2,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979960,
+      "name": "CI Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/test.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979960",
+      "counts": {
+        "queued": 9,
+        "success": 3,
+        "in_progress": 1,
+        "skipped": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210980033,
+      "name": "CLI Strict Sandbox",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210980033",
+      "counts": {
+        "success": 4,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979977,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-live-provider.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979977",
+      "counts": {
+        "in_progress": 2,
+        "queued": 1,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979987,
+      "name": "IDE Roadmap Safety Matrix",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-safety.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979987",
+      "counts": {
+        "success": 1,
+        "queued": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979852,
+      "name": "Code Quality & Security",
+      "event": "pull_request",
+      "path": ".github/workflows/code-quality.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979852",
+      "counts": {
+        "success": 2,
+        "queued": 4,
+        "skipped": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38210980124,
+      "name": "Context Memory Kernel CI",
+      "event": "pull_request",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210980124",
+      "counts": {
+        "success": 2,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979772,
+      "name": "Full Test Automation with Diagnostics",
+      "event": "pull_request",
+      "path": ".github/workflows/test-automation-full.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979772",
+      "counts": {
+        "in_progress": 1,
+        "success": 2
+      },
+      "failures": []
+    },
+    {
+      "id": 38210980329,
+      "name": "CLI CI",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-ci.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210980329",
+      "counts": {
+        "queued": 59,
+        "success": 6
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979819,
+      "name": "IDE Extensions",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-extensions.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979819",
+      "counts": {
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210980010,
+      "name": "VERIFY01 Host Diagnostics",
+      "event": "pull_request",
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210980010",
+      "counts": {
+        "success": 3,
+        "in_progress": 3,
+        "queued": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210980105,
+      "name": "PR Tests",
+      "event": "pull_request",
+      "path": ".github/workflows/pr-tests.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210980105",
+      "counts": {
+        "success": 1,
+        "in_progress": 1
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979889,
+      "name": "IDE Roadmap Accessibility Performance",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-roadmap-accessibility-performance.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979889",
+      "counts": {
+        "success": 4
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979952,
+      "name": "CLI Session Host Consistency",
+      "event": "pull_request",
+      "path": ".github/workflows/cli-session-host-consistency.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979952",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38210979864,
+      "name": "IDE ARM64 Host Validation",
+      "event": "pull_request",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210979864",
+      "counts": {
+        "success": 6,
+        "in_progress": 3
+      },
+      "failures": []
+    },
+    {
+      "id": 38210971992,
+      "name": "Context Memory Kernel CI",
+      "event": "push",
+      "path": ".github/workflows/context-memory-kernel.yml",
+      "branch": "feature/ide-gap-continuation-20261012",
+      "sha": "8750f6afc346458115ff0e84ec9963f3dec79ffa",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38210971992",
+      "counts": {
+        "success": 3
+      },
+      "failures": []
+    }
+  ],
+  "mutations": [],
+  "paidCalls": 0,
+  "archiveCapturedAt": "2026-10-12T06:29:38.086Z",
+  "releaseAdmission": "Snapshot only. Full matrix and source identity must be independently checked before tagging.",
+  "formalStatus": "NOT_RUN",
+  "formalTaskObservations": 0,
+  "formalFirstRunObservations": 0
+}

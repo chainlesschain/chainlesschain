@@ -668,3 +668,9 @@ macOS旧准确fdead P95=2113ms /2s失败继续保留，三次命令链本身未�
 最后统一推送的准确SHA需自身完整七门：CLI CI、Strict、IDE、ARM64、Memory Query Index、Context/Memory Kernel、Background Interaction；窄路径未触发的门使用最终ref手动dispatch并核对head_sha。适用CI Tests/Full Test/PR Tests/Host诊断仍需通过。npm工作流自动硬验前两门，其余五门由根代理完整回读；不从旧源、局部矩阵、超时或取消结果准入。旧macOS2s/100样本与P95=2113原失败保持，UI工程修复不等同真实SLA已通过。
 
 全部门通过后按既有Actions OIDC发布：immutable npm tag→依赖顺序核对/复用子包/registry-byte/provenance→CLI发布与公开安装回读→同一SHA双IDE tag/公开制品回读。OpenVSX为主渠道；官方VS Marketplace另有显式dispatch，JetBrains仅upload/allow-pending不能算已公开。当前尚未tag或发行，用户的条件授权不改变正式36+9/NOT_RUN/observed=0/$99、冻结指纹/窗口或真实模型费用权限，没有新付费调用。
+
+## 52. 2026-10-12 准确候选与条件发行门
+
+CLI0.166.99 / VS Code0.37.143 / JetBrains0.4.161候选已推送并冻结在 `8750f6afc346458115ff0e84ec9963f3dec79ffa`。用户授权测试成功后直接发布；当前七门与适用CI/Host仍有运行/排队项，不能创建发布tag或记作完成。06:29:17 UTC快照及实际checkout/tree日志见[原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-release099-inflight/README.md)。
+
+13子包源码不变，版本保留。新版公开回读工具已严格绑定上一轮VERIFIED公开包字节与候选Git tree，Kernel/SDK/Protocol保留原签名来源，CLI要求本次exact-release；[57项离线合同与helper原件](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-readback-preparation/README.md)通过仅是工具自检。双IDE回读计划通过，没有执行实际发行collect。正式36+9仍NOT_RUN/observed=0/$99；旧fdead macOS P95=2113ms原失败保留，2s/100样本要求不放宽，未新增付费provider调用。
