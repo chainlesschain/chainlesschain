@@ -2,33 +2,30 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-10)
+## Current release and source (2026-10-12)
 
-Source candidate **0.166.97** pairs with VS Code **0.37.141** and JetBrains
-**0.4.159**. It preserves scheduler failure evidence and native-review fixture,
-behavior-control, and cleanup diagnostics. Child package versions remain
-unchanged, including Agent SDK **0.2.14**. Publication requires the final
-commit's GitHub Actions release gates and OIDC child-package verification;
-IDE publication follows public CLI availability.
+Source candidate **0.166.99** pairs with VS Code **0.37.143** and JetBrains
+**0.4.161**. It preserves invalid-UTF8 files during text edits, adds the exact
+Haiku 5.5 reasoning/usage/pricing contract, corrects Sonnet cache pricing,
+validates searches and keeps terminal provider errors out of connection retries.
+VS Code also prevents stale Workbench results and refresh contention across
+active operations and reopened panels.
+
+The candidate is unpublished. Publication requires the final commit’s complete
+GitHub Actions release gates and OIDC child-package verification; IDE publication
+follows public CLI availability. Child versions remain unchanged and require
+public-byte, source-tree and provenance checks before reuse.
 
 ### Last published pairing
 
-Public npm latest is **chainlesschain@0.166.96**, with Agent SDK **0.2.14**,
-Session Core **0.3.18**, PDH **0.4.64** and Context/Memory Kernel **0.1.8**.
-Open VSX **0.37.140** and JetBrains **0.4.158** are public and recommend that
-CLI. Release commit `da91e730d8` passed CLI CI (71/71), Strict (5/5), IDE
-(18 success / 1 conditional skip) and ARM64 (10/10), then the established
-GitHub Actions OIDC published SDK before CLI and IDEs.
+Public npm is **chainlesschain@0.166.98**, with Agent SDK **0.2.14**, Session
+Core **0.3.19**, Personal Data Hub **0.4.64** and Context/Memory Kernel **0.1.9**.
+Open VSX **0.37.142** and JetBrains **0.4.160** recommend that CLI; public
+artifacts and the original exact-source release receipts have been read back.
 
-This release improves concurrent permission writes, official stable upstream
-model review and retained diagnostic evidence. JetBrains refreshes approval
-card layout and host diagnostics. SDK test diagnostics changed its complete
-signed source identity without changing runtime output; SDK 0.2.14 replaces
-reuse of 0.2.13. CLI 0.166.95 stopped at that reuse check and was not published.
-
-Windows toolchain and Job cleanup diagnostics remain experimental; full native
-review is NOT_ADMITTED and formal 36+9 evaluation NOT_RUN. Native product
-v5.0.3.140 has its own release identity. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
+Windows native review remains NOT_ADMITTED and formal 36+9 evaluation NOT_RUN.
+The original macOS needs-input performance failure and all unfinished native,
+durable, human, billing and long-term acceptance remain separately recorded.
 
 ### Linux process ownership recovery (public 0.166.91)
 

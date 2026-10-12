@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.161] - Model and runtime safety pairing (2026-10-12)
+
+- Recommend CLI `0.166.99` after it is public and this exact release commit’s
+  CLI, IDE and ARM64 gates pass.
+- Pair with CLI search validation, paused request identity, byte-preserving edit
+  refusal, exact Haiku 5.5 pricing and terminal provider retry classification.
+- Retain the existing host behavior, compatibility floor and capability checks.
+- Keep real-host performance and formal/native acceptance separate from local
+  regressions; preserve existing deadlines and original failure evidence.
+
 ## [0.4.160] - Pair with live-task delivery and cost fixes (2026-10-11)
 
 - Recommend CLI `0.166.98` after its public npm release and the final source

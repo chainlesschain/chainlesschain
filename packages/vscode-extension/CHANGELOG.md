@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.143] - Model and runtime safety pairing (2026-10-12)
+
+- Recommend CLI `0.166.99` after it is public and this exact release commit’s
+  CLI, IDE and ARM64 gates pass.
+- Defer periodic Workbench reads during actions and discard older projection
+  results. Keep fresh authority/revision checks and post-mutation canonical reads.
+- Scope refresh and action bookkeeping to each panel so closing/reopening cannot
+  inherit a pending operation or suppress the new panel’s timer.
+- Keep real-host performance and formal/native acceptance separate from local
+  regressions; preserve existing deadlines and original failure evidence.
+
 ## [0.37.142] - Pair with live-task delivery and cost fixes (2026-10-11)
 
 - Recommend CLI `0.166.98` after its public npm release and the final source
