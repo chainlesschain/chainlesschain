@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:46:21.647Z",
+  "summarySha256": "3bed20e3f4000ae31ad671c03d46ea3d990b6c69744b7710483300160906f472",
+  "readmeSha256": "0e20c41c8c9d4eec6892e2924d1a438a2395315eb7e2c85ef10839aca88b28fe",
+  "entries": [
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/annotations.raw.json",
+      "path": "objects/000.gz",
+      "rawBytes": 310,
+      "rawSha256": "066191011923a98f8ba427f9a3cce3a367284ada1c871e74856d9c6d19f1ba53",
+      "bytes": 220,
+      "sha256": "c93a4a5a9e9e8c71c7844e575fa5e429de04db02bf59795d5f5253233e852dac"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/annotations.stderr",
+      "path": "objects/001.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/artifact/scheduler-kernel-soak-Windows.json",
+      "path": "objects/002.gz",
+      "rawBytes": 140909,
+      "rawSha256": "0e27925c744311a3dfb0633075f523a71781dfdaa00fab0af4962029067a0359",
+      "bytes": 10862,
+      "sha256": "e69672fa3652c9facc7bf78433e86ca439f6a74d7f8e025df76eded9c0eab421"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/artifact-11762900808.zip",
+      "path": "objects/003.gz",
+      "rawBytes": 11026,
+      "rawSha256": "fc86107a2b02d4f2f8f00e9b5df599bd7f44c242e1c41bf59402feec4b6c7727",
+      "bytes": 10910,
+      "sha256": "eb4c07eaf5cfd645ec498e92deb8118ffe826fd6a534d898537da8a642610ce1"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/artifact.raw.json",
+      "path": "objects/004.gz",
+      "rawBytes": 800,
+      "rawSha256": "ec4b82472e18d1d381fd244f1a511afbd125233da4a8e7c6ca31a2381346e914",
+      "bytes": 454,
+      "sha256": "8c1d6e862b34bb506e47d972fb63782774bba0f286a59a989e94220eb7702384"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/artifacts.raw.json",
+      "path": "objects/005.gz",
+      "rawBytes": 2428,
+      "rawSha256": "81702a19571527f3f65d609dc2a56aaf66172b9227ad1bc084c5d8cb6d9a539f",
+      "bytes": 659,
+      "sha256": "1ee47f92aa05427dc30462f19b6a887413c6c675b55c5b008250a768b81ddf4b"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/artifacts.stderr",
+      "path": "objects/006.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "duplicateOf": ".work/release100-scheduler-windows-failure-20261013/annotations.stderr"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/diagnosis.json",
+      "path": "objects/007.gz",
+      "rawBytes": 15152,
+      "rawSha256": "bcc0fbbe8912eec58956cab78780cb6fb1acf3abb59411e33c33b984fff0bedc",
+      "bytes": 4293,
+      "sha256": "adde8ba0ac24708c99bd94b96cf2ddf65ae525e8a873a0288017b9eea91ab9f0"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/focused-failure.json",
+      "path": "objects/008.gz",
+      "rawBytes": 8516,
+      "rawSha256": "3f419667abc6dd9f0afc47954582da91a35b861f684f38df76e17f03e8a0a0f8",
+      "bytes": 1285,
+      "sha256": "acb77922fda6e598b7d634be14fb4ad1ed23874556d79fe914b1aea9eafd1bee"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/job-log.raw.log",
+      "path": "objects/009.gz",
+      "rawBytes": 56647,
+      "rawSha256": "cbad4ad8ebece8a072f140b4455052e09185fad2ceeefda4420e7cce26c0a3b1",
+      "bytes": 13129,
+      "sha256": "673a976b8deb0563aaec1469a1e94c72db2b425f1df88098d82bd6ce4dce5159"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/job-log.stderr",
+      "path": "objects/010.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "duplicateOf": ".work/release100-scheduler-windows-failure-20261013/annotations.stderr"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/job.raw.json",
+      "path": "objects/011.gz",
+      "rawBytes": 2943,
+      "rawSha256": "ba816ba0f2fb402300cb55f0a370808a962f167d6ba78eba635f5ba6096ab6ca",
+      "bytes": 768,
+      "sha256": "430a3a0fdff725478a4f182f9fdad26a1a60635d0cf45466b72f4a148740d3c4"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/job.stderr",
+      "path": "objects/012.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "duplicateOf": ".work/release100-scheduler-windows-failure-20261013/annotations.stderr"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/run.raw.json",
+      "path": "objects/013.gz",
+      "rawBytes": 13783,
+      "rawSha256": "ec7c9c281367e9e4851f841738b6d043f5fedeee2fa990c238970996eeaa7f3b",
+      "bytes": 1680,
+      "sha256": "063a768a6e3d277b2db094da6aa77be0c2e4e2da7b3e902afd6daa0a583624a2"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/run.stderr",
+      "path": "objects/014.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63",
+      "duplicateOf": ".work/release100-scheduler-windows-failure-20261013/annotations.stderr"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/source/scheduler-kernel-soak-worker.mjs",
+      "path": "objects/015.gz",
+      "rawBytes": 16734,
+      "rawSha256": "346b5d69f6336e3fcb7c7330ee01326758b3715f2f270a2f8ace7a11c304c6cf",
+      "bytes": 4727,
+      "sha256": "92a1482fae4aa0b6d77bd0ad488c6e2d430751116693d3ec434716b9919b97bb"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/source/scheduler-kernel-soak.mjs",
+      "path": "objects/016.gz",
+      "rawBytes": 89498,
+      "rawSha256": "7f719b87ba2ffd51d700fda0766845b5b2b0dae99df1c918b8b418f68b83ae90",
+      "bytes": 21090,
+      "sha256": "8ad015893f7291ad5aa6688c5bdbdd67214c51cc0eb3b8573d956a84dc654593"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/source/scheduler-runtime.js",
+      "path": "objects/017.gz",
+      "rawBytes": 27348,
+      "rawSha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+      "bytes": 6404,
+      "sha256": "3e34e5ecabc0e8bbd2d652bfb3a789cb5b125b555aba9bf7fca97711de18b15c"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/source/scheduler-store.js",
+      "path": "objects/018.gz",
+      "rawBytes": 203109,
+      "rawSha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+      "bytes": 34782,
+      "sha256": "6f4d7cb47577d4be13c62b69c90d30b300cae323ca6141804a0dfd60cd311caf"
+    },
+    {
+      "source": ".work/release100-scheduler-windows-failure-20261013/zip-verification.json",
+      "path": "objects/019.gz",
+      "rawBytes": 290,
+      "rawSha256": "104b036010bb43b58773fbb825941a1bf721e1c74adb8ba90d0c130d23113b39",
+      "bytes": 166,
+      "sha256": "56a40b77a6ae9b3958b4bbdd41f944c53f7ac0b3653cbf144ae03cfaba0e13e0"
+    }
+  ]
+}

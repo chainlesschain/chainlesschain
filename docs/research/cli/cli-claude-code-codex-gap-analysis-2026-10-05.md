@@ -1,21 +1,23 @@
 # ChainlessChain CLI 对照 Claude Code / Codex 最新版本的差距与优化分析（2026-10-05）
 
+> **2026-10-13 火山流式工具短测与调度器真实失败**：用户再次确认使用火山引擎。固定官方端点和模型的[真实流式/合成只读工具往返](./evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-stream-tool-authorized-smoke/README.md)两次 HTTP200，434 输入/46 输出 token，公开常规价 token-only 估算 **¥0.001716**，账单/FX 未知；这是独立协议短测，未执行正式样本或生产 Agent 任务。仅诊断 SHA0c148cf 的 [Windows ARM64 旅程](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-windows/README.md)成功，六次菜单交接通过，原故障未复现且根因仍未确认。后续 SHA1e0272f 新增异步交接/守卫，[现有本地测试5/5](./evidence/gap-2026-10-05/continuation-2026-10-12/unattributed-popup-1e-source-review/README.md)未覆盖新行为，修复结论仍 UNPROVEN。1e 的 [Windows Scheduler 原失败](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-scheduler-windows-failure/README.md)确认同 owner/fence 的租约到期触发 SCHEDULER_LEASE_LOST，副作用未执行；不是安装/CI 超时，续期延迟底因未定。后续94da231将 PR smoke 租约由1s改为10s，同时改变派生 heartbeat/场景期限；[Astra范围审查](./evidence/gap-2026-10-05/continuation-2026-10-12/scheduler-lease-margin-scope-experiment/README.md)接受其为与formal一致的CI配置纠正，原1s失租根因未解，单次原参数本地实验通过但未复现CI失败。后续源码须完整准确 Actions 重验。CLI0.166.100/VS0.37.144/JB0.4.162仍未发布，测试通过后按既有授权 OIDC CLI→公开回读→IDE。正式仍 **NOT_RUN / 0/36 / 0/9 / 共享$99**；冻结分配为火山18任务+9首次旅程、OpenAI18任务，Astra评估器预审已按用户授权完成。
+
 > **2026-10-13 发行门失败与费用更正**：候选CLI0.166.100/VS0.37.144/JB0.4.162尚未发布。准确ff292775的[最终候选Linux预检](./evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-final-candidate-ff2927/README.md)成功，但[Windows ARM64 JetBrains原失败](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-attempt1-failure/README.md)显示后续Summarize动作菜单45秒内未出现，根因仍待定位；[最小诊断本地验证](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-popup-diagnostic-local/README.md)5/5通过，独立诊断SHA0c148cf927/run38280050578已启动，尚非完整发行门。[macOS浏览器原件](./evidence/gap-2026-10-05/continuation-2026-10-12/release100-browser-macos-upload-failure/README.md)另确认CreateArtifact时DNS解析失败，后续two-origin未执行，需新源码完整重验。完整准确源码门未通过；修复后的新SHA须重跑完整七门及适用CI/Host，再按用户授权OIDC发布CLI、公开回读后发布IDE。火山旧$0.0000161仅是配置估价；[精确模型官方费用核查](./evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-cost-contract-review/README.md)的常规价token-only估算为¥0.000384，实际账单/换算仍未知。正式36+9保持NOT_RUN、0/36、0/9与共享$99。
 
 ## 当前续做状态（2026-10-13）
 
 整体任务仍有外部验收和平台实现未关闭，当前以本表及最新增量为准。
 
-| 范围                                     | 当前状态                                  | 仍需完成                                                                |
-| ---------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| CLI 0.166.99 / 配对双 IDE                | 准确311e完整发行门、OIDC和公开回读完成    | 后续源码重新验证自身矩阵                                                |
-| CLI 0.166.100 / VS 0.37.144 / JB 0.4.162 | 候选尚未发行；ARM64 实机诊断执行中        | 修复提交完整七门及适用 CI/Host，随后 OIDC 发行和公开回读                |
-| Retry-After / 服务端终态 / 可见输出重放  | 工程实现与双平台248/248回归完成           | 本次准确源码Actions、实际provider场景；模型WebSocket另验                |
-| MODEL-03 / MODEL-04 / UTF-8 / Workbench  | 已有工程随0.99发行，原证据保留            | 官方endpoint与usage/账单、上游候选场景及正式SLO分别验收                 |
-| VERIFY-02 / VERIFY-IDE-02                | v2窗口与72份脚本已准备；项目0/36、首次0/9 | 真实Linux预检与Astra预审已处理；九入口、账号额度及正式产物/费用仍需完成 |
-| 正式执行窗口保护                         | 双平台177/177，工程已完成                 | 本次准确源码Actions；实际IDE发送前检查deadline/window                   |
-| PLATFORM-02 / NET-02 / 完整native review | durable=false、NOT_ADMITTED               | Windows/macOS存储broker、连续authority、写入/CAS/journal/恢复与网络撤销 |
-| 真人辅助技术 / 8h/24h / SLO              | 未完成                                    | 实际人员、目标宿主与批准的观测计划；不改冻结窗口或回填样本              |
+| 范围                                     | 当前状态                                    | 仍需完成                                                                          |
+| ---------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------- |
+| CLI 0.166.99 / 配对双 IDE                | 准确311e完整发行门、OIDC和公开回读完成      | 后续源码重新验证自身矩阵                                                          |
+| CLI 0.166.100 / VS 0.37.144 / JB 0.4.162 | 候选未发行；1e调度器实测失败，10s配置经Astra范围审查   | 原失败诊断/有依据修复与新准确提交完整七门及适用 CI/Host，随后 OIDC 发行和公开回读 |
+| Retry-After / 服务端终态 / 可见输出重放  | 工程实现与双平台248/248回归完成             | 本次准确源码Actions、实际provider场景；模型WebSocket另验                          |
+| MODEL-03 / MODEL-04 / UTF-8 / Workbench  | 已有工程随0.99发行，原证据保留              | 官方endpoint与usage/账单、上游候选场景及正式SLO分别验收                           |
+| VERIFY-02 / VERIFY-IDE-02                | v2/72脚本及Astra预审完成；项目0/36、首次0/9 | 原火山18+9与OpenAI18分配；持久原子费用控制、账号/目标九入口及正式产物/check/费用  |
+| 正式执行窗口保护                         | 双平台177/177，工程已完成                   | 本次准确源码Actions；实际IDE发送前检查deadline/window                             |
+| PLATFORM-02 / NET-02 / 完整native review | durable=false、NOT_ADMITTED                 | Windows/macOS存储broker、连续authority、写入/CAS/journal/恢复与网络撤销           |
+| 真人辅助技术 / 8h/24h / SLO              | 未完成                                      | 实际人员、目标宿主与批准的观测计划；不改冻结窗口或回填样本                        |
 
 > **2026-10-12 Astra授权审阅、真实预检与发行候选**：按用户指示由Astra代替人工审阅。旧70bf包第34题baseline缺口已修复，原源码2失败、Windows/Linux各11/11；新准确07f050的真实Linux预检成功，72脚本新pin已重审（APPROVED_FOR_DECLARED_EVALUATOR_SCOPE），见[审阅原件](./evidence/gap-2026-10-05/continuation-2026-10-12/astra-authorized-review/README.md)及[实际回读](./evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/README.md)。火山授权短测HTTP200，89/13token、旧配置估算$0.0000161（官方常规价token-only估算¥0.000384，账单未知），非正式样本；OpenAI项目凭据/订阅授权集成尚缺。CLI0.166.100/VS0.37.144/JB0.4.162候选已准备，按用户条件授权待准确提交完整Actions通过后OIDC发布。正式仍0/36、0/9、NOT_RUN及共享$99；原计划不改，真人辅助技术/目标宿主/费用/native/长时观察分别验收。
 

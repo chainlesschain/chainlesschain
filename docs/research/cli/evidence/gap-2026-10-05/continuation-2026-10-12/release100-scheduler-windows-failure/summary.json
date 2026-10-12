@@ -1,0 +1,41 @@
+{
+  "schema": "chainlesschain.scheduler-failure-archive/v1",
+  "sourceCommit": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+  "runId": 38283485238,
+  "jobId": 114926160748,
+  "artifact": {
+    "id": 11762900808,
+    "digest": "sha256:fc86107a2b02d4f2f8f00e9b5df599bd7f44c242e1c41bf59402feec4b6c7727",
+    "verified": true
+  },
+  "status": "CONFIRMED_EXPIRED_LEASE_ABORT_UNDERLYING_TIMING_CAUSE_UNDETERMINED",
+  "actualError": {
+    "code": "SCHEDULER_LEASE_LOST",
+    "workerId": "steady-2",
+    "pid": 1764,
+    "exitCode": 1,
+    "phase": "before-execute",
+    "sourceStack": [
+      "packages/session-core/lib/scheduler-store.js:5048",
+      "packages/session-core/lib/scheduler-runtime.js:552",
+      "packages/cli/scripts/scheduler-kernel-soak.mjs:425",
+      "packages/cli/scripts/scheduler-kernel-soak.mjs:1203"
+    ],
+    "jobLogFirstErrorLine": 568
+  },
+  "expiry": "2026-10-12T17:24:44.428Z",
+  "fatalAt": "2026-10-12T17:24:45.118Z",
+  "millisecondsPastExpiryAtFatal": 690,
+  "targetEffectCreated": false,
+  "underlyingTimingCause": "UNDETERMINED",
+  "infrastructureFailureEstablished": false,
+  "capturedAt": "2026-10-12T17:46:21.647Z",
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  },
+  "releaseGatePassed": false
+}
