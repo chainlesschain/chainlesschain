@@ -1,0 +1,50 @@
+{
+  "schema": "chainlesschain.scheduler-scope-experiment-archive/v1",
+  "capturedAt": "2026-10-12T17:55:29.799Z",
+  "scopeReview": {
+    "commit": "94da2311b380442cf861ffebe2402bfe77986d16",
+    "parent": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+    "verdict": "SCOPE_APPROVED_AS_CI_SMOKE_PROFILE_CORRECTION_NOT_A_ROOT_CAUSE_FIX",
+    "sha256": "89c5fefe0e55f82b6b3abbb81f222c1ec1a2e61ec12bf5d7539796405584476d",
+    "priorRootCauseFixReviewPreserved": true
+  },
+  "experiment": {
+    "sourceCommit": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+    "status": "PASSED_ORIGINAL_CI_FAILURE_NOT_REPRODUCED",
+    "physicalExperiments": 1,
+    "automaticRetries": 0,
+    "durationMs": 47759.1625,
+    "leaseMs": 1000,
+    "rounds": 2,
+    "steadyOccurrences": 8,
+    "allInvariantsPassed": true,
+    "rootCauseConfirmed": false,
+    "repairProven": false,
+    "diagnosticCounts": {
+      "processTraces": 9,
+      "eventCount": 17423,
+      "dropped": 0
+    }
+  },
+  "sourceIntegrity": {
+    "capturedAt": "2026-10-12T17:55:29.799Z",
+    "sourceCommit": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+    "sourceArchiveSha256": "97b6b61a49bdfabdd7cea1f76af935da5a9a6d26dc88fc10cff616445bb4ff35",
+    "sourceReceiptSha256": "aa4a7c55731d113a3d31fea21d8dcf4f09ff7088e27676cae4aaa4649394fc1c",
+    "sourceFilesVerified": 2222,
+    "loadedDependencyFilesVerified": 180,
+    "resultArtifactHashesAndSizesVerified": 32,
+    "reviewSha256": "89c5fefe0e55f82b6b3abbb81f222c1ec1a2e61ec12bf5d7539796405584476d",
+    "sourceSnapshotsDuplicatedInArchive": false,
+    "dependenciesDuplicatedInArchive": false,
+    "verificationMode": "Read existing source snapshot and loaded dependency bytes; no rerun, compilation, mutation or provider call."
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  },
+  "finalExactSourceReleaseGatesPassed": false
+}

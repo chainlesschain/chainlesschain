@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.team-worktree-registry-failure-archive/v1",
+  "capturedAt": "2026-10-12T17:57:02.319Z",
+  "sourceCommit": "1e0272fb491db46c3b46eb03170b67bb7136d132",
+  "runId": 38283485176,
+  "jobId": 114926287459,
+  "artifact": {
+    "id": 11763082531,
+    "name": "cli-team-soak-windows-latest-1",
+    "zipBytes": 3205,
+    "expectedSha256": "054c448ed40c7a13e7c7ca5b280c165ebd5e3d6d94da5ff2e112e5e94a97e862",
+    "actualSha256": "054c448ed40c7a13e7c7ca5b280c165ebd5e3d6d94da5ff2e112e5e94a97e862",
+    "digestMatches": true,
+    "entries": [
+      "cli-team-soak-result.json"
+    ],
+    "checkoutEvidence": "Report verifies expected HEAD/tree/source bytes and clean tracked worktree on exact1e; no ignored or untracked source overrides."
+  },
+  "failure": {
+    "assertion": "status.stats.completed === fixture.tasks.length && status.stats.leased === 0 && status.stats.adjudicationRequired === 0",
+    "source": "packages/cli/scripts/team-distributed-soak.mjs:2523",
+    "error": "distributed queue did not reach a clean terminal state",
+    "expectedCompleted": 5,
+    "actualCompleted": 4,
+    "pendingTask": "task-004",
+    "tasksStarted": 7,
+    "maxTasks": 7,
+    "tasksSettled": 5,
+    "budgetReason": "max-tasks",
+    "unexpectedRetryTask": "task-003",
+    "unexpectedRetryError": "fatal: failed to read '.git/worktrees/team-soak-0-4247034327-e683ffe9ca34aeaa-task-002-55d35b3a7733449f/locked': No such file or directory",
+    "plannedCrashTasks": [
+      "task-000",
+      "task-001"
+    ],
+    "explanation": "5 intended tasks plus 2 deliberately crashed starts exactly consume the configured 7-start allowance. An additional retried task-003 Git registry read failure consumed the seventh start before task-004 could start. Four successful tasks and one failed-but-settled attempt account for tasksSettled=5; two crash attempts account for the remaining starts. Earlier worker-execution assertion passed because failure attempts also count as executions.",
+    "notFailureCause": [
+      "Managed-process probe passed",
+      "Direct-file checkpoint committed",
+      "No timeout: failure after 13.485s",
+      "No live model or network required",
+      "Artifact upload succeeded",
+      "Totals.rounds=0 means no completed verified round, not no task activity"
+    ]
+  },
+  "sourceMechanism": [
+    "Exact1e worktree-isolator.js:174 executes git worktree list --porcelain once. repositoryManagementContext:180 invokes it; createWorktree:424 invokes that context before add and :476 after add.",
+    "Exact1e git-integration.js:87 invokes git argv with shell:false. On nonzero status it uses trimmed stderr, falling back to trimmed stdout only if stderr is absent; it throws and discards partial porcelain output. opts.input is only forwarded when supplied; readRegisteredWorktrees supplies none.",
+    "Observed CI Git version is 2.55.0.windows.5. Matching tagged upstream worktree.c:311 checks file_exists(locked), then strbuf_read_file, and die_errno on failure at :315. builtin/worktree.c:978 calls that function while printing --porcelain. builtin/worktree.c:528 writes an initializing lock during add and :601-604 removes it after preparation. Concurrent add finishing between the existence check and read can generate the exact observed ENOENT.",
+    "Exact1e team-runner.js:2751 sends failure.message to registry.fail with retryable true unless explicitly false. team-distributed-queue.js:5177 increments tasksStarted per successful claim, :5041 counts settled failures as settlements, and :2745 returns max-tasks when starts reach limit. Soak sets maxTasks=fixture.tasks.length+options.crashes at :2299."
+  ],
+  "mechanismLimits": [
+    "The CI artifact has the task error but no underlying Git call stack or filesystem trace. It cannot distinguish the pre-add from post-add registry call or identify the precise unlinking process.",
+    "Upstream source establishes the possible TOCTOU mechanism matching the observed error; this review did not reproduce an actual concurrent Git race or rerun the soak."
+  ],
+  "patchAttribution": "UNKNOWN",
+  "mockRegression": {
+    "passed": 10,
+    "sourceSnapshotSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+    "method": "Extracted functions from exact1e and separately captured pre-existing working diff; mocked subprocess failures. No real race reproduced, no product tests modified, no soak rerun.",
+    "physicalGitRaceReproduced": false,
+    "normalVitestResultsIncluded": false
+  },
+  "originalManifestEntriesVerified": 24,
+  "releaseGatePassed": false,
+  "paidCallsDuringArchive": 0,
+  "formal": {
+    "status": "NOT_RUN",
+    "taskObserved": 0,
+    "taskPlanned": 36,
+    "firstRunObserved": 0,
+    "firstRunPlanned": 9
+  }
+}

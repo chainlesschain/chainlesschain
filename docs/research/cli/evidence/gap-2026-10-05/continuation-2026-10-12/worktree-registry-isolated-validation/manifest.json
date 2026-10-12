@@ -1,0 +1,870 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T18:15:58.418Z",
+  "summarySha256": "79cff3802d5bd4120bd3a02611684668770260f22064f5f8fd94f3c1708f105b",
+  "readmeSha256": "7e6d30306e11b3335bf75b83d235bd230bd96ffbe277304453a8c0418f95c2dc",
+  "entries": [
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/execution-result.json",
+      "path": "objects/000.gz",
+      "rawBytes": 1300,
+      "rawSha256": "db7906b60aee43e9734016510e74c3a923dd86ca7f182665116af3c8d8a4780f",
+      "bytes": 609,
+      "sha256": "b3ce048f83a84da06d209bb6de9b27f6af09446033502ef7819200a77880555f"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/execution-start.json",
+      "path": "objects/001.gz",
+      "rawBytes": 1177,
+      "rawSha256": "5773ce60f3b53ff7eb48cfa9368613125a26b3dbcba6d8d3da1a65999583e831",
+      "bytes": 554,
+      "sha256": "6f471143bd9b3ceb25b3e4a8c081e8a4d1319c241c24f51a4fe2c5ca3b09bdd5"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/independent-archive-binding-verification.json",
+      "path": "objects/002.gz",
+      "rawBytes": 172229,
+      "rawSha256": "25f166fee993a736654f984132aad742eaa5cf1395b90de8d124d518485014d4",
+      "bytes": 14710,
+      "sha256": "33468ba740922be69a3512c43a163b494e86e0b009b3d0474e3bf9b37f4c5e73"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/isolation-input-manifest.json",
+      "path": "objects/003.gz",
+      "rawBytes": 49863,
+      "rawSha256": "aa5904260854b70dca0850db78a076cb1c325fd8168dcb80c32d85367af93077",
+      "bytes": 6720,
+      "sha256": "36178d71a0826359071b3d80a5287720c79bb9f8c41997b05512ab399ace1041"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/017-package.json",
+      "path": "objects/004.gz",
+      "rawBytes": 7357,
+      "rawSha256": "e31c1a5ef5b3d9fcfc3e5724a2aee294d196ccc3659ea96d85669bc5afa30a90",
+      "bytes": 2108,
+      "sha256": "bfa609b65e45d51230d882f2ea61fbffe2e73f4a26b2ccdfad983cbb771089e8"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/018-host-storage-environment.js",
+      "path": "objects/005.gz",
+      "rawBytes": 693,
+      "rawSha256": "c2b89a0c02d1ea505b67fdd78c02d24ecbd9b238cf82b08c24d1a63e2d76e53a",
+      "bytes": 386,
+      "sha256": "74d7fb6d9f6dbaa083991e57f5017ee94455015381ac24a7d2ccd155ecab6a9d"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/065-project-root.cjs",
+      "path": "objects/006.gz",
+      "rawBytes": 3308,
+      "rawSha256": "1295f4d05bc1376b382af9ca1de27673d9b0c4677778bd877ca29ceff2778f98",
+      "bytes": 1454,
+      "sha256": "0d199eb1bd8ce586f279711b66e51acdb80f4d0662c102ab6ba097c8756b8693"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/066-settings-source-observation.cjs",
+      "path": "objects/007.gz",
+      "rawBytes": 8667,
+      "rawSha256": "8b4fc5990ee137136b83b910c9bb566a2cdcf38b45dc4c330834466b7e58e808",
+      "bytes": 2815,
+      "sha256": "9a46648f844b3eec2dae00e7a7d3ec0e50119b2760e45c7ae5f3a2a3d95dcb73"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/067-trace-context.cjs",
+      "path": "objects/008.gz",
+      "rawBytes": 4860,
+      "rawSha256": "b031a4f3a7b54bb56476b137aef497d0ebc24071a18b056a63a25b5cdcabedb4",
+      "bytes": 1554,
+      "sha256": "2b2b9642f7a1fd4a30a23d575f98073ac4883fcf1854e1992c9779de4035a0a1"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/136-vitest.config.mjs",
+      "path": "objects/009.gz",
+      "rawBytes": 963,
+      "rawSha256": "b1251a179cb0b3b87f5f50297ee90ec76bf196c7d5e41be3c34258dab12c42ab",
+      "bytes": 554,
+      "sha256": "381512f835e87768e97fab6946ac98d5abb836dfbffb2d3775fdbdd02703e1f9"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/137-vitest.config.js",
+      "path": "objects/010.gz",
+      "rawBytes": 3515,
+      "rawSha256": "2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08",
+      "bytes": 1741,
+      "sha256": "4d034ed7e8dd9af5a867b51390c006dbcf155945b3f0d02075a4726f55647963"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/165-credential-transport-worker.js",
+      "path": "objects/011.gz",
+      "rawBytes": 7927,
+      "rawSha256": "cac71654cbe98b07d74a3b55b01b11f11a08db01c064704666528aa0bab82340",
+      "bytes": 2412,
+      "sha256": "62e147f77fc12eae52c2ed07353b936d05432a7f859df0f8dd68709b5cb539c1"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/166-windows-sandbox-adapter-temp-root.js",
+      "path": "objects/012.gz",
+      "rawBytes": 846,
+      "rawSha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1",
+      "bytes": 389,
+      "sha256": "2d51b34e08fbd2f927854aad48c8bf63c453a555ba94bac7e515c12e6d85e157"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/167-windows-sandbox-adapter-temp-root.js",
+      "path": "objects/013.gz",
+      "rawBytes": 15132,
+      "rawSha256": "625b7aa9405f3de6926fe25d9b84aeab947f3c57eb42065d2d6aa2f23d344b70",
+      "bytes": 3582,
+      "sha256": "d2480af6bfd4f5bcddea4432add3991050886dd4b2553aa15627d70cc1073482"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/168-canonical-windows-test-temp.js",
+      "path": "objects/014.gz",
+      "rawBytes": 1196,
+      "rawSha256": "2311e6ab568beba98b3390fa7596902f400fb6cdcbb9c4c0e6ffdca5a05b1ec2",
+      "bytes": 624,
+      "sha256": "b5ba652ef13df62cd00fbe80a48ec0eacf972e947bd36f0102a85ceb5e9ebad1"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/169-windows-sandbox-adapter-cleanup.js",
+      "path": "objects/015.gz",
+      "rawBytes": 1490,
+      "rawSha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+      "bytes": 699,
+      "sha256": "7d2a0217fe839b95cb327568e6320ddb7f3c08e6495238da9ff9ca897a9e136e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/170-windows-sandbox-adapter-cleanup.js",
+      "path": "objects/016.gz",
+      "rawBytes": 1426,
+      "rawSha256": "5fb283aa5aae622d3a5609bf1f878c2068177e1b547ce1c45293d86e57ef011d",
+      "bytes": 605,
+      "sha256": "4f9517a16d673f05bd471033927054d6df56b0e19df09b15124371a8287f6445"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/171-platform-sandbox.js",
+      "path": "objects/017.gz",
+      "rawBytes": 323487,
+      "rawSha256": "723d57efd975158951ec38a8f8540b5501fd11eb14ee18fc0cc76dc43f23fc67",
+      "bytes": 69580,
+      "sha256": "67e836627e804ccab88021bafdda5819eab311ae654701fc5ba4367489508a31"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/172-linux-generic-bwrap-runtime.js",
+      "path": "objects/018.gz",
+      "rawBytes": 51189,
+      "rawSha256": "0cd6dc9af1b4221a080d20d691f522aeae4e805f4112d6b9181b0f8153e9241d",
+      "bytes": 12040,
+      "sha256": "a71e5d3c3e8c3117b9eec874f20bccba362a450e43bea79053afa004d0ac5690"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/173-linux-generic-bwrap.js",
+      "path": "objects/019.gz",
+      "rawBytes": 48373,
+      "rawSha256": "94ead0400a470e475dd2390cc0cc4b85c610cc513e7d806d63d53bee93c473f3",
+      "bytes": 11607,
+      "sha256": "8f0bab689d9d99ed57fcd15bb48d1f934a1645b07ac25f3c5fdff5069abd410e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/174-linux-bwrap-descriptor-launch.js",
+      "path": "objects/020.gz",
+      "rawBytes": 12514,
+      "rawSha256": "6958ea32c8e692284b0b8bd7acc7c170e7564d6546dca60c6a2abb18836396c4",
+      "bytes": 3313,
+      "sha256": "747aa0facc124f5bf44f4b8e86b1a905b374dd014ebe6e6aa65d1e975923f2c5"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/175-linux-open-flags.js",
+      "path": "objects/021.gz",
+      "rawBytes": 896,
+      "rawSha256": "b7b7e945c7528c06786e7994a12e79f3f500433182ccd0de3c82d2ed75e16a94",
+      "bytes": 426,
+      "sha256": "d9c60d1ef51afdc2493a8992a663e2b90861316f2ad2a8aadf12cb9c4fcd98bb"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/176-mcp-fd-entry-bootstrap.js",
+      "path": "objects/022.gz",
+      "rawBytes": 1670,
+      "rawSha256": "dc6907922a8b07ad91908d85cd5723aa4e8ab1b298dd65ae01c73bb335c0634d",
+      "bytes": 804,
+      "sha256": "9b46a99ea29f1a4fe6fd3cdef04907c85ab9ecccd5116a5a00e9906bf02f4752"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/177-macos-mcp-launcher-contract.js",
+      "path": "objects/023.gz",
+      "rawBytes": 10126,
+      "rawSha256": "5847701bde52ddfd8fe4394a25c55b1f82f4240862a6b5a4900bb58ea417d351",
+      "bytes": 2823,
+      "sha256": "afc6d9b535ecf92afc9bc48cf94492112f95a1e5e53c6cceed54d6d0117042ef"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/178-mcp-stdio-native-code-policy.js",
+      "path": "objects/024.gz",
+      "rawBytes": 2698,
+      "rawSha256": "9d1f893c02dbbbc3a0cc78a31a6ca82b697fbac6e484484fb988a26d0b36cfec",
+      "bytes": 1107,
+      "sha256": "e21a9102dbfbdf30b8efbed940f18e3f2ec9c4e37f68cf66fe65bdb3224251c5"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/179-linux-cgroup-v2.js",
+      "path": "objects/025.gz",
+      "rawBytes": 11926,
+      "rawSha256": "1ee45370312083d5834d767593dc96e6312be86c5ef186f67ff81a12633ee437",
+      "bytes": 3347,
+      "sha256": "228f396640d017326ca0b062eda81ab1bbfaf8537c6e68160077b35651943a35"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/180-agent-evolution-test-boundary.js",
+      "path": "objects/026.gz",
+      "rawBytes": 4922,
+      "rawSha256": "c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516",
+      "bytes": 1387,
+      "sha256": "f601e368d02a94c759070c7302ba9f90dc86b1992e426c838105fe856a3ad7fc"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/181-worktree-registry-read-retry.test.js",
+      "path": "objects/027.gz",
+      "rawBytes": 6756,
+      "rawSha256": "83921b021049893fa6f5ef561a3b782dcd2b2ab4a7ef242cdbd7bb580b480a57",
+      "bytes": 2007,
+      "sha256": "9b41bf5ed99b7f6cd9e5c9f73d512a0d83ebc6b8ce460b15cde93918a62833c3"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/182-git-integration.js",
+      "path": "objects/028.gz",
+      "rawBytes": 20713,
+      "rawSha256": "69629c4377f52d7b8306b32d1d6d7fff1271748fde5edc9dcffd44403eece88c",
+      "bytes": 5903,
+      "sha256": "fcde93dca797a6d24e8a979975b8497e45464a513a9260ccc694135f83fd7401"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/183-index.js",
+      "path": "objects/029.gz",
+      "rawBytes": 216534,
+      "rawSha256": "ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a",
+      "bytes": 40459,
+      "sha256": "c4990eb8df10ca0afa7f340243983c6f531d93109fb0a45acb44920c42f2a7b9"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/184-windows-native-evaluator.js",
+      "path": "objects/030.gz",
+      "rawBytes": 17847,
+      "rawSha256": "809315088a2fa4d00ec467d5487c1346322b8e11912c34dbd7abe0213bdce3a2",
+      "bytes": 5418,
+      "sha256": "d990aafe83ef9981cf28fffbc08a44b35b26d2d57f869f9073b9c192e6b1643a"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/185-linux-subreaper-helper.js",
+      "path": "objects/031.gz",
+      "rawBytes": 13660,
+      "rawSha256": "bbe6511f0657f8802f397984d9afcb22f49a13eaf3e4b131a60fe3a0bf47f797",
+      "bytes": 4285,
+      "sha256": "0ce88b3bc60eebeabf4c33e800631783414ae999956aa486801df0807113cf70"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/186-linux-subreaper-artifact.js",
+      "path": "objects/032.gz",
+      "rawBytes": 4032,
+      "rawSha256": "da942b6e8980a17c8df7b8fb1cf27e3e85f5e17a67055c9d15f17bf81f148baa",
+      "bytes": 1542,
+      "sha256": "2c4a3181dde08e948bb6c0517e09158e04ce8bdc669f695a929c33a388173c86"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/187-linux-subreaper-process.js",
+      "path": "objects/033.gz",
+      "rawBytes": 11291,
+      "rawSha256": "84aa3200fff0f01f21cd3f822b995871ae5a276f5f93997e8c67cb6303088ce9",
+      "bytes": 3565,
+      "sha256": "f5fe5b88ca71cc5f3344aea92a2aae41ad143e7ccc0bb347ed458150e9643c35"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/188-process-ownership-quarantine.js",
+      "path": "objects/034.gz",
+      "rawBytes": 4722,
+      "rawSha256": "f57682fb9d0027580db0e2e92a18e32bda6f58d262563efaa7faa698f782eb2f",
+      "bytes": 1726,
+      "sha256": "de7f49e2e412bb88f55ace05505552e35f803b5b23a045d95cd3733f3b97c365"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/189-paths.js",
+      "path": "objects/035.gz",
+      "rawBytes": 12638,
+      "rawSha256": "e7346b0f1ffe08c8285e5f18911ba50c4c9401dc07b813c8a97cf18ad2cc5646",
+      "bytes": 3701,
+      "sha256": "e907932737a20e75a94df33b64cceaa4a6f73f561c363667120958c72eecaf5a"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/190-constants.js",
+      "path": "objects/036.gz",
+      "rawBytes": 4772,
+      "rawSha256": "27eee86f85999035fffc48a5db9843d1de3c9b73bc3a3c85689781ac60a2c9bc",
+      "bytes": 1796,
+      "sha256": "041641c38bfaec9a083266c52e48b47e9a0d7a757448370bfa8926d3da82c03c"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/191-platform.js",
+      "path": "objects/037.gz",
+      "rawBytes": 826,
+      "rawSha256": "9eb843d83b10e5958853ae765f310e4fff00631fb9c44f37725215556d01c860",
+      "bytes": 322,
+      "sha256": "1ef8c39eb408c24aafb91eeb0176813472021ecb4ab3f6712855ae0064d93339"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/192-claude-project-storage-layout.js",
+      "path": "objects/038.gz",
+      "rawBytes": 3039,
+      "rawSha256": "3553f64546d55a5020a1b8fb59693f7a9ff715f34108801e7ba6a37b8ccd8ed9",
+      "bytes": 1296,
+      "sha256": "0d2df82dd5bc599f75247e7af914ef74855b45e11f782b1102c94b9171c3fbff"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/193-secure-fs.js",
+      "path": "objects/039.gz",
+      "rawBytes": 456,
+      "rawSha256": "40b027bf8ea3e249432f03d60db872e781d25233f7da92c3865f4fa98960a112",
+      "bytes": 286,
+      "sha256": "5e67f4351e7795135ecdf7dd4e9d48e0584334cb15f71ab0d1fb5a731c450b6e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/194-private-storage.js",
+      "path": "objects/040.gz",
+      "rawBytes": 48338,
+      "rawSha256": "c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf",
+      "bytes": 11467,
+      "sha256": "9cda72b5b335968d9810726a5de07456801c9080af5e3a506d8c3795e8072fb7"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/195-process-ownership-journal.js",
+      "path": "objects/041.gz",
+      "rawBytes": 15484,
+      "rawSha256": "7758e13ee561c97701934d8e0e9560609da354b8ae1f1ec72aa2dd9fbecef30b",
+      "bytes": 4256,
+      "sha256": "da3f8d2250d7291fb8c8f6bd1c83733ea2ac980c11fbdd1b70a7b57fbe6b04de"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/196-with-file-lock.js",
+      "path": "objects/042.gz",
+      "rawBytes": 31146,
+      "rawSha256": "2f6391d58ca38ecb98fd51a0025adb64439c4ab8b2baadb57842ebfe73604f3f",
+      "bytes": 8348,
+      "sha256": "ebba950a9a9fd6341d1a66e7ff8167fce36756ea6b88492dfd1c4bf996272d3d"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/197-durable-security-store.js",
+      "path": "objects/043.gz",
+      "rawBytes": 4610,
+      "rawSha256": "f6be9c208312f07ecdc99eea98eb43e63288e7cf5268fc1261e3caec69df5c54",
+      "bytes": 1837,
+      "sha256": "b74c3295c127bf9de400e6a2c647aabea9bf608bff34b65e51a14c14a1fdedd9"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/198-process-recovery-cgroup.js",
+      "path": "objects/044.gz",
+      "rawBytes": 8503,
+      "rawSha256": "04c495cd653e66b4313be4c141a04c8d7033a7c6dfc3264a208a73ce8724be7d",
+      "bytes": 2772,
+      "sha256": "e9d08d4729e2c2cb639e8f8b1399cb74f40d5dc2214ef005c0f4311d2c6ccc4d"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/199-bin.js",
+      "path": "objects/045.gz",
+      "rawBytes": 40490,
+      "rawSha256": "ef4bbb460bb7755c9dcf57c4bc689bea1731ec2b51810332e4d975a56467c38a",
+      "bytes": 9748,
+      "sha256": "24467cc9472f65027f8c70e634964aa2410951dc4c55fdd476dbb37c83b2da49"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/200-scopes.js",
+      "path": "objects/046.gz",
+      "rawBytes": 18879,
+      "rawSha256": "3d65410ae0edeb14587a0cf63ce91c968fd8fe652a4e0cb4bc8d0970f78cc6e9",
+      "bytes": 5255,
+      "sha256": "fdabeab0415011d776bf34d00dba8efb10f155bade6bd88a2f4b37a555ae492f"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/201-manifest.js",
+      "path": "objects/047.gz",
+      "rawBytes": 17220,
+      "rawSha256": "cb2bc081750d69a34c608341cc782c3a5376d473cd2eb885a1127da1f31d29eb",
+      "bytes": 4675,
+      "sha256": "9dd97c8515e18c2fc4c5e1a5b1b7565931fdbec947293686e56ae2bfcd0f7f69"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/202-capabilities.js",
+      "path": "objects/048.gz",
+      "rawBytes": 15611,
+      "rawSha256": "cde17086c5f5d5dd2d2087e3963c00638d3017d86387640be45679281e667f62",
+      "bytes": 5113,
+      "sha256": "1f2598b74bc0539603a2bc9cf74189b81a4d3063f24a0b3911897215f909eb25"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/203-sandbox-policy.js",
+      "path": "objects/049.gz",
+      "rawBytes": 6759,
+      "rawSha256": "acc11e15e0001cb5cb14fbec0534a6aa9b316b2e732d2407ab106bee0849e317",
+      "bytes": 2233,
+      "sha256": "36db94ae30c64317c93236200dbd0dc7b77e001d1645a24e436c29104b3125b6"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/204-policy.js",
+      "path": "objects/050.gz",
+      "rawBytes": 10038,
+      "rawSha256": "3a145d286524798c0b13daf09c01de32f21470ce9fd727b166b87b5289627ff8",
+      "bytes": 3673,
+      "sha256": "0d7280bd77fbea9d978801e3eba299d6f034fdb57845ccf1eca1762750d42ca0"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/205-plugin-security.js",
+      "path": "objects/051.gz",
+      "rawBytes": 16711,
+      "rawSha256": "64a17ec2d6607e7c6bafd2cc8acf9eeb183675dbdc464bcda9e99c93a2b55a84",
+      "bytes": 4462,
+      "sha256": "296702951459e1fc564d22ac5424c55b6d7cfe5734c5813bb74d49a208dff2e6"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/206-settings-loader.cjs",
+      "path": "objects/052.gz",
+      "rawBytes": 26043,
+      "rawSha256": "c94899830f8d032bc08fc8afa44712f6fde5321a70b22a1d619cbfe4558f0ccb",
+      "bytes": 7653,
+      "sha256": "93f0aa90411fd7805d9226e2eead67158a0180c18257e6cd4aa476aea1449df3"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/207-plugin-source-identity.js",
+      "path": "objects/053.gz",
+      "rawBytes": 26491,
+      "rawSha256": "7785df2eb81c456112e7197405d03a1ab60752bf5ff972d89e3ed991342e3189",
+      "bytes": 7291,
+      "sha256": "d7debb7205da505b78c7bf5a4a608a9af028b8e69da8a2c13402af540a4e67a2"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/208-signature.js",
+      "path": "objects/054.gz",
+      "rawBytes": 8183,
+      "rawSha256": "a8ecb238b8c674dd56b7d9c555561e637b65b54735ddbca7a7b7a3927188f036",
+      "bytes": 3022,
+      "sha256": "68e42f68206f8ab43daeddd5b6cba5e908fa2088dcb5ceaad9a2653df0ee891e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/209-capability-consent.js",
+      "path": "objects/055.gz",
+      "rawBytes": 7442,
+      "rawSha256": "c06ba6e26d80ded2ee16fdb234677bb9ec608947ea4725d189225014c776d10a",
+      "bytes": 2755,
+      "sha256": "742c992b5da94c4b0d2170fbae8626ee0d698ff19f98174e17778494e95c04a3"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/210-publisher-trust.js",
+      "path": "objects/056.gz",
+      "rawBytes": 11062,
+      "rawSha256": "f274258442d4c7469e77076081329ff99f6bde887849a55eb1547548eca0ebe3",
+      "bytes": 3019,
+      "sha256": "13920229b67f994fbd62d612e719e4053a9f0f9f0a948b3989992cf2b4c1d913"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/211-trust.js",
+      "path": "objects/057.gz",
+      "rawBytes": 13137,
+      "rawSha256": "d9a092642d2065c0dd4ca2f3525d1870eb5b668ba5bedce2cc78335aac4c1b99",
+      "bytes": 3921,
+      "sha256": "c46eb3b37f82dcb763753e09185fdbc876933f75cf8c581a464a4cdc2fc95e9e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/212-workspace-trust.js",
+      "path": "objects/058.gz",
+      "rawBytes": 24510,
+      "rawSha256": "ccdcd150d3a000b37528bd4dc1fa058f33f9d3a6b9f19bdebf887e228741ec49",
+      "bytes": 5873,
+      "sha256": "05e2f2ff5fac3bf235a962616bc84866e648f410a54e6e39852f0887be979325"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/213-runtime-provenance-ledger.js",
+      "path": "objects/059.gz",
+      "rawBytes": 9417,
+      "rawSha256": "23ffb82df52c10f90d512294825ef23ee1bc7c182202d3a60bad33e25e2ad97c",
+      "bytes": 2838,
+      "sha256": "82a9ae93c43b00c82ac022134248e49368ddf22590a88b56c2b58eab7787dc8d"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/214-credential-agent.js",
+      "path": "objects/060.gz",
+      "rawBytes": 42487,
+      "rawSha256": "3d74564879ce9bec88e057bdc02d8778dedd41f56b5f814bcb01c3280387209f",
+      "bytes": 10627,
+      "sha256": "00874d5aa50847238d8ab27e45ac6727f01d7357fa9ed84af3fdbc5a36ca14a4"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/215-credential-transport.js",
+      "path": "objects/061.gz",
+      "rawBytes": 11409,
+      "rawSha256": "6ff25dd126bfd9f263644e6b82f334d45a4cd948534d66846b32ffc6286dd74a",
+      "bytes": 3229,
+      "sha256": "971b7cd3964cf35fb99161fa43c85678088b1569a02e2c8e6d88b46c986c7304"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/216-workspace-transaction.js",
+      "path": "objects/062.gz",
+      "rawBytes": 142294,
+      "rawSha256": "d74b86bd59bd2b323a0efaf9ee6b3633735d4786b467b191ef0c434aa65fbdc6",
+      "bytes": 27449,
+      "sha256": "39c3d90481468138bae3140f20a027d7f3693aab19667a71b6a1f100e9c8f226"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/217-secure-file-identity.js",
+      "path": "objects/063.gz",
+      "rawBytes": 15752,
+      "rawSha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376",
+      "bytes": 3896,
+      "sha256": "efb7aaf29c77ae929a23bf36aaca78ba797d9c2f0c01f1a70f6ad6d998b97bb6"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/218-mcp-stdio-executable-identity.js",
+      "path": "objects/064.gz",
+      "rawBytes": 39546,
+      "rawSha256": "49469a700a18131e56f4862eb93c5d68719c47e576a32f8e0947428e683ca170",
+      "bytes": 9586,
+      "sha256": "e69e248bcf23fa91da28492017df9aeab72012b9fd5532eb37324e81e0da0eaf"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/219-mcp-stdio-execution-authority.js",
+      "path": "objects/065.gz",
+      "rawBytes": 16850,
+      "rawSha256": "5df647940d36340ad213b77c1e57e041303b5787ce6337103a78c808e68221f0",
+      "bytes": 3995,
+      "sha256": "005304401a040b44fec42f4099c4d2f44bd63cda8d65a8ec033b061c198aeb2a"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/220-hooks-v2-workspace-context.js",
+      "path": "objects/066.gz",
+      "rawBytes": 10126,
+      "rawSha256": "f40d7dd01ea59b9d16c3115674ab8bc2eb412eb8ba032396c5248969e7a0daf6",
+      "bytes": 2914,
+      "sha256": "458dc98fd1f8f1208d2e067b2131e3768886c25c22ab1afe243dff33940471a8"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/221-mcp-stdio-package-materialization.js",
+      "path": "objects/067.gz",
+      "rawBytes": 66788,
+      "rawSha256": "1648ee0d59ea798fdbf76499af0df43ad1687b9f8ce0b9e3a77e6995f7e8f128",
+      "bytes": 15826,
+      "sha256": "89246dba3f6b206c4a8b2a9e576fcfd7f57f92fd92851bfdc3e94db90dc85d27"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/222-mcp-stdio-environment.js",
+      "path": "objects/068.gz",
+      "rawBytes": 1163,
+      "rawSha256": "64a922e1a4be34d8b3ff7da2f9bc93f8954fb5bf8b4d51df90ec56fcc43174a3",
+      "bytes": 618,
+      "sha256": "6b715cb1d5a505c3c0e6b55f827d392bff30e215f6cb318b664ad567ad081c2a"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/223-packer-build-policy.js",
+      "path": "objects/069.gz",
+      "rawBytes": 1106,
+      "rawSha256": "cb362dc247fb08c42a06c7f29dbd266bc9cfcad8f4f9c55e5c068228d327bde2",
+      "bytes": 586,
+      "sha256": "d30d0a7ee28420a749ed85f08fea72728068d4fbd53f013d954beae54d77f782"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/224-worktree-isolator.js",
+      "path": "objects/070.gz",
+      "rawBytes": 511,
+      "rawSha256": "f32423e5df3d142e298a6200c6ee4b948061320d4868af7c5f05f917f2949d6b",
+      "bytes": 271,
+      "sha256": "9fcc6d57cdae87283fc8fc9217332a65988fcf4844c7bc6d18726108146642db"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/225-worktree-isolator.js",
+      "path": "objects/071.gz",
+      "rawBytes": 54976,
+      "rawSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+      "bytes": 13876,
+      "sha256": "753aa503a68f2278003e4f5e3de842106ad65a220c04ce0798ac6bc1ebdf16bd"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/226-worktree-cleanup-safety.js",
+      "path": "objects/072.gz",
+      "rawBytes": 5994,
+      "rawSha256": "841add12a6c784624cdfd04e863f2ab5eeaf36709cf6f1ab7d7eefa35d757336",
+      "bytes": 2542,
+      "sha256": "ea8a3863c923bd53d3dbd1c445c1645f8925c3ecfb93c167fe4d77147e5385f7"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/227-worktree-sparse.js",
+      "path": "objects/073.gz",
+      "rawBytes": 5671,
+      "rawSha256": "6934131bfcffbe27c773af6fd772a31f5cb8545ba28c9b319f9317d6cec00628",
+      "bytes": 2283,
+      "sha256": "6f900812c61bb6ac3c9e20d25f430caf1b016ed4c08b317c7c051ef5a3d52f13"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-binding.json",
+      "path": "objects/074.gz",
+      "rawBytes": 149079,
+      "rawSha256": "fba5532aca9355f986354bf36a6fd844192c3f25d7cd6e86b4787a0127e5daab",
+      "bytes": 17697,
+      "sha256": "be6f29196fd159e4674f637c38f48a467011d5fdfe0890659eb9832195dc7f7d"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/cjs-28036.jsonl",
+      "path": "objects/075.gz",
+      "rawBytes": 2400,
+      "rawSha256": "a565ec9e4730a4025ab9a9f857ccfc1ae3fda6a75542e6c41f9d854fd4d3b2fd",
+      "bytes": 737,
+      "sha256": "5e11473b9b21434d1239a824f600b6473b38bc6cce4dcf2f39727c1af9ab139b"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/cjs-3924.jsonl",
+      "path": "objects/076.gz",
+      "rawBytes": 13205,
+      "rawSha256": "30de200971532cf7ffd4f4e1efb7689b21ddfe41f03c2621a65c7a67d97d93fa",
+      "bytes": 3069,
+      "sha256": "471ebd0646e0052a84fcc350effbc5b3023fe4ca43b0164597594902732afefa"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/esm-28036-1.jsonl",
+      "path": "objects/077.gz",
+      "rawBytes": 16919,
+      "rawSha256": "fcecb7020748d824938d6a24bf331c3003a4adb6c39625f83e23a437ba49a064",
+      "bytes": 4227,
+      "sha256": "121fde434c50b52bafa27f050a9beac4d0797f23c682442e6933537aab4cc874"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/esm-3924-1.jsonl",
+      "path": "objects/078.gz",
+      "rawBytes": 13175,
+      "rawSha256": "acb00fb6e85c65bd9cbc6125cccec97c9d86edd9245c10b0f6420af0e7c4f35e",
+      "bytes": 3325,
+      "sha256": "25b7b7a9fc3186c9ed4fd904e510aa3d4937b5abd14d34e47e26477de91c50ff"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/esm-3924-3.jsonl",
+      "path": "objects/079.gz",
+      "rawBytes": 271,
+      "rawSha256": "4b9e832d05d21e6bf8225e408f0c88f059e303e0c5fec9c0605fa84e3d8cba37",
+      "bytes": 227,
+      "sha256": "ed2929344ab27a094e4b280ac7760d930f3b680686499fb7b10212f677113e25"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/module-traces/vite-28036.jsonl",
+      "path": "objects/080.gz",
+      "rawBytes": 20865,
+      "rawSha256": "305d0bc375a665508b3e51ed922d816525e57621a38f25b64692200140802875",
+      "bytes": 3913,
+      "sha256": "a84906211e3f170a867df501e6d910f33c46586160c731585d0b3e8e583c42ac"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/observe-esm.mjs",
+      "path": "objects/081.gz",
+      "rawBytes": 826,
+      "rawSha256": "a7dc2a79518f1b85809e54163d5017349dbc05867938100df80883f4d37c57c9",
+      "bytes": 473,
+      "sha256": "d9ccccfa8d8fbf6a9c0007740be3e38263ca2f1ab646444131ea662abd80d3d6"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/observe.cjs",
+      "path": "objects/082.gz",
+      "rawBytes": 1017,
+      "rawSha256": "67b1913efcd2fefc5bd418582c2d4f2dcb076bed36143590f763ce4730017f84",
+      "bytes": 548,
+      "sha256": "ed59a347478d419fded2a68069d9f1532a16cb8cbc83d85a5932c4985edbf2ba"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/review-validation.json",
+      "path": "objects/083.gz",
+      "rawBytes": 15144,
+      "rawSha256": "0563a38b4316c9b5e8171436bb5538603eafaceea4f71ff82960de2bda04c2a5",
+      "bytes": 4111,
+      "sha256": "f27a820e7a155bc964944ca2efbe461a6daa84d110257bc53b02fa1e1994cc12"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/run.cjs",
+      "path": "objects/084.gz",
+      "rawBytes": 3314,
+      "rawSha256": "8fd877dbf65533bd9463ef2f9c37baa874879965a116276d3dc8c2fce8ad5460",
+      "bytes": 1387,
+      "sha256": "4909c07fa8a2b0b630c16173127806ca2b0115666452b590ce9ecb072f947a3e"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/source-after.json",
+      "path": "objects/085.gz",
+      "rawBytes": 2779,
+      "rawSha256": "5da094fdeffc5bf4817a3bbe2b9fbf6e6f23f996a9d53c15da984a15f45db6d8",
+      "bytes": 924,
+      "sha256": "f893657775d8c4fbee013ae3b433e8e6da4d5ea48130f2025fab7cffae36fca9"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/source-before.json",
+      "path": "objects/086.gz",
+      "rawBytes": 3481,
+      "rawSha256": "82f88d25b9f8006a2dd5aca883bdf1be39c3f3791042ea9f499a37e35e53c7e0",
+      "bytes": 1008,
+      "sha256": "059d980f08900e69b04ec445a87fd3e0f13934eac41d25e42a23f845b9094de7"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/00-worktree-registry-read-retry.test.js",
+      "path": "objects/087.gz",
+      "rawBytes": 6756,
+      "rawSha256": "83921b021049893fa6f5ef561a3b782dcd2b2ab4a7ef242cdbd7bb580b480a57",
+      "bytes": 2007,
+      "sha256": "9b41bf5ed99b7f6cd9e5c9f73d512a0d83ebc6b8ce460b15cde93918a62833c3",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/181-worktree-registry-read-retry.test.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/01-worktree-isolator.js",
+      "path": "objects/088.gz",
+      "rawBytes": 54976,
+      "rawSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+      "bytes": 13876,
+      "sha256": "753aa503a68f2278003e4f5e3de842106ad65a220c04ce0798ac6bc1ebdf16bd",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/225-worktree-isolator.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/02-worktree-isolator.js",
+      "path": "objects/089.gz",
+      "rawBytes": 511,
+      "rawSha256": "f32423e5df3d142e298a6200c6ee4b948061320d4868af7c5f05f917f2949d6b",
+      "bytes": 271,
+      "sha256": "9fcc6d57cdae87283fc8fc9217332a65988fcf4844c7bc6d18726108146642db",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/224-worktree-isolator.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/03-git-integration.js",
+      "path": "objects/090.gz",
+      "rawBytes": 20713,
+      "rawSha256": "69629c4377f52d7b8306b32d1d6d7fff1271748fde5edc9dcffd44403eece88c",
+      "bytes": 5903,
+      "sha256": "fcde93dca797a6d24e8a979975b8497e45464a513a9260ccc694135f83fd7401",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/182-git-integration.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/04-worktree-sparse.js",
+      "path": "objects/091.gz",
+      "rawBytes": 5671,
+      "rawSha256": "6934131bfcffbe27c773af6fd772a31f5cb8545ba28c9b319f9317d6cec00628",
+      "bytes": 2283,
+      "sha256": "6f900812c61bb6ac3c9e20d25f430caf1b016ed4c08b317c7c051ef5a3d52f13",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/227-worktree-sparse.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/05-worktree-cleanup-safety.js",
+      "path": "objects/092.gz",
+      "rawBytes": 5994,
+      "rawSha256": "841add12a6c784624cdfd04e863f2ab5eeaf36709cf6f1ab7d7eefa35d757336",
+      "bytes": 2542,
+      "sha256": "ea8a3863c923bd53d3dbd1c445c1645f8925c3ecfb93c167fe4d77147e5385f7",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/226-worktree-cleanup-safety.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/06-index.js",
+      "path": "objects/093.gz",
+      "rawBytes": 216534,
+      "rawSha256": "ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a",
+      "bytes": 40459,
+      "sha256": "c4990eb8df10ca0afa7f340243983c6f531d93109fb0a45acb44920c42f2a7b9",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/183-index.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/07-vitest.config.js",
+      "path": "objects/094.gz",
+      "rawBytes": 3515,
+      "rawSha256": "2a75931a59f4f30eaf665273b669ae8753ec6081a2327af2ed37975dad65ef08",
+      "bytes": 1741,
+      "sha256": "4d034ed7e8dd9af5a867b51390c006dbcf155945b3f0d02075a4726f55647963",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/137-vitest.config.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/08-windows-sandbox-adapter-temp-root.js",
+      "path": "objects/095.gz",
+      "rawBytes": 846,
+      "rawSha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1",
+      "bytes": 389,
+      "sha256": "2d51b34e08fbd2f927854aad48c8bf63c453a555ba94bac7e515c12e6d85e157",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/166-windows-sandbox-adapter-temp-root.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/09-windows-sandbox-adapter-cleanup.js",
+      "path": "objects/096.gz",
+      "rawBytes": 1490,
+      "rawSha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad",
+      "bytes": 699,
+      "sha256": "7d2a0217fe839b95cb327568e6320ddb7f3c08e6495238da9ff9ca897a9e136e",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/169-windows-sandbox-adapter-cleanup.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/10-agent-evolution-test-boundary.js",
+      "path": "objects/097.gz",
+      "rawBytes": 4922,
+      "rawSha256": "c55bfb7e020ebfaa61c5d4187a14f6e0b4a541eb0b559b9bdba48592990f4516",
+      "bytes": 1387,
+      "sha256": "f601e368d02a94c759070c7302ba9f90dc86b1992e426c838105fe856a3ad7fc",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/180-agent-evolution-test-boundary.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/11-windows-sandbox-adapter-temp-root.js",
+      "path": "objects/098.gz",
+      "rawBytes": 15132,
+      "rawSha256": "625b7aa9405f3de6926fe25d9b84aeab947f3c57eb42065d2d6aa2f23d344b70",
+      "bytes": 3582,
+      "sha256": "d2480af6bfd4f5bcddea4432add3991050886dd4b2553aa15627d70cc1073482",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/167-windows-sandbox-adapter-temp-root.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/sources/12-canonical-windows-test-temp.js",
+      "path": "objects/099.gz",
+      "rawBytes": 1196,
+      "rawSha256": "2311e6ab568beba98b3390fa7596902f400fb6cdcbb9c4c0e6ffdca5a05b1ec2",
+      "bytes": 624,
+      "sha256": "b5ba652ef13df62cd00fbe80a48ec0eacf972e947bd36f0102a85ceb5e9ebad1",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/168-canonical-windows-test-temp.js"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/stderr.log",
+      "path": "objects/100.gz",
+      "rawBytes": 1020,
+      "rawSha256": "d9f451e26c75eb70f55ab84d32f2e3380a2e74af4904223d3c06ddb8f3a5ea2a",
+      "bytes": 125,
+      "sha256": "6b0bbb8f586cec9201b885aff54608b137b88f91cee2d7ab81418d8171aef825"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/stdout.log",
+      "path": "objects/101.gz",
+      "rawBytes": 1679,
+      "rawSha256": "a2625905f5975a88f03253e7a313d88fc4a2f238d7adee79f98f50dbcb34141b",
+      "bytes": 644,
+      "sha256": "b12d8d48f2411d64b13d27dd2492db32407ef879c9f52306d142ef7af6958a2a"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/vitest-results.json",
+      "path": "objects/102.gz",
+      "rawBytes": 4842,
+      "rawSha256": "df76df68406aa0cf4cac5172e445b408cb2d73473a0c481ac91fbc835b4b661e",
+      "bytes": 924,
+      "sha256": "4243fdffdb16bb90f00f40059e92fc35af01caf1309778b7db7bd4dea629a61c"
+    },
+    {
+      "source": ".work/worktree-registry-isolated-20261013-HqcVml/vitest.config.mjs",
+      "path": "objects/103.gz",
+      "rawBytes": 963,
+      "rawSha256": "b1251a179cb0b3b87f5f50297ee90ec76bf196c7d5e41be3c34258dab12c42ab",
+      "bytes": 554,
+      "sha256": "381512f835e87768e97fab6946ac98d5abb836dfbffb2d3775fdbdd02703e1f9",
+      "duplicateOf": ".work/worktree-registry-isolated-20261013-HqcVml/loaded-sources/136-vitest.config.mjs"
+    },
+    {
+      "source": "node_modules/.package-lock.json",
+      "path": "objects/104.gz",
+      "rawBytes": 1235676,
+      "rawSha256": "a5537da32f9599cd62a1c2746981d3672012bcafbf81c37ee68e49f91d3c675c",
+      "bytes": 275214,
+      "sha256": "38f9a9182add3d7135be07484f9b1464fb33671079b6de2c5f5f24a32e860d7a"
+    },
+    {
+      "source": "package-lock.json",
+      "path": "objects/105.gz",
+      "rawBytes": 1352185,
+      "rawSha256": "106e64b0b67ee0475cd85c6abb29445e5c0906280c0896149012a536b228999b",
+      "bytes": 300394,
+      "sha256": "71c1d541c3bbbd92a40157677fb52d6ea9902a3975a68af8eac1195ec87fb333"
+    }
+  ]
+}

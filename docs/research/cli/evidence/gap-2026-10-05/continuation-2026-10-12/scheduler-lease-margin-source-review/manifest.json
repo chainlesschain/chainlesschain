@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:52:47.977Z",
+  "summarySha256": "577f2ba4d9fcea02a42daa74e450fc53e2939e7d065c69c9dcaaf4beaccc8f92",
+  "readmeSha256": "43a24a0e2b41069f3cb64e1f35522dbc280165195be5efa877d06b8625ab8ddb",
+  "entries": [
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/commit.patch",
+      "path": "objects/000.gz",
+      "rawBytes": 3771,
+      "rawSha256": "b86c575f253b755b31859913d8387bc4409698a8cf2eab6d2d258655cf5fa0b9",
+      "bytes": 1174,
+      "sha256": "37dc722e827bd6a78c198d7103e32d886bc4ae3f2117c422658df239e62152c1"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/experiment-plan.json",
+      "path": "objects/001.gz",
+      "rawBytes": 2744,
+      "rawSha256": "6e2e3b9ba47744c002a44bbe23e2561eebdfad04617d70cd7f95930c0473917a",
+      "bytes": 1384,
+      "sha256": "889f1c933a87255be56cd4dd757a603fe00a0ea8a9cb48e67adacb8e53343340"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/integration-soak.test.js",
+      "path": "objects/002.gz",
+      "rawBytes": 9551,
+      "rawSha256": "68cea0ae1ea65b58d0ee1176eae4338c2c9ed4fc00785e1a1aa72523857bf28b",
+      "bytes": 2603,
+      "sha256": "d967f5ef3288b48081afe58d0c076f9fb3575528ca848d6b82808e2fcc8ded3c"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/integration-worker.test.js",
+      "path": "objects/003.gz",
+      "rawBytes": 21753,
+      "rawSha256": "6bbf62a47b0d4aaf7081309c06b03f04b2693d2af2288f9a6f1ab83ca8cd93cb",
+      "bytes": 5425,
+      "sha256": "5a1e56cfec6a36807b1a560aa27b9bca52a55373581394510ca0b1911c96b2c3"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/review.json",
+      "path": "objects/004.gz",
+      "rawBytes": 8279,
+      "rawSha256": "c024c869ae2583b668ad69ab51e3ea1482a68f3db903b02a24cbfb20d24e6458",
+      "bytes": 3051,
+      "sha256": "3741a97b97d32e63831c6d5bd0a5a209e57db2e1141f0465c0f3d37c1ac2677b"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/runtime.js",
+      "path": "objects/005.gz",
+      "rawBytes": 27348,
+      "rawSha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+      "bytes": 6404,
+      "sha256": "3e34e5ecabc0e8bbd2d652bfb3a789cb5b125b555aba9bf7fca97711de18b15c"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/soak.mjs",
+      "path": "objects/006.gz",
+      "rawBytes": 89498,
+      "rawSha256": "7f719b87ba2ffd51d700fda0766845b5b2b0dae99df1c918b8b418f68b83ae90",
+      "bytes": 21090,
+      "sha256": "8ad015893f7291ad5aa6688c5bdbdd67214c51cc0eb3b8573d956a84dc654593"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/store.js",
+      "path": "objects/007.gz",
+      "rawBytes": 203109,
+      "rawSha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+      "bytes": 34782,
+      "sha256": "6f4d7cb47577d4be13c62b69c90d30b300cae323ca6141804a0dfd60cd311caf"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/unit-soak.test.js",
+      "path": "objects/008.gz",
+      "rawBytes": 36182,
+      "rawSha256": "e8cda059767b9ec1b88e4fa0acc3d16797f8bd064b2028f7578760851d123ca8",
+      "bytes": 7774,
+      "sha256": "8347503770089309972ae6e4cccec50ab84faf5d2572e91cceb3a64f3258d24c"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/worker.mjs",
+      "path": "objects/009.gz",
+      "rawBytes": 16734,
+      "rawSha256": "346b5d69f6336e3fcb7c7330ee01326758b3715f2f270a2f8ace7a11c304c6cf",
+      "bytes": 4727,
+      "sha256": "92a1482fae4aa0b6d77bd0ad488c6e2d430751116693d3ec434716b9919b97bb"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/workflow.test.js",
+      "path": "objects/010.gz",
+      "rawBytes": 4682,
+      "rawSha256": "fa231d14119724c608fd8e3c78876f9a0babe8c5b5c3b11b0943f8f1c54e05aa",
+      "bytes": 1484,
+      "sha256": "9864fc47a78a4c2a1bb0f3c81149c36a0a42699e27525e6ef37bc661c2f8b323"
+    },
+    {
+      "source": ".work/release100-scheduler-lease-margin-review-20261013/workflow.yml",
+      "path": "objects/011.gz",
+      "rawBytes": 8784,
+      "rawSha256": "06af1b0303ea0bb5846962a3c12bd350f2e16c8592e05d289c6d8f9f02949420",
+      "bytes": 2106,
+      "sha256": "c2c82135e67ef4a978e7d240d534c4e79aa3205e4cfe3d65fc399022a256e081"
+    }
+  ]
+}

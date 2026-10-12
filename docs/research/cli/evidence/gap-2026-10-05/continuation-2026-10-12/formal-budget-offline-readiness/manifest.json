@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T17:52:47.246Z",
+  "summarySha256": "9e458ea60ac5cbb72882cf9ff0c8c87affbaca63241f7b1417c24946c5fe8794",
+  "readmeSha256": "cd00d3aad7c8378dbd32d44f558fb9a7f43f35390b0b5d09d815d5bc51d2b86e",
+  "entries": [
+    {
+      "source": ".work/formal-budget-offline-20261013/implementation-plan.json",
+      "path": "objects/000.gz",
+      "rawBytes": 7781,
+      "rawSha256": "75cf4536d8ae4b41ba7c96b167e2bc2455d1e026acb1e70fa4ae52fff43404f2",
+      "bytes": 3440,
+      "sha256": "868f5f1ac2c6dacf2fcce46049cccdee080f1730ca15a5779781cfebed1c723a"
+    },
+    {
+      "source": ".work/formal-budget-offline-20261013/ledger.py",
+      "path": "objects/001.gz",
+      "rawBytes": 4614,
+      "rawSha256": "72d21fdcfbe3c6e3423a49849e4d39c9167a51d87cb4e25629453f14c3658b0e",
+      "bytes": 1492,
+      "sha256": "2b3ffa0fa5e73d728a24d61b2a6ac55709d1523f8164d92b0d91cbeaf6bdee9b"
+    },
+    {
+      "source": ".work/formal-budget-offline-20261013/manifest.json",
+      "path": "objects/002.gz",
+      "rawBytes": 819,
+      "rawSha256": "9167a5afeb7f5c06accebc63adc131752671a7a912fbc38057e010f3a07428fa",
+      "bytes": 361,
+      "sha256": "536889bc62ea1c955c63182f5edaf89f5001051c1b8281f8c04b2f3cfdaa1c8c"
+    },
+    {
+      "source": ".work/formal-budget-offline-20261013/test_ledger.py",
+      "path": "objects/003.gz",
+      "rawBytes": 3392,
+      "rawSha256": "73fd850aa6a2c6b2cb1a30367e06b7f917a9b60e00f612a9ba16de3edff7468e",
+      "bytes": 906,
+      "sha256": "6f0503e6fc31ca6f709d79c35d45270d50e2186eb21d56d5917b641195cde4e4"
+    },
+    {
+      "source": ".work/formal-budget-offline-20261013/tests.log",
+      "path": "objects/004.gz",
+      "rawBytes": 952,
+      "rawSha256": "e011a3f7653c5012a239cf68309770eab8c2c6e578b932c3026cef46e503446d",
+      "bytes": 468,
+      "sha256": "bb0146f4fd7d25f732042bb71901d6f4514ccc7675d4294ef2dc8f524699a715"
+    },
+    {
+      "source": ".work/formal-budget-offline-20261013/tests.result.json",
+      "path": "objects/005.gz",
+      "rawBytes": 194,
+      "rawSha256": "2f264812f98fea20bdb8d043997f89f65437eac39e63620d0aec7d95cc584e8e",
+      "bytes": 155,
+      "sha256": "5f127d1433f1474f95f7af22dbc4f1b67dc6cb037d5c71b10d499ab3ae9aa699"
+    }
+  ]
+}

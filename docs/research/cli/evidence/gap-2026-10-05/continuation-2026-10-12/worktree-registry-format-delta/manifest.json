@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T18:18:47.108Z",
+  "summarySha256": "eec68f407bbe403445ae1c74367d2102a0c95c65a3603fefb3e4448f878039f8",
+  "readmeSha256": "e35db96f42a63644c160ea971ecc46ecbef6d01b192e0ee322660b3a7dde15a2",
+  "entries": [
+    {
+      "source": ".work/registry-format-delta-20261013/after.js",
+      "path": "objects/000.gz",
+      "rawBytes": 54967,
+      "rawSha256": "0978ed3c1b8a756b67365c9d98d052b851b771f242a0bfe02cc35a7d5c51f84b",
+      "bytes": 13878,
+      "sha256": "cf97079aae4f576fd93ea0d47f971b002423bfe28fbf787e353a77d18b177e77"
+    },
+    {
+      "source": ".work/registry-format-delta-20261013/before.js",
+      "path": "objects/001.gz",
+      "rawBytes": 54976,
+      "rawSha256": "994ca6ed32086c493b8731fa8ffed8dd12e1c8f802d696c10cb92f6971333f2b",
+      "bytes": 13876,
+      "sha256": "753aa503a68f2278003e4f5e3de842106ad65a220c04ce0798ac6bc1ebdf16bd"
+    },
+    {
+      "source": ".work/registry-format-delta-20261013/independent-ast-verification.json",
+      "path": "objects/002.gz",
+      "rawBytes": 898,
+      "rawSha256": "eec68f407bbe403445ae1c74367d2102a0c95c65a3603fefb3e4448f878039f8",
+      "bytes": 574,
+      "sha256": "b083d2a3d08e53f8960424c75bcbd1722e22b2f3072bc444bf566dc077967cce"
+    },
+    {
+      "source": ".work/registry-format-delta-20261013/report.json",
+      "path": "objects/003.gz",
+      "rawBytes": 393,
+      "rawSha256": "d64624073bbfa0c103713cc283b269b4275aed878e765687275220710d87b4c3",
+      "bytes": 297,
+      "sha256": "49699295170ff5ee4e21a37663ec6bdd5dc93e0d8ab4cab5cb579266064abe1b"
+    },
+    {
+      "source": ".work/registry-format-delta-20261013/stderr.log",
+      "path": "objects/004.gz",
+      "rawBytes": 0,
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "sha256": "9e72928e7a01615b4cf090daa617b4ca9d68531748f887f323f695eb4ca3ef63"
+    },
+    {
+      "source": ".work/registry-format-delta-20261013/stdout.log",
+      "path": "objects/005.gz",
+      "rawBytes": 52,
+      "rawSha256": "67bc6c2ec478ac4b60da894842aa3822403fa159ce18a15c07a9ed02b25c5bc5",
+      "bytes": 72,
+      "sha256": "873354639bb4dc705bbfa95b3002da794050bc7ddb53f57faab9a87f2129a2bd"
+    },
+    {
+      "source": ".work/format-isolated-registry-source-20261013.mjs",
+      "path": "objects/006.gz",
+      "rawBytes": 1605,
+      "rawSha256": "f6703ee2201ceb17fe30f9d752dc0b8efe7e241f9d59ec18e5c32e2ce50b2407",
+      "bytes": 773,
+      "sha256": "0571783685e97f41d5a8051b44fb959f415bf716b29176f4de08c9e0521ac505"
+    }
+  ]
+}
