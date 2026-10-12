@@ -21,10 +21,10 @@ const deferred = () => {
   return { promise, resolve };
 };
 
-function host(t, readSessionProjection, execFile) {
+function host(t, readSessionProjection, execFile, reuseView = null) {
   if (execFile) t.mock.method(childProcess, "execFile", execFile);
-  delete require.cache[modulePath];
-  const view = require(modulePath);
+  if (!reuseView) delete require.cache[modulePath];
+  const view = reuseView || require(modulePath);
   const posts = [];
   let receive, dispose;
   const panel = {
@@ -53,11 +53,17 @@ function host(t, readSessionProjection, execFile) {
     window: { createWebviewPanel: () => panel },
   };
   view.openSessionsWorkbench(vscode, { readSessionProjection });
-  t.after(() => {
+  let disposed = false;
+  const close = () => {
+    if (disposed) return;
+    disposed = true;
     dispose();
-    delete require.cache[modulePath];
+  };
+  t.after(() => {
+    close();
+    if (!reuseView) delete require.cache[modulePath];
   });
-  return { posts, send: (message) => receive(message), dispose };
+  return { posts, send: (message) => receive(message), dispose: close, view };
 }
 
 test("a late initial projection cannot overwrite a newer explicit refresh", async (t) => {
@@ -221,5 +227,53 @@ test("a timer during the post-mutation read does not queue a redundant read", as
     reads,
     3,
     "the in-flight canonical refresh covers the timer tick",
+  );
+});
+
+test("an old pending action cannot suppress or refresh a reopened panel", async (t) => {
+  const snapshot = await projection();
+  let completeMutation;
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const old = host(
+    t,
+    async () => snapshot,
+    (_command, _args, _options, callback) => {
+      completeMutation = callback;
+    },
+  );
+  await flush();
+  const action = old.send(dispatch(snapshot));
+  await flush();
+  assert.equal(typeof completeMutation, "function");
+  old.dispose();
+  let newReads = 0;
+  const reopened = host(
+    t,
+    async () => {
+      newReads++;
+      return unavailable("new panel");
+    },
+    null,
+    old.view,
+  );
+  await flush();
+  assert.equal(newReads, 1);
+  t.mock.timers.tick(15_000);
+  await flush();
+  assert.equal(
+    newReads,
+    2,
+    "the new panel refreshes while the old action waits",
+  );
+  completeMutation(null, '{"accepted":true}', "");
+  await action;
+  assert.equal(
+    newReads,
+    2,
+    "old completion cannot start a read in the new panel",
+  );
+  assert.match(
+    reopened.posts.filter((message) => message.type === "rows").at(-1).html,
+    /new panel/,
   );
 });
