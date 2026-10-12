@@ -696,14 +696,24 @@ describe("remote approval fingerprint binding (§8.2 full tuple)", () => {
   });
 
   it("denies when the resolve CAS cannot be durably written", async () => {
-    const bridge = makeBridge();
+    // Isolate the storage failure from elapsed time during durable FS work.
+    const now = Date.now();
+    const bridge = makeBridge(() => now);
     const { decision, request } = await requestAndCapture(bridge, {
       tool: "run_shell",
       detail: "another-secret-command",
       operationArgs: { command: "another-secret-command" },
-      timeoutMs: 5000,
+      // The fixed logical clock drives lease validity; close() clears this
+      // wall timer, as in the separate validity-window expiry test above.
+      timeoutMs: 10_000_000,
     });
-    bridge._approvalStore._beforeRename = () => {
+    let attemptedResolution = null;
+    bridge._approvalStore._beforeRename = (temporaryPath) => {
+      const state = JSON.parse(fs.readFileSync(temporaryPath, "utf8"));
+      const candidate = state.requests.find(
+        (record) => record.requestId === request.requestId,
+      );
+      if (candidate?.status === "resolved") attemptedResolution = candidate;
       throw new Error("simulated disk failure");
     };
 
@@ -714,6 +724,16 @@ describe("remote approval fingerprint binding (§8.2 full tuple)", () => {
       via: "state-error",
       from: null,
       errorCode: "CC_APPROVAL_STATE_WRITE_FAILED",
+    });
+    // Failure cleanup also writes approval state. Require the pre-rename
+    // approved CAS candidate so a cleanup-only failure cannot pass this test.
+    expect(attemptedResolution).toMatchObject({
+      requestId: request.requestId,
+      fingerprint: request.fingerprint,
+      binding: request.binding,
+      revision: request.revision + 1,
+      status: "resolved",
+      decision: true,
     });
     expect(bridge.getSecurityErrors()).toEqual(
       expect.arrayContaining([
