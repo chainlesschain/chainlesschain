@@ -33,6 +33,10 @@ const REFRESH_MS = 15000;
 // Session/agent ids come back through webview messages — keep them argv-safe
 let _panel = null;
 let _timer = null;
+let _activeActions = 0;
+let _projectionReadSequence = 0;
+let _projectionReadsInFlight = 0;
+let _refreshAfterAction = false;
 let _rows = [];
 let _errors = [];
 let _query = "";
@@ -294,8 +298,19 @@ async function settleDeliveryAction(vscode) {
 
 /** Load the one CLI-owned projection; any failure clears stale actions. */
 async function loadData(vscode) {
+  const panel = _panel;
+  const readSequence = ++_projectionReadSequence;
+  _refreshAfterAction = false;
   post({ type: "loading" });
-  _snapshot = await readProjection(vscode);
+  _projectionReadsInFlight++;
+  let snapshot;
+  try {
+    snapshot = await readProjection(vscode);
+  } finally {
+    _projectionReadsInFlight--;
+  }
+  if (_panel !== panel || readSequence !== _projectionReadSequence) return;
+  _snapshot = snapshot;
   _rows = _snapshot.connected ? _snapshot.rows : [];
   _errors = [];
   if (!_snapshot.connected) {
@@ -367,6 +382,22 @@ async function showCliOutput(vscode, title, result) {
 }
 
 async function runAction(vscode, msg) {
+  const panel = _panel;
+  _activeActions++;
+  // A pre-action read must not arrive after the action's canonical refresh.
+  if (_projectionReadsInFlight > 0) _refreshAfterAction = true;
+  _projectionReadSequence++;
+  try {
+    await performAction(vscode, msg);
+  } finally {
+    _activeActions--;
+    if (_panel === panel && _activeActions === 0 && _refreshAfterAction) {
+      await loadData(vscode);
+    }
+  }
+}
+
+async function performAction(vscode, msg) {
   const renderedSnapshot = _snapshot;
   const request = {
     id: String(msg.id || ""),
@@ -652,6 +683,8 @@ function openSessionsWorkbench(vscode, hooks = {}) {
   ensureDeliveryController(vscode);
   _panel.webview.onDidReceiveMessage((msg) => handleMessage(vscode, msg));
   _panel.onDidDispose(() => {
+    _projectionReadSequence++;
+    _refreshAfterAction = false;
     if (_timer) {
       clearInterval(_timer);
       _timer = null;
@@ -682,7 +715,12 @@ function openSessionsWorkbench(vscode, hooks = {}) {
   loadData(vscode);
   postDelivery();
   _timer = setInterval(() => {
-    if (_panel && _panel.visible) loadData(vscode);
+    if (!_panel || !_panel.visible) return;
+    if (_activeActions > 0) {
+      if (_projectionReadsInFlight === 0) _refreshAfterAction = true;
+      return;
+    }
+    loadData(vscode);
   }, REFRESH_MS);
   return _panel;
 }
