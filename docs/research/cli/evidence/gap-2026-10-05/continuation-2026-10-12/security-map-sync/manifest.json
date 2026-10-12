@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T03:57:21.217Z",
+  "summarySha256": "9b4ab1ea75d8c196c3a01cc02f93e740dc77674c5c473330201f23eb72269c31",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/38201137335-114654655000.log",
+      "path": "objects/000.gz",
+      "rawBytes": 44866,
+      "rawSha256": "f067ed752dcd8d0e688222afd11522b4319ac6b26d0cb4c1a249283bc483bc0b",
+      "bytes": 11217,
+      "sha256": "c566617b493564157574a9bac27c0d6999011837e52617b28b3e97265c5424e0"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/current-actions/38201137335-114654655077.log",
+      "path": "objects/001.gz",
+      "rawBytes": 41699,
+      "rawSha256": "050eed6440fb3d91e0ce720bae574e795aa089c2746116c39a2c716e4d98cbd4",
+      "bytes": 10671,
+      "sha256": "f5c8062b64e38f79dc36737e54c2bd39743a4fd6b3fcdb5cc292fc60a75ad56d"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/security-map-digest-repair.json",
+      "path": "objects/002.gz",
+      "rawBytes": 503,
+      "rawSha256": "ac50a5e9359fcb9fe1a83c1699d02b951924cb0f1f254403c764251292dab3af",
+      "bytes": 361,
+      "sha256": "7a401c47cd72d9aa9d1f71d7fd14d974adca947372cdf4486117385d9a6672d5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/security-map-tests.json",
+      "path": "objects/003.gz",
+      "rawBytes": 302833,
+      "rawSha256": "417dee5ab286b5e4bea41605e703d35d265a2e7a1c0a0c7c233ed26fc0e52e7d",
+      "bytes": 30067,
+      "sha256": "d908f3f2ddcc3b28e8e5066ba8f65ebfbf9aa494dafac49b39cbb9739cf3282f"
+    },
+    {
+      "source": "tests/fixtures/claude-2.1.221-238-security-map.json",
+      "path": "objects/004.gz",
+      "rawBytes": 23385,
+      "rawSha256": "22f6b3b0495328fd0ef3adebb0da80dc3cc6f131152d04149610125df1d52c0a",
+      "bytes": 4528,
+      "sha256": "686d654fbc06fdb291713c8a302c843ea457a95c8774cf5bed9d2b706de69ef5"
+    }
+  ]
+}

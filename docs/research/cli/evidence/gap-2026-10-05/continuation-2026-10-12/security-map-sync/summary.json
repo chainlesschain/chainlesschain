@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-12T03:57:21.217Z",
+  "failedSource": "08e883acc8ce0c1acdeebb4a7468d275da75311a",
+  "run": 38201137335,
+  "changedRow": "cc-2.1.223-agent-org-policy-ceiling",
+  "producer": "packages/cli/__tests__/unit/headless-runner.test.js",
+  "mappedTestsPassed": 29,
+  "unselectedTests": 942,
+  "thresholdsChanged": false,
+  "gatesChanged": false,
+  "dispositionsChanged": false,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0
+}
