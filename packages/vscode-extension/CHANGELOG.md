@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.144] - Bounded stream retry pairing (2026-10-12)
+## [0.37.144] - Bounded stream retry pairing (2026-10-13)
 
 - Recommend CLI `0.166.100` after its public npm release and this exact
   commit's complete CLI, IDE and ARM64 release gates.
