@@ -231,23 +231,38 @@ export function parseReviewTests(
 }
 
 export function applyReviewMutation(source, mutant) {
+  const alternatives =
+    mutant.alternatives === undefined ? [] : mutant.alternatives;
+  requireCondition(Array.isArray(alternatives), "invalid behavioral mutation");
+  const variants = [mutant, ...alternatives];
   requireCondition(
-    typeof mutant.find === "string" &&
-      mutant.find.length > 0 &&
-      typeof mutant.replace === "string" &&
-      mutant.find !== mutant.replace,
+    variants.every(
+      (variant) =>
+        variant != null &&
+        typeof variant.find === "string" &&
+        variant.find.length > 0 &&
+        typeof variant.replace === "string" &&
+        variant.find !== variant.replace,
+    ) &&
+      new Set(variants.map((variant) => variant.find)).size === variants.length,
     "invalid behavioral mutation",
   );
-  const offset = source.indexOf(mutant.find);
+  // Explicit source-version anchors are alternatives, never fallback attempts.
+  // More than one present anchor or any repeated occurrence is ambiguous.
+  const matches = variants
+    .map(({ find, replace }) => ({
+      find,
+      replace,
+      offset: source.indexOf(find),
+    }))
+    .filter(({ offset }) => offset >= 0);
   requireCondition(
-    offset >= 0 && source.indexOf(mutant.find, offset + mutant.find.length) < 0,
+    matches.length === 1 &&
+      source.indexOf(matches[0].find, matches[0].offset + 1) < 0,
     `mutation ${mutant.name} no longer has one exact match; independent re-review required`,
   );
-  return (
-    source.slice(0, offset) +
-    mutant.replace +
-    source.slice(offset + mutant.find.length)
-  );
+  const { find, replace, offset } = matches[0];
+  return source.slice(0, offset) + replace + source.slice(offset + find.length);
 }
 
 export function reviewStageDeadline(now, externalDeadline) {

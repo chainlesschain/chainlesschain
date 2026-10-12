@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { extraDiagnosticControl } from "../../scripts/verify01-review-diagnostic-extra-controls.mjs";
 import { VERIFY01_REVIEW_SPECS } from "../../scripts/verify01-review-specs.mjs";
+import { applyReviewMutation } from "../../scripts/verify01-review-runtime.mjs";
 
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const require = createRequire(import.meta.url);
@@ -159,8 +160,7 @@ it("extra diagnostic controls pass real APIs and reject every specified behavior
         const fixture = path.join(root, name);
         let bytes = original;
         if (mutation) {
-          expect(original.split(mutation.find)).toHaveLength(2);
-          bytes = original.replace(mutation.find, mutation.replace);
+          bytes = applyReviewMutation(original, mutation);
         }
         write(fixture, spec.sourcePath, bytes);
         write(

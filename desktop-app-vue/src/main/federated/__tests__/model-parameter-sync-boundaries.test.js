@@ -161,29 +161,49 @@ describe("ModelParameterSync bounded transport", () => {
   });
 
   it("applies one total deadline to retained message handlers", async () => {
-    const p2pManager = createP2PManager();
-    const manager = new ModelParameterSync({
-      p2pManager,
-      boundaries: { streamDeadlineMs: 20 },
-    });
-    manager.onMessage(() => new Promise(() => {}));
-    const boundaryError = vi.fn();
-    manager.on("boundary-error", boundaryError);
-    const stream = createStream([
-      Buffer.from(JSON.stringify({ type: "federated:test" })),
-    ]);
+    vi.useFakeTimers();
+    let manager;
+    try {
+      const p2pManager = createP2PManager();
+      manager = new ModelParameterSync({
+        p2pManager,
+        boundaries: { streamDeadlineMs: 20 },
+      });
+      const firstHandler = vi.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 12)),
+      );
+      const retainedHandler = vi.fn(() => new Promise(() => {}));
+      manager.onMessage(firstHandler);
+      manager.onMessage(retainedHandler);
+      const boundaryError = vi.fn();
+      manager.on("boundary-error", boundaryError);
+      const stream = createStream([
+        Buffer.from(JSON.stringify({ type: "federated:test" })),
+      ]);
 
-    await p2pManager.getProtocolHandler()({
-      stream,
-      connection: createConnection(),
-    });
+      const handling = p2pManager.getProtocolHandler()({
+        stream,
+        connection: createConnection(),
+      });
+      await vi.advanceTimersByTimeAsync(12);
+      expect(firstHandler).toHaveBeenCalledOnce();
+      expect(retainedHandler).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(7);
+      expect(boundaryError).not.toHaveBeenCalled();
+      expect(stream.abort).not.toHaveBeenCalled();
+      // The second handler has only the original deadline's remaining 8 ms.
+      await vi.advanceTimersByTimeAsync(1);
+      await handling;
 
-    expect(stream.abort).toHaveBeenCalledOnce();
-    expect(boundaryError).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "ERR_FEDERATED_HANDLER_TIMEOUT" }),
-    );
-    expect(manager._activeInbound).toBe(0);
-    manager.destroy();
+      expect(stream.abort).toHaveBeenCalledOnce();
+      expect(boundaryError).toHaveBeenCalledWith(
+        expect.objectContaining({ code: "ERR_FEDERATED_HANDLER_TIMEOUT" }),
+      );
+      expect(manager._activeInbound).toBe(0);
+    } finally {
+      manager?.destroy();
+      vi.useRealTimers();
+    }
   });
 
   it("rejects excess inbound operations and message handlers", async () => {

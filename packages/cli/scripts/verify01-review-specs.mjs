@@ -49,6 +49,14 @@ export const VERIFY01_REVIEW_SPECS = [
         name: "unknown-opus-inherits-legacy-price",
         find: 'e.match === "opus" &&',
         replace: 'e.match === "__disabled_unknown_family_guard__" &&',
+        // Current source shares the generation guard with Sonnet and Haiku.
+        // Remove only Opus so this remains the original behavioral mutant.
+        alternatives: [
+          {
+            find: '["opus", "sonnet", "haiku"].includes(e.match) &&',
+            replace: '["sonnet", "haiku"].includes(e.match) &&',
+          },
+        ],
       },
     ],
   },
@@ -63,6 +71,14 @@ export const VERIFY01_REVIEW_SPECS = [
       {
         name: "merge-short-and-long-request-price-buckets",
         find: "item.requestInputTokens > GPT6_PRICING_TERMS.longContext.threshold ===\n        long",
+        // The frozen snapshot uses GPT6 terms; current pricing selects terms
+        // per model. Both anchors target the same short/long bucket boundary.
+        alternatives: [
+          {
+            find: "item.requestInputTokens > terms.longContext.threshold === long",
+            replace: "true",
+          },
+        ],
         replace: "true",
       },
       {
