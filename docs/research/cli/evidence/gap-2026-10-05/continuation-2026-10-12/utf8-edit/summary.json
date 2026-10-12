@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-10-12T05:10:47.382Z",
+  "sourceCommit": "fdead28689393bdf6881c9f806927f9f09333194",
+  "testsMatchCommittedBlobs": true,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "published": false,
+  "before": {
+    "total": 27,
+    "passed": 7,
+    "failed": 20
+  },
+  "newCases": 27,
+  "combined": {
+    "windows": 400,
+    "linux": 400
+  },
+  "scope": ["edit_file", "edit_file_hashed", "notebook_edit", "IDE previews"],
+  "validBomAndReplacementCharactersPreserved": true
+}

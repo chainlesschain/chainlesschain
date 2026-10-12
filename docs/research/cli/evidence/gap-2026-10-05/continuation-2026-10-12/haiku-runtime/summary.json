@@ -1,0 +1,31 @@
+{
+  "capturedAt": "2026-10-12T05:10:47.382Z",
+  "sourceCommit": "fdead28689393bdf6881c9f806927f9f09333194",
+  "testsMatchCommittedBlobs": true,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "published": false,
+  "model": "claude-haiku-5-5",
+  "context": 1000000,
+  "advertisedOutput": 128000,
+  "defaultRequestOutput": 4096,
+  "batchBetaEnabled": false,
+  "requestThreshold": 100000,
+  "ttlWritesPreserved": true,
+  "inferenceGeoPreserved": true,
+  "missingActualRegionOrPositiveWriteTtl": "UNPRICED",
+  "unknownGenerations": "UNPRICED",
+  "windows": {
+    "node": "22.22.2",
+    "tests": 400,
+    "evidenceContracts": 9
+  },
+  "linux": {
+    "node": "22.12.0",
+    "tests": 400,
+    "evidenceContracts": 9
+  },
+  "upstreamBaselineAdvanced": false
+}

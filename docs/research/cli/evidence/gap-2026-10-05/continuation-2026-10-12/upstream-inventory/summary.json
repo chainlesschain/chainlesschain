@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-10-12T05:10:47.382Z",
+  "sourceCommit": "fdead28689393bdf6881c9f806927f9f09333194",
+  "testsMatchCommittedBlobs": true,
+  "formalStatus": "NOT_RUN",
+  "observationsProduced": 0,
+  "providerAssessed": false,
+  "billingVerified": false,
+  "published": false,
+  "inventorySource": "a4769b21584a3d1f5588b4598576d9ca96d96afb",
+  "inventoryComplete": true,
+  "dispositionCoverageComplete": true,
+  "totalBullets": 974,
+  "stableVersions": 11,
+  "prereleasesSkipped": 41,
+  "featureSecurityClosure": false,
+  "upstreamBaselineAdvanced": false,
+  "dispositions": {
+    "LOCAL_ANALOGUE_SCENARIO_UNVERIFIED": 544,
+    "SECURITY_SCENARIO_UNVERIFIED": 146,
+    "NO_IDENTICAL_PRODUCT_ENTRYPOINT": 128,
+    "ENGINEERING_CANDIDATE_UNVERIFIED": 151,
+    "CONFIRMED_PROTOCOL_VERSION_DIFFERENCE": 2,
+    "CONFIRMED_MODEL_GAP_LOCAL_FIX_PENDING_ROOT_INTEGRATION": 2,
+    "CONFIRMED_ENCODING_GAP_PARENT_FIX": 1
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-10-12T05:10:47.456Z",
+  "summarySha256": "1f7bbbd97b07a8959a5c64eeb9a758f5b09eb0f3a54dd8c6a4210b72c163c1ed",
+  "entries": [
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/after-linux.log",
+      "path": "objects/000.gz",
+      "rawBytes": 2076,
+      "rawSha256": "435fff0aa3a62eafc9740f5c6f06f8e9570797381d9e00df80722205fe049e7f",
+      "bytes": 675,
+      "sha256": "0d8d12800fc9e3951fa911fde5cc3737b470f304f98790ffd5da3788754b1bda"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/after.json",
+      "path": "objects/001.gz",
+      "rawBytes": 38108,
+      "rawSha256": "0c7e0af390b54ecc69434bc7c89307aed19dd100eb0fa5ddf7f7a1b02db3dcc5",
+      "bytes": 5109,
+      "sha256": "b13ee88b73a81a0831db054e919bca004aefe04a119a921202cdf0d528d350d5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/after.log",
+      "path": "objects/002.gz",
+      "rawBytes": 2242,
+      "rawSha256": "bfb68f5c30a2fc6225711292b1a5a6b426ab6bbfd01488465ba79fa6cb6877cc",
+      "bytes": 665,
+      "sha256": "5317cddfccba74660c333526bb63e91204a8379c8626f317dfc2121b622cc0d5"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/before.json",
+      "path": "objects/003.gz",
+      "rawBytes": 25306,
+      "rawSha256": "d7c889059dd678cbdc5ddcff1252075ada4bde86e58e1997c9a2bc7fee721b27",
+      "bytes": 1624,
+      "sha256": "0daca0f3de59e227408d7e4d4db2488449c1b36726116cb70edb62766c8cb15e"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/before.log",
+      "path": "objects/004.gz",
+      "rawBytes": 25402,
+      "rawSha256": "ad226c40bb8cfa509fd7ce7101473f25d166d2996d720e67e5190963e242c7f2",
+      "bytes": 2007,
+      "sha256": "0c7d4c54c04d0f2a982b0c37e9c8d0c1bc03ad8e257e7468eca7117850cf916a"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/source-before.txt",
+      "path": "objects/005.gz",
+      "rawBytes": 635811,
+      "rawSha256": "18e4fe93fd76474c4028286cae128c654a702f485cbeeb1efcd23458a418dd4e",
+      "bytes": 161031,
+      "sha256": "701261dc5be2b2f6439c5469b47c5e86cf2971a59692cb338af35d4cad848daa"
+    },
+    {
+      "source": ".work/ide-gap-continuation-20261012/edit-encoding/test-before.txt",
+      "path": "objects/006.gz",
+      "rawBytes": 4745,
+      "rawSha256": "f263728c29601b4ed95bc1cfb2175594fdbf67d39e7fcb603864761eeb0c6f48",
+      "bytes": 1623,
+      "sha256": "1589fb62df20fd9e6bf87ee0116b72649bb45b64b24443e13fc5bd77c8b30013"
+    }
+  ]
+}

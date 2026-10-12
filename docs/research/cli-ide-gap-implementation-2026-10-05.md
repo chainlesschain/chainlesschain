@@ -628,3 +628,15 @@ Sonnet 5.5 的缓存读取价格经两处官方定价与原 changelog 核对，�
 a537 的 CLI Strict Sandbox run38201818827 为 5/5 成功，Quality run38201818774 为 7 成功/2 条件跳过；旧 CLI/CI Tests/Kernel/IDE 的未完成门在新提交后被替换/取消；旧 Host 的继续运行结果单独保留，未完成矩阵不计通过。bdaf873 的 Model Catalog PR run38203332415 为 completed/success，上游抓取/漂移步骤条件跳过；**其余准确源码 CI 正在执行**，旧成绩不转移为新源码或发行准入。原始 API 与来源见[当前 CI 回读](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/ci-progress/README.md)。此前 387 份压缩/原文双摘要全部核验成功。新增工程已推送 [草稿 PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)，未公开发布、合并或新增付费请求。
 
 正式 **36 tasks + 9 firstRuns / NOT_RUN / observed=0 / $99** 和 `sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0` 保持。原窗口 2026-10-12 00:00 UTC 已结束，后续延期需要新的计划版本；合规宿主、独立人工、官方账户/账单/硬额度、辅助技术、Windows/macOS native/durable 和 8h/24h/SLO 仍未结案。
+
+## 48. 2026-10-12 UTF8 编辑保护与 Haiku 精确契约
+
+实际非UTF8编辑风险由新27项回归确认，修前20失败/7通过；literal/hash/notebook与IDE proposal现在对非法UTF8给出CC_EDIT_INVALID_UTF8或无预览，并保护原目标字节/mtime/零写入，合法BOM/CRLF/Unicode/U+FFFD继续工作。原失败、源码与初步115/115见[UTF8编辑归档](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/utf8-edit/README.md)。
+
+补齐精确claude-haiku-5-5：1M上下文、128K常规输出上限、4096本地默认请求预算、adaptive/medium和五档effort；拒绝legacy预算、assistant prefill、disabled+xhigh/max。每请求uncached+read+write总量决定100K分档，5m/1h写入和usage.inference_geo us/global分别保留；实际usage缺地区/正写入TTL、冲突或未知后代保持unpriced，公共global表估算另判。新模型fixture为2026-10-12，旧fixture及上游未关闭基线不改；Batch/伙伴云价格未作为已支持计价项。官方原件与实际fetch-stub、SSE、预算/汇总代码见[Haiku工程证据](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/haiku-runtime/README.md)。
+
+Windows22.22.2与Linux22.12.0最终各400/400（22文件）、采集9/9，零skip。16份测试源前后字节一致且与**fdead28689393bdf6881c9f806927f9f09333194**的Git blob全部核对。Linux首次缺Rollup原生依赖及全仓Git查询30秒准备失败保留；复用隔离同版本Linux依赖，以Windows验证清单加同HEAD/每源完整字节核对后通过，没有放宽测试期限/断言。ESLint零错误、22项原有警告；格式与diff通过。
+
+上游Codex4稳定版本与Claude7稳定版本的974条原文/版本/保守处置已完整归档，41个预发布排除；974包含摘要与PR条目重复，**不是独立功能数、测试数或已验证场景数**。源码引用为审查时工作区快照，不把既有测试引用算为实跑。剩余MCP2026-07-28、Retry-After、管理hooks/权限/沙箱/后台/IDE候选保留；AI审阅不代替独立人工。详见[完整清单](./cli/evidence/gap-2026-10-05/continuation-2026-10-12/upstream-inventory/README.md)，上游基线0.160.0/2.1.289未自动推进。
+
+bdaf的Strict5/5、Host7/7、Quality7成功/2条件skip、Kernel3/3与Model合同成功为旧源码结果，CLI/IDE等未完成门不计通过。当前fdead自身Actions另验，增量已推送[草稿PR #431](https://github.com/chainlesschain/chainlesschain/pull/431)，没有公开发行或新付费调用。正式36+9/NOT_RUN/observed=0/$99及冻结指纹保持，原2026-10-12 00:00 UTC窗口结束后未补写旧观察；合规宿主、独立人工、官方账号/账单/硬额度、辅助技术、native/durable和8h/24h/SLO仍开放。
