@@ -8,6 +8,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout } from "node:timers/promises";
 import { parseArgs } from "node:util";
+import { atomicWriteJson } from "./diagnostics/bounded-atomic-json.mjs";
+
+const atomicHelperPath = fileURLToPath(
+  new URL("./diagnostics/bounded-atomic-json.mjs", import.meta.url),
+);
+const atomicHelperDigest = () =>
+  `sha256:${crypto.createHash("sha256").update(fs.readFileSync(atomicHelperPath)).digest("hex")}`;
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
@@ -238,6 +245,7 @@ export function runJson(
     encoding: "utf8",
     windowsHide: true,
     timeout: 15_000,
+    maxBuffer: 256 * 1024,
   });
   function reject(failureKind, error = result.error) {
     const finished = clock();
@@ -275,12 +283,72 @@ export function runJson(
     reject("INVALID_JSON", error);
   }
 }
-export function readProcessProof(binding) {
+export function readWindowsNativeProcessProof(
+  binding,
+  { executable, executableDigest, sourceDigest },
+  { query = runJson } = {},
+) {
+  requireFact(
+    binding.platform === "win32" &&
+      Number.isSafeInteger(binding.processId) &&
+      binding.processId > 0 &&
+      path.isAbsolute(executable || "") &&
+      /^sha256:[a-f0-9]{64}$/u.test(executableDigest || "") &&
+      /^sha256:[a-f0-9]{64}$/u.test(sourceDigest || ""),
+    "NATIVE_PROOF_PIN_REQUIRED",
+  );
+  const verifyBytes = () => {
+    const stat = fs.lstatSync(executable);
+    requireFact(
+      stat.isFile() &&
+        !stat.isSymbolicLink() &&
+        stat.nlink === 1 &&
+        stat.size > 0 &&
+        stat.size <= 2 * 1024 * 1024,
+      "NATIVE_PROOF_FILE_INVALID",
+    );
+    requireFact(
+      `sha256:${crypto.createHash("sha256").update(fs.readFileSync(executable)).digest("hex")}` ===
+        executableDigest,
+      "NATIVE_PROOF_BINARY_CHANGED",
+    );
+  };
+  verifyBytes();
+  const result = query(executable, [String(binding.processId)], {
+    kind: "windows-native-single-handle",
+  });
+  verifyBytes();
+  requireFact(
+    result?.schema === "chainlesschain.windows-process-proof/v1" &&
+      result.sourceDigest === sourceDigest &&
+      result.aliveBefore === true &&
+      result.aliveAfter === true &&
+      result.processId === binding.processId &&
+      typeof result.commandLine === "string" &&
+      result.commandLine.length > 0 &&
+      result.commandLine.length <= 65536 &&
+      /^\d+$/u.test(result.startIdentity || "") &&
+      typeof result.executable === "string" &&
+      path.isAbsolute(result.executable) &&
+      result.bootIdentity === "windows-process-start",
+    "NATIVE_PROOF_REPORT_INVALID",
+  );
+  return {
+    processId: result.processId,
+    startIdentity: result.startIdentity,
+    executable: result.executable,
+    commandDigest: digest(result.commandLine),
+    bootIdentity: result.bootIdentity,
+  };
+}
+export function readProcessProof(binding, { windowsNativeProof } = {}) {
   requireFact(
     Number.isSafeInteger(binding.processId) && binding.processId > 0,
     "PROCESS_ID_INVALID",
   );
   if (binding.platform === "win32") {
+    if (windowsNativeProof)
+      return readWindowsNativeProcessProof(binding, windowsNativeProof);
     const command = `$p=Get-Process -Id ${binding.processId} -ErrorAction Stop; $c=Get-CimInstance Win32_Process -Filter 'ProcessId=${binding.processId}' -ErrorAction Stop; [ordered]@{processId=$p.Id;startIdentity=$p.StartTime.ToUniversalTime().Ticks.ToString();executable=$p.Path;commandLine=$c.CommandLine;bootIdentity='windows-process-start'} | ConvertTo-Json -Compress`;
     const result = runJson(
       path.join(
@@ -303,13 +371,58 @@ export function readProcessProof(binding) {
   );
 }
 function atomicWrite(file, value) {
-  const temporary = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-    flag: "wx",
-  });
-  fs.renameSync(temporary, file);
+  return atomicWriteJson(file, value);
 }
-function archiveRejectedEpoch(root, outputRoot) {
+function archiveHistory(
+  sourceRoot,
+  destinationRoot,
+  origin,
+  budget = { files: 0, bytes: 0 },
+) {
+  for (const entry of origin.artifacts) {
+    if (entry.missing) continue;
+    requireFact(
+      /^previous-epoch\/[a-z0-9.-]+$/u.test(entry.archivedPath || ""),
+      "PRIOR_ARCHIVE_PATH_INVALID",
+    );
+    const source = path.join(sourceRoot, entry.archivedPath);
+    const stat = fs.lstatSync(source);
+    requireFact(
+      !fs.lstatSync(path.dirname(source)).isSymbolicLink() &&
+        stat.isFile() &&
+        stat.nlink === 1,
+      "PRIOR_ARCHIVE_FILE_INVALID",
+    );
+    requireFact(
+      budget.files < 300 &&
+        stat.size === entry.bytes &&
+        budget.bytes + stat.size <= 16 * 1024 * 1024,
+      "PRIOR_ARCHIVE_BYTES_INVALID",
+    );
+    const bytes = fs.readFileSync(source);
+    budget.files++;
+    budget.bytes += bytes.length;
+    requireFact(
+      budget.files <= 300 &&
+        budget.bytes <= 16 * 1024 * 1024 &&
+        bytes.length === entry.bytes &&
+        `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}` ===
+          entry.byteDigest,
+      "PRIOR_ARCHIVE_BYTES_INVALID",
+    );
+    const destination = path.join(destinationRoot, entry.archivedPath);
+    fs.mkdirSync(path.dirname(destination), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(destination, bytes, { flag: "wx", mode: 0o600 });
+    if (entry.source === "epoch-origin.json")
+      archiveHistory(
+        path.dirname(source),
+        path.dirname(destination),
+        JSON.parse(bytes.toString("utf8")),
+        budget,
+      );
+  }
+}
+function archiveRejectedEpoch(root, outputRoot, previousRoot = root) {
   const archive = path.join(outputRoot, "previous-epoch");
   fs.mkdirSync(archive, { mode: 0o700 });
   const artifacts = [];
@@ -317,25 +430,40 @@ function archiveRejectedEpoch(root, outputRoot) {
   for (const [name, required] of [
     ["watch-v2-state.json", true],
     ["binding-v2.json", true],
-    ["observer-v2.mjs", true],
+    ["observer-v2.mjs", previousRoot === root],
     ["watch-v2-launch.json", false],
     ["watch-v2.stderr.log", false],
     ["watch-v2.stdout.log", false],
+    ...(fs.existsSync(
+      path.join(previousRoot, "diagnostics/bounded-atomic-json.mjs"),
+    )
+      ? [["diagnostics/bounded-atomic-json.mjs", true]]
+      : []),
+    ...(fs.existsSync(path.join(previousRoot, "proof-reader.json"))
+      ? [["proof-reader.json", true]]
+      : []),
   ]) {
-    const source = path.join(root, name);
+    const source = path.join(
+      name === "binding-v2.json" ? root : previousRoot,
+      name,
+    );
     if (!required && !fs.existsSync(source)) {
       artifacts.push({ source: name, missing: true });
       continue;
     }
     requireFact(fs.lstatSync(source).isFile(), "EPOCH_ARCHIVE_FILE_INVALID");
     const bytes = fs.readFileSync(source);
-    fs.writeFileSync(path.join(archive, name), bytes, {
+    const archiveName =
+      name === "diagnostics/bounded-atomic-json.mjs"
+        ? "atomic-helper.mjs"
+        : name;
+    fs.writeFileSync(path.join(archive, archiveName), bytes, {
       flag: "wx",
       mode: 0o600,
     });
     artifacts.push({
       source: name,
-      archivedPath: `previous-epoch/${name}`,
+      archivedPath: `previous-epoch/${archiveName}`,
       byteDigest: `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`,
       bytes: bytes.length,
     });
@@ -345,21 +473,54 @@ function archiveRejectedEpoch(root, outputRoot) {
   requireFact(
     previous?.schema === "chainlesschain.local-soak-watcher-state/v2" &&
       previous.status === "OBSERVATION_REJECTED" &&
-      Number.isFinite(Date.parse(previous.observedAt)) &&
       Number.isFinite(Date.parse(previous.rejectedAt)),
     "REJECTED_PRIOR_EPOCH_REQUIRED",
+  );
+  let previousObservation = previous;
+  const originPath = path.join(previousRoot, "epoch-origin.json");
+  if (previousRoot !== root || fs.existsSync(originPath)) {
+    const bytes = fs.readFileSync(originPath);
+    const priorOrigin = JSON.parse(bytes.toString("utf8"));
+    requireFact(
+      priorOrigin.schema === "chainlesschain.local-soak-observer-epoch/v1" &&
+        previous.epoch?.originDigest === digest(priorOrigin) &&
+        previous.epoch.id === priorOrigin.epochId &&
+        priorOrigin.previousState.bindingDigest === previous.bindingDigest,
+      "PRIOR_EPOCH_ORIGIN_INVALID",
+    );
+    fs.writeFileSync(path.join(archive, "epoch-origin.json"), bytes, {
+      flag: "wx",
+      mode: 0o600,
+    });
+    artifacts.push({
+      source: "epoch-origin.json",
+      archivedPath: "previous-epoch/epoch-origin.json",
+      byteDigest: `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`,
+      bytes: bytes.length,
+    });
+    archiveHistory(previousRoot, archive, priorOrigin);
+    if (!Number.isFinite(Date.parse(previous.observedAt)))
+      previousObservation =
+        priorOrigin.previousObservation || priorOrigin.previousState;
+  }
+  requireFact(
+    Number.isFinite(Date.parse(previousObservation.observedAt)),
+    "PRIOR_OBSERVATION_REQUIRED",
   );
   const origin = {
     schema: "chainlesschain.local-soak-observer-epoch/v1",
     epochId: crypto.randomUUID(),
     sourceRoot: root,
+    previousStateRoot: previousRoot,
     stateRoot: outputRoot,
     previousState: previous,
+    previousObservation,
     artifacts,
     observerByteDigest: `sha256:${crypto
       .createHash("sha256")
       .update(fs.readFileSync(fileURLToPath(import.meta.url)))
       .digest("hex")}`,
+    atomicHelperByteDigest: atomicHelperDigest(),
     rule: "New observer epoch only. Previous rejection remains final; no gap is backfilled or joined into continuous acceptance.",
     formalHostAcceptance: false,
     observationsCreated: false,
@@ -383,11 +544,45 @@ export async function main(
     options: {
       root: { type: "string" },
       "state-root": { type: "string" },
+      "resume-epoch-root": { type: "string" },
+      "previous-epoch-root": { type: "string" },
+      "windows-proof-helper": { type: "string" },
+      "windows-proof-helper-digest": { type: "string" },
+      "windows-proof-source-digest": { type: "string" },
       once: { type: "boolean" },
     },
   });
   requireFact(values.root, "ROOT_REQUIRED");
+  requireFact(
+    !values["resume-epoch-root"] ||
+      (!values["state-root"] && !values["previous-epoch-root"]),
+    "EPOCH_OPTIONS_CONFLICT",
+  );
+  requireFact(
+    !values["previous-epoch-root"] || values["state-root"],
+    "NEW_EPOCH_REQUIRED",
+  );
+  const proofOptions = [
+    "windows-proof-helper",
+    "windows-proof-helper-digest",
+    "windows-proof-source-digest",
+  ];
+  requireFact(
+    proofOptions.every((name) => !values[name]) ||
+      proofOptions.every((name) => values[name]),
+    "NATIVE_PROOF_PIN_REQUIRED",
+  );
+  const windowsNativeProof = values["windows-proof-helper"]
+    ? {
+        executable: path.resolve(values["windows-proof-helper"]),
+        executableDigest: values["windows-proof-helper-digest"],
+        sourceDigest: values["windows-proof-source-digest"],
+      }
+    : undefined;
   const root = fs.realpathSync(values.root);
+  const previousRoot = values["previous-epoch-root"]
+    ? fs.realpathSync(values["previous-epoch-root"])
+    : root;
   let outputRoot = root;
   if (values["state-root"]) {
     const requested = path.resolve(values["state-root"]);
@@ -402,15 +597,33 @@ export async function main(
         path.isAbsolute(relative),
       "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT",
     );
+    const previousRelative = path.relative(previousRoot, outputRoot);
+    requireFact(
+      previousRelative === ".." ||
+        previousRelative.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(previousRelative),
+      "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT",
+    );
     // No reuse/reset of an existing epoch, including a failed one. Resolve the
     // real parent first so a junction cannot alias the original observation.
     fs.mkdirSync(outputRoot, { mode: 0o700 });
+  }
+  if (values["resume-epoch-root"]) {
+    outputRoot = fs.realpathSync(values["resume-epoch-root"]);
+    const relative = path.relative(root, outputRoot);
+    requireFact(
+      relative === ".." ||
+        relative.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relative),
+      "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT",
+    );
   }
   const stateFile = path.join(outputRoot, "watch-v2-state.json");
   let state = null;
   let epoch = null;
   try {
-    if (values["state-root"]) epoch = archiveRejectedEpoch(root, outputRoot);
+    if (values["state-root"])
+      epoch = archiveRejectedEpoch(root, outputRoot, previousRoot);
     // Load history before any new input can fail, so rejection cannot erase the
     // previously observed prefix, gaps, or milestones.
     if (fs.existsSync(stateFile)) {
@@ -436,6 +649,37 @@ export async function main(
         "STATE_INVALID",
       );
     }
+    if (values["resume-epoch-root"] || state?.epoch) {
+      requireFact(state?.epoch, "EPOCH_STATE_REQUIRED");
+      const origin = JSON.parse(
+        fs.readFileSync(path.join(outputRoot, "epoch-origin.json"), "utf8"),
+      );
+      requireFact(
+        origin.schema === "chainlesschain.local-soak-observer-epoch/v1" &&
+          state.epoch.originDigest === digest(origin) &&
+          state.epoch.id === origin.epochId &&
+          origin.previousState.bindingDigest === state.bindingDigest &&
+          origin.observerByteDigest ===
+            `sha256:${crypto
+              .createHash("sha256")
+              .update(fs.readFileSync(fileURLToPath(import.meta.url)))
+              .digest("hex")}`,
+        "PRIOR_EPOCH_ORIGIN_INVALID",
+      );
+      requireFact(
+        origin.atomicHelperByteDigest === atomicHelperDigest(),
+        "EPOCH_DEPENDENCY_CHANGED",
+      );
+      const reader = JSON.parse(
+        fs.readFileSync(path.join(outputRoot, "proof-reader.json"), "utf8"),
+      );
+      requireFact(
+        digest(reader.windowsNativeProof) ===
+          digest(windowsNativeProof || null),
+        "EPOCH_PROOF_READER_CHANGED",
+      );
+      epoch = { ...origin, originDigest: digest(origin) };
+    }
     const binding = JSON.parse(
       fs
         .readFileSync(path.join(root, "binding-v2.json"), "utf8")
@@ -444,6 +688,10 @@ export async function main(
     requireFact(
       binding.schema === "chainlesschain.local-soak-process-binding/v2",
       "BINDING_SCHEMA_INVALID",
+    );
+    requireFact(
+      !windowsNativeProof || binding.platform === "win32",
+      "NATIVE_PROOF_PLATFORM_INVALID",
     );
     if (epoch) {
       requireFact(
@@ -461,6 +709,34 @@ export async function main(
             ),
           ),
         "EPOCH_BINDING_CHANGED",
+      );
+    }
+    if (epoch && values["state-root"]) {
+      fs.writeFileSync(
+        path.join(outputRoot, "observer-v2.mjs"),
+        fs.readFileSync(fileURLToPath(import.meta.url)),
+        { flag: "wx" },
+      );
+      fs.mkdirSync(path.join(outputRoot, "diagnostics"), { mode: 0o700 });
+      fs.writeFileSync(
+        path.join(outputRoot, "diagnostics/bounded-atomic-json.mjs"),
+        fs.readFileSync(atomicHelperPath),
+        { flag: "wx" },
+      );
+      fs.writeFileSync(
+        path.join(outputRoot, "proof-reader.json"),
+        `${JSON.stringify(
+          {
+            kind: windowsNativeProof
+              ? "windows-native-single-handle"
+              : "legacy-platform-query",
+            windowsNativeProof: windowsNativeProof || null,
+            formalHostAcceptance: false,
+          },
+          null,
+          2,
+        )}\n`,
+        { flag: "wx" },
       );
     }
     const producer = path.join(
@@ -488,20 +764,23 @@ export async function main(
           "EPOCH_REQUIRES_RUNNING_WORKLOAD",
         );
       if (report.status === "running")
-        validateProcessProof(binding, readProof(binding));
+        validateProcessProof(
+          binding,
+          readProof(binding, { windowsNativeProof }),
+        );
       // First observation starts after its identity proof. A slow proof cannot
       // admit a checkpoint that became stale while the query was running.
       const now = clock();
       const checked = validateSnapshot(report, binding, { ...validation, now });
       if (epoch && !state) {
         requireFact(
-          Date.parse(epoch.previousState.observedAt) <=
+          Date.parse(epoch.previousObservation.observedAt) <=
             Date.parse(epoch.previousState.rejectedAt) &&
             Date.parse(epoch.previousState.rejectedAt) <= now &&
-            checked.checkpoint >= epoch.previousState.lastCheckpoint &&
+            checked.checkpoint >= epoch.previousObservation.lastCheckpoint &&
             report.continuousDurationSeconds >=
-              epoch.previousState.continuousDurationSeconds &&
-            checked.cycles >= epoch.previousState.cycles,
+              epoch.previousObservation.continuousDurationSeconds &&
+            checked.cycles >= epoch.previousObservation.cycles,
           "EPOCH_OBSERVATION_REGRESSION",
         );
       }
@@ -515,7 +794,7 @@ export async function main(
           firstObservedAt,
           previousRejectedAt: epoch.previousState.rejectedAt,
           previousObservationGap: {
-            from: epoch.previousState.observedAt,
+            from: epoch.previousObservation.observedAt,
             to: firstObservedAt,
             reason:
               "previous observer epoch rejected; interval is not retroactively monitored",
@@ -548,7 +827,7 @@ export async function main(
     }
   } catch (error) {
     const rejectedAt = new Date(clock()).toISOString();
-    atomicWrite(stateFile, {
+    const rejection = {
       ...(state || {}),
       schema: "chainlesschain.local-soak-watcher-state/v2",
       status: "OBSERVATION_REJECTED",
@@ -569,12 +848,31 @@ export async function main(
       observationsCreated: false,
       detail: String(error.message).slice(0, 500),
       ...(epoch
-        ? { epochOriginDigest: epoch.originDigest, previousEpochRejected: true }
+        ? {
+            epochOriginDigest: epoch.originDigest,
+            previousEpochRejected: true,
+            bindingDigest:
+              state?.bindingDigest || epoch.previousState.bindingDigest,
+            epoch: state?.epoch || {
+              id: epoch.epochId,
+              originDigest: epoch.originDigest,
+              firstObservedAt: null,
+            },
+          }
         : {}),
       ...(error.processProofFailure
         ? { processProofFailure: error.processProofFailure }
         : {}),
-    });
+    };
+    try {
+      atomicWrite(stateFile, rejection);
+    } catch (publicationError) {
+      error.failedReportPublication = {
+        code: publicationError.code || "PUBLICATION_FAILED",
+        message: String(publicationError.message).slice(0, 500),
+        publicationFailure: publicationError.publicationFailure || null,
+      };
+    }
     throw error;
   }
   return state;
@@ -585,6 +883,13 @@ if (
 ) {
   main().catch((error) => {
     process.stderr.write(`${error.message}\n`);
+    if (error.publicationFailure || error.failedReportPublication)
+      process.stderr.write(
+        `${JSON.stringify({
+          publicationFailure: error.publicationFailure || null,
+          failedReportPublication: error.failedReportPublication || null,
+        })}\n`,
+      );
     process.exitCode = 1;
   });
 }

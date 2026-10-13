@@ -1,0 +1,283 @@
+{
+  "schema": "chainlesschain.verify01-acceptance-continuation/v2",
+  "capturedAt": "2026-10-13T12:48:49.583Z",
+  "sourceCommit": "b395af36991c048e7de2948e5a03eab6c0adde0b",
+  "draftPr": "https://github.com/chainlesschain/chainlesschain/pull/441",
+  "formal": {
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "reviewValidated": true,
+    "tasks": {
+      "planned": 36,
+      "observed": 0,
+      "missing": 36,
+      "succeeded": 0,
+      "successRate": 0,
+      "knownCost": 0,
+      "totalCost": null,
+      "costPerSuccess": null,
+      "retries": null,
+      "manualRepairs": null
+    },
+    "firstRuns": {
+      "planned": 9,
+      "observed": 0,
+      "missing": 9,
+      "succeeded": 0,
+      "successRate": 0,
+      "knownCost": 0,
+      "totalCost": null,
+      "costPerSuccess": null,
+      "retries": null,
+      "manualRepairs": null
+    },
+    "status": "INSUFFICIENT_EVIDENCE",
+    "executionStatus": "NOT_RUN",
+    "sharedLimitUsd": 99,
+    "availableAmountUsd": null,
+    "paidReady": false,
+    "newProviderCalls": 0
+  },
+  "tests": {
+    "windows": {
+      "platform": "windows",
+      "executable": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+      "args": [
+        "--test",
+        "scripts/__tests__/verify01-long-engineering-watch.test.mjs",
+        "scripts/__tests__/windows-process-proof.test.mjs",
+        "scripts/__tests__/bounded-atomic-json.test.mjs",
+        "packages/cli/test-node/verify01-native-review-admission.node-test.mjs",
+        "packages/cli/test-node/verify01-native-preflight.node-test.mjs"
+      ],
+      "startedAt": "2026-10-13T12:33:01.380Z",
+      "completedAt": "2026-10-13T12:33:32.772Z",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "counts": {
+        "tests": 78,
+        "pass": 78,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      },
+      "stdoutSha256": "5594836f2c4d2f343bd9c38ad172054d91ed61575bf61563839c13e240e5a092",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "linux": {
+      "platform": "linux",
+      "executable": "C:\\Windows\\System32\\wsl.exe",
+      "args": [
+        "-d",
+        "Ubuntu",
+        "--exec",
+        "/usr/bin/env",
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "TMPDIR=/mnt/c/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/linux-temp",
+        "/mnt/c/code/chainlesschain/.tmp/linux-node2212/bin/node",
+        "--test",
+        "/mnt/c/code/chainlesschain/scripts/__tests__/verify01-long-engineering-watch.test.mjs",
+        "/mnt/c/code/chainlesschain/scripts/__tests__/windows-process-proof.test.mjs",
+        "/mnt/c/code/chainlesschain/scripts/__tests__/bounded-atomic-json.test.mjs",
+        "/mnt/c/code/chainlesschain/packages/cli/test-node/verify01-native-review-admission.node-test.mjs",
+        "/mnt/c/code/chainlesschain/packages/cli/test-node/verify01-native-preflight.node-test.mjs"
+      ],
+      "startedAt": "2026-10-13T12:37:05.058Z",
+      "completedAt": "2026-10-13T12:37:31.459Z",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "counts": {
+        "tests": 76,
+        "pass": 76,
+        "fail": 0,
+        "skipped": 0,
+        "cancelled": 0
+      },
+      "stdoutSha256": "def0ebd323de16e8ef2ae015a322f4d0d556fd49c1e6b62055bb6fdd28c245f4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceStable": true
+    },
+    "sourceStable": true
+  },
+  "native": {
+    "selectedTasks": 24,
+    "perPlatform": [
+      {
+        "platform": "win32",
+        "selectedTasks": 12,
+        "readyTasks": 0
+      },
+      {
+        "platform": "darwin",
+        "selectedTasks": 12,
+        "readyTasks": 0
+      }
+    ],
+    "readyTasks": 0,
+    "fullReviewPackReady": false,
+    "status": "NOT_ADMITTED",
+    "scope": "read-only frozen-source preparation; no native execution",
+    "sourceReviewRequired": [],
+    "platformBlockers": [
+      {
+        "sampleId": "verify-17",
+        "blockers": [
+          {
+            "code": "BASELINE_PLATFORM_UNSUPPORTED",
+            "detail": "packages/cli/__tests__/unit/process-ownership-journal.test.js has no executed cases on darwin; all-pending baselines cannot pass."
+          },
+          {
+            "code": "IMPLEMENTATION_PLATFORM_UNSUPPORTED",
+            "detail": "Frozen ownership journal implementation rejects non-Linux hosts."
+          }
+        ]
+      }
+    ]
+  },
+  "originalWindows": {
+    "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+    "processId": 13412,
+    "processAbsentObserved": true,
+    "publishedRunningSnapshotIsStale": true,
+    "failedUnpublishedReportDigest": "sha256:e9eb4c96f6f229107a2f60dab1e62c0caa70ba3eb215e78d78c1e79be494dee7",
+    "status": "failed",
+    "checkpointedAt": "2026-10-13T12:02:16.291Z",
+    "completedAt": "2026-10-13T12:02:16.341Z",
+    "durationSeconds": 24316.4674806,
+    "violations": [
+      {
+        "code": "EPERM",
+        "message": "EPERM: operation not permitted, rename 'C:\\code\\chainlesschain\\.work\\verify01-long-observation-20261013\\live-report.json.13412.tmp' -> 'C:\\code\\chainlesschain\\.work\\verify01-long-observation-20261013\\live-report.json'"
+      }
+    ],
+    "secondaryFailure": "failure-report replacement also returned EPERM; original tmp retained",
+    "reached8h": false,
+    "reached24h": false,
+    "readerOrAntivirusCauseConfirmed": false
+  },
+  "longObservation": {
+    "capturedAt": "2026-10-13T12:45:32.726Z",
+    "rows": [
+      {
+        "name": "windows-repair",
+        "capturedAt": "2026-10-13T12:45:32.328Z",
+        "sourceCommit": "b395af36991c048e7de2948e5a03eab6c0adde0b",
+        "workloadPid": 24616,
+        "processIdentityVerified": true,
+        "workloadStatus": "running",
+        "observerStatus": "MONITORING",
+        "startedAt": "2026-10-13T12:42:53.830Z",
+        "checkpointedAt": "2026-10-13T12:45:26.395Z",
+        "durationSeconds": 152.4563684,
+        "cycles": 153,
+        "lostMessages": 0,
+        "duplicateEffects": 0,
+        "invariantViolations": 0,
+        "monitoringCompleteFromLaunch": false,
+        "unmonitoredPrefixSeconds": 3.605,
+        "gaps": [],
+        "milestonesRecorded": [],
+        "qualifyingEvidence": false,
+        "formalHostAcceptance": false,
+        "saved": [
+          {
+            "file": "binding-v2.json",
+            "byteDigest": "sha256:0e233dd3b3b2c5cd49e42d9d8f39b74b4d74064b7e0ae88f951b863dc1b01af2"
+          },
+          {
+            "file": "live-report.json",
+            "byteDigest": "sha256:4037b4a7d7657f9579c36b8a58f65627c5a254945dc06fc2b7e07c794109588a"
+          },
+          {
+            "file": "watch-v2-state.json",
+            "byteDigest": "sha256:72148a2ec3125c6b53f635fc2dad61f68247cc283decb66164f8dbca5d94e4d6"
+          },
+          {
+            "file": "launch.json",
+            "byteDigest": "sha256:ae254e65662e12ac6b3e353f3c86e4e0138e28a7b3025d76fbb995b8144c3b82"
+          },
+          {
+            "file": "watch-v2-launch.json",
+            "byteDigest": "sha256:e28efdae3481721422adc72800905d1a307c3b32bd8c54106fb7fb343ce4d79d"
+          }
+        ]
+      },
+      {
+        "name": "linux-original",
+        "capturedAt": "2026-10-13T12:45:32.726Z",
+        "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+        "workloadPid": 8,
+        "processIdentityVerified": true,
+        "workloadStatus": "running",
+        "observerStatus": "MONITORING",
+        "startedAt": "2026-10-13T05:20:39.076Z",
+        "checkpointedAt": "2026-10-13T12:45:20.581Z",
+        "durationSeconds": 26681.2399895,
+        "cycles": 7210,
+        "lostMessages": 0,
+        "duplicateEffects": 0,
+        "invariantViolations": 0,
+        "monitoringCompleteFromLaunch": false,
+        "unmonitoredPrefixSeconds": 809.555,
+        "gaps": [
+          {
+            "from": "2026-10-13T05:34:08.631Z",
+            "to": "2026-10-13T05:37:18.708Z",
+            "reason": "observer or workload checkpoint gap"
+          }
+        ],
+        "milestonesRecorded": [],
+        "qualifyingEvidence": false,
+        "formalHostAcceptance": false,
+        "saved": [
+          {
+            "file": "binding-v2.json",
+            "byteDigest": "sha256:6d10d79409861c943cafa86c2ed2940c864ade322a4a6dc2c4f2f5b17f3b238c"
+          },
+          {
+            "file": "live-report.json",
+            "byteDigest": "sha256:e5385654c33863f36a0d1d37ccbf5db28fc66ca1a8825e5361999cd06bc7158f"
+          },
+          {
+            "file": "watch-v2-state.json",
+            "byteDigest": "sha256:ebe04071b3e957d3f54e5e06217809dc317b9a8de55f8bf1a0d7b37c5063090c"
+          },
+          {
+            "file": "launch.json",
+            "byteDigest": "sha256:e6e2e11ffbaa40f26e25365bea0e974d010232bc3a19429f4665858a1b9d6784"
+          }
+        ]
+      }
+    ],
+    "formalTasksObserved": 0,
+    "formalFirstRunsObserved": 0,
+    "all24hComplete": false
+  },
+  "authorizedReview": {
+    "reviewer": "Astra",
+    "reviewerKind": "AI",
+    "independentHumanReview": false,
+    "observerVerdict": "ACCEPTED_FOR_SUPPLEMENTARY_ENGINEERING_OBSERVATION"
+  },
+  "historicalDiagnostic": {
+    "sourceCommit": "52d8fb9b9f10616b4e28b62fd2edc400a0ba4d03",
+    "newCallsInThisContinuation": 0,
+    "physicalRequestsStarted": 13,
+    "usageCompleteRequests": 13,
+    "knownTokenOnlyEstimateCny": 0.2478572,
+    "actualBilledCostCny": null,
+    "formalSample": false,
+    "task04Passed": false,
+    "task22Executed": false,
+    "reason": "DIAGNOSTIC_REQUEST_BYTES_LIMIT; actual candidate check also failed"
+  },
+  "remaining": [
+    "Exact Windows11 24H2 and macOS15 arm64 public CLI/IDE task and first-run hosts",
+    "Trusted original shared budget lineage, previous spend/liabilities, all paid egress, account contract/FX and hard quota",
+    "Protected native storage/journal/CAS/flush/recovery and actual full setup/check/baseline/mutant/process settlement",
+    "Actual public-entry 8h/24h, accessibility and fixed-hardware SLO acceptance",
+    "Exact final head GitHub Actions results; local engineering tests do not grant release eligibility"
+  ]
+}

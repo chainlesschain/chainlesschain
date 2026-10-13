@@ -634,3 +634,222 @@ test("milestones remain raw workload snapshots in the new epoch, with the full m
   assert.equal(milestone.epoch.originDigest, state.epoch.originDigest);
   f.assertInputUnchanged();
 });
+
+test("a third epoch preserves the second rejection and its original epoch chain", async (t) => {
+  const f = epochFixture(t);
+  await main(epochArgs(f), { clock: () => f.now, readProof: () => f.proof });
+  const priorOrigin = fs.readFileSync(path.join(f.output, "epoch-origin.json"));
+  const statePath = path.join(f.output, "watch-v2-state.json");
+  const previous = readJson(statePath);
+  previous.status = "OBSERVATION_REJECTED";
+  previous.rejectedAt = new Date(f.now + 1000).toISOString();
+  previous.reason = "PROCESS_PROOF_UNAVAILABLE";
+  fs.writeFileSync(statePath, JSON.stringify(previous));
+  const priorBytes = fs.readFileSync(statePath);
+  const next = path.join(f.directory, "third-epoch");
+  const state = await main(
+    [
+      "--root",
+      f.root,
+      "--previous-epoch-root",
+      f.output,
+      "--state-root",
+      next,
+      "--once",
+    ],
+    { clock: () => f.now + 2000, readProof: () => f.proof },
+  );
+  assert.equal(state.epoch.previousRejectedAt, previous.rejectedAt);
+  assert.equal(state.epoch.previousObservationGap.from, previous.observedAt);
+  assert.equal(state.monitoringCompleteFromLaunch, false);
+  assert.equal(state.unmonitoredPrefixSeconds, 602);
+  assert.deepEqual(
+    fs.readFileSync(path.join(next, "previous-epoch/epoch-origin.json")),
+    priorOrigin,
+  );
+  assert.deepEqual(
+    fs.readFileSync(path.join(next, "previous-epoch/watch-v2-state.json")),
+    priorBytes,
+  );
+  assert.deepEqual(fs.readFileSync(statePath), priorBytes);
+  assert.deepEqual(
+    fs.readFileSync(path.join(f.output, "epoch-origin.json")),
+    priorOrigin,
+  );
+  f.assertInputUnchanged();
+});
+test("a foreign or changed prior epoch origin cannot start a third epoch", async (t) => {
+  const f = epochFixture(t);
+  await main(epochArgs(f), { clock: () => f.now, readProof: () => f.proof });
+  const statePath = path.join(f.output, "watch-v2-state.json");
+  const state = readJson(statePath);
+  state.status = "OBSERVATION_REJECTED";
+  state.rejectedAt = new Date(f.now).toISOString();
+  fs.writeFileSync(statePath, JSON.stringify(state));
+  fs.appendFileSync(path.join(f.output, "epoch-origin.json"), " ");
+  const originPath = path.join(f.output, "epoch-origin.json");
+  const changed = readJson(originPath);
+  changed.epochId = "foreign";
+  fs.writeFileSync(originPath, JSON.stringify(changed));
+  await assert.rejects(
+    main(
+      [
+        "--root",
+        f.root,
+        "--previous-epoch-root",
+        f.output,
+        "--state-root",
+        path.join(f.directory, "refused-third-epoch"),
+        "--once",
+      ],
+      { clock: () => f.now, readProof: () => f.proof },
+    ),
+    { code: "PRIOR_EPOCH_ORIGIN_INVALID" },
+  );
+  f.assertInputUnchanged();
+});
+test("previous epoch selection and native helper require complete explicit options", async (t) => {
+  const f = epochFixture(t);
+  await assert.rejects(
+    main(["--root", f.root, "--previous-epoch-root", f.output, "--once"]),
+    { code: "NEW_EPOCH_REQUIRED" },
+  );
+  await assert.rejects(
+    main(["--root", f.root, "--windows-proof-helper", "helper.exe", "--once"]),
+    { code: "NATIVE_PROOF_PIN_REQUIRED" },
+  );
+  f.assertInputUnchanged();
+});
+
+test("resuming an existing epoch retains origin, gaps and the proof reader", async (t) => {
+  const f = epochFixture(t);
+  const first = await main(epochArgs(f), {
+    clock: () => f.now,
+    readProof: () => f.proof,
+  });
+  const resumed = await main(
+    ["--root", f.root, "--resume-epoch-root", f.output, "--once"],
+    { clock: () => f.now + 2000, readProof: () => f.proof },
+  );
+  assert.deepEqual(resumed.epoch, first.epoch);
+  assert.equal(
+    resumed.unmonitoredPrefixSeconds,
+    first.unmonitoredPrefixSeconds,
+  );
+  assert.equal(resumed.monitoringCompleteFromLaunch, false);
+  const readerPath = path.join(f.output, "proof-reader.json");
+  const reader = readJson(readerPath);
+  reader.windowsNativeProof = { executable: "untrusted" };
+  fs.writeFileSync(readerPath, JSON.stringify(reader));
+  await assert.rejects(
+    main(["--root", f.root, "--resume-epoch-root", f.output, "--once"], {
+      clock: () => f.now + 3000,
+      readProof: () => f.proof,
+    }),
+    { code: "EPOCH_PROOF_READER_CHANGED" },
+  );
+  f.assertInputUnchanged();
+});
+test("a first-proof rejected epoch can be chained without inventing a successful observation", async (t) => {
+  const f = epochFixture(t);
+  await assert.rejects(
+    main(epochArgs(f), {
+      clock: () => f.now,
+      readProof() {
+        throw Object.assign(new Error("query failed"), {
+          code: "PROCESS_PROOF_UNAVAILABLE",
+        });
+      },
+    }),
+    { code: "PROCESS_PROOF_UNAVAILABLE" },
+  );
+  const rejected = readJson(path.join(f.output, "watch-v2-state.json"));
+  assert.equal(rejected.observedAt, undefined);
+  assert.equal(rejected.epoch.firstObservedAt, null);
+  assert.equal(rejected.bindingDigest, digest(f.actualBinding));
+  const output = path.join(f.directory, "after-first-proof-failed");
+  const state = await main(
+    [
+      "--root",
+      f.root,
+      "--previous-epoch-root",
+      f.output,
+      "--state-root",
+      output,
+      "--once",
+    ],
+    { clock: () => f.now + 2000, readProof: () => f.proof },
+  );
+  assert.equal(state.epoch.previousRejectedAt, rejected.rejectedAt);
+  assert.equal(state.epoch.previousObservationGap.from, f.previous.observedAt);
+  assert.equal(state.unmonitoredPrefixSeconds, 602);
+  assert.deepEqual(
+    fs.readFileSync(
+      path.join(output, "previous-epoch/previous-epoch/watch-v2-state.json"),
+    ),
+    fs.readFileSync(path.join(f.root, "watch-v2-state.json")),
+  );
+  f.assertInputUnchanged();
+});
+
+test("resuming rejects changes to the observer dependency even with a recomputed origin digest", async (t) => {
+  const f = epochFixture(t);
+  await main(epochArgs(f), { clock: () => f.now, readProof: () => f.proof });
+  const originFile = path.join(f.output, "epoch-origin.json");
+  const changed = readJson(originFile);
+  changed.atomicHelperByteDigest = `sha256:${"f".repeat(64)}`;
+  fs.writeFileSync(originFile, JSON.stringify(changed));
+  const stateFile = path.join(f.output, "watch-v2-state.json");
+  const state = readJson(stateFile);
+  state.epoch.originDigest = digest(changed);
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+  await assert.rejects(
+    main(["--root", f.root, "--resume-epoch-root", f.output, "--once"], {
+      clock: () => f.now + 1000,
+      readProof: () => f.proof,
+    }),
+    { code: "EPOCH_DEPENDENCY_CHANGED" },
+  );
+  f.assertInputUnchanged();
+});
+test("failure to publish rejection cannot replace the original process-proof failure", async (t) => {
+  const f = epochFixture(t);
+  const rename = fs.renameSync;
+  const original = Object.assign(new Error("actual query failure"), {
+    code: "PROCESS_PROOF_UNAVAILABLE",
+  });
+  fs.renameSync = (temporary, destination) => {
+    if (destination === path.join(f.output, "watch-v2-state.json"))
+      throw Object.assign(new Error("persistent sharing violation"), {
+        code: "EPERM",
+      });
+    return rename(temporary, destination);
+  };
+  try {
+    await assert.rejects(
+      main(epochArgs(f), {
+        clock: () => f.now,
+        readProof: () => {
+          throw original;
+        },
+      }),
+      (error) => {
+        assert.equal(error, original);
+        assert.equal(error.failedReportPublication.code, "EPERM");
+        assert.equal(
+          error.failedReportPublication.publicationFailure.attempts,
+          process.platform === "win32" ? 6 : 1,
+        );
+        const unpublished = readJson(
+          error.failedReportPublication.publicationFailure.temporary,
+        );
+        assert.equal(unpublished.status, "OBSERVATION_REJECTED");
+        assert.equal(unpublished.reason, "PROCESS_PROOF_UNAVAILABLE");
+        return true;
+      },
+    );
+  } finally {
+    fs.renameSync = rename;
+  }
+  f.assertInputUnchanged();
+});
