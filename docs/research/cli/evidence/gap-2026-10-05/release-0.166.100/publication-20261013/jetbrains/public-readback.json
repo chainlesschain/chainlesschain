@@ -1,0 +1,60 @@
+{
+  "observedAt": "2026-10-13T02:06:55.133Z",
+  "sourceCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "tag": "ide-jetbrains-v0.4.162",
+  "cliVersion": "0.166.100",
+  "version": "0.4.162",
+  "workflowObservation": {
+    "state": "COMPLETED_SUCCESS",
+    "workflowComplete": true
+  },
+  "tagWorkflow": {
+    "id": 38331689410,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38331689410"
+  },
+  "artifact": {
+    "name": "chainlesschain-ide-jetbrains-1",
+    "file": "chainlesschain-ide-bridge-0.4.162.zip",
+    "zipDigest": "sha256:177217f6c110ccd4847196d5a53e25b0256af31e23d5e1f1062e5f057c10d956",
+    "bytes": 1524521,
+    "sha256": "8645ab7679a58f8a2b3cac1c0c78b9eae1c529e06c9478786ea2872b563fdd73"
+  },
+  "packagedPlugin": {
+    "version": "0.4.162",
+    "pairedCliVersion": "0.166.100",
+    "tagArtifactSha256": "8645ab7679a58f8a2b3cac1c0c78b9eae1c529e06c9478786ea2872b563fdd73",
+    "classSha256": "1b7a26b15cba42cd0871ba6880f2002bdb30411cd6fcc48ba94b27fdb47631f1",
+    "classPin": {
+      "className": "com/chainlesschain/ide/CliVersionCheck",
+      "fieldName": "RECOMMENDED_CLI_VERSION",
+      "descriptor": "Ljava/lang/String;",
+      "value": "0.166.100",
+      "majorVersion": 65,
+      "minorVersion": 0,
+      "classAccess": 49,
+      "fieldAccess": 25,
+      "constantPoolIndex": 9,
+      "utf8PoolIndex": 10,
+      "fieldAccessOffset": 2219,
+      "constantValueIndexOffset": 2233,
+      "constantValueLengthOffset": 2229,
+      "constantPoolEntryOffset": 101,
+      "evidence": "field-ConstantValue-CONSTANT_String-CONSTANT_Utf8",
+      "bytecodeExecuted": false
+    }
+  },
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "pending",
+  "approve": null,
+  "listed": null,
+  "hidden": null,
+  "reason": "version-not-visible",
+  "attempts": 1,
+  "publicUpdate": null,
+  "publicPackage": null,
+  "publicationState": "PENDING_NOT_PUBLIC"
+}

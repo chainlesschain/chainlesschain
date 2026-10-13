@@ -1,0 +1,133 @@
+{
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "version": "0.166.100",
+  "runId": "38322183193",
+  "artifacts": [
+    {
+      "id": 11779973986,
+      "node_id": "MDg6QXJ0aWZhY3QxMTc3OTk3Mzk4Ng==",
+      "name": "chainlesschain-npm-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "size_in_bytes": 9452290,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11779973986",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11779973986/zip",
+      "expired": false,
+      "digest": "sha256:31fce9cf4bb3b628219e84b80368c684c4807ac695c5198831724fbede4971ff",
+      "created_at": "2026-10-13T00:11:12Z",
+      "updated_at": "2026-10-13T00:11:12Z",
+      "expires_at": "2027-01-10T23:26:59Z",
+      "workflow_run": {
+        "id": 38322183193,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "v-npm-0-166-100",
+        "head_sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e"
+      },
+      "files": [
+        {
+          "name": "chainlesschain-0.166.100.tgz",
+          "bytes": 9370257,
+          "sha256": "38480de268cbe570491820ffa0f67f2d9284be11285686d8cc5dca9a6b9a27db"
+        },
+        {
+          "name": "chainlesschain-release.json",
+          "bytes": 2610,
+          "sha256": "4aa6a7d7b332f2020ef83e11b347c000122a25cf0ce930bbd39130abe47aa136"
+        },
+        {
+          "name": "chainlesschain-sbom.cdx.json",
+          "bytes": 656821,
+          "sha256": "da4ff45ac4b5f0895e33739c4e5ba3692eef3b0579669512132164131f716951"
+        }
+      ]
+    },
+    {
+      "id": 11782337713,
+      "node_id": "MDg6QXJ0aWZhY3QxMTc4MjMzNzcxMw==",
+      "name": "chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "size_in_bytes": 302214,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11782337713",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11782337713/zip",
+      "expired": false,
+      "digest": "sha256:cf3e98e17c69e0be2912c952059cfb8de356e75c107ba89217ad94d44031a690",
+      "created_at": "2026-10-13T00:49:59Z",
+      "updated_at": "2026-10-13T00:49:59Z",
+      "expires_at": "2027-01-10T23:26:59Z",
+      "workflow_run": {
+        "id": 38322183193,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "v-npm-0-166-100",
+        "head_sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e"
+      },
+      "files": [
+        {
+          "name": "chainlesschain-release.json",
+          "bytes": 2610,
+          "sha256": "4aa6a7d7b332f2020ef83e11b347c000122a25cf0ce930bbd39130abe47aa136"
+        },
+        {
+          "name": "chainlesschain-npm-provenance.json",
+          "bytes": 833,
+          "sha256": "9771e98df34c7345d94fa29798d9b5e4976df2561e62cf84c1a167aa7c0061d5"
+        },
+        {
+          "name": "agent-protocol-npm-provenance.json",
+          "bytes": 1207,
+          "sha256": "4fdfc88c56fd4d9239ca0846dfcd2d488a609a36b7e456790d3809cf9dee13fb"
+        },
+        {
+          "name": "agent-sdk-npm-provenance.json",
+          "bytes": 1197,
+          "sha256": "1ea142755c655674938d004048edffa8e95f47f2ea918c13a29041208ad2c1c4"
+        },
+        {
+          "name": "context-memory-kernel-npm-provenance.json",
+          "bytes": 1220,
+          "sha256": "1dc6f779ef1b9f6142cb0d2d6f40a5f0ba88fd53cc1821bc633ef460c2f1618c"
+        },
+        {
+          "name": "cli-public-child-install.json",
+          "bytes": 3283,
+          "sha256": "7b8a81afc1b064bff917773f5ca5ff9336c36222871aef182230c2df0e1f3878"
+        },
+        {
+          "name": "children/chainlesschain-core-db-0.1.5.tgz",
+          "bytes": 10302,
+          "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+        },
+        {
+          "name": "children/chainlesschain-session-core-0.3.19.tgz",
+          "bytes": 286161,
+          "sha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4"
+        }
+      ]
+    },
+    {
+      "id": 11780445746,
+      "node_id": "MDg6QXJ0aWZhY3QxMTc4MDQ0NTc0Ng==",
+      "name": "cli-release-gate-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "size_in_bytes": 481,
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11780445746",
+      "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/11780445746/zip",
+      "expired": false,
+      "digest": "sha256:e20eb659eff0b548e702454bd86875dc7ec7537533255595ce220c5378ea1cfb",
+      "created_at": "2026-10-12T23:50:49Z",
+      "updated_at": "2026-10-12T23:50:49Z",
+      "expires_at": "2027-01-10T23:26:59Z",
+      "workflow_run": {
+        "id": 38322183193,
+        "repository_id": 1107348698,
+        "head_repository_id": 1107348698,
+        "head_branch": "v-npm-0-166-100",
+        "head_sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e"
+      },
+      "files": [
+        {
+          "name": "cli-release-gate.json",
+          "bytes": 923,
+          "sha256": "4ed6f3e55e702341a9e5784e602ea97ecba6087e489a9fd72d01de883aea621c"
+        }
+      ]
+    }
+  ]
+}

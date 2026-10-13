@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-13T01:48:46.005774+00:00",
+  "sources": [
+    {
+      "file": "publishing.md",
+      "url": "https://raw.githubusercontent.com/wiki/eclipse/openvsx/Publishing-Extensions.md",
+      "status": 200
+    },
+    {
+      "file": "ExtensionService.java",
+      "url": "https://raw.githubusercontent.com/eclipse/openvsx/master/server/src/main/java/org/eclipse/openvsx/ExtensionService.java",
+      "status": 200
+    }
+  ]
+}

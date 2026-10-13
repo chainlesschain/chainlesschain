@@ -1,0 +1,58 @@
+[
+  {
+    "workflow": "cli-ci.yml",
+    "runId": 38291133155,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 71,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "cli-strict-sandbox.yml",
+    "runId": 38291132939,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 5,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "ide-extensions.yml",
+    "runId": 38291132858,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 19,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "ide-arm64-validation.yml",
+    "runId": 38291132843,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 10,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "memory-query-index.yml",
+    "runId": 38292480529,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 3,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "context-memory-kernel.yml",
+    "runId": 38291132784,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 3,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "cli-background-interaction-e2e.yml",
+    "runId": 38292488262,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 3,
+    "status": "VERIFIED"
+  }
+]

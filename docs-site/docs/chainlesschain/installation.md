@@ -2,7 +2,7 @@
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
-> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮升级与诊断](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html)。
+> 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 
@@ -15,7 +15,7 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.96` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.100` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
 - 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
 - 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
@@ -24,7 +24,7 @@
 ```
                    安装部署架构
 ┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.166.96  │  CLI 工具
+│  npm install -g chainlesschain@0.166.100  │  CLI 工具
 │         │                               │
 │         ▼                               │
 │  chainlesschain setup (交互式向导)       │
@@ -855,7 +855,7 @@ chainlesschain import --source markdown --path ~/ObsidianVault/
 
 ### 备份和恢复
 
-当前公开 CLI `0.166.86` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
+当前公开 CLI `0.166.100` **没有注册**顶层 `backup` / `restore` 命令。请使用具体业务页面提供的导出、同步或快照入口，并在备份前停止相关写入进程；不要照用旧文档中的 `chainlesschain backup` / `chainlesschain restore` 示例。恢复必须使用与备份制品同源的产品入口并先校验版本、摘要和目标目录，CLI 暂不承诺跨设备通用整库恢复。
 
 ---
 

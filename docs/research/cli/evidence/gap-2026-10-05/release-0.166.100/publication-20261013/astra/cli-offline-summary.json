@@ -1,0 +1,102 @@
+{
+  "observedAt": "2026-10-13T01:30:36.718201+00:00",
+  "status": "OFFLINE_EVIDENCE_BINDING_VERIFIED",
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "version": "0.166.100",
+  "runId": "38322183193",
+  "registryArchives": 14,
+  "artifactArchives": 3,
+  "signedWorkflowReceipts": 4,
+  "immutableCliBytesMatch": true,
+  "checks": [
+    {
+      "kind": "registry archive",
+      "name": "chainlesschain",
+      "sha256": "38480de268cbe570491820ffa0f67f2d9284be11285686d8cc5dca9a6b9a27db"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/agent-protocol",
+      "sha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-env",
+      "sha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-mtc",
+      "sha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-multisig",
+      "sha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-settlement",
+      "sha256": "cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/shared-logger",
+      "sha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-config",
+      "sha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-db",
+      "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/core-infra",
+      "sha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/session-core",
+      "sha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/context-memory-kernel",
+      "sha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/agent-sdk",
+      "sha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537"
+    },
+    {
+      "kind": "registry archive",
+      "name": "@chainlesschain/personal-data-hub",
+      "sha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f"
+    },
+    {
+      "kind": "Actions artifact",
+      "name": "chainlesschain-npm-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "digest": "sha256:31fce9cf4bb3b628219e84b80368c684c4807ac695c5198831724fbede4971ff",
+      "files": 3
+    },
+    {
+      "kind": "Actions artifact",
+      "name": "chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "digest": "sha256:cf3e98e17c69e0be2912c952059cfb8de356e75c107ba89217ad94d44031a690",
+      "files": 8
+    },
+    {
+      "kind": "Actions artifact",
+      "name": "cli-release-gate-6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "digest": "sha256:e20eb659eff0b548e702454bd86875dc7ec7537533255595ce220c5378ea1cfb",
+      "files": 1
+    }
+  ],
+  "limitation": "Offline hash/source receipt consistency; no new live registry query or cryptographic signature verification performed."
+}

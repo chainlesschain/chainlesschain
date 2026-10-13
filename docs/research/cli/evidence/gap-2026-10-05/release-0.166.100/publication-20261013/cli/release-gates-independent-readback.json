@@ -1,0 +1,18 @@
+[
+  {
+    "workflow": "cli-ci.yml",
+    "runId": 38291133155,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 71,
+    "status": "VERIFIED"
+  },
+  {
+    "workflow": "cli-strict-sandbox.yml",
+    "runId": 38291132939,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 5,
+    "status": "VERIFIED"
+  }
+]

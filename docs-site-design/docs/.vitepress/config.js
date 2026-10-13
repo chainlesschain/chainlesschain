@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-13 CLI / IDE 有界重试与发行",
+            link: "/release-runtime-update-2026-10-13",
+          },
+          {
             text: "2026-10-10 CLI / IDE 与 Windows 取证",
             link: "/release-runtime-update-2026-10-10",
           },
@@ -160,7 +164,7 @@ export default defineConfig({
             link: "/governance-runtime-update-2026-10-08",
           },
           {
-            text: "最新发行与 Windows 验证",
+            text: "2026-10-08 发行历史核对",
             link: "/release-runtime-update-2026-10-08-latest",
           },
           {

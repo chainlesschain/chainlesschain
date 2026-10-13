@@ -1,0 +1,38 @@
+﻿{
+    "observedAt":  "2026-10-13T02:19:36.7328961Z",
+    "status":  "SOURCE_REVIEW_PASSED_AFTER_CORRECTIONS",
+    "blockingFindings":  0,
+    "resolvedFindings":  [
+                             "installation current CLI100",
+                             "English respective recommended CLI"
+                         ],
+    "pendingWording":  "uploaded; public listing and download unverified",
+    "diffCheck":  "pass",
+    "buildDeployment":  "not performed by reviewer",
+    "files":  [
+                  {
+                      "path":  "docs-site/docs/chainlesschain/installation.md",
+                      "sha256":  "797d534af0af787c6f0f1ecf20fcb9220bbc7c5cda18439a23168f0069bb431d"
+                  },
+                  {
+                      "path":  "docs-website-v2/src/pages/en/ide.astro",
+                      "sha256":  "94c6afdf96e0cda4bd130923011905ba7523d3ee141bfee4809f919910e9f5b7"
+                  },
+                  {
+                      "path":  "docs-site-design/docs/index.md",
+                      "sha256":  "905820fab21cb14eebdcfb89c1848d35219327b8d580e6d6bab787f9c0ddf079"
+                  },
+                  {
+                      "path":  "docs/design/release-runtime-update-2026-10-13.md",
+                      "sha256":  "ed95e788762bc1c6c7c643ddf95723b09a6e14d62e0bb0dd91f69e453feb6db2"
+                  },
+                  {
+                      "path":  "docs/design/cli-runtime-current.md",
+                      "sha256":  "fe7846fa4c054d101350e005d111af30cd28c1a1d76eabc0fdaf6fd6cde00721"
+                  },
+                  {
+                      "path":  "docs/design/系统设计_主文档.md",
+                      "sha256":  "7092b276650e5379ba4d8c4c23aef6c983ccb62163eb9a0583618e572b16d566"
+                  }
+              ]
+}

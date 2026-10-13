@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-13T01:55:05.120393+00:00",
+  "status": "OFFLINE_VSCODE_PUBLIC_BINDING_VERIFIED",
+  "source": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "runId": 38331570568,
+  "jobs": 14,
+  "success": 11,
+  "conditionalSkip": 3,
+  "artifactDigest": "sha256:258c81789661f7eccc497a16b5830c97371a3589e59a72b7570900cd12ff2547",
+  "publicSha256": "f3a9e5b5e8b221078b4ea1be2846e8cb3a9c5fa284c68a9e42e2a2ce655c6884",
+  "bytes": 716016,
+  "matchingZipEntries": 178,
+  "canonicalContentSha256": "e679cf88e4b15cb703241740681a2bb550259c2bae643f3ec7a2a4b14e705b5f",
+  "archiveExactMatch": true,
+  "channel": "Open VSX only",
+  "formal": "NOT_RUN 0/36 0/9",
+  "limitation": "Offline retained evidence verification; no fresh network/test invocation."
+}

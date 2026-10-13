@@ -180,7 +180,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.96（npm latest）",
+          text: "🧩 Agent Platform 0.166.100（npm latest）",
           collapsed: false,
           items: [
             {
@@ -196,8 +196,12 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .96 升级与故障排查",
-              link: "/chainlesschain/cli-ide-update-2026-10-10",
+              text: "CLI .100 升级与故障排查",
+              link: "/chainlesschain/cli-ide-update-2026-10-13",
+            },
+            {
+              text: "2026-10-13 CLI / IDE 有界重试与发行",
+              link: "/design/release-runtime-update-2026-10-13",
             },
             {
               text: "2026-10-10 CLI / IDE 与 Windows 取证",
@@ -208,7 +212,7 @@ export default defineConfig({
               link: "/design/governance-runtime-update-2026-10-08",
             },
             {
-              text: "最新发行与 Windows 验证",
+              text: "2026-10-08 发行历史核对",
               link: "/design/release-runtime-update-2026-10-08-latest",
             },
             {

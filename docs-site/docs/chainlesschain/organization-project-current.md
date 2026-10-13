@@ -1,6 +1,6 @@
 # 组织项目、共享目标与多级审批
 
-> 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮升级与诊断](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html)。
+> 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
 ## 概述
 

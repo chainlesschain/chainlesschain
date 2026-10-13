@@ -1,0 +1,274 @@
+{
+  "schema": "chainlesschain.release-source-binding/v2",
+  "sourceCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "sourceBranch": "feature/cli-ide-release100-final-20261013",
+  "status": "SOURCE_BOUND_RELEASE_NOT_VERIFIED",
+  "versions": {
+    "cli": "0.166.100",
+    "vscode": "0.37.144",
+    "jetbrains": "0.4.162"
+  },
+  "preparationSource": "ff292775c4a032541fb50147d49dd353967be3b4",
+  "metadata": [
+    {
+      "source": "package-lock.json",
+      "preparationSha256": "106e64b0b67ee0475cd85c6abb29445e5c0906280c0896149012a536b228999b",
+      "sha256": "106e64b0b67ee0475cd85c6abb29445e5c0906280c0896149012a536b228999b",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/cli/package.json",
+      "preparationSha256": "e31c1a5ef5b3d9fcfc3e5724a2aee294d196ccc3659ea96d85669bc5afa30a90",
+      "sha256": "e31c1a5ef5b3d9fcfc3e5724a2aee294d196ccc3659ea96d85669bc5afa30a90",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/vscode-extension/package.json",
+      "preparationSha256": "3c22491ee0b92175228e02bd9de544aeb016b423e7949a6a184187ffac5cfa2e",
+      "sha256": "3c22491ee0b92175228e02bd9de544aeb016b423e7949a6a184187ffac5cfa2e",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/build.gradle.kts",
+      "preparationSha256": "0b234b6cd0ad59c5fae013d81a2d87283be07db39cfb0a44d27a7506f83c55eb",
+      "sha256": "0b234b6cd0ad59c5fae013d81a2d87283be07db39cfb0a44d27a7506f83c55eb",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/gradle.properties",
+      "preparationSha256": "117aee0d6e6ec1a7f4f48e6221477f35a21073189417abd72485f62823164bc4",
+      "sha256": "117aee0d6e6ec1a7f4f48e6221477f35a21073189417abd72485f62823164bc4",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "preparationSha256": "2ba7871623a1413dce7600de9adc2695a0f3a1773350923e6efc843bfa8be56a",
+      "sha256": "2ba7871623a1413dce7600de9adc2695a0f3a1773350923e6efc843bfa8be56a",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "preparationSha256": "3fd7bfdc52c037297416488123f87c78561eed2b9c3401234345a1df23868faf",
+      "sha256": "3fd7bfdc52c037297416488123f87c78561eed2b9c3401234345a1df23868faf",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "preparationSha256": "80dac0bde3c0233a9d97653ff19631604469e09b4bc2957458ffe7dd4d4dbe23",
+      "sha256": "80dac0bde3c0233a9d97653ff19631604469e09b4bc2957458ffe7dd4d4dbe23",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/IdeDoctorTest.java",
+      "preparationSha256": "7455b2bf7db2145c1ecb338a3f1b2060781dfb49dbfec6508c24f431faa5c3ac",
+      "sha256": "7455b2bf7db2145c1ecb338a3f1b2060781dfb49dbfec6508c24f431faa5c3ac",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "preparationSha256": "ab5d4926c6e33f6d1a98f405247c07f539edba407304ae740d35285bf160fbaa",
+      "sha256": "ab5d4926c6e33f6d1a98f405247c07f539edba407304ae740d35285bf160fbaa",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/cli/README.md",
+      "preparationSha256": "7943bc620983634e302fdd1c1abadd433f3c653494e192f096225ab964cf2314",
+      "sha256": "7943bc620983634e302fdd1c1abadd433f3c653494e192f096225ab964cf2314",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/cli/src/data/changelog.json",
+      "preparationSha256": "93a2d1c2b614740e3a34e7396c3e892ac142e0d2be80ab1dab06ba9b770137d7",
+      "sha256": "93a2d1c2b614740e3a34e7396c3e892ac142e0d2be80ab1dab06ba9b770137d7",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/vscode-extension/CHANGELOG.md",
+      "preparationSha256": "d87789b5576ccbc645f1690b79bbf088d323e82f8df698cdc51b1316bf937510",
+      "sha256": "b4f78d701bdb9121023d996fd38cda9d1dc6201a4d416c6babef7dd8f472163f",
+      "delta": "known-release-date-2026-10-13"
+    },
+    {
+      "source": "packages/vscode-extension/README.md",
+      "preparationSha256": "4e65814e620cc2954e112c9a3e42e97b64e99c1c4ebdfd354d723be571e5041b",
+      "sha256": "4e65814e620cc2954e112c9a3e42e97b64e99c1c4ebdfd354d723be571e5041b",
+      "delta": "unchanged-preparation-bytes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/CHANGELOG.md",
+      "preparationSha256": "96375877959ae1ce3bef840617811f97cc7bda2ec440cf6a11f2bafdd8389213",
+      "sha256": "6d0c42526cfc7e972bd95d567ceef42f6eab93ebb41fa9cfe453e18220cb8f5c",
+      "delta": "known-release-date-and-checkpoint-notes"
+    },
+    {
+      "source": "packages/jetbrains-plugin/README.md",
+      "preparationSha256": "93da148e286f353fc65c11981e915c380659f9b0c1dec4f29b94970d6f3ec65b",
+      "sha256": "93da148e286f353fc65c11981e915c380659f9b0c1dec4f29b94970d6f3ec65b",
+      "delta": "unchanged-preparation-bytes"
+    }
+  ],
+  "children": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "packagePath": "packages/agent-protocol",
+      "currentTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "packagePath": "packages/core-env",
+      "currentTree": "f1152c366d64f72024f082f6db6d2cf587267d30",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "packagePath": "packages/core-mtc",
+      "currentTree": "fcd297054d76907a27e011b6971129a63a860191",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "packagePath": "packages/core-multisig",
+      "currentTree": "047ff76d018c5fef300f6ad0b6dd338e5af1a5b1",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "packagePath": "packages/core-settlement",
+      "currentTree": "47039e6b6e169ada6fb4d4b8b4f133284059fbba",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "packagePath": "packages/shared-logger",
+      "currentTree": "dcc9e9380c5f54f0546291912550614fed063b5d",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "packagePath": "packages/core-config",
+      "currentTree": "1106249ce17c3cdbba569c62944602dc9b446127",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "packagePath": "packages/core-db",
+      "currentTree": "e0a16bc028c1990ccd6d056b2161daaf1caf9711",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "packagePath": "packages/core-infra",
+      "currentTree": "8590aec02bb9ebdaf3f3065b3931300b954fc7fe",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "packagePath": "packages/session-core",
+      "currentTree": "a612df2973db595bc5827419accca1b6b89be5ad",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "packagePath": "packages/context-memory-kernel",
+      "currentTree": "ba34502c836df1258cc7dcbb086e4d86873b32df",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.14",
+      "packagePath": "packages/agent-sdk",
+      "currentTree": "a6a2d3f73c7e4944aa81b09c93e199a01eb953f5",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "packagePath": "packages/personal-data-hub",
+      "currentTree": "7cad980f4986ae02ff8df98523a9e634b872b7da",
+      "baselineSource": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    }
+  ],
+  "sameImplementation": [
+    {
+      "source": "packages/cli/scripts/verify01-review-runtime.mjs",
+      "sha256": "dc34539305ce48372d9848c5fcc61f1336d116623e5a4b997f9cd13069baf267",
+      "reviewedSource": "07f050be901dd806f68ccb3ddb8eee12ad7a5254"
+    },
+    {
+      "source": "packages/cli/scripts/verify01-review-specs.mjs",
+      "sha256": "b40e863d685a85d333802e1b8c509e17a7d9edd53ca1cefbbc450cd2f463debe",
+      "reviewedSource": "07f050be901dd806f68ccb3ddb8eee12ad7a5254"
+    },
+    {
+      "source": "packages/cli/src/lib/eval/verify01-execution-window.js",
+      "sha256": "83dabd6b3375cf4e27b205fadefb4343265b572281140e007308ae9410b8c08a",
+      "reviewedSource": "07f050be901dd806f68ccb3ddb8eee12ad7a5254"
+    },
+    {
+      "source": "packages/cli/src/lib/eval/verify01-execution.js",
+      "sha256": "21921e503d0393b5dd01d9689955085f8391d06396dec486ac4fd8af71bf955c",
+      "reviewedSource": "07f050be901dd806f68ccb3ddb8eee12ad7a5254"
+    },
+    {
+      "source": "packages/cli/src/lib/eval/verify01-host-capture.js",
+      "sha256": "811f3a5b81a5f240e36eb37fb956f4a038bbd019f3fe3d5f154da2a6b4e82a88",
+      "reviewedSource": "07f050be901dd806f68ccb3ddb8eee12ad7a5254"
+    }
+  ],
+  "workflows": [
+    {
+      "source": ".github/workflows/cli-ci.yml",
+      "sha256": "09f286254dc7ac3baf72d649e4df9cc00e52a7edca747711731a23ed0faf9299"
+    },
+    {
+      "source": ".github/workflows/_cli-test.yml",
+      "sha256": "a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1"
+    },
+    {
+      "source": ".github/workflows/cli-strict-sandbox.yml",
+      "sha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af"
+    },
+    {
+      "source": ".github/workflows/ide-extensions.yml",
+      "sha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712"
+    },
+    {
+      "source": ".github/workflows/ide-arm64-validation.yml",
+      "sha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49"
+    },
+    {
+      "source": ".github/workflows/memory-query-index.yml",
+      "sha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68"
+    },
+    {
+      "source": ".github/workflows/context-memory-kernel.yml",
+      "sha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b"
+    },
+    {
+      "source": ".github/workflows/cli-background-interaction-e2e.yml",
+      "sha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00"
+    },
+    {
+      "source": ".github/workflows/npm-publish.yml",
+      "sha256": "0ab117daafe75c0de7fdbd562b05f70baf4288dfcaf3b7ba3b0b6aa5ac96c2dc"
+    }
+  ],
+  "releaseGatePassed": false,
+  "finalKeylessRun": null,
+  "finalReviewDigest": null,
+  "formalObservationsCreated": false,
+  "sourceGateReceipts": [],
+  "historicalEvidencePolicy": "Prior source checks and review receipts are not transferred to this source. Byte equality is source evidence only."
+}

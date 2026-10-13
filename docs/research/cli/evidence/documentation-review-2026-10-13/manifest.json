@@ -1,0 +1,32 @@
+﻿[
+    {
+        "name":  "assessment.md",
+        "bytes":  3751,
+        "sha256":  "be382b7987942c8d237b0a6180d519f921ee1bc453c1e72b25d10e27d8236fc0"
+    },
+    {
+        "name":  "final-followup.json",
+        "bytes":  1835,
+        "sha256":  "5ed4606e369b653cf7e992c7c6de43d0a48be4a747715bf9b90e5ff483d2a6fb"
+    },
+    {
+        "name":  "review.py",
+        "bytes":  4254,
+        "sha256":  "c4292411196cc867db9311ceccfe9a6cbd45d9f406db86140e5600ccae20528c"
+    },
+    {
+        "name":  "reviewed-file-hashes.json",
+        "bytes":  4710,
+        "sha256":  "43fd200026ca4a2bd45a90e454329fe7036898dc7e26c531d505c8467739bca0"
+    },
+    {
+        "name":  "summary.json",
+        "bytes":  3733,
+        "sha256":  "ab17457c40c23237407aaeaf02f4af0e23710b55fd0650333425722c27673bc1"
+    },
+    {
+        "name":  "verification.stdout",
+        "bytes":  7472,
+        "sha256":  "944475e9e58eb96044b600afd5d82e5609fba8b993ef7ec8ec117c00f9b31b0a"
+    }
+]

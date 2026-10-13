@@ -1,0 +1,150 @@
+{
+  "schema": "chainlesschain.public-release-documentation-evidence/v2",
+  "assembledAt": "2026-10-13T02:11:36.584Z",
+  "sourceCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "documentationHead": "283634169a683ba5dcd0da4e51a64b66002217c2",
+  "cli": {
+    "name": "chainlesschain",
+    "version": "0.166.100",
+    "latest": "0.166.100",
+    "status": "VERIFIED",
+    "runId": "38322183193",
+    "registryUrl": "https://registry.npmjs.org/chainlesschain/0.166.100",
+    "receipt": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/publication-20261013/cli/public-authority-readback.json",
+    "receiptSha256": "0afff4672f167bb106b07b864711da3e836313cc346125a147755697bda5ef39",
+    "archive": {
+      "name": "chainlesschain",
+      "version": "0.166.100",
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.100.tgz",
+      "integrity": "sha512-85cd5CLcAQ0YXcOLnKf4PT8zrqDh1pCnJr3HGK/OGthYFqMF/b7VIdSiQnWrb7/CMCP0MAV6AFEdK8UjY8aqcA==",
+      "sha512": "f3971de422dc010d185dc38b9ca7f83d3f33aea0e1d690a726bdc718afce1ad85816a305fdbed521d4a24275ab6fbfc23023f430057a00511d2bc52363c6aa70",
+      "sha256": "38480de268cbe570491820ffa0f67f2d9284be11285686d8cc5dca9a6b9a27db",
+      "bytes": 9370257,
+      "registryGitHead": null
+    },
+    "childCount": 13,
+    "registryArchiveCount": 14
+  },
+  "vscode": {
+    "version": "0.37.144",
+    "status": "ready",
+    "channel": "open-vsx",
+    "pairedCliVersion": "0.166.100",
+    "runId": 38331570568,
+    "receipt": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/publication-20261013/vscode/public-readback.json",
+    "publicPackage": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.144/file/chainlesschain.chainlesschain-ide-0.37.144.vsix",
+      "sha256": "f3a9e5b5e8b221078b4ea1be2846e8cb3a9c5fa284c68a9e42e2a2ce655c6884",
+      "bytes": 716016,
+      "canonicalContentSha256": "e679cf88e4b15cb703241740681a2bb550259c2bae643f3ec7a2a4b14e705b5f",
+      "archiveExactMatch": true
+    }
+  },
+  "jetbrains": {
+    "publicVersion": "0.4.161",
+    "publicPairedCliVersion": "0.166.99",
+    "publicSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+    "previousEvidence": "docs/research/cli/evidence/gap-2026-10-05/continuation-2026-10-12/release099-public/summary.json",
+    "candidateVersion": "0.4.162",
+    "candidatePairedCliVersion": "0.166.100",
+    "candidateStatus": "pending",
+    "publicationState": "PENDING_NOT_PUBLIC",
+    "reason": "version-not-visible",
+    "runId": 38331689410,
+    "receipt": "docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/publication-20261013/jetbrains/public-readback.json",
+    "publiclyDownloadable": false,
+    "publicUpdate": null
+  },
+  "reusedChildren": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.14",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes"
+    }
+  ],
+  "product": {
+    "version": "v5.0.3.140",
+    "sourceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
+    "independentRelease": true
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "tasks": 0,
+    "firstRuns": 0,
+    "denominator": {
+      "tasks": 36,
+      "firstRuns": 9
+    },
+    "sharedBudgetUsd": 99,
+    "budgetPr436Included": false,
+    "budgetAuthorityStatus": "NOT_PAID_READY",
+    "nativeReview": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  },
+  "boundaries": [
+    "JetBrains publish workflow success establishes upload, not public approval/listing/download; exact version is not yet visible and review stage cannot be inferred.",
+    "VS Code channel verified here is Open VSX; Microsoft Marketplace was not published by the tag workflow.",
+    "Public npm install verification disables lifecycle scripts; native installation functionality is not asserted.",
+    "Formal 36+9 observations, real account billing and complete native acceptance remain separate from publication."
+  ]
+}

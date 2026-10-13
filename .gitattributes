@@ -153,3 +153,9 @@ docs/research/cli/evidence/gap-2026-10-05/volcengine-linux-public-2026-10-11/REA
 # Actual task Actions attempts preserve original candidates and checker receipts.
 docs/research/cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/gap-2026-10-05/actions-task-diagnostic-2026-10-11/README.md -linguist-generated
+
+# Release100 publication and independent review receipts preserve captured bytes.
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/**/README.md -linguist-generated
+docs/research/cli/evidence/documentation-review-2026-10-13/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/documentation-review-2026-10-13/assessment.md -linguist-generated

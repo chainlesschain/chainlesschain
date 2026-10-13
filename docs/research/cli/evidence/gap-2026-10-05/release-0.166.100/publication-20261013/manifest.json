@@ -1,0 +1,424 @@
+{
+  "schema": "chainlesschain.release-publication-evidence/v1",
+  "observedAt": "2026-10-13T02:09:52.269Z",
+  "sourceCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "cli": {
+    "version": "0.166.100",
+    "status": "VERIFIED",
+    "runId": "38322183193",
+    "receipt": "cli/public-authority-readback.json"
+  },
+  "ide": {
+    "vscode": {
+      "version": "0.37.144",
+      "status": "ready",
+      "runId": 38331570568,
+      "receipt": "vscode/public-readback.json"
+    },
+    "jetbrains": {
+      "version": "0.4.162",
+      "status": "pending",
+      "runId": 38331689410,
+      "receipt": "jetbrains/public-readback.json"
+    }
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "tasks": "0/36",
+    "firstRuns": "0/9",
+    "sharedBudgetUsd": 99,
+    "allocation": "Volcengine 18 tasks + 9 first runs; OpenAI 18 tasks"
+  },
+  "files": [
+    {
+      "path": "cli/public-authority-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\public-authority-readback.json",
+      "bytes": 64550,
+      "sha256": "0afff4672f167bb106b07b864711da3e836313cc346125a147755697bda5ef39"
+    },
+    {
+      "path": "cli/invocation.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\invocation.json",
+      "bytes": 421,
+      "sha256": "3ff35f8fc06e410fcb6f543acd86595f63a729bd84031f318337d00148952bf0"
+    },
+    {
+      "path": "cli/run.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\run.raw.json",
+      "bytes": 13438,
+      "sha256": "e19010714944fd0179b59ae50ac46c8f6ac6227af1fabd01cfb41edd3fae766f"
+    },
+    {
+      "path": "cli/publish-jobs.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\publish-jobs.raw.json",
+      "bytes": 20465,
+      "sha256": "1f6942628217ba5c9c7ee9a02942ece0e5218d9bad6058b2f00fb931e72bbf8a"
+    },
+    {
+      "path": "cli/artifact-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\artifact-readback.json",
+      "bytes": 5221,
+      "sha256": "a5f742b17dd5915ca0c7c1b7e8c4137c003fef9eea272183722df35792b41b2b"
+    },
+    {
+      "path": "cli/publication-job-contract.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\publication-job-contract.json",
+      "bytes": 278,
+      "sha256": "baadd85e15d4e5c758f2cf17fadb0acf262b8883f4c01d3796087b7f66f8230a"
+    },
+    {
+      "path": "cli/release-gates-independent-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\release-gates-independent-readback.json",
+      "bytes": 372,
+      "sha256": "1b7463c243264a0a8f8c03ab506d5f25fbbedfcc011459eb4dd636ae32768e3a"
+    },
+    {
+      "path": "cli/install-invocation.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\install-invocation.json",
+      "bytes": 1106,
+      "sha256": "9acc17d0f88ac7ee0124cffd68d1868fa60177f75585cad76e666013ba693536"
+    },
+    {
+      "path": "cli/install.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\install.stdout",
+      "bytes": 26,
+      "sha256": "8543bf87cf2913bd869cf9e39492522d62abb706d3e18e1b909416784be17f77"
+    },
+    {
+      "path": "cli/install.stderr",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\install.stderr",
+      "bytes": 243,
+      "sha256": "9709a16bf9b3fac3e5da3651b8f9c880e522aa42ad483ea71050c1d00fadcd2b"
+    },
+    {
+      "path": "cli/chainlesschain-npm-provenance.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e\\chainlesschain-npm-provenance.json",
+      "bytes": 833,
+      "sha256": "9771e98df34c7345d94fa29798d9b5e4976df2561e62cf84c1a167aa7c0061d5"
+    },
+    {
+      "path": "cli/agent-sdk-npm-provenance.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e\\agent-sdk-npm-provenance.json",
+      "bytes": 1197,
+      "sha256": "1ea142755c655674938d004048edffa8e95f47f2ea918c13a29041208ad2c1c4"
+    },
+    {
+      "path": "cli/agent-protocol-npm-provenance.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e\\agent-protocol-npm-provenance.json",
+      "bytes": 1207,
+      "sha256": "4fdfc88c56fd4d9239ca0846dfcd2d488a609a36b7e456790d3809cf9dee13fb"
+    },
+    {
+      "path": "cli/context-memory-kernel-npm-provenance.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\chainlesschain-npm-readback-6a8db627c87f33ce4f8e5d3db704868957aa685e\\context-memory-kernel-npm-provenance.json",
+      "bytes": 1220,
+      "sha256": "1dc6f779ef1b9f6142cb0d2d6f40a5f0ba88fd53cc1821bc633ef460c2f1618c"
+    },
+    {
+      "path": "preflight/source-binding.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-source-6a8db627c87f33ce4f8e5d3db704868957aa685e.json",
+      "bytes": 11592,
+      "sha256": "f6060219eed528ef478cb84c72cd8ea9b54bb47d16762b44eb8233718d476469"
+    },
+    {
+      "path": "cli/public-metadata.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-15-35.195Z\\public\\chainlesschain-0.166.100.metadata.json",
+      "bytes": 7678,
+      "sha256": "d5cf6ea5ad6e0b61ce4b0fe9e74eba57c5eeec1f68bf99b49d345f4a9b22e7e1"
+    },
+    {
+      "path": "preflight/summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-production-preflight-2026-10-12T23-24-38.779Z\\summary.json",
+      "bytes": 7363,
+      "sha256": "dff5060cb93a1c2f00dc8ea53c5f7c45a27280d5338e72f8555d1e9b8158ae33"
+    },
+    {
+      "path": "astra/prepublish-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\pr435-final-independent-release-audit-20261013\\assessment.md",
+      "bytes": 4298,
+      "sha256": "2bae9759538995e23b10624f3432b64d7dcebf8b77774cf74456aa69e2535dc6"
+    },
+    {
+      "path": "astra/ide-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-ide-independent-review-20261013\\assessment.md",
+      "bytes": 4326,
+      "sha256": "2ea97ed6dc1165384fd4276ad812c9bf64103f2eeab448a3753742cfe3b1c018"
+    },
+    {
+      "path": "astra/ide-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-ide-independent-review-20261013\\summary.json",
+      "bytes": 1699,
+      "sha256": "71913dff452416f20fe4f4c84419d0f28fe8d442115ec5b07eaa81509111e844"
+    },
+    {
+      "path": "astra/cli-offline-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-cli-offline-archive-review-20261013\\summary.json",
+      "bytes": 3736,
+      "sha256": "aec8bf2213838333b99e1adc6fde0ba755572534f7dcac9709b172822f6a7800"
+    },
+    {
+      "path": "astra/cli-offline-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-cli-offline-archive-review-20261013\\assessment.md",
+      "bytes": 2840,
+      "sha256": "7adc9b8d3d8ed01b127fa48764cd27fc7bf8289f9b8eb3a5e94c7d3da55f9b54"
+    },
+    {
+      "path": "astra/vscode-offline-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-offline-review-20261013\\assessment.md",
+      "bytes": 1705,
+      "sha256": "a2c20d859373c6824c61784df114a4fc153ebc3f14948004df389b44a9634619"
+    },
+    {
+      "path": "astra/vscode-offline-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-offline-review-20261013\\summary.json",
+      "bytes": 761,
+      "sha256": "4477d122a0056f08e0b5c78749087a95452407b18be01d48e368e6fa32f51a75"
+    },
+    {
+      "path": "astra/jetbrains-offline-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-offline-review-20261013\\assessment.md",
+      "bytes": 1743,
+      "sha256": "c17f4aa8585bdb7e75694081cca59e71f5a705624866f536376121b7d1e10083"
+    },
+    {
+      "path": "astra/jetbrains-offline-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-offline-review-20261013\\summary.json",
+      "bytes": 814,
+      "sha256": "4fee9fd0637a4facfa839ce4938973d879018a92994118e76e7a1a1262a28db1"
+    },
+    {
+      "path": "astra/openvsx-activation-assessment.md",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-openvsx-activation-review-20261013\\assessment.md",
+      "bytes": 5074,
+      "sha256": "67ad65d2f79b3e3decbbb03e9e3e78e51eecd4b9be91475eba1364f4d11f23ab"
+    },
+    {
+      "path": "astra/openvsx-platform-sources.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-openvsx-activation-review-20261013\\platform-sources.json",
+      "bytes": 447,
+      "sha256": "25e726db2a097011ce0f11fc09e5b25f995003b3375f8d80f91b2d498bd976b7"
+    },
+    {
+      "path": "tools/archive-release100-publication-20261013.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\archive-release100-publication-20261013.mjs",
+      "bytes": 13320,
+      "sha256": "c9a8ef688bc56879aa4e4a3cc039a0cc309ff7f453a37960582c9f2567cd509f"
+    },
+    {
+      "path": "tools/readback-public-release100-final.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\readback-public-release100-final.mjs",
+      "bytes": 30367,
+      "sha256": "03e8b934ada608f8a4a22f12e20407364a452640b798d3d5889514e64f3a9966"
+    },
+    {
+      "path": "tools/readback-ide-release100-final.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\readback-ide-release100-final.mjs",
+      "bytes": 13595,
+      "sha256": "d76ba0adbf2d8a215612a709437ab1aa4ed850b05b4f225a7463cc5e548f6702"
+    },
+    {
+      "path": "tools/readback-ide-workflow100-final.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\readback-ide-workflow100-final.mjs",
+      "bytes": 5950,
+      "sha256": "f9414f1cd45c2fb5e9bfbdda07762ed1c0611263300f2ce11ddd4f505bc7acaf"
+    },
+    {
+      "path": "tools/release100-final-workflow-contract.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-final-workflow-contract.mjs",
+      "bytes": 13195,
+      "sha256": "6c2c57c7f78fee5e23e8432722d91b5956cd5b6b3443b6dc1d1dafe349bf73a4"
+    },
+    {
+      "path": "tools/release100-source-freeze.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-source-freeze.mjs",
+      "bytes": 9542,
+      "sha256": "f5bb21c5306e5ba408d96824f52e7f544ad7ce27e8e679329e692e1992dae86f"
+    },
+    {
+      "path": "tools/release100-source-config.mjs",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-source-config.mjs",
+      "bytes": 1040,
+      "sha256": "517666e241550c7c54acd40ed34b46fc55d0033e829d6e4277761759f1f18d24"
+    },
+    {
+      "path": "vscode/tag-release-intent.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-live-tag-6a8-20261013\\release-intent.json",
+      "bytes": 698,
+      "sha256": "f72f8eeacb948073414d8dec920f2c98afe08cc6eee0674f12b4bbacc74bb4a6"
+    },
+    {
+      "path": "vscode/tag-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-live-tag-6a8-20261013\\summary.json",
+      "bytes": 541,
+      "sha256": "f852c6cbd4323fad2c288a3d1da634023c21c9f4e18b869d790772fcc0f4171a"
+    },
+    {
+      "path": "vscode/tag-ide-tag-after.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-live-tag-6a8-20261013\\ide-tag-after.stdout",
+      "bytes": 72,
+      "sha256": "ccbe4ada926a1239053293a8c3e9c16e5f0432667a2b9d9b1c294f79e42c39ac"
+    },
+    {
+      "path": "vscode/tag-push-ide-tag.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-live-tag-6a8-20261013\\push-ide-tag.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vscode/tag-push-ide-tag.stderr",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-vscode-live-tag-6a8-20261013\\push-ide-tag.stderr",
+      "bytes": 144,
+      "sha256": "505f4aa147fe0ea1e1874f1a0075e4d676bd5850ce7322a0d08d3f78e07c30f8"
+    },
+    {
+      "path": "vscode/public-readback.json",
+      "source": "C:/code/chainlesschain/.work/r100/.work/release-readback-0.166.100/vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e/public-2026-10-13T01-52-23.962Z/public-readback.json",
+      "bytes": 1891,
+      "sha256": "d54faf425b8dbf739a6f0d596d11212a57c6b432c66789ba4089a15e0954c4b2"
+    },
+    {
+      "path": "vscode/invocation.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\invocation.json",
+      "bytes": 12660,
+      "sha256": "718e624b5fd9c8497114615f45c98b094760a8e96ee1191cea59798c481833ac"
+    },
+    {
+      "path": "vscode/run.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\run.raw.json",
+      "bytes": 13228,
+      "sha256": "b2cfc274c5b70a31f101321febb82e00add2e7565e614ca950ae92368d1111e8"
+    },
+    {
+      "path": "vscode/jobs.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\jobs.raw.json",
+      "bytes": 41367,
+      "sha256": "3d205d0553b5bd0211ba0d066b6b36d77cdf47db4c327a77ff69acfa0a3179fd"
+    },
+    {
+      "path": "vscode/artifacts.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\artifacts.raw.json",
+      "bytes": 12872,
+      "sha256": "622d7fd5f694f82e11d093f7cc9ff2a86716f8c8400fa0e08958d1b2f1df5328"
+    },
+    {
+      "path": "vscode/artifact-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\artifact-readback.json",
+      "bytes": 16263,
+      "sha256": "f249223c5931276c7b0bba2bf0b4357348b5b072e7c5b8c2fbc176e8625d7b6e"
+    },
+    {
+      "path": "vscode/preflight-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\preflight-readback.json",
+      "bytes": 1337,
+      "sha256": "af3cde1f06e5c957f81eea48bc90491a18e1aa48e74116dc6cec6dc9ec0907d6"
+    },
+    {
+      "path": "vscode/marketplace-verifier.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\marketplace-verifier.stdout",
+      "bytes": 449,
+      "sha256": "2327290757a63c1f88592e53f840b1bd1c85675313e95acc8f425f8f748958a4"
+    },
+    {
+      "path": "vscode/marketplace-verifier.stderr",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\marketplace-verifier.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vscode/open-vsx-exact-metadata.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\vscode-verified-38331570568-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T01-52-23.962Z\\open-vsx-exact-metadata.json",
+      "bytes": 10893,
+      "sha256": "27d15816c41f83e4fca7fd050a5cbfcd38386378dac696873a303ef91e0c97e7"
+    },
+    {
+      "path": "jetbrains/tag-release-intent.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-live-tag-6a8-20261013\\release-intent.json",
+      "bytes": 702,
+      "sha256": "b24e6859005384670caa4f5a477b4129697a9dcc233a32dbec5ddab107fefa02"
+    },
+    {
+      "path": "jetbrains/tag-summary.json",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-live-tag-6a8-20261013\\summary.json",
+      "bytes": 540,
+      "sha256": "c3d1169327eafa6f20b7ff5e55b0ec546182aae0cd67ae164f04de49279c77a7"
+    },
+    {
+      "path": "jetbrains/tag-ide-tag-after.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-live-tag-6a8-20261013\\ide-tag-after.stdout",
+      "bytes": 74,
+      "sha256": "dc176ed6ef0360361d16ce52d5bf1a75ffdafcc12d2ffef44e02536259e2da51"
+    },
+    {
+      "path": "jetbrains/tag-push-ide-tag.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-live-tag-6a8-20261013\\push-ide-tag.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "jetbrains/tag-push-ide-tag.stderr",
+      "source": "C:\\code\\chainlesschain\\.work\\release100-jetbrains-live-tag-6a8-20261013\\push-ide-tag.stderr",
+      "bytes": 146,
+      "sha256": "cbf199c8e1c81fd8cf35f256ee42f1bb4d1963b76cd62c742e5c7b52c147f33e"
+    },
+    {
+      "path": "jetbrains/public-readback.json",
+      "source": "C:/code/chainlesschain/.work/r100/.work/release-readback-0.166.100/jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e/public-2026-10-13T02-06-19.921Z/public-readback.json",
+      "bytes": 2021,
+      "sha256": "52ebc65fc8718879ff67b2bc6ddef496f57d149618ec5b01aade0e3732721e1f"
+    },
+    {
+      "path": "jetbrains/invocation.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\invocation.json",
+      "bytes": 12664,
+      "sha256": "8f67de6cc74aff313425bfef9e9d815fcb55c6b16f3c9310357dcd8688837565"
+    },
+    {
+      "path": "jetbrains/run.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\run.raw.json",
+      "bytes": 13230,
+      "sha256": "7248a57c1f4c1e172c3463cac5cf69c4b9d8a154fe6927407b7a4eee6c019240"
+    },
+    {
+      "path": "jetbrains/jobs.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\jobs.raw.json",
+      "bytes": 53754,
+      "sha256": "10762592e72499255aef76dcaadf9d5716f5203bec8f098d8b6eba54562f0f9b"
+    },
+    {
+      "path": "jetbrains/artifacts.raw.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\artifacts.raw.json",
+      "bytes": 13684,
+      "sha256": "c16e9f353bd14d70ffbee888f747b7a148364ec5704e73b699d9e08fd62c6712"
+    },
+    {
+      "path": "jetbrains/artifact-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\artifact-readback.json",
+      "bytes": 16277,
+      "sha256": "d397788efac717f9922edffe6853dc412dc038f81a81661d482c483e682a6140"
+    },
+    {
+      "path": "jetbrains/preflight-readback.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\preflight-readback.json",
+      "bytes": 1337,
+      "sha256": "af3cde1f06e5c957f81eea48bc90491a18e1aa48e74116dc6cec6dc9ec0907d6"
+    },
+    {
+      "path": "jetbrains/marketplace-verifier.stdout",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\marketplace-verifier.stdout",
+      "bytes": 219,
+      "sha256": "ca40fe1545c4ad9f845ff517c74066e6063b57721e6c96792837657013c1dda9"
+    },
+    {
+      "path": "jetbrains/marketplace-verifier.stderr",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\marketplace-verifier.stderr",
+      "bytes": 176,
+      "sha256": "9bd2958fb8cfbcccb078664743b0bc0cdbabb730bac2c541d883897afef70db6"
+    },
+    {
+      "path": "jetbrains/jetbrains-updates.json",
+      "source": "C:\\code\\chainlesschain\\.work\\r100\\.work\\release-readback-0.166.100\\jetbrains-verified-38331689410-6a8db627c87f33ce4f8e5d3db704868957aa685e\\public-2026-10-13T02-06-19.921Z\\jetbrains-updates.json",
+      "bytes": 79869,
+      "sha256": "7c6ae74d5e808cdc7d5ecf0f53370189e1c3e83d400b401411a6b373de60e91d"
+    }
+  ]
+}

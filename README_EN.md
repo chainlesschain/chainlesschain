@@ -1,6 +1,22 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-10)
+## Current source and public release (2026-10-13)
+
+CLI **0.166.100** and Open VSX **0.37.144** are publicly verified at release source `6a8db627c8`; Open VSX recommends CLI `0.166.100`. Reviewed main is `283634169a`. JetBrains **0.4.162** has been uploaded; public listing and download remain unverified; the last verified public **0.4.161** recommends CLI `0.166.99`. Session Core **0.3.19**, Memory Kernel **0.1.9**, SDK **0.2.14**, PDH **0.4.64** and product **v5.0.3.140** retain independent release identities.
+
+Stream recovery honors cancellable Retry-After waits of at most 60 seconds per delay and does not replay terminal provider errors or visible output. Delivery guidance preserves stable cache prefixes; invalid UTF-8 edits preserve original files. Worktree registry reads retry only a specific transient missing-lock error, at most three reads, without retrying mutations. Open VSX discards stale refresh results and isolates panel state.
+
+```bash
+npm i -g chainlesschain@0.166.100 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+Upgrade Open VSX .144, restart its chat host and run Doctor. JetBrains users should check the actual public plugin and its CLI recommendation while public listing and download of .162 remain unverified. Native clients remain a separate [product .140 download](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140); close clients before backing up SQLite/WAL/SHM. Formal 36+9 remains **NOT_RUN**, full native review **NOT_ADMITTED**, and automatic promotion **HOLD**. Budget-authority PR #436 is outside this release and remains **NOT_PAID_READY**.
+
+See [current design](docs/design/release-runtime-update-2026-10-13.md), [upgrade and troubleshooting](docs-site/docs/chainlesschain/cli-ide-update-2026-10-13.md), the [release guide](docs-site/docs/chainlesschain/agent-platform-release.md) and [public release observations](docs/research/cli/evidence/documentation-release-status-2026-10-13.json). Dated sections retain their historical scope.
+
+## Source and release snapshot (2026-10-10, historical)
 
 CLI **0.166.96**, Agent SDK **0.2.14**, Open VSX **0.37.140** and JetBrains **0.4.158** are public at release commit `da91e730d8`; both IDEs recommend CLI `0.166.96`. Source was reviewed at `main@2650447476`. Session Core **0.3.18**, Memory Kernel **0.1.8**, PDH **0.4.64** and product **v5.0.3.140** retain their independent versions; the product uses `f733f92cb9`.
 
@@ -2629,7 +2645,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.96-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.100-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

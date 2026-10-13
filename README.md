@@ -1,6 +1,22 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-10 最新代码与公开发行
+## 2026-10-13 最新代码与公开发行
+
+2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。
+
+流式恢复现在遵守可取消的 Retry-After 等待（单次最多 60 秒），终止性服务错误和已显示输出不会自动重放。任务交付提醒保留稳定缓存前缀；编辑拒绝改写无效 UTF-8 文件。Git 工作树仅对指定临时缺锁读取错误最多重读三次，写操作不重试；Open VSX 刷新丢弃过期结果并隔离面板状态。
+
+```bash
+npm i -g chainlesschain@0.166.100 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+升级 Open VSX .144 后重启聊天宿主并运行 Doctor。JetBrains 用户按 Marketplace 实际公开版本核对推荐值，.162 已上传，公开上架与下载待核验。桌面与移动端仍从[产品 .140](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140)单独下载；更新前关闭客户端并备份 SQLite/WAL/SHM。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
+
+详见[本轮设计](docs/design/release-runtime-update-2026-10-13.md)、[升级与故障排查](docs-site/docs/chainlesschain/cli-ide-update-2026-10-13.md)、[发布指南](docs-site/docs/chainlesschain/agent-platform-release.md)及[公开发行状态](docs/research/cli/evidence/documentation-release-status-2026-10-13.json)。下方日期记录保留各自历史范围。
+
+## 2026-10-10 代码与发行（历史快照）
 
 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。
 
@@ -128,11 +144,11 @@ Open VSX **0.37.126** 与 JetBrains Marketplace **0.4.146** 已公开。[IDE 精
 
 > **📋 Android v1.0 重新定位 RFC 评审中**（2026-05-10）—— 桌面 = AI 工作站，手机 = 钥匙 + 捕获器 + 遥控器。停止以 skill 数量对标桌面，转 L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/推送) + L3 (REMOTE 调用桌面 skill) 三层架构。详见[设计文档](docs/design/Android_重新定位_设计文档.md) | [用户文档](docs-site/docs/chainlesschain/mobile-positioning.md)。
 
-> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.96`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
+> **📦 CLI 安装**：`npm i -g chainlesschain@0.166.100`（当前 npm `latest`；别名 `cc` / `clc` / `clchain`）。
 > **中国大陆镜像用户注意**：若你的 npm 默认源是淘宝镜像 `registry.npmmirror.com`，可能遇到安装报错 `npm error code E404 … '@chainlesschain/…' is not in this registry`——这是镜像对新发布包**懒同步 tarball** 导致（元数据已有但 tarball 尚未缓存）。改用官方源安装即可：
 >
 > ```bash
-> npm i -g chainlesschain@0.166.96 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.166.100 --registry https://registry.npmjs.org
 > ```
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
@@ -2973,7 +2989,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.96-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.100-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -2988,7 +3004,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 
 ## ⭐ 历史快照 — v5.0.3.48 Evolution Edition (2026-05-12, snapshot 25 versions ago)
 
-> **当前版本见文件顶部“2026-10-10 最新代码与公开发行”**。以下为 2026-05-20 的历史收口记录： Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + 后续 v5.0.3.73 Phase 10.2 集成/E2E 测试 + 1 AIChat registry-contract bug fix。Hub 测试 47/927 → 50/952 全绿。CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
+> **当前版本见文件顶部“2026-10-13 最新代码与公开发行”**。以下为 2026-05-20 的历史收口记录： Personal Data Hub Phase 4.5→13.7 + iOS keychain hotfix (v5.0.3.71/.72) + 后续 v5.0.3.73 Phase 10.2 集成/E2E 测试 + 1 AIChat registry-contract bug fix。Hub 测试 47/927 → 50/952 全绿。CLI 0.162.9 / Android 5.0.3.72 versionCode 503072.
 >
 > 下方 banner 与"最新更新"系列均为历史归档（按时间倒序，每条对应当时版本的具体内容），不代表当前状态。
 

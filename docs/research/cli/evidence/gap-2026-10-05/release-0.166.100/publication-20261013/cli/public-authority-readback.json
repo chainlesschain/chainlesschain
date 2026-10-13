@@ -1,0 +1,1405 @@
+{
+  "schema": "chainlesschain.public-release-readback/v4",
+  "observedAt": "2026-10-13T01:18:23.268Z",
+  "status": "VERIFIED",
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "version": "0.166.100",
+  "runId": "38322183193",
+  "immutableCliBytesMatch": true,
+  "registryArchiveCount": 14,
+  "childCount": 13,
+  "archives": [
+    {
+      "name": "chainlesschain",
+      "version": "0.166.100",
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.100.tgz",
+      "integrity": "sha512-85cd5CLcAQ0YXcOLnKf4PT8zrqDh1pCnJr3HGK/OGthYFqMF/b7VIdSiQnWrb7/CMCP0MAV6AFEdK8UjY8aqcA==",
+      "sha512": "f3971de422dc010d185dc38b9ca7f83d3f33aea0e1d690a726bdc718afce1ad85816a305fdbed521d4a24275ab6fbfc23023f430057a00511d2bc52363c6aa70",
+      "sha256": "38480de268cbe570491820ffa0f67f2d9284be11285686d8cc5dca9a6b9a27db",
+      "bytes": 9370257,
+      "registryGitHead": null
+    },
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "url": "https://registry.npmjs.org/@chainlesschain/agent-protocol/-/agent-protocol-0.1.12.tgz",
+      "integrity": "sha512-1lJgYtL+mwPsWlPzRRi6zbBdTqFv1g6cD2oUzrOWoUdXkvd696SuCBr6uzkX24NY3oEYwFk+QqKsKrkSvvSLmQ==",
+      "sha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+      "sha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc",
+      "bytes": 43144,
+      "registryGitHead": "3400318446dd837790d6b4c28c9a9251875ca6fc"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "sha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1",
+      "sha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "bytes": 2600,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "sha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94",
+      "sha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "bytes": 38297,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "sha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6",
+      "sha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "bytes": 13952,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-settlement/-/core-settlement-0.1.2.tgz",
+      "integrity": "sha512-8TAd6OKka+UgrOHwX6wHSIU6bxcVtGhnj33G5X2nqPLefITff1r4kXeBneoRmmyk5EyYlj+4QwL4jDEhEblJVg==",
+      "sha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956",
+      "sha256": "cf3d25fc3807fd789cab95a87bcd52e8013529c24a54724d2c8526fbf085b699",
+      "bytes": 9031,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "url": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "sha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e",
+      "sha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "bytes": 4058,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "sha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6",
+      "sha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "bytes": 3991,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "sha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88",
+      "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "bytes": 10302,
+      "registryGitHead": null
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "url": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "sha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4",
+      "sha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "bytes": 3482,
+      "registryGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "url": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.19.tgz",
+      "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg==",
+      "sha512": "4395bf7e884bd1a3cd04f7fccb7b10160553a7a4394494e20783268ae8232de20837fd6ba274725f773caf6027fe7331a20cf45e13935c82026be2621893e71e",
+      "sha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4",
+      "bytes": 286161,
+      "registryGitHead": null
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "url": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.9.tgz",
+      "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw==",
+      "sha512": "8ffbcc81e72dd7ee34aececa2d4de50525f0365843fedfa9c93e1ef779d441d18a7499f709cfd0ba2bbd3f8fc61b54dce725adb234c1e77e8d5b73e25c92e543",
+      "sha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805",
+      "bytes": 50055,
+      "registryGitHead": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.14",
+      "url": "https://registry.npmjs.org/@chainlesschain/agent-sdk/-/agent-sdk-0.2.14.tgz",
+      "integrity": "sha512-c+GhY0edugTPSF43cdQw7bNX3zQVBGEN4mQ4otw4wahD2Tgresll74ograJptzreP1hp3bwlfQrbjCT7hB7G4w==",
+      "sha512": "73e1a163479dba04cf485e3771d430edb357df341504610de26438a2dc38c1a843d9382b7ac965ef8a20ada269b73ade3f5869ddbc257d0adb8c24fb841ec6e3",
+      "sha256": "5d8089a0e1aadfd82a7af4750a11f0279a4beb38dfc430561f09cab8fd0d0537",
+      "bytes": 88710,
+      "registryGitHead": "da91e730d802b7c9dcdc075b222ecc257021e552"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "url": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+      "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q==",
+      "sha512": "90fcf67a28d61534f28e11457956dca10207b91b83dff52dd38796e56634c633074e0171770d531bb40ecabe27f221f1889210a9e1474eb9bdfe959d82d07bf9",
+      "sha256": "309d1a5d3bbaa7cf36544f8850bf6b2786b37eb3bfbb19b0e2d88b5c2d4aed8f",
+      "bytes": 890625,
+      "registryGitHead": "23afea300b76a161233eac46269d74e04100a9cd"
+    }
+  ],
+  "proofs": [
+    {
+      "name": "chainlesschain",
+      "anchorMode": "exact-release",
+      "publishedCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "runId": 38322183193,
+      "proof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-13T00:49:58.272Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "chainlesschain",
+        "version": "0.166.100",
+        "sha512": "f3971de422dc010d185dc38b9ca7f83d3f33aea0e1d690a726bdc718afce1ad85816a305fdbed521d4a24275ab6fbfc23023f430057a00511d2bc52363c6aa70",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-100",
+        "commit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/38322183193/attempts/1",
+        "runId": 38322183193,
+        "attempt": 1,
+        "anchorMode": "exact-release",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        }
+      }
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "anchorMode": "trusted-reuse",
+      "publishedCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "runId": 38019727506,
+      "proof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-13T00:43:25.519Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "@chainlesschain/agent-sdk",
+        "version": "0.2.14",
+        "sha512": "73e1a163479dba04cf485e3771d430edb357df341504610de26438a2dc38c1a843d9382b7ac965ef8a20ada269b73ade3f5869ddbc257d0adb8c24fb841ec6e3",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-96",
+        "commit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506/attempts/1",
+        "runId": 38019727506,
+        "attempt": 1,
+        "anchorMode": "trusted-reuse",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        },
+        "reuse": {
+          "packagePath": "packages/agent-sdk",
+          "anchorCommit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+          "anchorRef": "refs/tags/v-npm-0-166-96",
+          "anchorTree": "a6a2d3f73c7e4944aa81b09c93e199a01eb953f5",
+          "currentCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+          "currentTree": "a6a2d3f73c7e4944aa81b09c93e199a01eb953f5"
+        }
+      }
+    },
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "anchorMode": "trusted-reuse",
+      "publishedCommit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "runId": 36412680675,
+      "proof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-13T00:43:11.308Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "@chainlesschain/agent-protocol",
+        "version": "0.1.12",
+        "sha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-78",
+        "commit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675/attempts/1",
+        "runId": 36412680675,
+        "attempt": 1,
+        "anchorMode": "trusted-reuse",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        },
+        "reuse": {
+          "packagePath": "packages/agent-protocol",
+          "anchorCommit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+          "anchorRef": "refs/tags/v-npm-0-166-78",
+          "anchorTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+          "currentCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+          "currentTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c"
+        }
+      }
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "anchorMode": "trusted-reuse",
+      "publishedCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "runId": 38150341893,
+      "proof": {
+        "schema": 1,
+        "verifiedAt": "2026-10-13T00:43:22.351Z",
+        "verifier": "npm audit signatures --include-attestations",
+        "package": "@chainlesschain/context-memory-kernel",
+        "version": "0.1.9",
+        "sha512": "8ffbcc81e72dd7ee34aececa2d4de50525f0365843fedfa9c93e1ef779d441d18a7499f709cfd0ba2bbd3f8fc61b54dce725adb234c1e77e8d5b73e25c92e543",
+        "repository": "https://github.com/chainlesschain/chainlesschain",
+        "workflow": ".github/workflows/npm-publish.yml",
+        "ref": "refs/tags/v-npm-0-166-98",
+        "commit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+        "builder": "https://github.com/actions/runner/github-hosted",
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/38150341893/attempts/1",
+        "runId": 38150341893,
+        "attempt": 1,
+        "anchorMode": "trusted-reuse",
+        "audit": {
+          "invalid": 0,
+          "missing": 0
+        },
+        "reuse": {
+          "packagePath": "packages/context-memory-kernel",
+          "anchorCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+          "anchorRef": "refs/tags/v-npm-0-166-98",
+          "anchorTree": "ba34502c836df1258cc7dcbb086e4d86873b32df",
+          "currentCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+          "currentTree": "ba34502c836df1258cc7dcbb086e4d86873b32df"
+        }
+      }
+    }
+  ],
+  "publicationJobs": {
+    "status": "VERIFIED",
+    "runId": 38322183193,
+    "attempt": 1,
+    "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "jobs": 7,
+    "oidcEvidence": "Exact workflow id-token permission, successful Trusted Publishing step and independently checked signed provenance receipts"
+  },
+  "releaseGateReadback": [
+    {
+      "workflow": "cli-ci.yml",
+      "runId": 38291133155,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 71,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "cli-strict-sandbox.yml",
+      "runId": 38291132939,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 5,
+      "status": "VERIFIED"
+    }
+  ],
+  "sessionBinding": {
+    "package": "@chainlesschain/session-core",
+    "version": "0.3.19",
+    "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "sourceTree": "a612df2973db595bc5827419accca1b6b89be5ad",
+    "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+    "candidateArchive": "children/chainlesschain-session-core-0.3.19.tgz",
+    "sha512": "4395bf7e884bd1a3cd04f7fccb7b10160553a7a4394494e20783268ae8232de20837fd6ba274725f773caf6027fe7331a20cf45e13935c82026be2621893e71e",
+    "sha256": "9d1c41a621df5f9f99ec304f6259a45497b1dd9188912d0e87e98a49b0ab5ce4",
+    "bytes": 286161,
+    "manifest": {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
+      "type": "commonjs",
+      "main": "lib/index.js",
+      "exports": {
+        ".": "./lib/index.js",
+        "./session-handle": "./lib/session-handle.js",
+        "./trace-store": "./lib/trace-store.js",
+        "./agent-definition": "./lib/agent-definition.js",
+        "./session-manager": "./lib/session-manager.js",
+        "./idle-parker": "./lib/idle-parker.js",
+        "./agent-group": "./lib/agent-group.js",
+        "./shared-task-list": "./lib/shared-task-list.js",
+        "./memory-store": "./lib/memory-store.js",
+        "./memory-consolidator": "./lib/memory-consolidator.js",
+        "./approval-gate": "./lib/approval-gate.js",
+        "./beta-flags": "./lib/beta-flags.js",
+        "./stream-router": "./lib/stream-router.js",
+        "./file-adapters": "./lib/file-adapters.js",
+        "./agent-bundle-schema": "./lib/agent-bundle-schema.js",
+        "./agent-bundle-loader": "./lib/agent-bundle-loader.js",
+        "./agent-bundle-resolver": "./lib/agent-bundle-resolver.js",
+        "./mcp-policy": "./lib/mcp-policy.js",
+        "./sandbox-policy": "./lib/sandbox-policy.js",
+        "./service-envelope": "./lib/service-envelope.js",
+        "./envelope-sse": "./lib/envelope-sse.js",
+        "./quality-gate": "./lib/quality-gate.js",
+        "./runtime-claims": "./lib/runtime-claims.js",
+        "./audit-data-policy": "./lib/audit-data-policy.js",
+        "./restricted-audit-store": "./lib/restricted-audit-store.js",
+        "./business-object-contract": "./lib/business-object-contract.js",
+        "./organization-project-authority": "./lib/organization-project-authority.js",
+        "./organization-project-approval-service": "./lib/organization-project-approval-service.js",
+        "./organization-project-proposal-store": "./lib/organization-project-proposal-store.js",
+        "./organization-project-transfer-service": "./lib/organization-project-transfer-service.js",
+        "./organization-project-risk-review-service": "./lib/organization-project-risk-review-service.js",
+        "./organization-project-goal-service": "./lib/organization-project-goal-service.js",
+        "./organization-project-goal-monitoring": "./lib/organization-project-goal-monitoring.js",
+        "./organization-project-goal-workflow": "./lib/organization-project-goal-workflow.js",
+        "./organization-project-goal-completion": "./lib/organization-project-goal-completion.js",
+        "./organization-task-action-service": "./lib/organization-task-action-service.js",
+        "./goal-contract": "./lib/goal-contract.js",
+        "./goal-notification-policy": "./lib/goal-notification-policy.js",
+        "./goal-repository": "./lib/goal-repository.js",
+        "./project-goal-service": "./lib/project-goal-service.js",
+        "./project-goal-monitoring": "./lib/project-goal-monitoring.js",
+        "./goal-usage-ledger": "./lib/goal-usage-ledger.js",
+        "./project-goal-workflow": "./lib/project-goal-workflow.js",
+        "./project-goal-completion": "./lib/project-goal-completion.js",
+        "./project-goal-memory": "./lib/project-goal-memory.js",
+        "./project-goal-notifications": "./lib/project-goal-notifications.js",
+        "./task-description-action-service": "./lib/task-description-action-service.js",
+        "./project-risk-evaluation": "./lib/project-risk-evaluation.js",
+        "./project-risk-review-service": "./lib/project-risk-review-service.js",
+        "./scheduler-contract": "./lib/scheduler-contract.js",
+        "./scheduler-service": "./lib/scheduler-service.js",
+        "./scheduler-runtime": "./lib/scheduler-runtime.js",
+        "./scheduler-authority-resolver": "./lib/scheduler-authority-resolver.js",
+        "./scheduler-store": "./lib/scheduler-store.js",
+        "./scheduler-source-path": "./lib/scheduler-source-path.js",
+        "./private-storage": "./lib/private-storage.js",
+        "./host-storage-environment": "./lib/host-storage-environment.js",
+        "./skill-invocation-receipt": "./lib/skill-invocation-receipt.js",
+        "./evolution-run": "./lib/evolution-run.js",
+        "./evolvable-artifact": "./lib/evolvable-artifact.js",
+        "./structured-evolution-memory": "./lib/structured-evolution-memory.js",
+        "./nostr-crypto": "./lib/nostr-crypto.js",
+        "./organization-project-goal-memory": "./lib/organization-project-goal-memory.js"
+      },
+      "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest watch"
+      },
+      "engines": {
+        "node": ">=18.0.0"
+      },
+      "files": [
+        "lib/"
+      ],
+      "keywords": [
+        "chainlesschain",
+        "session",
+        "agent",
+        "managed-agents"
+      ],
+      "author": "ChainlessChain Team",
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/chainlesschain/chainlesschain.git",
+        "directory": "packages/session-core"
+      },
+      "dependencies": {
+        "@noble/curves": "^1.9.7",
+        "@noble/hashes": "^2.0.1",
+        "@scure/base": "^1.2.6"
+      },
+      "devDependencies": {
+        "vitest": "^4.1.10"
+      }
+    },
+    "files": [
+      {
+        "path": "lib/agent-bundle-loader.js",
+        "bytes": 3643,
+        "sha256": "c46803861e9d1c10cfe8dce5a1720f07f84f97ea500f2083c3715f36f4eaceca",
+        "gitBlob": "24635b4ecb181825f3f03562fefe81b99618ef85"
+      },
+      {
+        "path": "lib/agent-bundle-resolver.js",
+        "bytes": 5297,
+        "sha256": "fb6cafb41187839fcf7fc1e76b27dc56f2053980895013aa23183bdb67e71f24",
+        "gitBlob": "102d9f39e74dff3395341aaad980824a3360260d"
+      },
+      {
+        "path": "lib/agent-bundle-schema.js",
+        "bytes": 6729,
+        "sha256": "d9266725356fd299b4a780f84fc508f3785afda54c647ada2428168e869a0dc5",
+        "gitBlob": "220301d19e84c908d8c1b24c68ca349c27f9c03f"
+      },
+      {
+        "path": "lib/agent-definition.js",
+        "bytes": 5879,
+        "sha256": "88f5afbe7fceab5bf8a7a4aa6ccd5a82bace1351a2856ecfcfae7a0848db49a7",
+        "gitBlob": "bbb4c0b2a4980d27a5e514211c46881946001606"
+      },
+      {
+        "path": "lib/agent-group.js",
+        "bytes": 4481,
+        "sha256": "70fa3e42e575d479b79aadbe796ee8eab22c31fc988025eb97362cbd2266853f",
+        "gitBlob": "4501a19ff757dad0b15dbbc1e078cc862ac5c7bf"
+      },
+      {
+        "path": "lib/approval-gate.js",
+        "bytes": 17411,
+        "sha256": "22075659c251d66a34ed7251b1325bd2ace50e59838e17c31393ae6beb8ace88",
+        "gitBlob": "d8d09785a5c59dd047e6eca879b9c2942b99036c"
+      },
+      {
+        "path": "lib/audit-data-policy.js",
+        "bytes": 6043,
+        "sha256": "addd75102ba51045d059df5f52422a747bbd21381abdcc72c4df4dedff777f2b",
+        "gitBlob": "5b766d30ca931190a6dd6c62f605842585c50083"
+      },
+      {
+        "path": "lib/beta-flags.js",
+        "bytes": 3434,
+        "sha256": "6f4b4681c1ab0fcca62d3236192ce1964b5a36caa5101281855bc4553d278a21",
+        "gitBlob": "fd2ef243947e52836c0953b146bf6c2af437013a"
+      },
+      {
+        "path": "lib/business-object-contract.js",
+        "bytes": 15548,
+        "sha256": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+        "gitBlob": "f8135e3e75a3d1e1aef8eda897fd16297461c694"
+      },
+      {
+        "path": "lib/envelope-sse.js",
+        "bytes": 3973,
+        "sha256": "c86ff56c9c867025ce553885d0005f6b89fe55004734d3a37abf61aee2bdac78",
+        "gitBlob": "06e275a98d7094cadce9baf4a5520989f54b1196"
+      },
+      {
+        "path": "lib/evolution-run.js",
+        "bytes": 9132,
+        "sha256": "36bb9cc23bf5c2b468dd83e175c962669f17a64872a64dc975234e71666eb0a1",
+        "gitBlob": "6297937b37edef78a88ba0bfa94e3f1fd787b259"
+      },
+      {
+        "path": "lib/evolvable-artifact.js",
+        "bytes": 43494,
+        "sha256": "28be742fb61139eb0e4b48a967736a4e5da142989e8e865133dd121a98f4be68",
+        "gitBlob": "582218d641aec4d88e29fd136652064f0c3e55d9"
+      },
+      {
+        "path": "lib/file-adapters.js",
+        "bytes": 5005,
+        "sha256": "9a615fcd1cb48f860b22b897f01a714cb908dca3a3a83122775439fb8e2fa990",
+        "gitBlob": "9f71dfad55b5e318bde2cbc18f54cb8c3d235632"
+      },
+      {
+        "path": "lib/goal-contract.js",
+        "bytes": 13059,
+        "sha256": "a04e9f78a83924ee79065189fb2f7633468947a94ac265d80a6c86101296127e",
+        "gitBlob": "8c193a807b3a8cbaa976380ac114c0b643a9c25c"
+      },
+      {
+        "path": "lib/goal-notification-policy.js",
+        "bytes": 3554,
+        "sha256": "766a97a315a77871930899c0071849c369f8d1a22732d74c2542b8f1cd439376",
+        "gitBlob": "aefc699f154e1d20f9cd379b7fc5f823def64737"
+      },
+      {
+        "path": "lib/goal-repository.js",
+        "bytes": 2897,
+        "sha256": "b80faf969b0386648dbbc4590269a2288200683d36e75dda7c04717e7801a1a7",
+        "gitBlob": "803eb8fc3bc44e97e62d0d1504ce69135130d1dd"
+      },
+      {
+        "path": "lib/goal-usage-ledger.js",
+        "bytes": 16225,
+        "sha256": "ced17a2032759273cc98f201f523ed033c674f12587ee6a3201bc86e86b886a4",
+        "gitBlob": "423dd357c30466e2b67af3820ffc86f96caec8c0"
+      },
+      {
+        "path": "lib/host-storage-environment.js",
+        "bytes": 693,
+        "sha256": "c2b89a0c02d1ea505b67fdd78c02d24ecbd9b238cf82b08c24d1a63e2d76e53a",
+        "gitBlob": "d5893158bbada2336738bd00619dbd319a6bfb6c"
+      },
+      {
+        "path": "lib/idle-parker.js",
+        "bytes": 3082,
+        "sha256": "239f0cafc21afd074a6343e94f0cc792bd9d7f38b5cad7094e855d4037b74915",
+        "gitBlob": "d9a2c9b28f5be3e8e5a358439d4b44cc3acf540c"
+      },
+      {
+        "path": "lib/index.js",
+        "bytes": 10613,
+        "sha256": "57015a2d59201d2648af540a40c551783044b2264492335d909cbf0f9b7498ef",
+        "gitBlob": "2e23e44571aa754de7f0f1cf4ac11d61308e15f6"
+      },
+      {
+        "path": "lib/mcp-policy.js",
+        "bytes": 5389,
+        "sha256": "5793f4d7c6b61dff15419defb56cb7bb977838e9e5ca50cd2ba3ed5c69ee3e8a",
+        "gitBlob": "f0797b1e058e4850c0fefefab2a3cfe8d85a5d30"
+      },
+      {
+        "path": "lib/memory-consolidator.js",
+        "bytes": 5330,
+        "sha256": "9dd9b4cc28c11fc0fbf0b1c365d412c23fa4572b56872b900ddf66ddd1b0e9f9",
+        "gitBlob": "6d2fdc27c621be852f9894963ab670bad1e9e044"
+      },
+      {
+        "path": "lib/memory-store.js",
+        "bytes": 7914,
+        "sha256": "53fb8b17291e73bb0bf4f1b2cd22030ddbc10da21fef58b349fcb46ba50fbea8",
+        "gitBlob": "0b8c52867eb81399d94b4d41537fa8debded8d24"
+      },
+      {
+        "path": "lib/nostr-crypto.js",
+        "bytes": 5435,
+        "sha256": "563cb63310f27652cc6610404fc76b691b1e0563a21377b88149b7dd243b9ab0",
+        "gitBlob": "e62ee90fd5f346cf360fa9db95a025d10b9f83e4"
+      },
+      {
+        "path": "lib/organization-project-approval-service.js",
+        "bytes": 40079,
+        "sha256": "2a4cf9f300b53dee5a5d9956eacf69f93b67b296affe1ed01312e7b379bdbc10",
+        "gitBlob": "ff30d8290c38c671d3a1697105e9ed2607b1f0cd"
+      },
+      {
+        "path": "lib/organization-project-authority.js",
+        "bytes": 34330,
+        "sha256": "69c2d1bc15218d171238b94adc5649a2a2938db4329f2d07b167ffaafe924971",
+        "gitBlob": "184b0564df3ebcca566fce66e8eee7a87eca44bc"
+      },
+      {
+        "path": "lib/organization-project-goal-completion.js",
+        "bytes": 42738,
+        "sha256": "910c3518583bd98fec424d25a561e411e4d1ebce82fba7323389360a9e5a3ad3",
+        "gitBlob": "1a760378fa8c68bc2bbd1e967c408633eed7a8a9"
+      },
+      {
+        "path": "lib/organization-project-goal-memory.js",
+        "bytes": 50632,
+        "sha256": "6dfd4cd0714d49342c15b962d929c02b7d8074d55447cf36bdf18ee3dfd7ac0f",
+        "gitBlob": "9fdb029793ce86db6da01fd90c80a4c70ddc0536"
+      },
+      {
+        "path": "lib/organization-project-goal-monitoring.js",
+        "bytes": 54890,
+        "sha256": "d5241a5029737a97e5f16e892136d85862bd42cef879dba002c2eb843e7eca56",
+        "gitBlob": "f6fbac0dfddada1116faec1f9b6f33591170cf9a"
+      },
+      {
+        "path": "lib/organization-project-goal-service.js",
+        "bytes": 30078,
+        "sha256": "b73b0152286125ee3c3f28fc4f46de833ab6892915d2192ddc55fd9db157f8b6",
+        "gitBlob": "01f4da6fe43c97e6f22f3848bfb085f32239992c"
+      },
+      {
+        "path": "lib/organization-project-goal-workflow.js",
+        "bytes": 36207,
+        "sha256": "9461626c4758d08b68c1f9533d32aeb8ec742a7d4ec608c122f026258648ef77",
+        "gitBlob": "5fc2c1ef90e853a316398a435c20457dd87fffad"
+      },
+      {
+        "path": "lib/organization-project-proposal-store.js",
+        "bytes": 18149,
+        "sha256": "c555f63a8e0160659aa39546a124baf859428ee5eed575569f80ac7b83743ef1",
+        "gitBlob": "b0148bdfc7cadb01aa4a3989f90369c2c68c5094"
+      },
+      {
+        "path": "lib/organization-project-risk-review-service.js",
+        "bytes": 40792,
+        "sha256": "15ff556d3d1944774113fe55a34e7452dce77e47ec64a572272639ced5949321",
+        "gitBlob": "36efdda72001c67c816c52e4c10f6331b07904d0"
+      },
+      {
+        "path": "lib/organization-project-transfer-service.js",
+        "bytes": 28515,
+        "sha256": "1eb024eadcbaf5496e38088095467a569f4c6d16fa8cdbc77e253242d3ba421a",
+        "gitBlob": "3a84d0bda7d3754cf416bd5840283f15393fd9e4"
+      },
+      {
+        "path": "lib/organization-task-action-service.js",
+        "bytes": 26089,
+        "sha256": "d50808a4051018f20281a415d7583c9118e5c84ebaafb8574a765e16fc5a8c0b",
+        "gitBlob": "bc318507c3666db81cf0759b0399b1409be71a26"
+      },
+      {
+        "path": "lib/private-storage.js",
+        "bytes": 48338,
+        "sha256": "c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf",
+        "gitBlob": "a52598e6a643c344459210a51e6d8e20f4425258"
+      },
+      {
+        "path": "lib/project-goal-completion.js",
+        "bytes": 41903,
+        "sha256": "fd1de952721dcf6aa10c1b6299220514034b37042b41bf6de06b1bde1093f70a",
+        "gitBlob": "f0c494452e40ed6c36c6f70e4f97dddddefec770"
+      },
+      {
+        "path": "lib/project-goal-memory.js",
+        "bytes": 44065,
+        "sha256": "a9dd688ec9b3f5deb3c31ba5f2a4b6bafed1d2d60d7aebdb909b24bd32e9ccaa",
+        "gitBlob": "14d8cd76728040d440fb02d97defcf2edae64dc3"
+      },
+      {
+        "path": "lib/project-goal-monitoring.js",
+        "bytes": 46235,
+        "sha256": "5236ca2809d35f0ac05ad98a121946589d25e3848951de83a0d373400867e663",
+        "gitBlob": "0c70f912c71402d8dc90298d38935e1d8f11e6fb"
+      },
+      {
+        "path": "lib/project-goal-notifications.js",
+        "bytes": 25005,
+        "sha256": "5710e5d7db368ab7f62207ad55e187aa0076798488dc0de4c6655f79c5b1bd25",
+        "gitBlob": "d92e3a782061220c4607125fd477914de4fe3086"
+      },
+      {
+        "path": "lib/project-goal-service.js",
+        "bytes": 11929,
+        "sha256": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279",
+        "gitBlob": "fda68d3bad94d9513c1fa3c056a923d82715d723"
+      },
+      {
+        "path": "lib/project-goal-workflow.js",
+        "bytes": 33140,
+        "sha256": "67cac96e99c31adaba63d6e7b5ab6fddc85157ba2ac7a576b43a1cf019d83aab",
+        "gitBlob": "a7098b92d7cdee018484afed0b13d5f15c48bae7"
+      },
+      {
+        "path": "lib/project-risk-evaluation.js",
+        "bytes": 11788,
+        "sha256": "7807c05dbc90ebf097c427d6b971308a5e16cb6645626a46b1f43c50090d9ca5",
+        "gitBlob": "d8b6083ecada798007edaddc1a015eb1954ddb49"
+      },
+      {
+        "path": "lib/project-risk-review-service.js",
+        "bytes": 34090,
+        "sha256": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580",
+        "gitBlob": "7f8931ed58f28ee9eb501a282539fcbe7d731df1"
+      },
+      {
+        "path": "lib/quality-gate.js",
+        "bytes": 11820,
+        "sha256": "4a107e596c476a34f51ec85a18fb3e7c70f4a0014d33c0ee38a35aae7d490f07",
+        "gitBlob": "59bb865f0bf8168ab5905bb7c4e696c625fea1cb"
+      },
+      {
+        "path": "lib/restricted-audit-store.js",
+        "bytes": 3773,
+        "sha256": "9e3519152b6a875618a953dee0643d9e2afd9fefba7504262b1e4fceb21c97fb",
+        "gitBlob": "fbfdb56fc5b38c4e5209d8aa97646f3a46994e9b"
+      },
+      {
+        "path": "lib/runtime-claims.js",
+        "bytes": 2404,
+        "sha256": "42197073b8cd4a79b54f1cf9b74a222830c7353653df3687de16f9fa2d6f15ed",
+        "gitBlob": "90069aad7a77adcd9ada0427e0226de37184d524"
+      },
+      {
+        "path": "lib/sandbox-policy.js",
+        "bytes": 6155,
+        "sha256": "57edb28780cc8a3b7c31a712b6265fe9e38231719a88327b4b26b13b519497dd",
+        "gitBlob": "93be650766bc75beb6600f1acdf9153b37e4cb1f"
+      },
+      {
+        "path": "lib/scheduler-authority-resolver.js",
+        "bytes": 6828,
+        "sha256": "8c865bcc07c671fd9fa3aea8d2db3bdd7800f15c4227458de88ceb02650f311b",
+        "gitBlob": "134bb2abf1a2b2e07829925f41755f23cf1f1731"
+      },
+      {
+        "path": "lib/scheduler-contract.js",
+        "bytes": 13017,
+        "sha256": "68d06ffd85884ef493f72d0773ef91e64de054f79c8bc00b32cc8010af849738",
+        "gitBlob": "8dbf4e66145a471aa9a1b22779ce389468571adc"
+      },
+      {
+        "path": "lib/scheduler-runtime.js",
+        "bytes": 27348,
+        "sha256": "0ac020e1bfe608e74e4b153c86069b231cffc10820df3aa07ed96ddbe175689d",
+        "gitBlob": "2048b2b937d67bbb28ccbf32ed4e3fd2be41f9a0"
+      },
+      {
+        "path": "lib/scheduler-service.js",
+        "bytes": 9395,
+        "sha256": "2ab4c6089dd0ba45fc972b4c9ba00b348aa3ba858399e6afda89faa7d22a0232",
+        "gitBlob": "5af288bd3bca6228db43963d44b51f564b263c5e"
+      },
+      {
+        "path": "lib/scheduler-source-path.js",
+        "bytes": 4544,
+        "sha256": "f9668eb254546ec671845d3cf1889bed2df86a78c40d2006429f4931a46e1628",
+        "gitBlob": "1fdd77340e83e56fbec0447c885bcd8420b812e0"
+      },
+      {
+        "path": "lib/scheduler-store.js",
+        "bytes": 203109,
+        "sha256": "541568136fb85e5ce61c5f1af028b5d46483f98b1ed002c5b93d065a81952933",
+        "gitBlob": "6b6bb7320c117852055974a99b0e4b72417d633a"
+      },
+      {
+        "path": "lib/service-envelope.js",
+        "bytes": 6922,
+        "sha256": "dff263c77f0e76600b41b837f46f671fc247c1fd2f2803187a7b2489eec82cec",
+        "gitBlob": "904db6ba16aa5f7e68071ae85affba35774d89a2"
+      },
+      {
+        "path": "lib/session-handle.js",
+        "bytes": 5267,
+        "sha256": "1c96c5e13cf326a92531137c2f2ed6f7a888ade6857ffc57caf57d0517aecdee",
+        "gitBlob": "0150e7533821ea72906bdbfbeed4cb572e6ba110"
+      },
+      {
+        "path": "lib/session-manager.js",
+        "bytes": 6893,
+        "sha256": "08ea465db43efb5df930cabc4481ad25d6c87cea70db9abc66039ce4618b4dcf",
+        "gitBlob": "675233b29c45c3b9f0a22b0648aa17a1c089ee9c"
+      },
+      {
+        "path": "lib/shared-task-list.js",
+        "bytes": 6655,
+        "sha256": "2ba7b29e8f121d96139a711a4926be26515bc28a6b24eba65e0a0f56790490ac",
+        "gitBlob": "3b82ac4a25c251220120e6155bd7eb909f1a0003"
+      },
+      {
+        "path": "lib/skill-invocation-receipt.js",
+        "bytes": 20270,
+        "sha256": "ccad10a1bd6276354baabcbcec6721f1e1f3aa3003010b8c27eeb4f7f0d90239",
+        "gitBlob": "a7aeab2953e15be9b9b83774ffdb5e93e0bd58c1"
+      },
+      {
+        "path": "lib/stream-router.js",
+        "bytes": 4948,
+        "sha256": "25379ae7e9a954d364f64ff1d376d15ce4de5083603691849c8f821fda1cbbdb",
+        "gitBlob": "56e7eeddbdd84b5b0461c8f12bb7d9b697ead9ac"
+      },
+      {
+        "path": "lib/structured-evolution-memory.js",
+        "bytes": 32202,
+        "sha256": "f116056cbb0a9d45ec3618280da1caf1768279d5e0fe6201813c12ddc3a2236c",
+        "gitBlob": "c013d902bd0249bc57d1ed61a9533fdf2535fe79"
+      },
+      {
+        "path": "lib/task-description-action-service.js",
+        "bytes": 49516,
+        "sha256": "606d87844241928b1702a418980105258530d2c7c0d6b1e574ee7166e448d9d3",
+        "gitBlob": "79b029b1a6d79456fc4b9502a091369d09a5580d"
+      },
+      {
+        "path": "lib/trace-store.js",
+        "bytes": 5709,
+        "sha256": "c457c82a410337217a1f530a7cd9e276f9058c5d06854f366db5fb0a90f24512",
+        "gitBlob": "f0dd508135120fc4b9bd3feda36ae1b2fd002b16"
+      },
+      {
+        "path": "package.json",
+        "bytes": 4913,
+        "sha256": "9df662772cc5529e9e5707e7c2442c7d7394040c5f6022e872470825dd1da544",
+        "gitBlob": "f2d09aa9a273a5b8853753fca9ade8610d486ad4"
+      },
+      {
+        "path": "README.md",
+        "bytes": 7625,
+        "sha256": "ce5f208bac913e030f1d38d7d63eec54834f1ca4fe2f32fcd814a4cd3c3932bd",
+        "gitBlob": "02db516f6ed4eb391f31b67bdc94927db4c7eeca"
+      }
+    ],
+    "signatureAudit": "NOT_SEPARATELY_PERFORMED",
+    "allPackedFilesMatchGitBlobs": true
+  },
+  "kernelBinding": {
+    "package": "@chainlesschain/context-memory-kernel",
+    "version": "0.1.9",
+    "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+    "sourceTree": "ba34502c836df1258cc7dcbb086e4d86873b32df",
+    "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+    "sha512": "8ffbcc81e72dd7ee34aececa2d4de50525f0365843fedfa9c93e1ef779d441d18a7499f709cfd0ba2bbd3f8fc61b54dce725adb234c1e77e8d5b73e25c92e543",
+    "sha256": "d89281cea86b69f58bdf076400bca5e644b5a39dec99ae84b599c3755f821805",
+    "bytes": 50055,
+    "manifest": {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "description": "Canonical Context/Memory Kernel contracts, reducers, and host ports",
+      "type": "commonjs",
+      "main": "lib/index.js",
+      "module": "index.mjs",
+      "types": "index.d.ts",
+      "exports": {
+        ".": {
+          "types": "./index.d.ts",
+          "import": "./index.mjs",
+          "require": "./lib/index.js"
+        },
+        "./schema": "./schema/context-memory-kernel.schema.json",
+        "./inventory": "./inventory/writers.v1.json"
+      },
+      "files": [
+        "lib",
+        "schema",
+        "inventory",
+        "fixtures",
+        "release",
+        "index.mjs",
+        "index.d.ts",
+        "README.md",
+        "LICENSE"
+      ],
+      "scripts": {
+        "test": "node --test test/*.test.js",
+        "check:inventory": "node scripts/validate-inventory.mjs",
+        "check:writers": "node scripts/context-memory-writer-probe.mjs",
+        "benchmark:quick": "node scripts/context-memory-benchmark.mjs --profile quick",
+        "benchmark:release": "node scripts/context-memory-benchmark.mjs --profile release",
+        "test:soak:quick": "node scripts/context-memory-soak.mjs --profile quick",
+        "test:soak:release": "node scripts/context-memory-soak.mjs --profile release"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "devDependencies": {
+        "better-sqlite3": "^12.5.0"
+      },
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/chainlesschain/chainlesschain.git",
+        "directory": "packages/context-memory-kernel"
+      },
+      "homepage": "https://github.com/chainlesschain/chainlesschain/tree/main/packages/context-memory-kernel",
+      "bugs": {
+        "url": "https://github.com/chainlesschain/chainlesschain/issues"
+      },
+      "keywords": [
+        "chainlesschain",
+        "context",
+        "memory",
+        "kernel",
+        "agent"
+      ],
+      "publishConfig": {
+        "access": "public"
+      }
+    },
+    "files": [
+      {
+        "path": "fixtures/cross-surface-projection-v1.tsv",
+        "bytes": 3956,
+        "sha256": "0c8f7e07c71c0c4661e77b222f7fc9673ebd45acdc97d2b36cc8b4d9234e50f4",
+        "gitBlob": "557c66ee536c72dcad71861ecd1c03941efb7559"
+      },
+      {
+        "path": "fixtures/lexical-retrieval-multilingual-v1.json",
+        "bytes": 5966,
+        "sha256": "40003410364d106ffd66ee5a62315ebcc3b0a542928e3cec8e16b7d52c63fab0",
+        "gitBlob": "0a1d9913c4255117c478135552fef8791b551fac"
+      },
+      {
+        "path": "index.d.ts",
+        "bytes": 10373,
+        "sha256": "2082f6500d6a7ea49ccc4e554b84506e8dc61913b17f44b48301051705e20ff8",
+        "gitBlob": "2f9c3c44f0bff611aa5fde37d07c07474b3196ca"
+      },
+      {
+        "path": "index.mjs",
+        "bytes": 1852,
+        "sha256": "2138e5878571e58f3406800c25d34aaa8ac20ad1393347a92092ac861acd30a9",
+        "gitBlob": "73474cd354d304b9272a42ff77762f2a06549dda"
+      },
+      {
+        "path": "inventory/writers.v1.json",
+        "bytes": 16041,
+        "sha256": "3babb28d3a0f6427238b45f5d87f55f85e2cb5f8b83a7dd788c85891ff8aa145",
+        "gitBlob": "05378533ec6b7e1a2fd666791ffef03d8eba82eb"
+      },
+      {
+        "path": "lib/adapters.js",
+        "bytes": 6391,
+        "sha256": "feecaf5eda3baebe6cd96e2c86634930e71d281d3f79f766c1cf3e7ff608b3be",
+        "gitBlob": "e92b3ca543f0300a7979cf8e893bc8d3582386ee"
+      },
+      {
+        "path": "lib/authority.js",
+        "bytes": 4880,
+        "sha256": "a4eba141b2671d77715ba0ccfcc180821948d6ceb668db7b393bd462e795da2d",
+        "gitBlob": "5eb15aa0d042c373c8136f42cb02dec3d73454bc"
+      },
+      {
+        "path": "lib/canonical.js",
+        "bytes": 1659,
+        "sha256": "267eb8a7af1d08dcfb8e590da266c5f283637e97e229633a784ef95fd85a0da9",
+        "gitBlob": "dda8390fe2c0144960c14dbf913827ec53555389"
+      },
+      {
+        "path": "lib/compaction.js",
+        "bytes": 17061,
+        "sha256": "da6d2e9a43f5a414a36f346a0da697b72ad0fa36a8de72744f2c289fed0a78fb",
+        "gitBlob": "2312fdc12112897a5ae6f4728e2b6ce572a9a2b1"
+      },
+      {
+        "path": "lib/conformance.js",
+        "bytes": 4845,
+        "sha256": "e2f98e732d7bf883316c7124161a7ed662cc3f96bb6b576c174e8b14cd270cc1",
+        "gitBlob": "f615fe4f63b23acc3d2a8f8ba9e2674448f9a6cf"
+      },
+      {
+        "path": "lib/constants.js",
+        "bytes": 2941,
+        "sha256": "31ddefd99cb84bcf74e6829f13c547af0bc7c2eb34b0e3a7fdc36bfd08f82e5e",
+        "gitBlob": "b18a5545f839eaf8d313e655c523c37782adeeba"
+      },
+      {
+        "path": "lib/contracts.js",
+        "bytes": 18376,
+        "sha256": "114126ce78d7e22a274d2807c9a73965f1f26f0fda0ad440682d0d0527738943",
+        "gitBlob": "a5fa22b19ebdd5c75c7816e58f6a52ec04a2f278"
+      },
+      {
+        "path": "lib/errors.js",
+        "bytes": 621,
+        "sha256": "27a67aa4147317c28df95c7cada1d9ca39a86476c328f8fc9b0cadaf95a6aa70",
+        "gitBlob": "61839c4b8c7035aa5574613e0293450cfd6eb104"
+      },
+      {
+        "path": "lib/index.js",
+        "bytes": 546,
+        "sha256": "15646726869c8731906d17ca19888f30f78182807ad8a40c43c8602de998b958",
+        "gitBlob": "1676e7c6f9feefeddb5a5b45ee00c9ffd34c3117"
+      },
+      {
+        "path": "lib/inventory.js",
+        "bytes": 5618,
+        "sha256": "61b80934c2a7fd094b7585886054f53d996b576da80cfb589bf009a5183dd2ff",
+        "gitBlob": "71f436aac8a9ffe1a9d01bc044b957035c7f7698"
+      },
+      {
+        "path": "lib/memory-reducer.js",
+        "bytes": 23857,
+        "sha256": "676618acae4034403956d3ccc78607110841e479e0ccb5dc673e466e13a0bd72",
+        "gitBlob": "e7f8e85ca27a203692011317790e64fd253ced21"
+      },
+      {
+        "path": "lib/native-sqlite-memory-port.js",
+        "bytes": 22826,
+        "sha256": "3743c1a534acb8c556d2060b55603d3fc1d35db271c9dce92f8a04a3c8ed91c2",
+        "gitBlob": "627369a761389fc847006d926b6f904f82ca1d7a"
+      },
+      {
+        "path": "lib/planner.js",
+        "bytes": 12782,
+        "sha256": "0fe3ac129427d066b25fd1e873053e0e543471dc4b8f3ed218d235b03aa09204",
+        "gitBlob": "9a8c8e790ce050146c977d3fb1bf6b40da447d82"
+      },
+      {
+        "path": "lib/runtime.js",
+        "bytes": 20336,
+        "sha256": "2a9d7541c0b92ca17312b8b91131a0b61acc479ed6141c12149a88d3dcab7024",
+        "gitBlob": "b503396da6beb6d4448221fddf3d5be71ad46ba0"
+      },
+      {
+        "path": "lib/schema-validator.js",
+        "bytes": 7416,
+        "sha256": "d59b3510d5e55960b4dce6e94924258981d057b070d569319ced64e27a252528",
+        "gitBlob": "1e8382ac187a87cad6da85215bfbbc5e83e12f1f"
+      },
+      {
+        "path": "lib/task-checkpoint.js",
+        "bytes": 2041,
+        "sha256": "6545e5d10e7f3c0c6dd14643f4fbcac951433fb4b8086d2d84d8691c9fdf9b13",
+        "gitBlob": "efda76aebeabf1426df789e6c0e7d00d30f3a916"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 1076,
+        "sha256": "d412955f8037340de4473106e55e97be1d5af19a3e3d06b77a8e0b88ef3bdf6b",
+        "gitBlob": "666a933f469cbc252cc149757e999db0fb10a01e"
+      },
+      {
+        "path": "package.json",
+        "bytes": 1817,
+        "sha256": "13482386a221655eef2852e9760dee681c12130986751e6ab238eedb7fc1504d",
+        "gitBlob": "2b7b627625e6bf4cf75821d73286bb1ecb70e1b8"
+      },
+      {
+        "path": "README.md",
+        "bytes": 5041,
+        "sha256": "53631fd0996ad9d4e62ed2cf2ef5b9e209425f13627f5350191e6129ef086379",
+        "gitBlob": "c95810bd2eeabc288e6d4ce79bd96c910fa5ff36"
+      },
+      {
+        "path": "release/required-evidence.v1.json",
+        "bytes": 1643,
+        "sha256": "47abfafec1694113aa833593c59c7ca80a9c75ac7462dd63d9a55d124234b109",
+        "gitBlob": "af80aa060556dd7694f92793b0d25b5ef062c509"
+      },
+      {
+        "path": "schema/context-memory-kernel.schema.json",
+        "bytes": 27347,
+        "sha256": "e438a7d88b64a1cd08bb3d498e879622660a22ebbbeaddedb6bbc55973bf05f7",
+        "gitBlob": "90cee1dde870109f95b54b96ec68d45781ad22b2"
+      }
+    ],
+    "signatureAudit": "DIGEST_BOUND_WORKFLOW_SIGNATURE_AUDIT_RECEIPT",
+    "allPackedFilesMatchGitBlobs": true,
+    "provenance": {
+      "anchorMode": "trusted-reuse",
+      "publishedCommit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "releaseCommit": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "runId": 38150341893
+    }
+  },
+  "children": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "directory": "agent-protocol",
+      "packagePath": "packages/agent-protocol",
+      "currentTree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "baselineGitHead": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+      "baselineProvenance": {
+        "commit": "3400318446dd837790d6b4c28c9a9251875ca6fc",
+        "ref": "refs/tags/v-npm-0-166-78",
+        "runId": 36412680675,
+        "attempt": 1,
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/36412680675/attempts/1"
+      }
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "directory": "core-env",
+      "packagePath": "packages/core-env",
+      "currentTree": "f1152c366d64f72024f082f6db6d2cf587267d30",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "directory": "core-mtc",
+      "packagePath": "packages/core-mtc",
+      "currentTree": "fcd297054d76907a27e011b6971129a63a860191",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "directory": "core-multisig",
+      "packagePath": "packages/core-multisig",
+      "currentTree": "047ff76d018c5fef300f6ad0b6dd338e5af1a5b1",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "directory": "core-settlement",
+      "packagePath": "packages/core-settlement",
+      "currentTree": "47039e6b6e169ada6fb4d4b8b4f133284059fbba",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "directory": "shared-logger",
+      "packagePath": "packages/shared-logger",
+      "currentTree": "dcc9e9380c5f54f0546291912550614fed063b5d",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "directory": "core-config",
+      "packagePath": "packages/core-config",
+      "currentTree": "1106249ce17c3cdbba569c62944602dc9b446127",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "directory": "core-db",
+      "packagePath": "packages/core-db",
+      "currentTree": "e0a16bc028c1990ccd6d056b2161daaf1caf9711",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": null,
+      "baselineGitHead": null,
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "directory": "core-infra",
+      "packagePath": "packages/core-infra",
+      "currentTree": "8590aec02bb9ebdaf3f3065b3931300b954fc7fe",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineGitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e",
+      "baselineProvenance": null
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "directory": "session-core",
+      "packagePath": "packages/session-core",
+      "currentTree": "a612df2973db595bc5827419accca1b6b89be5ad",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "4395bf7e884bd1a3cd04f7fccb7b10160553a7a4394494e20783268ae8232de20837fd6ba274725f773caf6027fe7331a20cf45e13935c82026be2621893e71e",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": null,
+      "baselineGitHead": null,
+      "baselineProvenance": null,
+      "candidateArchive": "children/chainlesschain-session-core-0.3.19.tgz"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "directory": "context-memory-kernel",
+      "packagePath": "packages/context-memory-kernel",
+      "currentTree": "ba34502c836df1258cc7dcbb086e4d86873b32df",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "8ffbcc81e72dd7ee34aececa2d4de50525f0365843fedfa9c93e1ef779d441d18a7499f709cfd0ba2bbd3f8fc61b54dce725adb234c1e77e8d5b73e25c92e543",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "baselineGitHead": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+      "baselineProvenance": {
+        "commit": "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+        "ref": "refs/tags/v-npm-0-166-98",
+        "runId": 38150341893,
+        "attempt": 1,
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/38150341893/attempts/1"
+      },
+      "provenanceFile": "context-memory-kernel-npm-provenance.json"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.14",
+      "directory": "agent-sdk",
+      "packagePath": "packages/agent-sdk",
+      "currentTree": "a6a2d3f73c7e4944aa81b09c93e199a01eb953f5",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "73e1a163479dba04cf485e3771d430edb357df341504610de26438a2dc38c1a843d9382b7ac965ef8a20ada269b73ade3f5869ddbc257d0adb8c24fb841ec6e3",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "baselineGitHead": "da91e730d802b7c9dcdc075b222ecc257021e552",
+      "baselineProvenance": {
+        "commit": "da91e730d802b7c9dcdc075b222ecc257021e552",
+        "ref": "refs/tags/v-npm-0-166-96",
+        "runId": 38019727506,
+        "attempt": 1,
+        "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/38019727506/attempts/1"
+      }
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "directory": "personal-data-hub",
+      "packagePath": "packages/personal-data-hub",
+      "currentTree": "7cad980f4986ae02ff8df98523a9e634b872b7da",
+      "sourceMode": "trusted-reuse-unchanged-source-tree-and-prior-verified-public-bytes",
+      "sha512": "90fcf67a28d61534f28e11457956dca10207b91b83dff52dd38796e56634c633074e0171770d531bb40ecabe27f221f1889210a9e1474eb9bdfe959d82d07bf9",
+      "baselineCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "baselineAnchor": "23afea300b76a161233eac46269d74e04100a9cd",
+      "baselineGitHead": "23afea300b76a161233eac46269d74e04100a9cd",
+      "baselineProvenance": null
+    }
+  ],
+  "workflowInstall": {
+    "schema": "chainlesschain.cli-public-dependency-install.v1",
+    "package": "chainlesschain",
+    "version": "0.166.100",
+    "cliSource": "immutable-candidate-tarball",
+    "childrenSource": "https://registry.npmjs.org",
+    "children": [
+      {
+        "name": "@chainlesschain/context-memory-kernel",
+        "version": "0.1.9",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.9.tgz",
+        "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw=="
+      },
+      {
+        "name": "@chainlesschain/core-config",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+        "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+      },
+      {
+        "name": "@chainlesschain/core-db",
+        "version": "0.1.5",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+        "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+      },
+      {
+        "name": "@chainlesschain/core-env",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+        "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+      },
+      {
+        "name": "@chainlesschain/core-infra",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+        "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+      },
+      {
+        "name": "@chainlesschain/core-mtc",
+        "version": "0.2.3",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+        "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+      },
+      {
+        "name": "@chainlesschain/core-multisig",
+        "version": "0.1.4",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+        "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+      },
+      {
+        "name": "@chainlesschain/personal-data-hub",
+        "version": "0.4.64",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+        "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q=="
+      },
+      {
+        "name": "@chainlesschain/session-core",
+        "version": "0.3.19",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.19.tgz",
+        "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg=="
+      },
+      {
+        "name": "@chainlesschain/shared-logger",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+        "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+      }
+    ]
+  },
+  "publicCliInstall": {
+    "schema": "chainlesschain.cli-public-dependency-install.v1",
+    "package": "chainlesschain",
+    "version": "0.166.100",
+    "cliSource": "public-npm-registry-lock",
+    "cliArchive": {
+      "resolved": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.100.tgz",
+      "integrity": "sha512-85cd5CLcAQ0YXcOLnKf4PT8zrqDh1pCnJr3HGK/OGthYFqMF/b7VIdSiQnWrb7/CMCP0MAV6AFEdK8UjY8aqcA=="
+    },
+    "childrenSource": "https://registry.npmjs.org",
+    "children": [
+      {
+        "name": "@chainlesschain/core-db",
+        "version": "0.1.5",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+        "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA=="
+      },
+      {
+        "name": "@chainlesschain/core-env",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+        "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q=="
+      },
+      {
+        "name": "@chainlesschain/core-mtc",
+        "version": "0.2.3",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+        "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA=="
+      },
+      {
+        "name": "@chainlesschain/core-infra",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+        "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA=="
+      },
+      {
+        "name": "@chainlesschain/core-config",
+        "version": "0.1.2",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+        "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg=="
+      },
+      {
+        "name": "@chainlesschain/session-core",
+        "version": "0.3.19",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.19.tgz",
+        "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg=="
+      },
+      {
+        "name": "@chainlesschain/core-multisig",
+        "version": "0.1.4",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+        "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg=="
+      },
+      {
+        "name": "@chainlesschain/shared-logger",
+        "version": "0.1.1",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+        "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg=="
+      },
+      {
+        "name": "@chainlesschain/personal-data-hub",
+        "version": "0.4.64",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.64.tgz",
+        "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q=="
+      },
+      {
+        "name": "@chainlesschain/context-memory-kernel",
+        "version": "0.1.9",
+        "resolved": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.9.tgz",
+        "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw=="
+      }
+    ]
+  },
+  "allThirteenChildrenPublicInstallBound": true,
+  "signatureVerificationSource": "Successful OIDC publish workflow and digest-bound artifact receipts from npm audit signatures --include-attestations; no new local signature audit performed.",
+  "boundaries": [
+    "Public-install lifecycle scripts intentionally disabled; native/functional installation is not tested here.",
+    "Only CLI, SDK, Agent Protocol and Context Memory Kernel have signature-audit provenance receipts checked. Reused Session Core is bound to the prior verified public bytes and the current successful exact-SHA OIDC workflow repack, every packed source file, public tarball bytes and registry-only install; no separate Session Core signature-audit receipt is asserted. All thirteen children reuse their prior verified public bytes and unchanged source trees. Kernel provenance retains the prior signed publication anchor with trusted-reuse tree equality, and every public packed Kernel source file is checked against candidate Git blobs. No separate Kernel candidate tarball is asserted.",
+    "This readback does not replace the exact-SHA CI release gates or establish IDE marketplace publication."
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "status": "VERIFIED",
+  "runId": 38322183193,
+  "attempt": 1,
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "jobs": 7,
+  "oidcEvidence": "Exact workflow id-token permission, successful Trusted Publishing step and independently checked signed provenance receipts"
+}

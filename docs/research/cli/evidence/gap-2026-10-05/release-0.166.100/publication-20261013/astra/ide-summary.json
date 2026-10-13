@@ -1,0 +1,56 @@
+{
+  "capturedAt": "2026-10-13T01:17:06.688292+00:00",
+  "public": [
+    {
+      "name": "openvsx",
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.144",
+      "status": 404,
+      "entries": null,
+      "targets": []
+    },
+    {
+      "name": "jb-0",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100&page=0",
+      "status": 200,
+      "entries": 100,
+      "targets": []
+    },
+    {
+      "name": "jb-1",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100&page=1",
+      "status": 200,
+      "entries": 100,
+      "targets": []
+    },
+    {
+      "name": "jb-2",
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100&page=2",
+      "status": 200,
+      "entries": 46,
+      "targets": []
+    }
+  ],
+  "sources": [
+    {
+      "path": ".github/workflows/ide-extensions.yml",
+      "sha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "localMatches": true
+    },
+    {
+      "path": "scripts/verify-ide-marketplace.mjs",
+      "sha256": "62ad21b29d994e214a6a46d332e76a1656c8d20f6ad4661a6406d3e6cf18df1b",
+      "localMatches": true
+    },
+    {
+      "path": "scripts/verify-ide-cli-prerequisite.mjs",
+      "sha256": "1cf15ed0e78aedaae31642899eca850506652e29c52a3102616992a52faaa850",
+      "localMatches": true
+    },
+    {
+      "path": ".github/actions/verify-published-cli/action.yml",
+      "sha256": "9dce5adf92e3f03e0b004ac7fab97c96c31613dad5dca9bcfdbd28603188741c",
+      "localMatches": true
+    }
+  ],
+  "helperSha256": "d76ba0adbf2d8a215612a709437ab1aa4ed850b05b4f225a7463cc5e548f6702"
+}
