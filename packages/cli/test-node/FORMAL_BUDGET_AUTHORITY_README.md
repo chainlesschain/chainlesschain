@@ -33,9 +33,13 @@ callback. There is no default verifier and no environment switch that substitute
 public prices for account facts:
 
 - A frozen plan digest, original lineage ID, 36 task caps of $2 and 9 soak caps of
-  $3, and the original $99 total. The 36 tasks must retain 18 Volcengine and 18
-  OpenAI contracts. Task-to-contract assignments belong to that
-  verified plan; this module cannot relabel the frozen provider strata.
+  $3, and the original $99 total. Legacy activation retains 18 Volcengine and 18
+  OpenAI contracts. The explicitly authorized all-Volcengine v3 requires its exact
+  digest and full `plan.frozenBundle`, validated against the unchanged production
+  VERIFY01 contract. All 45 sample IDs, kinds, caps, provider/model/official endpoint
+  and comparisons must match; the full bundle is included in the host-verified
+  plan subject. Unknown history remains unknown. This allocation adapter does not
+  activate paid execution or replace account, FX, lineage or input-envelope facts.
 - Exact provider/model/HTTPS endpoint contracts, actual account evidence, effective
   dates, input/answer/reasoning bounds, input/cache/output rates, native currency,
   fixed fee ceiling, all charged dimensions, and accepted response service tiers.

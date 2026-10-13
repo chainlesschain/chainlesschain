@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import { validateVerify01Bundle } from "./eval/verify01-contracts.js";
+
+const VOLCENGINE_V3_PLAN_DIGEST =
+  "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13";
 
 export function budgetError(code, message) {
   return Object.assign(new Error(message), { code });
@@ -221,15 +225,53 @@ export function validateActivation(config, verifyEvidence, now = Date.now()) {
       contracts.some((c) => c.id === task.contractId),
       "Task contract missing",
     );
-  const taskProviders = plan.tasks
-    .filter((task) => task.kind === "task")
-    .map((task) => contracts.find((c) => c.id === task.contractId).provider);
   requireBudget(
-    taskProviders.filter((provider) => provider === "volcengine").length ===
-      18 &&
-      taskProviders.filter((provider) => provider === "openai").length === 18,
-    "Frozen task strata require 18 Volcengine and 18 OpenAI tasks",
+    plan.digest !== VOLCENGINE_V3_PLAN_DIGEST.slice(7) ||
+      Object.hasOwn(plan, "frozenBundle"),
+    "Volcengine v3 activation requires its complete frozen bundle",
   );
+  if (Object.hasOwn(plan, "frozenBundle")) {
+    const bundle = plan.frozenBundle;
+    // A new assignment is admitted only against the exact authorized v3.
+    // Its full frozen evidence belongs to the host-verified plan subject.
+    requireBudget(
+      bundle?.expectedPlanDigest === VOLCENGINE_V3_PLAN_DIGEST &&
+        plan.digest === VOLCENGINE_V3_PLAN_DIGEST.slice(7),
+      "Only the exact authorized Volcengine v3 allocation is supported",
+    );
+    const { samples } = validateVerify01Bundle(bundle);
+    for (const task of plan.tasks) {
+      const sample = samples.get(task.id);
+      const comparison = bundle.bindings.comparisons[sample?.stratum];
+      const contract = contracts.find((item) => item.id === task.contractId);
+      requireBudget(
+        sample &&
+          comparison &&
+          (sample.kind === "task" ? "task" : "soak") === task.kind &&
+          sample.costBudget * 1_000_000 === task.capUsdMicros &&
+          comparison.provider === contract.provider &&
+          comparison.model === contract.model &&
+          contract.provider === "volcengine" &&
+          contract.model === "deepseek-v4-flash-ga-260731" &&
+          contract.endpoint ===
+            "https://ark.cn-beijing.volces.com/api/v3/chat/completions" &&
+          comparison.declared.modelRevision ===
+            `${contract.model}@https://ark.cn-beijing.volces.com/api/v3`,
+        "Task contract differs from the frozen v3 comparison",
+      );
+    }
+  } else {
+    // Preserve the existing dual-provider activation contract for v1/v2.
+    const taskProviders = plan.tasks
+      .filter((task) => task.kind === "task")
+      .map((task) => contracts.find((c) => c.id === task.contractId).provider);
+    requireBudget(
+      taskProviders.filter((provider) => provider === "volcengine").length ===
+        18 &&
+        taskProviders.filter((provider) => provider === "openai").length === 18,
+      "Frozen task strata require 18 Volcengine and 18 OpenAI tasks",
+    );
+  }
   requireBudget(
     history.lineageId === plan.lineageId &&
       history.planDigest === plan.digest &&
