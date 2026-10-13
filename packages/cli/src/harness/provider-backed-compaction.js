@@ -151,10 +151,16 @@ export async function compactConversationWithProvider(messages, options = {}) {
     }
     chatFn = chatWithTools;
   }
-  const invokeProviderCall = async (call) => {
-    const callId = safeUsageCallId(await options.onProviderCallStart?.());
+  const invokeProviderCall = async (call, deferUntilAdmission = false) => {
+    let callId = null;
+    const start = async () => {
+      callId = safeUsageCallId(await options.onProviderCallStart?.());
+    };
+    // Only the captured canonical transport can attest that request admission
+    // completed. Custom adapters keep the conservative pre-call boundary.
+    if (!deferUntilAdmission) await start();
     try {
-      return attachProviderCallId(await call(), callId);
+      return attachProviderCallId(await call(start), callId);
     } catch (error) {
       attachProviderCallIdToError(error, callId);
       throw error;
@@ -167,7 +173,7 @@ export async function compactConversationWithProvider(messages, options = {}) {
           if (typeof chatFn !== "function") {
             throw new Error("provider adapter unavailable");
           }
-          return invokeProviderCall(async () => {
+          return invokeProviderCall(async (start) => {
             const response = await chatFn([{ role: "user", content: prompt }], {
               ...(options.chatOptions || {}),
               ...(evolutionIngress === null ? {} : { evolutionIngress }),
@@ -184,6 +190,8 @@ export async function compactConversationWithProvider(messages, options = {}) {
               onToken: undefined,
               onStall: undefined,
               onStreamRetry: undefined,
+              onProviderCallStart:
+                evolutionIngress === null ? undefined : start,
               maxOutputTokens,
             });
             return {
@@ -198,7 +206,7 @@ export async function compactConversationWithProvider(messages, options = {}) {
                 ? { usageLedgerSettled: true }
                 : {}),
             };
-          });
+          }, evolutionIngress !== null);
         };
 
   const compressor =

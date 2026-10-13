@@ -11861,6 +11861,11 @@ export async function chatWithTools(rawMessages, options) {
 
   throwIfAborted(signal);
 
+  // Host accounting starts only after request admission. A rejected model
+  // projection never reaches the provider; failures after this boundary must
+  // still retain conservative usage accounting regardless of error metadata.
+  await options.onProviderCallStart?.();
+
   if (provider === "ollama") {
     const apiUrl = `${baseUrl}/api/chat`;
     // Multimodal (`cc agent --image`): ollama wants `{content, images:[base64]}`

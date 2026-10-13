@@ -699,13 +699,23 @@ describe("Agent evolution runtime production composition", () => {
     const f = modelFixture();
     auxiliaryTransport(f);
     const messages = auxiliaryConversation();
+    const onProviderCallStart = vi.fn(() => {
+      expect(f.transport).not.toHaveBeenCalled();
+      expect(f.composition.loadRun().events.at(-1).data.evidenceKind).toBe(
+        "model-input",
+      );
+      return "admitted-compaction-call";
+    });
     const result = await compactConversationWithProvider(messages, {
       ...f.callOptions,
+      onProviderCallStart,
       force: true,
     });
     expect(result.stats.summaryMode).toBe("llm-structured");
     expect(result.degradedEvent).toBeNull();
     expect(f.transport).toHaveBeenCalledOnce();
+    expect(onProviderCallStart).toHaveBeenCalledOnce();
+    expect(result.usageEvent.callId).toBe("admitted-compaction-call");
     expect(f.seen[0].tools).toEqual([]);
     expect(JSON.stringify(f.seen)).not.toContain(
       "sk-abcdefghijklmnopqrstuvwxyz1234567890",
@@ -723,13 +733,16 @@ describe("Agent evolution runtime production composition", () => {
     const f = modelFixture("restricted");
     const messages = auxiliaryConversation();
     const before = structuredClone(messages);
+    const onProviderCallStart = vi.fn();
     await expect(
       compactConversationWithProvider(messages, {
         ...f.callOptions,
+        onProviderCallStart,
         force: true,
       }),
     ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
     expect(f.transport).not.toHaveBeenCalled();
+    expect(onProviderCallStart).not.toHaveBeenCalled();
     expect(messages).toEqual(before);
     await expect(f.composition.evolutionIngress.complete()).rejects.toThrow();
   }, 60_000);
@@ -932,7 +945,7 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
-  it.each([false, true])(
+  it.each([false, true, "provider-ingress-error"])(
     "protects the real stream manual compaction (denied=%s)",
     async (denied) => {
       const f = modelFixture();
@@ -945,7 +958,20 @@ describe("Agent evolution runtime production composition", () => {
             ? "Next: verify behavior."
             : auxiliarySummary,
       );
-      if (denied) {
+      if (denied === "provider-ingress-error") {
+        const transport = f.transport.getMockImplementation();
+        f.transport.mockImplementation(async (...args) => {
+          if (f.seen.length === 2) {
+            throw Object.assign(new Error("provider response lost"), {
+              code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+              providerCallStarted: false,
+              usageOutcome: "not_started",
+              compactionUsageReceipt: { outcome: "not_metered" },
+            });
+          }
+          return transport(...args);
+        });
+      } else if (denied) {
         f.config.authorities.sourceEnvelope.issue.mockImplementation(
           async ({ kind }) =>
             kind === "model-input" && f.seen.length >= 2
@@ -985,12 +1011,17 @@ describe("Agent evolution runtime production composition", () => {
         },
       );
       expect(result).toMatchObject({ exitCode: denied ? 1 : 0, turns: 2 });
-      expect(f.transport).toHaveBeenCalledTimes(denied ? 2 : 3);
+      expect(f.transport).toHaveBeenCalledTimes(denied === true ? 2 : 3);
       expect(JSON.stringify(f.seen)).not.toContain(
         "sk-abcdefghijklmnopqrstuvwxyz1234567890",
       );
-      if (denied) {
+      if (denied === "provider-ingress-error") {
+        expect(output.join("")).toContain("error_compaction_usage_unknown");
+        expect(output.join("")).not.toContain("error_evolution_ingress");
+        expect(f.composition.loadRun().projection.status).not.toBe("completed");
+      } else if (denied) {
         expect(output.join("")).toContain("error_evolution_ingress");
+        expect(output.join("")).not.toContain("compaction_usage_unknown");
         expect(f.composition.loadRun().projection.status).not.toBe("completed");
       } else {
         expect(output.join("")).toContain('"type":"compaction"');
