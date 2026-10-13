@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
+import { atomicWriteJson } from "../../../scripts/diagnostics/bounded-atomic-json.mjs";
 import {
   SESSION_MESSAGE_FABRIC_LIMITS,
   SessionMessageFabric,
@@ -91,17 +92,6 @@ function sha256File(filePath) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function atomicWriteJson(filePath, value) {
-  const resolved = path.resolve(filePath);
-  fs.mkdirSync(path.dirname(resolved), { recursive: true, mode: 0o700 });
-  const temporary = `${resolved}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
-  fs.renameSync(temporary, resolved);
 }
 
 function sourceIdentity() {
@@ -209,6 +199,9 @@ function safeError(error) {
     message: String(error?.message || error)
       .replace(/\s+/gu, " ")
       .slice(0, 1024),
+    ...(error?.publicationFailure
+      ? { publicationFailure: error.publicationFailure }
+      : {}),
   };
 }
 
@@ -736,7 +729,13 @@ export async function runSessionMessageReliabilitySoak(options = {}) {
     report.totals.invariantViolations += 1;
     report.violations.push(safeError(error));
     report.evidenceDigest = evidenceDigest(report);
-    atomicWriteJson(output, report);
+    try {
+      atomicWriteJson(output, report);
+    } catch (publicationError) {
+      // A second publication failure must not replace the original workload
+      // error. Each unique failed temp remains available for readback.
+      error.failedReportPublication = safeError(publicationError);
+    }
     throw Object.assign(error, { evidence: report });
   } finally {
     if (report.status === "passed") atomicWriteJson(output, report);
@@ -997,6 +996,13 @@ if (
     }
   } catch (error) {
     process.stderr.write(`${error?.stack || error}\n`);
+    if (error.publicationFailure || error.failedReportPublication)
+      process.stderr.write(
+        `${JSON.stringify({
+          publicationFailure: error.publicationFailure || null,
+          failedReportPublication: error.failedReportPublication || null,
+        })}\n`,
+      );
     process.exitCode = 1;
   }
 }

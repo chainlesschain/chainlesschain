@@ -108,6 +108,37 @@ function frozenLinuxOnlyBaseline(bundle, spec, readBlob) {
   return { path: file, digest: evalDigest(bytes), supportedPlatform: "linux" };
 }
 
+/** Resolve metadata only after validateVerify01Bundle has bound comparisons. */
+export function resolveNativeReviewTarget(bundle, sample) {
+  // Reject overlapping prefixes as well as duplicate rows rather than letting
+  // matrix order select an unauthenticated target.
+  const comparison = bundle.bindings.comparisons[sample.stratum];
+  requireCondition(
+    Array.isArray(bundle.bindings.matrix),
+    "frozen runtime target matrix missing",
+  );
+  const targets = bundle.bindings.matrix.filter(
+    (row) =>
+      typeof row?.id === "string" &&
+      row.id.length > 0 &&
+      sample.stratum.startsWith(`${row.id}-`),
+  );
+  requireCondition(
+    targets.length === 1,
+    "sample must have exactly one unambiguous frozen runtime target",
+  );
+  const [target] = targets;
+  requireCondition(
+    sample.stratum === `${target.id}-${comparison.provider}` &&
+      outcomeDigest(target) === comparison.declared.environmentDigest &&
+      ["platform", "arch", "node"].every(
+        (key) => target[key] === comparison.runtime[key],
+      ),
+    "frozen runtime target differs from its bound comparison",
+  );
+  return target;
+}
+
 /** Host is an operator input for pure inspection; the CLI uses actual runtime
  * values. Even a fully matching host/probe cannot admit an unimplemented capsule.
  */
@@ -182,10 +213,7 @@ export function inspectNativeReviewAdmission(
     );
     const spec = specs.get(sample.taskId);
     requireCondition(spec, "sample has no reviewed task specification");
-    const target = bundle.bindings.matrix.find((row) =>
-      sample.stratum.startsWith(`${row.id}-`),
-    );
-    requireCondition(target, "sample has no frozen runtime target");
+    const target = resolveNativeReviewTarget(bundle, sample);
     const blockers = [];
     if (host.platform !== "win32")
       blockers.push(

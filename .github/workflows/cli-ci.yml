@@ -15,6 +15,11 @@ on:
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
       - "scripts/verify01-long-engineering-watch.mjs"
       - "scripts/__tests__/verify01-long-engineering-watch.test.mjs"
+      - "scripts/diagnostics/windows-process-proof.cs"
+      - "scripts/diagnostics/build-windows-process-proof.mjs"
+      - "scripts/__tests__/windows-process-proof.test.mjs"
+      - "scripts/diagnostics/bounded-atomic-json.mjs"
+      - "scripts/__tests__/bounded-atomic-json.test.mjs"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
@@ -58,6 +63,11 @@ on:
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
       - "scripts/verify01-long-engineering-watch.mjs"
       - "scripts/__tests__/verify01-long-engineering-watch.test.mjs"
+      - "scripts/diagnostics/windows-process-proof.cs"
+      - "scripts/diagnostics/build-windows-process-proof.mjs"
+      - "scripts/__tests__/windows-process-proof.test.mjs"
+      - "scripts/diagnostics/bounded-atomic-json.mjs"
+      - "scripts/__tests__/bounded-atomic-json.test.mjs"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
@@ -196,6 +206,7 @@ jobs:
         run: >-
           node --test
           packages/cli/test-node/verify01-native-review-admission.node-test.mjs
+          packages/cli/test-node/verify01-native-preflight.node-test.mjs
           packages/cli/test-node/verify01-native-toolchain.node-test.mjs
           packages/cli/test-node/verify01-native-capsule.node-test.mjs
           packages/cli/test-node/verify01-native-toolchain-prepare.node-test.mjs
@@ -225,7 +236,10 @@ jobs:
           packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs
           packages/cli/test-node/file-lock-concurrency.node-test.mjs
       - name: Verify local soak observer identity and rejection history
-        run: node --test scripts/__tests__/verify01-long-engineering-watch.test.mjs
+        run: >-
+          node --test scripts/__tests__/verify01-long-engineering-watch.test.mjs
+          scripts/__tests__/windows-process-proof.test.mjs
+          scripts/__tests__/bounded-atomic-json.test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

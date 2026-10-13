@@ -14,6 +14,14 @@ import { generateReviewPack } from "../scripts/verify01-review-pack.mjs";
 import { evalDigest } from "../src/lib/eval/evidence.js";
 
 const bundle = readNativeReviewBundle();
+const volcengineBundle = readNativeReviewBundle(
+  fileURLToPath(
+    new URL(
+      "../../../docs/research/cli/verify01-plan-2026-10-13-volcengine/",
+      import.meta.url,
+    ),
+  ),
+);
 // Operator input fixture, not an attestation that this test runs on Windows 11.
 const host = {
   platform: "win32",
@@ -52,6 +60,103 @@ test("native admission selects the 12 frozen Windows task samples without reallo
         (item) => item.code === "TRUSTED_TOOLCHAIN_NOT_IMPLEMENTED",
       ),
     ),
+  );
+});
+
+test("current Volcengine plan authenticates its actual targets and remains NOT_READY", () => {
+  const report = inspectNativeReviewAdmission(volcengineBundle, { host });
+  assert.equal(
+    report.projectCommit,
+    "b2aa3aba082873570e85dce39b00754e5504ff37",
+  );
+  assert.deepEqual(
+    report.tasks.map((row) => row.sampleId),
+    inspectNativeReviewAdmission(bundle, { host }).tasks.map(
+      (row) => row.sampleId,
+    ),
+  );
+  assert.equal(report.selectedTasks, 12);
+  assert.equal(report.readyTasks, 0);
+  assert.equal(report.fullReviewPackReady, false);
+  assert.equal(report.executionStatus, "NOT_RUN");
+  assert.equal(report.observationsCreated, false);
+  assert.ok(
+    report.tasks.every(
+      (row) =>
+        row.stratum === `${row.target.id}-volcengine` &&
+        row.target.os === "Windows 11 24H2" &&
+        row.target.node === "v22.12.0",
+    ),
+  );
+});
+
+test("target metadata cannot hide the actual runtime mismatch while plan digests stay valid", () => {
+  const localHost = { ...host, node: "v22.22.2", osRelease: "10.0.19045" };
+  const report = inspectNativeReviewAdmission(volcengineBundle, {
+    host: localHost,
+    sampleIds: ["verify-01"],
+  });
+  assert.ok(
+    report.tasks[0].blockers.some(
+      (row) => row.code === "FROZEN_RUNTIME_MISMATCH",
+    ),
+  );
+  for (const changes of [
+    { node: localHost.node, os: "Windows 10" },
+    { node: localHost.node },
+    { os: "Windows 10" },
+    { arch: "arm64" },
+    { platform: "darwin" },
+    { entry: "vscode" },
+    { host: "different terminal" },
+    { install: "development checkout" },
+  ]) {
+    const altered = structuredClone(volcengineBundle);
+    Object.assign(
+      altered.bindings.matrix.find((row) => row.id === "win32-cli"),
+      changes,
+    );
+    assert.throws(
+      () =>
+        inspectNativeReviewAdmission(altered, {
+          host: localHost,
+          sampleIds: ["verify-01"],
+        }),
+      /target differs from its bound comparison/,
+      JSON.stringify(changes),
+    );
+  }
+});
+
+test("duplicate and overlapping target prefixes are rejected independent of matrix order", () => {
+  for (const id of ["win32-cli", "win32"]) {
+    for (const insertion of ["unshift", "push"]) {
+      const altered = structuredClone(volcengineBundle);
+      const target = altered.bindings.matrix.find(
+        (row) => row.id === "win32-cli",
+      );
+      altered.bindings.matrix[insertion]({ ...target, id });
+      assert.throws(
+        () =>
+          inspectNativeReviewAdmission(altered, {
+            host,
+            sampleIds: ["verify-01"],
+          }),
+        /exactly one unambiguous frozen runtime target/,
+      );
+    }
+  }
+  const missing = structuredClone(volcengineBundle);
+  missing.bindings.matrix = missing.bindings.matrix.filter(
+    (row) => row.id !== "win32-cli",
+  );
+  assert.throws(
+    () =>
+      inspectNativeReviewAdmission(missing, {
+        host,
+        sampleIds: ["verify-01"],
+      }),
+    /exactly one unambiguous frozen runtime target/,
   );
 });
 
