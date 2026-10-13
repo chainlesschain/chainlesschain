@@ -1,0 +1,26 @@
+{
+  "rawObjectsValidated": 187,
+  "workflow": {
+    "checkedAt": "2026-10-13T05:50:59.986Z",
+    "yamlParsed": true,
+    "originalNativeCommandUnchanged": true,
+    "observerStepPresent": true,
+    "triggerPathsPresent": true,
+    "operatingSystems": [
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest"
+    ],
+    "workflowSha256": "771cea2c5dbc7e76851c5808ee086afa865b9e2c06b5c637d35d4bf86147fd78"
+  },
+  "eslint": {
+    "exitCode": 0,
+    "version": "9.39.5",
+    "config": "byte-identical repository eslint.config.js",
+    "maxWarnings": 0
+  },
+  "prettier": {
+    "passed": true
+  },
+  "formalObservationsCreated": false
+}
