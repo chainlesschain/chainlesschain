@@ -13,6 +13,8 @@ on:
       - ".github/scripts/ci-install-cli-production-deps.sh"
       - ".github/scripts/ci-npm-retry.sh"
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
+      - "scripts/verify01-long-engineering-watch.mjs"
+      - "scripts/__tests__/verify01-long-engineering-watch.test.mjs"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
@@ -54,6 +56,8 @@ on:
       - ".github/scripts/ci-install-cli-production-deps.sh"
       - ".github/scripts/ci-npm-retry.sh"
       - "scripts/android/pdh-sqlite-leaf-salvage.js"
+      - "scripts/verify01-long-engineering-watch.mjs"
+      - "scripts/__tests__/verify01-long-engineering-watch.test.mjs"
       - "docs/internal/pdh-app-data-catalog.json"
       - "package-lock.json"
       - "packages/context-memory-kernel/**"
@@ -217,6 +221,8 @@ jobs:
           packages/cli/test-node/windows-node-private-v4-coordinates.node-test.mjs
           packages/cli/test-node/windows-node-private-v4-dependencies.node-test.mjs
           packages/cli/test-node/file-lock-concurrency.node-test.mjs
+      - name: Verify local soak observer identity and rejection history
+        run: node --test scripts/__tests__/verify01-long-engineering-watch.test.mjs
       - name: Run exact-SHA PM exploration recovery drill
         shell: bash
         run: >-

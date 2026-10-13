@@ -11,3 +11,5 @@
 2026-10-13增量：[官方费用合同核查](../evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-cost-contract-review/README.md)确认精确模型常规在线价以人民币计费（未缓存输入3、缓存输入0.10、输出9元/百万token）。现有美元配置估价不能作为官方费用；旧短测的公开常规价token-only估算为¥0.000384，实际账单未知。官方全模型上限形成¥7.86432、圆整¥8的条件预留候选，但账号适用合同、非token费用及可靠CNY→USD预算上界尚未核实，不能据此宣称共享$99控制已就绪。实际响应service_tier为default；13 completion包含11 reasoning，结算不得重复计价。
 
 2026-10-13 离线准备增量：[Astra预算ledger原型与方案](../evidence/gap-2026-10-05/continuation-2026-10-12/formal-budget-offline-readiness/README.md)的7项fixture回归通过，覆盖原子预留、重启pending保留、一次补救共享额度、unknown停止和幂等结算。尚无provider transport、生产接线、实际价格/FX映射或历史lineage导入；未证明真实崩溃持久性或全部付费出口控制，仍NOT_PAID_READY。已检查的本地配置仅有推理凭据，账号适用合同及FX上界尚缺；冻结18+18+9、默认thinking、每样本2/3美元与共享99不变。
+
+2026-10-13 后续模块 CI 回读：[预算开发源码31ff的准确 CLI CI](../evidence/gap-2026-10-05/continuation-2026-10-13/acceptance-continuation/README.md)已完成70 success/1条件skip，Linux、Windows、macOS预算authority/storage/transport步骤各60/60。SQLite预留及guarded transport已有独立开发模块，不能继续按旧Python原型描述其工程进度；它们尚未覆盖所有实际付费出口，仍缺lineage唯一/fencing/防回滚及账号合同、input计费上界、FX与历史责任额。正式费用准入保持NOT_PAID_READY，unknown不改为零，公开产品身份、共享$99和原分配不变。

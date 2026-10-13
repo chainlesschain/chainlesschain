@@ -51,3 +51,5 @@ node "$TASK_CLI" eval --suite verify01-project-36 \
 OpenAI 两题另一次调用，使用 `--samples verify-13,verify-31 --provider openai --model gpt-6-astra`。首次旅程在独立干净环境重新安装、配置、认证、执行 verify-04 并检查产物，保留五阶段和认证费用；不能复用普通任务的同一 runId，不能通过普通 CLI suite 冒充首次安装。已有 [host import](../verify01-plan-2026-10-04/HOST_CAPTURE_README.md) 支持真实 CLI 首次旅程材料；诊断入口不直接输出正式 observations。
 
 Windows 11 24H2 与 macOS 15 arm64 两组三入口仍需实际目标宿主和各自 native 验收准入。辅助技术、固定硬件 SLO、8h/24h 观察分别取得实际回执。人工、机器或窗口不足时保留缺失，不能使用等待时钟、CLI 执行或 CI fixture 替代真实观测。
+
+2026-10-13 [续做原件](../evidence/gap-2026-10-05/continuation-2026-10-13/acceptance-continuation/README.md)：实际已审阅72脚本包的只读collection再次退出2、reviewValidated=true，正式仍0/36、0/9。预算开发模块准确三系统CI各60/60已回读；当前Windows普通宿主两文件新增真实junction组合后38pass/1原skip，完整native仍NOT_ADMITTED。冻结.99源码的Windows10与Ubuntu24.04/WSL1各启动一条真实24h组件workload，新v2旁路observer经Astra限定范围AI审阅和双平台12/12验证；归档时仍running，早期未监视段和后续间隔保留。它们不填正式observations，也不替代九个公开入口的启动关联8h/24h回执。

@@ -1,0 +1,361 @@
+{
+  "schema": "chainlesschain.verify01-acceptance-continuation/v1",
+  "capturedAt": "2026-10-13T05:45:35.841429+00:00",
+  "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+  "executionStatus": "NOT_RUN",
+  "observedTasks": 0,
+  "plannedTasks": 36,
+  "observedFirstRuns": 0,
+  "plannedFirstRuns": 9,
+  "sharedBudgetUsd": 99,
+  "remainingBudgetUsd": null,
+  "totalCostUsd": null,
+  "paidProviderCallsThisTurn": 0,
+  "reviewValidated": true,
+  "formalNativeAdmission": "NOT_ADMITTED",
+  "budgetModuleCi": {
+    "capturedAt": "2026-10-13T05:21:34.786879+00:00",
+    "budgetDevelopmentSource": "31ff33a228f2f6c03541e0dd555693191852fe40",
+    "budgetCiUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/38296245859",
+    "jobCount": 71,
+    "jobConclusions": {
+      "skipped": 1,
+      "success": 70
+    },
+    "platforms": [
+      {
+        "jobId": 115048087924,
+        "name": "verify-cli (ubuntu-latest)",
+        "conclusion": "success",
+        "budgetStep": [
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-12T23:12:45Z",
+            "completed_at": "2026-10-12T23:12:48Z"
+          }
+        ],
+        "testSummaryLines": [
+          "2026-10-12T23:12:45.0441633Z # tests 18",
+          "2026-10-12T23:12:45.0442534Z # pass 18",
+          "2026-10-12T23:12:45.0442931Z # fail 0",
+          "2026-10-12T23:12:45.0443445Z # skipped 0",
+          "2026-10-12T23:12:48.5473783Z # tests 60",
+          "2026-10-12T23:12:48.5474427Z # pass 60",
+          "2026-10-12T23:12:48.5474661Z # fail 0",
+          "2026-10-12T23:12:48.5475834Z # skipped 0",
+          "2026-10-12T23:12:51.2410095Z # tests 1247",
+          "2026-10-12T23:12:51.2410245Z # pass 1247",
+          "2026-10-12T23:12:51.2410318Z # fail 0",
+          "2026-10-12T23:12:51.2410469Z # skipped 0",
+          "2026-10-12T23:13:39.2608999Z # tests 2",
+          "2026-10-12T23:13:39.2609998Z # pass 2",
+          "2026-10-12T23:13:39.2610335Z # fail 0",
+          "2026-10-12T23:13:39.2611593Z # skipped 0"
+        ],
+        "expectedSourceMentioned": true
+      },
+      {
+        "jobId": 115048088147,
+        "name": "verify-cli (macos-latest)",
+        "conclusion": "success",
+        "budgetStep": [
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-12T23:14:20Z",
+            "completed_at": "2026-10-12T23:14:21Z"
+          }
+        ],
+        "testSummaryLines": [
+          "2026-10-12T23:14:20.5848530Z # tests 18",
+          "2026-10-12T23:14:20.5848860Z # pass 18",
+          "2026-10-12T23:14:20.5848990Z # fail 0",
+          "2026-10-12T23:14:20.5849310Z # skipped 0",
+          "2026-10-12T23:14:21.8958870Z # tests 60",
+          "2026-10-12T23:14:21.8959410Z # pass 60",
+          "2026-10-12T23:14:21.8959650Z # fail 0",
+          "2026-10-12T23:14:21.8960140Z # skipped 0",
+          "2026-10-12T23:14:28.2426050Z # tests 1247",
+          "2026-10-12T23:14:28.2426180Z # pass 1247",
+          "2026-10-12T23:14:28.2426430Z # fail 0",
+          "2026-10-12T23:14:28.2426590Z # skipped 0",
+          "2026-10-12T23:15:25.2999450Z # tests 2",
+          "2026-10-12T23:15:25.3201890Z # pass 2",
+          "2026-10-12T23:15:25.3302970Z # fail 0",
+          "2026-10-12T23:15:25.3504560Z # skipped 0"
+        ],
+        "expectedSourceMentioned": true
+      },
+      {
+        "jobId": 115048088151,
+        "name": "verify-cli (windows-latest)",
+        "conclusion": "success",
+        "budgetStep": [
+          {
+            "name": "Verify formal budget authority with native SQLite and process fault recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-12T23:15:18Z",
+            "completed_at": "2026-10-12T23:15:25Z"
+          }
+        ],
+        "testSummaryLines": [
+          "2026-10-12T23:15:18.3564790Z # tests 18",
+          "2026-10-12T23:15:18.3566611Z # pass 18",
+          "2026-10-12T23:15:18.3567054Z # fail 0",
+          "2026-10-12T23:15:18.3567897Z # skipped 0",
+          "2026-10-12T23:15:25.3753490Z # tests 60",
+          "2026-10-12T23:15:25.3754217Z # pass 60",
+          "2026-10-12T23:15:25.3754389Z # fail 0",
+          "2026-10-12T23:15:25.3756027Z # skipped 0",
+          "2026-10-12T23:15:32.1739879Z # tests 1247",
+          "2026-10-12T23:15:32.1740045Z # pass 1247",
+          "2026-10-12T23:15:32.1740126Z # fail 0",
+          "2026-10-12T23:15:32.1740295Z # skipped 0",
+          "2026-10-12T23:16:58.8044276Z # tests 2",
+          "2026-10-12T23:16:58.8045909Z # pass 2",
+          "2026-10-12T23:16:58.8046352Z # fail 0",
+          "2026-10-12T23:16:58.8047525Z # skipped 0"
+        ],
+        "expectedSourceMentioned": true
+      }
+    ],
+    "selfHostedRunnerCount": 0,
+    "paidReady": false,
+    "formalObservationsCreated": false,
+    "scope": "Exact development-source module CI; not runtime egress coverage, a release gate, or formal task observation."
+  },
+  "nativeCurrentRegression": {
+    "schema": "chainlesschain.native-current-regression-evidence/v1",
+    "sourceCommit": "e3c42a3d3a484d72ddd991e5b775980c3052cbeb",
+    "testCommit": "91abe787bd",
+    "formalSample": false,
+    "nativeAppContainer": false,
+    "admissionEligible": false,
+    "productionChanged": false,
+    "host": "Windows 10 x64",
+    "node": "v22.12.0",
+    "currentBefore": {
+      "total": 38,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 1
+    },
+    "currentAfter": {
+      "total": 39,
+      "passed": 38,
+      "failed": 0,
+      "skipped": 1
+    },
+    "negativeControl": {
+      "failed": 1,
+      "reason": "actual promise resolved instead of rejecting",
+      "productionBytesRestored": true
+    },
+    "limitations": [
+      "Current-source ordinary-host engineering regression only.",
+      "The real junction is created by Windows; lstat misclassification is injected, native canonical metadata is read unchanged.",
+      "Original frozen 211/208/2/1 report and parser remain unchanged.",
+      "Owner-only LowBox storage and full native pack admission remain open.",
+      "Registry dependencies pin direct versions from current lock; generated dependency lock is retained, not a frozen hermetic review closure.",
+      "Initial historical Vitest tree lacked @vitest/utils; two npm Arborist attempts failed before installing. Final independent npm install used --legacy-peer-deps --ignore-scripts."
+    ]
+  },
+  "observerRegression": {
+    "before": [
+      {
+        "path": "scripts/verify01-long-engineering-watch.mjs",
+        "bytes": 13640,
+        "sha256": "91d79e73be4eb680628977923e0b5ca2a686778f984d0baf620eb5f6c28d86c7"
+      },
+      {
+        "path": "scripts/__tests__/verify01-long-engineering-watch.test.mjs",
+        "bytes": 8895,
+        "sha256": "77cf3e5158e8c586692395942ee8c4c7e38b9b276556fd1400a5e27d1418d531"
+      },
+      {
+        "path": ".github/workflows/cli-ci.yml",
+        "bytes": 23242,
+        "sha256": "771cea2c5dbc7e76851c5808ee086afa865b9e2c06b5c637d35d4bf86147fd78"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+        "bytes": 18780,
+        "sha256": "f8321e2ec963bf36c0728b8a7affefff75ebbe118fcee3d66b7e6471e3e38dbd"
+      }
+    ],
+    "after": [
+      {
+        "path": "scripts/verify01-long-engineering-watch.mjs",
+        "bytes": 13640,
+        "sha256": "91d79e73be4eb680628977923e0b5ca2a686778f984d0baf620eb5f6c28d86c7"
+      },
+      {
+        "path": "scripts/__tests__/verify01-long-engineering-watch.test.mjs",
+        "bytes": 8895,
+        "sha256": "77cf3e5158e8c586692395942ee8c4c7e38b9b276556fd1400a5e27d1418d531"
+      },
+      {
+        "path": ".github/workflows/cli-ci.yml",
+        "bytes": 23242,
+        "sha256": "771cea2c5dbc7e76851c5808ee086afa865b9e2c06b5c637d35d4bf86147fd78"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/segmented-memory-port.test.js",
+        "bytes": 18780,
+        "sha256": "f8321e2ec963bf36c0728b8a7affefff75ebbe118fcee3d66b7e6471e3e38dbd"
+      }
+    ],
+    "sourceStable": true,
+    "results": [
+      {
+        "label": "windows-node22.12",
+        "argv": [
+          "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+          "--test",
+          "scripts/__tests__/verify01-long-engineering-watch.test.mjs"
+        ],
+        "cwd": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-progress-20261013",
+        "startedAt": "2026-10-13T05:40:36.677130+00:00",
+        "finishedAt": "2026-10-13T05:40:37.111680+00:00",
+        "exitCode": 0,
+        "summary": [
+          "# tests 12",
+          "# pass 12",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      },
+      {
+        "label": "linux-node22.12",
+        "argv": [
+          "wsl.exe",
+          "-d",
+          "Ubuntu",
+          "--exec",
+          "/mnt/c/code/chainlesschain/.tmp/linux-node2212/bin/node",
+          "--test",
+          "/mnt/c/code/chainlesschain/.work/verify01-acceptance-progress-20261013/scripts/__tests__/verify01-long-engineering-watch.test.mjs"
+        ],
+        "cwd": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-progress-20261013",
+        "startedAt": "2026-10-13T05:40:37.112679+00:00",
+        "finishedAt": "2026-10-13T05:40:37.790428+00:00",
+        "exitCode": 0,
+        "summary": [
+          "# tests 12",
+          "# pass 12",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      }
+    ],
+    "formalObservationsCreated": false,
+    "providerCalls": 0
+  },
+  "longObservations": [
+    {
+      "platform": "windows",
+      "status": "running",
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "nodeVersion": "v22.12.0",
+      "startedAt": "2026-10-13T05:16:59.755Z",
+      "checkpointedAt": "2026-10-13T05:45:10.548Z",
+      "continuousDurationSeconds": 1690.675274,
+      "cycles": 1227,
+      "custodyProbes": 21,
+      "violations": [],
+      "qualifyingEvidence": false,
+      "formalHostAcceptance": false,
+      "observerState": {
+        "schema": "chainlesschain.local-soak-watcher-state/v2",
+        "status": "MONITORING",
+        "scope": "supplementary local engineering observation",
+        "formalHostAcceptance": false,
+        "observationsCreated": false,
+        "processExitVerified": false,
+        "observerStartedAt": "2026-10-13T05:34:08.493Z",
+        "observedAt": "2026-10-13T05:44:46.218Z",
+        "bindingDigest": "sha256:7884680ffacb8781c6b7f4c2257ed040b222b02db77796e06b3a3b89d4481562",
+        "lastCheckpoint": 1791870278170,
+        "lastEvidenceDigest": "sha256:b61ba7d5fda188f7cef17c86b4a3017731bf800c433a6be23e17a2f86370bab8",
+        "continuousDurationSeconds": 1658.2960971999998,
+        "cycles": 1215,
+        "unmonitoredPrefixSeconds": 1028.738,
+        "gaps": [
+          {
+            "from": "2026-10-13T05:34:08.493Z",
+            "to": "2026-10-13T05:37:16.906Z",
+            "reason": "observer or workload checkpoint gap"
+          }
+        ],
+        "monitoringCompleteFromLaunch": false,
+        "milestonesRecorded": []
+      },
+      "liveRoot": "C:\\code\\chainlesschain\\.work\\verify01-long-observation-20261013",
+      "actualOS": "Microsoft Windows NT 10.0.19045.0"
+    },
+    {
+      "platform": "linux",
+      "status": "running",
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "nodeVersion": "v22.12.0",
+      "startedAt": "2026-10-13T05:20:39.076Z",
+      "checkpointedAt": "2026-10-13T05:45:14.211Z",
+      "continuousDurationSeconds": 1474.8698406999997,
+      "cycles": 1123,
+      "custodyProbes": 19,
+      "violations": [],
+      "qualifyingEvidence": false,
+      "formalHostAcceptance": false,
+      "observerState": {
+        "schema": "chainlesschain.local-soak-watcher-state/v2",
+        "status": "MONITORING",
+        "scope": "supplementary local engineering observation",
+        "formalHostAcceptance": false,
+        "observationsCreated": false,
+        "processExitVerified": false,
+        "observerStartedAt": "2026-10-13T05:34:08.631Z",
+        "observedAt": "2026-10-13T05:45:23.675Z",
+        "bindingDigest": "sha256:058a2b22da5b8a617ffcff357368f9b12821b306d31f44682805a3a4fdb2a60f",
+        "lastCheckpoint": 1791870314211,
+        "lastEvidenceDigest": "sha256:b0f426fa722c512abf537fd2771696419db5e14996b66d4b68395e314e16e920",
+        "continuousDurationSeconds": 1474.8698406999997,
+        "cycles": 1123,
+        "unmonitoredPrefixSeconds": 809.555,
+        "gaps": [
+          {
+            "from": "2026-10-13T05:34:08.631Z",
+            "to": "2026-10-13T05:37:18.708Z",
+            "reason": "observer or workload checkpoint gap"
+          }
+        ],
+        "monitoringCompleteFromLaunch": false,
+        "milestonesRecorded": []
+      },
+      "liveRoot": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013",
+      "actualOS": "Ubuntu 24.04.3 LTS / WSL1 / x64"
+    }
+  ],
+  "releaseQualificationClaimed": false,
+  "openRequirements": [
+    "Account-specific contract, input/billing bounds, settlement FX ceiling and original-lineage prior liabilities.",
+    "OpenAI gpt-6-astra project credential configuration; current conversation access is separate.",
+    "Budget authority integration across paid physical egress, original-lineage fencing and rollback protection.",
+    "Protected native broker storage/journal/CAS/flush/recovery and versioned platform-equivalent review support.",
+    "Exact v2 Node22.12 native execution binding and actual Windows11/macOS15-arm64 formal hosts.",
+    "Nine public CLI/IDE entry startup-linked 8h/24h receipts, accessibility and approved SLO evidence."
+  ],
+  "limitations": [
+    "The 24h component workloads have not yet completed; local Windows10/WSL1 runs are supplementary.",
+    "Original v1 watcher report-validation defects, early unmonitored prefixes and later observer gaps are preserved.",
+    "Local producer reports and observer digests are not signatures or an independently trusted native authority.",
+    "Astra reviews are AI reviews under the user-authorized substitution, not human acceptance.",
+    "Original frozen failures, skips, plan/sample/provider allocation and budget have not been overwritten."
+  ]
+}
