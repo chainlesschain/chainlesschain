@@ -1,0 +1,48 @@
+{
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "reviewDigest": null,
+  "productSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "independentHumanReview": {
+    "required": false,
+    "substitutedByUserAuthorization": "Astra AI review",
+    "actualHumanReview": false
+  },
+  "providerControls": [
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "credentialSecretName": "CC_LLM_API_KEY",
+      "endpointReceipt": null,
+      "quotaReceipt": null,
+      "quotaReceiptDigest": null,
+      "localCredentialEnvironmentName": "VOLCENGINE_API_KEY",
+      "userAuthorizedTesting": true,
+      "endpoint": "https://ark.cn-beijing.volces.com/api/v3",
+      "thinking": "provider-default-no-override",
+      "historicalDiagnosticEndpointReceipt": "../evidence/gap-2026-10-05/continuation-2026-10-12/volcengine-authorized-probe/summary.json",
+      "userAuthorizedAll45Samples": true
+    }
+  ],
+  "sharedBudgetControl": {
+    "maximumUsd": 99,
+    "controlReceipt": null,
+    "remainingUsd": null,
+    "lineageRootPlanDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "previousSpendAndOutstandingReservationsMustBeReconciled": true
+  },
+  "rule": "Record references only. Do not put API keys or fabricated approvals in this file. Missing fields do not authorize live execution.",
+  "reviewPolicy": "./review-policy.json",
+  "authorizedAIReview": {
+    "reviewer": "Astra",
+    "reviewerKind": "AI",
+    "verdict": "REVIEW_REQUIRED",
+    "recordPath": null,
+    "recordPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "recordReviewDigest": null,
+    "imageId": null,
+    "recordDigest": null,
+    "reviewedAt": null,
+    "acceptedForDeclaredEvaluatorScope": false
+  },
+  "paidExecutionReady": false
+}
