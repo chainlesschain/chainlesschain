@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.documentation-build/v1",
+  "kind": "www",
+  "status": "success",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "startedAt": "2026-10-13T02:24:06.895Z",
+  "completedAt": "2026-10-13T02:24:29.350Z",
+  "command": {
+    "executable": "C:\\nvm4w\\nodejs\\node.exe",
+    "args": [
+      "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2\\node_modules\\astro\\astro.js",
+      "build"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2"
+  },
+  "htmlPages": 20,
+  "files": 35,
+  "seconds": 13.51,
+  "log": {
+    "path": "C:\\code\\chainlesschain\\.work\\s100\\.work\\site-build-20261013\\www\\build.log",
+    "bytes": 2317,
+    "sha256": "56178341c65a739df192a2db3560c8d23ecb0cc53655c5b9ec614b10481a0f1a"
+  },
+  "dist": "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2\\dist"
+}

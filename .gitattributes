@@ -159,3 +159,8 @@ docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/** -text !eol -white
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.100/**/README.md -linguist-generated
 docs/research/cli/evidence/documentation-review-2026-10-13/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/documentation-review-2026-10-13/assessment.md -linguist-generated
+
+# Documentation deployment raw receipts retain captured bytes.
+docs/research/cli/evidence/documentation-deployment-2026-10-13/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/documentation-deployment-2026-10-13/README.md -linguist-generated
+docs/research/cli/evidence/documentation-deployment-2026-10-13/astra-review/assessment.md -linguist-generated

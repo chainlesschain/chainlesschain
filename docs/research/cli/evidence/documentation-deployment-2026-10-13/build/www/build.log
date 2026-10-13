@@ -1,0 +1,57 @@
+10:24:17 [types] Generated 1.03s
+10:24:17 [build] output: "static"
+10:24:17 [build] directory: C:\code\chainlesschain\.work\s100\docs-website-v2\dist\
+10:24:17 [build] Collecting build info...
+10:24:17 [build] ✓ Completed in 1.36s.
+10:24:17 [build] Building static entrypoints...
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+10:24:28 [vite] ✓ built in 10.82s
+10:24:28 [build] ✓ Completed in 10.95s.
+
+ generating static routes 
+10:24:28 ▶ src/pages/404.astro
+10:24:28   └─ /404.html (+57ms)
+10:24:28 ▶ src/pages/about.astro
+10:24:28   └─ /about/index.html (+26ms)
+10:24:28 ▶ src/pages/cli.astro
+10:24:28   └─ /cli/index.html (+130ms)
+10:24:28 ▶ src/pages/desktop.astro
+10:24:28   └─ /desktop/index.html (+36ms)
+10:24:28 ▶ src/pages/en/404.astro
+10:24:28   └─ /en/404/index.html (+37ms)
+10:24:28 ▶ src/pages/en/about.astro
+10:24:28   └─ /en/about/index.html (+65ms)
+10:24:28 ▶ src/pages/en/cli.astro
+10:24:28   └─ /en/cli/index.html (+62ms)
+10:24:28 ▶ src/pages/en/desktop.astro
+10:24:28   └─ /en/desktop/index.html (+27ms)
+10:24:28 ▶ src/pages/en/enterprise.astro
+10:24:28   └─ /en/enterprise/index.html (+60ms)
+10:24:28 ▶ src/pages/en/ide.astro
+10:24:28   └─ /en/ide/index.html (+45ms)
+10:24:28 ▶ src/pages/en/mobile.astro
+10:24:28   └─ /en/mobile/index.html (+16ms)
+10:24:28 ▶ src/pages/en/security.astro
+10:24:28   └─ /en/security/index.html (+31ms)
+10:24:28 ▶ src/pages/en/web.astro
+10:24:28   └─ /en/web/index.html (+15ms)
+10:24:28 ▶ src/pages/en/index.astro
+10:24:28   └─ /en/index.html (+43ms)
+10:24:29 ▶ src/pages/enterprise.astro
+10:24:29   └─ /enterprise/index.html (+39ms)
+10:24:29 ▶ src/pages/ide.astro
+10:24:29   └─ /ide/index.html (+24ms)
+10:24:29 ▶ src/pages/mobile.astro
+10:24:29   └─ /mobile/index.html (+8ms)
+10:24:29 ▶ src/pages/security.astro
+10:24:29   └─ /security/index.html (+8ms)
+10:24:29 ▶ src/pages/web.astro
+10:24:29   └─ /web/index.html (+35ms)
+10:24:29 ▶ src/pages/index.astro
+10:24:29   └─ /index.html (+24ms)
+10:24:29 ✓ Completed in 1.09s.
+
+10:24:29 [build] 20 page(s) built in 13.51s
+10:24:29 [build] Complete!

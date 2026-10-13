@@ -1,0 +1,1299 @@
+Build docs-site & assert render	Set up job	﻿2026-10-13T02:29:13.9595261Z Current runner version: '2.337.0'
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9620750Z ##[group]Runner Image Provisioner
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9621714Z Hosted Compute Agent
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9622386Z Version: 20261002.596
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9623035Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9623779Z Build Date: 2026-10-02T22:28:27Z
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9624543Z Worker ID: {e81bb6c9-3f1f-4fa0-bc3d-791e4a2edeea}
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9625337Z Region: westus
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9625920Z Cloud: Azure
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9626479Z ##[endgroup]
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9628350Z ##[group]Operating System
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9629102Z Ubuntu
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9629683Z 24.04.5
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9630180Z LTS
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9630760Z ##[endgroup]
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9631314Z ##[group]Runner Image
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9631998Z Image: ubuntu-24.04
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9632605Z Version: 20261004.327.1
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9633658Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9635450Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9636520Z ##[endgroup]
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9637844Z ##[group]GITHUB_TOKEN Permissions
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9640052Z Contents: read
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9640700Z Metadata: read
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9641251Z ##[endgroup]
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9643393Z Secret source: Actions
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9644350Z Cache mode: write
+Build docs-site & assert render	Set up job	2026-10-13T02:29:13.9645150Z Prepare workflow directory
+Build docs-site & assert render	Set up job	2026-10-13T02:29:14.0051411Z Prepare all required actions
+Build docs-site & assert render	Set up job	2026-10-13T02:29:14.0101996Z Getting action download info
+Build docs-site & assert render	Set up job	2026-10-13T02:29:14.3636695Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+Build docs-site & assert render	Set up job	2026-10-13T02:29:14.4919053Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+Build docs-site & assert render	Set up job	2026-10-13T02:29:14.7258848Z Complete job name: Build docs-site & assert render
+Build docs-site & assert render	Run actions/checkout@v5	﻿2026-10-13T02:29:14.8025971Z ##[group]Run actions/checkout@v5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8026881Z with:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8027597Z   fetch-depth: 0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8028105Z   repository: chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8031915Z   token: ***
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8032353Z   ssh-strict: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8032797Z   ssh-user: git
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8033255Z   persist-credentials: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8033744Z   clean: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8034189Z   sparse-checkout-cone-mode: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8034706Z   fetch-tags: false
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8035147Z   show-progress: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8035599Z   lfs: false
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8036019Z   submodules: false
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8036466Z   set-safe-directory: true
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8036975Z   allow-unsafe-pr-checkout: false
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8037904Z env:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8038334Z   MIN_HTML: 400
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8038782Z   MIN_CHANGELOG_BYTES: 2000
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.8039272Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9025977Z Syncing repository: chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9028659Z ##[group]Getting Git version info
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9029472Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9030587Z [command]/usr/bin/git version
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9128513Z git version 2.55.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9151296Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9170751Z Temporarily overriding HOME='/home/runner/work/_temp/ce20576a-3266-41cc-a5b4-acdde476e452' before making global git config changes
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9188912Z Adding repository directory to the temporary git global config as a safe directory
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9191181Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9229969Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9233787Z ##[group]Initializing the repository
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9239188Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9370141Z hint: Using 'master' as the name for the initial branch. This default branch name
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9372286Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9374140Z hint: to use in all of your new repositories, which will suppress this warning,
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9375585Z hint: call:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9376553Z hint:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9377810Z hint: 	git config --global init.defaultBranch <name>
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9378947Z hint:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9380016Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9381782Z hint: 'development'. The just-created branch can be renamed via this command:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9383147Z hint:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9383938Z hint: 	git branch -m <name>
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9384769Z hint:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9385827Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9387991Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9394040Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9513135Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9514364Z ##[group]Disabling automatic garbage collection
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9516615Z [command]/usr/bin/git config --local gc.auto 0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9551573Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9552772Z ##[group]Setting up auth
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9559560Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9596535Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:14.9982471Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0018694Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0255578Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0301484Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0564963Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0614230Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0615212Z ##[group]Fetching the repository
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:15.0630547Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:53.9992733Z From https://github.com/chainlesschain/chainlesschain
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:53.9994682Z  * [new branch]            feature/cli-formal-budget-authority-20261013 -> origin/feature/cli-formal-budget-authority-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:53.9996678Z  * [new branch]            feature/cli-ide-gap-retry-completion-20261012-main -> origin/feature/cli-ide-gap-retry-completion-20261012-main
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:53.9999114Z  * [new branch]            feature/cli-ide-release100-final-20261013 -> origin/feature/cli-ide-release100-final-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0000937Z  * [new branch]            feature/docs-sites-release100-20261013 -> origin/feature/docs-sites-release100-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0002618Z  * [new branch]            feature/fix-issue-432-download-test -> origin/feature/fix-issue-432-download-test
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0004484Z  * [new branch]            feature/jetbrains-popup-diagnostic-20261013 -> origin/feature/jetbrains-popup-diagnostic-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0006051Z  * [new branch]            main                       -> origin/main
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0007475Z  * [new tag]               agent-protocol-oidc-v0.1.0 -> agent-protocol-oidc-v0.1.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0009323Z  * [new tag]               agent-protocol-oidc-v0.1.1 -> agent-protocol-oidc-v0.1.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0010772Z  * [new tag]               agent-protocol-oidc-v0.1.2 -> agent-protocol-oidc-v0.1.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0012049Z  * [new tag]               agent-protocol-oidc-v0.1.3 -> agent-protocol-oidc-v0.1.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0013340Z  * [new tag]               agent-protocol-oidc-v0.1.4 -> agent-protocol-oidc-v0.1.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0014512Z  * [new tag]               agent-protocol-oidc-v0.1.5 -> agent-protocol-oidc-v0.1.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0015752Z  * [new tag]               agent-protocol-v0.1.0      -> agent-protocol-v0.1.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0016925Z  * [new tag]               agent-protocol-v0.1.7      -> agent-protocol-v0.1.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0018351Z  * [new tag]               agent-sdk-oidc-v0.2.2      -> agent-sdk-oidc-v0.2.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0019398Z  * [new tag]               android-v0.37.0            -> android-v0.37.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0020468Z  * [new tag]               android-v1.0.0             -> android-v1.0.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0021608Z  * [new tag]               android-v1.0.0-mirror      -> android-v1.0.0-mirror
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0022707Z  * [new tag]               ci-release-22a9857004      -> ci-release-22a9857004
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0023886Z  * [new tag]               ci-release-3b3d4b12ef      -> ci-release-3b3d4b12ef
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0025025Z  * [new tag]               ci-release-c9d04c03f2      -> ci-release-c9d04c03f2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0026051Z  * [new tag]               ci-release-e812a89952      -> ci-release-e812a89952
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0026876Z  * [new tag]               ide-jetbrains-v0.1.2       -> ide-jetbrains-v0.1.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0028329Z  * [new tag]               ide-jetbrains-v0.4.0       -> ide-jetbrains-v0.4.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0029899Z  * [new tag]               ide-jetbrains-v0.4.1       -> ide-jetbrains-v0.4.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0031071Z  * [new tag]               ide-jetbrains-v0.4.10      -> ide-jetbrains-v0.4.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0032404Z  * [new tag]               ide-jetbrains-v0.4.100     -> ide-jetbrains-v0.4.100
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0033498Z  * [new tag]               ide-jetbrains-v0.4.101     -> ide-jetbrains-v0.4.101
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0034510Z  * [new tag]               ide-jetbrains-v0.4.102     -> ide-jetbrains-v0.4.102
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0035519Z  * [new tag]               ide-jetbrains-v0.4.103     -> ide-jetbrains-v0.4.103
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0036480Z  * [new tag]               ide-jetbrains-v0.4.104     -> ide-jetbrains-v0.4.104
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0038222Z  * [new tag]               ide-jetbrains-v0.4.105     -> ide-jetbrains-v0.4.105
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0039226Z  * [new tag]               ide-jetbrains-v0.4.106     -> ide-jetbrains-v0.4.106
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0040093Z  * [new tag]               ide-jetbrains-v0.4.107     -> ide-jetbrains-v0.4.107
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0041009Z  * [new tag]               ide-jetbrains-v0.4.108     -> ide-jetbrains-v0.4.108
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0041873Z  * [new tag]               ide-jetbrains-v0.4.109     -> ide-jetbrains-v0.4.109
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0042762Z  * [new tag]               ide-jetbrains-v0.4.11      -> ide-jetbrains-v0.4.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0043631Z  * [new tag]               ide-jetbrains-v0.4.110     -> ide-jetbrains-v0.4.110
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0044499Z  * [new tag]               ide-jetbrains-v0.4.111     -> ide-jetbrains-v0.4.111
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0045212Z  * [new tag]               ide-jetbrains-v0.4.112     -> ide-jetbrains-v0.4.112
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0045775Z  * [new tag]               ide-jetbrains-v0.4.113     -> ide-jetbrains-v0.4.113
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0046337Z  * [new tag]               ide-jetbrains-v0.4.114     -> ide-jetbrains-v0.4.114
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0046853Z  * [new tag]               ide-jetbrains-v0.4.115     -> ide-jetbrains-v0.4.115
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0047691Z  * [new tag]               ide-jetbrains-v0.4.118     -> ide-jetbrains-v0.4.118
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0048210Z  * [new tag]               ide-jetbrains-v0.4.119     -> ide-jetbrains-v0.4.119
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0048925Z  * [new tag]               ide-jetbrains-v0.4.12      -> ide-jetbrains-v0.4.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0049438Z  * [new tag]               ide-jetbrains-v0.4.120     -> ide-jetbrains-v0.4.120
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0049920Z  * [new tag]               ide-jetbrains-v0.4.121     -> ide-jetbrains-v0.4.121
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0050398Z  * [new tag]               ide-jetbrains-v0.4.122     -> ide-jetbrains-v0.4.122
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0050899Z  * [new tag]               ide-jetbrains-v0.4.123     -> ide-jetbrains-v0.4.123
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0051385Z  * [new tag]               ide-jetbrains-v0.4.124     -> ide-jetbrains-v0.4.124
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0051862Z  * [new tag]               ide-jetbrains-v0.4.125     -> ide-jetbrains-v0.4.125
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0052340Z  * [new tag]               ide-jetbrains-v0.4.126     -> ide-jetbrains-v0.4.126
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0052825Z  * [new tag]               ide-jetbrains-v0.4.127     -> ide-jetbrains-v0.4.127
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0053439Z  * [new tag]               ide-jetbrains-v0.4.128     -> ide-jetbrains-v0.4.128
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0054031Z  * [new tag]               ide-jetbrains-v0.4.129     -> ide-jetbrains-v0.4.129
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0054516Z  * [new tag]               ide-jetbrains-v0.4.13      -> ide-jetbrains-v0.4.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0054996Z  * [new tag]               ide-jetbrains-v0.4.130     -> ide-jetbrains-v0.4.130
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0055476Z  * [new tag]               ide-jetbrains-v0.4.131     -> ide-jetbrains-v0.4.131
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0055955Z  * [new tag]               ide-jetbrains-v0.4.132     -> ide-jetbrains-v0.4.132
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0056426Z  * [new tag]               ide-jetbrains-v0.4.133     -> ide-jetbrains-v0.4.133
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0056907Z  * [new tag]               ide-jetbrains-v0.4.134     -> ide-jetbrains-v0.4.134
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0058056Z  * [new tag]               ide-jetbrains-v0.4.135     -> ide-jetbrains-v0.4.135
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0058580Z  * [new tag]               ide-jetbrains-v0.4.137     -> ide-jetbrains-v0.4.137
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0059276Z  * [new tag]               ide-jetbrains-v0.4.138     -> ide-jetbrains-v0.4.138
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0059776Z  * [new tag]               ide-jetbrains-v0.4.139     -> ide-jetbrains-v0.4.139
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0060265Z  * [new tag]               ide-jetbrains-v0.4.14      -> ide-jetbrains-v0.4.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0060755Z  * [new tag]               ide-jetbrains-v0.4.140     -> ide-jetbrains-v0.4.140
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0061236Z  * [new tag]               ide-jetbrains-v0.4.141     -> ide-jetbrains-v0.4.141
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0061713Z  * [new tag]               ide-jetbrains-v0.4.143     -> ide-jetbrains-v0.4.143
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0062198Z  * [new tag]               ide-jetbrains-v0.4.144     -> ide-jetbrains-v0.4.144
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0062674Z  * [new tag]               ide-jetbrains-v0.4.145     -> ide-jetbrains-v0.4.145
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0063174Z  * [new tag]               ide-jetbrains-v0.4.146     -> ide-jetbrains-v0.4.146
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0063658Z  * [new tag]               ide-jetbrains-v0.4.147     -> ide-jetbrains-v0.4.147
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0064161Z  * [new tag]               ide-jetbrains-v0.4.149     -> ide-jetbrains-v0.4.149
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0064641Z  * [new tag]               ide-jetbrains-v0.4.15      -> ide-jetbrains-v0.4.15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0065118Z  * [new tag]               ide-jetbrains-v0.4.150     -> ide-jetbrains-v0.4.150
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0065599Z  * [new tag]               ide-jetbrains-v0.4.151     -> ide-jetbrains-v0.4.151
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0066072Z  * [new tag]               ide-jetbrains-v0.4.152     -> ide-jetbrains-v0.4.152
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0066549Z  * [new tag]               ide-jetbrains-v0.4.153     -> ide-jetbrains-v0.4.153
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0067038Z  * [new tag]               ide-jetbrains-v0.4.154     -> ide-jetbrains-v0.4.154
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0067905Z  * [new tag]               ide-jetbrains-v0.4.155     -> ide-jetbrains-v0.4.155
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0068406Z  * [new tag]               ide-jetbrains-v0.4.156     -> ide-jetbrains-v0.4.156
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0069057Z  * [new tag]               ide-jetbrains-v0.4.157     -> ide-jetbrains-v0.4.157
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0069538Z  * [new tag]               ide-jetbrains-v0.4.158     -> ide-jetbrains-v0.4.158
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0070012Z  * [new tag]               ide-jetbrains-v0.4.159     -> ide-jetbrains-v0.4.159
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0070490Z  * [new tag]               ide-jetbrains-v0.4.16      -> ide-jetbrains-v0.4.16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0070966Z  * [new tag]               ide-jetbrains-v0.4.160     -> ide-jetbrains-v0.4.160
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0071439Z  * [new tag]               ide-jetbrains-v0.4.161     -> ide-jetbrains-v0.4.161
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0071912Z  * [new tag]               ide-jetbrains-v0.4.162     -> ide-jetbrains-v0.4.162
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0072397Z  * [new tag]               ide-jetbrains-v0.4.17      -> ide-jetbrains-v0.4.17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0072875Z  * [new tag]               ide-jetbrains-v0.4.18      -> ide-jetbrains-v0.4.18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0073362Z  * [new tag]               ide-jetbrains-v0.4.19      -> ide-jetbrains-v0.4.19
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0073880Z  * [new tag]               ide-jetbrains-v0.4.2       -> ide-jetbrains-v0.4.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0074353Z  * [new tag]               ide-jetbrains-v0.4.21      -> ide-jetbrains-v0.4.21
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0074821Z  * [new tag]               ide-jetbrains-v0.4.23      -> ide-jetbrains-v0.4.23
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0075284Z  * [new tag]               ide-jetbrains-v0.4.25      -> ide-jetbrains-v0.4.25
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0075757Z  * [new tag]               ide-jetbrains-v0.4.26      -> ide-jetbrains-v0.4.26
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0076227Z  * [new tag]               ide-jetbrains-v0.4.27      -> ide-jetbrains-v0.4.27
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0076696Z  * [new tag]               ide-jetbrains-v0.4.28      -> ide-jetbrains-v0.4.28
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0077384Z  * [new tag]               ide-jetbrains-v0.4.29      -> ide-jetbrains-v0.4.29
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0077956Z  * [new tag]               ide-jetbrains-v0.4.3       -> ide-jetbrains-v0.4.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0078649Z  * [new tag]               ide-jetbrains-v0.4.30      -> ide-jetbrains-v0.4.30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0079130Z  * [new tag]               ide-jetbrains-v0.4.31      -> ide-jetbrains-v0.4.31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0079605Z  * [new tag]               ide-jetbrains-v0.4.32      -> ide-jetbrains-v0.4.32
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0080080Z  * [new tag]               ide-jetbrains-v0.4.33      -> ide-jetbrains-v0.4.33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0080553Z  * [new tag]               ide-jetbrains-v0.4.34      -> ide-jetbrains-v0.4.34
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0081029Z  * [new tag]               ide-jetbrains-v0.4.35      -> ide-jetbrains-v0.4.35
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0081500Z  * [new tag]               ide-jetbrains-v0.4.37      -> ide-jetbrains-v0.4.37
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0081968Z  * [new tag]               ide-jetbrains-v0.4.38      -> ide-jetbrains-v0.4.38
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0082439Z  * [new tag]               ide-jetbrains-v0.4.39      -> ide-jetbrains-v0.4.39
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0082920Z  * [new tag]               ide-jetbrains-v0.4.4       -> ide-jetbrains-v0.4.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0083390Z  * [new tag]               ide-jetbrains-v0.4.40      -> ide-jetbrains-v0.4.40
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0083897Z  * [new tag]               ide-jetbrains-v0.4.41      -> ide-jetbrains-v0.4.41
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0084378Z  * [new tag]               ide-jetbrains-v0.4.44      -> ide-jetbrains-v0.4.44
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0084863Z  * [new tag]               ide-jetbrains-v0.4.45      -> ide-jetbrains-v0.4.45
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0085343Z  * [new tag]               ide-jetbrains-v0.4.46      -> ide-jetbrains-v0.4.46
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0085817Z  * [new tag]               ide-jetbrains-v0.4.47      -> ide-jetbrains-v0.4.47
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0086292Z  * [new tag]               ide-jetbrains-v0.4.48      -> ide-jetbrains-v0.4.48
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0086768Z  * [new tag]               ide-jetbrains-v0.4.49      -> ide-jetbrains-v0.4.49
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0087518Z  * [new tag]               ide-jetbrains-v0.4.5       -> ide-jetbrains-v0.4.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0088209Z  * [new tag]               ide-jetbrains-v0.4.50      -> ide-jetbrains-v0.4.50
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0088694Z  * [new tag]               ide-jetbrains-v0.4.51      -> ide-jetbrains-v0.4.51
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0089171Z  * [new tag]               ide-jetbrains-v0.4.52      -> ide-jetbrains-v0.4.52
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0089644Z  * [new tag]               ide-jetbrains-v0.4.53      -> ide-jetbrains-v0.4.53
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0090114Z  * [new tag]               ide-jetbrains-v0.4.54      -> ide-jetbrains-v0.4.54
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0090586Z  * [new tag]               ide-jetbrains-v0.4.55      -> ide-jetbrains-v0.4.55
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0091054Z  * [new tag]               ide-jetbrains-v0.4.56      -> ide-jetbrains-v0.4.56
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0091531Z  * [new tag]               ide-jetbrains-v0.4.57      -> ide-jetbrains-v0.4.57
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0092002Z  * [new tag]               ide-jetbrains-v0.4.58      -> ide-jetbrains-v0.4.58
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0092487Z  * [new tag]               ide-jetbrains-v0.4.59      -> ide-jetbrains-v0.4.59
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0092956Z  * [new tag]               ide-jetbrains-v0.4.6       -> ide-jetbrains-v0.4.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0093429Z  * [new tag]               ide-jetbrains-v0.4.60      -> ide-jetbrains-v0.4.60
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0093897Z  * [new tag]               ide-jetbrains-v0.4.61      -> ide-jetbrains-v0.4.61
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0094369Z  * [new tag]               ide-jetbrains-v0.4.62      -> ide-jetbrains-v0.4.62
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0094841Z  * [new tag]               ide-jetbrains-v0.4.63      -> ide-jetbrains-v0.4.63
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0095312Z  * [new tag]               ide-jetbrains-v0.4.7       -> ide-jetbrains-v0.4.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0095779Z  * [new tag]               ide-jetbrains-v0.4.70      -> ide-jetbrains-v0.4.70
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0096248Z  * [new tag]               ide-jetbrains-v0.4.73      -> ide-jetbrains-v0.4.73
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0096720Z  * [new tag]               ide-jetbrains-v0.4.74      -> ide-jetbrains-v0.4.74
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0097549Z  * [new tag]               ide-jetbrains-v0.4.75      -> ide-jetbrains-v0.4.75
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0098033Z  * [new tag]               ide-jetbrains-v0.4.76      -> ide-jetbrains-v0.4.76
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0098506Z  * [new tag]               ide-jetbrains-v0.4.77      -> ide-jetbrains-v0.4.77
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0098982Z  * [new tag]               ide-jetbrains-v0.4.78      -> ide-jetbrains-v0.4.78
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0099456Z  * [new tag]               ide-jetbrains-v0.4.79      -> ide-jetbrains-v0.4.79
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0099935Z  * [new tag]               ide-jetbrains-v0.4.8       -> ide-jetbrains-v0.4.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0100404Z  * [new tag]               ide-jetbrains-v0.4.81      -> ide-jetbrains-v0.4.81
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0100877Z  * [new tag]               ide-jetbrains-v0.4.82      -> ide-jetbrains-v0.4.82
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0101350Z  * [new tag]               ide-jetbrains-v0.4.83      -> ide-jetbrains-v0.4.83
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0101832Z  * [new tag]               ide-jetbrains-v0.4.84      -> ide-jetbrains-v0.4.84
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0102304Z  * [new tag]               ide-jetbrains-v0.4.85      -> ide-jetbrains-v0.4.85
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0102785Z  * [new tag]               ide-jetbrains-v0.4.86      -> ide-jetbrains-v0.4.86
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0103252Z  * [new tag]               ide-jetbrains-v0.4.87      -> ide-jetbrains-v0.4.87
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0103727Z  * [new tag]               ide-jetbrains-v0.4.88      -> ide-jetbrains-v0.4.88
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0104198Z  * [new tag]               ide-jetbrains-v0.4.89      -> ide-jetbrains-v0.4.89
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0104667Z  * [new tag]               ide-jetbrains-v0.4.9       -> ide-jetbrains-v0.4.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0105132Z  * [new tag]               ide-jetbrains-v0.4.90      -> ide-jetbrains-v0.4.90
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0105606Z  * [new tag]               ide-jetbrains-v0.4.91      -> ide-jetbrains-v0.4.91
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0106089Z  * [new tag]               ide-jetbrains-v0.4.92      -> ide-jetbrains-v0.4.92
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0106702Z  * [new tag]               ide-jetbrains-v0.4.93      -> ide-jetbrains-v0.4.93
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0107410Z  * [new tag]               ide-jetbrains-v0.4.94      -> ide-jetbrains-v0.4.94
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0108068Z  * [new tag]               ide-jetbrains-v0.4.95      -> ide-jetbrains-v0.4.95
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0108554Z  * [new tag]               ide-jetbrains-v0.4.96      -> ide-jetbrains-v0.4.96
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0109024Z  * [new tag]               ide-jetbrains-v0.4.97      -> ide-jetbrains-v0.4.97
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0109494Z  * [new tag]               ide-jetbrains-v0.4.98      -> ide-jetbrains-v0.4.98
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0109966Z  * [new tag]               ide-jetbrains-v0.4.99      -> ide-jetbrains-v0.4.99
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0110445Z  * [new tag]               ide-vscode-v0.20.0         -> ide-vscode-v0.20.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0110900Z  * [new tag]               ide-vscode-v0.21.0         -> ide-vscode-v0.21.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0111362Z  * [new tag]               ide-vscode-v0.22.0         -> ide-vscode-v0.22.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0111812Z  * [new tag]               ide-vscode-v0.22.1         -> ide-vscode-v0.22.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0112256Z  * [new tag]               ide-vscode-v0.23.0         -> ide-vscode-v0.23.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0112703Z  * [new tag]               ide-vscode-v0.24.0         -> ide-vscode-v0.24.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0113149Z  * [new tag]               ide-vscode-v0.25.0         -> ide-vscode-v0.25.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0113597Z  * [new tag]               ide-vscode-v0.26.0         -> ide-vscode-v0.26.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0114049Z  * [new tag]               ide-vscode-v0.27.0         -> ide-vscode-v0.27.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0114488Z  * [new tag]               ide-vscode-v0.28.0         -> ide-vscode-v0.28.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0114933Z  * [new tag]               ide-vscode-v0.29.0         -> ide-vscode-v0.29.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0115380Z  * [new tag]               ide-vscode-v0.30.0         -> ide-vscode-v0.30.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0115987Z  * [new tag]               ide-vscode-v0.30.1         -> ide-vscode-v0.30.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0116435Z  * [new tag]               ide-vscode-v0.31.0         -> ide-vscode-v0.31.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0116878Z  * [new tag]               ide-vscode-v0.31.1         -> ide-vscode-v0.31.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0117485Z  * [new tag]               ide-vscode-v0.32.0         -> ide-vscode-v0.32.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0117945Z  * [new tag]               ide-vscode-v0.32.1         -> ide-vscode-v0.32.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0118400Z  * [new tag]               ide-vscode-v0.33.0         -> ide-vscode-v0.33.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0118845Z  * [new tag]               ide-vscode-v0.33.1         -> ide-vscode-v0.33.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0119292Z  * [new tag]               ide-vscode-v0.33.2         -> ide-vscode-v0.33.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0119738Z  * [new tag]               ide-vscode-v0.33.3         -> ide-vscode-v0.33.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0120187Z  * [new tag]               ide-vscode-v0.33.5         -> ide-vscode-v0.33.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0120641Z  * [new tag]               ide-vscode-v0.33.7         -> ide-vscode-v0.33.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0121083Z  * [new tag]               ide-vscode-v0.33.8         -> ide-vscode-v0.33.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0121538Z  * [new tag]               ide-vscode-v0.33.9         -> ide-vscode-v0.33.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0121996Z  * [new tag]               ide-vscode-v0.34.0         -> ide-vscode-v0.34.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0122447Z  * [new tag]               ide-vscode-v0.35.0         -> ide-vscode-v0.35.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0122900Z  * [new tag]               ide-vscode-v0.36.0         -> ide-vscode-v0.36.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0123343Z  * [new tag]               ide-vscode-v0.36.1         -> ide-vscode-v0.36.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0123807Z  * [new tag]               ide-vscode-v0.36.10        -> ide-vscode-v0.36.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0124274Z  * [new tag]               ide-vscode-v0.36.11        -> ide-vscode-v0.36.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0192078Z  * [new tag]               ide-vscode-v0.36.12        -> ide-vscode-v0.36.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0193175Z  * [new tag]               ide-vscode-v0.36.13        -> ide-vscode-v0.36.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0193884Z  * [new tag]               ide-vscode-v0.36.14        -> ide-vscode-v0.36.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0194408Z  * [new tag]               ide-vscode-v0.36.15        -> ide-vscode-v0.36.15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0194933Z  * [new tag]               ide-vscode-v0.36.16        -> ide-vscode-v0.36.16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0195448Z  * [new tag]               ide-vscode-v0.36.2         -> ide-vscode-v0.36.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0195919Z  * [new tag]               ide-vscode-v0.36.3         -> ide-vscode-v0.36.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0196374Z  * [new tag]               ide-vscode-v0.36.4         -> ide-vscode-v0.36.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0196830Z  * [new tag]               ide-vscode-v0.36.6         -> ide-vscode-v0.36.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0197464Z  * [new tag]               ide-vscode-v0.36.9         -> ide-vscode-v0.36.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0197985Z  * [new tag]               ide-vscode-v0.37.0         -> ide-vscode-v0.37.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0198474Z  * [new tag]               ide-vscode-v0.37.1         -> ide-vscode-v0.37.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0198947Z  * [new tag]               ide-vscode-v0.37.10        -> ide-vscode-v0.37.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0199430Z  * [new tag]               ide-vscode-v0.37.100       -> ide-vscode-v0.37.100
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0199897Z  * [new tag]               ide-vscode-v0.37.101       -> ide-vscode-v0.37.101
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0200356Z  * [new tag]               ide-vscode-v0.37.103       -> ide-vscode-v0.37.103
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0200813Z  * [new tag]               ide-vscode-v0.37.104       -> ide-vscode-v0.37.104
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0201272Z  * [new tag]               ide-vscode-v0.37.105       -> ide-vscode-v0.37.105
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0201731Z  * [new tag]               ide-vscode-v0.37.106       -> ide-vscode-v0.37.106
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0202191Z  * [new tag]               ide-vscode-v0.37.107       -> ide-vscode-v0.37.107
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0202903Z  * [new tag]               ide-vscode-v0.37.108       -> ide-vscode-v0.37.108
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0203369Z  * [new tag]               ide-vscode-v0.37.109       -> ide-vscode-v0.37.109
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0203835Z  * [new tag]               ide-vscode-v0.37.11        -> ide-vscode-v0.37.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0204315Z  * [new tag]               ide-vscode-v0.37.110       -> ide-vscode-v0.37.110
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0204783Z  * [new tag]               ide-vscode-v0.37.111       -> ide-vscode-v0.37.111
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0205243Z  * [new tag]               ide-vscode-v0.37.112       -> ide-vscode-v0.37.112
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0205696Z  * [new tag]               ide-vscode-v0.37.113       -> ide-vscode-v0.37.113
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0206152Z  * [new tag]               ide-vscode-v0.37.114       -> ide-vscode-v0.37.114
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0206617Z  * [new tag]               ide-vscode-v0.37.116       -> ide-vscode-v0.37.116
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0207083Z  * [new tag]               ide-vscode-v0.37.117       -> ide-vscode-v0.37.117
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0207881Z  * [new tag]               ide-vscode-v0.37.118       -> ide-vscode-v0.37.118
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0208406Z  * [new tag]               ide-vscode-v0.37.119       -> ide-vscode-v0.37.119
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0208872Z  * [new tag]               ide-vscode-v0.37.12        -> ide-vscode-v0.37.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0209335Z  * [new tag]               ide-vscode-v0.37.120       -> ide-vscode-v0.37.120
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0209791Z  * [new tag]               ide-vscode-v0.37.121       -> ide-vscode-v0.37.121
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0210432Z  * [new tag]               ide-vscode-v0.37.123       -> ide-vscode-v0.37.123
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0211307Z  * [new tag]               ide-vscode-v0.37.124       -> ide-vscode-v0.37.124
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0212148Z  * [new tag]               ide-vscode-v0.37.125       -> ide-vscode-v0.37.125
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0212979Z  * [new tag]               ide-vscode-v0.37.126       -> ide-vscode-v0.37.126
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0214136Z  * [new tag]               ide-vscode-v0.37.127       -> ide-vscode-v0.37.127
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0215022Z  * [new tag]               ide-vscode-v0.37.128       -> ide-vscode-v0.37.128
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0215638Z  * [new tag]               ide-vscode-v0.37.13        -> ide-vscode-v0.37.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0216388Z  * [new tag]               ide-vscode-v0.37.130       -> ide-vscode-v0.37.130
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0217006Z  * [new tag]               ide-vscode-v0.37.131       -> ide-vscode-v0.37.131
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0217934Z  * [new tag]               ide-vscode-v0.37.132       -> ide-vscode-v0.37.132
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0218424Z  * [new tag]               ide-vscode-v0.37.133       -> ide-vscode-v0.37.133
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0218889Z  * [new tag]               ide-vscode-v0.37.134       -> ide-vscode-v0.37.134
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0219357Z  * [new tag]               ide-vscode-v0.37.135       -> ide-vscode-v0.37.135
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0219839Z  * [new tag]               ide-vscode-v0.37.136       -> ide-vscode-v0.37.136
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0220672Z  * [new tag]               ide-vscode-v0.37.137       -> ide-vscode-v0.37.137
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0221159Z  * [new tag]               ide-vscode-v0.37.138       -> ide-vscode-v0.37.138
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0221623Z  * [new tag]               ide-vscode-v0.37.139       -> ide-vscode-v0.37.139
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0222121Z  * [new tag]               ide-vscode-v0.37.14        -> ide-vscode-v0.37.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0222637Z  * [new tag]               ide-vscode-v0.37.140       -> ide-vscode-v0.37.140
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0223231Z  * [new tag]               ide-vscode-v0.37.141       -> ide-vscode-v0.37.141
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0223713Z  * [new tag]               ide-vscode-v0.37.142       -> ide-vscode-v0.37.142
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0224204Z  * [new tag]               ide-vscode-v0.37.143       -> ide-vscode-v0.37.143
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0224677Z  * [new tag]               ide-vscode-v0.37.144       -> ide-vscode-v0.37.144
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0225368Z  * [new tag]               ide-vscode-v0.37.15        -> ide-vscode-v0.37.15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0225869Z  * [new tag]               ide-vscode-v0.37.16        -> ide-vscode-v0.37.16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0226343Z  * [new tag]               ide-vscode-v0.37.17        -> ide-vscode-v0.37.17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0226803Z  * [new tag]               ide-vscode-v0.37.18        -> ide-vscode-v0.37.18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0227914Z  * [new tag]               ide-vscode-v0.37.2         -> ide-vscode-v0.37.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0228661Z  * [new tag]               ide-vscode-v0.37.20        -> ide-vscode-v0.37.20
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0229152Z  * [new tag]               ide-vscode-v0.37.3         -> ide-vscode-v0.37.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0229624Z  * [new tag]               ide-vscode-v0.37.30        -> ide-vscode-v0.37.30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0230097Z  * [new tag]               ide-vscode-v0.37.31        -> ide-vscode-v0.37.31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0230580Z  * [new tag]               ide-vscode-v0.37.33        -> ide-vscode-v0.37.33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0231059Z  * [new tag]               ide-vscode-v0.37.34        -> ide-vscode-v0.37.34
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0231516Z  * [new tag]               ide-vscode-v0.37.35        -> ide-vscode-v0.37.35
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0231973Z  * [new tag]               ide-vscode-v0.37.36        -> ide-vscode-v0.37.36
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0232426Z  * [new tag]               ide-vscode-v0.37.37        -> ide-vscode-v0.37.37
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0232881Z  * [new tag]               ide-vscode-v0.37.38        -> ide-vscode-v0.37.38
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0233341Z  * [new tag]               ide-vscode-v0.37.39        -> ide-vscode-v0.37.39
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0233811Z  * [new tag]               ide-vscode-v0.37.4         -> ide-vscode-v0.37.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0234284Z  * [new tag]               ide-vscode-v0.37.42        -> ide-vscode-v0.37.42
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0234740Z  * [new tag]               ide-vscode-v0.37.44        -> ide-vscode-v0.37.44
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0235475Z  * [new tag]               ide-vscode-v0.37.45        -> ide-vscode-v0.37.45
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0236074Z  * [new tag]               ide-vscode-v0.37.46        -> ide-vscode-v0.37.46
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0236570Z  * [new tag]               ide-vscode-v0.37.47        -> ide-vscode-v0.37.47
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0237024Z  * [new tag]               ide-vscode-v0.37.48        -> ide-vscode-v0.37.48
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0237758Z  * [new tag]               ide-vscode-v0.37.49        -> ide-vscode-v0.37.49
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0238235Z  * [new tag]               ide-vscode-v0.37.5         -> ide-vscode-v0.37.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0238706Z  * [new tag]               ide-vscode-v0.37.50        -> ide-vscode-v0.37.50
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0239166Z  * [new tag]               ide-vscode-v0.37.51        -> ide-vscode-v0.37.51
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0239625Z  * [new tag]               ide-vscode-v0.37.52        -> ide-vscode-v0.37.52
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0240084Z  * [new tag]               ide-vscode-v0.37.53        -> ide-vscode-v0.37.53
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0240559Z  * [new tag]               ide-vscode-v0.37.54        -> ide-vscode-v0.37.54
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0241016Z  * [new tag]               ide-vscode-v0.37.55        -> ide-vscode-v0.37.55
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0241473Z  * [new tag]               ide-vscode-v0.37.56        -> ide-vscode-v0.37.56
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0241932Z  * [new tag]               ide-vscode-v0.37.57        -> ide-vscode-v0.37.57
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0242392Z  * [new tag]               ide-vscode-v0.37.58        -> ide-vscode-v0.37.58
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0242850Z  * [new tag]               ide-vscode-v0.37.59        -> ide-vscode-v0.37.59
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0243311Z  * [new tag]               ide-vscode-v0.37.6         -> ide-vscode-v0.37.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0243772Z  * [new tag]               ide-vscode-v0.37.60        -> ide-vscode-v0.37.60
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0244241Z  * [new tag]               ide-vscode-v0.37.61        -> ide-vscode-v0.37.61
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0244695Z  * [new tag]               ide-vscode-v0.37.63        -> ide-vscode-v0.37.63
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0245326Z  * [new tag]               ide-vscode-v0.37.64        -> ide-vscode-v0.37.64
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0245792Z  * [new tag]               ide-vscode-v0.37.65        -> ide-vscode-v0.37.65
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0246250Z  * [new tag]               ide-vscode-v0.37.66        -> ide-vscode-v0.37.66
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0246705Z  * [new tag]               ide-vscode-v0.37.67        -> ide-vscode-v0.37.67
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0247157Z  * [new tag]               ide-vscode-v0.37.68        -> ide-vscode-v0.37.68
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0247959Z  * [new tag]               ide-vscode-v0.37.69        -> ide-vscode-v0.37.69
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0248430Z  * [new tag]               ide-vscode-v0.37.7         -> ide-vscode-v0.37.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0248897Z  * [new tag]               ide-vscode-v0.37.70        -> ide-vscode-v0.37.70
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0249359Z  * [new tag]               ide-vscode-v0.37.71        -> ide-vscode-v0.37.71
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0249837Z  * [new tag]               ide-vscode-v0.37.72        -> ide-vscode-v0.37.72
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0250289Z  * [new tag]               ide-vscode-v0.37.73        -> ide-vscode-v0.37.73
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0250742Z  * [new tag]               ide-vscode-v0.37.75        -> ide-vscode-v0.37.75
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0251199Z  * [new tag]               ide-vscode-v0.37.76        -> ide-vscode-v0.37.76
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0251654Z  * [new tag]               ide-vscode-v0.37.77        -> ide-vscode-v0.37.77
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0252114Z  * [new tag]               ide-vscode-v0.37.78        -> ide-vscode-v0.37.78
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0252571Z  * [new tag]               ide-vscode-v0.37.79        -> ide-vscode-v0.37.79
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0253029Z  * [new tag]               ide-vscode-v0.37.8         -> ide-vscode-v0.37.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0253491Z  * [new tag]               ide-vscode-v0.37.80        -> ide-vscode-v0.37.80
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0253954Z  * [new tag]               ide-vscode-v0.37.81        -> ide-vscode-v0.37.81
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0254568Z  * [new tag]               ide-vscode-v0.37.82        -> ide-vscode-v0.37.82
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0255030Z  * [new tag]               ide-vscode-v0.37.83        -> ide-vscode-v0.37.83
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0255491Z  * [new tag]               ide-vscode-v0.37.84        -> ide-vscode-v0.37.84
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0255948Z  * [new tag]               ide-vscode-v0.37.85        -> ide-vscode-v0.37.85
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0256409Z  * [new tag]               ide-vscode-v0.37.86        -> ide-vscode-v0.37.86
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0256864Z  * [new tag]               ide-vscode-v0.37.87        -> ide-vscode-v0.37.87
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0257618Z  * [new tag]               ide-vscode-v0.37.88        -> ide-vscode-v0.37.88
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0258093Z  * [new tag]               ide-vscode-v0.37.89        -> ide-vscode-v0.37.89
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0258553Z  * [new tag]               ide-vscode-v0.37.9         -> ide-vscode-v0.37.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0259027Z  * [new tag]               ide-vscode-v0.37.91        -> ide-vscode-v0.37.91
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0259507Z  * [new tag]               ide-vscode-v0.37.92        -> ide-vscode-v0.37.92
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0259965Z  * [new tag]               ide-vscode-v0.37.93        -> ide-vscode-v0.37.93
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0260422Z  * [new tag]               ide-vscode-v0.37.94        -> ide-vscode-v0.37.94
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0260874Z  * [new tag]               ide-vscode-v0.37.95        -> ide-vscode-v0.37.95
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0261347Z  * [new tag]               ide-vscode-v0.37.96        -> ide-vscode-v0.37.96
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0261805Z  * [new tag]               ide-vscode-v0.37.97        -> ide-vscode-v0.37.97
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0262260Z  * [new tag]               ide-vscode-v0.37.98        -> ide-vscode-v0.37.98
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0262714Z  * [new tag]               ide-vscode-v0.37.99        -> ide-vscode-v0.37.99
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0263178Z  * [new tag]               ide-vscode-v0.9.0          -> ide-vscode-v0.9.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0263938Z  * [new tag]               internal-binaries-android-v20260614b -> internal-binaries-android-v20260614b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0264655Z  * [new tag]               internal-binaries-android-v20260614c -> internal-binaries-android-v20260614c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0265362Z  * [new tag]               internal-binaries-android-v20260615 -> internal-binaries-android-v20260615
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0266053Z  * [new tag]               internal-binaries-android-v20260615b -> internal-binaries-android-v20260615b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0266742Z  * [new tag]               internal-binaries-android-v20260615c -> internal-binaries-android-v20260615c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0267701Z  * [new tag]               internal-binaries-android-v20260615d -> internal-binaries-android-v20260615d
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0268746Z  * [new tag]               internal-binaries-android-v20260617 -> internal-binaries-android-v20260617
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0269489Z  * [new tag]               internal-binaries-android-v20260617b -> internal-binaries-android-v20260617b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0270209Z  * [new tag]               internal-binaries-android-v20260617c -> internal-binaries-android-v20260617c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0270904Z  * [new tag]               internal-binaries-android-v20260619 -> internal-binaries-android-v20260619
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0271586Z  * [new tag]               internal-binaries-android-v20260620 -> internal-binaries-android-v20260620
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0272582Z  * [new tag]               internal-binaries-android-v20260622 -> internal-binaries-android-v20260622
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0273578Z  * [new tag]               internal-binaries-android-v20260622b -> internal-binaries-android-v20260622b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0274302Z  * [new tag]               internal-binaries-android-v20260622c -> internal-binaries-android-v20260622c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0274994Z  * [new tag]               internal-binaries-android-v20260622d -> internal-binaries-android-v20260622d
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0275686Z  * [new tag]               internal-binaries-android-v20260622e -> internal-binaries-android-v20260622e
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0276566Z  * [new tag]               internal-binaries-android-v20260623 -> internal-binaries-android-v20260623
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0277405Z  * [new tag]               internal-binaries-android-v20260623b -> internal-binaries-android-v20260623b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0278103Z  * [new tag]               internal-binaries-android-v20260624 -> internal-binaries-android-v20260624
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0278782Z  * [new tag]               internal-binaries-android-v20260628 -> internal-binaries-android-v20260628
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0279464Z  * [new tag]               internal-binaries-android-v20260628b -> internal-binaries-android-v20260628b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0280186Z  * [new tag]               internal-binaries-android-v20260628c -> internal-binaries-android-v20260628c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0281025Z  * [new tag]               internal-binaries-android-v20260628d -> internal-binaries-android-v20260628d
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0281711Z  * [new tag]               internal-binaries-android-v20260628e -> internal-binaries-android-v20260628e
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0282420Z  * [new tag]               internal-binaries-android-v20260629b -> internal-binaries-android-v20260629b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0283102Z  * [new tag]               internal-binaries-android-v20260629c -> internal-binaries-android-v20260629c
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0283781Z  * [new tag]               internal-binaries-android-v20260629d -> internal-binaries-android-v20260629d
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0284462Z  * [new tag]               internal-binaries-android-v20260629e -> internal-binaries-android-v20260629e
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0285144Z  * [new tag]               internal-binaries-android-v20260629f -> internal-binaries-android-v20260629f
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0285821Z  * [new tag]               internal-binaries-android-v20260629g -> internal-binaries-android-v20260629g
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0286497Z  * [new tag]               internal-binaries-android-v20260629h -> internal-binaries-android-v20260629h
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0287648Z  * [new tag]               internal-binaries-android-v20260629i -> internal-binaries-android-v20260629i
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0288366Z  * [new tag]               internal-binaries-android-v20260703 -> internal-binaries-android-v20260703
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0289053Z  * [new tag]               internal-binaries-android-v20260711 -> internal-binaries-android-v20260711
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0289726Z  * [new tag]               internal-binaries-android-v20261008 -> internal-binaries-android-v20261008
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0290479Z  * [new tag]               python-agent-sdk-v0.1.0    -> python-agent-sdk-v0.1.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0291420Z  * [new tag]               python-agent-sdk-v0.2.0    -> python-agent-sdk-v0.2.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0292296Z  * [new tag]               python-agent-sdk-v0.2.1    -> python-agent-sdk-v0.2.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0293217Z  * [new tag]               python-agent-sdk-v0.2.2    -> python-agent-sdk-v0.2.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0293786Z  * [new tag]               python-agent-sdk-v0.2.3    -> python-agent-sdk-v0.2.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0294304Z  * [new tag]               python-agent-sdk-v0.2.4    -> python-agent-sdk-v0.2.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0294797Z  * [new tag]               python-agent-sdk-v0.2.5    -> python-agent-sdk-v0.2.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0295286Z  * [new tag]               python-agent-sdk-v0.2.6    -> python-agent-sdk-v0.2.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0295776Z  * [new tag]               python-agent-sdk-v0.2.7    -> python-agent-sdk-v0.2.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0296260Z  * [new tag]               python-agent-sdk-v0.2.8    -> python-agent-sdk-v0.2.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0296755Z  * [new tag]               python-agent-sdk-v0.2.9    -> python-agent-sdk-v0.2.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0297484Z  * [new tag]               release-candidate-cli-v0.166.11 -> release-candidate-cli-v0.166.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0298157Z  * [new tag]               release-candidate-cli-v0.166.11-rc2 -> release-candidate-cli-v0.166.11-rc2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0298749Z  * [new tag]               v-npm-0-162-172            -> v-npm-0-162-172
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0299409Z  * [new tag]               v-npm-0-162-172b           -> v-npm-0-162-172b
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0299855Z  * [new tag]               v-npm-0-162-180            -> v-npm-0-162-180
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0300290Z  * [new tag]               v-npm-0-162-181            -> v-npm-0-162-181
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0300719Z  * [new tag]               v-npm-0-162-182            -> v-npm-0-162-182
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0301157Z  * [new tag]               v-npm-0-162-183            -> v-npm-0-162-183
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0301586Z  * [new tag]               v-npm-0-162-184            -> v-npm-0-162-184
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0302012Z  * [new tag]               v-npm-0-162-185            -> v-npm-0-162-185
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0302437Z  * [new tag]               v-npm-0-162-187            -> v-npm-0-162-187
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0302862Z  * [new tag]               v-npm-0-162-188            -> v-npm-0-162-188
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0303284Z  * [new tag]               v-npm-0-162-189            -> v-npm-0-162-189
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0303803Z  * [new tag]               v-npm-0-162-190            -> v-npm-0-162-190
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0304492Z  * [new tag]               v-npm-0-162-191            -> v-npm-0-162-191
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0304948Z  * [new tag]               v-npm-0-162-192            -> v-npm-0-162-192
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0305377Z  * [new tag]               v-npm-0-162-194            -> v-npm-0-162-194
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0305796Z  * [new tag]               v-npm-0-162-195            -> v-npm-0-162-195
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0306220Z  * [new tag]               v-npm-0-162-196            -> v-npm-0-162-196
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0306643Z  * [new tag]               v-npm-0-162-197            -> v-npm-0-162-197
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0307064Z  * [new tag]               v-npm-0-162-198            -> v-npm-0-162-198
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0307844Z  * [new tag]               v-npm-0-162-199            -> v-npm-0-162-199
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0308294Z  * [new tag]               v-npm-0-162-200            -> v-npm-0-162-200
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0309312Z  * [new tag]               v-npm-0-163-0              -> v-npm-0-163-0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0309762Z  * [new tag]               v-npm-0-163-1              -> v-npm-0-163-1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0310189Z  * [new tag]               v-npm-0-163-2              -> v-npm-0-163-2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0310608Z  * [new tag]               v-npm-0-163-3              -> v-npm-0-163-3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0311025Z  * [new tag]               v-npm-0-163-4              -> v-npm-0-163-4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0311451Z  * [new tag]               v-npm-0-163-5              -> v-npm-0-163-5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0311872Z  * [new tag]               v-npm-0-163-6              -> v-npm-0-163-6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0312284Z  * [new tag]               v-npm-0-163-7              -> v-npm-0-163-7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0312706Z  * [new tag]               v-npm-0-163-8              -> v-npm-0-163-8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0313118Z  * [new tag]               v-npm-0-164-0              -> v-npm-0-164-0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0313539Z  * [new tag]               v-npm-0-165-0              -> v-npm-0-165-0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0314132Z  * [new tag]               v-npm-0-165-1              -> v-npm-0-165-1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0314553Z  * [new tag]               v-npm-0-165-10             -> v-npm-0-165-10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0314979Z  * [new tag]               v-npm-0-165-2              -> v-npm-0-165-2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0315391Z  * [new tag]               v-npm-0-165-3              -> v-npm-0-165-3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0315901Z  * [new tag]               v-npm-0-165-4              -> v-npm-0-165-4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0316443Z  * [new tag]               v-npm-0-165-5              -> v-npm-0-165-5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0316865Z  * [new tag]               v-npm-0-165-6              -> v-npm-0-165-6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0317433Z  * [new tag]               v-npm-0-165-7              -> v-npm-0-165-7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0317853Z  * [new tag]               v-npm-0-165-8              -> v-npm-0-165-8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0318442Z  * [new tag]               v-npm-0-165-9              -> v-npm-0-165-9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0318867Z  * [new tag]               v-npm-0-166-0              -> v-npm-0-166-0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0319285Z  * [new tag]               v-npm-0-166-1              -> v-npm-0-166-1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0319707Z  * [new tag]               v-npm-0-166-10             -> v-npm-0-166-10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0320144Z  * [new tag]               v-npm-0-166-100            -> v-npm-0-166-100
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0320575Z  * [new tag]               v-npm-0-166-11             -> v-npm-0-166-11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0320996Z  * [new tag]               v-npm-0-166-13             -> v-npm-0-166-13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0321415Z  * [new tag]               v-npm-0-166-14             -> v-npm-0-166-14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0321830Z  * [new tag]               v-npm-0-166-15             -> v-npm-0-166-15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0322249Z  * [new tag]               v-npm-0-166-16             -> v-npm-0-166-16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0322668Z  * [new tag]               v-npm-0-166-17             -> v-npm-0-166-17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0323087Z  * [new tag]               v-npm-0-166-18             -> v-npm-0-166-18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0323510Z  * [new tag]               v-npm-0-166-19             -> v-npm-0-166-19
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0323932Z  * [new tag]               v-npm-0-166-2              -> v-npm-0-166-2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0324350Z  * [new tag]               v-npm-0-166-20             -> v-npm-0-166-20
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0324758Z  * [new tag]               v-npm-0-166-21             -> v-npm-0-166-21
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0325172Z  * [new tag]               v-npm-0-166-22             -> v-npm-0-166-22
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0325587Z  * [new tag]               v-npm-0-166-23             -> v-npm-0-166-23
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0325996Z  * [new tag]               v-npm-0-166-24             -> v-npm-0-166-24
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0326405Z  * [new tag]               v-npm-0-166-25             -> v-npm-0-166-25
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0326816Z  * [new tag]               v-npm-0-166-26             -> v-npm-0-166-26
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0327712Z  * [new tag]               v-npm-0-166-27             -> v-npm-0-166-27
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0328143Z  * [new tag]               v-npm-0-166-28             -> v-npm-0-166-28
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0328556Z  * [new tag]               v-npm-0-166-29             -> v-npm-0-166-29
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0328970Z  * [new tag]               v-npm-0-166-3              -> v-npm-0-166-3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0329386Z  * [new tag]               v-npm-0-166-30             -> v-npm-0-166-30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0329827Z  * [new tag]               v-npm-0-166-31             -> v-npm-0-166-31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0330247Z  * [new tag]               v-npm-0-166-32             -> v-npm-0-166-32
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0330658Z  * [new tag]               v-npm-0-166-33             -> v-npm-0-166-33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0331067Z  * [new tag]               v-npm-0-166-34             -> v-npm-0-166-34
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0331475Z  * [new tag]               v-npm-0-166-36             -> v-npm-0-166-36
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0331898Z  * [new tag]               v-npm-0-166-37             -> v-npm-0-166-37
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0332309Z  * [new tag]               v-npm-0-166-38             -> v-npm-0-166-38
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0332720Z  * [new tag]               v-npm-0-166-39             -> v-npm-0-166-39
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0333133Z  * [new tag]               v-npm-0-166-4              -> v-npm-0-166-4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0333554Z  * [new tag]               v-npm-0-166-40             -> v-npm-0-166-40
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0333965Z  * [new tag]               v-npm-0-166-41             -> v-npm-0-166-41
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0334382Z  * [new tag]               v-npm-0-166-42             -> v-npm-0-166-42
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0334795Z  * [new tag]               v-npm-0-166-43             -> v-npm-0-166-43
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0335207Z  * [new tag]               v-npm-0-166-44             -> v-npm-0-166-44
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0335623Z  * [new tag]               v-npm-0-166-45             -> v-npm-0-166-45
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0336197Z  * [new tag]               v-npm-0-166-46             -> v-npm-0-166-46
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0336615Z  * [new tag]               v-npm-0-166-47             -> v-npm-0-166-47
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0337034Z  * [new tag]               v-npm-0-166-48             -> v-npm-0-166-48
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0337631Z  * [new tag]               v-npm-0-166-49             -> v-npm-0-166-49
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0338052Z  * [new tag]               v-npm-0-166-5              -> v-npm-0-166-5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0338725Z  * [new tag]               v-npm-0-166-50             -> v-npm-0-166-50
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0339167Z  * [new tag]               v-npm-0-166-51             -> v-npm-0-166-51
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0339578Z  * [new tag]               v-npm-0-166-52             -> v-npm-0-166-52
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0339991Z  * [new tag]               v-npm-0-166-53             -> v-npm-0-166-53
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0340406Z  * [new tag]               v-npm-0-166-54             -> v-npm-0-166-54
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0340843Z  * [new tag]               v-npm-0-166-55             -> v-npm-0-166-55
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0341260Z  * [new tag]               v-npm-0-166-56             -> v-npm-0-166-56
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0341675Z  * [new tag]               v-npm-0-166-57             -> v-npm-0-166-57
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0342087Z  * [new tag]               v-npm-0-166-58             -> v-npm-0-166-58
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0342503Z  * [new tag]               v-npm-0-166-59             -> v-npm-0-166-59
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0342916Z  * [new tag]               v-npm-0-166-6              -> v-npm-0-166-6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0343332Z  * [new tag]               v-npm-0-166-60             -> v-npm-0-166-60
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0343739Z  * [new tag]               v-npm-0-166-62             -> v-npm-0-166-62
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0344158Z  * [new tag]               v-npm-0-166-63             -> v-npm-0-166-63
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0344572Z  * [new tag]               v-npm-0-166-64             -> v-npm-0-166-64
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0345170Z  * [new tag]               v-npm-0-166-65             -> v-npm-0-166-65
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0345584Z  * [new tag]               v-npm-0-166-66             -> v-npm-0-166-66
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0345999Z  * [new tag]               v-npm-0-166-67             -> v-npm-0-166-67
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0346403Z  * [new tag]               v-npm-0-166-68             -> v-npm-0-166-68
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0346810Z  * [new tag]               v-npm-0-166-69             -> v-npm-0-166-69
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0347507Z  * [new tag]               v-npm-0-166-7              -> v-npm-0-166-7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0348241Z  * [new tag]               v-npm-0-166-70             -> v-npm-0-166-70
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0348683Z  * [new tag]               v-npm-0-166-71             -> v-npm-0-166-71
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0349177Z  * [new tag]               v-npm-0-166-72             -> v-npm-0-166-72
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0349731Z  * [new tag]               v-npm-0-166-74             -> v-npm-0-166-74
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0350169Z  * [new tag]               v-npm-0-166-75             -> v-npm-0-166-75
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0350772Z  * [new tag]               v-npm-0-166-76             -> v-npm-0-166-76
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0351193Z  * [new tag]               v-npm-0-166-77             -> v-npm-0-166-77
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0351699Z  * [new tag]               v-npm-0-166-78             -> v-npm-0-166-78
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0352217Z  * [new tag]               v-npm-0-166-79             -> v-npm-0-166-79
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0352644Z  * [new tag]               v-npm-0-166-80             -> v-npm-0-166-80
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0353261Z  * [new tag]               v-npm-0-166-81             -> v-npm-0-166-81
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0353698Z  * [new tag]               v-npm-0-166-82             -> v-npm-0-166-82
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0354124Z  * [new tag]               v-npm-0-166-83             -> v-npm-0-166-83
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0354541Z  * [new tag]               v-npm-0-166-84             -> v-npm-0-166-84
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0354963Z  * [new tag]               v-npm-0-166-85             -> v-npm-0-166-85
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0355553Z  * [new tag]               v-npm-0-166-86             -> v-npm-0-166-86
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0355966Z  * [new tag]               v-npm-0-166-87             -> v-npm-0-166-87
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0356385Z  * [new tag]               v-npm-0-166-88             -> v-npm-0-166-88
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0356797Z  * [new tag]               v-npm-0-166-89             -> v-npm-0-166-89
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0357370Z  * [new tag]               v-npm-0-166-9              -> v-npm-0-166-9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0357808Z  * [new tag]               v-npm-0-166-90             -> v-npm-0-166-90
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0358375Z  * [new tag]               v-npm-0-166-91             -> v-npm-0-166-91
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0358996Z  * [new tag]               v-npm-0-166-92             -> v-npm-0-166-92
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0359555Z  * [new tag]               v-npm-0-166-93             -> v-npm-0-166-93
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0360327Z  * [new tag]               v-npm-0-166-94             -> v-npm-0-166-94
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0361102Z  * [new tag]               v-npm-0-166-95             -> v-npm-0-166-95
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0361831Z  * [new tag]               v-npm-0-166-96             -> v-npm-0-166-96
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0362553Z  * [new tag]               v-npm-0-166-97             -> v-npm-0-166-97
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0363230Z  * [new tag]               v-npm-0-166-98             -> v-npm-0-166-98
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0363928Z  * [new tag]               v-npm-0-166-99             -> v-npm-0-166-99
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0364616Z  * [new tag]               v0.158.0                   -> v0.158.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0365270Z  * [new tag]               v0.159.0                   -> v0.159.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0365931Z  * [new tag]               v0.160.0                   -> v0.160.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0366625Z  * [new tag]               v0.162.172                 -> v0.162.172
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0367564Z  * [new tag]               v0.162.173                 -> v0.162.173
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0368617Z  * [new tag]               v0.162.192                 -> v0.162.192
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0369329Z  * [new tag]               v0.2.0                     -> v0.2.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0370006Z  * [new tag]               v0.20.0                    -> v0.20.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0370684Z  * [new tag]               v0.21.0                    -> v0.21.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0371101Z  * [new tag]               v0.22.0                    -> v0.22.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0371791Z  * [new tag]               v0.26.1                    -> v0.26.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0372391Z  * [new tag]               v0.26.2                    -> v0.26.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0373036Z  * [new tag]               v0.34.0                    -> v0.34.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0373449Z  * [new tag]               v0.34.10                   -> v0.34.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0373968Z  * [new tag]               v0.34.7                    -> v0.34.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0374464Z  * [new tag]               v0.34.8                    -> v0.34.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0374859Z  * [new tag]               v0.34.9                    -> v0.34.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0375428Z  * [new tag]               v0.35.0                    -> v0.35.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0375837Z  * [new tag]               v0.35.1                    -> v0.35.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0376211Z  * [new tag]               v0.35.2                    -> v0.35.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0376771Z  * [new tag]               v0.35.3                    -> v0.35.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0377399Z  * [new tag]               v0.35.4                    -> v0.35.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0378031Z  * [new tag]               v0.37.10                   -> v0.37.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0378439Z  * [new tag]               v0.37.11                   -> v0.37.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0378818Z  * [new tag]               v0.37.12                   -> v0.37.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0379406Z  * [new tag]               v0.37.8                    -> v0.37.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0379798Z  * [new tag]               v0.37.9                    -> v0.37.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0380595Z  * [new tag]               v0.38.0                    -> v0.38.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0380996Z  * [new tag]               v0.38.1                    -> v0.38.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0381443Z  * [new tag]               v0.40.0                    -> v0.40.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0381967Z  * [new tag]               v0.40.1                    -> v0.40.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0382348Z  * [new tag]               v0.40.2                    -> v0.40.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0382887Z  * [new tag]               v0.40.3                    -> v0.40.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0383304Z  * [new tag]               v0.41.0                    -> v0.41.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0383687Z  * [new tag]               v0.41.1                    -> v0.41.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0384250Z  * [new tag]               v0.42.1                    -> v0.42.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0384640Z  * [new tag]               v0.42.2                    -> v0.42.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0385019Z  * [new tag]               v0.42.3                    -> v0.42.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0385612Z  * [new tag]               v0.43.0                    -> v0.43.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0386002Z  * [new tag]               v0.43.1                    -> v0.43.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0386503Z  * [new tag]               v0.43.2                    -> v0.43.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0386959Z  * [new tag]               v0.43.3                    -> v0.43.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0387495Z  * [new tag]               v0.43.4                    -> v0.43.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0388071Z  * [new tag]               v0.44.0                    -> v0.44.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0388461Z  * [new tag]               v0.45.0                    -> v0.45.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0388918Z  * [new tag]               v0.45.1                    -> v0.45.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0389430Z  * [new tag]               v0.45.12                   -> v0.45.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0389824Z  * [new tag]               v0.45.13                   -> v0.45.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0390657Z  * [new tag]               v0.45.14                   -> v0.45.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0391076Z  * [new tag]               v0.45.15                   -> v0.45.15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0391655Z  * [new tag]               v0.45.16                   -> v0.45.16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0392066Z  * [new tag]               v0.45.17                   -> v0.45.17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0392445Z  * [new tag]               v0.45.18                   -> v0.45.18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0393036Z  * [new tag]               v0.45.19                   -> v0.45.19
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0393443Z  * [new tag]               v0.45.2                    -> v0.45.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0393916Z  * [new tag]               v0.45.20                   -> v0.45.20
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0394418Z  * [new tag]               v0.45.21                   -> v0.45.21
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0394801Z  * [new tag]               v0.45.22                   -> v0.45.22
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0395361Z  * [new tag]               v0.45.23                   -> v0.45.23
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0395787Z  * [new tag]               v0.45.24                   -> v0.45.24
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0396164Z  * [new tag]               v0.45.25                   -> v0.45.25
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0396731Z  * [new tag]               v0.45.26                   -> v0.45.26
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0397131Z  * [new tag]               v0.45.27                   -> v0.45.27
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0397798Z  * [new tag]               v0.45.28                   -> v0.45.28
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0398229Z  * [new tag]               v0.45.29                   -> v0.45.29
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0398611Z  * [new tag]               v0.45.3                    -> v0.45.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0399168Z  * [new tag]               v0.45.30                   -> v0.45.30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0399564Z  * [new tag]               v0.45.31                   -> v0.45.31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0399938Z  * [new tag]               v0.45.32                   -> v0.45.32
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0400500Z  * [new tag]               v0.45.33                   -> v0.45.33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0401134Z  * [new tag]               v0.45.4                    -> v0.45.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0401697Z  * [new tag]               v0.45.5                    -> v0.45.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0402087Z  * [new tag]               v0.45.6                    -> v0.45.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0402465Z  * [new tag]               v0.45.62                   -> v0.45.62
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0402850Z  * [new tag]               v0.45.63                   -> v0.45.63
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0403236Z  * [new tag]               v0.45.64                   -> v0.45.64
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0403618Z  * [new tag]               v0.45.65                   -> v0.45.65
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0403996Z  * [new tag]               v0.45.66                   -> v0.45.66
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0404372Z  * [new tag]               v0.45.67                   -> v0.45.67
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0404750Z  * [new tag]               v0.45.68                   -> v0.45.68
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0405130Z  * [new tag]               v0.45.69                   -> v0.45.69
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0405835Z  * [new tag]               v0.45.7                    -> v0.45.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0406503Z  * [new tag]               v0.45.70                   -> v0.45.70
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0407334Z  * [new tag]               v0.45.71                   -> v0.45.71
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0408014Z  * [new tag]               v0.45.72                   -> v0.45.72
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0408639Z  * [new tag]               v0.45.8                    -> v0.45.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0409281Z  * [new tag]               v0.45.9                    -> v0.45.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0409691Z  * [new tag]               v0.47.0                    -> v0.47.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0410165Z  * [new tag]               v0.47.2                    -> v0.47.2
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0410657Z  * [new tag]               v0.47.4                    -> v0.47.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0411048Z  * [new tag]               v0.47.5                    -> v0.47.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0411601Z  * [new tag]               v0.47.7                    -> v0.47.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0412234Z  * [new tag]               v0.47.8                    -> v0.47.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0412802Z  * [new tag]               v1.0.0                     -> v1.0.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0413227Z  * [new tag]               v5.0.2.11                  -> v5.0.2.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0413632Z  * [new tag]               v5.0.2.12                  -> v5.0.2.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0414188Z  * [new tag]               v5.0.2.13                  -> v5.0.2.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0414575Z  * [new tag]               v5.0.2.14                  -> v5.0.2.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0415112Z  * [new tag]               v5.0.2.15                  -> v5.0.2.15
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0415515Z  * [new tag]               v5.0.2.17                  -> v5.0.2.17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0415904Z  * [new tag]               v5.0.2.18                  -> v5.0.2.18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0416449Z  * [new tag]               v5.0.2.19                  -> v5.0.2.19
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0416846Z  * [new tag]               v5.0.2.20                  -> v5.0.2.20
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0417526Z  * [new tag]               v5.0.2.21                  -> v5.0.2.21
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0417978Z  * [new tag]               v5.0.2.22                  -> v5.0.2.22
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0418366Z  * [new tag]               v5.0.2.23                  -> v5.0.2.23
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0418911Z  * [new tag]               v5.0.2.24                  -> v5.0.2.24
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0419306Z  * [new tag]               v5.0.2.25                  -> v5.0.2.25
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0419759Z  * [new tag]               v5.0.2.26                  -> v5.0.2.26
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0420241Z  * [new tag]               v5.0.2.27                  -> v5.0.2.27
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0420623Z  * [new tag]               v5.0.2.28                  -> v5.0.2.28
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0421161Z  * [new tag]               v5.0.2.29                  -> v5.0.2.29
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0421555Z  * [new tag]               v5.0.2.30                  -> v5.0.2.30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0422226Z  * [new tag]               v5.0.2.31                  -> v5.0.2.31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0422696Z  * [new tag]               v5.0.2.32                  -> v5.0.2.32
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0423084Z  * [new tag]               v5.0.2.33                  -> v5.0.2.33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0423621Z  * [new tag]               v5.0.2.34                  -> v5.0.2.34
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0424022Z  * [new tag]               v5.0.2.35                  -> v5.0.2.35
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0424410Z  * [new tag]               v5.0.2.36                  -> v5.0.2.36
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0424954Z  * [new tag]               v5.0.2.37                  -> v5.0.2.37
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0425343Z  * [new tag]               v5.0.2.38                  -> v5.0.2.38
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0425830Z  * [new tag]               v5.0.2.39                  -> v5.0.2.39
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0426270Z  * [new tag]               v5.0.2.40                  -> v5.0.2.40
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0426653Z  * [new tag]               v5.0.2.41                  -> v5.0.2.41
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0427322Z  * [new tag]               v5.0.2.42                  -> v5.0.2.42
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0427857Z  * [new tag]               v5.0.2.43                  -> v5.0.2.43
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0428448Z  * [new tag]               v5.0.2.44                  -> v5.0.2.44
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0428844Z  * [new tag]               v5.0.2.47                  -> v5.0.2.47
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0429281Z  * [new tag]               v5.0.2.48                  -> v5.0.2.48
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0429803Z  * [new tag]               v5.0.2.49                  -> v5.0.2.49
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0430190Z  * [new tag]               v5.0.2.50                  -> v5.0.2.50
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0430744Z  * [new tag]               v5.0.2.52                  -> v5.0.2.52
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0431151Z  * [new tag]               v5.0.2.53                  -> v5.0.2.53
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0431538Z  * [new tag]               v5.0.2.54                  -> v5.0.2.54
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0432312Z  * [new tag]               v5.0.2.55                  -> v5.0.2.55
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0432720Z  * [new tag]               v5.0.2.7                   -> v5.0.2.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0433278Z  * [new tag]               v5.0.2.8                   -> v5.0.2.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0433669Z  * [new tag]               v5.0.2.9                   -> v5.0.2.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0434116Z  * [new tag]               v5.0.3.0                   -> v5.0.3.0
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0434646Z  * [new tag]               v5.0.3.1                   -> v5.0.3.1
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0435034Z  * [new tag]               v5.0.3.10                  -> v5.0.3.10
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0435625Z  * [new tag]               v5.0.3.100                 -> v5.0.3.100
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0436034Z  * [new tag]               v5.0.3.101                 -> v5.0.3.101
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0436471Z  * [new tag]               v5.0.3.102                 -> v5.0.3.102
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0436983Z  * [new tag]               v5.0.3.103                 -> v5.0.3.103
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0437538Z  * [new tag]               v5.0.3.104                 -> v5.0.3.104
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0438136Z  * [new tag]               v5.0.3.105                 -> v5.0.3.105
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0438526Z  * [new tag]               v5.0.3.106                 -> v5.0.3.106
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0439068Z  * [new tag]               v5.0.3.107                 -> v5.0.3.107
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0439487Z  * [new tag]               v5.0.3.108                 -> v5.0.3.108
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0439876Z  * [new tag]               v5.0.3.109                 -> v5.0.3.109
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0440424Z  * [new tag]               v5.0.3.11                  -> v5.0.3.11
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0440817Z  * [new tag]               v5.0.3.110                 -> v5.0.3.110
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0441269Z  * [new tag]               v5.0.3.111                 -> v5.0.3.111
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0441788Z  * [new tag]               v5.0.3.112                 -> v5.0.3.112
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0442180Z  * [new tag]               v5.0.3.113                 -> v5.0.3.113
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0442979Z  * [new tag]               v5.0.3.114                 -> v5.0.3.114
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0443388Z  * [new tag]               v5.0.3.115                 -> v5.0.3.115
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0443948Z  * [new tag]               v5.0.3.116                 -> v5.0.3.116
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0444352Z  * [new tag]               v5.0.3.117                 -> v5.0.3.117
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0444753Z  * [new tag]               v5.0.3.118                 -> v5.0.3.118
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0445325Z  * [new tag]               v5.0.3.119                 -> v5.0.3.119
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0445724Z  * [new tag]               v5.0.3.12                  -> v5.0.3.12
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0446266Z  * [new tag]               v5.0.3.120                 -> v5.0.3.120
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0446679Z  * [new tag]               v5.0.3.121                 -> v5.0.3.121
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0447066Z  * [new tag]               v5.0.3.122                 -> v5.0.3.122
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0447822Z  * [new tag]               v5.0.3.123                 -> v5.0.3.123
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0448238Z  * [new tag]               v5.0.3.124                 -> v5.0.3.124
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0448792Z  * [new tag]               v5.0.3.125                 -> v5.0.3.125
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0449192Z  * [new tag]               v5.0.3.126                 -> v5.0.3.126
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0449576Z  * [new tag]               v5.0.3.127                 -> v5.0.3.127
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0450133Z  * [new tag]               v5.0.3.128                 -> v5.0.3.128
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0450524Z  * [new tag]               v5.0.3.129                 -> v5.0.3.129
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0451042Z  * [new tag]               v5.0.3.13                  -> v5.0.3.13
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0451477Z  * [new tag]               v5.0.3.130                 -> v5.0.3.130
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0451863Z  * [new tag]               v5.0.3.131                 -> v5.0.3.131
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0452413Z  * [new tag]               v5.0.3.132                 -> v5.0.3.132
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0453006Z  * [new tag]               v5.0.3.133                 -> v5.0.3.133
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0453574Z  * [new tag]               v5.0.3.134                 -> v5.0.3.134
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0453971Z  * [new tag]               v5.0.3.135                 -> v5.0.3.135
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0454354Z  * [new tag]               v5.0.3.136                 -> v5.0.3.136
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0454905Z  * [new tag]               v5.0.3.137                 -> v5.0.3.137
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0455302Z  * [new tag]               v5.0.3.138                 -> v5.0.3.138
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0455804Z  * [new tag]               v5.0.3.139                 -> v5.0.3.139
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0456283Z  * [new tag]               v5.0.3.14                  -> v5.0.3.14
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0456670Z  * [new tag]               v5.0.3.140                 -> v5.0.3.140
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0457334Z  * [new tag]               v5.0.3.16                  -> v5.0.3.16
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0457876Z  * [new tag]               v5.0.3.17                  -> v5.0.3.17
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0458498Z  * [new tag]               v5.0.3.18                  -> v5.0.3.18
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0458891Z  * [new tag]               v5.0.3.19                  -> v5.0.3.19
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0459424Z  * [new tag]               v5.0.3.20                  -> v5.0.3.20
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0459864Z  * [new tag]               v5.0.3.21                  -> v5.0.3.21
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0460248Z  * [new tag]               v5.0.3.22                  -> v5.0.3.22
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0460816Z  * [new tag]               v5.0.3.23                  -> v5.0.3.23
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0461216Z  * [new tag]               v5.0.3.24                  -> v5.0.3.24
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0461594Z  * [new tag]               v5.0.3.25                  -> v5.0.3.25
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0462172Z  * [new tag]               v5.0.3.26                  -> v5.0.3.26
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0462563Z  * [new tag]               v5.0.3.27                  -> v5.0.3.27
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0463384Z  * [new tag]               v5.0.3.28                  -> v5.0.3.28
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0463786Z  * [new tag]               v5.0.3.29                  -> v5.0.3.29
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0464278Z  * [new tag]               v5.0.3.3                   -> v5.0.3.3
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0464772Z  * [new tag]               v5.0.3.30                  -> v5.0.3.30
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0465163Z  * [new tag]               v5.0.3.31                  -> v5.0.3.31
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0465732Z  * [new tag]               v5.0.3.32                  -> v5.0.3.32
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0466137Z  * [new tag]               v5.0.3.33                  -> v5.0.3.33
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0466518Z  * [new tag]               v5.0.3.34                  -> v5.0.3.34
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0467091Z  * [new tag]               v5.0.3.35                  -> v5.0.3.35
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0467767Z  * [new tag]               v5.0.3.36                  -> v5.0.3.36
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0468269Z  * [new tag]               v5.0.3.37                  -> v5.0.3.37
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0468790Z  * [new tag]               v5.0.3.38                  -> v5.0.3.38
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0469183Z  * [new tag]               v5.0.3.39                  -> v5.0.3.39
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0469571Z  * [new tag]               v5.0.3.4                   -> v5.0.3.4
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0469961Z  * [new tag]               v5.0.3.40                  -> v5.0.3.40
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0470341Z  * [new tag]               v5.0.3.41                  -> v5.0.3.41
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0470915Z  * [new tag]               v5.0.3.43                  -> v5.0.3.43
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0471318Z  * [new tag]               v5.0.3.44                  -> v5.0.3.44
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0471698Z  * [new tag]               v5.0.3.45                  -> v5.0.3.45
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0472083Z  * [new tag]               v5.0.3.46                  -> v5.0.3.46
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0472461Z  * [new tag]               v5.0.3.47                  -> v5.0.3.47
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0473041Z  * [new tag]               v5.0.3.48                  -> v5.0.3.48
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0473430Z  * [new tag]               v5.0.3.49                  -> v5.0.3.49
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0473853Z  * [new tag]               v5.0.3.5                   -> v5.0.3.5
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0474241Z  * [new tag]               v5.0.3.50                  -> v5.0.3.50
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0474833Z  * [new tag]               v5.0.3.51                  -> v5.0.3.51
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0475235Z  * [new tag]               v5.0.3.52                  -> v5.0.3.52
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0475615Z  * [new tag]               v5.0.3.53                  -> v5.0.3.53
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0475995Z  * [new tag]               v5.0.3.54                  -> v5.0.3.54
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0476374Z  * [new tag]               v5.0.3.55                  -> v5.0.3.55
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0476757Z  * [new tag]               v5.0.3.56                  -> v5.0.3.56
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0477140Z  * [new tag]               v5.0.3.57                  -> v5.0.3.57
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0477689Z  * [new tag]               v5.0.3.58                  -> v5.0.3.58
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0478077Z  * [new tag]               v5.0.3.59                  -> v5.0.3.59
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0478459Z  * [new tag]               v5.0.3.6                   -> v5.0.3.6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0478844Z  * [new tag]               v5.0.3.60                  -> v5.0.3.60
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0479226Z  * [new tag]               v5.0.3.61                  -> v5.0.3.61
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0479612Z  * [new tag]               v5.0.3.62                  -> v5.0.3.62
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0479992Z  * [new tag]               v5.0.3.63                  -> v5.0.3.63
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0480370Z  * [new tag]               v5.0.3.64                  -> v5.0.3.64
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0480758Z  * [new tag]               v5.0.3.65                  -> v5.0.3.65
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0481141Z  * [new tag]               v5.0.3.66                  -> v5.0.3.66
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0481545Z  * [new tag]               v5.0.3.67                  -> v5.0.3.67
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0482348Z  * [new tag]               v5.0.3.68                  -> v5.0.3.68
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0482746Z  * [new tag]               v5.0.3.69                  -> v5.0.3.69
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0483133Z  * [new tag]               v5.0.3.7                   -> v5.0.3.7
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0483520Z  * [new tag]               v5.0.3.70                  -> v5.0.3.70
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0483900Z  * [new tag]               v5.0.3.71                  -> v5.0.3.71
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0484286Z  * [new tag]               v5.0.3.72                  -> v5.0.3.72
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0484665Z  * [new tag]               v5.0.3.73                  -> v5.0.3.73
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0485054Z  * [new tag]               v5.0.3.74                  -> v5.0.3.74
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0485436Z  * [new tag]               v5.0.3.75                  -> v5.0.3.75
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0485817Z  * [new tag]               v5.0.3.76                  -> v5.0.3.76
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0486209Z  * [new tag]               v5.0.3.78                  -> v5.0.3.78
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0486599Z  * [new tag]               v5.0.3.79                  -> v5.0.3.79
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0486985Z  * [new tag]               v5.0.3.8                   -> v5.0.3.8
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0487644Z  * [new tag]               v5.0.3.80                  -> v5.0.3.80
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0488054Z  * [new tag]               v5.0.3.81                  -> v5.0.3.81
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0488450Z  * [new tag]               v5.0.3.82                  -> v5.0.3.82
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0488828Z  * [new tag]               v5.0.3.83                  -> v5.0.3.83
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0489208Z  * [new tag]               v5.0.3.84                  -> v5.0.3.84
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0489586Z  * [new tag]               v5.0.3.85                  -> v5.0.3.85
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0489967Z  * [new tag]               v5.0.3.87                  -> v5.0.3.87
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0490347Z  * [new tag]               v5.0.3.88                  -> v5.0.3.88
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0490914Z  * [new tag]               v5.0.3.89                  -> v5.0.3.89
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0491293Z  * [new tag]               v5.0.3.9                   -> v5.0.3.9
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0491678Z  * [new tag]               v5.0.3.90                  -> v5.0.3.90
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0492057Z  * [new tag]               v5.0.3.91                  -> v5.0.3.91
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0492439Z  * [new tag]               v5.0.3.92                  -> v5.0.3.92
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0492818Z  * [new tag]               v5.0.3.93                  -> v5.0.3.93
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0493195Z  * [new tag]               v5.0.3.94                  -> v5.0.3.94
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0493572Z  * [new tag]               v5.0.3.95                  -> v5.0.3.95
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0493955Z  * [new tag]               v5.0.3.96                  -> v5.0.3.96
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0494333Z  * [new tag]               v5.0.3.97                  -> v5.0.3.97
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0494721Z  * [new tag]               v5.0.3.98                  -> v5.0.3.98
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0495122Z  * [new tag]               v5.0.3.99                  -> v5.0.3.99
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0496498Z [command]/usr/bin/git branch --list --remote origin/feature/docs-sites-release100-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0497054Z   origin/feature/docs-sites-release100-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0498081Z [command]/usr/bin/git rev-parse refs/remotes/origin/feature/docs-sites-release100-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0498594Z d898d4e04d036bc51909d24f24e58842af568ce6
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0499408Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0499859Z ##[group]Determining the checkout info
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0500342Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0500624Z [command]/usr/bin/git sparse-checkout disable
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0501419Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0502329Z ##[group]Checking out the ref
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:54.0503034Z [command]/usr/bin/git checkout --progress --force -B feature/docs-sites-release100-20261013 refs/remotes/origin/feature/docs-sites-release100-20261013
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.1123770Z Updating files:  36% (11060/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.1512420Z Updating files:  37% (11357/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.1796501Z Updating files:  38% (11664/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.2140414Z Updating files:  39% (11971/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.2430367Z Updating files:  40% (12278/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.2655765Z Updating files:  41% (12585/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.2852359Z Updating files:  42% (12892/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.2999542Z Updating files:  43% (13199/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.3164010Z Updating files:  44% (13506/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.4475538Z Updating files:  45% (13813/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:55.7872661Z Updating files:  46% (14120/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.0760938Z Updating files:  47% (14427/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.3614769Z Updating files:  47% (14581/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.4818765Z Updating files:  48% (14734/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.5075235Z Updating files:  49% (15041/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.5308763Z Updating files:  50% (15347/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.5651188Z Updating files:  51% (15654/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.6272951Z Updating files:  52% (15961/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.6585329Z Updating files:  53% (16268/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.6929230Z Updating files:  54% (16575/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.7084923Z Updating files:  55% (16882/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.7990779Z Updating files:  56% (17189/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.8401443Z Updating files:  57% (17496/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.8919938Z Updating files:  58% (17803/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.9269602Z Updating files:  59% (18110/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.9595408Z Updating files:  60% (18417/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:56.9928173Z Updating files:  61% (18724/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.0292832Z Updating files:  62% (19031/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.0734178Z Updating files:  63% (19338/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.0742719Z Updating files:  64% (19645/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1062752Z Updating files:  64% (19648/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1282918Z Updating files:  65% (19952/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1424415Z Updating files:  66% (20259/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1577794Z Updating files:  67% (20565/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1765710Z Updating files:  68% (20872/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.1898537Z Updating files:  69% (21179/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.2144564Z Updating files:  70% (21486/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.2726417Z Updating files:  71% (21793/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.2994444Z Updating files:  72% (22100/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.3259959Z Updating files:  73% (22407/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.3450243Z Updating files:  74% (22714/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.3726907Z Updating files:  75% (23021/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.4000605Z Updating files:  76% (23328/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.4278496Z Updating files:  77% (23635/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.4621400Z Updating files:  78% (23942/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.4884883Z Updating files:  79% (24249/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.5115401Z Updating files:  80% (24556/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.5394539Z Updating files:  81% (24863/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.5669160Z Updating files:  82% (25170/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.5887229Z Updating files:  83% (25477/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.6143118Z Updating files:  84% (25783/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.6401815Z Updating files:  85% (26090/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.6650612Z Updating files:  86% (26397/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.7125621Z Updating files:  87% (26704/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.7523335Z Updating files:  88% (27011/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.7917967Z Updating files:  89% (27318/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.8261113Z Updating files:  90% (27625/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.8634912Z Updating files:  91% (27932/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.8922314Z Updating files:  92% (28239/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.9164951Z Updating files:  93% (28546/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.9432162Z Updating files:  94% (28853/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.9660779Z Updating files:  95% (29160/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:57.9930773Z Updating files:  96% (29467/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.0144558Z Updating files:  97% (29774/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.0501028Z Updating files:  98% (30081/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.0714620Z Updating files:  99% (30388/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.0715646Z Updating files: 100% (30694/30694)
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.0716436Z Updating files: 100% (30694/30694), done.
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.1148486Z Switched to a new branch 'feature/docs-sites-release100-20261013'
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.1150224Z branch 'feature/docs-sites-release100-20261013' set up to track 'origin/feature/docs-sites-release100-20261013'.
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.1274865Z ##[endgroup]
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.1325250Z [command]/usr/bin/git log -1 --format=%H
+Build docs-site & assert render	Run actions/checkout@v5	2026-10-13T02:29:58.1357455Z d898d4e04d036bc51909d24f24e58842af568ce6
+Build docs-site & assert render	Run actions/setup-node@v5	﻿2026-10-13T02:29:58.1668466Z ##[group]Run actions/setup-node@v5
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1668804Z with:
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1669017Z   node-version: 22.x
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1669253Z   cache: npm
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1669519Z   cache-dependency-path: docs-site/package-lock.json
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1669890Z   always-auth: false
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1670120Z   check-latest: false
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1672553Z   token: ***
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1672780Z   package-manager-cache: true
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1673023Z env:
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1673203Z   MIN_HTML: 400
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1673410Z   MIN_CHANGELOG_BYTES: 2000
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.1673644Z ##[endgroup]
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.3811099Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.3817900Z (node:2326) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.3819485Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:29:58.3821063Z ##[group]Environment details
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.5499821Z node: v22.23.3
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.5500365Z npm: 10.9.9
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.5500767Z yarn: 1.22.22
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.5503014Z ##[endgroup]
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.5525538Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:02.8695030Z /home/runner/.npm
+Build docs-site & assert render	Run actions/setup-node@v5	2026-10-13T02:30:03.1315103Z npm cache is not found
+Build docs-site & assert render	Install docs-site deps	﻿2026-10-13T02:30:03.1457053Z ##[group]Run bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.1458037Z [36;1mbash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci[0m
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.3071208Z shell: /usr/bin/bash -e {0}
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.3071663Z env:
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.3071970Z   MIN_HTML: 400
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.3072302Z   MIN_CHANGELOG_BYTES: 2000
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:03.3072671Z ##[endgroup]
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3548192Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3557016Z added 127 packages, and audited 128 packages in 7s
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3557714Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3557960Z 38 packages are looking for funding
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3558379Z   run `npm fund` for details
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3787105Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3788030Z 10 vulnerabilities (2 moderate, 8 high)
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3788516Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3789009Z To address issues that do not require attention, run:
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3789727Z   npm audit fix
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3790020Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3790431Z Some issues need review, and may require choosing
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3791285Z a different dependency.
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3791597Z 
+Build docs-site & assert render	Install docs-site deps	2026-10-13T02:30:10.3791842Z Run `npm audit` for details.
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	﻿2026-10-13T02:30:10.4320785Z ##[group]Run npm run build
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4321103Z [36;1mnpm run build[0m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4389589Z shell: /usr/bin/bash -e {0}
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4389884Z env:
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4390105Z   MIN_HTML: 400
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4390368Z   MIN_CHANGELOG_BYTES: 2000
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.4390648Z ##[endgroup]
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.5760275Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.5760872Z > chainlesschain-docs@5.0.3.5 build
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.5761814Z > npm run sync:design && npm run check:user-docs && vitepress build docs
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.5762249Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7054563Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7055272Z > chainlesschain-docs@5.0.3.5 sync:design
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7055956Z > node scripts/sync-design-docs.js
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7056481Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7361059Z 同步设计文档: /home/runner/work/chainlesschain/chainlesschain/docs/design → /home/runner/work/chainlesschain/chainlesschain/docs-site/docs/design
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7363258Z 文件名映射: 中文 → ASCII (与 config.js sidebar 一致)
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7363626Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7389235Z   A1_Linux_Native_Pairing_spike.md → a1-linux-native-pairing.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7460896Z   AI模型部署方案.md → ai-model-deploy.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7483162Z   AI陪学_v0.1_ticket_tree.md → ai-study-companion-v0-1-ticket-tree.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7530400Z   AI陪学_主文档.md → ai-study-companion-design.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7714757Z   Android_ADR_重评估_v2.0.md → android-adr-review-v2.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7989253Z   Android_重新定位_设计文档.md → android-repositioning.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.7996759Z   B1_WebShell_Multisig_Sign_spike.md → b1-webshell-multisig-sign.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8009792Z   B5_Crosschain_Outbound_Multisig_spike.md → b5-crosschain-outbound-multisig.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8042914Z   C1_WatchFace_VoiceMode_spike.md → c1-watchface-voicemode.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8087224Z   CC_PACK_打包指令设计文档.md → cc-pack-design.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8100972Z   CC_PACK_项目模式_设计文档.md → cc-pack-project-mode-design.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8149348Z   ClaudeBox学习_工具卡与任务面板落地方案.md → claudebox-learning-plan.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8213700Z   MTC_数据格式_v1.md → mtc-data-format-v1.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8228794Z   MTC_联邦治理_v1.md → mtc-federation-governance-v1.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8238471Z   MTC_跨链桥_v1.md → mtc-cross-chain-bridge-v1.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8250505Z   MofN_多签_应用扩展_v1.md → mofn-multisig-extension-v1.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8632951Z   Phase3c_OSS_WebDAV_网盘_设计文档.md → phase3c-oss-webdav.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8647722Z   Phase3d_Mobile_Sync_设计文档.md → phase3d-mobile-sync.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8883563Z   iOS_对标_Android_Phase_6_Plan.md → iOS_Phase_6_Mirror_Android_Plan.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8896059Z   01_知识库管理模块.md → 01-knowledge-base.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8936960Z   02_去中心化社交模块.md → 02-decentralized-social.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8944965Z   03_交易辅助模块.md → 03-trading.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8961535Z   04_项目管理模块.md → 04-project-management.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.8975410Z   05_企业版组织模块.md → 05-enterprise-org.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9009225Z   06_AI优化系统.md → 06-ai-optimization.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9026892Z   07_性能优化系统.md → 07-performance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9041474Z   08_MCP与配置系统.md → 08-mcp-config.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9053472Z   09_浏览器自动化系统.md → 09-browser-automation.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9059769Z   100_自定义斜杠命令与宏系统.md → 100-slash-commands-macros.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9068515Z   101_QQNT_frida采集方案.md → 101b-qqnt-frida-collection.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9121335Z   101_个人数据IDE桥接方案.md → 101-personal-data-ide-bridge.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9140323Z   102_Remote_Session方案.md → 102-remote-session.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9146596Z   103_Agent_SDK平台化方案.md → 103-agent-sdk-platform.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9156579Z   104_CC_App_Server设计.md → 104-cc-app-server.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9170290Z   105_Graph_Kernel设计.md → 105-graph-kernel.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9176821Z   106_Agent_Kernel设计.md → 106-agent-kernel.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9186829Z   107_单一协议Schema与自动代码生成.md → 107-agent-protocol-codegen.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9201788Z   108_Context_Memory_Kernel设计.md → 108-context-memory-kernel.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9219744Z   10_远程控制系统.md → 10-remote-control.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9279316Z   11_企业审计系统.md → 11-audit.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9292975Z   12_插件市场系统.md → 12-plugin-marketplace.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9303587Z   13_多代理系统.md → 13-multi-agent.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9315261Z   14_SSO企业认证.md → 14-sso.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9327822Z   15_MCP_SDK系统.md → 15-mcp-sdk.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9340480Z   16_AI技能系统.md → 16-ai-skills.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9351943Z   17_EvoMap系统.md → 17-evomap.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9361565Z   17_IPFS去中心化存储.md → 17b-ipfs.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9370979Z   18_P2P实时协作系统.md → 18-p2p-collab.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9393269Z   18_社交AI系统.md → 18b-social-ai.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9406849Z   19_合规分类系统.md → 19-compliance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9415843Z   19_自治Agent_Runner.md → 19b-agent-runner.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9423497Z   20_企业用户配置系统.md → 20-scim.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9432300Z   20_模型量化系统.md → 20b-quantization.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9439297Z   21_i18n国际化.md → 21-i18n.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9454712Z   21_统一密钥系统.md → 21b-unified-key.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9463184Z   22_性能自动调优.md → 22-auto-tuning.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9471372Z   22_智能内容推荐系统.md → 22b-content-rec.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9478941Z   23_Nostr桥接系统.md → 23-nostr.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9487663Z   23_企业组织管理.md → 23b-org-management.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9498147Z   24_去中心化Agent网络.md → 24-agent-network.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9505411Z   24_数据防泄漏系统.md → 24b-dlp.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9513360Z   25_安全信息事件管理系统.md → 25-siem.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9523814Z   25_自治运维系统.md → 25b-autonomous-ops.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9533218Z   26_开发流水线编排.md → 26-pipeline.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9539950Z   26_社区治理系统.md → 26b-governance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9547622Z   27_Matrix集成系统.md → 27-matrix.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9556384Z   27_多模态协作.md → 27b-multimodal.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9562990Z   28_基础设施编排系统.md → 28-infrastructure.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9571636Z   28_自然语言编程.md → 28b-nl-programming.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9579885Z   29_生产强化系统.md → 29-production-hardening.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9589689Z   30_联邦强化系统.md → 30-federation-hardening.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9594773Z   31_压力测试系统.md → 31-stress-test.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9600216Z   32_信誉优化系统.md → 32-reputation.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9605921Z   33_跨组织SLA管理系统.md → 33-sla.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9612721Z   34_技术学习引擎系统.md → 34-tech-learning.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9619804Z   35_自主开发者系统.md → 35-autonomous-dev.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9627105Z   36_协作治理系统.md → 36-collab-governance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9635805Z   37_技能市场系统.md → 37-skill-marketplace.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9642319Z   38_去中心化推理网络系统.md → 38-inference-network.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9650616Z   39_信任安全系统.md → 39-trust-security.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9657319Z   40_协议融合系统.md → 40-protocol-fusion.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9664202Z   41_去中心化基础设施系统.md → 41-decentralized-infra.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9671507Z   42_EvoMap高级联邦系统.md → 42-evomap-federation.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9683591Z   43_IPC域分割与懒加载系统.md → 43-ipc-split.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9691601Z   44_共享资源层与依赖注入容器.md → 44-di-container.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9699549Z   45_数据库演进与迁移框架.md → 45-db-migration.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9706404Z   46_A2A协议引擎.md → 46-a2a-protocol.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9713517Z   47_自主工作流编排器.md → 47-workflow.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9721919Z   48_层次化记忆系统2.0.md → 48-hierarchical-memory.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9729423Z   49_多模态感知层.md → 49-multimodal-perception.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9736587Z   50_Agent经济系统.md → 50-agent-economy.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9743475Z   51_代码生成Agent2.0.md → 51-code-agent.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9750488Z   52_Agent安全沙箱2.0.md → 52-sandbox.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9757490Z   53_零知识证明引擎.md → 53-zkp.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9765743Z   54_跨链互操作协议.md → 54-cross-chain.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9772878Z   55_去中心化身份2.0.md → 55-did-v2.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9780470Z   56_隐私计算框架.md → 56-privacy-computing.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9787395Z   57_DAO治理2.0.md → 57-dao-governance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9794636Z   58_低代码平台.md → 58-low-code.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9801221Z   59_企业知识图谱.md → 59-knowledge-graph.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9808734Z   60_BI智能分析.md → 60-bi-engine.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9817855Z   60_CLI指令技能包系统.md → 60b-cli-skill-packs.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9824953Z   61_工作流自动化引擎.md → 61-workflow-automation.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9831645Z   62_多租户SaaS引擎.md → 62-saas.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9838661Z   63_统一应用运行时.md → 63-unified-runtime.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9846629Z   64_智能插件生态2.0.md → 64-plugin-ecosystem.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9849584Z   65_自进化AI系统.md → 65-self-evolving-ai.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9873119Z   66_CLI分发系统.md → 66-cli-distribution.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9896395Z   67_CLI高级功能补齐.md → 67-cli-advanced.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9902575Z   68_CLI-Anything集成.md → 68-cli-anything.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9920950Z   69_WebSocket服务器接口.md → 69-websocket-server.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9926878Z   70_Agent智能增强系统.md → 70-agent-intelligence.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9933938Z   71_AI音视频创作模板.md → 71b-ai-media-creator.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9941226Z   71_子代理隔离系统.md → 71-sub-agent-isolation.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9949472Z   72_AI文档创作模板.md → 72-ai-doc-creator.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9960171Z   73_Web管理界面.md → 73-web-ui.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9970003Z   74_AI编排层系统.md → 74-orchestration-layer.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9986707Z   75_Web管理面板.md → 75-web-panel.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:10.9993279Z   76_技能创建系统.md → 76-skill-creator.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0004508Z   77_Agent架构优化系统.md → 77-agent-optimization.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0039146Z   78_CLI_Agent_Runtime重构实施计划.md → 78-cli-agent-runtime.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0070735Z   79_Coding_Agent系统.md → 79-coding-agent.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0089307Z   80_规范工作流系统.md → 80-canonical-workflow.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0109819Z   81_轻量多Agent编排系统.md → 81-sub-runtime-pool.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0123037Z   82_CLI_Runtime收口路线图.md → 82-cli-runtime-convergence.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0133493Z   83_工具描述规范统一.md → 83-tool-descriptor-unification.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0138342Z   84_自主学习闭环系统.md → 84-autonomous-learning-loop.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0157312Z   85_Hermes_Agent对标实施方案.md → 85-hermes-agent-parity.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0170314Z   85_文档代码差距补全.md → 85b-doc-code-gap-fill.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0224820Z   86_Web_Cowork日常任务协作系统.md → 86-web-cowork.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0242863Z   87_Cowork_Evolution_N1_N7.md → 87-cowork-evolution.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0254126Z   88_OpenAgents对标补齐方案.md → 88-open-agents-parity.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0262524Z   89_v5.0.2.9_六项优化_设计说明.md → 89-runtime-six-enhancements.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0267284Z   90_AI视频生成_Volcengine_Seedance.md → 90-ai-video-generation-seedance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0285697Z   91_Managed_Agents对标计划.md → 91-managed-agents-parity.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0305713Z   92_Deep_Agents_Deploy借鉴落地方案.md → 92-deep-agents-deploy.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0317872Z   93_CutClaw借鉴_视频剪辑Agent.md → 93-cutclaw-video-editing-agent.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0324012Z   94_QualityGate通用质量门控.md → 94-quality-gate.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0332961Z   95_社交协议生态补齐方案.md → 95-social-protocols-landing.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0345180Z   96_V2规范层governance.md → 96-v2-governance.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0356860Z   97_桌面版UI_ClaudeDesktop重构计划.md → 97-claude-desktop-refactor.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0376418Z   98_IDE桥接对标方案.md → 98-ide-bridge.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0382771Z   99_项目记忆与init对标方案.md → 99-project-memory-init.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0436914Z   web-shell-ChatPanel_port_v1.md → web-shell-chatpanel-port.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0445533Z   三端_UI_Consistency_设计文档.md → three-surface-ui-consistency.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0470648Z   去中心化交易_知识资产加密交付与AI撮合_v1.md → decentralized-trade-knowledge-asset-ai-matching-v1.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0478795Z   安全机制设计.md → security-design.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0519475Z   实施总结与附录.md → implementation-summary.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0528269Z   数据同步方案.md → data-sync.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0536346Z   桌面Web壳_架构与落地_设计文档.md → desktop-web-shell-architecture.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0556016Z   桌面版UI重构_设计文档.md → desktop-ui-refactor.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0672801Z   系统设计_个人移动AI管理系统.md → system-design-full.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0734662Z   系统设计_主文档.md → system-design-main.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0743675Z   默克尔树证书_MTC_v0.2_评审清单.md → mtc-review-checklist.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0761637Z   默克尔树证书_MTC_落地方案.md → mtc-landing-plan.md
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0761995Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.0762218Z 完成: 同步了 277 个文件
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.2122170Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.2123031Z > chainlesschain-docs@5.0.3.5 check:user-docs
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.2123640Z > node scripts/check-user-doc-sections.js
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.2123919Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:11.3778389Z 用户文档结构检查通过：311 个文件均包含 11 个必需模块。
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:12.0374355Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:12.0375937Z   [32m[1mvitepress[22m v1.6.4[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:12.0394168Z 
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:12.0460625Z - building client + server bundles...
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:25.9501020Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:25.9502335Z The language 'gitignore' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:47.6507071Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:47.6538582Z The language 'excel' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:47.7737625Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:30:47.7738567Z The language 'conf' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:03.6594438Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:03.6595623Z The language 'gitignore' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:18.5715999Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:18.5717461Z The language 'excel' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:18.6639380Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:18.6640229Z The language 'conf' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:25.8917072Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:25.8918410Z (!) Some chunks are larger than 500 kB after minification. Consider:
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:25.8919721Z - Using dynamic import() to code-split the application
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:25.8921773Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:25.8923901Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:43.3048523Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:43.3049905Z The language 'gitignore' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:59.0215758Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:59.0217474Z The language 'excel' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:59.1188365Z [33m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:31:59.1189412Z The language 'conf' is not loaded, falling back to 'txt' for syntax highlighting.[39m
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:32:11.6399182Z [32m✓[0m building client + server bundles...
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:32:11.6573866Z - rendering pages...
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:32:28.4121775Z [32m✓[0m rendering pages...
+Build docs-site & assert render	Build docs-site (sync design copies + vitepress build)	2026-10-13T02:32:28.4407599Z build complete in 136.47s.
+Build docs-site & assert render	Assert render produced enough HTML	﻿2026-10-13T02:32:28.8340435Z ##[group]Run set -euo pipefail
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8340971Z [36;1mset -euo pipefail[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8341228Z [36;1mDIST="docs/.vitepress/dist"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8341482Z [36;1m[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8341676Z [36;1mif [ ! -d "$DIST" ]; then[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8342046Z [36;1m  echo "::error::dist/ missing — VitePress did not render any output"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8342419Z [36;1m  exit 1[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8342610Z [36;1mfi[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8342789Z [36;1m[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8343071Z [36;1m# Count real HTML pages, NOT dist/assets/ (977 JS chunks can be[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8343469Z [36;1m# present even when 0 pages rendered).[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8343792Z [36;1mHTML=$(find "$DIST" -name '*.html' | wc -l)[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8344163Z [36;1mecho "Rendered $HTML HTML page(s) (threshold: $MIN_HTML)"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8344545Z [36;1mif [ "$HTML" -lt "$MIN_HTML" ]; then[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8345306Z [36;1m  echo "::error::Only $HTML HTML pages (< $MIN_HTML) — truncated VitePress render. See memory vitepress-build-timeout-thresholds; a sub-timeout build exits 0 with 0 HTML."[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8346090Z [36;1m  exit 1[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8346282Z [36;1mfi[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8346467Z [36;1m[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8346762Z [36;1m# The changelog surface specifically must render and be non-trivial[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8347702Z [36;1m# (it is a manually-maintained public changelog — release-changelog-inventory).[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8348172Z [36;1mCL="$DIST/changelog.html"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8348436Z [36;1mif [ ! -s "$CL" ]; then[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8348733Z [36;1m  echo "::error::changelog.html missing or empty"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8349043Z [36;1m  exit 1[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8349235Z [36;1mfi[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8349427Z [36;1mBYTES=$(wc -c < "$CL")[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8349797Z [36;1mecho "changelog.html: $BYTES byte(s) (threshold: $MIN_CHANGELOG_BYTES)"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8350250Z [36;1mif [ "$BYTES" -lt "$MIN_CHANGELOG_BYTES" ]; then[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8350773Z [36;1m  echo "::error::changelog.html suspiciously small ($BYTES bytes) — likely a broken render"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8351222Z [36;1m  exit 1[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8351413Z [36;1mfi[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8351593Z [36;1m[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8351765Z [36;1m{[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8351971Z [36;1m  echo "## ✅ Docs-Site Build Gate"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8352246Z [36;1m  echo ""[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8352522Z [36;1m  echo "- Rendered **$HTML** HTML pages (≥ $MIN_HTML)"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8352957Z [36;1m  echo "- \`changelog.html\`: **$BYTES** bytes (≥ $MIN_CHANGELOG_BYTES)"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8353351Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8353741Z [36;1mecho "✅ docs-site render OK: $HTML HTML pages, changelog.html $BYTES bytes"[0m
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8417826Z shell: /usr/bin/bash -e {0}
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8418086Z env:
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8418273Z   MIN_HTML: 400
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8418511Z   MIN_CHANGELOG_BYTES: 2000
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8418743Z ##[endgroup]
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8598343Z Rendered 636 HTML page(s) (threshold: 400)
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8613774Z changelog.html: 868865 byte(s) (threshold: 2000)
+Build docs-site & assert render	Assert render produced enough HTML	2026-10-13T02:32:28.8616566Z ✅ docs-site render OK: 636 HTML pages, changelog.html 868865 bytes
+Build docs-site & assert render	Post Run actions/setup-node@v5	﻿2026-10-13T02:32:28.8722940Z Post job cleanup.
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:28.9954230Z (node:3147) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:28.9955337Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:29.0191085Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/chainlesschain/chainlesschain --files-from manifest.txt --use-compress-program zstdmt
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:29.4050869Z (node:3147) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:30.3969443Z Sent 23563645 of 23563645 (100.0%), 22.4 MBs/sec
+Build docs-site & assert render	Post Run actions/setup-node@v5	2026-10-13T02:32:30.7532369Z Cache saved with the key: node-cache-Linux-x64-npm-1c8cfc5d80b14256eb446a9dc79060646cde6e805e0f1f4976b9e64d0f039759
+Build docs-site & assert render	Post Run actions/checkout@v5	﻿2026-10-13T02:32:30.7730118Z Post job cleanup.
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8576913Z [command]/usr/bin/git version
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8621596Z git version 2.55.0
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8661276Z Temporarily overriding HOME='/home/runner/work/_temp/50fc2f96-06cf-4478-9414-b13896421380' before making global git config changes
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8662850Z Adding repository directory to the temporary git global config as a safe directory
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8666239Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8704566Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.8739454Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9020123Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9045231Z http.https://github.com/.extraheader
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9058529Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9093810Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9389990Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Build docs-site & assert render	Post Run actions/checkout@v5	2026-10-13T02:32:30.9430254Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Build docs-site & assert render	Complete job	﻿2026-10-13T02:32:30.9885942Z Cleaning up orphan processes

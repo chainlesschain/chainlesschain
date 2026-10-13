@@ -1,0 +1,191 @@
+{
+  "schema": "chainlesschain.site-deployment-source/v1",
+  "site": "www",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "codeBaseline": "283634169a683ba5dcd0da4e51a64b66002217c2",
+  "stamp": "20261013-docs-d898d4e04d03-023354",
+  "cli": "0.166.100",
+  "openVsx": "0.37.144",
+  "jetbrains": {
+    "public": "0.4.161",
+    "candidate": "0.4.162",
+    "state": "PENDING_NOT_PUBLIC"
+  },
+  "files": [
+    {
+      "path": "404.html",
+      "bytes": 18226,
+      "sha256": "2f7673f193f80da23dff125ea932be23d0df0470f2bdbbb9aaf26aab53eb8a2a"
+    },
+    {
+      "path": "about/index.html",
+      "bytes": 25414,
+      "sha256": "dfa25abc06ca66e7b89e9ac49f363243c07d472b0e7bf988a6d54ac8fb9c1ee5"
+    },
+    {
+      "path": "assets/about.CG_z8nBw.css",
+      "bytes": 32152,
+      "sha256": "3d55df9bfd24f017f40922afc28c16a27891502cbc6e3a1432183578b4b927ac"
+    },
+    {
+      "path": "cli/index.html",
+      "bytes": 121355,
+      "sha256": "5e578ce73a4378e0bba93d06dae777393f4298ae7c612381920176953dcabe44"
+    },
+    {
+      "path": "desktop/index.html",
+      "bytes": 31868,
+      "sha256": "69d3bdbc931f7b2410b2523426dd3592d429336b48670e1998136302c2a5beca"
+    },
+    {
+      "path": "en/404/index.html",
+      "bytes": 18305,
+      "sha256": "42df5037f1a5f73d646d30cd73995d9a21b550af546e64a6b901d222653efcc4"
+    },
+    {
+      "path": "en/about/index.html",
+      "bytes": 25763,
+      "sha256": "80a04aa290067e600c0b242355cc0cc0f559e8870583d6416bcfb53ef6e02a3a"
+    },
+    {
+      "path": "en/cli/index.html",
+      "bytes": 122846,
+      "sha256": "4accc62cc4ea6fbdd9c5e7441a0ab327ff7543420a24a3483a16aa8a0a303f54"
+    },
+    {
+      "path": "en/desktop/index.html",
+      "bytes": 32239,
+      "sha256": "5f2ba62d499f270814a66e2414123db237bb9540a5ea8d8170a72887aeb06ae1"
+    },
+    {
+      "path": "en/enterprise/index.html",
+      "bytes": 39536,
+      "sha256": "4df81d006a867da46da1ba39aeb5156fec46a352d04abe32311c9fd76aed3acf"
+    },
+    {
+      "path": "en/ide/index.html",
+      "bytes": 44898,
+      "sha256": "82754959461dd8b456c9ce6b35ffa6a0e88ac93381000836b05133d46362d5d6"
+    },
+    {
+      "path": "en/index.html",
+      "bytes": 62543,
+      "sha256": "4cca40a13ab0aa30ebe23d532b69e5f8daa0b7ef9570d19bd7ea21a01d6b7b4b"
+    },
+    {
+      "path": "en/mobile/index.html",
+      "bytes": 46497,
+      "sha256": "30b310e8c48c4910efdb7ec34a1d1557c3010d4d314358a819c10458d27fd870"
+    },
+    {
+      "path": "en/security/index.html",
+      "bytes": 39742,
+      "sha256": "142c9ce700339ba8487888646e53cf8111bcad932cb08812282d64626e1c9f07"
+    },
+    {
+      "path": "en/web/index.html",
+      "bytes": 38433,
+      "sha256": "f151671b92af1ba34ac3c3b1af3dcc8a9a04ae334e55e3db074e2f286ebc11c2"
+    },
+    {
+      "path": "enterprise/index.html",
+      "bytes": 38722,
+      "sha256": "633363b1aef0b3b649393c9cc8a35fdeecf353944f6f83d58403ee014c36c3be"
+    },
+    {
+      "path": "ide/index.html",
+      "bytes": 43048,
+      "sha256": "b5313b60a7f75525186b5a096a685ec762418024c006637677ffaf6a0b36f2a5"
+    },
+    {
+      "path": "index.html",
+      "bytes": 61922,
+      "sha256": "5cf518ff5533d5e448000fca23f8faddb34d9e46ecde2aeff93eae06b7f09378"
+    },
+    {
+      "path": "logo-128.png",
+      "bytes": 2420,
+      "sha256": "84b002c1f5e0bbe0c7e52b40805e4b96f29ba2d198bcb9d508404674805ed003"
+    },
+    {
+      "path": "logo-32.png",
+      "bytes": 722,
+      "sha256": "a41995b8f7c24e6c654eddb92476e7ab14a650c494412cbb957a4f54369a9620"
+    },
+    {
+      "path": "logo-64.png",
+      "bytes": 1402,
+      "sha256": "6753540b1b0d8a2c0200e9b329e363c063b63e63f79e5bfa0cd36d41a3dcb967"
+    },
+    {
+      "path": "logo-optimized.png",
+      "bytes": 160248,
+      "sha256": "89ae10d35f5bff6e8d024b654a12140c0642f649b65f890cfe423e9b5bbe406d"
+    },
+    {
+      "path": "logo.png",
+      "bytes": 276016,
+      "sha256": "17f8fe478c69514070bc6b326634d0c5173cfb1731f23f2e47135b4f1be0985b"
+    },
+    {
+      "path": "logo.webp",
+      "bytes": 30268,
+      "sha256": "96add8e2aaa5995ba424eaa1a5fe9ba5bbdd73874a77d89957f7c8857070d099"
+    },
+    {
+      "path": "mobile/index.html",
+      "bytes": 54825,
+      "sha256": "d1d7b93f9ff2fdacbc367cb80ce2f63f077efbfc0c348a3f2e76d15fc0434c20"
+    },
+    {
+      "path": "og-image.svg",
+      "bytes": 2789,
+      "sha256": "25b01e57d9f5eb8c4f2d57be13ff905be729a13c0312d35e2bea21c71286be3e"
+    },
+    {
+      "path": "screenshots/agent.png",
+      "bytes": 19080,
+      "sha256": "f205de884b4fc57e27fa27ee75b7994a5edef9a2b45cd002d20e845fa69dbb15"
+    },
+    {
+      "path": "screenshots/android-claude-code-remote-terminal.jpg",
+      "bytes": 290214,
+      "sha256": "81d928dabbd5c624138add57ba59e75acc90d52bf81e282da221f2ff09d4c21f"
+    },
+    {
+      "path": "screenshots/chat.png",
+      "bytes": 229119,
+      "sha256": "33d2482af6e733bc3d0a4b3e2794a5692947538265d4d88fca3bf8c649644aa8"
+    },
+    {
+      "path": "screenshots/cowork.png",
+      "bytes": 330595,
+      "sha256": "1ad7a82e8d2fab4c11b1a2b699c03bd79080a509da27ef358d3910ee99e3b483"
+    },
+    {
+      "path": "screenshots/dashboard.png",
+      "bytes": 294263,
+      "sha256": "eaa1c2c5f05df2b6419230d6d7dc56e3de69d55563cc903065b0c62a14e4b2a9"
+    },
+    {
+      "path": "screenshots/skills.png",
+      "bytes": 159084,
+      "sha256": "20df4edd93d644a3330cdb6fdcf8991573945e97edda442533ec1141bb34753b"
+    },
+    {
+      "path": "screenshots/tools.png",
+      "bytes": 19080,
+      "sha256": "f205de884b4fc57e27fa27ee75b7994a5edef9a2b45cd002d20e845fa69dbb15"
+    },
+    {
+      "path": "security/index.html",
+      "bytes": 40347,
+      "sha256": "8ddc3d94cb840d7c07ec4ce5baf456324ba72a67bf753a77f98cc08ce434f19b"
+    },
+    {
+      "path": "web/index.html",
+      "bytes": 37795,
+      "sha256": "be014053ae38d25fcf19f58785f3839eccfbbf76be7bf3bebcc4f94e5240bf4e"
+    }
+  ]
+}

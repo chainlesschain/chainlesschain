@@ -1,0 +1,37 @@
+﻿[
+    {
+        "name":  "assessment.md",
+        "bytes":  2212,
+        "sha256":  "0a7530fb24b165270641ed300af5662d2850c42b8c97c440ccd980198faa24cd"
+    },
+    {
+        "name":  "predeploy.json",
+        "bytes":  5766,
+        "sha256":  "e5335a78f6c6edceeadbbd23184aba88c7625b0f7cfd9c9f719b0b768f359cc0"
+    },
+    {
+        "name":  "public-deployment.json",
+        "bytes":  37476,
+        "sha256":  "2576989740b236ac11e340e08c0bb81e1bfc7fba89f749d01d7304609ad3b6f1"
+    },
+    {
+        "name":  "remote-deployment.json",
+        "bytes":  2292,
+        "sha256":  "bca3dcc24be5100dbbe4410c85fa92ee1bb0c8df4b8d999662e86ff403315e0d"
+    },
+    {
+        "name":  "remote-deployment.stdout",
+        "bytes":  607,
+        "sha256":  "cfd2a796b8beaa14cc4cbcaa232b980c53f0af2a0b4a3713c208a34f700d0f76"
+    },
+    {
+        "name":  "summary.json",
+        "bytes":  1424,
+        "sha256":  "9c29ccea8a4b303d88cc48c20ba58d723e4da19b8c47a4ac81beec9a6f8eeac9"
+    },
+    {
+        "name":  "verify.py",
+        "bytes":  4380,
+        "sha256":  "1fc739c06f0e07cc35da36e69235951be994d93dbb32ebcfb8626826eae01718"
+    }
+]
