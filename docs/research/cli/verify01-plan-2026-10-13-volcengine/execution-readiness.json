@@ -1,0 +1,360 @@
+{
+  "schema": "chainlesschain.verify01-readiness/v1",
+  "capturedAt": "2026-10-13T06:10:51.584Z",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "window": {
+    "start": "2026-10-12T14:46:52.556Z",
+    "end": "2026-10-19T14:46:52.556Z"
+  },
+  "totalTasks": 36,
+  "totalFirstRuns": 9,
+  "totalPlannedBudgetUsd": 99,
+  "readyForPaidExecution": false,
+  "observationsCreated": false,
+  "firstBatch": {
+    "target": "linux-cli",
+    "taskSamples": [
+      "verify-04",
+      "verify-22",
+      "verify-13",
+      "verify-31"
+    ],
+    "firstRunSample": "first-run-linux-cli",
+    "maximumBudgetUsd": 11
+  },
+  "linuxReview": {
+    "reviewDigest": null,
+    "generatedArtifacts": 0,
+    "imageId": null,
+    "imageStatus": "EXACT_V3_PACK_REQUIRED",
+    "independentHumanReview": false,
+    "reviewerKind": "AI",
+    "reviewer": "Astra",
+    "reviewVerdict": "REVIEW_REQUIRED"
+  },
+  "knownResources": {
+    "volcengineCredentialSecretName": "CC_LLM_API_KEY",
+    "linuxCandidate": "Actually verified keyless Ubuntu24.04.5 x64 / Node22.12.0 / Docker / public CLI0.166.99; formal host capture remains separate.",
+    "localWindows": "Windows 10 / Node22.12.0 available for engineering diagnostics; OS differs from the frozen Windows11 target",
+    "localLinux": "Ubuntu24.04 WSL1 / Node22.12.0; engineering observations do not replace actual host/public-entry acceptance",
+    "localVolcengineCredentialEnvironmentName": "VOLCENGINE_API_KEY",
+    "volcengineConnectionProbe": "HTTP200, 89 input/13 output token, token estimate USD0.0000161; official billing/hard quota unverified."
+  },
+  "missing": [
+    "Exact v3 evaluator pack generation and Astra review bound to the new plan/review/image/source digests",
+    "Provider hard quota or reliable real-time metering covering all attempts and shared $99 budget",
+    "Actual nine formal host/public-install capture receipts (keyless preparation is not a task or first-run)",
+    "Windows/macOS native acceptance admission",
+    "Actual 8h/24h and approved SLO receipts"
+  ],
+  "matrix": [
+    {
+      "id": "win32-cli",
+      "target": {
+        "id": "win32-cli",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-01",
+        "verify-10",
+        "verify-19",
+        "verify-28"
+      ],
+      "firstRunSample": "first-run-win32-cli",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "win32-vscode",
+      "target": {
+        "id": "win32-vscode",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-02",
+        "verify-11",
+        "verify-20",
+        "verify-29"
+      ],
+      "firstRunSample": "first-run-win32-vscode",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "win32-jetbrains",
+      "target": {
+        "id": "win32-jetbrains",
+        "platform": "win32",
+        "os": "Windows 11 24H2",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-03",
+        "verify-12",
+        "verify-21",
+        "verify-30"
+      ],
+      "firstRunSample": "first-run-win32-jetbrains",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "linux-cli",
+      "target": {
+        "id": "linux-cli",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-04",
+        "verify-13",
+        "verify-22",
+        "verify-31"
+      ],
+      "firstRunSample": "first-run-linux-cli",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "linux-docker",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "linux-vscode",
+      "target": {
+        "id": "linux-vscode",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-05",
+        "verify-14",
+        "verify-23",
+        "verify-32"
+      ],
+      "firstRunSample": "first-run-linux-vscode",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "linux-docker",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "linux-jetbrains",
+      "target": {
+        "id": "linux-jetbrains",
+        "platform": "linux",
+        "os": "Ubuntu 24.04",
+        "arch": "x64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-06",
+        "verify-15",
+        "verify-24",
+        "verify-33"
+      ],
+      "firstRunSample": "first-run-linux-jetbrains",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "linux-docker",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "darwin-cli",
+      "target": {
+        "id": "darwin-cli",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "cli",
+        "host": "terminal",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-07",
+        "verify-16",
+        "verify-25",
+        "verify-34"
+      ],
+      "firstRunSample": "first-run-darwin-cli",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "darwin-vscode",
+      "target": {
+        "id": "darwin-vscode",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "vscode",
+        "host": "1.132.0",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-08",
+        "verify-17",
+        "verify-26",
+        "verify-35"
+      ],
+      "firstRunSample": "first-run-darwin-vscode",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    },
+    {
+      "id": "darwin-jetbrains",
+      "target": {
+        "id": "darwin-jetbrains",
+        "platform": "darwin",
+        "os": "macOS 15",
+        "arch": "arm64",
+        "node": "v22.12.0",
+        "entry": "jetbrains",
+        "host": "IntelliJ IDEA 2025.2",
+        "install": "fresh public artifact; isolated user home/profile; no development links"
+      },
+      "taskSamples": [
+        "verify-09",
+        "verify-18",
+        "verify-27",
+        "verify-36"
+      ],
+      "firstRunSample": "first-run-darwin-jetbrains",
+      "maximumBudgetUsd": 11,
+      "state": "NOT_RUN",
+      "hostVerified": false,
+      "independentHumanReview": false,
+      "accountBudgetVerified": false,
+      "acceptanceBackend": "native-not-admitted",
+      "taskObservationCount": 0,
+      "firstRunObservationCount": 0
+    }
+  ],
+  "updatedAt": "2026-10-13T06:10:51.584Z",
+  "reviewPolicy": "./review-policy.json",
+  "authorizedAIReview": {
+    "reviewer": "Astra",
+    "reviewerKind": "AI",
+    "verdict": "REVIEW_REQUIRED",
+    "recordPath": null,
+    "recordPlanDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "recordReviewDigest": null,
+    "imageId": null,
+    "recordDigest": null,
+    "reviewedAt": null,
+    "acceptedForDeclaredEvaluatorScope": false
+  },
+  "providers": [
+    {
+      "provider": "volcengine",
+      "model": "deepseek-v4-flash-ga-260731",
+      "modelRevision": "deepseek-v4-flash-ga-260731@https://ark.cn-beijing.volces.com/api/v3",
+      "endpoint": "https://ark.cn-beijing.volces.com/api/v3"
+    }
+  ],
+  "formalProviderTaskCounts": {
+    "volcengine": 36
+  },
+  "formalProviderFirstRunCounts": {
+    "volcengine": 9
+  },
+  "historicalLinuxReview": {
+    "reviewDigest": "sha256:d333e5826d9ca77b3e635fdf686716519ae2431528b625ac92389667ae10c22f",
+    "generatedArtifacts": 72,
+    "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+    "imageStatus": "ACTUAL_KEYLESS_IMAGE_VERIFIED",
+    "independentHumanReview": false,
+    "reviewerKind": "AI",
+    "reviewer": "Astra",
+    "reviewVerdict": "APPROVED_FOR_DECLARED_EVALUATOR_SCOPE",
+    "source": "Actual corrected package generated in source07f050 run38272128731; user authorized Astra substitution.",
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "appliesToThisRevision": false
+  },
+  "historicalKeylessPreflight": {
+    "status": "SUCCESS",
+    "sourceCommit": "07f050be901dd806f68ccb3ddb8eee12ad7a5254",
+    "runId": "38272128731",
+    "recordPath": "../evidence/gap-2026-10-05/continuation-2026-10-12/formal-keyless-linux-corrected/summary.json",
+    "formalObservationsCreated": false,
+    "planDigest": "sha256:9c3db6e9b49da0c152b9e5cfba56ade64da50e727591b75d2dc9203ba6ae53cd",
+    "appliesToThisRevision": false
+  },
+  "budgetLineage": {
+    "rootPlanDigest": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "sharedLimitUsd": 99,
+    "additionalBudgetAuthorized": false,
+    "availableAmountUsd": null
+  }
+}
