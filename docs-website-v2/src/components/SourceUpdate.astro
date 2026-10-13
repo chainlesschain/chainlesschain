@@ -2,77 +2,36 @@
 import releaseStatus from "../data/release-status.json";
 const { lang = "zh" } = Astro.props;
 const english = lang === "en";
+const jetBrainsPending = releaseStatus.jetBrainsPublicationStatus !== "verified";
 const items = english
   ? [
-      [
-        "Reliable permission writes",
-        "Concurrent settings writers get a fair retry window. Owner identity, the two-second deadline and synchronous permission revocation remain enforced.",
-      ],
-      [
-        "Visible approvals and useful diagnostics",
-        "JetBrains approval cards refresh their allocated height. Host diagnostics retain layout and menu evidence; restart the upgraded chat host and run Doctor.",
-      ],
-      [
-        "Windows evidence and acceptance",
-        "Private toolchain and process cleanup diagnostics retain actual failures. Formal evaluation and full native review remain open; automatic promotion stays HOLD.",
-      ],
+      ["Recover streams without replaying output", "Retry waits can be cancelled and are bounded to 60 seconds per delay. Terminal provider errors and visible output are not automatically replayed."],
+      ["Keep task delivery and file bytes intact", "Continue the current task with its delivery context. Invalid UTF-8 edits leave original files unchanged; temporary worktree read failures do not automatically repeat write operations."],
+      ["Refresh the right IDE session", "Open VSX defers periodic reads during actions and discards stale results per panel. Upgrade, restart the chat host and use Doctor to check the actual CLI path."],
     ]
   : [
-      [
-        "可靠的并发权限设置",
-        "多个进程写设置时获得公平重试窗口，继续核对 owner 身份、两秒截止及同步权限撤销。",
-      ],
-      [
-        "可见的审批与宿主诊断",
-        "JetBrains 审批卡片重新分配视图高度，诊断保留布局和菜单证据；升级后重启聊天宿主并运行 Doctor。",
-      ],
-      [
-        "Windows 取证与验收范围",
-        "私有工具链和进程清理诊断保留真实失败；正式评测与完整 native review 仍待验收，自动晋升保持 HOLD。",
-      ],
+      ["恢复流式请求，避免重放输出", "重试等待可取消，单次最多 60 秒。终止性服务错误和已显示输出不会自动重放。"],
+      ["保留任务交付与文件字节", "保留当前任务的交付上下文。无效 UTF-8 编辑保留原文件；临时工作树读取失败不会自动重复写操作。"],
+      ["刷新正确的 IDE 会话", "Open VSX 在操作期间延后周期读取，按面板丢弃过期结果。升级后重启聊天宿主，用 Doctor 核对实际 CLI 路径。"],
     ];
 ---
 
-<section
-  class="py-16 border-t border-line bg-cream"
-  aria-labelledby="source-update-title"
->
+<section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
   <div class="container-wide">
     <p class="font-mono text-sm text-muted">
-      {releaseStatus.checkedAt} ·{" "}
-      {english ? "Public release and current source" : "公开发布与主线源码"} ·
-      CLI {releaseStatus.recommendedCliVersion}
+      {releaseStatus.checkedAt} · {english ? "Public release and current source" : "公开发布与主线源码"} · CLI {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
-      {english
-        ? "Reliable settings, visible approvals and traceable evidence"
-        : "可靠设置、可见审批、可追溯证据"}
+      {english ? "Safer stream recovery and dependable task state" : "更稳妥的流式恢复与任务状态"}
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
-        ? "CLI " +
-          releaseStatus.recommendedCliVersion +
-          ", SDK " +
-          releaseStatus.agentSdkVersion +
-          ", Open VSX " +
-          releaseStatus.openVsxVersion +
-          " and JetBrains " +
-          releaseStatus.jetBrainsMarketplaceVersion +
-          " are public; both IDEs recommend the current CLI. Native product " +
-          releaseStatus.productVersion +
-          " is available separately. Upgrade the paired IDE, restart its chat host and run Doctor."
-        : "CLI " +
-          releaseStatus.recommendedCliVersion +
-          "、SDK " +
-          releaseStatus.agentSdkVersion +
-          "、Open VSX " +
-          releaseStatus.openVsxVersion +
-          " 和 JetBrains " +
-          releaseStatus.jetBrainsMarketplaceVersion +
-          " 已公开，两个 IDE 均推荐当前 CLI。原生产品 " +
-          releaseStatus.productVersion +
-          " 单独下载升级；安装配对 IDE 后重启聊天宿主并运行 Doctor。"}
+        ? "CLI " + releaseStatus.recommendedCliVersion + " and Open VSX " + releaseStatus.openVsxVersion + " are publicly verified; Open VSX recommends CLI " + releaseStatus.openVsxRecommendedCliVersion + ". Public JetBrains " + releaseStatus.jetBrainsMarketplaceVersion + " recommends CLI " + releaseStatus.jetBrainsRecommendedCliVersion + ". Native product " + releaseStatus.productVersion + " remains a separate download."
+        : "CLI " + releaseStatus.recommendedCliVersion + " 与 Open VSX " + releaseStatus.openVsxVersion + " 已公开核验；Open VSX 推荐 CLI " + releaseStatus.openVsxRecommendedCliVersion + "。公开 JetBrains " + releaseStatus.jetBrainsMarketplaceVersion + " 推荐 CLI " + releaseStatus.jetBrainsRecommendedCliVersion + "。原生产品 " + releaseStatus.productVersion + " 仍单独下载升级。"}
     </p>
+    {jetBrainsPending && <p class="mt-3 text-sm text-muted">
+      {english ? "JetBrains " + releaseStatus.jetBrainsCandidateVersion + " has passed its host gates; it has been uploaded, with public listing and download still unverified." : "JetBrains " + releaseStatus.jetBrainsCandidateVersion + " 已通过宿主门禁，已上传，公开上架与下载待核验。"}
+    </p>}
     <div class="mt-8 grid gap-6 md:grid-cols-3">
       {items.map(([title, description]) => (
         <article class="rounded-xl border border-line bg-paper p-6">
@@ -81,31 +40,13 @@ const items = english
         </article>
       ))}
     </div>
+    <p class="mt-6 text-sm text-muted">
+      {english ? "Formal model evaluation and full native acceptance remain open. The separate cost-control module is not included in this release." : "正式模型评测和完整原生验收仍待完成，独立费用控制模块尚未进入此版本。"}
+    </p>
     <div class="mt-6 flex flex-wrap gap-4">
-      <a
-        class="btn-ghost"
-        href="https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html"
-      >
-        {english ? "Upgrade and troubleshooting ↗" : "升级与故障排查 ↗"}
-      </a>
-      <a
-        class="btn-ghost"
-        href="https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html"
-      >
-        {english ? "Release guide ↗" : "发布与升级指南 ↗"}
-      </a>
-      <a
-        class="btn-ghost"
-        href="https://docs.chainlesschain.com/chainlesschain/rrsi-current.html"
-      >
-        {english ? "RRSI evidence and limits ↗" : "RRSI 证据与边界 ↗"}
-      </a>
-      <a
-        class="btn-ghost"
-        href="https://design.chainlesschain.com/release-runtime-update-2026-10-10.html"
-      >
-        {english ? "Architecture and contracts ↗" : "架构与契约 ↗"}
-      </a>
+      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-13.html">{english ? "Upgrade and troubleshooting ↗" : "升级与故障排查 ↗"}</a>
+      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html">{english ? "Release guide ↗" : "发布与升级指南 ↗"}</a>
+      <a class="btn-ghost" href="https://design.chainlesschain.com/release-runtime-update-2026-10-13.html">{english ? "Architecture and acceptance ↗" : "架构与验收范围 ↗"}</a>
     </div>
   </div>
 </section>

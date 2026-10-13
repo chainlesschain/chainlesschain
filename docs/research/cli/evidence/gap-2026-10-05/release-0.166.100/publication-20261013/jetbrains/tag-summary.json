@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-13T01:21:02.819Z",
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "kind": "jetbrains",
+  "version": "0.4.162",
+  "tag": "ide-jetbrains-v0.4.162",
+  "tagPushed": true,
+  "publicationConfirmed": false,
+  "runs": [
+    {
+      "conclusion": "",
+      "databaseId": 38331689410,
+      "event": "push",
+      "headSha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "status": "queued",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38331689410"
+    }
+  ],
+  "readbackPending": false
+}

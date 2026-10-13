@@ -1,0 +1,167 @@
+{
+  "at": "2026-10-12T23:25:03.499Z",
+  "status": "EXACT_SOURCE_SEVEN_GATES_AND_THIRTEEN_PUBLIC_CHILDREN_VERIFIED",
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "branch": "feature/cli-ide-release100-final-20261013",
+  "versions": {
+    "cli": "0.166.100",
+    "vscode": "0.37.144",
+    "jetbrains": "0.4.162"
+  },
+  "gates": [
+    {
+      "workflow": "cli-ci.yml",
+      "runId": 38291133155,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 71,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "cli-strict-sandbox.yml",
+      "runId": 38291132939,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 5,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "ide-extensions.yml",
+      "runId": 38291132858,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 19,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "ide-arm64-validation.yml",
+      "runId": 38291132843,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 10,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "memory-query-index.yml",
+      "runId": 38292480529,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 3,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "context-memory-kernel.yml",
+      "runId": 38291132784,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 3,
+      "status": "VERIFIED"
+    },
+    {
+      "workflow": "cli-background-interaction-e2e.yml",
+      "runId": 38292488262,
+      "attempt": 1,
+      "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+      "jobs": 3,
+      "status": "VERIFIED"
+    }
+  ],
+  "children": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "integrity": "sha512-1lJgYtL+mwPsWlPzRRi6zbBdTqFv1g6cD2oUzrOWoUdXkvd696SuCBr6uzkX24NY3oEYwFk+QqKsKrkSvvSLmQ==",
+      "tree": "99c0dd8ed86c71980c562d8d38f562ad66a5a68c",
+      "sha512": "d6526062d2fe9b03ec5a53f34518bacdb05d4ea16fd60e9c0f6a14ceb396a1475792f77af7a4ae081afabb3917db8358de8118c0593e42a2ac2ab912bef48b99"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.14",
+      "integrity": "sha512-c+GhY0edugTPSF43cdQw7bNX3zQVBGEN4mQ4otw4wahD2Tgresll74ograJptzreP1hp3bwlfQrbjCT7hB7G4w==",
+      "tree": "a6a2d3f73c7e4944aa81b09c93e199a01eb953f5",
+      "sha512": "73e1a163479dba04cf485e3771d430edb357df341504610de26438a2dc38c1a843d9382b7ac965ef8a20ada269b73ade3f5869ddbc257d0adb8c24fb841ec6e3"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.9",
+      "integrity": "sha512-j/vMgect1+40rs7KLU3lBSXwNlhD/t+pyT4e93nUQdGKdJn3Cc/Quiu9P4/GG1Tc5yWtsjTB536NW3PiXJLlQw==",
+      "tree": "ba34502c836df1258cc7dcbb086e4d86873b32df",
+      "sha512": "8ffbcc81e72dd7ee34aececa2d4de50525f0365843fedfa9c93e1ef779d441d18a7499f709cfd0ba2bbd3f8fc61b54dce725adb234c1e77e8d5b73e25c92e543"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "tree": "1106249ce17c3cdbba569c62944602dc9b446127",
+      "sha512": "e90738a31a238781b93a29dd8a186ea500e512f1e28fd90e124c4ba2a644b7f5781d308ea5a0c5254908ab5cf34eb826fea74406982ad4be099709bab3be07a6"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "tree": "e0a16bc028c1990ccd6d056b2161daaf1caf9711",
+      "sha512": "def8c3fa594885a3407b878f60ff9fc9238f0a01c1c09ccc228e6d755909eee2369e04eb2b6564383bef3d756c92350de7edae4d01ff44c586adef8e68daae88"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "tree": "f1152c366d64f72024f082f6db6d2cf587267d30",
+      "sha512": "1f9070a6daa8695a809e518ab9bc9830773958d952adcb596a0ff4554df41701e991e36a4b8dc24ebf6db0e0923bcf8a09d59ed9e928d59afc045785dacbe3d1"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "tree": "8590aec02bb9ebdaf3f3065b3931300b954fc7fe",
+      "sha512": "0f086a1bdccb6cf3dc295a3af1004454b6e84635d403bd6efab5fce8c1c804c98eafff0d69bae2b04b27af7009eb51641637550d2554c4493a5c3a00c0e30ba4"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "tree": "fcd297054d76907a27e011b6971129a63a860191",
+      "sha512": "c66ea066827c1ea3858a1d5be5194d3f2416346471a245aafe1b15d68553b829cdb314668a14ebc71e34875d003e238ab4a60f004143bcc1dc05f4c4b01e6d94"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "tree": "047ff76d018c5fef300f6ad0b6dd338e5af1a5b1",
+      "sha512": "e584a62106b50d16589c239e0726f467cfaf72b2fc420eb600c7222ba609418c2b8c4885c2d763850dc66d009ca5ea56d42bed1838b0addc86e6e7c1603c0bc6"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "integrity": "sha512-8TAd6OKka+UgrOHwX6wHSIU6bxcVtGhnj33G5X2nqPLefITff1r4kXeBneoRmmyk5EyYlj+4QwL4jDEhEblJVg==",
+      "tree": "47039e6b6e169ada6fb4d4b8b4f133284059fbba",
+      "sha512": "f1301de8e2a46be520ace1f05fac0748853a6f1715b468678f7dc6e57da7a8f2de7c84df7f5af89177819dea119a6ca4e44c98963fb84302f88c312111b94956"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.64",
+      "integrity": "sha512-kPz2eijWFTTyjhFFeVbcoQIHuRuD3/Ut04eW5WY0xjMHTgFxdw1TG7QOyr4n8iHxiJIQqeFHTrm9/pWdgtB7+Q==",
+      "tree": "7cad980f4986ae02ff8df98523a9e634b872b7da",
+      "sha512": "90fcf67a28d61534f28e11457956dca10207b91b83dff52dd38796e56634c633074e0171770d531bb40ecabe27f221f1889210a9e1474eb9bdfe959d82d07bf9"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "integrity": "sha512-Q5W/fohL0aPNBPf8y3sQFgVTp6Q5RJTiB4MmiugjLeIIN/1ronRyX3c8r2An/nMxogz0XhOTXIICa+JiGJPnHg==",
+      "tree": "a612df2973db595bc5827419accca1b6b89be5ad",
+      "sha512": "4395bf7e884bd1a3cd04f7fccb7b10160553a7a4394494e20783268ae8232de20837fd6ba274725f773caf6027fe7331a20cf45e13935c82026be2621893e71e"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "tree": "dcc9e9380c5f54f0546291912550614fed063b5d",
+      "sha512": "a301d26d94fbf6d62491912068ca0fe62b92ea2b8dab39b2c9afd3229e82845950ed6b3cee804dd31941955d66a3a731a607bfe630cc0cb807d530b3cb46611e"
+    }
+  ],
+  "helperHashesVerified": true,
+  "trackedSourceClean": true,
+  "publicationPerformed": false,
+  "formalObservationsCreated": false,
+  "scope": "Current source gates and unchanged published child bytes, not formal36+9 or budget31ff acceptance"
+}

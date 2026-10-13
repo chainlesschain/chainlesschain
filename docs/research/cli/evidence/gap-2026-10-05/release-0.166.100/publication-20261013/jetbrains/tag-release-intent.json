@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-13T01:20:39.721Z",
+  "sha": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "kind": "jetbrains",
+  "version": "0.4.162",
+  "tag": "ide-jetbrains-v0.4.162",
+  "pairedCliVersion": "0.166.100",
+  "cliReadback": "C:/code/chainlesschain/.work/r100/.work/release-readback-0.166.100/verified-38322183193-6a8db627c87f33ce4f8e5d3db704868957aa685e/public-2026-10-13T01-15-35.195Z/public-authority-readback.json",
+  "cliReadbackSha256": "0afff4672f167bb106b07b864711da3e836313cc346125a147755697bda5ef39",
+  "cliPublicationRun": 38322183193,
+  "method": "Exact immutable tag triggers established IDE workflow",
+  "userAuthorization": "User requested CLI and IDE publication after complete tests"
+}

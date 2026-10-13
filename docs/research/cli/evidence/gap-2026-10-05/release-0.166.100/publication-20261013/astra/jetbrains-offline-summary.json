@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-13T02:08:49.890Z",
+  "status": "OFFLINE_JETBRAINS_UPLOAD_BINDING_VERIFIED_PUBLIC_PENDING",
+  "source": "6a8db627c87f33ce4f8e5d3db704868957aa685e",
+  "runId": "38331689410",
+  "jobs": 19,
+  "success": 13,
+  "conditionalSkip": 6,
+  "artifactZipDigest": "sha256:177217f6c110ccd4847196d5a53e25b0256af31e23d5e1f1062e5f057c10d956",
+  "candidateSha256": "8645ab7679a58f8a2b3cac1c0c78b9eae1c529e06c9478786ea2872b563fdd73",
+  "candidateBytes": 1524521,
+  "pairedCli": "0.166.100",
+  "classBytecodeExecuted": false,
+  "publicationState": "PENDING_NOT_PUBLIC",
+  "publicUpdate": null,
+  "downloadable": false,
+  "pendingReason": "version-not-visible",
+  "formal": "NOT_RUN 0/36 0/9",
+  "limitation": "Offline upload/artifact evidence only; public absence does not prove the specific vendor review state."
+}

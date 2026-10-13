@@ -7,6 +7,8 @@ const CLI_VERSION = releaseStatus.recommendedCliVersion;
 const VSCODE_VERSION = releaseStatus.openVsxVersion;
 const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
 const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayZh;
+const JETBRAINS_CANDIDATE = releaseStatus.jetBrainsCandidateVersion;
+const JETBRAINS_PENDING = releaseStatus.jetBrainsPublicationStatus !== "verified";
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);
 const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${VSCODE_VERSION}/file/chainlesschain.chainlesschain-ide-${VSCODE_VERSION}.vsix`;
 ---
@@ -94,13 +96,8 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
-          Open VSX {VSCODE_VERSION} 已包含长回复的选区与滚动保持，以及跨 Webview
-          重载的图片草稿隔离；恢复图片需手动发送。公开版已包含有界快照、图片解码保护、实际会话能力
-          Doctor、慢初始化草稿保护及显式协议/UI 采集和 CLI 身份诊断。Open VSX{" "}
-          {releaseStatus.sourceVsCodeVersion}{" "}
-          已公开流式诊断范围、选区替换和过期帧修复；JetBrains{" "}
-          {releaseStatus.sourceJetBrainsVersion} 也已批准公开，两个 IDE 均推荐
-          CLI {CLI_VERSION}。
+          Open VSX {VSCODE_VERSION} 已公开，推荐 CLI {releaseStatus.openVsxRecommendedCliVersion}；操作期间延后周期刷新，并按面板丢弃过期投影。已核验公开 JetBrains {JETBRAINS_VERSION} 推荐 CLI {releaseStatus.jetBrainsRecommendedCliVersion}。
+          {JETBRAINS_PENDING && <>候选 {JETBRAINS_CANDIDATE} 已通过宿主门禁，已上传，公开上架与下载待核验。</>}
           <a
             href="https://docs.chainlesschain.com/chainlesschain/ide-plugin.html"
             class="text-ember underline"
@@ -114,7 +111,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           权限写入前撤销旧 Shell
           许可；恢复规则不恢复旧许可，跨进程即时通知仍待闭合。 JetBrains{" "}
           {JETBRAINS_VERSION}{" "}
-          本轮更新审批卡片的高度分配与宿主失败诊断；升级后重启 IDE 并运行
+          保留审批卡片布局和宿主诊断；候选 .162 增加检查点菜单交接与状态失效检查。升级公开版本后重启 IDE 并运行
           Doctor。公开 VS Code {VSCODE_VERSION} 推荐 CLI{" "}
           {releaseStatus.openVsxRecommendedCliVersion}
           ，已继承初始化超时回收和模式选择器。JetBrains 在写入桥接 token 前验证
@@ -136,7 +133,7 @@ const VSCODE_VSIX_URL = `https://open-vsx.org/api/chainlesschain/chainlesschain-
           [
             "接力",
             "耐久任务记录与独立新会话",
-            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 配合 CLI ${CLI_VERSION}，将目标、文件证据、失败和下一步保存为权威检查点及有界 WORKLOG.md；接力不复制旧对话或临时权限。`,
+            `Open VSX ${VSCODE_VERSION} 与 JetBrains ${JETBRAINS_VERSION} 配合各自推荐的 CLI，将目标、文件证据、失败和下一步保存为权威检查点及有界 WORKLOG.md；接力不复制旧对话或临时权限。`,
           ],
           [
             "持续执行",
