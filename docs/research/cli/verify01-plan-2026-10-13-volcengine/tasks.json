@@ -1,0 +1,551 @@
+{
+  "schema": "chainlesschain.verify01-task-catalog/v1",
+  "project": "chainlesschain/chainlesschain",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "tasks": [
+    {
+      "id": "verify-01",
+      "description": "官方 endpoint 与同名自定义网关隔离",
+      "gap": "MODEL-01",
+      "sourcePaths": ["packages/cli/src/lib/model-context-catalog.js"],
+      "prompt": "在固定项目快照中完成「官方 endpoint 与同名自定义网关隔离」。阅读 packages/cli/src/lib/model-context-catalog.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：分别输入官方与自定义 endpoint，同名模型不得共享官方认证；未知窗口保留未知。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-01.test.js"],
+      "acceptance": [
+        "分别输入官方与自定义 endpoint，同名模型不得共享官方认证；未知窗口保留未知",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-02",
+      "description": "精确模型能力查找",
+      "gap": "MODEL-01",
+      "sourcePaths": ["packages/cli/src/lib/model-capabilities.js"],
+      "prompt": "在固定项目快照中完成「精确模型能力查找」。阅读 packages/cli/src/lib/model-capabilities.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：验证 Astra/Sol/Luna 精确标识及未知后缀，不把未知模型当作已认证工具模型。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-02.test.js"],
+      "acceptance": [
+        "验证 Astra/Sol/Luna 精确标识及未知后缀，不把未知模型当作已认证工具模型",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-03",
+      "description": "新家族未知计价",
+      "gap": "MODEL-02",
+      "sourcePaths": ["packages/cli/src/lib/llm-pricing.js"],
+      "prompt": "在固定项目快照中完成「新家族未知计价」。阅读 packages/cli/src/lib/llm-pricing.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：未知模型返回 unpriced，不命中旧家族价格；已知模型正对照仍可计价。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-03.test.js"],
+      "acceptance": [
+        "未知模型返回 unpriced，不命中旧家族价格；已知模型正对照仍可计价",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-04",
+      "description": "请求级缓存与阶梯费用",
+      "gap": "MODEL-02",
+      "sourcePaths": ["packages/cli/src/lib/usage-pricing-context.js"],
+      "prompt": "在固定项目快照中完成「请求级缓存与阶梯费用」。阅读 packages/cli/src/lib/usage-pricing-context.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-04.test.js"],
+      "acceptance": [
+        "同一总 token 数但不同缓存/长上下文请求分布的费用按逐请求合同计算",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-05",
+      "description": "安装与准入分离",
+      "gap": "READY-01",
+      "sourcePaths": ["packages/cli/src/lib/agent-router.js"],
+      "prompt": "在固定项目快照中完成「安装与准入分离」。阅读 packages/cli/src/lib/agent-router.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：已安装未 attested 的 CLI 后端仍拒绝运行；可用 API 后端保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-05.test.js"],
+      "acceptance": [
+        "已安装未 attested 的 CLI 后端仍拒绝运行；可用 API 后端保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-06",
+      "description": "付费分解前预检",
+      "gap": "READY-01",
+      "sourcePaths": ["packages/cli/src/commands/orchestrate.js"],
+      "prompt": "在固定项目快照中完成「付费分解前预检」。阅读 packages/cli/src/commands/orchestrate.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：被拒绝后端在分解前终止；分解和通知 spy 均为零。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-06.test.js"],
+      "acceptance": [
+        "被拒绝后端在分解前终止；分解和通知 spy 均为零",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-07",
+      "description": "持久正文分页边界",
+      "gap": "IDE-REPLAY",
+      "sourcePaths": ["packages/cli/src/lib/session-transcript-history.js"],
+      "prompt": "在固定项目快照中完成「持久正文分页边界」。阅读 packages/cli/src/lib/session-transcript-history.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：跨页读取首尾 cursor，不遗漏最终正文、不重复边界事件。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-07.test.js"],
+      "acceptance": [
+        "跨页读取首尾 cursor，不遗漏最终正文、不重复边界事件",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-08",
+      "description": "fork 历史归属",
+      "gap": "IDE-REPLAY",
+      "sourcePaths": ["packages/cli/src/lib/session-branch-history.js"],
+      "prompt": "在固定项目快照中完成「fork 历史归属」。阅读 packages/cli/src/lib/session-branch-history.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：两个分支各自恢复有效祖先和独立正文，分支之后内容不串入。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-08.test.js"],
+      "acceptance": [
+        "两个分支各自恢复有效祖先和独立正文，分支之后内容不串入",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-09",
+      "description": "历史来源篡改拒绝",
+      "gap": "IDE-REPLAY",
+      "sourcePaths": ["packages/cli/src/lib/session-history-origins.js"],
+      "prompt": "在固定项目快照中完成「历史来源篡改拒绝」。阅读 packages/cli/src/lib/session-history-origins.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：错误 session/source 身份被拒绝，正确来源正对照可读。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-09.test.js"],
+      "acceptance": [
+        "错误 session/source 身份被拒绝，正确来源正对照可读",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-10",
+      "description": "分页索引失效回归",
+      "gap": "PERF-01",
+      "sourcePaths": ["packages/cli/src/lib/background-agent-list-index.js"],
+      "prompt": "在固定项目快照中完成「分页索引失效回归」。阅读 packages/cli/src/lib/background-agent-list-index.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：写入、删除后索引分页与同快照全量列表一致，包含末页。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-10.test.js"],
+      "acceptance": [
+        "写入、删除后索引分页与同快照全量列表一致，包含末页",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-11",
+      "description": "问题持久记录归属",
+      "gap": "IDE-DRAFT",
+      "sourcePaths": ["packages/cli/src/lib/background-interaction-journal.js"],
+      "prompt": "在固定项目快照中完成「问题持久记录归属」。阅读 packages/cli/src/lib/background-interaction-journal.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：同名问题不同 session 不串值；完成记录不重建执行权。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-11.test.js"],
+      "acceptance": [
+        "同名问题不同 session 不串值；完成记录不重建执行权",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-12",
+      "description": "含空格参数完整性",
+      "gap": "PLATFORM-01",
+      "sourcePaths": ["packages/cli/src/lib/background-command-argv.js"],
+      "prompt": "在固定项目快照中完成「含空格参数完整性」。阅读 packages/cli/src/lib/background-command-argv.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：空参数、空格和引号路径保持 argv 边界，不触发 shell 展开。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-12.test.js"],
+      "acceptance": [
+        "空参数、空格和引号路径保持 argv 边界，不触发 shell 展开",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-13",
+      "description": "附件同句柄读取边界",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": ["packages/cli/src/lib/image-file-boundary.js"],
+      "prompt": "在固定项目快照中完成「附件同句柄读取边界」。阅读 packages/cli/src/lib/image-file-boundary.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：读取前替换或超限输入被拒绝；正常小图可读且资源关闭。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-13.test.js"],
+      "acceptance": [
+        "读取前替换或超限输入被拒绝；正常小图可读且资源关闭",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-14",
+      "description": "图片逐项错误",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": ["packages/cli/src/lib/image-input.js"],
+      "prompt": "在固定项目快照中完成「图片逐项错误」。阅读 packages/cli/src/lib/image-input.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：混合合法图与损坏输入保留准确成功/拒绝信息，不默默跳过。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-14.test.js"],
+      "acceptance": [
+        "混合合法图与损坏输入保留准确成功/拒绝信息，不默默跳过",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-15",
+      "description": "权限修订溢出拒绝",
+      "gap": "NET-02",
+      "sourcePaths": ["packages/cli/src/lib/scoped-permission-store.js"],
+      "prompt": "在固定项目快照中完成「权限修订溢出拒绝」。阅读 packages/cli/src/lib/scoped-permission-store.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：generation/revision 到上界时写入失败且不放宽旧权限。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-15.test.js"],
+      "acceptance": [
+        "generation/revision 到上界时写入失败且不放宽旧权限",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-16",
+      "description": "无效设置来源保守失败",
+      "gap": "NET-02",
+      "sourcePaths": ["packages/cli/src/lib/settings-source-observation.cjs"],
+      "prompt": "在固定项目快照中完成「无效设置来源保守失败」。阅读 packages/cli/src/lib/settings-source-observation.cjs 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：删除、损坏及 ABA 来源变化不会复用旧允许结果。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-16.test.js"],
+      "acceptance": [
+        "删除、损坏及 ABA 来源变化不会复用旧允许结果",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-17",
+      "description": "持久进程所有权记录",
+      "gap": "BRIDGE-01",
+      "sourcePaths": [
+        "packages/cli/src/lib/process-execution-broker/process-ownership-journal.js"
+      ],
+      "prompt": "在固定项目快照中完成「持久进程所有权记录」。阅读 packages/cli/src/lib/process-execution-broker/process-ownership-journal.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：损坏 journal 不被当作空闲；合法待回收记录跨实例保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-17.test.js"],
+      "acceptance": [
+        "损坏 journal 不被当作空闲；合法待回收记录跨实例保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-18",
+      "description": "所有权未知保持阻断",
+      "gap": "BRIDGE-01",
+      "sourcePaths": [
+        "packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js"
+      ],
+      "prompt": "在固定项目快照中完成「所有权未知保持阻断」。阅读 packages/cli/src/lib/process-execution-broker/process-ownership-quarantine.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：监督器失联后后续执行被阻断，不以根进程消失当完整树退出。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-18.test.js"],
+      "acceptance": [
+        "监督器失联后后续执行被阻断，不以根进程消失当完整树退出",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-19",
+      "description": "取消审批迟到回调",
+      "gap": "IDE-MODE",
+      "sourcePaths": ["packages/cli/src/lib/permission-request.js"],
+      "prompt": "在固定项目快照中完成「取消审批迟到回调」。阅读 packages/cli/src/lib/permission-request.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：取消后迟到接受不能授权新请求；正常接受仅绑定原请求。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-19.test.js"],
+      "acceptance": [
+        "取消后迟到接受不能授权新请求；正常接受仅绑定原请求",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-20",
+      "description": "deny 决策不降级",
+      "gap": "IDE-MODE",
+      "sourcePaths": ["packages/cli/src/lib/permission-decision.js"],
+      "prompt": "在固定项目快照中完成「deny 决策不降级」。阅读 packages/cli/src/lib/permission-decision.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：显式 deny 与未知策略不会被 fallback 变成 allow。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-20.test.js"],
+      "acceptance": [
+        "显式 deny 与未知策略不会被 fallback 变成 allow",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-21",
+      "description": "Memory 影子读取无写入",
+      "gap": "PERF-01",
+      "sourcePaths": [
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "prompt": "在固定项目快照中完成「Memory 影子读取无写入」。阅读 packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：v1/v2 shadow 读前后目录字节与条目一致，不触发迁移/GC。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-21.test.js"],
+      "acceptance": [
+        "v1/v2 shadow 读前后目录字节与条目一致，不触发迁移/GC",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-22",
+      "description": "Memory 发布后故障语义",
+      "gap": "PERF-01",
+      "sourcePaths": [
+        "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "prompt": "在固定项目快照中完成「Memory 发布后故障语义」。阅读 packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：manifest 发布后注入同步失败，错误声明 committed 且重开仍可读新状态。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-22.test.js"],
+      "acceptance": [
+        "manifest 发布后注入同步失败，错误声明 committed 且重开仍可读新状态",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-23",
+      "description": "缺失样本固定分母",
+      "gap": "VERIFY-01",
+      "sourcePaths": ["packages/cli/src/lib/eval/outcomes.js"],
+      "prompt": "在固定项目快照中完成「缺失样本固定分母」。阅读 packages/cli/src/lib/eval/outcomes.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：部分 observations 保留全部计划样本；未知费用保持 null，不能冒充零。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-23.test.js"],
+      "acceptance": [
+        "部分 observations 保留全部计划样本；未知费用保持 null，不能冒充零",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-24",
+      "description": "比较身份严格隔离",
+      "gap": "VERIFY-01",
+      "sourcePaths": ["packages/cli/src/lib/eval/evidence.js"],
+      "prompt": "在固定项目快照中完成「比较身份严格隔离」。阅读 packages/cli/src/lib/eval/evidence.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：相同 task 不同模型/权限/运行时身份不能算可比改善。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-24.test.js"],
+      "acceptance": [
+        "相同 task 不同模型/权限/运行时身份不能算可比改善",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-25",
+      "description": "草稿写失败保留旧记录",
+      "gap": "IDE-DRAFT",
+      "sourcePaths": ["packages/vscode-extension/src/chat/draft-store.js"],
+      "prompt": "在固定项目快照中完成「草稿写失败保留旧记录」。阅读 packages/vscode-extension/src/chat/draft-store.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：原子写入失败后旧草稿可恢复，发送不提前清空。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-25.test.js"
+      ],
+      "acceptance": [
+        "原子写入失败后旧草稿可恢复，发送不提前清空",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-26",
+      "description": "敏感问题字段排除",
+      "gap": "IDE-DRAFT",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "prompt": "在固定项目快照中完成「敏感问题字段排除」。阅读 packages/vscode-extension/src/chat/question-draft-contract.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：password/writeOnly 与未知 schema fallback 不进入持久化投影。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-26.test.js"
+      ],
+      "acceptance": [
+        "password/writeOnly 与未知 schema fallback 不进入持久化投影",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-27",
+      "description": "重载问题精确绑定",
+      "gap": "IDE-DRAFT",
+      "sourcePaths": ["packages/vscode-extension/src/chat/question-drafts.js"],
+      "prompt": "在固定项目快照中完成「重载问题精确绑定」。阅读 packages/vscode-extension/src/chat/question-drafts.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：request/session/schema 不匹配不恢复 live 字段；精确重发才恢复。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-27.test.js"
+      ],
+      "acceptance": [
+        "request/session/schema 不匹配不恢复 live 字段；精确重发才恢复",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-28",
+      "description": "迟到加载不覆盖编辑",
+      "gap": "IDE-DRAFT",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/question-form-drafts.js"
+      ],
+      "prompt": "在固定项目快照中完成「迟到加载不覆盖编辑」。阅读 packages/vscode-extension/src/chat/question-form-drafts.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：延迟恢复返回时新输入保留；select/checkbox 声明顺序保持。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-28.test.js"
+      ],
+      "acceptance": [
+        "延迟恢复返回时新输入保留；select/checkbox 声明顺序保持",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-29",
+      "description": "模式 ACK 关联",
+      "gap": "IDE-MODE",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/permission-mode-state.js"
+      ],
+      "prompt": "在固定项目快照中完成「模式 ACK 关联」。阅读 packages/vscode-extension/src/chat/permission-mode-state.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：旧 generation/correlation ACK 无效，失败不显示新模式已生效。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-29.test.js"
+      ],
+      "acceptance": [
+        "旧 generation/correlation ACK 无效，失败不显示新模式已生效",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-30",
+      "description": "累计动画帧预算",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/image-decode-budget.js"
+      ],
+      "prompt": "在固定项目快照中完成「累计动画帧预算」。阅读 packages/vscode-extension/src/chat/image-decode-budget.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：多帧累计超限在昂贵解码前拒绝，合法边界图保留。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-30.test.js"
+      ],
+      "acceptance": [
+        "多帧累计超限在昂贵解码前拒绝，合法边界图保留",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-31",
+      "description": "快照失败资源清理",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/image-file-snapshot.js"
+      ],
+      "prompt": "在固定项目快照中完成「快照失败资源清理」。阅读 packages/vscode-extension/src/chat/image-file-snapshot.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：读取/复制失败后句柄和临时文件清理，不删除成功引用图片。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-31.test.js"
+      ],
+      "acceptance": [
+        "读取/复制失败后句柄和临时文件清理，不删除成功引用图片",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-32",
+      "description": "预览取消失效",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/image-preview-gate.js"
+      ],
+      "prompt": "在固定项目快照中完成「预览取消失效」。阅读 packages/vscode-extension/src/chat/image-preview-gate.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：页面切换或取消后迟到预览不写入新页面；当前页面正常显示。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-32.test.js"
+      ],
+      "acceptance": [
+        "页面切换或取消后迟到预览不写入新页面；当前页面正常显示",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-33",
+      "description": "快速多图添加预算",
+      "gap": "IDE-IMAGE",
+      "sourcePaths": [
+        "packages/vscode-extension/src/chat/image-attachments.js"
+      ],
+      "prompt": "在固定项目快照中完成「快速多图添加预算」。阅读 packages/vscode-extension/src/chat/image-attachments.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：连续添加超总量准确拒绝对应项，已成功附件保持可用。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": [
+        "packages/vscode-extension/__tests__/verify-33.test.js"
+      ],
+      "acceptance": [
+        "连续添加超总量准确拒绝对应项，已成功附件保持可用",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-34",
+      "description": "冻结计划操作说明",
+      "gap": "VERIFY-01",
+      "sourcePaths": ["packages/cli/scripts/task-outcome-report.mjs"],
+      "prompt": "在固定项目快照中完成「冻结计划操作说明」。阅读 packages/cli/scripts/task-outcome-report.mjs 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：编写该真实脚本的仓库运维说明，包含指纹、缺失样本退出2、未知费用及禁止改善PASS。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["docs/development/verify-34-outcome-runbook.md"],
+      "acceptance": [
+        "编写该真实脚本的仓库运维说明，包含指纹、缺失样本退出2、未知费用及禁止改善PASS",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-35",
+      "description": "模型失败分类回归",
+      "gap": "MODEL-01",
+      "sourcePaths": ["packages/cli/src/lib/model-failure-policy.js"],
+      "prompt": "在固定项目快照中完成「模型失败分类回归」。阅读 packages/cli/src/lib/model-failure-policy.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：可重试与明确拒绝按现有合同区分，不把协议错误隐式转成成功。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-35.test.js"],
+      "acceptance": [
+        "可重试与明确拒绝按现有合同区分，不把协议错误隐式转成成功",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "verify-36",
+      "description": "启动配置身份保真",
+      "gap": "PLATFORM-01",
+      "sourcePaths": ["packages/cli/src/lib/background-launch-profile.js"],
+      "prompt": "在固定项目快照中完成「启动配置身份保真」。阅读 packages/cli/src/lib/background-launch-profile.js 及现有相关测试，新增独立回归覆盖或补齐已有覆盖；仅在反例证明需要时最小修复实现。不得虚构已存在缺陷。验收要求：保存和恢复启动配置后策略身份一致，非法配置拒绝而非放宽。提交补丁和实际验证记录，禁止修改评测计划、降低断言或跳过失败。",
+      "expectedFiles": ["packages/cli/__tests__/verify-36.test.js"],
+      "acceptance": [
+        "保存和恢复启动配置后策略身份一致，非法配置拒绝而非放宽",
+        "相关既有回归保持通过；新测试应含正反对照，并证明错误行为会使断言失败",
+        "独立验收者检查实际断言和原始命令输出；仅新增标题/空测试不通过"
+      ],
+      "status": "NOT_RUN"
+    }
+  ]
+}

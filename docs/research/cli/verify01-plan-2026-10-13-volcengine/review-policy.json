@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.verify01-review-policy/v1",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "authorization": {
+    "source": "user message in the active task",
+    "quote": "astra代替人工审阅",
+    "reviewerSubstitutionAuthorized": true
+  },
+  "reviewer": "Astra",
+  "reviewerKind": "AI",
+  "independentHumanReview": false,
+  "independentHumanReviewRequired": false,
+  "exactPackReviewRequired": true,
+  "rule": "Accept the user-authorized Astra review of the exact plan, review digest, image and source. Preserve findings and limitations, and re-review a corrected pack. Do not label AI review as human approval.",
+  "sampleIdsTasksAndBudgetsPreserved": true,
+  "providerAssignmentsRevisedByUser": true
+}
