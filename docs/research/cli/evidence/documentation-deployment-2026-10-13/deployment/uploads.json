@@ -1,0 +1,37 @@
+{
+  "status": "complete",
+  "uploadedAt": "2026-10-13T02:44:21.371Z",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "artifacts": {
+    "docs": {
+      "domain": "docs.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-docs.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-docs.tar.gz",
+      "sha256": "0447f82b2aab8af69c551b6de6c21ac7dc29f4159bbce2d26ff0f96ac6dc5a70",
+      "bytes": 41311368,
+      "htmlPages": 636,
+      "files": 1937,
+      "sourceManifestSha256": "a6f35cd3c00114e4b56b2741e121ee67fbe26a4dcf7fdad3865e429f1efcf3bf"
+    },
+    "design": {
+      "domain": "design.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-design.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-design.tar.gz",
+      "sha256": "ff8c21155ef73b5801b458a8ed1aa7fff01c9c8a72b0d197e738993d32d2f831",
+      "bytes": 16413642,
+      "htmlPages": 279,
+      "files": 865,
+      "sourceManifestSha256": "05174de39feda2c06bc6d8668615502dce1ff6830ea1074bbbaca388155598a8"
+    },
+    "www": {
+      "domain": "www.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-www.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-www.tar.gz",
+      "sha256": "765599cff7ac759a4a5053e130f7f08fbff1f251098d109130f0eab37d6a1297",
+      "bytes": 1801077,
+      "htmlPages": 20,
+      "files": 37,
+      "sourceManifestSha256": "8f7575bb5ee2d4bd9c30050ea3a39aba9d684e0226ba1b6d792bd37a5477fc40"
+    }
+  }
+}

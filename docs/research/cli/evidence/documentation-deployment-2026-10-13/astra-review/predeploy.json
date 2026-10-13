@@ -1,0 +1,139 @@
+{
+  "schema": "chainlesschain.site-deployment-preflight/v1",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "codeBaseline": "283634169a683ba5dcd0da4e51a64b66002217c2",
+  "stamp": "20261013-docs-d898d4e04d03-023354",
+  "server": "root@47.111.5.128",
+  "builds": {
+    "docs": {
+      "schema": "chainlesschain.documentation-build/v1",
+      "kind": "docs",
+      "status": "success",
+      "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+      "startedAt": "2026-10-13T02:24:06.871Z",
+      "completedAt": "2026-10-13T02:31:17.732Z",
+      "command": {
+        "executable": "C:\\nvm4w\\nodejs\\node.exe",
+        "args": [
+          "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node_modules\\npm\\bin\\npm-cli.js",
+          "run",
+          "build"
+        ],
+        "cwd": "C:\\code\\chainlesschain\\.work\\s100\\docs-site"
+      },
+      "htmlPages": 636,
+      "files": 1935,
+      "seconds": 419.99,
+      "log": {
+        "path": "C:\\code\\chainlesschain\\.work\\s100\\.work\\site-build-20261013\\docs\\build.log",
+        "bytes": 10862,
+        "sha256": "9b8294352950c386bb38d00a798602c29ebe3cd2da215b29efff9696321feb84"
+      },
+      "dist": "C:\\code\\chainlesschain\\.work\\s100\\docs-site\\docs\\.vitepress\\dist"
+    },
+    "design": {
+      "schema": "chainlesschain.documentation-build/v1",
+      "kind": "design",
+      "status": "success",
+      "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+      "startedAt": "2026-10-13T02:24:06.852Z",
+      "completedAt": "2026-10-13T02:27:35.132Z",
+      "command": {
+        "executable": "C:\\nvm4w\\nodejs\\node.exe",
+        "args": [
+          "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node_modules\\npm\\bin\\npm-cli.js",
+          "run",
+          "build"
+        ],
+        "cwd": "C:\\code\\chainlesschain\\.work\\s100\\docs-site-design"
+      },
+      "htmlPages": 279,
+      "files": 863,
+      "seconds": 200.38,
+      "log": {
+        "path": "C:\\code\\chainlesschain\\.work\\s100\\.work\\site-build-20261013\\design\\build.log",
+        "bytes": 10297,
+        "sha256": "69b88148fcecd2427efa51c9dc3ef23191937f6c2f47c0a7c62c46d43d5b917a"
+      },
+      "dist": "C:\\code\\chainlesschain\\.work\\s100\\docs-site-design\\docs\\.vitepress\\dist"
+    },
+    "www": {
+      "schema": "chainlesschain.documentation-build/v1",
+      "kind": "www",
+      "status": "success",
+      "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+      "startedAt": "2026-10-13T02:24:06.895Z",
+      "completedAt": "2026-10-13T02:24:29.350Z",
+      "command": {
+        "executable": "C:\\nvm4w\\nodejs\\node.exe",
+        "args": [
+          "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2\\node_modules\\astro\\astro.js",
+          "build"
+        ],
+        "cwd": "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2"
+      },
+      "htmlPages": 20,
+      "files": 35,
+      "seconds": 13.51,
+      "log": {
+        "path": "C:\\code\\chainlesschain\\.work\\s100\\.work\\site-build-20261013\\www\\build.log",
+        "bytes": 2317,
+        "sha256": "56178341c65a739df192a2db3560c8d23ecb0cc53655c5b9ec614b10481a0f1a"
+      },
+      "dist": "C:\\code\\chainlesschain\\.work\\s100\\docs-website-v2\\dist"
+    }
+  },
+  "artifacts": {
+    "docs": {
+      "domain": "docs.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-docs.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-docs.tar.gz",
+      "sha256": "0447f82b2aab8af69c551b6de6c21ac7dc29f4159bbce2d26ff0f96ac6dc5a70",
+      "bytes": 41311368,
+      "htmlPages": 636,
+      "files": 1937,
+      "sourceManifestSha256": "a6f35cd3c00114e4b56b2741e121ee67fbe26a4dcf7fdad3865e429f1efcf3bf"
+    },
+    "design": {
+      "domain": "design.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-design.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-design.tar.gz",
+      "sha256": "ff8c21155ef73b5801b458a8ed1aa7fff01c9c8a72b0d197e738993d32d2f831",
+      "bytes": 16413642,
+      "htmlPages": 279,
+      "files": 865,
+      "sourceManifestSha256": "05174de39feda2c06bc6d8668615502dce1ff6830ea1074bbbaca388155598a8"
+    },
+    "www": {
+      "domain": "www.chainlesschain.com",
+      "local": ".work\\20261013-docs-d898d4e04d03-023354\\deploy-www.tar.gz",
+      "remote": "/tmp/20261013-docs-d898d4e04d03-023354-www.tar.gz",
+      "sha256": "765599cff7ac759a4a5053e130f7f08fbff1f251098d109130f0eab37d6a1297",
+      "bytes": 1801077,
+      "htmlPages": 20,
+      "files": 37,
+      "sourceManifestSha256": "8f7575bb5ee2d4bd9c30050ea3a39aba9d684e0226ba1b6d792bd37a5477fc40"
+    }
+  },
+  "remoteScript": "C:\\code\\chainlesschain\\.work\\s100\\.work\\20261013-docs-d898d4e04d03-023354\\deploy.sh",
+  "remoteScriptSha256": "d491c46fad88ed01325bd293b196af5f690ef93cbc04bddbc831a94e65c13bca",
+  "retainedOperationalContent": {
+    "path": ".well-known",
+    "method": "cp -a only when existing and absent from staged build; preserve metadata and symlinks"
+  },
+  "retainedBrandingPolicy": {
+    "names": [
+      "logo-128.png",
+      "logo-32.png",
+      "logo-64.png",
+      "logo-optimized.png",
+      "logo.png",
+      "logo.webp",
+      "og-image.svg"
+    ],
+    "method": "Existing regular non-symlink files absent from the build only; record staged SHA256 and byte count; do not overwrite any built file",
+    "scope": "Operational/server assets are separate from source-build inventory"
+  },
+  "remoteReplacementMethod": "All three tarballs staged and verified before per-site two-renames; retain distinct backups; rollback on detected failure. Not a cross-site atomic transaction.",
+  "previousPreparedScriptSha256": "10547b306d4e8dd0e1b25105b8597db5f209003a3f448fff8fc39fc4bd9e2c14"
+}

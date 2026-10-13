@@ -1,0 +1,11 @@
+/tmp/20261013-docs-d898d4e04d03-023354-docs.tar.gz: OK
+STAGED docs: 636 HTML / 1937 files
+/tmp/20261013-docs-d898d4e04d03-023354-design.tar.gz: OK
+STAGED design: 279 HTML / 865 files
+/tmp/20261013-docs-d898d4e04d03-023354-www.tar.gz: OK
+STAGED www: 20 HTML / 37 files
+PRESERVED_OPERATIONAL www .well-known
+LIVE docs: backup /www/wwwroot/docs.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354
+LIVE design: backup /www/wwwroot/design.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354
+LIVE www: backup /www/wwwroot/www.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354
+DEPLOYMENT_COMPLETE

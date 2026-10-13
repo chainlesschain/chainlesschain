@@ -1,0 +1,26 @@
+{
+  "schema": "chainlesschain.documentation-build/v1",
+  "kind": "design",
+  "status": "success",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "startedAt": "2026-10-13T02:24:06.852Z",
+  "completedAt": "2026-10-13T02:27:35.132Z",
+  "command": {
+    "executable": "C:\\nvm4w\\nodejs\\node.exe",
+    "args": [
+      "C:\\Users\\longfa\\AppData\\Local\\nvm\\v22.22.2\\node_modules\\npm\\bin\\npm-cli.js",
+      "run",
+      "build"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\.work\\s100\\docs-site-design"
+  },
+  "htmlPages": 279,
+  "files": 863,
+  "seconds": 200.38,
+  "log": {
+    "path": "C:\\code\\chainlesschain\\.work\\s100\\.work\\site-build-20261013\\design\\build.log",
+    "bytes": 10297,
+    "sha256": "69b88148fcecd2427efa51c9dc3ef23191937f6c2f47c0a7c62c46d43d5b917a"
+  },
+  "dist": "C:\\code\\chainlesschain\\.work\\s100\\docs-site-design\\docs\\.vitepress\\dist"
+}

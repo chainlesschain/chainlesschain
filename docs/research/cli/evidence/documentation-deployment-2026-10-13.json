@@ -1,0 +1,84 @@
+{
+  "schema": "chainlesschain.documentation-deployment-archive/v1",
+  "status": "VERIFIED",
+  "archivedAt": "2026-10-13T03:01:26.979Z",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "codeBaseline": "283634169a683ba5dcd0da4e51a64b66002217c2",
+  "sourceIntegration": {
+    "pullRequest": 437,
+    "url": "https://github.com/chainlesschain/chainlesschain/pull/437",
+    "state": "MERGED",
+    "mergeCommit": "1ac3b80f231951ebd5533c0e82c1f89d340645c0"
+  },
+  "stamp": "20261013-docs-d898d4e04d03-023354",
+  "server": "47.111.5.128",
+  "githubDocsBuildGate": {
+    "id": 38336873726,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38336873726",
+    "actualCheckouts": [
+      "d898d4e04d036bc51909d24f24e58842af568ce6"
+    ],
+    "jobId": 115098840423
+  },
+  "buildHtmlPages": {
+    "docs": 636,
+    "design": 279,
+    "www": 20
+  },
+  "totalBuildHtmlPages": 935,
+  "publicChecks": {
+    "html": 17,
+    "staticAsset": 35,
+    "deploymentManifest": 3,
+    "serverRuntimeAvailability": 1,
+    "sourceBound": 55,
+    "total": 56
+  },
+  "publicSites": [
+    "https://docs.chainlesschain.com",
+    "https://design.chainlesschain.com",
+    "https://www.chainlesschain.com"
+  ],
+  "receipt": "docs/research/cli/evidence/documentation-deployment-2026-10-13/deployment/public-deployment.json",
+  "remoteScriptSha256": "d491c46fad88ed01325bd293b196af5f690ef93cbc04bddbc831a94e65c13bca",
+  "rollbackDirectories": {
+    "docs": "/www/wwwroot/docs.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354",
+    "design": "/www/wwwroot/design.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354",
+    "www": "/www/wwwroot/www.chainlesschain.com.bak-20261013-docs-d898d4e04d03-023354"
+  },
+  "preservedFiles": [],
+  "preservedOperational": [
+    {
+      "site": "www",
+      "path": ".well-known",
+      "source": "Existing server operational content; not a source-build artifact"
+    }
+  ],
+  "astra": {
+    "status": "OFFLINE_LIVE_DEPLOYMENT_EVIDENCE_VERIFIED",
+    "cachedResponsesVerified": 56,
+    "assessment": "docs/research/cli/evidence/documentation-deployment-2026-10-13/astra-review/assessment.md",
+    "mode": "Offline audit of retained observations; no new live queries or deployment"
+  },
+  "localOnlyArtifacts": {
+    "deploymentArchives": [
+      ".work\\20261013-docs-d898d4e04d03-023354\\deploy-docs.tar.gz",
+      ".work\\20261013-docs-d898d4e04d03-023354\\deploy-design.tar.gz",
+      ".work\\20261013-docs-d898d4e04d03-023354\\deploy-www.tar.gz"
+    ],
+    "publicReadbackDirectory": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/public-readback-2026-10-13T02-52-48.795Z"
+  },
+  "boundaries": [
+    "JetBrains 0.4.162 remains uploaded/PENDING_NOT_PUBLIC; this site deployment does not establish Marketplace approval.",
+    "Formal 36+9 remains NOT_RUN and budget PR436 remains outside the release.",
+    "This verification covers rendered HTML, referenced JS/CSS/modulepreload assets, deployment manifests and branding; it is not a browser interaction or accessibility acceptance.",
+    ".well-known operational content retains server metadata and symlinks; it is not represented as a source-build artifact.",
+    "Existing analytics reverse-proxy JavaScript is checked for availability, without a source-build byte identity claim.",
+    "This archive-only change does not rebuild or redeploy sites; sourceCommit identifies the previously deployed d898 commit.",
+    "Remote-deployment.json retains its original PENDING readback field; public-deployment.json is the later verified receipt.",
+    "Deployment archives and page/resource response bodies are retained locally rather than committed; receipt hashes identify them. Three public source manifests and raw build/CI/deployment logs are archived here."
+  ]
+}

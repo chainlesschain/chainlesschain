@@ -1,0 +1,162 @@
+{
+  "schema": "chainlesschain.raw-evidence-index/v1",
+  "sourceCommit": "d898d4e04d036bc51909d24f24e58842af568ce6",
+  "files": [
+    {
+      "path": "deployment/predeploy.json",
+      "bytes": 5766,
+      "sha256": "e5335a78f6c6edceeadbbd23184aba88c7625b0f7cfd9c9f719b0b768f359cc0",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/predeploy.json"
+    },
+    {
+      "path": "deployment/uploads.json",
+      "bytes": 1545,
+      "sha256": "ce006e264707027b2c88ca0078a97a8956698dc6b00af54a6fb7cc34a73dc870",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/uploads.json"
+    },
+    {
+      "path": "deployment/remote-deployment.json",
+      "bytes": 2292,
+      "sha256": "bca3dcc24be5100dbbe4410c85fa92ee1bb0c8df4b8d999662e86ff403315e0d",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/remote-deployment.json"
+    },
+    {
+      "path": "deployment/remote-deployment.stdout",
+      "bytes": 607,
+      "sha256": "cfd2a796b8beaa14cc4cbcaa232b980c53f0af2a0b4a3713c208a34f700d0f76",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/remote-deployment.stdout"
+    },
+    {
+      "path": "deployment/public-deployment.json",
+      "bytes": 37476,
+      "sha256": "2576989740b236ac11e340e08c0bb81e1bfc7fba89f749d01d7304609ad3b6f1",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/public-deployment.json"
+    },
+    {
+      "path": "deployment/deploy.sh",
+      "bytes": 28137,
+      "sha256": "d491c46fad88ed01325bd293b196af5f690ef93cbc04bddbc831a94e65c13bca",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/deploy.sh"
+    },
+    {
+      "path": "github/gate-job-log-1791859662972.stdout",
+      "bytes": 200628,
+      "sha256": "547c6403aa48c8a0c93566a31dfd8d8fdc3d4ef3da06f14eb2c7b57c312d40a4",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/gate-job-log-1791859662972.stdout"
+    },
+    {
+      "path": "github/gate-jobs-1791859660737.stdout",
+      "bytes": 2552,
+      "sha256": "c0bc9375a718616c8eda5a93c34919cc5e61fe4be07982911f0fbe11fcc8c49f",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/gate-jobs-1791859660737.stdout"
+    },
+    {
+      "path": "github/gate-run-1791859658815.stdout",
+      "bytes": 13764,
+      "sha256": "d01e0c64430a325031504782fe781b25c072618573019d59035070703b6c208e",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/gate-run-1791859658815.stdout"
+    },
+    {
+      "path": "build/docs/receipt.json",
+      "bytes": 879,
+      "sha256": "1a408083a38cde03ba1cc53acac3ddd9a173014b5f2e31494bdf78b45ad26587",
+      "retainedSource": ".work/s100/.work/site-build-20261013/docs/receipt.json"
+    },
+    {
+      "path": "build/docs/build.log",
+      "bytes": 10862,
+      "sha256": "9b8294352950c386bb38d00a798602c29ebe3cd2da215b29efff9696321feb84",
+      "retainedSource": ".work/s100/.work/site-build-20261013/docs/build.log"
+    },
+    {
+      "path": "public/docs-deployment-source.json",
+      "bytes": 356269,
+      "sha256": "a6f35cd3c00114e4b56b2741e121ee67fbe26a4dcf7fdad3865e429f1efcf3bf",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/public-readback-2026-10-13T02-52-48.795Z/055-docs.bytes"
+    },
+    {
+      "path": "build/design/receipt.json",
+      "bytes": 896,
+      "sha256": "a742c3d6c7320f228ebce3c02f773a8bd0937e7f63af503b5a6e0ca0651b4c1f",
+      "retainedSource": ".work/s100/.work/site-build-20261013/design/receipt.json"
+    },
+    {
+      "path": "build/design/build.log",
+      "bytes": 10297,
+      "sha256": "69b88148fcecd2427efa51c9dc3ef23191937f6c2f47c0a7c62c46d43d5b917a",
+      "retainedSource": ".work/s100/.work/site-build-20261013/design/build.log"
+    },
+    {
+      "path": "public/design-deployment-source.json",
+      "bytes": 157782,
+      "sha256": "05174de39feda2c06bc6d8668615502dce1ff6830ea1074bbbaca388155598a8",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/public-readback-2026-10-13T02-52-48.795Z/054-design.bytes"
+    },
+    {
+      "path": "build/www/receipt.json",
+      "bytes": 854,
+      "sha256": "1a6298e8de6c040d4ba737122e44e1c4042baf0bf5b4d886d59aafba231b9988",
+      "retainedSource": ".work/s100/.work/site-build-20261013/www/receipt.json"
+    },
+    {
+      "path": "build/www/build.log",
+      "bytes": 2317,
+      "sha256": "56178341c65a739df192a2db3560c8d23ecb0cc53655c5b9ec614b10481a0f1a",
+      "retainedSource": ".work/s100/.work/site-build-20261013/www/build.log"
+    },
+    {
+      "path": "public/www-deployment-source.json",
+      "bytes": 5811,
+      "sha256": "8f7575bb5ee2d4bd9c30050ea3a39aba9d684e0226ba1b6d792bd37a5477fc40",
+      "retainedSource": ".work/s100/.work/20261013-docs-d898d4e04d03-023354/public-readback-2026-10-13T02-52-48.795Z/053-www.bytes"
+    },
+    {
+      "path": "astra-review/assessment.md",
+      "bytes": 2212,
+      "sha256": "0a7530fb24b165270641ed300af5662d2850c42b8c97c440ccd980198faa24cd",
+      "retainedSource": ".work/release100-live-offline-review-20261013/assessment.md"
+    },
+    {
+      "path": "astra-review/manifest.json",
+      "bytes": 1167,
+      "sha256": "746dbd939c55001d66048488c8b72993634d224877d335b05a6fcbc16b87ac0b",
+      "retainedSource": ".work/release100-live-offline-review-20261013/manifest.json"
+    },
+    {
+      "path": "astra-review/predeploy.json",
+      "bytes": 5766,
+      "sha256": "e5335a78f6c6edceeadbbd23184aba88c7625b0f7cfd9c9f719b0b768f359cc0",
+      "retainedSource": ".work/release100-live-offline-review-20261013/predeploy.json"
+    },
+    {
+      "path": "astra-review/public-deployment.json",
+      "bytes": 37476,
+      "sha256": "2576989740b236ac11e340e08c0bb81e1bfc7fba89f749d01d7304609ad3b6f1",
+      "retainedSource": ".work/release100-live-offline-review-20261013/public-deployment.json"
+    },
+    {
+      "path": "astra-review/remote-deployment.json",
+      "bytes": 2292,
+      "sha256": "bca3dcc24be5100dbbe4410c85fa92ee1bb0c8df4b8d999662e86ff403315e0d",
+      "retainedSource": ".work/release100-live-offline-review-20261013/remote-deployment.json"
+    },
+    {
+      "path": "astra-review/remote-deployment.stdout",
+      "bytes": 607,
+      "sha256": "cfd2a796b8beaa14cc4cbcaa232b980c53f0af2a0b4a3713c208a34f700d0f76",
+      "retainedSource": ".work/release100-live-offline-review-20261013/remote-deployment.stdout"
+    },
+    {
+      "path": "astra-review/summary.json",
+      "bytes": 1424,
+      "sha256": "9c29ccea8a4b303d88cc48c20ba58d723e4da19b8c47a4ac81beec9a6f8eeac9",
+      "retainedSource": ".work/release100-live-offline-review-20261013/summary.json"
+    },
+    {
+      "path": "astra-review/verify.py",
+      "bytes": 4380,
+      "sha256": "1fc739c06f0e07cc35da36e69235951be994d93dbb32ebcfb8626826eae01718",
+      "retainedSource": ".work/release100-live-offline-review-20261013/verify.py"
+    }
+  ]
+}
