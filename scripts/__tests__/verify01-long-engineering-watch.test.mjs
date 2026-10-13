@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import crypto from "node:crypto";
 import { test } from "node:test";
 import {
   advanceObservation,
   digest,
   main,
+  runJson,
   validateProcessProof,
   validateSnapshot,
 } from "../verify01-long-engineering-watch.mjs";
@@ -270,4 +272,365 @@ test("a rejected state cannot silently resume through the pure update API", () =
       }),
     { code: "PREVIOUS_OBSERVATION_REJECTED" },
   );
+});
+
+const byteDigest = (bytes) =>
+  `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`;
+function epochFixture(t, seconds = 600) {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "verify01-observer-epoch-"),
+  );
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const root = path.join(directory, "input");
+  fs.mkdirSync(root);
+  const producerRoot = path.join(directory, "source");
+  const producer = path.join(
+    producerRoot,
+    "packages/cli/scripts/session-message-reliability-soak.mjs",
+  );
+  fs.mkdirSync(path.dirname(producer), { recursive: true });
+  const producerBytes =
+    "export function validateSessionMessageReliabilityEvidence() {}\n";
+  fs.writeFileSync(producer, producerBytes);
+  const actualBinding = {
+    ...binding,
+    schema: "chainlesschain.local-soak-process-binding/v2",
+    sourceRoot: producerRoot,
+    producerDigest: byteDigest(producerBytes),
+    originalLaunchProofComplete: false,
+  };
+  const previous = advanceObservation(null, sample(), check(sample()), {
+    now: origin + 60_000,
+  });
+  previous.bindingDigest = digest(actualBinding);
+  previous.status = "OBSERVATION_REJECTED";
+  previous.rejectedAt = new Date(origin + 75_000).toISOString();
+  previous.reason = "PROCESS_PROOF_UNAVAILABLE";
+  previous.rejectionEvents = [
+    { rejectedAt: previous.rejectedAt, reason: previous.reason },
+  ];
+  previous.gaps = [
+    { from: "known-prefix", to: "known-gap", reason: "prior gap" },
+  ];
+  previous.milestonesRecorded = [8];
+  const files = {
+    "binding-v2.json": JSON.stringify(actualBinding),
+    "watch-v2-state.json": JSON.stringify(previous),
+    "observer-v2.mjs": "// original observer bytes retained verbatim\n",
+    "watch-v2-launch.json": JSON.stringify({
+      processId: 123,
+      sourceSha256: "old-observer",
+    }),
+    "watch-v2.stderr.log": "PROCESS_PROOF_UNAVAILABLE\n",
+    "watch-v2.stdout.log": "",
+    "live-report.json": JSON.stringify(sample(seconds)),
+  };
+  for (const [file, bytes] of Object.entries(files))
+    fs.writeFileSync(path.join(root, file), bytes);
+  return {
+    directory,
+    root,
+    actualBinding,
+    previous,
+    files,
+    output: path.join(directory, "new-epoch"),
+    now: origin + seconds * 1000,
+    proof: {
+      processId: binding.processId,
+      startIdentity: binding.startIdentity,
+      executable: binding.executable,
+      commandDigest: binding.commandDigest,
+      bootIdentity: binding.bootIdentity,
+    },
+    assertInputUnchanged() {
+      assert.deepEqual(fs.readdirSync(root).sort(), Object.keys(files).sort());
+      for (const [file, bytes] of Object.entries(files))
+        assert.equal(
+          fs.readFileSync(path.join(root, file), "utf8"),
+          bytes,
+          file,
+        );
+    },
+  };
+}
+const epochArgs = (fixture) => [
+  "--root",
+  fixture.root,
+  "--state-root",
+  fixture.output,
+  "--once",
+];
+const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+
+test("new epoch archives the rejected history and starts only after fresh complete process proof", async (t) => {
+  const f = epochFixture(t);
+  let now = f.now,
+    proofs = 0;
+  const state = await main(epochArgs(f), {
+    clock: () => now,
+    readProof(value) {
+      assert.deepEqual(value, f.actualBinding);
+      proofs++;
+      now += 10_000;
+      return f.proof;
+    },
+  });
+  assert.equal(proofs, 1);
+  assert.equal(state.status, "MONITORING");
+  assert.equal(state.observedAt, new Date(now).toISOString());
+  assert.equal(state.observerStartedAt, state.observedAt);
+  assert.equal(state.unmonitoredPrefixSeconds, 610);
+  assert.equal(state.monitoringCompleteFromLaunch, false);
+  assert.equal(state.formalHostAcceptance, false);
+  assert.equal(state.observationsCreated, false);
+  assert.deepEqual(state.milestonesRecorded, []);
+  assert.equal(state.epoch.previousObservationGap.from, f.previous.observedAt);
+  assert.equal(state.epoch.previousObservationGap.to, state.observedAt);
+  const archived = readJson(path.join(f.output, "epoch-origin.json"));
+  assert.deepEqual(archived.previousState, f.previous);
+  assert.equal(state.epoch.originDigest, digest(archived));
+  for (const entry of archived.artifacts) {
+    assert.equal(entry.byteDigest, byteDigest(f.files[entry.source]));
+    assert.equal(
+      fs.readFileSync(path.join(f.output, entry.archivedPath), "utf8"),
+      f.files[entry.source],
+    );
+  }
+  f.assertInputUnchanged();
+  const outputBytes = fs.readFileSync(
+    path.join(f.output, "watch-v2-state.json"),
+  );
+  await assert.rejects(main(epochArgs(f)), { code: "EEXIST" });
+  assert.deepEqual(
+    fs.readFileSync(path.join(f.output, "watch-v2-state.json")),
+    outputBytes,
+  );
+  f.assertInputUnchanged();
+});
+
+for (const field of [
+  "processId",
+  "startIdentity",
+  "executable",
+  "commandDigest",
+  "bootIdentity",
+]) {
+  test(`new epoch rejects changed ${field} without changing the original observation`, async (t) => {
+    const f = epochFixture(t);
+    await assert.rejects(
+      main(epochArgs(f), {
+        clock: () => f.now,
+        readProof: () => ({
+          ...f.proof,
+          [field]: field === "processId" ? 43 : "different",
+        }),
+      }),
+      { code: "PROCESS_IDENTITY_INVALID" },
+    );
+    const state = readJson(path.join(f.output, "watch-v2-state.json"));
+    assert.equal(state.status, "OBSERVATION_REJECTED");
+    assert.equal(state.previousEpochRejected, true);
+    assert.equal(state.observedAt, undefined);
+    f.assertInputUnchanged();
+    await assert.rejects(main(epochArgs(f)), { code: "EEXIST" });
+  });
+}
+
+test("process proof timeout retains bounded diagnostic details and refuses the new epoch", async (t) => {
+  const f = epochFixture(t);
+  const stderr = "CIM timed out\n".repeat(500);
+  await assert.rejects(
+    main(epochArgs(f), {
+      clock: () => f.now,
+      readProof() {
+        let time = 0;
+        return runJson("powershell.exe", ["fixture-only"], {
+          kind: "windows-process-and-cim",
+          clock: () => f.now + (time++ ? 15_000 : 0),
+          execute(_executable, _args, options) {
+            assert.equal(options.timeout, 15_000);
+            assert.equal(options.windowsHide, true);
+            return {
+              status: null,
+              signal: "SIGTERM",
+              error: Object.assign(new Error("spawnSync ETIMEDOUT"), {
+                code: "ETIMEDOUT",
+              }),
+              stdout: "partial",
+              stderr,
+            };
+          },
+        });
+      },
+    }),
+    { code: "PROCESS_PROOF_UNAVAILABLE" },
+  );
+  const state = readJson(path.join(f.output, "watch-v2-state.json"));
+  const failure = state.processProofFailure;
+  assert.equal(failure.failureKind, "SUBPROCESS_FAILED");
+  assert.equal(failure.commandKind, "windows-process-and-cim");
+  assert.equal(failure.elapsedMs, 15_000);
+  assert.equal(failure.timeoutMs, 15_000);
+  assert.equal(failure.errorCode, "ETIMEDOUT");
+  assert.equal(failure.exitCode, null);
+  assert.equal(failure.signal, "SIGTERM");
+  assert.equal(failure.stderrByteDigest, byteDigest(stderr));
+  assert.equal(failure.stderrExcerpt.length, 4096);
+  assert.equal(failure.stderrTruncated, true);
+  assert.deepEqual(state.rejectionEvents[0].processProofFailure, failure);
+  assert.equal(state.status, "OBSERVATION_REJECTED");
+  assert.equal(state.observedAt, undefined);
+  f.assertInputUnchanged();
+});
+
+for (const [name, result, kind] of [
+  [
+    "nonzero query exit",
+    { status: 1, signal: null, stdout: "", stderr: "Access denied" },
+    "SUBPROCESS_FAILED",
+  ],
+  [
+    "signaled query",
+    { status: 0, signal: "SIGTERM", stdout: "{}", stderr: "" },
+    "SUBPROCESS_FAILED",
+  ],
+  [
+    "invalid JSON",
+    { status: 0, signal: null, stdout: "broken", stderr: "" },
+    "INVALID_JSON",
+  ],
+]) {
+  test(`process proof ${name} retains its cause`, () => {
+    assert.throws(
+      () => runJson("fixture", [], { execute: () => result }),
+      (error) => {
+        assert.equal(error.code, "PROCESS_PROOF_UNAVAILABLE");
+        assert.equal(error.processProofFailure.failureKind, kind);
+        assert.equal(error.processProofFailure.exitCode, result.status);
+        assert.equal(
+          error.processProofFailure.stdoutByteDigest,
+          byteDigest(result.stdout),
+        );
+        return true;
+      },
+    );
+  });
+}
+
+test("a checkpoint that goes stale during identity proof cannot start an epoch", async (t) => {
+  const f = epochFixture(t);
+  let now = f.now;
+  await assert.rejects(
+    main(epochArgs(f), {
+      clock: () => now,
+      readProof: () => {
+        now += 91_000;
+        return f.proof;
+      },
+    }),
+    { code: "STALE_CHECKPOINT" },
+  );
+  assert.equal(
+    readJson(path.join(f.output, "watch-v2-state.json")).status,
+    "OBSERVATION_REJECTED",
+  );
+  f.assertInputUnchanged();
+});
+
+test("epoch output cannot alias or be nested inside its input directory", async (t) => {
+  const f = epochFixture(t);
+  for (const output of [f.root, path.join(f.root, "epoch")]) {
+    await assert.rejects(
+      main(["--root", f.root, "--state-root", output, "--once"]),
+      { code: "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT" },
+    );
+  }
+  const alias = path.join(f.directory, "alias");
+  fs.symlinkSync(
+    f.root,
+    alias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  await assert.rejects(
+    main([
+      "--root",
+      f.root,
+      "--state-root",
+      path.join(alias, "epoch"),
+      "--once",
+    ]),
+    { code: "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT" },
+  );
+  f.assertInputUnchanged();
+});
+
+test("new epoch cannot reset recorded cycles or binding identity", async (t) => {
+  const f = epochFixture(t);
+  const report = sample(600);
+  report.totals.cycles = 1;
+  f.files["live-report.json"] = JSON.stringify(seal(report));
+  fs.writeFileSync(
+    path.join(f.root, "live-report.json"),
+    f.files["live-report.json"],
+  );
+  await assert.rejects(
+    main(epochArgs(f), { clock: () => f.now, readProof: () => f.proof }),
+    { code: "EPOCH_OBSERVATION_REGRESSION" },
+  );
+  f.assertInputUnchanged();
+  f.output = path.join(f.directory, "changed-binding-epoch");
+  f.files["binding-v2.json"] = JSON.stringify({
+    ...f.actualBinding,
+    processId: 43,
+  });
+  fs.writeFileSync(
+    path.join(f.root, "binding-v2.json"),
+    f.files["binding-v2.json"],
+  );
+  await assert.rejects(
+    main(epochArgs(f), { clock: () => f.now, readProof: () => f.proof }),
+    { code: "EPOCH_BINDING_CHANGED" },
+  );
+  f.assertInputUnchanged();
+});
+
+test("a completed report cannot supply the fresh live identity needed to start a continuation", async (t) => {
+  const f = epochFixture(t, 86_400);
+  const report = sample(86_400);
+  report.status = "passed";
+  report.completedAt = report.checkpointedAt;
+  report.source.finalClean = true;
+  report.source.finalChangeCount = 0;
+  f.files["live-report.json"] = JSON.stringify(seal(report));
+  fs.writeFileSync(
+    path.join(f.root, "live-report.json"),
+    f.files["live-report.json"],
+  );
+  await assert.rejects(
+    main(epochArgs(f), {
+      clock: () => f.now,
+      readProof: () => {
+        throw new Error("unexpected proof");
+      },
+    }),
+    { code: "EPOCH_REQUIRES_RUNNING_WORKLOAD" },
+  );
+  f.assertInputUnchanged();
+});
+
+test("milestones remain raw workload snapshots in the new epoch, with the full missing prefix", async (t) => {
+  const f = epochFixture(t, 28_800);
+  const state = await main(epochArgs(f), {
+    clock: () => f.now,
+    readProof: () => f.proof,
+  });
+  assert.deepEqual(state.milestonesRecorded, [8]);
+  const milestone = readJson(
+    path.join(f.output, "raw-checkpoint-v2-8h.metadata.json"),
+  );
+  assert.equal(milestone.unmonitoredPrefixSeconds, 28_800);
+  assert.equal(milestone.monitoringCompleteFromLaunch, false);
+  assert.equal(milestone.formalHostAcceptance, false);
+  assert.equal(milestone.epoch.originDigest, state.epoch.originDigest);
+  f.assertInputUnchanged();
 });

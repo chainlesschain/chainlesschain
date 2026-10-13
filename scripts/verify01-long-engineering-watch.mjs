@@ -228,17 +228,52 @@ export function advanceObservation(
   };
 }
 
-function runJson(executable, args) {
-  const result = spawnSync(executable, args, {
+export function runJson(
+  executable,
+  args,
+  { kind = "process-query", execute = spawnSync, clock = Date.now } = {},
+) {
+  const started = clock();
+  const result = execute(executable, args, {
     encoding: "utf8",
     windowsHide: true,
     timeout: 15_000,
   });
-  requireFact(
-    !result.error && result.status === 0,
-    "PROCESS_PROOF_UNAVAILABLE",
-  );
-  return JSON.parse(result.stdout.replace(/^\uFEFF/u, ""));
+  function reject(failureKind, error = result.error) {
+    const finished = clock();
+    const byteDigest = (value) =>
+      `sha256:${crypto
+        .createHash("sha256")
+        .update(value || "")
+        .digest("hex")}`;
+    throw Object.assign(new Error("PROCESS_PROOF_UNAVAILABLE"), {
+      code: "PROCESS_PROOF_UNAVAILABLE",
+      processProofFailure: {
+        commandKind: kind,
+        executable,
+        failureKind,
+        startedAt: new Date(started).toISOString(),
+        finishedAt: new Date(finished).toISOString(),
+        elapsedMs: finished - started,
+        timeoutMs: 15_000,
+        exitCode: result.status ?? null,
+        signal: result.signal ?? null,
+        errorCode: error?.code || null,
+        errorMessage: error?.message?.slice(0, 500) || null,
+        stdoutByteDigest: byteDigest(result.stdout),
+        stderrByteDigest: byteDigest(result.stderr),
+        stderrExcerpt: String(result.stderr || "").slice(0, 4096),
+        stderrTruncated: String(result.stderr || "").length > 4096,
+      },
+    });
+  }
+  if (result.error || result.signal || result.status !== 0)
+    reject("SUBPROCESS_FAILED");
+  try {
+    return JSON.parse(result.stdout.replace(/^\uFEFF/u, ""));
+  } catch (error) {
+    reject("INVALID_JSON", error);
+  }
 }
 export function readProcessProof(binding) {
   requireFact(
@@ -253,6 +288,7 @@ export function readProcessProof(binding) {
         "System32/WindowsPowerShell/v1.0/powershell.exe",
       ),
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+      { kind: "windows-process-and-cim" },
     );
     result.commandDigest = digest(result.commandLine);
     delete result.commandLine;
@@ -263,6 +299,7 @@ export function readProcessProof(binding) {
   return runJson(
     path.join(process.env.SystemRoot || "C:\\Windows", "System32/wsl.exe"),
     ["-d", binding.distribution, "--exec", "/usr/bin/python3", "-c", code],
+    { kind: "linux-proc-via-wsl" },
   );
 }
 function atomicWrite(file, value) {
@@ -272,16 +309,108 @@ function atomicWrite(file, value) {
   });
   fs.renameSync(temporary, file);
 }
-export async function main(args = process.argv.slice(2)) {
+function archiveRejectedEpoch(root, outputRoot) {
+  const archive = path.join(outputRoot, "previous-epoch");
+  fs.mkdirSync(archive, { mode: 0o700 });
+  const artifacts = [];
+  let previous;
+  for (const [name, required] of [
+    ["watch-v2-state.json", true],
+    ["binding-v2.json", true],
+    ["observer-v2.mjs", true],
+    ["watch-v2-launch.json", false],
+    ["watch-v2.stderr.log", false],
+    ["watch-v2.stdout.log", false],
+  ]) {
+    const source = path.join(root, name);
+    if (!required && !fs.existsSync(source)) {
+      artifacts.push({ source: name, missing: true });
+      continue;
+    }
+    requireFact(fs.lstatSync(source).isFile(), "EPOCH_ARCHIVE_FILE_INVALID");
+    const bytes = fs.readFileSync(source);
+    fs.writeFileSync(path.join(archive, name), bytes, {
+      flag: "wx",
+      mode: 0o600,
+    });
+    artifacts.push({
+      source: name,
+      archivedPath: `previous-epoch/${name}`,
+      byteDigest: `sha256:${crypto.createHash("sha256").update(bytes).digest("hex")}`,
+      bytes: bytes.length,
+    });
+    if (name === "watch-v2-state.json")
+      previous = JSON.parse(bytes.toString("utf8").replace(/^\uFEFF/u, ""));
+  }
+  requireFact(
+    previous?.schema === "chainlesschain.local-soak-watcher-state/v2" &&
+      previous.status === "OBSERVATION_REJECTED" &&
+      Number.isFinite(Date.parse(previous.observedAt)) &&
+      Number.isFinite(Date.parse(previous.rejectedAt)),
+    "REJECTED_PRIOR_EPOCH_REQUIRED",
+  );
+  const origin = {
+    schema: "chainlesschain.local-soak-observer-epoch/v1",
+    epochId: crypto.randomUUID(),
+    sourceRoot: root,
+    stateRoot: outputRoot,
+    previousState: previous,
+    artifacts,
+    observerByteDigest: `sha256:${crypto
+      .createHash("sha256")
+      .update(fs.readFileSync(fileURLToPath(import.meta.url)))
+      .digest("hex")}`,
+    rule: "New observer epoch only. Previous rejection remains final; no gap is backfilled or joined into continuous acceptance.",
+    formalHostAcceptance: false,
+    observationsCreated: false,
+  };
+  fs.writeFileSync(
+    path.join(outputRoot, "epoch-origin.json"),
+    `${JSON.stringify(origin, null, 2)}\n`,
+    { flag: "wx", mode: 0o600 },
+  );
+  return { ...origin, originDigest: digest(origin) };
+}
+
+// Dependencies are injectable only through this programmatic test API, never
+// through CLI/environment settings. The CLI always reads actual process proof.
+export async function main(
+  args = process.argv.slice(2),
+  { readProof = readProcessProof, clock = Date.now } = {},
+) {
   const { values } = parseArgs({
     args,
-    options: { root: { type: "string" }, once: { type: "boolean" } },
+    options: {
+      root: { type: "string" },
+      "state-root": { type: "string" },
+      once: { type: "boolean" },
+    },
   });
   requireFact(values.root, "ROOT_REQUIRED");
   const root = fs.realpathSync(values.root);
-  const stateFile = path.join(root, "watch-v2-state.json");
+  let outputRoot = root;
+  if (values["state-root"]) {
+    const requested = path.resolve(values["state-root"]);
+    outputRoot = path.join(
+      fs.realpathSync(path.dirname(requested)),
+      path.basename(requested),
+    );
+    const relative = path.relative(root, outputRoot);
+    requireFact(
+      relative === ".." ||
+        relative.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relative),
+      "EPOCH_OUTPUT_MUST_BE_OUTSIDE_INPUT",
+    );
+    // No reuse/reset of an existing epoch, including a failed one. Resolve the
+    // real parent first so a junction cannot alias the original observation.
+    fs.mkdirSync(outputRoot, { mode: 0o700 });
+  }
+  const stateFile = path.join(outputRoot, "watch-v2-state.json");
   let state = null;
+  let epoch = null;
   try {
+    if (values["state-root"]) epoch = archiveRejectedEpoch(root, outputRoot);
     // Load history before any new input can fail, so rejection cannot erase the
     // previously observed prefix, gaps, or milestones.
     if (fs.existsSync(stateFile)) {
@@ -316,6 +445,24 @@ export async function main(args = process.argv.slice(2)) {
       binding.schema === "chainlesschain.local-soak-process-binding/v2",
       "BINDING_SCHEMA_INVALID",
     );
+    if (epoch) {
+      requireFact(
+        digest(binding) === epoch.previousState.bindingDigest,
+        "EPOCH_BINDING_CHANGED",
+      );
+      const archivedBinding = fs.readFileSync(
+        path.join(outputRoot, "previous-epoch/binding-v2.json"),
+      );
+      requireFact(
+        digest(binding) ===
+          digest(
+            JSON.parse(
+              archivedBinding.toString("utf8").replace(/^\uFEFF/u, ""),
+            ),
+          ),
+        "EPOCH_BINDING_CHANGED",
+      );
+    }
     const producer = path.join(
       binding.sourceRoot,
       "packages/cli/scripts/session-message-reliability-soak.mjs",
@@ -331,14 +478,51 @@ export async function main(args = process.argv.slice(2)) {
     for (;;) {
       const bytes = fs.readFileSync(path.join(root, "live-report.json"));
       const report = JSON.parse(bytes.toString("utf8"));
-      const now = Date.now();
-      const checked = validateSnapshot(report, binding, {
-        now,
+      const validation = {
         validateCompleted: validateSessionMessageReliabilityEvidence,
-      });
+      };
+      validateSnapshot(report, binding, { ...validation, now: clock() });
+      if (epoch && !state)
+        requireFact(
+          report.status === "running",
+          "EPOCH_REQUIRES_RUNNING_WORKLOAD",
+        );
       if (report.status === "running")
-        validateProcessProof(binding, readProcessProof(binding));
+        validateProcessProof(binding, readProof(binding));
+      // First observation starts after its identity proof. A slow proof cannot
+      // admit a checkpoint that became stale while the query was running.
+      const now = clock();
+      const checked = validateSnapshot(report, binding, { ...validation, now });
+      if (epoch && !state) {
+        requireFact(
+          Date.parse(epoch.previousState.observedAt) <=
+            Date.parse(epoch.previousState.rejectedAt) &&
+            Date.parse(epoch.previousState.rejectedAt) <= now &&
+            checked.checkpoint >= epoch.previousState.lastCheckpoint &&
+            report.continuousDurationSeconds >=
+              epoch.previousState.continuousDurationSeconds &&
+            checked.cycles >= epoch.previousState.cycles,
+          "EPOCH_OBSERVATION_REGRESSION",
+        );
+      }
+      const firstObservedAt =
+        state?.epoch?.firstObservedAt || new Date(now).toISOString();
       state = advanceObservation(state, report, checked, { now });
+      if (epoch) {
+        state.epoch = {
+          id: epoch.epochId,
+          originDigest: epoch.originDigest,
+          firstObservedAt,
+          previousRejectedAt: epoch.previousState.rejectedAt,
+          previousObservationGap: {
+            from: epoch.previousState.observedAt,
+            to: firstObservedAt,
+            reason:
+              "previous observer epoch rejected; interval is not retroactively monitored",
+          },
+        };
+        state.monitoringCompleteFromLaunch = false;
+      }
       for (const hours of [8, 24]) {
         if (
           checked.cycles > 0 &&
@@ -346,9 +530,9 @@ export async function main(args = process.argv.slice(2)) {
           !state.milestonesRecorded.includes(hours)
         ) {
           const name = `raw-checkpoint-v2-${hours}h.json`;
-          fs.writeFileSync(path.join(root, name), bytes, { flag: "wx" });
+          fs.writeFileSync(path.join(outputRoot, name), bytes, { flag: "wx" });
           atomicWrite(
-            path.join(root, `raw-checkpoint-v2-${hours}h.metadata.json`),
+            path.join(outputRoot, `raw-checkpoint-v2-${hours}h.metadata.json`),
             {
               ...state,
               rawFile: name,
@@ -363,7 +547,7 @@ export async function main(args = process.argv.slice(2)) {
       await setTimeout(60_000);
     }
   } catch (error) {
-    const rejectedAt = new Date().toISOString();
+    const rejectedAt = new Date(clock()).toISOString();
     atomicWrite(stateFile, {
       ...(state || {}),
       schema: "chainlesschain.local-soak-watcher-state/v2",
@@ -372,12 +556,24 @@ export async function main(args = process.argv.slice(2)) {
       lastRejectedAt: rejectedAt,
       rejectionEvents: [
         ...(state?.rejectionEvents || []),
-        { rejectedAt, reason: error.code || "READ_OR_VALIDATION_ERROR" },
+        {
+          rejectedAt,
+          reason: error.code || "READ_OR_VALIDATION_ERROR",
+          ...(error.processProofFailure
+            ? { processProofFailure: error.processProofFailure }
+            : {}),
+        },
       ],
       reason: error.code || "READ_OR_VALIDATION_ERROR",
       formalHostAcceptance: false,
       observationsCreated: false,
       detail: String(error.message).slice(0, 500),
+      ...(epoch
+        ? { epochOriginDigest: epoch.originDigest, previousEpochRejected: true }
+        : {}),
+      ...(error.processProofFailure
+        ? { processProofFailure: error.processProofFailure }
+        : {}),
     });
     throw error;
   }
