@@ -51,7 +51,9 @@ async function compact(sessionId, operationId, options = {}) {
   const result = await kernel.compactContext({
     operationId,
     sessionId,
-    modelWindowTokens: 150,
+    // The 410 selectable tokens give conversation 117 tokens: enough for
+    // two 58-token fixture bundles while still dropping most of the history.
+    modelWindowTokens: 450,
     reservedOutputTokens: 20,
     safetyMarginTokens: 10,
     recoveryReserveTokens: 10,
@@ -63,6 +65,7 @@ async function compact(sessionId, operationId, options = {}) {
     ...options,
   });
   expect(result.status).toBe("committed");
+  expect(store.readVerifiedMessages(sessionId).length).toBeGreaterThan(0);
 }
 function start(id, count = 8) {
   store.startSession(id, { provider: "test", model: "test" });
@@ -731,6 +734,25 @@ describe("canonical display history", () => {
     );
   });
 
+  it("rejects an empty compaction candidate without changing context or history", async () => {
+    const id = "history-compact-too-small";
+    start(id);
+    const context = store.readVerifiedMessages(id);
+    const head = store.findLatestEvent(id, null).hash;
+    const events = store.readVerifiedEvents(id);
+    const history = readSessionTranscriptHistory(id);
+
+    // The 33-token conversation partition cannot hold one 58-token bundle.
+    await expect(
+      compact(id, "compact-too-small", { modelWindowTokens: 150 }),
+    ).rejects.toMatchObject({ code: "context_over_budget" });
+
+    expect(store.readVerifiedMessages(id)).toEqual(context);
+    expect(store.findLatestEvent(id, null).hash).toBe(head);
+    expect(store.readVerifiedEvents(id)).toEqual(events);
+    expect(readSessionTranscriptHistory(id)).toEqual(history);
+  });
+
   it("keeps real Kernel compaction history, identities and old cursors through later appends", async () => {
     const id = "history-compact";
     start(id);
@@ -740,6 +762,7 @@ describe("canonical display history", () => {
     expect(store.readVerifiedMessages(id).length).toBeLessThan(
       original.totalMessages,
     );
+    expect(readSessionTranscriptHistory(id).messages).toEqual(original.messages);
     store.appendUserMessage(id, "after compact");
     store.appendAssistantMessage(id, "new final answer");
     await compact(id, "compact-2");

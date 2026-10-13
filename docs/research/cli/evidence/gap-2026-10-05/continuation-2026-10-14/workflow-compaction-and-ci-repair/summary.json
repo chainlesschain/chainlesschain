@@ -1,0 +1,353 @@
+{
+  "schema": "chainlesschain.workflow-compaction-ci-repair/v1",
+  "capturedAt": "2026-10-13T16:23:03.926Z",
+  "baselineRejected": "688268fc406280d578bebf566df364eec10a208b",
+  "baselineEligibleForRelease": false,
+  "workflowRepair": {
+    "status": "PASSED",
+    "baseline": "688268fc406280d578bebf566df364eec10a208b",
+    "finalRun": "run-CSM7N2",
+    "source": [
+      {
+        "file": "packages/cli/src/runtime/agent-core.js",
+        "sha256": "7d3bb57406b670d73bfe944483ec1d05548de98c50c48f8b383e5e863a867848"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+        "sha256": "32739668590638f9c08a81ed7c462d82425175d71073b1808b39d19570a22244"
+      }
+    ],
+    "sourceBound": true,
+    "checks": [
+      {
+        "name": "git-head",
+        "command": "git",
+        "args": [
+          "rev-parse",
+          "HEAD"
+        ],
+        "status": 0
+      },
+      {
+        "name": "git-diff-check",
+        "command": "git",
+        "args": [
+          "diff",
+          "--check"
+        ],
+        "status": 0
+      },
+      {
+        "name": "git-diff",
+        "command": "git",
+        "args": [
+          "diff",
+          "--",
+          "packages/cli/src/runtime/agent-core.js"
+        ],
+        "status": 0
+      },
+      {
+        "name": "syntax-0",
+        "command": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+        "args": [
+          "--check",
+          "packages/cli/src/runtime/agent-core.js"
+        ],
+        "status": 0
+      },
+      {
+        "name": "syntax-1",
+        "command": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+        "args": [
+          "--check",
+          "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js"
+        ],
+        "status": 0
+      }
+    ],
+    "validation": {
+      "node": "v22.12.0",
+      "platform": "Linux under WSL Ubuntu",
+      "vitest": "4.1.10",
+      "suites": 8,
+      "tests": 208,
+      "newRegressionTests": 11,
+      "exit": "0"
+    },
+    "isolation": {
+      "repo": "/tmp/cc-compaction-consumers-aIGRds/repo",
+      "baselineArchive": "baseline-688-packages.tar",
+      "verifiedFiles": 5938,
+      "differences": 0,
+      "thirdPartyCacheReadOnly": "/tmp/cc-linux-reliability-dNSZBk/repo",
+      "npmInstall": false
+    },
+    "behavior": [
+      "Known usage settles exactly once after actual validated provider receipt with original call binding.",
+      "Workflow genuine plan refusal fails with contextOutcome aborted and usageOutcome known.",
+      "Workflow unknown commit remains outcome_unknown/reconciliation-required.",
+      "Ordinary compaction failure emits explicit incomplete run-ended.",
+      "Observer failure stops dispatch and settlement safely."
+    ],
+    "scope": [
+      "Actual strict SubAgentContext, agentLoop and canonical kernel with synthetic provider; existing dynamic runtime suite also passes. No claim of new end-to-end dynamic executor test.",
+      "Initial reproduced release defect preserved in ../astra-workflow-compaction-review-20261014.",
+      "run-tAs8sW retained: 207 passed and 2 incorrect newly added ordinary-case expectations failed; corrected without relaxing production stop behavior.",
+      "No commit/push/publish or frozen fixture edits; exact-final-SHA Actions remain required."
+    ]
+  },
+  "history": {
+    "tests": 65,
+    "suites": 4,
+    "historyTests": 40,
+    "defaultWindow": 450,
+    "conversationCeiling": 117,
+    "initialSelectedMessages": 2,
+    "initialOriginalMessages": 16,
+    "negativeWindow": 150,
+    "contextHeadEventsHistoryUnchangedOnRejection": true,
+    "productionGuardUnchanged": true
+  },
+  "independentFinalKernel": {
+    "schema": "chainlesschain.final-compaction-independent-regression/v1",
+    "capturedAt": "2026-10-13T16:21:45.774Z",
+    "root": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/final-kernel-5sTpBc",
+    "node": "v22.12.0",
+    "sourceStable": true,
+    "files": [
+      {
+        "file": "packages/context-memory-kernel/lib/compaction.js",
+        "bytes": 18663,
+        "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98"
+      },
+      {
+        "file": "packages/context-memory-kernel/index.mjs",
+        "bytes": 1882,
+        "sha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36"
+      },
+      {
+        "file": "packages/context-memory-kernel/index.d.ts",
+        "bytes": 10559,
+        "sha256": "49320473e27f1b410c0fa54bcf5ef97982cf1e6b43e52c821a7b7ecb450ac182"
+      },
+      {
+        "file": "packages/context-memory-kernel/test/compaction.test.js",
+        "bytes": 11239,
+        "sha256": "838b340f429e9345a8e76e3ec75b14439b2bb0967cdcd543781e01d51e5274f4"
+      },
+      {
+        "file": "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+        "bytes": 14630,
+        "sha256": "98dcaaab42de35d2cf03fb284a30a60e051c5c5b8f869a1a9a04f7ae3dd911b0"
+      },
+      {
+        "file": "packages/cli/src/runtime/agent-core.js",
+        "bytes": 645265,
+        "sha256": "7d3bb57406b670d73bfe944483ec1d05548de98c50c48f8b383e5e863a867848"
+      },
+      {
+        "file": "packages/cli/src/runtime/headless-stream.js",
+        "bytes": 207952,
+        "sha256": "4a0638081fe5ac92ca4376cf6093b6a430de008c8e616293cd73429021367cea"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+        "bytes": 18753,
+        "sha256": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+        "bytes": 8619,
+        "sha256": "32739668590638f9c08a81ed7c462d82425175d71073b1808b39d19570a22244"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/session-transcript-history.test.js",
+        "bytes": 43172,
+        "sha256": "cf3cf5b276df29bea29e6e5f8a7f02895ba1526d7224994f2329b5cfb732bbda"
+      }
+    ],
+    "results": [
+      {
+        "platform": "windows",
+        "startedAt": "2026-10-13T16:21:44.598Z",
+        "completedAt": "2026-10-13T16:21:45.577Z",
+        "command": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+        "args": [
+          "--test",
+          "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+          "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "stdoutSha256": "882783746222de80ee283726c93ded1c254ed015356689f5d9b6084ad86cd23e",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tapTotals": [
+          "# tests 29",
+          "# pass 29",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      },
+      {
+        "platform": "linux",
+        "startedAt": "2026-10-13T16:21:44.643Z",
+        "completedAt": "2026-10-13T16:21:45.759Z",
+        "command": "wsl.exe",
+        "args": [
+          "-d",
+          "Ubuntu",
+          "--exec",
+          "/usr/bin/env",
+          "-i",
+          "PATH=/usr/bin:/bin",
+          "TMPDIR=/mnt/c/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/temp",
+          "/mnt/c/code/chainlesschain/.tmp/linux-node2212/bin/node",
+          "--test",
+          "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+          "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "stdoutSha256": "924b903d6b077580713af68351d63237265e23e71d1e93aa6cd2fb5a719e5a88",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tapTotals": [
+          "# tests 29",
+          "# pass 29",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      }
+    ],
+    "providerCalls": 0,
+    "formal": false
+  },
+  "nativeApiSet": {
+    "schema": {
+      "path": "C:\\Windows\\System32\\apisetschema.dll",
+      "bytes": 129480,
+      "digest": "sha256:2d70bce6b5293d35d79aa4f5f1dc986933611415906145fb867d550cee3b53e0"
+    },
+    "createdAt": "2026-10-13T16:09:10.774Z",
+    "status": "NOT_ADMITTED",
+    "durable": false,
+    "formalSample": false,
+    "fullClosureVerified": false,
+    "dynamicClosure": false,
+    "privateApiCalls": 0,
+    "candidateCodeExecuted": false,
+    "nativeCapsulesExecuted": 0,
+    "providerCalls": 0,
+    "systemPolicyChanged": false,
+    "frozenSourcesChanged": false,
+    "previousClosureUnchanged": true,
+    "previousManifest": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-manifest.json",
+      "bytes": 8188534,
+      "digest": "sha256:1a4d700e77a27f952a811751917c7bdbaaef807533cf3210a8d185355c220784"
+    },
+    "ntdll": {
+      "path": "C:\\Windows\\System32\\ntdll.dll",
+      "bytes": 2029496,
+      "digest": "sha256:36b1a62e4bf6bf7d68458fff6e8a33b39f6527ec6a46e55ecdd12cde83894c8d"
+    },
+    "ruleEvidence": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-api-set-resolution-20261013\\rules-evidence.json",
+      "bytes": 4865,
+      "digest": "sha256:c781f1aea5b5987b72cb6bdd1ea5259fc84dfa0857e8b72cf34aa585eb64826c"
+    },
+    "resolved": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-api-set-resolution-20261013\\resolved-mappings.json",
+      "bytes": 11892407,
+      "digest": "sha256:30e522152eb306e88f178396dc4949886f1f92cb6b8bdbda5f11b20447e85f5b"
+    },
+    "unresolved": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-api-set-resolution-20261013\\unresolved-mappings.json",
+      "bytes": 55389,
+      "digest": "sha256:3e18511a74ce4fd1fedb58a94238d429c87b812788d48f8b429fa7612e4e1f67"
+    },
+    "tests": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-api-set-resolution-20261013\\tests.result.json",
+      "bytes": 968,
+      "digest": "sha256:f9ffef102aa5264e8edc097dbf25fccfe9fa08498fbb1010c786e514eacb880b"
+    },
+    "inventory": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-api-set-resolution-20261013\\inventory.json",
+      "bytes": 7743,
+      "digest": "sha256:c9dbf0a061de95e07b1adce6b4fc15a31b1718a6c621c4894da8f2f3cf781edd"
+    },
+    "counts": {
+      "namespaceEntries": 891,
+      "hashRows": 891,
+      "hashFactor": 31,
+      "apiSetEdges": 9535,
+      "staticHostMappings": 9473,
+      "staticUnresolved": 62,
+      "previousExactNameUnresolved": 5681,
+      "previousUnresolvedNowStaticallyMapped": 5621,
+      "previousUnresolvedStillUnresolved": 60,
+      "parentConditionalMappings": 593,
+      "hostPinsAvailable": 9446,
+      "hostNotInPreviousPins": 27,
+      "negativeAndCrossCheckTests": 7
+    },
+    "blockedSubitems": [
+      {
+        "item": "Dynamic loader resolution and actual parent identity",
+        "reason": "No candidate/loader execution authorized; current rules are static and tied only to exact pinned binaries."
+      },
+      {
+        "item": "Host modules absent from previous pin inventory",
+        "reason": "Not read or newly trusted in this fixed-input-only task; host name mapping is separate from file provenance."
+      }
+    ],
+    "limitations": [
+      "Static disassembly supplies a concrete algorithm for this exact ntdll build, not a universal Windows ABI/specification.",
+      "No private ntdll function was invoked, and no runtime schema override or loaded module was observed.",
+      "Resolved means validated static schema mapping; import/delay parent is an explicit basename assumption. Forwarders with differing aliases remain unresolved without authoritative parent context.",
+      "Remaining unresolved mappings and old non-API-set unresolved edges are preserved, not dropped.",
+      "No FULL_ADMITTED or complete compiler/runtime dynamic closure claim."
+    ]
+  },
+  "release": {
+    "versions": {
+      "kernel": "0.1.10",
+      "cli": "0.166.101",
+      "vscode": "0.37.145",
+      "jetbrains": "0.4.163"
+    },
+    "userAuthorized": true,
+    "status": "REPAIRED_CANDIDATE_REQUIRES_NEW_SHA_COMPLETE_ACTIONS",
+    "published": false
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "paidReady": false,
+    "originalLimitUsd": 99,
+    "remainingBudgetUsd": null,
+    "newProviderCalls": 0,
+    "externalPrerequisites": "SKIPPED_BY_USER"
+  },
+  "fullNativeReviewComplete": false,
+  "formalLongAcceptanceComplete": false,
+  "excludedOriginals": [
+    {
+      "label": "workflow-repair/baseline-688-packages.tar",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-workflow-compaction-fix-20261014\\baseline-688-packages.tar",
+      "sourceBytes": 92866560,
+      "sourceSha256": "74787f3d0a102816c2fa93d2411b535fef9b81427c07bfd4d3ea2688e1d33873",
+      "reason": "Local immutable git-archive seed retained; source commit and per-file comparison are archived. Large source tar is not stored again in the repository."
+    },
+    {
+      "label": "history-fixture-repair/source-688268f.tar",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-history-fixture-repair-20261014\\source-688268f.tar",
+      "sourceBytes": 94218240,
+      "sourceSha256": "70fa892528971bc1852fa5e4b84887fccfa92e248dc2afcdca2d9502f87aa379",
+      "reason": "Local immutable git-archive seed retained; source commit and per-file comparison are archived. Large source tar is not stored again in the repository."
+    }
+  ]
+}

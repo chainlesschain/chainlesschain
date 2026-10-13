@@ -13472,6 +13472,19 @@ function _workflowNestedToolOutcomeUnknown(binding, toolName, result) {
   return error;
 }
 
+function _takeCompactionProviderReceipt(call, workflowEffectId) {
+  if (!call?.providerReceipt || call.providerReceiptEmitted) return null;
+  call.providerReceiptEmitted = true;
+  return {
+    type: "provider-request-receipt",
+    callId: call.callId,
+    workflowEffectId,
+    callSequence: call.callSequence,
+    source: "semantic-compaction",
+    ...call.providerReceipt,
+  };
+}
+
 function _workflowCompactionOutcomeUnknown(
   cause,
   code = "CC_WORKFLOW_COMPACTION_PROVIDER_OUTCOME_UNKNOWN",
@@ -15081,6 +15094,11 @@ export async function* agentLoop(messages, options) {
             automaticCompactionSettlementBlocked = true;
             const unsettledCall = compactionUsageState.calls.at(-1);
             if (unsettledCall) {
+              const providerReceipt = _takeCompactionProviderReceipt(
+                unsettledCall,
+                workflowEffectId,
+              );
+              if (providerReceipt) yield providerReceipt;
               if (
                 unsettledCall.returnedUsage &&
                 stats.summaryUsageUnknown !== true
@@ -15123,6 +15141,20 @@ export async function* agentLoop(messages, options) {
               backgroundSubAgents,
               backgroundUsageFailureState,
             );
+            if (workflowEffectId) {
+              throw _markWorkflowCompactionFailureReported(
+                _workflowCompactionOutcomeUnknown(
+                  null,
+                  "CC_WORKFLOW_COMPACTION_SETTLEMENT_UNKNOWN",
+                  "Workflow-bound semantic compaction requires reconciliation",
+                ),
+              );
+            }
+            yield {
+              type: "run-ended",
+              runId,
+              reason: "compaction-settlement-failed",
+            };
             return;
           }
           const observerFailure = compactionUsageState.calls.find(
@@ -15135,16 +15167,11 @@ export async function* agentLoop(messages, options) {
           }
           compactionUsageCall = compactionUsageState.calls.at(-1) || null;
           const compactionUsage = _compactionTokenUsage(stats);
-          if (compactionUsageCall?.providerReceipt) {
-            yield {
-              type: "provider-request-receipt",
-              callId: compactionUsageCall.callId,
-              workflowEffectId,
-              callSequence: compactionUsageCall.callSequence,
-              source: "semantic-compaction",
-              ...compactionUsageCall.providerReceipt,
-            };
-          }
+          const providerReceipt = _takeCompactionProviderReceipt(
+            compactionUsageCall,
+            workflowEffectId,
+          );
+          if (providerReceipt) yield providerReceipt;
           if (stats.degraded === true) {
             const usageOutcomeUnknown = stats.summaryUsageUnknown === true;
             const projectedStats = usageOutcomeUnknown
@@ -15220,6 +15247,11 @@ export async function* agentLoop(messages, options) {
                 ),
               );
             }
+            yield {
+              type: "run-ended",
+              runId,
+              reason: "compaction-usage-unknown",
+            };
             return;
           }
           if (
@@ -15282,6 +15314,11 @@ export async function* agentLoop(messages, options) {
                   ),
                 );
               }
+              yield {
+                type: "run-ended",
+                runId,
+                reason: "compaction-settlement-failed",
+              };
               return;
             }
             if (!hermeticExecution) {
@@ -15350,6 +15387,11 @@ export async function* agentLoop(messages, options) {
           await import("../lib/context-memory-kernel/live-compaction.js");
         const rejectedUsage = getRejectedCompactionUsage(_e);
         const returnedUsage = compactionUsageCall?.returnedUsage;
+        const providerReceipt = _takeCompactionProviderReceipt(
+          compactionUsageCall,
+          workflowEffectId,
+        );
+        if (providerReceipt) yield providerReceipt;
         const knownPlanRejection =
           rejectedUsage &&
           returnedUsage &&
@@ -15386,6 +15428,32 @@ export async function* agentLoop(messages, options) {
             backgroundSubAgents,
             backgroundUsageFailureState,
           );
+          if (workflowEffectId) {
+            if (knownPlanRejection) {
+              const error = new Error(
+                "Workflow-bound compaction plan was rejected; the task is incomplete",
+                { cause: _e },
+              );
+              error.code = "CC_WORKFLOW_COMPACTION_PLAN_REJECTED";
+              error.contextOutcome = "aborted";
+              error.usageOutcome = "known";
+              throw error;
+            }
+            const error = _workflowCompactionOutcomeUnknown(
+              _e,
+              "CC_WORKFLOW_COMPACTION_SETTLEMENT_UNKNOWN",
+              "Workflow-bound semantic compaction settlement is unknown",
+            );
+            error.usageOutcome = "known";
+            throw _markWorkflowCompactionFailureReported(error);
+          }
+          yield {
+            type: "run-ended",
+            runId,
+            reason: knownPlanRejection
+              ? "compaction-plan-rejected"
+              : "compaction-settlement-failed",
+          };
           return;
         }
         if (compactionUsageCall) {
@@ -15411,6 +15479,11 @@ export async function* agentLoop(messages, options) {
                 : _workflowCompactionOutcomeUnknown(_e),
             );
           }
+          yield {
+            type: "run-ended",
+            runId,
+            reason: "compaction-usage-unknown",
+          };
           return;
         }
         yield {
