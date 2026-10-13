@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.101: preserve context when compaction cannot retain its summary
+
+- Upgrade Context Memory Kernel to 0.1.10. Abort compaction with
+  `context_over_budget` when planning would empty a nonempty context or discard
+  a newly derived summary, including when summarizer fallback is enabled.
+- Preserve the original session context and head on rejection while retaining
+  settled provider usage. Keep summary trust and selection budgets unchanged.
+- Account for completed compaction usage once when canonical planning rejects
+  its summary; stop on unknown usage or failed settlement without a paid retry.
+- Pair VS Code 0.37.145 and JetBrains 0.4.163 with CLI 0.166.101 after child
+  package publication, public CLI verification and the final commit's complete
+  Actions release gates. Formal evaluation and native/durable acceptance retain
+  their separate evidence and unfinished status.
+
 ### Fixed - cc CLI 0.166.100: bound stream retries and revalidate evaluation evidence
 
 - Honor Retry-After within a cancellable 60-second bound, preserve terminal

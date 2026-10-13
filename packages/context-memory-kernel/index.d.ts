@@ -237,6 +237,13 @@ export function rankMemoryRecords(
   request: MemoryRecallRequest,
 ): Readonly<Record<string, unknown>>;
 
+export function getCompactionPlanRejection(error: unknown): {
+  operationId: string;
+  sessionId: string;
+  inputHead: string;
+  usageReceipt: Record<string, unknown> | null;
+} | null;
+
 export class ContextMemoryKernel {
   constructor(options?: Record<string, unknown>);
   checkpointTaskProgress(request: TaskCheckpointRequest): {

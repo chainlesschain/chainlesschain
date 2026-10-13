@@ -198,6 +198,7 @@ import {
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
 import { sessionBudgetAdmissionError } from "../lib/session-budget-production-root.js";
+import { projectRuntimeTokenUsage } from "../lib/runtime-usage-ledger.js";
 import {
   createMcpCallLedger,
   McpEffect,
@@ -13870,6 +13871,21 @@ function _instrumentAutoCompactorUsage(compactor, options) {
         this,
         requestBinding ? [...args, requestBinding] : args,
       );
+      // Keep validated provider-returned usage private to this actual call.
+      // It is not settled yet: the host consumes token-usage exactly once.
+      try {
+        call.returnedUsage = projectRuntimeTokenUsage({
+          callId: call.callId,
+          provider: result?.provider || call.provider,
+          model: result?.model || call.model,
+          source: call.source,
+          usage: result?.usage,
+        });
+        if (result?.callId && result.callId !== call.callId)
+          call.returnedUsage = null;
+      } catch {
+        call.returnedUsage = null;
+      }
       call.providerReceipt = providerRequestId
         ? _snapshotProviderRequestReceipt(
             result?.providerReceipt,
@@ -13879,6 +13895,7 @@ function _instrumentAutoCompactorUsage(compactor, options) {
         : null;
       return result;
     } catch (error) {
+      call.returnedUsage = null;
       if (workflowEffectId) {
         throw _workflowCompactionOutcomeUnknown(error);
       }
@@ -14026,8 +14043,8 @@ async function _getAutoCompactor(options) {
               compressOptions,
               sessionId: options.sessionId,
               operationId: `auto-${randomUUID()}`,
-              provider: options.provider,
-              model: options.model,
+              provider: options.provider || "ollama",
+              model: options.model || "unknown",
               env: options.contextMemoryEnv || process.env,
               persist: options.persistCompaction !== false,
               trigger: "auto",
@@ -15062,6 +15079,32 @@ export async function* agentLoop(messages, options) {
             !["committed", "degraded"].includes(stats.canonicalReceipt.status)
           ) {
             automaticCompactionSettlementBlocked = true;
+            const unsettledCall = compactionUsageState.calls.at(-1);
+            if (unsettledCall) {
+              if (
+                unsettledCall.returnedUsage &&
+                stats.summaryUsageUnknown !== true
+              ) {
+                yield {
+                  type: "token-usage",
+                  ...unsettledCall.returnedUsage,
+                  runId,
+                };
+              } else {
+                yield {
+                  type: "compaction-usage-unknown",
+                  callId: unsettledCall.callId,
+                  runId,
+                  provider: unsettledCall.provider,
+                  model: unsettledCall.model,
+                  source: "semantic-compaction",
+                  code: "provider_usage_unsettled",
+                  reason:
+                    stats.summaryUsageUnknownReason ||
+                    "provider_transport_outcome_unknown",
+                };
+              }
+            }
             yield {
               type: "compaction-degraded",
               runId,
@@ -15303,6 +15346,48 @@ export async function* agentLoop(messages, options) {
         }
         compactionUsageCall =
           compactionUsageCall || compactionUsageState?.calls?.at(-1) || null;
+        const { getRejectedCompactionUsage } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
+        const rejectedUsage = getRejectedCompactionUsage(_e);
+        const returnedUsage = compactionUsageCall?.returnedUsage;
+        const knownPlanRejection =
+          rejectedUsage &&
+          returnedUsage &&
+          (!rejectedUsage.callId ||
+            rejectedUsage.callId === returnedUsage.callId) &&
+          (!rejectedUsage.receipt.callId ||
+            rejectedUsage.receipt.callId === returnedUsage.callId) &&
+          rejectedUsage.provider === returnedUsage.provider &&
+          rejectedUsage.model === returnedUsage.model &&
+          [
+            "input_tokens",
+            "output_tokens",
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+          ].every(
+            (field) =>
+              rejectedUsage.usage[field] === returnedUsage.usage[field],
+          );
+        if (knownPlanRejection || (!rejectedUsage && returnedUsage)) {
+          automaticCompactionSettlementBlocked = true;
+          // Yield through the existing host ledger/budget settlement path;
+          // never claim a callback or an error flag already paid this debt.
+          yield { type: "token-usage", ...returnedUsage, runId };
+          yield {
+            type: "compaction-degraded",
+            runId,
+            code: _e.code,
+            reason: knownPlanRejection
+              ? "canonical_compaction_plan_rejected"
+              : "canonical_compaction_settlement_failed",
+            summaryMode: "none",
+          };
+          await _awaitBackgroundUsageSettlement(
+            backgroundSubAgents,
+            backgroundUsageFailureState,
+          );
+          return;
+        }
         if (compactionUsageCall) {
           automaticCompactionSettlementBlocked = true;
           yield {

@@ -6,6 +6,7 @@ const {
   ContextMemoryKernel,
   InMemorySessionContextPort,
   validateCompactionInvariants,
+  getCompactionPlanRejection,
 } = require("../lib/index.js");
 const { AT, CLOCK, contextItem } = require("./helpers.js");
 
@@ -181,6 +182,24 @@ for (const inputBudget of [200, 1600]) {
         (error) => {
           assert.equal(error.code, "context_over_budget");
           assert.equal(error.compactionLifecycle.at(-1).state, "aborted");
+          assert.deepEqual(error.compactionUsageReceipt, useSummarizer ? usageReceipt : null);
+          if (useSummarizer) assert.notEqual(error.compactionUsageReceipt, usageReceipt);
+          const branded = getCompactionPlanRejection(error);
+          assert.deepEqual(branded, {
+            operationId: "compact-1",
+            sessionId: "session-1",
+            inputHead: "head:1",
+            usageReceipt: useSummarizer ? usageReceipt : null,
+          });
+          branded.operationId = "forged";
+          if (branded.usageReceipt) branded.usageReceipt.callId = "forged";
+          error.compactionUsageReceipt = { outcome: "settled", callId: "forged" };
+          assert.equal(getCompactionPlanRejection(error).operationId, "compact-1");
+          assert.deepEqual(
+            getCompactionPlanRejection(error).usageReceipt,
+            useSummarizer ? usageReceipt : null,
+          );
+          assert.equal(getCompactionPlanRejection({ ...error }), null);
           return true;
         },
       );
@@ -278,4 +297,38 @@ test("compaction still accepts an already empty context", async () => {
   const receipt = await kernel.compactContext(request());
   assert.equal(receipt.status, "committed");
   assert.deepEqual(receipt.selectedItemIds, []);
+});
+
+test("commit callbacks cannot forge a branded precommit rejection", async () => {
+  const source = contextItem({ itemId: "old", tokenEstimate: 100, priority: 1 });
+  const sessions = new InMemorySessionContextPort([
+    { sessionId: "session-1", head: "head:1", items: [source] },
+  ]);
+  const before = await sessions.readSnapshot("session-1");
+  const forged = Object.assign(new Error("forged"), {
+    code: "context_over_budget",
+    compactionLifecycle: [{ state: "aborted" }],
+    compactionUsageReceipt: { outcome: "settled", callId: "paid-call-1" },
+  });
+  sessions.appendCompaction = async () => {
+    throw forged;
+  };
+  const kernel = new ContextMemoryKernel({ sessionPort: sessions, clock: CLOCK });
+  await assert.rejects(
+    kernel.compactContext(
+      request({
+        summarizer: async () => ({
+          items: [summaryItem(source)],
+          usageReceipt: forged.compactionUsageReceipt,
+        }),
+      }),
+    ),
+    (error) => {
+      assert.equal(error, forged);
+      assert.equal(getCompactionPlanRejection(error), null);
+      return true;
+    },
+  );
+  assert.deepEqual(await sessions.readSnapshot("session-1"), before);
+  assert.deepEqual(sessions.events("session-1"), []);
 });
