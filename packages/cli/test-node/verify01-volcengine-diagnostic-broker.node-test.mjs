@@ -1,0 +1,268 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import {
+  BROKER,
+  diagnosticBody,
+  diagnosticUsage,
+  parseDiagnosticJson,
+  createVolcengineDiagnosticBroker,
+} from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
+
+const request = () => ({
+  model: BROKER.model,
+  stream: true,
+  messages: [{ role: "user", content: "offline fixture" }],
+  tools: [
+    {
+      type: "function",
+      function: { name: "read_file", parameters: { type: "object" } },
+    },
+  ],
+});
+function response(mutate = () => {}) {
+  const row = {
+    model: BROKER.model,
+    service_tier: "default",
+    choices: [
+      { index: 0, delta: { content: "fixture" }, finish_reason: "stop" },
+    ],
+    usage: {
+      prompt_tokens: 100,
+      completion_tokens: 10,
+      total_tokens: 110,
+      prompt_tokens_details: { cached_tokens: 0 },
+      completion_tokens_details: { reasoning_tokens: 0 },
+    },
+  };
+  mutate(row);
+  return Buffer.from(`data: ${JSON.stringify(row)}\n\ndata: [DONE]\n\n`);
+}
+test("effective diagnostic request fixes model, thinking, service tier and token ceiling", () => {
+  const body = diagnosticBody({ ...request(), max_tokens: 999999 });
+  assert.equal(body.max_tokens, 4096);
+  assert.deepEqual(body.thinking, { type: "disabled" });
+  assert.equal(body.service_tier, "default");
+  assert.throws(
+    () => diagnosticBody({ ...request(), model: "other" }),
+    /MODEL_MISMATCH/,
+  );
+  assert.throws(
+    () =>
+      diagnosticBody({
+        ...request(),
+        tools: [{ type: "function", function: { name: "run_shell" } }],
+      }),
+    /FILE_TOOLS_REQUIRED/,
+  );
+  assert.throws(
+    () => diagnosticBody({ ...request(), thinking: { type: "enabled" } }),
+    /UNEXPECTED_FIELD/,
+  );
+  assert.throws(
+    () =>
+      diagnosticBody({
+        ...request(),
+        messages: [
+          { role: "user", content: "x".repeat(BROKER.maximumRequestBytes) },
+        ],
+      }),
+    /REQUEST_BYTES_LIMIT/,
+  );
+});
+test("unknown usage, model, tier, partial output and reasoning cannot settle", () => {
+  assert.equal(
+    diagnosticUsage(response().toString()).tokenOnlyEstimateCny,
+    0.00039,
+  );
+  for (const mutate of [
+    (r) => delete r.usage,
+    (r) => delete r.service_tier,
+    (r) => {
+      r.model = "other";
+    },
+    (r) => {
+      r.usage.completion_tokens_details.reasoning_tokens = 1;
+    },
+    (r) => {
+      r.usage.total_tokens += 1;
+    },
+    (r) => {
+      r.choices[0].finish_reason = "length";
+    },
+    (r) => {
+      r.usage.prompt_tokens_details.cached_tokens = 101;
+    },
+  ])
+    assert.throws(() => diagnosticUsage(response(mutate).toString()));
+  assert.throws(
+    () => diagnosticUsage(response().toString().replace("data: [DONE]", "")),
+    /INCOMPLETE_STREAM/,
+  );
+});
+test("duplicate decoded members, overflow and incomplete JSON never become usage", () => {
+  for (const raw of [
+    '{"prompt_tokens":999999,"prompt_tokens":100}',
+    '{"prompt_tokens":1,"prompt_\\u0074okens":2}',
+    '{"x":1e999}',
+    '{"x":1} extra',
+    '{"x":1,}',
+  ])
+    assert.throws(() => parseDiagnosticJson(raw));
+  const duplicate = response()
+    .toString()
+    .replace(
+      '"prompt_tokens":100',
+      '"prompt_tokens":999999,"prompt_tokens":100',
+    );
+  assert.throws(() => diagnosticUsage(duplicate), /JSON_DUPLICATE_MEMBER/);
+});
+async function fixture(t, requestImpl) {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-volcengine-broker-test-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const broker = await createVolcengineDiagnosticBroker({
+    outputDir: path.join(root, "broker"),
+    key: "OFFLINE-FAKE-SECRET",
+    requestImpl,
+  });
+  broker.beginTask("verify-04");
+  const send = (key = broker.childKey) =>
+    fetch(`${broker.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request()),
+    });
+  return { root, broker, send };
+}
+test("physical slots persist before dispatch; secret is absent; restart and 15th request reject", async (t) => {
+  let calls = 0;
+  const { root, broker, send } = await fixture(t, async (body) => {
+    calls += 1;
+    assert.ok(
+      fs.existsSync(
+        path.join(root, "broker", `request-${calls}.dispatch.json`),
+      ),
+    );
+    assert.equal(body.thinking.type, "disabled");
+    return { status: 200, raw: response() };
+  });
+  try {
+    assert.equal((await send("wrong")).status, 403);
+    assert.equal(calls, 0);
+    for (let i = 0; i < 14; i++) {
+      const res = await send();
+      assert.equal(res.status, 200);
+      await res.text();
+    }
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 14);
+    assert.throws(
+      () => broker.beginTask("verify-04"),
+      /TASK_ALLOWANCE_INVALID/,
+    );
+  } finally {
+    const result = await broker.close();
+    assert.equal(result.physicalRequestsStarted, 14);
+    assert.equal(result.usageCompleteRequests, 14);
+    assert.equal(result.actualBilledCostCny, null);
+  }
+  for (const file of fs.readdirSync(path.join(root, "broker")))
+    assert.ok(
+      !fs
+        .readFileSync(path.join(root, "broker", file), "utf8")
+        .includes("OFFLINE-FAKE-SECRET"),
+    );
+  await assert.rejects(
+    () =>
+      createVolcengineDiagnosticBroker({
+        outputDir: path.join(root, "broker"),
+        key: "fixture",
+      }),
+    /EEXIST/,
+  );
+});
+test("usage unknown poisons allowance, stays null, and never silently retries", async (t) => {
+  let calls = 0;
+  const { broker, send } = await fixture(t, async () => {
+    calls += 1;
+    return {
+      status: 200,
+      raw: response((r) => {
+        delete r.usage;
+      }),
+    };
+  });
+  try {
+    assert.equal((await send()).status, 403);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 1);
+    assert.throws(() => broker.beginTask("verify-22"));
+  } finally {
+    const result = await broker.close();
+    assert.equal(result.physicalRequestsStarted, 1);
+    assert.equal(result.tokenOnlyEstimateCny, null);
+    assert.equal(result.poisoned, "DIAGNOSTIC_USAGE_UNKNOWN");
+  }
+});
+test("last-call receipt failure prevents HTTP 200 and poisons task status", async (t) => {
+  const { root, broker, send } = await fixture(t, async () => {
+    fs.mkdirSync(path.join(root, "broker", "request-1.receipt.json"));
+    return { status: 200, raw: response() };
+  });
+  try {
+    const res = await send();
+    assert.equal(res.status, 403);
+    assert.ok(!(await res.text()).includes("[DONE]"));
+    assert.equal(broker.taskStatus("verify-04").passed, false);
+  } finally {
+    assert.equal(
+      (await broker.close()).poisoned,
+      "DIAGNOSTIC_EVIDENCE_FAILURE",
+    );
+  }
+});
+test("literal and JSON-escaped credentials are redacted from saved requests and responses", async (t) => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-volcengine-redaction-test-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const secret = 'OFFLINE"\\SECRET';
+  const broker = await createVolcengineDiagnosticBroker({
+    outputDir: path.join(root, "broker"),
+    key: secret,
+    requestImpl: async () => ({
+      status: 200,
+      raw: response((r) => {
+        r.choices[0].delta.content = secret;
+      }),
+    }),
+  });
+  broker.beginTask("verify-04");
+  try {
+    const input = request();
+    input.messages[0].content = secret;
+    const res = await fetch(`${broker.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${broker.childKey}` },
+      body: JSON.stringify(input),
+    });
+    assert.equal(res.status, 200);
+    assert.ok(
+      !(await res.text()).includes(JSON.stringify(secret).slice(1, -1)),
+    );
+  } finally {
+    await broker.close();
+  }
+  for (const file of fs.readdirSync(path.join(root, "broker"))) {
+    const text = fs.readFileSync(path.join(root, "broker", file), "utf8");
+    assert.ok(!text.includes(secret));
+    assert.ok(!text.includes(JSON.stringify(secret).slice(1, -1)));
+  }
+});

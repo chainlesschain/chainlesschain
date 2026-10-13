@@ -274,7 +274,7 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /do not claim that tests passed/u);
   assert.match(prompt, /implementation defect/u);
   assert.match(prompt, /repository-relative paths for every mutation/u);
-  assert.match(prompt, /at most 20 model turns/u);
+  assert.match(prompt, /at most 14 model turns/u);
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {
@@ -287,7 +287,9 @@ test("workflow requires explicit dispatch or a branch-scoped paid-run marker, an
   );
   assert.match(workflow, /workflow_dispatch:/u);
   assert.doesNotMatch(workflow, /^ {2}(pull_request|schedule|workflow_run):/mu);
-  assert.match(workflow, /branches: \[feature\/cli-ide-gap-20261011\]/u);
+  assert.match(workflow, /feature\/cli-ide-gap-20261011/u);
+  assert.match(workflow, /feature\/verify01-native-long-evidence-20261013/u);
+  assert.doesNotMatch(workflow, /branches: \["?\*\*/u);
   assert.match(
     workflow,
     /contains\(github\.event\.head_commit\.message, '\[volcengine-task-diagnostic\]'\)/u,

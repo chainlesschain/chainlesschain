@@ -15,25 +15,26 @@ import { generateReviewPack } from "./verify01-review-pack.mjs";
 import { reviewEnvironment, REVIEW_IMAGE } from "./verify01-review-runtime.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
+import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
 
 export const DIAGNOSTIC = Object.freeze({
   tasks: ["verify-04", "verify-22"],
   projectCommit: "b2aa3aba082873570e85dce39b00754e5504ff37",
   planDigest:
-    "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
-  publicVersion: "0.166.98",
-  publicReleaseCommit: "e0d4e9caaa0ce6a6145c0d5b66a53b9559e154c9",
+    "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  publicVersion: "0.166.99",
+  publicReleaseCommit: "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
   provider: "volcengine",
   model: "deepseek-v4-flash-ga-260731",
   endpoint: "https://ark.cn-beijing.volces.com/api/v3",
-  maxTurns: 20,
+  maxTurns: 14,
   taskTimeoutMs: 20 * 60 * 1000,
   estimatedSpendStopUSD: 0.25,
 });
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planDir = path.join(
   repository,
-  "docs/research/cli/verify01-plan-2026-10-04",
+  "docs/research/cli/verify01-plan-2026-10-13-volcengine",
 );
 const fileTools = [
   "read_file",
@@ -377,10 +378,11 @@ export async function runTaskDiagnostic({
     releaseEligible: false,
     actualBilledCostUSD: null,
     limitations: [
-      "Public CLI .97 is executed, not the execution-source candidate CLI; this does not validate an unreleased tool-ceiling fix.",
-      "Public .97 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
+      "Public CLI .99 is executed, with transport-only diagnostic overrides recorded separately from the frozen default-thinking comparisons.",
+      "Public .99 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
       "Only expected test deliverables may change; implementation edits in the original task are deliberately excluded.",
       "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
+      "The diagnostic broker disables thinking, requests at most 4096 answer tokens, admits at most 14 physical requests per task and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.",
       "Acceptance is an AI-reviewed independent Docker checker, not independent human review or frozen sample admission.",
       "Setup, model and checker share each task's 20-minute deadline; no automatic model retries or fallback models.",
     ],
@@ -389,6 +391,7 @@ export async function runTaskDiagnostic({
   const scratch = fs.mkdtempSync(
     path.join(os.tmpdir(), "cc-volcengine-task-diagnostic-"),
   );
+  let broker;
   let activeChild,
     canceled = false;
   const stop = () => {
@@ -518,6 +521,7 @@ export async function runTaskDiagnostic({
     summary.executionSourceBindings = [];
     for (const file of [
       "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
       "packages/cli/scripts/verify01-review-pack.mjs",
       "packages/cli/scripts/verify01-review-runtime.mjs",
       "packages/cli/scripts/verify01-review-specs.mjs",
@@ -650,6 +654,11 @@ export async function runTaskDiagnostic({
       nativeSqliteAssessed: false,
     });
 
+    broker = await createVolcengineDiagnosticBroker({
+      outputDir: path.join(output, "broker"),
+      key,
+    });
+
     for (const taskId of DIAGNOSTIC.tasks) {
       if (canceled) break;
       const task = catalog.tasks.find((entry) => entry.id === taskId);
@@ -737,11 +746,12 @@ export async function runTaskDiagnostic({
             { flag: "wx", mode: 0o600 },
           );
         }
+        broker.beginTask(taskId);
         const taskEnvironment = modelEnvironment({
           root: taskRoot,
           profile,
           expectedFiles: task.expectedFiles,
-          key,
+          key: broker.childKey,
         });
         // Exercise the installed product's directory guards before a model call.
         const configPreflight = await run(
@@ -785,7 +795,7 @@ export async function runTaskDiagnostic({
           "--model",
           DIAGNOSTIC.model,
           "--base-url",
-          DIAGNOSTIC.endpoint,
+          broker.baseUrl,
           "--permission-mode",
           "acceptEdits",
           "--output-format",
@@ -861,6 +871,8 @@ export async function runTaskDiagnostic({
       } catch (error) {
         row.failure = redactDiagnostic(String(error.message), key);
       } finally {
+        row.broker = broker?.taskStatus(taskId) || null;
+        row.passed = row.passed && row.broker?.passed === true;
         row.finishedAt = stamp();
         save(`${taskId}/result.json`, row);
         console.log(
@@ -882,6 +894,13 @@ export async function runTaskDiagnostic({
     stop();
     process.removeListener("SIGTERM", onSignal);
     process.removeListener("SIGINT", onSignal);
+    if (broker) summary.broker = await broker.close();
+    summary.passed =
+      summary.passed &&
+      summary.broker?.poisoned === null &&
+      summary.broker.physicalRequestsStarted > 0 &&
+      summary.broker.usageCompleteRequests ===
+        summary.broker.physicalRequestsStarted;
     summary.finishedAt = stamp();
     summary.estimatedTotalUSD =
       summary.tasks.length === DIAGNOSTIC.tasks.length &&

@@ -6,14 +6,19 @@ name: VERIFY01 Volcengine Task Diagnostic
 # Deliberately no pull_request, schedule or workflow_run trigger.
 on:
   push:
-    branches: [feature/cli-ide-gap-20261011]
+    branches:
+      [
+        feature/cli-ide-gap-20261011,
+        feature/verify01-native-long-evidence-20261013,
+      ]
     paths:
       - "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs"
+      - "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs"
       - ".github/workflows/verify01-volcengine-task-diagnostic.yml"
   workflow_dispatch:
     inputs:
       confirm_live:
-        description: "Run two paid Volcengine tasks ($0.25 estimated stop each; not a hard quota)"
+        description: "Run two bounded paid Volcengine diagnostics (thinking disabled, 14 requests each; no formal admission)"
         required: true
         type: boolean
         default: false
@@ -29,7 +34,9 @@ jobs:
   diagnostic:
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/feature/cli-ide-gap-20261011' &&
+      (github.event_name == 'push' &&
+      (github.ref == 'refs/heads/feature/cli-ide-gap-20261011' ||
+       github.ref == 'refs/heads/feature/verify01-native-long-evidence-20261013') &&
       contains(github.event.head_commit.message, '[volcengine-task-diagnostic]'))
     runs-on: ubuntu-24.04
     timeout-minutes: 55
@@ -43,7 +50,10 @@ jobs:
         with:
           node-version: "22.12.0"
       - name: Validate the harness without network or model calls
-        run: node --test packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs
+        run: >-
+          node --test
+          packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
       - name: Pin checker image outside task deadlines
         run: |
           docker pull node:22.12.0-bookworm
