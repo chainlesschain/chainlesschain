@@ -47,3 +47,7 @@ node "$TASK_CLI" eval --suite verify01-project-36 \
 首次旅程在独立干净环境完成安装、配置、认证、执行 verify-04 和产物检查，保存五阶段与认证费用，不能复用普通任务 runId。见原 [host capture 协议](../verify01-plan-2026-10-04/HOST_CAPTURE_README.md)。当前源码的新预算或窗口检查不自动成为上述公开发行版本的能力；启动前须核对实际安装身份和实际控制边界。
 
 Windows/macOS native 仍为 **NOT_ADMITTED**。正式目标宿主、真实 IDE 界面、真人辅助技术、固定硬件 SLO 和 8h/24h 观测仍分别需要实际材料；本地 Windows 10、WSL 工程测试与既有运行中的观察不导入本计划样本。
+
+# 冻结后进展
+
+本目录的机器可读 readiness 保留冻结时的未运行快照。新的准确脚本 AI 审阅、预算分配适配、真实诊断与长期观察增量见 [验收证据](../evidence/gap-2026-10-05/continuation-2026-10-13/volcengine-v3/README.md)；正式付费和 native 准入仍未满足。

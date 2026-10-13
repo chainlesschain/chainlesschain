@@ -7,6 +7,7 @@ import {
   BROKER,
   diagnosticBody,
   diagnosticUsage,
+  diagnosticJsonUsage,
   parseDiagnosticJson,
   createVolcengineDiagnosticBroker,
 } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
@@ -118,6 +119,129 @@ test("duplicate decoded members, overflow and incomplete JSON never become usage
       '"prompt_tokens":999999,"prompt_tokens":100',
     );
   assert.throws(() => diagnosticUsage(duplicate), /JSON_DUPLICATE_MEMBER/);
+});
+function jsonResponse(mutate = () => {}) {
+  const row = {
+    id: "OFFLINE-FIXTURE-RECEIPT",
+    model: BROKER.model,
+    service_tier: "default",
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: "fixture" },
+        finish_reason: "stop",
+      },
+    ],
+    usage: {
+      prompt_tokens: 100,
+      completion_tokens: 10,
+      total_tokens: 110,
+      prompt_tokens_details: { cached_tokens: 0 },
+      completion_tokens_details: { reasoning_tokens: 0 },
+    },
+  };
+  mutate(row);
+  return Buffer.from(JSON.stringify(row));
+}
+test("public CLI nonstreaming JSON request preserves all diagnostic bounds", () => {
+  const input = request();
+  delete input.stream;
+  const body = diagnosticBody(input);
+  assert.equal(body.stream, false);
+  assert.equal(Object.hasOwn(body, "stream_options"), false);
+  assert.equal(body.max_tokens, 4096);
+  assert.deepEqual(body.thinking, { type: "disabled" });
+  assert.equal(
+    diagnosticJsonUsage(jsonResponse().toString()).tokenOnlyEstimateCny,
+    0.00039,
+  );
+  for (const mutate of [
+    (r) => delete r.usage,
+    (r) => delete r.id,
+    (r) => {
+      r.model = "other";
+    },
+    (r) => delete r.service_tier,
+    (r) => {
+      r.choices.push(r.choices[0]);
+    },
+    (r) => {
+      r.choices[0].message.reasoning_content = "unexpected";
+    },
+    (r) => {
+      r.usage.completion_tokens_details.reasoning_tokens = 1;
+    },
+    (r) => {
+      r.choices[0].message.content = {};
+    },
+    (r) => {
+      r.choices[0].message.tool_calls = {};
+    },
+    (r) => {
+      r.choices[0].finish_reason = "tool_calls";
+      r.choices[0].message.tool_calls = [];
+    },
+  ])
+    assert.throws(() => diagnosticJsonUsage(jsonResponse(mutate).toString()));
+  assert.throws(
+    () =>
+      diagnosticJsonUsage(
+        jsonResponse()
+          .toString()
+          .replace(
+            '"prompt_tokens":100',
+            '"prompt_tokens":999999,"prompt_tokens":100',
+          ),
+      ),
+    /JSON_DUPLICATE_MEMBER/,
+  );
+});
+test("JSON response is persisted before forwarding and unknown JSON usage poisons the next call", async (t) => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-volcengine-json-test-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let calls = 0;
+  const broker = await createVolcengineDiagnosticBroker({
+    outputDir: path.join(root, "broker"),
+    key: "OFFLINE-FAKE-SECRET",
+    requestImpl: async (body) => {
+      assert.equal(body.stream, false);
+      assert.equal(body.max_tokens, 4096);
+      calls += 1;
+      return {
+        status: 200,
+        raw: jsonResponse(calls === 1 ? () => {} : (r) => delete r.usage),
+      };
+    },
+  });
+  broker.beginTask("verify-04");
+  const input = request();
+  delete input.stream;
+  const send = () =>
+    fetch(`${broker.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${broker.childKey}` },
+      body: JSON.stringify(input),
+    });
+  try {
+    const res = await send();
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("content-type"), /application\/json/);
+    assert.ok(
+      fs.existsSync(path.join(root, "broker", "request-1.receipt.json")),
+    );
+    assert.deepEqual(await res.json(), JSON.parse(jsonResponse()));
+    assert.equal((await send()).status, 403);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 2);
+  } finally {
+    const result = await broker.close();
+    assert.equal(result.physicalRequestsStarted, 2);
+    assert.equal(result.usageCompleteRequests, 1);
+    assert.equal(result.tokenOnlyEstimateCny, null);
+  }
+  assert.ok(fs.existsSync(path.join(root, "broker", "response-1.json")));
 });
 async function fixture(t, requestImpl) {
   const root = fs.mkdtempSync(
