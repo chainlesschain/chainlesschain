@@ -289,6 +289,10 @@ test("workflow requires explicit dispatch or a branch-scoped paid-run marker, an
   assert.doesNotMatch(workflow, /^ {2}(pull_request|schedule|workflow_run):/mu);
   assert.match(workflow, /feature\/cli-ide-gap-20261011/u);
   assert.match(workflow, /feature\/verify01-native-long-evidence-20261013/u);
+  assert.match(
+    workflow,
+    /feature\/verify01-volcengine-v3-acceptance-20261013/u,
+  );
   assert.doesNotMatch(workflow, /branches: \["?\*\*/u);
   assert.match(
     workflow,

@@ -10,6 +10,7 @@ on:
       [
         feature/cli-ide-gap-20261011,
         feature/verify01-native-long-evidence-20261013,
+        feature/verify01-volcengine-v3-acceptance-20261013,
       ]
     paths:
       - "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs"
@@ -36,7 +37,8 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
       (github.event_name == 'push' &&
       (github.ref == 'refs/heads/feature/cli-ide-gap-20261011' ||
-       github.ref == 'refs/heads/feature/verify01-native-long-evidence-20261013') &&
+       github.ref == 'refs/heads/feature/verify01-native-long-evidence-20261013' ||
+       github.ref == 'refs/heads/feature/verify01-volcengine-v3-acceptance-20261013') &&
       contains(github.event.head_commit.message, '[volcengine-task-diagnostic]'))
     runs-on: ubuntu-24.04
     timeout-minutes: 55

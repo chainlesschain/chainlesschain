@@ -1,0 +1,6 @@
+{
+  "schema": "chainlesschain.raw-byte-archive-validation/v1",
+  "objects": 212,
+  "allCompressedAndRawHashesVerified": true,
+  "selectedCredentialRedactions": 0
+}

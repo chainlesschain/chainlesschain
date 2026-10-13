@@ -113,7 +113,11 @@ export function parseDiagnosticJson(text) {
 
 export function diagnosticBody(input) {
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
-  check(input.stream === true, "DIAGNOSTIC_STREAM_REQUIRED");
+  check(
+    input.stream === undefined || typeof input.stream === "boolean",
+    "DIAGNOSTIC_INVALID_STREAM_MODE",
+  );
+  const streaming = input.stream === true;
   check(
     Array.isArray(input.messages) && input.messages.length > 0,
     "DIAGNOSTIC_MESSAGES_REQUIRED",
@@ -143,8 +147,8 @@ export function diagnosticBody(input) {
     model: BROKER.model,
     messages: input.messages,
     tools: input.tools,
-    stream: true,
-    stream_options: { include_usage: true },
+    stream: streaming,
+    ...(streaming ? { stream_options: { include_usage: true } } : {}),
     max_tokens: BROKER.maximumAnswerTokens,
     thinking: { type: "disabled" },
     service_tier: "default",
@@ -155,6 +159,62 @@ export function diagnosticBody(input) {
     "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
   );
   return body;
+}
+
+export function diagnosticJsonUsage(raw) {
+  // Validate the actual JSON envelope first. The shared accounting validator
+  // below receives its existing facts, never manufactured identity or usage.
+  const response = parseDiagnosticJson(raw);
+  check(
+    response && !Object.hasOwn(response, "error"),
+    "DIAGNOSTIC_PROVIDER_ERROR",
+  );
+  check(
+    typeof response.id === "string" && response.id.length > 0,
+    "DIAGNOSTIC_RESPONSE_ID_UNKNOWN",
+  );
+  check(
+    Array.isArray(response.choices) &&
+      response.choices.length === 1 &&
+      response.choices[0].index === 0,
+    "DIAGNOSTIC_EXTRA_CHOICE",
+  );
+  const choice = response.choices[0];
+  check(
+    choice.message &&
+      !Array.isArray(choice.message) &&
+      choice.message.role === "assistant",
+    "DIAGNOSTIC_MESSAGE_UNKNOWN",
+  );
+  const message = choice.message;
+  check(
+    message.content === undefined ||
+      message.content === null ||
+      typeof message.content === "string",
+    "DIAGNOSTIC_CONTENT_INVALID",
+  );
+  check(
+    message.tool_calls === undefined || Array.isArray(message.tool_calls),
+    "DIAGNOSTIC_TOOL_CALLS_INVALID",
+  );
+  if (Array.isArray(message.tool_calls)) {
+    check(
+      message.tool_calls.every(
+        (call) =>
+          typeof call?.id === "string" &&
+          call.id.length > 0 &&
+          call.type === "function" &&
+          fileTools.has(call.function?.name) &&
+          typeof call.function.arguments === "string",
+      ),
+      "DIAGNOSTIC_TOOL_CALLS_INVALID",
+    );
+  }
+  if (choice.finish_reason === "tool_calls")
+    check(message.tool_calls?.length > 0, "DIAGNOSTIC_TOOL_CALLS_MISSING");
+  return diagnosticUsage(
+    `data: ${JSON.stringify({ ...response, choices: [{ index: choice.index, delta: choice.message, finish_reason: choice.finish_reason }] })}\n\ndata: [DONE]\n\n`,
+  );
 }
 
 export function diagnosticUsage(raw) {
@@ -401,6 +461,7 @@ export async function createVolcengineDiagnosticBroker({
         tokenOnlyEstimateCny: null,
         actualBilledCostCny: null,
         errorCode: null,
+        responseMode: effective.stream ? "sse" : "json",
       };
       // Persist the physical dispatch slot before network egress.
       save(`request-${id}.dispatch.json`, row);
@@ -409,7 +470,7 @@ export async function createVolcengineDiagnosticBroker({
       check(captured.status === 200, "DIAGNOSTIC_NON_200_NO_RETRY");
       Object.assign(
         row,
-        diagnosticUsage(
+        (effective.stream ? diagnosticUsage : diagnosticJsonUsage)(
           new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
         ),
       );
@@ -425,7 +486,7 @@ export async function createVolcengineDiagnosticBroker({
           row.finishedAt = new Date().toISOString();
           if (captured) {
             const stored = save(
-              `response-${row.id}.sse`,
+              `response-${row.id}.${row.responseMode}`,
               captured.raw.toString("utf8"),
             );
             row.response = {
@@ -448,7 +509,12 @@ export async function createVolcengineDiagnosticBroker({
       // response and complete receipt have been durably written.
       if (poisoned) rejectLocal(poisoned);
       else if (!res.destroyed) {
-        res.writeHead(200, { "Content-Type": "text/event-stream" });
+        res.writeHead(200, {
+          "Content-Type":
+            row.responseMode === "sse"
+              ? "text/event-stream"
+              : "application/json",
+        });
         res.end(redact(captured.raw.toString("utf8")));
       }
     }
