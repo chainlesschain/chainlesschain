@@ -97,6 +97,42 @@ afterEach(() => {
 });
 
 describe("Eval command strict evidence", () => {
+  it("refuses formal paid execution before setup, spawn or evidence writes even with valid declarations", async () => {
+    const tasks = [{ id: "a", setup: vi.fn() }];
+    tasks.verification = {
+      projectCommit: "a".repeat(40),
+      comparison: records()[0].comparison,
+      population: { tasks: 36, firstRuns: 9 },
+      requiredSandboxMode: "workspace-write",
+      receipts: [],
+    };
+    _deps.getSuite = vi.fn(() => tasks);
+    const evidenceDir = path.join(dir, "paid-evidence");
+    const history = path.join(dir, "paid.jsonl");
+    await run([
+      "--suite",
+      "verify01-project-36",
+      "--label",
+      "b".repeat(40),
+      "--provider",
+      "volcengine",
+      "--model",
+      "deepseek-v4-flash-ga-260731",
+      "--evidence-dir",
+      evidenceDir,
+      "--history",
+      history,
+    ]);
+    expect(process.exitCode).toBe(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("not yet all routed"),
+    );
+    expect(_deps.runEvalSuite).not.toHaveBeenCalled();
+    expect(tasks[0].setup).not.toHaveBeenCalled();
+    expect(_deps.spawn).not.toHaveBeenCalled();
+    expect(fs.existsSync(evidenceDir)).toBe(false);
+    expect(fs.existsSync(history)).toBe(false);
+  });
   it("keeps the declared CLI source SHA separate from the actual project SHA and preserves raw receipts", async () => {
     const tasks = [{ id: "a" }];
     tasks.verification = {

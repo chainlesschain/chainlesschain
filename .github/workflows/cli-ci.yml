@@ -187,6 +187,8 @@ jobs:
           packages/cli/test-node/context-token-calibration.node-test.mjs
           packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs
           packages/cli/test-node/cli-registry-public-install.node-test.mjs
+      - name: Verify formal budget authority with native SQLite and process fault recovery
+        run: node --test packages/cli/test-node/formal-budget-authority.test.mjs
       - name: Verify native review preparation and receipt contracts without provider execution
         run: >-
           node --test

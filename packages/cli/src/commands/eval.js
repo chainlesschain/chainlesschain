@@ -20,7 +20,7 @@ import {
   persistVerify01Receipts,
 } from "../lib/eval/verify01-execution.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
-import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { requireFormalBudgetRuntime } from "../lib/formal-budget-transport.js";
 import {
   TelemetryRecorder,
   formatTelemetry,
@@ -117,6 +117,9 @@ function makeHeadlessRunAgent(opts = {}) {
       throw new Error(
         "VERIFY01 provider/model binding differs from the launcher",
       );
+    // A valid task binding is not paid execution admission. Until every paid
+    // route and credential boundary is covered, refuse before spawning a child.
+    if (binding) requireFormalBudgetRuntime();
     const inherited = { ...process.env, ...(opts.env || {}) };
     const environmentValue = (name) => {
       if (process.platform !== "win32") return inherited[name];
@@ -127,11 +130,10 @@ function makeHeadlessRunAgent(opts = {}) {
         .find((candidate) => candidate.toLowerCase() === name.toLowerCase());
       return key === undefined ? undefined : inherited[key];
     };
-    const providerKey = BUILT_IN_PROVIDERS[binding?.provider]?.apiKeyEnv;
-    // Formal children retain platform plumbing and only the selected provider's
-    // credential (or the explicitly selected generic CC_API_KEY). Hooks,
-    // fallback configuration, NODE_OPTIONS and unrelated account tokens are
-    // excluded. Normal, non-formal Eval retains its existing environment.
+    // Formal children retain platform plumbing and the isolated task binding.
+    // Provider credentials belong to the trusted budget host. Hooks, fallback
+    // configuration, NODE_OPTIONS and account tokens are excluded. This alone
+    // does not enforce OS egress; paid launch remains refused above.
     const childEnvironment = binding
       ? {
           ...Object.fromEntries(
@@ -147,8 +149,6 @@ function makeHeadlessRunAgent(opts = {}) {
               "LANG",
               "LC_ALL",
               "LC_CTYPE",
-              "CC_API_KEY",
-              ...(providerKey ? [providerKey] : []),
             ]
               .map((key) => [key, environmentValue(key)])
               .filter(([, value]) => value !== undefined),
@@ -462,6 +462,9 @@ export function registerEvalCommand(program, { logger } = {}) {
           throw new Error(
             "frozen suite comparison is bound by its plan; --comparison-context cannot override it",
           );
+        // Refuse before task setup, workspace creation or raw receipt writes.
+        // Dry runs remain offline harness diagnostics, never observations.
+        if (tasks.verification && !options.dryRun) requireFormalBudgetRuntime();
         comparison =
           tasks.verification?.comparison ||
           createEvalComparison({
