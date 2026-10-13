@@ -437,7 +437,7 @@ describe("review-gated frozen eval execution", () => {
     ).not.toBeNull();
   });
 
-  it("passes the immutable task environment to the actual command child without changing the parent", async () => {
+  it("refuses the actual formal command child even with a valid immutable binding and selected credential", async () => {
     const f = fixture(),
       tasks = loadVerify01Suite(f.options);
     const spawn = vi.spyOn(commandDeps, "spawn").mockImplementation(() => {
@@ -448,7 +448,7 @@ describe("review-gated frozen eval execution", () => {
       queueMicrotask(() => child.emit("close", 1, null));
       return child;
     });
-    await runEvalSuite(tasks, {
+    const result = await runEvalSuite(tasks, {
       cwdBase: location(),
       keepWorkspaces: true,
       runAgent: makeHeadlessRunAgent({
@@ -467,26 +467,10 @@ describe("review-gated frozen eval execution", () => {
         },
       }),
     });
-    expect(spawn).toHaveBeenCalledTimes(1);
-    const [, args, options] = spawn.mock.calls[0];
-    expect(args).toContain("--no-mcp");
-    expect(options.env.CHAINLESSCHAIN_HOME).toBe(
-      tasks.verification.receipts[0].agentBinding.configHome,
-    );
-    expect(
-      JSON.parse(options.env.CC_FORMAL_QUALITY_EVAL_ALLOWED_FILES),
-    ).toEqual(["result/verify-01.txt"]);
-    expect(options.env.CC_API_KEY).toBe("fixture-only-key");
-    expect(options.env.CC_MAX_RETRIES).toBe("0");
-    if (process.platform === "win32")
-      expect(options.env.PATH).toBe("fixture-path");
-    for (const name of [
-      "NODE_OPTIONS",
-      "GITHUB_TOKEN",
-      "CC_FALLBACK_MODEL",
-      "NPM_TOKEN",
-    ])
-      expect(options.env[name]).toBeUndefined();
+    expect(spawn).not.toHaveBeenCalled();
+    expect(result.passed).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.results[0].error).toContain("not yet all routed");
     expect(() =>
       makeHeadlessRunAgent({ requireVerify01Binding: true })({
         cwd: location(),
