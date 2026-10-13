@@ -127,6 +127,40 @@ describe("segmented memory authority", () => {
     expect(readdirSync(target)).toEqual([]);
   });
   it.runIf(process.platform === "win32")(
+    "rejects a real junction through native canonical metadata when lstat reports a plain directory",
+    async () => {
+      const filePath = location();
+      const root = join(filePath, "..");
+      const target = join(root, "target");
+      const link = join(root, "linked");
+      mkdirSync(target);
+      symlinkSync(target, link, "junction");
+      const originalLstat = fs.lstatSync;
+      expect(originalLstat(link).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync.native(link)).toBe(fs.realpathSync.native(target));
+      const lstat = vi
+        .spyOn(fs, "lstatSync")
+        .mockImplementation((candidate, ...args) =>
+          originalLstat(candidate === link ? target : candidate, ...args),
+        );
+      expect(fs.lstatSync(link).isDirectory()).toBe(true);
+      expect(fs.lstatSync(link).isSymbolicLink()).toBe(false);
+      const native = vi.spyOn(fs.realpathSync, "native");
+      const mkdir = vi.spyOn(fs, "mkdirSync");
+      syncBuiltinESMExports();
+      const port = new SegmentedMemoryPort({
+        filePath: join(link, "nested", "authority.json"),
+      });
+      await expect(port.query()).rejects.toMatchObject({
+        code: "CONTEXT_MEMORY_STORE_CORRUPT",
+      });
+      expect(lstat).toHaveBeenCalledWith(link);
+      expect(native).toHaveBeenCalledWith(link);
+      expect(mkdir).not.toHaveBeenCalled();
+      expect(readdirSync(target)).toEqual([]);
+    },
+  );
+  it.runIf(process.platform === "win32")(
     "rejects native redirection even when lstat classifies the ancestor as a plain directory",
     async () => {
       const filePath = location();
