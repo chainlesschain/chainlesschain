@@ -122,3 +122,160 @@ test("compaction invariant rejects split tool pairs", () => {
   assert.equal(check.ok, false);
   assert.equal(check.violations[0].code, "tool_pair_split");
 });
+
+function summaryItem(source, overrides = {}) {
+  return contextItem({
+    itemId: "summary-1",
+    tokenEstimate: 10,
+    priority: 1,
+    provenance: {
+      source: "summarizer",
+      observedAt: AT,
+      parentDigests: [source.digest],
+    },
+    ...overrides,
+  });
+}
+
+for (const inputBudget of [200, 1600]) {
+  for (const useSummarizer of [false, true]) {
+    test(`compaction preserves nonempty context when ${inputBudget} tokens select nothing (summarizer=${useSummarizer})`, async () => {
+      const source = contextItem({
+        itemId: "old",
+        tokenEstimate: 512,
+        priority: 1,
+      });
+      const sessions = new InMemorySessionContextPort([
+        { sessionId: "session-1", head: "head:1", items: [source] },
+      ]);
+      const kernel = new ContextMemoryKernel({
+        sessionPort: sessions,
+        clock: CLOCK,
+      });
+      const before = await sessions.readSnapshot("session-1");
+      const settlements = [];
+      const usageReceipt = Object.freeze({
+        outcome: "settled",
+        callId: "paid-call-1",
+      });
+      await assert.rejects(
+        kernel.compactContext(
+          request({
+            modelWindowTokens: inputBudget + 20,
+            safetyMarginTokens: 0,
+            recoveryReserveTokens: Math.floor(inputBudget * 0.05),
+            allowFallback: true,
+            ...(useSummarizer
+              ? {
+                  summarizer: async () => {
+                    settlements.push(usageReceipt);
+                    return {
+                      items: [summaryItem(source, { tokenEstimate: 600 })],
+                      usageReceipt,
+                    };
+                  },
+                }
+              : {}),
+          }),
+        ),
+        (error) => {
+          assert.equal(error.code, "context_over_budget");
+          assert.equal(error.compactionLifecycle.at(-1).state, "aborted");
+          return true;
+        },
+      );
+      assert.deepEqual(await sessions.readSnapshot("session-1"), before);
+      assert.deepEqual(sessions.events("session-1"), []);
+      assert.deepEqual(settlements, useSummarizer ? [usageReceipt] : []);
+    });
+  }
+}
+
+for (const retainOneSummary of [false, true]) {
+  test(`compaction rejects a dropped summary even with nonempty output (partial summary=${retainOneSummary})`, async () => {
+    const retained = contextItem({
+      itemId: "retained",
+      tokenEstimate: 20,
+      priority: 100,
+    });
+    const source = contextItem({
+      itemId: "old",
+      tokenEstimate: 100,
+      priority: 1,
+    });
+    const sessions = new InMemorySessionContextPort([
+      { sessionId: "session-1", head: "head:1", items: [retained, source] },
+    ]);
+    const kernel = new ContextMemoryKernel({
+      sessionPort: sessions,
+      clock: CLOCK,
+    });
+    const before = await sessions.readSnapshot("session-1");
+    const summaries = [
+      ...(retainOneSummary
+        ? [summaryItem(source, { itemId: "small-summary", priority: 2 })]
+        : []),
+      summaryItem(source, { itemId: "excluded-summary", tokenEstimate: 20 }),
+    ];
+    await assert.rejects(
+      kernel.compactContext(
+        request({
+          allowFallback: true,
+          summarizer: async () => ({
+            items: summaries,
+            usageReceipt: { outcome: "settled", callId: "paid-call-1" },
+          }),
+        }),
+      ),
+      { code: "context_over_budget" },
+    );
+    assert.deepEqual(await sessions.readSnapshot("session-1"), before);
+    assert.deepEqual(sessions.events("session-1"), []);
+  });
+}
+
+test("compaction commits retained summaries with their settled usage", async () => {
+  const retained = contextItem({
+    itemId: "retained",
+    tokenEstimate: 20,
+    priority: 100,
+  });
+  const source = contextItem({
+    itemId: "old",
+    tokenEstimate: 100,
+    priority: 1,
+  });
+  const summary = summaryItem(source);
+  const usageReceipt = { outcome: "settled", callId: "paid-call-1" };
+  const sessions = new InMemorySessionContextPort([
+    { sessionId: "session-1", head: "head:1", items: [retained, source] },
+  ]);
+  const kernel = new ContextMemoryKernel({
+    sessionPort: sessions,
+    clock: CLOCK,
+  });
+  const receipt = await kernel.compactContext(
+    request({
+      summarizer: async () => ({ items: [summary], usageReceipt }),
+    }),
+  );
+  assert.equal(receipt.status, "committed");
+  assert.deepEqual(
+    new Set(receipt.selectedItemIds),
+    new Set([retained.itemId, summary.itemId]),
+  );
+  assert.deepEqual(sessions.events("session-1")[0].usageReceipt, usageReceipt);
+});
+
+test("compaction still accepts an already empty context", async () => {
+  const sessions = new InMemorySessionContextPort([
+    { sessionId: "session-1", head: "head:1", items: [] },
+  ]);
+  const kernel = new ContextMemoryKernel({
+    sessionPort: sessions,
+    clock: CLOCK,
+  });
+  const receipt = await kernel.compactContext(request());
+  assert.equal(receipt.status, "committed");
+  assert.deepEqual(receipt.selectedItemIds, []);
+});
