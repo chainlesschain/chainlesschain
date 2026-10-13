@@ -285,3 +285,10 @@ android-app/app/src/main/assets/frida/frida-inject-arm64
 
 # 根目录 artifacts 产物目录（publish_artifact 生成的文件）
 /artifacts/
+
+# 根目录编号 artifacts 下载/解压临时目录（CI 失败证据，不入库）
+/artifacts_*/
+
+# pytest 缓存与本地 CI 失败证据临时目录（不入库）
+.pytest_cache/
+.tmp-jetbrains-failure/
