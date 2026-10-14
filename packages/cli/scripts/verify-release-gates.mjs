@@ -137,9 +137,37 @@ export async function verifyWorkflowGate(options) {
   // GitHub keeps jobs from every attempt under the same run id. Release gates
   // must judge the latest attempt only; `filter=all` would mix an earlier
   // failed attempt with a successful rerun and permanently reject the SHA.
-  const jobsUrl = `${apiUrl}/repos/${repository}/actions/runs/${run.id}/jobs?filter=latest&per_page=100`;
-  const jobPayload = await githubJson(fetchImpl, jobsUrl, token);
-  const platforms = assertGateJobs(gate, jobPayload.jobs || []);
+  // Large CI matrices can make GitHub return 502 for a 100-job response.
+  // Read every page so a failure beyond the first page cannot be missed.
+  const pageSize = 20;
+  const jobs = [];
+  let totalCount;
+  for (let page = 1; ; page += 1) {
+    const jobsUrl =
+      `${apiUrl}/repos/${repository}/actions/runs/${run.id}/jobs` +
+      `?filter=latest&per_page=${pageSize}&page=${page}`;
+    const jobPayload = await githubJson(fetchImpl, jobsUrl, token);
+    const pageJobs = jobPayload.jobs || [];
+    totalCount ??= jobPayload.total_count;
+    jobs.push(...pageJobs);
+    if (totalCount !== undefined && jobs.length >= totalCount) {
+      if (jobs.length !== totalCount) {
+        throw new Error(
+          `${gate.name} returned ${jobs.length} of ${totalCount} latest jobs`,
+        );
+      }
+      break;
+    }
+    if (pageJobs.length < pageSize) {
+      if (totalCount !== undefined && jobs.length !== totalCount) {
+        throw new Error(
+          `${gate.name} returned ${jobs.length} of ${totalCount} latest jobs`,
+        );
+      }
+      break;
+    }
+  }
+  const platforms = assertGateJobs(gate, jobs);
   return {
     workflow: gate.workflow,
     name: gate.name,
