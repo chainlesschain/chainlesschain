@@ -416,7 +416,7 @@ CLI manifest/help/completions/reference 四项生成检查、桌面 `verify-fixe
 ## 当前实现边界
 
 - 删除只作用于规范化实体及其派生索引；raw archive 保留，后续显式导入/重派生可能恢复该实体，不等同隐私擦除或上游平台删除。
-- 投影 revision 在源更新和依赖变化时递增，不是不可变 raw snapshot 版本。`metadata.derivation` 支持追踪当前索引投影，完整回答引用历史尚未完成。
+- 投影 revision 在源更新和依赖变化时递增，不是不可变 raw snapshot 版本。`metadata.derivation` 支持追踪当前索引投影。PDH 回答现在返回单次提示词事实的引用来源快照；持久回答引用历史尚未完成。
 - 当前两个宿主都使用内存 BM25/KG，没有接入生产向量目标。新 consumer 用于新的内存索引；固定 consumer 中未知结果的 running 投递不会按超时自动重放。
 - 启动恢复最多处理 100 页、每页 1,000 条投递；剩余工作可查询、手工重试。已退役 ephemeral consumer 可显式预览/清理非 running 回执；崩溃疑似代、未登记历史代和生命周期标记可核查且保留。新增重试前容量预算；全局硬配额、跨进程协调和压缩仍未实施。
 - 现有索引使用裸 ID。不同实体类型共用 ID（含 tombstone）时返回 `DERIVATION_ID_CONFLICT`，需修复身份冲突，不能通过反复重试消除。
@@ -430,7 +430,15 @@ CLI manifest/help/completions/reference 四项生成检查、桌面 `verify-fixe
 
 `task-ipc.js` 中的 15 个清单、评论、活动与附件旧 IPC 入口，现在先解析直接任务 ID 或附属记录 ID，再拒绝访问规范 `project_tasks` 任务。评论回复还检查父评论归属，避免用看板任务 ID 搭配规范任务评论绕过检查。旧管理器没有规范任务的附属操作契约，因此这些入口不会把此类读写当成受控操作成功。
 
-使用 Node 内置 SQLite 的[入口级独立验证](../../../desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs)覆盖 16 个直接、间接及混合引用用例，全部得到 `ACTION_CONTROLLED_TASK_REQUIRED`，并确认看板任务路径仍可进入原管理器；源码语法、Prettier 和 `git diff --check` 通过。原生 `better-sqlite3` 回归已加入 `task-description-ipc.test.js`，但本次环境中的缓存依赖缺少 Windows 原生绑定，测试在建库前失败，尚不能计入通过。此增量当前只在工作区，未提交或发布；看板权限、附属操作正向迁移及其余任务仍需继续。
+使用 Node 内置 SQLite 的[入口级独立验证](../../../desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs)覆盖 16 个直接、间接及混合引用用例，全部得到 `ACTION_CONTROLLED_TASK_REQUIRED`，并确认看板任务路径仍可进入原管理器；源码语法、Prettier 和 `git diff --check` 通过。原生 `better-sqlite3` 回归已加入 `task-description-ipc.test.js`，但本次环境中的缓存依赖缺少 Windows 原生绑定，测试在建库前失败，尚不能计入通过。此增量已提交为 `ecbc1f5750`，未推送或发布；看板权限、附属操作正向迁移及其余任务仍需继续。
+
+## 2026-10-15 实现增量：PDH 回答引用来源快照
+
+`AnalysisEngine.ask()` 对模型实际引用且存在于本次提示词中的事实返回 `citationEvidence`；`retrieveContext()` 对本次提示词纳入的事实返回同一结构。每条证据包含事实 ID、来源适配器/版本/采集方式/时间及可用的源 ID/作用域，并对提示词使用的事实摘要紧凑 JSON 计算 SHA-256。被截断的事实不会获得证据；同 ID 多条事实标记 `ambiguous-id`，缺失或不完整来源分别标记 `source-unavailable` / `source-incomplete`。CLI `hub ask --json` 和 `hub retrieve-context` 沿用完整返回对象，自动包含该字段。
+
+该摘要不是整个提示词字节哈希，也不是原始记录的不可变版本。当前只在单次调用返回来源快照，没有持久回答/引用账本、来源更新后的新鲜度复核或跨服务可信证明；汇总数值块也未按事实 ID 提供独立血缘。
+
+验证：Node 内置测试 3/3、PDH `prompt-builder.test.js` 32/32、CLI `hub-ask.test.js` 12/12 通过；新增独立测试覆盖截断、重复 ID、缺失/不完整来源和回答/预检的一致性。当前 Windows 环境的 SQLCipher 原生绑定不可加载，依赖真实 vault 的 `analysis.test.js` 没有计入通过；完整原生回归及跨宿主引用展示仍待验收。
 
 ## 后续实施顺序
 

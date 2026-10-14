@@ -159,9 +159,10 @@ class AnalysisEngine {
    *
    * @typedef {object} AskResult
    * @property {string} answer
-   * @property {string[]} citations            event ids cited AND known
-   * @property {string[]} hallucinatedCitations event ids cited but not in facts
-   * @property {Array<object>} facts           facts handed to the LLM
+   * @property {string[]} citations            fact IDs cited and present in this prompt
+   * @property {Array<object>} citationEvidence  source metadata and SHA-256 of compact JSON fact summaries for known citations
+   * @property {string[]} hallucinatedCitations cited IDs absent from this prompt
+   * @property {Array<object>} facts           retrieved facts before the prompt cap
    * @property {object} parsed                 parseQuery output
    * @property {object} usage                  { promptTokens, completionTokens, totalTokens }
    * @property {string} model
@@ -268,34 +269,37 @@ class AnalysisEngine {
     }
 
     // Build prompt.
-    const { messages, factIds, factCount, truncated } = buildPrompt({
-      question,
-      facts,
-      systemPrompt: this.systemPrompt,
-      intent: parsed.intent,
-      timeWindow: parsed.timeWindow,
-      maxFacts: effMaxFacts,
-      vaultTotals: this._gatherVaultTotals(),
-      amountSummary:
-        parsed.intent === "sum-amount"
-          ? this._gatherAmountSummary(parsed)
-          : undefined,
-      rankSummary:
-        parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
-      distinctCount:
-        parsed.intent === "distinct-count"
-          ? this._gatherDistinctCount(parsed)
-          : undefined,
-      spendingRank:
-        parsed.intent === "amount-rank"
-          ? this._gatherSpendingRank(parsed)
-          : undefined,
-      timeHistogram:
-        parsed.intent === "time-histogram"
-          ? this._gatherTimeHistogram(parsed)
-          : undefined,
-      crossAppOverview,
-    });
+    const { messages, factIds, factCount, truncated, citationEvidenceById } =
+      buildPrompt({
+        question,
+        facts,
+        systemPrompt: this.systemPrompt,
+        intent: parsed.intent,
+        timeWindow: parsed.timeWindow,
+        maxFacts: effMaxFacts,
+        vaultTotals: this._gatherVaultTotals(),
+        amountSummary:
+          parsed.intent === "sum-amount"
+            ? this._gatherAmountSummary(parsed)
+            : undefined,
+        rankSummary:
+          parsed.intent === "rank"
+            ? this._gatherRankSummary(parsed)
+            : undefined,
+        distinctCount:
+          parsed.intent === "distinct-count"
+            ? this._gatherDistinctCount(parsed)
+            : undefined,
+        spendingRank:
+          parsed.intent === "amount-rank"
+            ? this._gatherSpendingRank(parsed)
+            : undefined,
+        timeHistogram:
+          parsed.intent === "time-histogram"
+            ? this._gatherTimeHistogram(parsed)
+            : undefined,
+        crossAppOverview,
+      });
 
     // Telemetry: post-cap prompt size + truncation count. If `truncated` > 0
     // the LLM is seeing fewer facts than _gatherFacts found.
@@ -373,6 +377,7 @@ class AnalysisEngine {
     return {
       answer,
       citations: known,
+      citationEvidence: known.map((id) => citationEvidenceById.get(id)),
       hallucinatedCitations: unknown,
       facts,
       ragContextIds: ragContext,
@@ -408,8 +413,9 @@ class AnalysisEngine {
    * @typedef {object} RetrieveContextResult
    * @property {string} question
    * @property {object} parsed
-   * @property {Array<object>} facts
+   * @property {Array<object>} facts           retrieved facts before the prompt cap
    * @property {string[]} factIds
+   * @property {Array<object>} citationEvidence  source metadata and SHA-256 of compact JSON fact summaries for included facts
    * @property {number} factCount
    * @property {number} truncated   Count of facts dropped at the maxFacts cap (0 = nothing truncated)
    * @property {string[]} ragContextIds
@@ -468,33 +474,36 @@ class AnalysisEngine {
       }
     }
 
-    const { messages, factIds, factCount, truncated } = buildPrompt({
-      question,
-      facts,
-      systemPrompt: this.systemPrompt,
-      intent: parsed.intent,
-      timeWindow: parsed.timeWindow,
-      maxFacts: effMaxFacts,
-      vaultTotals: this._gatherVaultTotals(),
-      amountSummary:
-        parsed.intent === "sum-amount"
-          ? this._gatherAmountSummary(parsed)
-          : undefined,
-      rankSummary:
-        parsed.intent === "rank" ? this._gatherRankSummary(parsed) : undefined,
-      distinctCount:
-        parsed.intent === "distinct-count"
-          ? this._gatherDistinctCount(parsed)
-          : undefined,
-      spendingRank:
-        parsed.intent === "amount-rank"
-          ? this._gatherSpendingRank(parsed)
-          : undefined,
-      timeHistogram:
-        parsed.intent === "time-histogram"
-          ? this._gatherTimeHistogram(parsed)
-          : undefined,
-    });
+    const { messages, factIds, factCount, truncated, citationEvidenceById } =
+      buildPrompt({
+        question,
+        facts,
+        systemPrompt: this.systemPrompt,
+        intent: parsed.intent,
+        timeWindow: parsed.timeWindow,
+        maxFacts: effMaxFacts,
+        vaultTotals: this._gatherVaultTotals(),
+        amountSummary:
+          parsed.intent === "sum-amount"
+            ? this._gatherAmountSummary(parsed)
+            : undefined,
+        rankSummary:
+          parsed.intent === "rank"
+            ? this._gatherRankSummary(parsed)
+            : undefined,
+        distinctCount:
+          parsed.intent === "distinct-count"
+            ? this._gatherDistinctCount(parsed)
+            : undefined,
+        spendingRank:
+          parsed.intent === "amount-rank"
+            ? this._gatherSpendingRank(parsed)
+            : undefined,
+        timeHistogram:
+          parsed.intent === "time-histogram"
+            ? this._gatherTimeHistogram(parsed)
+            : undefined,
+      });
 
     const durationMs = Date.now() - startedAt;
 
@@ -518,6 +527,9 @@ class AnalysisEngine {
       // buildPrompt returns factIds as a Set; flatten to Array so the result
       // round-trips through IPC / WS JSON serialization without becoming `{}`.
       factIds: Array.from(factIds),
+      citationEvidence: Array.from(factIds, (id) =>
+        citationEvidenceById.get(id),
+      ),
       factCount,
       truncated,
       ragContextIds,

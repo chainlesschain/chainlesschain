@@ -370,9 +370,16 @@ entity payload. Entity types are `event`, `person`, `place`, `item`, and `topic`
 Indexed RAG documents include `metadata.derivation` with entity type, ID, desired
 projection revision, and transform version. A dependency change can also advance
 that revision; it is not an immutable raw-source version or a complete answer
-citation history. Existing sinks use bare IDs, so collisions between entity types
-(including retained tombstones) fail with `DERIVATION_ID_CONFLICT` before any
-sink mutation. Such records need identity repair, not repeated retries.
+citation history. `AnalysisEngine.ask()` now returns `citationEvidence` for
+validated citations, and `retrieveContext()` returns it for facts included in
+the prompt. Each entry records the available source metadata and SHA-256 of
+`JSON.stringify(summarizeFact(entity))`; duplicate IDs are marked ambiguous.
+This is a per-call snapshot, not a persisted answer history or a freshness
+check after source changes.
+
+Existing sinks use bare IDs, so collisions between entity types (including
+retained tombstones) fail with `DERIVATION_ID_CONFLICT` before any sink mutation.
+Such records need identity repair, not repeated retries.
 
 `delete-entity` deletes the **normalized entity**, atomically records its
 tombstone, and attempts a bounded index drain. Its result reports the canonical
