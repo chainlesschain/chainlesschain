@@ -109,6 +109,70 @@ describe("exact-SHA CLI release gates", () => {
     expect(calls[1]).toContain("filter=latest");
   });
 
+  it("checks failures on later pages of the latest run attempt", async () => {
+    const calls = [];
+    const fetchImpl = async (url) => {
+      calls.push(url);
+      if (url.includes("/workflows/")) {
+        return response({
+          workflow_runs: [
+            { id: 7, head_sha: "release-sha", conclusion: "success" },
+          ],
+        });
+      }
+      const firstPage = url.includes("page=1");
+      return response({
+        total_count: 21,
+        jobs: firstPage
+          ? [
+              job("linux", ["ubuntu-latest"]),
+              job("windows", ["windows-latest"]),
+              job("mac", ["macos-15"]),
+              ...Array.from({ length: 17 }, (_, i) => job(`job-${i}`)),
+            ]
+          : [{ ...job("late failure"), conclusion: "failure" }],
+      });
+    };
+    await expect(
+      verifyWorkflowGate({
+        fetchImpl,
+        repository: "org/repo",
+        token: "test",
+        sha: "release-sha",
+        gate,
+      }),
+    ).rejects.toThrow(/late failure=completed\/failure/);
+    expect(calls).toHaveLength(3);
+    expect(calls[2]).toContain("filter=latest&per_page=20&page=2");
+  });
+
+  it("rejects an incomplete latest-attempt job listing", async () => {
+    const fetchImpl = async (url) =>
+      url.includes("/workflows/")
+        ? response({
+            workflow_runs: [
+              { id: 8, head_sha: "release-sha", conclusion: "success" },
+            ],
+          })
+        : response({
+            total_count: 21,
+            jobs: [
+              job("linux", ["ubuntu-latest"]),
+              job("windows", ["windows-latest"]),
+              job("mac", ["macos-15"]),
+            ],
+          });
+    await expect(
+      verifyWorkflowGate({
+        fetchImpl,
+        repository: "org/repo",
+        token: "test",
+        sha: "release-sha",
+        gate,
+      }),
+    ).rejects.toThrow(/returned 3 of 21 latest jobs/);
+  });
+
   it("rejects a green run belonging only to an older SHA", async () => {
     const fetchImpl = async () =>
       response({
