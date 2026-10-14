@@ -15,7 +15,13 @@ export default defineConfig({
     // A bare `vitest run` / `npm test` therefore covers unit + integration only;
     // use `npm run test:e2e` (or `test:all`) for e2e. CI shards each suite
     // separately and passes the e2e config explicitly.
-    exclude: [...configDefaults.exclude, "**/__tests__/e2e/**"],
+    // Native node:test suites have their own CLI CI steps. A .test.mjs suffix
+    // must not make Vitest execute them again and fail with "No test suite".
+    exclude: [
+      ...configDefaults.exclude,
+      "**/__tests__/e2e/**",
+      "**/test-node/**",
+    ],
     pool: "forks",
     // Vitest 4 removed the pool-specific `forks.maxForks` configuration in
     // favour of the top-level worker limit. Keeping the old shape silently

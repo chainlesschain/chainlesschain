@@ -2,7 +2,6 @@
 // Exercise the source or installed CLI runtime without contacting GitHub.
 // Usage: node scripts/pr-recovery-smoke.mjs [absolute-cli-package-directory]
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -94,7 +93,7 @@ try {
       resolve(root, "src/lib/evolution/agent-evolution-runtime-composition.js"),
     )
   );
-  const { PromptCompressor } = await import(
+  const { PromptCompressor, estimateMessagesTokens } = await import(
     pathToFileURL(resolve(root, "src/harness/prompt-compressor.js"))
   );
   let respond;
@@ -184,15 +183,22 @@ try {
   });
   const historyCount = thresholds.maxMessages + 8;
   // Exceed both genuine count and token budgets without patching the compressor.
+  // Five large assistant turns exceed the conversation partition and trigger
+  // semantic summarization. Give them disjoint character sets: different hex
+  // hashes still have the same alphabet and fuzzy dedup would collapse them to
+  // one oversized turn, preventing a summary that fits the recovery budget.
   // These are inert historical user/assistant messages, not tool evidence.
   const history = Array.from({ length: historyCount }, (_, index) => ({
     role: index % 2 === 0 ? "user" : "assistant",
-    content: Array.from(
-      { length: Math.ceil((thresholds.maxTokens * 8) / historyCount / 64) },
-      (_, part) =>
-        createHash("sha256").update(`history-${index}-${part}`).digest("hex"),
-    ).join(" "),
+    content:
+      index % 2 === 0
+        ? `Historical question ${index}`
+        : index >= 10
+          ? `Historical answer ${index}`
+          : String.fromCharCode(65 + index).repeat(thresholds.maxTokens * 2),
   }));
+  assert(history.length > thresholds.maxMessages);
+  assert(estimateMessagesTokens(history) > thresholds.maxTokens);
   function tool(command, turn) {
     return {
       message: {
@@ -328,7 +334,14 @@ try {
         event.stats.originalMessages > thresholds.maxMessages &&
         event.stats.compressedMessages < event.stats.originalMessages,
     ),
-    "real canonical compaction must occur while PR closure intent survives",
+    "real canonical compaction must occur while PR closure intent survives: " +
+      JSON.stringify(
+        completed.events.filter((event) => event.type.startsWith("compaction")),
+      ),
+  );
+  assert(
+    summaryRequests > 0,
+    "canonical compaction must request a real summary",
   );
 
   calls = 0;
