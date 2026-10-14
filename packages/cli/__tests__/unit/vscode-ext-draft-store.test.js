@@ -703,6 +703,95 @@ function webview(backup, { withoutRandomUUID = false } = {}) {
   };
 }
 describe("composer recovery in the generated Webview", () => {
+  it.each(["reset", "resume", "close-last", "close-to-unloaded"])(
+    "allows text sends after %s changes the active draft",
+    async (action) => {
+      const h = host(await storage());
+      const ui = webview();
+      h.provider.view.webview.postMessage = (message) => {
+        h.messages.push(message);
+        ui.emit(message);
+        return Promise.resolve(true);
+      };
+      vi.spyOn(h.provider, "_restoreTranscript").mockResolvedValue();
+      try {
+        h.provider._postTabs();
+        await h.provider._restoreDraft(h.provider._activeConv());
+        if (action === "close-to-unloaded")
+          h.provider._convs.create({ activate: false });
+        const previous = h.provider._activeConv();
+        const previousKey = previous.draftKey;
+        if (action === "reset") h.provider._handleMessage({ type: "new" });
+        else if (action === "resume")
+          h.provider.resumeSessionId("session-to-resume");
+        else h.provider._handleMessage({ type: "closeTab", id: previous.id });
+        await h.provider._draftStore.queue;
+        const current = h.provider._activeConv();
+        expect(current.draftKey).not.toBe(previousKey);
+        ui.input.value = "ready to send";
+        ui.input.dispatchEvent(new ui.window.Event("input"));
+        ui.window.document.getElementById("send").click();
+        expect(ui.posted.find((message) => message.type === "send")).toMatchObject({
+          convId: current.id,
+          draftKey: current.draftKey,
+          text: "ready to send",
+          images: [],
+        });
+        expect(h.sessions).toEqual([]);
+      } finally {
+        await ui.window.happyDOM.abort();
+      }
+    },
+  );
+
+  it("retries failed draft loading without losing local text or sending automatically", async () => {
+    const h = host(await storage());
+    const ui = webview();
+    h.provider._draftWebviewInstance = ui.page.webviewInstance;
+    h.provider.view.webview.postMessage = (message) => {
+      h.messages.push(message);
+      ui.emit(message);
+      return Promise.resolve(true);
+    };
+    const conv = h.provider._activeConv();
+    try {
+      await h.provider._draftStore.save(conv.draftKey, { text: "older text" });
+      h.provider._postTabs();
+      ui.input.value = "new typing";
+      ui.input.dispatchEvent(new ui.window.Event("input"));
+      vi.spyOn(h.provider._draftStore, "view").mockRejectedValueOnce(
+        new Error("Temporary read failure"),
+      );
+      await h.provider._restoreDraft(conv);
+      expect(ui.window.document.body.textContent).toContain("Temporary read failure");
+      ui.window.document.getElementById("send").click();
+      expect(ui.posted.some((message) => message.type === "send")).toBe(false);
+      const retry = [...ui.window.document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Retry loading saved draft",
+      );
+      expect(retry).toBeTruthy();
+      retry.click();
+      const request = ui.posted.find((message) => message.type === "draftReload");
+      expect(request).toMatchObject({
+        convId: conv.id,
+        draftKey: conv.draftKey,
+        webviewInstance: ui.page.webviewInstance,
+      });
+      await h.provider._handleMessage(request);
+      expect(ui.input.value).toBe("new typing");
+      expect(ui.window.document.body.textContent).not.toContain("Temporary read failure");
+      expect(ui.posted.some((message) => message.type === "send")).toBe(false);
+      ui.window.document.getElementById("send").click();
+      expect(ui.posted.find((message) => message.type === "send")).toMatchObject({
+        text: "new typing",
+        images: [],
+      });
+      expect(h.sessions).toEqual([]);
+    } finally {
+      await ui.window.happyDOM.abort();
+    }
+  });
+
   it("initializes the page and draft handshake without the secure-context randomUUID API", async () => {
     const ui = webview(undefined, { withoutRandomUUID: true });
     try {
