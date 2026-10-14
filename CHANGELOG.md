@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - cc CLI 0.166.101: preserve context, usage and task outcomes during compaction
 
+- Restore VS Code composer drafts after reset, session resume and closing the
+  last tab, with retry controls for failed loads. Align LLM connection tests
+  with the chat CLI and distinguish missing dependencies from provider errors.
 - Upgrade Context Memory Kernel to 0.1.10. Abort compaction with
   `context_over_budget` when planning would empty a nonempty context or discard
   a newly derived summary, including when summarizer fallback is enabled.

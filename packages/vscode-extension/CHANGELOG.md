@@ -2,7 +2,14 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.145] - Preserve compaction context pairing (2026-10-13)
+## [0.37.145] - Restore chat drafts and correct connection checks (2026-10-14)
+
+- Load the new composer after resetting or resuming a chat and after closing
+  its last tab, fixing the persistent wait for saved attachments before send.
+- Offer a retry when saved draft loading fails, preserving local text and
+  attachment validation. Refresh retained Webviews with the updated protocol.
+- Test LLM connections using the chat panel's current CLI selection. Report
+  missing CLI dependencies as a launcher failure before connection testing.
 
 - Recommend CLI `0.166.101` and Context Memory Kernel `0.1.10` after child
   publication, public CLI verification and the final commit's complete CLI,
