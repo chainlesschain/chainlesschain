@@ -1,6 +1,8 @@
 # CLI Runtime 当前实现与源码候选
 
-> 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
+> 2026-10-15：公开 CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 对应 `6752b49e1e`。压缩拒绝保留上下文及 head，已产生的 provider 用量仍结算；草稿恢复与连接诊断见[本轮指南](./cli-ide-update-2026-10-15)。JetBrains Marketplace 列出 `.162`，`.163` 仍为源码候选。耐久正式预算 authority 已纳入源码，但保持 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、native review **NOT_ADMITTED**、自动晋升 **HOLD**。
+
+> 2026-10-13 历史快照：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档当时核对主线 `283634169a`。JetBrains **0.4.162** 当时已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。参见[历史升级与诊断](./cli-ide-update-2026-10-13)。
 
 > 历史快照：2026-09-14。完整门禁的生产推荐版与 npm `latest` 均为 Agent Platform `0.166.48`，以不可变 tag `v-npm-0-166-48` 的精确 SHA [`43c6bba51a`](https://github.com/chainlesschain/chainlesschain/commit/43c6bba51a643c1a0d6e5a05da5cb97177fe1f86) 为准。该提交的 Linux/Windows/macOS CLI CI、Strict Sandbox、OIDC 发布与公共安装回读均已闭环。TypeScript/Python Agent SDK 为 `0.2.10/0.2.8`、Agent Protocol 为 `0.1.10`、Context Memory Kernel 为 `0.1.3`、Session Core 为 `0.3.12`、Open VSX 为 `0.37.98`、JetBrains Marketplace 为 `0.4.123`。
 

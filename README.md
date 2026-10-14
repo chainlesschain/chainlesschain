@@ -1,6 +1,20 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-13 最新代码与公开发行
+## 2026-10-15 最新代码与公开发行
+
+CLI **0.166.101** 与 Open VSX **0.37.145** 已公开，发行标签 `v-npm-0-166-101` 指向 `6752b49e1e`；该提交的 CLI CI 和 Strict Sandbox 成功。Context/Memory Kernel **0.1.10** 已公开，Session Core **0.3.19** 保持独立版本。JetBrains Marketplace API 已列出 **0.4.162**（配对 CLI `.100`）；源码候选 **0.4.163** 配对 `.101`，尚待公开核验。桌面与移动端仍使用独立产品 **v5.0.3.140**。
+
+本轮压缩遇到上下文预算不足时保留原会话与新摘要的恢复边界，已发生的 provider 用量仍须结算；未知用量或结算失败会停止付费重试。VS Code 草稿可在重置、会话恢复和关闭最后标签后加载，连接测试区分本地依赖缺失与 provider 错误。正式 36+9 **NOT_RUN**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD**；耐久预算代码已纳入源码，但仍为 **NOT_PAID_READY**。
+
+```bash
+npm i -g chainlesschain@0.166.101 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+升级 Open VSX `.145` 后重启聊天宿主并运行 Doctor。JetBrains 以商店实际公开版本为准；原生客户端从[产品 .140](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140)单独下载。详见[本轮设计](docs/design/release-runtime-update-2026-10-15.md)、[升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-15.md)及[官网](https://www.chainlesschain.com)。Open VSX 下载计数已超过 **6 万**（2026-10-15 API 回读）。
+
+## 2026-10-13 代码与公开发行（历史快照）
 
 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。
 

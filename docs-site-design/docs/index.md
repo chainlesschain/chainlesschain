@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.100 | Open VSX 0.37.144 | JetBrains 0.4.162 已上传，公开上架待核验"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.101 | Open VSX 0.37.145 | JetBrains 0.4.162 公开列出"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 有界重试与最新发行
-    details: CLI .100 与 Open VSX .144 已公开；JetBrains .162 上传通过，公开上架与下载待核验。正式评测未运行，预算开发不在发行内。
-    link: /release-runtime-update-2026-10-13
+    title: 上下文压缩与最新发行
+    details: CLI .101 与 Open VSX .145 已公开；JetBrains .162 已在 Marketplace 列出，.163 仍为源码候选。预算 authority 尚未达到付费评测准入。
+    link: /release-runtime-update-2026-10-15
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -41,7 +41,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.100
+    title: Agent Platform 0.166.101
     details: 公开 CLI 包含投影恢复、回执维护、离线任务预览与风险检查；本轮桌面源码提供个人项目受控修改，产品安装包单独验收。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
@@ -61,7 +61,7 @@ features:
 
   - icon: 🧠
     title: Context/Memory Kernel
-    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI 固定 Kernel 0.1.9，产品面仍按各自 writer/cutover 证据判断
+    details: 模块 108 定义统一上下文预算、压缩状态机、记忆生命周期、删除对账与跨端 authority；CLI 固定 Kernel 0.1.10，产品面仍按各自 writer/cutover 证据判断
     link: /modules/m108-context-memory-kernel
 
   - icon: 🔐
@@ -81,7 +81,9 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> 2026-10-13 核对：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开并完成回读，发行源码为 `6a8db627c87f33ce4f8e5d3db704868957aa685e`，推荐 CLI `0.166.100`。JetBrains **0.4.162** 六宿主验证与上传通过，公开上架与下载待核验。设计源码核对至已合并 `main@283634169a`（PR #435）。产品 **v5.0.3.140** 保持独立发行；Agent SDK **0.2.14**、Session Core **0.3.19**、Context/Memory Kernel **0.1.9**、PDH **0.4.64** 保持各自版本。预算 PR #436 不在本次发行内，仍为 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**，完整 native review **NOT_ADMITTED**，自动晋升 **HOLD**。 详见[本轮设计](/release-runtime-update-2026-10-13)。
+> 2026-10-15 核对：CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 已公开，发行源码 `6752b49e1e`；JetBrains Marketplace API 列出 **0.4.162**，`.163` 仍为源码候选。产品 **v5.0.3.140** 独立发行。耐久预算代码已纳入，但仍 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD**。详见[本轮设计](/release-runtime-update-2026-10-15)。
+
+> 2026-10-13 历史核对：CLI **0.166.100** 与 Open VSX **0.37.144** 当时已公开；JetBrains **0.4.162** 当时上传但上架待核验。预算 PR #436 当时不在 `.100` 发行内，详情见[历史设计](/release-runtime-update-2026-10-13)。
 
 ## 2026-10-07 历史增量
 

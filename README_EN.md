@@ -1,6 +1,20 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-13)
+## Current source and public release (2026-10-15)
+
+CLI **0.166.101** and Open VSX **0.37.145** are public. The immutable `v-npm-0-166-101` tag points to `6752b49e1e`, whose CLI CI and Strict Sandbox runs succeeded. Context/Memory Kernel **0.1.10** is public; Session Core remains **0.3.19**. JetBrains Marketplace lists **0.4.162**, paired with CLI `.100`; source candidate **0.4.163** pairs with `.101` and awaits public verification. Desktop and mobile remain on the separate **v5.0.3.140** product release.
+
+Compaction now keeps the original session and recovery context when a summary would exceed the context budget, while settling provider usage already incurred. Unknown usage or failed settlement stops a paid retry. VS Code can reload drafts after reset, session resume and closing the last tab; connection tests distinguish missing local dependencies from provider errors. Formal 36+9 remains **NOT_RUN**, full native review **NOT_ADMITTED**, and automatic promotion **HOLD**. Durable budget code is included but remains **NOT_PAID_READY**.
+
+```bash
+npm i -g chainlesschain@0.166.101 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+Upgrade Open VSX `.145`, restart the chat host and run Doctor. Use the actual public JetBrains version shown in Marketplace. Native clients are available from the separate [product .140 release](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.140). See the [design update](docs/design/release-runtime-update-2026-10-15.md) and [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-15.md). Open VSX passed **60,000 downloads** in the 2026-10-15 API readback.
+
+## Source and release snapshot (2026-10-13, historical)
 
 CLI **0.166.100** and Open VSX **0.37.144** are publicly verified at release source `6a8db627c8`; Open VSX recommends CLI `0.166.100`. Reviewed main is `283634169a`. JetBrains **0.4.162** has been uploaded; public listing and download remain unverified; the last verified public **0.4.161** recommends CLI `0.166.99`. Session Core **0.3.19**, Memory Kernel **0.1.9**, SDK **0.2.14**, PDH **0.4.64** and product **v5.0.3.140** retain independent release identities.
 

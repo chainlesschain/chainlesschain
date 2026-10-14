@@ -1,10 +1,10 @@
 # 系统设计文档
 
-- 最新增量：[CLI / IDE 有界重试与发行边界（2026-10-13）](/design/release-runtime-update-2026-10-13)。
+- 最新增量：[CLI 上下文压缩、草稿恢复与发行边界（2026-10-15）](/design/release-runtime-update-2026-10-15)。
 
 本目录包含 ChainlessChain 系统的完整设计和架构文档，共 **70 个模块设计文档** + **9 个基础设施文档**。
 
-> 2026-10-13 核对：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开并完成回读，发行源码为 `6a8db627c87f33ce4f8e5d3db704868957aa685e`，推荐 CLI `0.166.100`。JetBrains **0.4.162** 六宿主验证与上传通过，公开上架与下载待核验。设计源码核对至已合并 `main@283634169a`（PR #435）。产品 **v5.0.3.140** 保持独立发行；Agent SDK **0.2.14**、Session Core **0.3.19**、Context/Memory Kernel **0.1.9**、PDH **0.4.64** 保持各自版本。预算 PR #436 不在本次发行内，仍为 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**，完整 native review **NOT_ADMITTED**，自动晋升 **HOLD**。 下方模块列表保留历史架构分类，不代表所有能力已取得生产准入。
+> 2026-10-15 核对：CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 已公开，发行源码 `6752b49e1e`。JetBrains Marketplace API 列出 **0.4.162**，`.163` 仍为源码候选。产品 **v5.0.3.140** 独立发行；耐久预算 authority 保持 **NOT_PAID_READY**，正式 36+9 **NOT_RUN**、native review **NOT_ADMITTED**、自动晋升 **HOLD**。下方模块列表保留历史架构分类，不代表所有能力已取得生产准入。
 
 ## 文档分类
 

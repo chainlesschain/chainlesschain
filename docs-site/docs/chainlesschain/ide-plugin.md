@@ -1,10 +1,12 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
+> 2026-10-15 当前版本：Open VSX **0.37.145** 配对 CLI **0.166.101**；JetBrains Marketplace 列出 **0.4.162**，源码候选 `.163` 尚待公开核验。草稿恢复与连接诊断见[最新指南](./cli-ide-update-2026-10-15)。以下带日期的早期记录保留历史范围。
+
 > 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.144`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”。安装 `chainlesschain@0.166.100` 后重启聊天宿主并运行 Doctor。JetBrains `.162` 已上传，公开上架与下载待核验，当前已核验公开 `.161` 的 manifest 推荐 CLI `.99`；以 Marketplace 实际版本为准。详见[升级与故障排查](./cli-ide-update-2026-10-13)。
+从 Open VSX 安装 `0.37.145`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”。安装 `chainlesschain@0.166.101` 后重启聊天宿主并运行 Doctor。JetBrains Marketplace 已列出 `.162`，配对 CLI `.100`；`.163` 尚待公开核验。详见[升级与故障排查](./cli-ide-update-2026-10-15)。
 
 ## 重复调查与证据总结（公开 .93）
 
@@ -87,10 +89,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。当前公开版为 `0.4.152`，已批准并列出，推荐 CLI `0.166.89`。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。2026-10-15 API 列出 `0.4.162`，配对 CLI `0.166.100`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 Open VSX `0.37.134` 与 JetBrains `0.4.152` 均已公开，内置推荐 CLI `0.166.89`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
+当前 Open VSX `0.37.145` 配对 CLI `0.166.101`；JetBrains Marketplace 列出 `0.4.162`，配对 CLI `0.166.100`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
 
 ### 3. 配置大模型（首次）
 

@@ -2,9 +2,11 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-09-09）：产品版本 `v5.0.3.135`，生产推荐 CLI 与 npm `latest` 均为 `0.166.38@de8ec4e5c8`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript Agent SDK 为 `0.2.9`、Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、PDH 为 `0.4.60`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。
+> 当前文档快照（2026-10-15）：公开 CLI `0.166.101@6752b49e1e`、Context/Memory Kernel `0.1.10`、Open VSX `0.37.145`；JetBrains Marketplace API 列出 `0.4.162`，源码候选 `.163` 待公开核验。产品仍为独立 `v5.0.3.140`。详见[最新升级指南](docs/chainlesschain/cli-ide-update-2026-10-15.md)。
 
-> 新功能边界：`0.166.38` 已公开 CLI/Hub 受治理模型入口、provider stream 完整性检查、模型身份固定、Evolution witness 分段存储，以及 IDE 模型配置原子保存与推理模型连接测试修复。本地 `main@a238e6c245` 又接通 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell，确认后台/Coding Agent 入口重入 canonical loader，并使 Legacy ImageGen 内容入口在缓存、provider 选择和 fallback 前失败闭合；已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 尚未包含这些 post-release 增量。可信 Workbench 部署和 Desktop native 安装包仍需各自验收。详见[CLI Runtime](docs/chainlesschain/cli-runtime-current.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
+> 历史文档快照（2026-09-09）：产品版本 `v5.0.3.135`，当时生产推荐 CLI 与 npm `latest` 均为 `0.166.38@de8ec4e5c8`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript Agent SDK 为 `0.2.9`、Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、PDH 为 `0.4.60`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。
+
+> 2026-09-09 历史功能边界：`0.166.38` 已公开 CLI/Hub 受治理模型入口、provider stream 完整性检查、模型身份固定、Evolution witness 分段存储，以及 IDE 模型配置原子保存与推理模型连接测试修复。本地 `main@a238e6c245` 又接通 Desktop Personal Data Hub resolver/Skill IPC 与内嵌 Web Shell，确认后台/Coding Agent 入口重入 canonical loader，并使 Legacy ImageGen 内容入口在缓存、provider 选择和 fallback 前失败闭合；当时已核对的 GitHub `main@1895749692` 与 Gitee `main@3806866d80` 尚未包含这些 post-release 增量。可信 Workbench 部署和 Desktop native 安装包仍需各自验收。详见[CLI Runtime](docs/chainlesschain/cli-runtime-current.md)、[模块 113 设计](../docs/design/modules/113-governed-desktop-model-ingress-design.md)和[发布边界](docs/chainlesschain/agent-platform-release.md)。
 
 ## 📚 文档内容
 

@@ -1,5 +1,7 @@
 # 快速开始
 
+> 2026-10-15 当前版本：公开 CLI **0.166.101** 与 Open VSX **0.37.145**；JetBrains Marketplace 列出 **0.4.162**，原生产品单独为 **v5.0.3.140**。见[升级与诊断](../chainlesschain/cli-ide-update-2026-10-15)。以下带日期的早期记录保留历史范围。
+
 > 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[升级与诊断](../chainlesschain/cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
 本指南将帮助您在5分钟内快速部署和运行ChainlessChain系统。

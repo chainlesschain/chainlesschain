@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.100 | Open VSX 0.37.144 | 桌面与移动端"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.101 | Open VSX 0.37.145 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 最新发行与 Windows 验证边界
-    details: CLI .100 与 Open VSX .144 已公开；流式重试、工作树登记读取与 IDE 刷新改善。原生产品 .140 独立发行，实验胶囊不获得生产准入。
-    link: /design/release-runtime-update-2026-10-13
+    title: 上下文压缩与最新发行
+    details: CLI .101 与 Open VSX .145 已公开；压缩拒绝保留会话恢复上下文并结算模型用量，VS Code 草稿可恢复。原生产品 .140 独立发行。
+    link: /chainlesschain/cli-ide-update-2026-10-15
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -79,9 +79,9 @@ features:
     details: npm latest 为 CLI 0.166.100@6a8db627c8；准确源码 CLI CI/Strict、OIDC 与 Open VSX 公开制品核对已完成；JetBrains 发布状态独立确认。
 ---
 
-> 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。详见[升级指南](/chainlesschain/cli-ide-update-2026-10-13)。
+> 2026-10-15：CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 已公开，标签 `v-npm-0-166-101` 指向 `6752b49e1e`。JetBrains Marketplace API 列出 **0.4.162**；源码候选 **0.4.163** 待公开核验。Session Core **0.3.19** 与产品 **v5.0.3.140** 保持独立版本。详见[升级指南](/chainlesschain/cli-ide-update-2026-10-15)。Open VSX 下载已超过 **6 万**。
 
-> **验收范围**：正式 36+9 为 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**。预算 PR #436 未进入本发行，仍为 **NOT_PAID_READY**。产品 .140 的独立发行提交为 `f733f92cb9`；详见[最新设计](https://design.chainlesschain.com/release-runtime-update-2026-10-13.html)。
+> **验收范围**：正式 36+9 为 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**。耐久预算 authority 代码已包含，仍为 **NOT_PAID_READY**。产品 .140 的独立发行提交为 `f733f92cb9`；详见[最新设计](https://design.chainlesschain.com/release-runtime-update-2026-10-15.html)。
 
 ## 2026-10-08 历史增量
 
