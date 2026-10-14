@@ -127,6 +127,71 @@ describe("personal task description desktop authority", () => {
     expect(description()).toBe("Original description");
   });
 
+  it("closes canonical task adjunct IPC through direct and child record IDs", async () => {
+    db.exec(`
+      CREATE TABLE task_checklists (id TEXT PRIMARY KEY, task_id TEXT NOT NULL);
+      CREATE TABLE task_checklist_items (id TEXT PRIMARY KEY, checklist_id TEXT NOT NULL);
+      CREATE TABLE task_comments (id TEXT PRIMARY KEY, task_id TEXT NOT NULL);
+      CREATE TABLE task_attachments (id TEXT PRIMARY KEY, task_id TEXT NOT NULL);
+      INSERT INTO task_checklists VALUES ('checklist-1', 'task-1');
+      INSERT INTO task_checklist_items VALUES ('item-1', 'checklist-1');
+      INSERT INTO task_comments VALUES ('comment-1', 'task-1');
+      INSERT INTO task_attachments VALUES ('attachment-1', 'task-1');
+    `);
+    const Module = require("node:module");
+    const load = Module._load;
+    const handlers = new Map();
+    electron.ipcMain.handle.mockImplementation((name, handler) =>
+      handlers.set(name, handler),
+    );
+    Module._load = function (name, ...args) {
+      if (name === "electron") return electron;
+      if (name === "../utils/logger.js")
+        return { logger: { info() {}, error() {} } };
+      return load.call(this, name, ...args);
+    };
+    try {
+      delete require.cache[require.resolve("../task-ipc.js")];
+      require("../task-ipc.js").registerTaskIPC({ getDatabase: () => db });
+    } finally {
+      Module._load = load;
+    }
+    const cases = [
+      ["create-checklist", { taskId: "task-1" }],
+      ["add-checklist-item", { checklistId: "checklist-1" }],
+      ["toggle-checklist-item", { itemId: "item-1" }],
+      ["delete-checklist-item", { itemId: "item-1" }],
+      ["reorder-checklist", { checklistId: "checklist-1" }],
+      ["add-comment", { taskId: "task-1" }],
+      [
+        "add-comment",
+        { taskId: "other-task", comment: { parentId: "comment-1" } },
+      ],
+      ["edit-comment", { commentId: "comment-1" }],
+      ["delete-comment", { commentId: "comment-1" }],
+      ["get-comments", { taskId: "task-1" }],
+      ["get-activity", { taskId: "task-1" }],
+      ["mention-user", { taskId: "task-1" }],
+      ["upload-attachment", { taskId: "task-1" }],
+      ["delete-attachment", { attachmentId: "attachment-1" }],
+      ["get-attachments", { taskId: "task-1" }],
+      ["preview-attachment", { attachmentId: "attachment-1" }],
+    ];
+    for (const [operation, params] of cases) {
+      await expect(
+        handlers.get(`task:${operation}`)(event, {
+          taskId: "other-task",
+          ...params,
+        }),
+        operation,
+      ).rejects.toThrow("ACTION_CONTROLLED_TASK_REQUIRED");
+    }
+    expect(description()).toBe("Original description");
+    expect(db.prepare("SELECT count(*) AS n FROM task_comments").get().n).toBe(
+      1,
+    );
+  });
+
   it("creates canonical pending tasks with native confirmation and project history", async () => {
     const preview = host.previewCreate(event, {
       projectId: "project-1",

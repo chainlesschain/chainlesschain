@@ -32,15 +32,37 @@ function resolveDatabase(database) {
 
 // The old enterprise TaskManager assumes a different project_tasks schema and
 // accepts renderer-supplied actors. Canonical rows must use governed actions.
-function rejectLegacyProjectMutation(database, params) {
+function rejectLegacyProjectTaskAccess(database, params) {
   const wrapper = resolveDatabase(database);
   const db = wrapper?.getDatabase ? wrapper.getDatabase() : wrapper;
   if (!db) throw new Error("ACTION_AUTHORITY_UNAVAILABLE");
-  for (const taskId of [
+  const taskIds = [
     params?.taskId,
     params?.parentTaskId,
     params?.dependsOnTaskId,
-  ]) {
+  ];
+  const childRefs = [
+    ["checklistId", "SELECT task_id FROM task_checklists WHERE id=?"],
+    [
+      "itemId",
+      "SELECT c.task_id FROM task_checklist_items i JOIN task_checklists c ON c.id=i.checklist_id WHERE i.id=?",
+    ],
+    ["commentId", "SELECT task_id FROM task_comments WHERE id=?"],
+    ["attachmentId", "SELECT task_id FROM task_attachments WHERE id=?"],
+  ];
+  for (const [key, sql] of childRefs) {
+    if (typeof params?.[key] === "string") {
+      taskIds.push(db.prepare(sql).get(params[key])?.task_id);
+    }
+  }
+  if (typeof params?.comment?.parentId === "string") {
+    taskIds.push(
+      db
+        .prepare("SELECT task_id FROM task_comments WHERE id=?")
+        .get(params.comment.parentId)?.task_id,
+    );
+  }
+  for (const taskId of taskIds) {
     if (
       typeof taskId === "string" &&
       db.prepare("SELECT 1 FROM project_tasks WHERE id=?").get(taskId)
@@ -300,7 +322,7 @@ function registerTaskIPC(database) {
           .createTaskDescriptionHost({ database: resolveDatabase(database) })
           .execute(event, { request: params.request });
       }
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       // Try team task first (check if task exists in team_tasks)
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -332,7 +354,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-task", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
         .prepare("SELECT id FROM team_tasks WHERE id = ?")
@@ -355,7 +377,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:move-task", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -389,7 +411,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:assign-task", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       // Check if it's a team task
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -423,7 +445,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:set-priority", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -455,7 +477,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:set-due-date", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -487,7 +509,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:add-label", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.addLabel(
@@ -503,7 +525,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:link-tasks", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.linkTasks(
@@ -520,7 +542,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:create-subtask", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.createSubtask(
@@ -535,7 +557,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:convert-to-subtask", async (_event, params) => {
     try {
-      rejectLegacyProjectMutation(database, params);
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.convertToSubtask(
@@ -555,6 +577,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:create-checklist", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -578,6 +601,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:add-checklist-item", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       // Get the task_id from the checklist
       const db = resolveDatabase(database).getDatabase();
       const checklist = db
@@ -618,6 +642,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:toggle-checklist-item", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.toggleChecklistItem(
@@ -632,6 +657,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-checklist-item", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.deleteChecklistItem(params.itemId);
@@ -643,6 +669,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:reorder-checklist", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.reorderChecklist(
@@ -661,6 +688,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:add-comment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       // Check which table the task is in
       const db = resolveDatabase(database).getDatabase();
       const isTeamTask = db
@@ -684,6 +712,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:edit-comment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.editComment(
@@ -699,6 +728,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-comment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.deleteComment(params.commentId, params.deleterDid);
@@ -710,6 +740,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:get-comments", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.getComments(params.taskId, params.options || {});
@@ -721,6 +752,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:get-activity", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.getActivity(params.taskId, params.options || {});
@@ -732,6 +764,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:mention-user", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.mentionUser(
@@ -751,6 +784,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:upload-attachment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.uploadAttachment(
@@ -767,6 +801,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:delete-attachment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.deleteAttachment(
@@ -781,6 +816,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:get-attachments", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.getAttachments(params.taskId);
@@ -792,6 +828,7 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:preview-attachment", async (_event, params) => {
     try {
+      rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
       return await manager.previewAttachment(params.attachmentId);

@@ -1,6 +1,6 @@
 # Palantir 对照改进：实施进度
 
-更新日期：2026-10-07；第十四批完成组织目标共享记忆源码与本地验证，按用户授权在 `main` 保存；本批父提交及内容哈希见独立证据。第十三批提交为 `3fee1c4baef801827ce03584458f456d49a74673`。第十二批提交为 `28f13ff07cd28eb57df7f58ef23b069faa4cf04a`，第十一批提交为 `4e0f98c974749c9df6e72fc14b44473c06de0144`，第十批提交为 `dd310a742274633853d78fec0a9caadc8e533c59`，第九批提交为 `70220fdc1e5209b2c86907c3eb7ce8cc69d60234`，第八批为 `8653b0872b0f57908d4b6682835d9fcebbfe6e4d`；第七批提交 `567d2c8c4c057ab19734669a32ad55a559866263`，源码基线 `main@4c3a8a7bd5886cff960db24eb880df78e40b06bc`；第六批提交为 `693f343cd7e4a272aa6f40709d5fa8029e75feca`，源码基线 `main@2b83a1986a872bc3ed3d5c12a02fb5879d1492a3`。第五批工作分支为 `feature/palantir-remaining-governance`，基线 `b418df56b4557b0cae4a545c223dd19a3caccf89`；前四批分支为 `feature/palantir-capability-hardening`。
+更新日期：2026-10-15；第十四批完成组织目标共享记忆源码与本地验证，按用户授权在 `main` 保存；本批父提交及内容哈希见独立证据。第十三批提交为 `3fee1c4baef801827ce03584458f456d49a74673`。第十二批提交为 `28f13ff07cd28eb57df7f58ef23b069faa4cf04a`，第十一批提交为 `4e0f98c974749c9df6e72fc14b44473c06de0144`，第十批提交为 `dd310a742274633853d78fec0a9caadc8e533c59`，第九批提交为 `70220fdc1e5209b2c86907c3eb7ce8cc69d60234`，第八批为 `8653b0872b0f57908d4b6682835d9fcebbfe6e4d`；第七批提交 `567d2c8c4c057ab19734669a32ad55a559866263`，源码基线 `main@4c3a8a7bd5886cff960db24eb880df78e40b06bc`；第六批提交为 `693f343cd7e4a272aa6f40709d5fa8029e75feca`，源码基线 `main@2b83a1986a872bc3ed3d5c12a02fb5879d1492a3`。第五批工作分支为 `feature/palantir-remaining-governance`，基线 `b418df56b4557b0cae4a545c223dd19a3caccf89`；前四批分支为 `feature/palantir-capability-hardening`。
 
 依据：[对照研究报告](./chainlesschain-palantir-gap-analysis-2026-10-06.md)。第一批提交为 `59e3107d95`，第二批为 `736427f984`，第三批为 `afd099a51a`；第四批接入项目详情中的受控编辑、授权读取和在线风险来源核验。本文件记录本地源码与验证结果，不代表已发布或完成真实外部系统验收。
 
@@ -425,6 +425,12 @@ CLI manifest/help/completions/reference 四项生成检查、桌面 `verify-fixe
 - CLI 风险评估仍使用未认证离线快照；桌面检查使用当前身份授权和事务读取。第五批完成个人描述风险来源与 admission/确认/ActionRun 绑定，第九批完成组织描述/创建风险与多级审批绑定、共享历史和原生人工核对；检索/回答及其他动作尚未接入，仍不证明实际业务风险、模型质量或费用效果。风险引用不能替代动作完整行版本。
 - PDH 的 CLI/WS/IPC 沿用既有本地/共享 vault 权限边界；adapter/scope 只是查询筛选，尚未新增该数据域的对象级访问策略或前端操作页。
 - 本地环境为 Windows / Node `22.22.2`。未运行仓库全量测试、真实桌面/IDE 操作旅程、Linux/macOS 发布矩阵、真实租户或模型业务验收。
+
+## 2026-10-15 工作区增量：规范任务附属入口
+
+`task-ipc.js` 中的 15 个清单、评论、活动与附件旧 IPC 入口，现在先解析直接任务 ID 或附属记录 ID，再拒绝访问规范 `project_tasks` 任务。评论回复还检查父评论归属，避免用看板任务 ID 搭配规范任务评论绕过检查。旧管理器没有规范任务的附属操作契约，因此这些入口不会把此类读写当成受控操作成功。
+
+使用 Node 内置 SQLite 的[入口级独立验证](../../../desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs)覆盖 16 个直接、间接及混合引用用例，全部得到 `ACTION_CONTROLLED_TASK_REQUIRED`，并确认看板任务路径仍可进入原管理器；源码语法、Prettier 和 `git diff --check` 通过。原生 `better-sqlite3` 回归已加入 `task-description-ipc.test.js`，但本次环境中的缓存依赖缺少 Windows 原生绑定，测试在建库前失败，尚不能计入通过。此增量当前只在工作区，未提交或发布；看板权限、附属操作正向迁移及其余任务仍需继续。
 
 ## 后续实施顺序
 
