@@ -731,7 +731,9 @@ describe("composer recovery in the generated Webview", () => {
         ui.input.value = "ready to send";
         ui.input.dispatchEvent(new ui.window.Event("input"));
         ui.window.document.getElementById("send").click();
-        expect(ui.posted.find((message) => message.type === "send")).toMatchObject({
+        expect(
+          ui.posted.find((message) => message.type === "send"),
+        ).toMatchObject({
           convId: current.id,
           draftKey: current.draftKey,
           text: "ready to send",
@@ -763,7 +765,9 @@ describe("composer recovery in the generated Webview", () => {
         new Error("Temporary read failure"),
       );
       await h.provider._restoreDraft(conv);
-      expect(ui.window.document.body.textContent).toContain("Temporary read failure");
+      expect(ui.window.document.body.textContent).toContain(
+        "Temporary read failure",
+      );
       ui.window.document.getElementById("send").click();
       expect(ui.posted.some((message) => message.type === "send")).toBe(false);
       const retry = [...ui.window.document.querySelectorAll("button")].find(
@@ -771,7 +775,9 @@ describe("composer recovery in the generated Webview", () => {
       );
       expect(retry).toBeTruthy();
       retry.click();
-      const request = ui.posted.find((message) => message.type === "draftReload");
+      const request = ui.posted.find(
+        (message) => message.type === "draftReload",
+      );
       expect(request).toMatchObject({
         convId: conv.id,
         draftKey: conv.draftKey,
@@ -779,10 +785,14 @@ describe("composer recovery in the generated Webview", () => {
       });
       await h.provider._handleMessage(request);
       expect(ui.input.value).toBe("new typing");
-      expect(ui.window.document.body.textContent).not.toContain("Temporary read failure");
+      expect(ui.window.document.body.textContent).not.toContain(
+        "Temporary read failure",
+      );
       expect(ui.posted.some((message) => message.type === "send")).toBe(false);
       ui.window.document.getElementById("send").click();
-      expect(ui.posted.find((message) => message.type === "send")).toMatchObject({
+      expect(
+        ui.posted.find((message) => message.type === "send"),
+      ).toMatchObject({
         text: "new typing",
         images: [],
       });

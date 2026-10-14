@@ -48,7 +48,7 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // the current Extension Host. VS Code can preserve that DOM across an
 // Extension Host restart when retainContextWhenHidden is enabled, so this is
 // an explicit UI/Host handshake rather than relying on the extension version.
-const CHAT_UI_PROTOCOL_VERSION = 10;
+const CHAT_UI_PROTOCOL_VERSION = 11;
 const TRANSCRIPT_ENTRY_MAX_CHARS = 200_000;
 
 function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
@@ -877,8 +877,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     draftPanel.textContent = "";
     if (!draft.storage) return;
     const state = document.createElement("div");
-    state.textContent = draft.saveError ? "Draft could not be saved: " + draft.saveError : draft.dirty ? "Saving draft…" : "Draft saved on this device";
+    state.textContent = draft.loadError ? "Saved draft could not be loaded: " + draft.loadError : draft.saveError ? "Draft could not be saved: " + draft.saveError : !draft.imagesLoaded ? "Loading saved draft…" : draft.dirty ? "Saving draft…" : "Draft saved on this device";
     draftPanel.appendChild(state);
+    if (!draft.imagesLoaded) {
+      const retry = document.createElement("button"); retry.textContent = "Retry loading saved draft";
+      retry.addEventListener("click", () => { draft.loadError = ""; vscode.postMessage({ type: "draftReload", webviewInstance: draftWebviewInstance, convId: activeTabId, draftKey: draft.key }); renderDraftPanel(); });
+      draftPanel.appendChild(retry);
+    }
     const browse = document.createElement("button"); browse.textContent = "Recover saved drafts";
     browse.addEventListener("click", () => vscode.postMessage({ type: "draftBrowse" })); draftPanel.appendChild(browse);
     if (draft.backupUnconfirmed) {
@@ -1479,6 +1484,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
     switch (m.kind) {
       case "draftSaved":
       case "draftSaveError":
+      case "draftLoadError":
       case "draftSnapshot":
       case "draftCopy":
       case "submissionStored":
@@ -1491,8 +1497,10 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         if (m.kind === "draftSaved") {
           if (m.imagesChanged && m.revision >= (draft.imageRevision || 0)) { draft.imagesVerified = true; if (active) renderAttach(); }
           if (m.revision === draft.revision && (draft.imagesVerified || !draft.images.length)) { draft.dirty = false; draft.saveError = ""; }
-        } else if (m.kind === "draftSaveError") { draft.saveError = String(m.text || "storage error"); if (m.imagesChanged) draft.imagesChanged = true; }
+        } else if (m.kind === "draftLoadError") { if (!draft.imagesLoaded) draft.loadError = String(m.text || "storage error"); }
+        else if (m.kind === "draftSaveError") { draft.saveError = String(m.text || "storage error"); if (m.imagesChanged) draft.imagesChanged = true; }
         else if (m.kind === "draftSnapshot" || m.kind === "draftCopy") {
+          if (m.composer) draft.loadError = "";
           if (Array.isArray(m.pending)) draft.pending = m.pending;
           if (Array.isArray(m.questions)) draft.questions = m.questions;
           if (draftBackup && draftBackup.key === draft.key && draftBackup.pendingId) { draft.backupResolved = draft.backupResolved || draft.pending.some((item) => item.id === draftBackup.pendingId); draft.backupUnconfirmed = !draft.backupResolved; }

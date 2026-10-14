@@ -338,6 +338,21 @@ class ChatViewProvider {
         })),
       });
     } catch (error) {
+      if (composer) {
+        if (
+          this._convs.get(conv.id) !== conv ||
+          conv.draftKey !== key ||
+          conv._asyncToken !== token
+        )
+          return;
+        this._post({
+          kind: "draftLoadError",
+          convId: conv.id,
+          draftKey: key,
+          text: error.message,
+        });
+        return;
+      }
       this._postFrom(
         conv.id,
         { kind: "error", text: `Draft recovery failed: ${error.message}` },
@@ -2430,6 +2445,7 @@ class ChatViewProvider {
     this._postTabs();
     this._post({ kind: "reset" });
     this._restoreTranscript(conv);
+    this._restoreDraft(conv);
     this._post({
       kind: "info",
       text: `will resume ${id} — send a message to continue it`,
@@ -4448,6 +4464,7 @@ class ChatViewProvider {
     } else if (
       [
         "draftUpdate",
+        "draftReload",
         "draftRecover",
         "draftReconcile",
         "draftDiscard",
@@ -4499,7 +4516,7 @@ class ChatViewProvider {
           if (m.type === "draftDiscard")
             await this._draftStore.discard(key, m.clientMessageId);
           await this._restoreDraft(conv, {
-            composer: false,
+            composer: m.type === "draftReload",
             reconcile: m.type === "draftReconcile",
           });
         }
@@ -4711,6 +4728,7 @@ class ChatViewProvider {
       this._postTabs(); // refresh the tab bar with the reset title (also persists)
       this._fileCache = null; // pick up files created since the last scan
       this._post({ kind: "reset" });
+      this._restoreDraft(conv);
     } else if (m.type === "continueWithHistory") {
       this.continueInNewConversation();
     } else if (m.type === "newTab") {
@@ -4766,6 +4784,7 @@ class ChatViewProvider {
         this._rememberSessionId(this._convs.active()?.sessionId || null);
         this._postTabs();
         this._restoreTranscript(this._convs.active());
+        this._restoreDraft(this._convs.active());
       }
     }
   }

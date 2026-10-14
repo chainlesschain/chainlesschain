@@ -1,5 +1,5 @@
 {
-  "config.llm.configurationCliPath.description": "LLM 配置面板专用的新版 CLI 路径（支持原子保存 llm configure）。留空使用当前 CLI；此设置不改变聊天运行时。",
+  "config.llm.configurationCliPath.description": "保存 LLM 配置时使用的新版 CLI 路径（支持原子保存 llm configure）。留空使用当前 CLI；连接测试使用聊天运行时的 CLI。",
   "config.evolution.workbench.profile.description": "受信任演化工作台配置 JSON 的绝对路径。使用独立 CLI 进程加载签名部署。在源码仓库运行 node packages/cli/scripts/evolution-workbench-local-test.mjs init 可生成本地测试配置。留空则使用现有 App Server 部署。",
   "cmd.session.prStatus.title": "ChainlessChain：查看关联的 PR / CI 状态",
   "cmd.ide.showStatus.title": "ChainlessChain IDE：查看桥接状态",

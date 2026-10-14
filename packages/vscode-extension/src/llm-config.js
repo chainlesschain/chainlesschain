@@ -231,6 +231,7 @@ function runCli(command, args, deps, { stdin } = {}) {
           stdout: String(stdout || ""),
           stderr: String(stderr || ""),
           error: err ? err.message : null,
+          errorCode: err?.code,
         });
       },
     );
@@ -353,7 +354,24 @@ async function applyLlmConfig({ command, answers, deps } = {}) {
 /** Connectivity check via `cc llm test`. */
 async function testLlm({ command, deps } = {}) {
   const r = await runCli(command, ["llm", "test"], deps);
-  const tail = (r.stdout + r.stderr).trim().split("\n").slice(-3).join(" ");
+  const output = (r.stdout + r.stderr).trim() || r.error || "";
+  // A failed local launcher has not tested the provider at all. In particular,
+  // --version may work while lazy-loading `llm` fails on a missing dependency.
+  if (
+    !r.ok &&
+    (["ENOENT", "EACCES", "EPERM"].includes(r.errorCode) ||
+      /Cannot find (?:package|module)|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|is not recognized as an internal or external command|command not found/i.test(
+        output,
+      ))
+  ) {
+    return {
+      ok: false,
+      failureKind: "cli",
+      detail:
+        "本地 CLI 未能启动，尚未检测模型连接。请检查 CLI 路径和依赖安装；无需重新填写 API Key。",
+    };
+  }
+  const tail = output.split("\n").slice(-3).join(" ");
   return { ok: r.ok, detail: tail.slice(0, 300) };
 }
 
