@@ -815,11 +815,16 @@ test("resuming rejects changes to the observer dependency even with a recomputed
 test("failure to publish rejection cannot replace the original process-proof failure", async (t) => {
   const f = epochFixture(t);
   const rename = fs.renameSync;
+  const stateFile = path.join(
+    fs.realpathSync(path.dirname(f.output)),
+    path.basename(f.output),
+    "watch-v2-state.json",
+  );
   const original = Object.assign(new Error("actual query failure"), {
     code: "PROCESS_PROOF_UNAVAILABLE",
   });
   fs.renameSync = (temporary, destination) => {
-    if (destination === path.join(f.output, "watch-v2-state.json"))
+    if (destination === stateFile)
       throw Object.assign(new Error("persistent sharing violation"), {
         code: "EPERM",
       });
