@@ -40,6 +40,15 @@ describe("streaming transcript", () => {
           { id: "conv-2", title: "B" },
         ],
       });
+      // The host finishes loading persisted input before the composer can
+      // report edits as saving rather than waiting for its initial snapshot.
+      receive({
+        kind: "draftSnapshot",
+        convId: "conv-1",
+        draftKey: "draft-a",
+        composer: { text: "", images: [] },
+        pending: [],
+      });
       command("editDraft", { text: "ignored" }, "ef".repeat(32));
       expect(window.document.getElementById("input").value).toBe("");
       command("editDraft", { text: "中文😀" });
