@@ -66,7 +66,7 @@ function validateAnswers(input, current) {
 
 function openLlmConfigPanel(
   vscode,
-  { getCommand, onConfigured, api = llm } = {},
+  { getCommand, getTestCommand, onConfigured, api = llm } = {},
 ) {
   if (currentPanel) {
     currentPanel.reveal();
@@ -149,11 +149,18 @@ function openLlmConfigPanel(
         );
       } else {
         notice("正在测试已保存的连接，通常需要几秒…");
-        const result = await api.testLlm({ command: command() });
+        // configurationCliPath may point at a newer CLI only for saving. Test
+        // the runtime used by chat, which can remain a different installation.
+        const result = await api.testLlm({
+          command:
+            getTestCommand?.() || require("../cli-binary").getResolvedCli(),
+        });
         notice(
           result.ok
             ? `连接成功。${result.detail || ""}`
-            : `连接未通过：${result.detail || "请检查接口地址、协议、模型权限和账户余额。"}`,
+            : result.failureKind === "cli"
+              ? `未执行连接测试：${result.detail}`
+              : `连接未通过：${result.detail || "请检查接口地址、协议、模型权限和账户余额。"}`,
           result.ok ? "success" : "error",
         );
       }

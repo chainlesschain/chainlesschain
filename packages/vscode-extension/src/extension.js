@@ -1420,6 +1420,7 @@ async function activate(context) {
             .getConfiguration("chainlesschain.llm")
             .get("configurationCliPath", "")
             .trim() || require("./cli-binary").getResolvedCli(),
+        getTestCommand: () => chatProvider._cliCommand(),
         onConfigured: () => chatProvider.onLlmConfigured?.(),
       });
     }),
